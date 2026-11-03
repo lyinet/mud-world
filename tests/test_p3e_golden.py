@@ -21,6 +21,9 @@ from wsim.sim.headless import RunConfig, run_headless  # noqa: E402
 # 基线 v2（2026-11-04）：fallback 模板先改为“20–60 字第一人称短回应”，随后又按意图
 # 分化句式骨架（问价/赊账/问路/打听/闲聊/求助/拒绝各用独立骨架，不再只换话题名词）。
 # 两次都只改 talk 写入记忆的“我答：…”文本；事件数/经济流量不变，事件与状态哈希显式漂移。
+# 基线 v3（2026-11-04，A3 最后一轮）：提交前二次位置校验把 trade 的 not_together 从
+# pruned 改记为 stale（过期而非非法）。事件流不变，故 event/state 哈希保持；仅
+# precondition_pruned 5→2（另 3 条转入 stale.jsonl）。
 GOLDEN = {
     "events_total": 824,
     "state_final": "9d73cb2e87c52cfe9e8880ba704f957825288e95aaccdefc02725f98f08ed894",
@@ -30,7 +33,7 @@ GOLDEN = {
     "burned": 113,
     "business_cash": 12058,
     "precondition_blocked": 2,
-    "precondition_pruned": 5,
+    "precondition_pruned": 2,
 }
 
 # A2：dialogue 显式开启后，talk 的“我答：…”文本换成模型台词，事件数不变，

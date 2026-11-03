@@ -1371,14 +1371,11 @@ class MockReasoner(Reasoner):
         return intents
 
     def _override_not_worse(self, state: WorldState, rule: GoalChoice, alt: GoalChoice, npc: str) -> bool:
-        """启发式护栏：只在模型目标不劣于规则目标时覆盖。"""
+        """启发式护栏：规则目标已有进度时不允许覆盖，避免摊薄累积型目标。"""
         if alt.goal_id == rule.goal_id:
             return True
         rule_prog = float(state.goals[rule.goal_id].progress) if rule.goal_id in state.goals else 0.0
-        alt_prog = float(state.goals[alt.goal_id].progress) if alt.goal_id in state.goals else 0.0
-        if rule_prog <= 0.05:
-            return True
-        return alt_prog >= rule_prog + 0.05
+        return rule_prog <= 0.0
 
     def _choice_for_goal(self, state: WorldState, npc: str, goal_override: str) -> GoalChoice | None:
         """把模型选择的目标 id 映射成规则可执行的目标；非法/已完成返回 None。

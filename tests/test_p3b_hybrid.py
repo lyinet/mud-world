@@ -182,10 +182,11 @@ def test_three_slot_end_to_end(tmp_path, monkeypatch):
         )
     llm = result["llm"]
     assert llm["enabled"] is True
-    assert set(llm["by_slot"]) >= {"decision", "intent"}
+    # A3 最后一轮：决策 JSON 已合并 intent 参数，intent 槽调用归零。
+    assert set(llm["by_slot"]) == {"decision"}
     reasoner = llm["reasoner"]
-    assert reasoner["intent_calls"] > 0
-    assert reasoner["intent_ok"] > 0
+    assert reasoner["intent_calls"] == 0
+    assert reasoner["intent_ok"] == 0
     assert reasoner["model_actions"] > 0
     assert reasoner["rule_actions"] > 0
     assert reasoner["action_ratio"]["rule"] > 0.5

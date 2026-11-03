@@ -217,6 +217,93 @@
   阶段一零调用。累计 A3 两轮约 **`$5.796`**（跨轮预算不合并）。
 - 未达项、根因与建议均保留，未静默改基线/指标。
 
+#### A3 第三轮（收尾）：K6 竞态、intent 归零、护栏与 K3（2026-11-04）
+
+本轮规则（花钱前先定）：若 K1 仍低于规则臂 49.45%，停止调 K1，结论定为“模型带来行为多样性、
+但不提高目标完成率”，K3 转为主指标；不再追 +5pp。
+
+四项改动与验收（R 臂 `runs/a3-rule3-10d-31npc`，M 臂 `runs/a3-model3-10d-31npc`，
+最新代码零成本回放 `runs/a3-model3-replay-fix`）：
+
+| 项 | 验收线 | 实测 | 判定 |
+|---|---|---:|---|
+| K6 竞态（提交前二次位置校验） | 含剪枝 <2% | 严格 `illegal_attempt_rate=1.142%`；含剪枝 `illegal_proposal_rate=1.755%`；已执行非法 0 | PASS |
+| intent 回退归零 | `intent` 调用数 = 0 | `by_slot={"decision"}`，`intent_calls=0` | PASS |
+| 护栏“规则目标已有进度就不覆盖” | `goal_override_skipped > 0` | **3** | PASS（信号偏弱但确实会拦） |
+| K3 双层 + 折叠视图补测 | R/M 对照 | 见下表 | 已采 |
+
+K6 处置统计（位置类提案，逐条可查 `stale.jsonl` / `pruned.jsonl`）：
+
+| 类别 | 条数 | 处置 |
+|---|---:|---|
+| `trade not_together`（llm） | 35 | 提交前二次校验 → `stale`（不计非法） |
+| `trade not_together`（planner） | 18 | 同上 → `stale` |
+| `quest_accept not_at_giver`（planner） | 14 | 仍 `pruned` |
+| `quest_deliver not_at_target`（planner） | 6 | 仍 `pruned` |
+| `apprentice not_together`（llm） | 1 | 仍 `pruned` |
+| `buy wrong_location`（planner） | 1 | 仍 `pruned` |
+
+- 上一轮口径的 **57 条** `trade not_together`（38 llm + 19 planner）在本轮新规下全部走 `stale`；
+  本轮同口径为 **53 条**（35 llm + 18 planner），**0 条**继续进入 `pruned`。非 trade 的 22 条位置类
+  提案仍按原 `pruned` 处理；另有 41 条真前置/业务拦截在 `blocked`，不属于竞态。
+- K6 分子变化：`precondition_pruned` 40 → 22，`illegal_proposal_rate` 2.256% → **1.755%**；
+  `event_final` 保持 `9b921eb1…`，事件流未变，说明只是归类修正而非改世界。
+
+K3 对照（同一 10 天/31 NPC/seed=42，`diagnostic_only`）：
+
+| 指标 | R 臂 | M 臂 | M−R |
+|---|---:|---:|---:|
+| verb 层动作数 | 2840 | 3168 | +328 |
+| verb 类目 / effective | 16 / 5.9967 | 17 / 6.603 | +1 / +0.6063 |
+| verb entropy（bits） | 2.5842 | 2.7231 | +0.1389 |
+| verb pairwise JS | 0.1087 | 0.1448 | +0.0361 |
+| verb top10 share | 0.9866 | 0.9855 | −0.0011 |
+| 对象层类目 / effective | 91 / 33.0775 | 96 / 32.4131 | +5 / −0.6644 |
+| 对象层 entropy（bits） | 5.0478 | 5.0185 | −0.0293 |
+| 对象层 pairwise JS | 0.5315 | 0.5447 | +0.0132 |
+| 对象层 top10 share | 0.6081 | 0.6285 | +0.0204 |
+| `move_collapsed` effective | 13.9117 | 14.6901 | +0.7784 |
+| `move_collapsed` entropy | 3.7982 | 3.8768 | +0.0785 |
+| `move_collapsed` pairwise JS | 0.4111 | 0.4255 | +0.0144 |
+
+- 读法：M 的 verb 覆盖、effective 类目、NPC 间 JS 分散度、折叠视图均更高；对象层 effective/entropy
+  略低、top10 略集中。总体支持“模型带来行为多样性”，但**不以 K3 宣称目标完成率提升**。
+
+K1 与归因：
+
+| 判据 | R 臂 | M 臂 | 判定 |
+|---|---:|---:|---|
+| K1 官方 | 45/91=49.45% | 41/91=45.05% | **未达规则臂（−4.40pp）** |
+| 模型事件占比 | — | 264/3168=8.33%（全 ok 7.35%） | PASS |
+| `llm→goal_progress` 链 | — | **89** | PASS |
+| `goal_from_model / rule / ignored` | — | 189 / 188 / 97 | 观测 |
+| `model_actions / rule_actions` | — | 302 / 3114 | 观测 |
+
+Replay：
+
+| 录制 | 回放代码 | 结果 |
+|---|---|---|
+| `c4fc017c…`（`a3-model2-10d-31npc`） | worktree `c736849` | **MATCH**，events 3697，K1 41/91，`cost=0.0` |
+| `9b921eb1…`（`a3-model3-10d-31npc`） | 本轮最新代码 | **MATCH**，events 3590，K1 41/91，`cost=0.0`，`llm.replay.mode=replay` |
+
+成本逐项账单（M 臂，10 天/31 NPC；单价 $0.0015/1k 输入、$0.006/1k 输出，含 LOD 倍率）：
+
+| 档位 | 调用 | 输入 token | 输出 token | 成本 |
+|---|---:|---:|---:|---:|
+| spotlight | 263 | 647,321 | 13,575 | $2.104863 |
+| active | 50 | 126,484 | 2,559 | $0.205080 |
+| background | 69 | 162,722 | 3,503 | $0.132551 |
+| silent | 24 | 60,075 | 1,307 | $0.024489 |
+| **合计** | **406** | **996,602** | **20,944** | **$2.466982** |
+
+- 槽位：`decision` 406 次 / **$2.466982**；`intent` **0 次 / $0**。soft $2.5 未触发，hard $3.0 未触发，
+  run 未 `aborted`；回放本身零成本。
+- golden 基线 v3：`not_together trade` 从 `pruned` 改记 `stale`，仅 `precondition_pruned` 5→2，
+  event/state 哈希不变；`pytest -q` 222 全过。
+
+**判定（触发停止规则）**：本轮 K1 **45.05% < 49.45%**，停止调 K1；“模型带来行为多样性、
+但不提高目标完成率”成立，**K3 转为主指标**，不再开追 +5pp 的轮次。
+
 ### A4（P2，1.5–2 天）给实时会话加后台 NPC 调度器
 
 - 改什么：`api/session.py:762-774` 增加 `AmbientScheduler`（独立线程 + 现有 `LODScheduler`），按可配“逻辑时钟”推进 tick；到期唤醒默认走规则 planner（零成本），spotlight 可选走 LLM；所有写入复用 `Writer` 锁。

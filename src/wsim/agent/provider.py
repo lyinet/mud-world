@@ -755,7 +755,6 @@ class LLMReasoner(Reasoner):
                 p["result"] = res
 
         # 决策输出解析（不触发网络）：成功解析出自然语言的进入意图批处理。
-        intent_items: list[dict[str, Any]] = []
         for p in pending:
             res = p.get("result") or {}
             if res.get("error") is not None:
@@ -769,21 +768,9 @@ class LLMReasoner(Reasoner):
             hint_verb, hint_target = parse_decision_hint(str(res.get("text") or ""))
             direct = self._direct_intent(p, hint_verb, hint_target, utterance)
             if direct is not None:
-                # 决策已给出可用 verb/target：跳过意图槽网络调用。
                 p["direct_intent"] = direct
-                continue
-            if self.intent_client is not None and utterance and p.get("state") is not None:
-                self._prepare_intent(p, utterance)
-                if p.get("intent_prompt") is not None:
-                    intent_items.append(p)
-
-        if intent_items:
-            results = self.intent_client.complete_many(
-                [(p["intent_prompt"][0], p["intent_prompt"][1]) for p in intent_items],
-                concurrency=self.concurrency,
-            )
-            for p, res in zip(intent_items, results):
-                p["intent_result"] = res
+            # A3 最后一轮：intent 回退归零。决策 JSON 已合并全部动作参数，不再调用意图槽；
+            # 无法直接构造的提案放弃，由规则底稿继续执行。
 
         out: list[list[Intent]] = []
         for p in prepared:

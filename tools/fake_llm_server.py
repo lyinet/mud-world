@@ -127,9 +127,12 @@ def _response_content(cfg: FakeLLMConfig, body: dict[str, Any], index: int) -> s
         npc = str(summary.get("npc") or "")
         # 每隔几个 NPC 给一句规则域意图（move），用于验证“模型不得替换生存动作”的丢弃原因分布。
         rotate_move = bool(npc) and (sum(ord(ch) for ch in npc) % 7 == 0)
+        target = ""
+        verb = "talk"
         if rotate_move:
             intent = "去集市看看"
         elif nearby:
+            target = str(nearby[0].get("id") or "")
             intent = f"找{nearby[0].get('name') or nearby[0].get('id')}闲聊几句"
         else:
             reachable = [
@@ -142,7 +145,10 @@ def _response_content(cfg: FakeLLMConfig, body: dict[str, Any], index: int) -> s
                 intent = f"去{name}看看"
             else:
                 intent = "去集市看看"
-        return json.dumps({"goal": goal, "intent": intent}, ensure_ascii=False, sort_keys=True)
+        return json.dumps(
+            {"goal": goal, "intent": intent, "verb": verb, "target": target},
+            ensure_ascii=False, sort_keys=True,
+        )
     actions = _generate_actions(summary, rng, cfg.long_output)
     return json.dumps({"actions": actions}, ensure_ascii=False, sort_keys=True)
 

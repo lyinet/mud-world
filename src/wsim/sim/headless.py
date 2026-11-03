@@ -74,8 +74,6 @@ def intent_block_reason(registry: ActionRegistry, state: WorldState, intent: Int
 PRUNABLE_REASONS = frozenset({"not_together", "not_at_giver", "not_at_target", "wrong_location"})
 
 # 同 tick 调度优先级：只让 talk 先于 move，消除“说话前目标先走开”的顺序依赖。
-# A/B 实测（2 天 seed=42 全 NPC）：把 trade/sell/quest_* 也提前与只提前 talk，
-# 事件数/state/经济流量/K6 完全一致，仅事件序哈希不同；故取影响面最小的 talk。
 SOCIAL_FIRST_VERBS = frozenset({"talk"})
 
 
@@ -189,6 +187,9 @@ def run_headless(
     pruned: Counter[tuple[str, str]] = Counter()
     prune_examples: list[dict[str, Any]] = []
     pruned_records: list[dict[str, Any]] = []
+    # 提交前二次校验丢弃的过期模型动作（不计非法提案）。
+    stale: Counter[tuple[str, str]] = Counter()
+    stale_records: list[dict[str, Any]] = []
 
     def emit(intent: Intent):
         # 自主意图（LLM/planner）在提交前做前置校验：位置类不满足直接判不可行并丢弃
@@ -204,6 +205,12 @@ def run_headless(
                 "args": dict(intent.args or {}),
             }
             if is_prunable(reason):
+                # 提交前二次位置校验：trade 在“规划时同地点、执行时已走”的竞态下
+                # 直接丢弃，不计为非法提案（它不是非法，而是过期）；单独统计以便审计。
+                if reason == "not_together" and intent.verb == "trade":
+                    stale[(intent.verb, reason)] += 1
+                    stale_records.append(record)
+                    return None
                 pruned[(intent.verb, reason)] += 1
                 pruned_records.append(record)
                 if len(prune_examples) < 20:
@@ -1032,6 +1039,14 @@ def run_headless(
             # 全量可审计记录（不截断）；报告逐条对账以本字段为准。
             "records": blocked_records,
         },
+        "precondition_stale": {
+            "total": sum(stale.values()),
+            "by_verb": {
+                verb: dict(sorted(Counter({reason: n for (v, reason), n in stale.items() if v == verb}).items()))
+                for verb in sorted({v for v, _ in stale})
+            },
+            "records": stale_records,
+        },
         "precondition_pruned": {
             "total": sum(pruned.values()),
             "by_verb": {
@@ -1073,7 +1088,11 @@ def run_headless(
         json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8"
     )
     # 全量导出：每条提案前拦截/剪枝都可逐条审计（不截断）。
-    for name, records in (("blocked", blocked_records), ("pruned", pruned_records)):
+    for name, records in (
+        ("blocked", blocked_records),
+        ("pruned", pruned_records),
+        ("stale", stale_records),
+    ):
         (out_dir / f"{name}.jsonl").write_text(
             "".join(json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n" for r in records),
             encoding="utf-8",
