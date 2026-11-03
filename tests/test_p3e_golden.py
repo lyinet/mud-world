@@ -18,12 +18,13 @@ sys.path.insert(0, str(ROOT / "tools"))
 from fake_llm_server import FakeLLMServer  # noqa: E402
 from wsim.sim.headless import RunConfig, run_headless  # noqa: E402
 
-# 2026-11-04：fallback 模板从“第三人称档案 + 固定台词”改为“20–60 字第一人称短回应”，
-# talk 写入记忆的“我答：…”文本随之为变，事件数/经济流量不变，事件与状态哈希显式漂移。
+# 基线 v2（2026-11-04）：fallback 模板先改为“20–60 字第一人称短回应”，随后又按意图
+# 分化句式骨架（问价/赊账/问路/打听/闲聊/求助/拒绝各用独立骨架，不再只换话题名词）。
+# 两次都只改 talk 写入记忆的“我答：…”文本；事件数/经济流量不变，事件与状态哈希显式漂移。
 GOLDEN = {
     "events_total": 824,
-    "state_final": "38bdacdaa2764374ac0b59a27eab5e84788b58ba84d7e210b6915384d5f220e5",
-    "event_final": "9f2547cc85a4f89476ac947085d1a5ce9f6bd3e35b80561baa9569a99f3b7766",
+    "state_final": "9d73cb2e87c52cfe9e8880ba704f957825288e95aaccdefc02725f98f08ed894",
+    "event_final": "43e16d6b765561ed18889d533eb6d46e70192441d1ecb74e5208eb80d5c75263",
     "sell_in": 849,
     "buy_out": 795,
     "burned": 113,
