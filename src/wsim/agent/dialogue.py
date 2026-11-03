@@ -63,13 +63,29 @@ TEMPLATES: dict[str, tuple[str, ...]] = {
     "greeting.b": ("来啦，我正守着摊子；做{role}的没别的本事，你有事尽管开口。",),
     "directions.a": ("找落脚处往东街走，过了石桥见红灯笼就是客栈；我摊子在{place}，走岔了回来问我。",),
     "directions.b": ("从{place}往北两条街，门挂蓝布帘的是客栈；路口老槐树作记号，走岔了回来问我。",),
-    "gossip.person.a": ("「{topic}」这人我打过照面：嘴上是热络的，心里各有一本账；你跟这人来往，先护住钱袋。",),
-    "gossip.person.b": ("「{topic}」听来的话分两说：有人夸这人仗义，有人说这人精算；我只信亲眼见的。",),
+    "gossip.person.reputation.a": ("「{topic}」这人我打过照面：嘴上是热络的，心里各有一本账；你跟这人来往，先护住钱袋。",),
+    "gossip.person.reputation.b": ("「{topic}」听来的话分两说：有人夸这人仗义，有人说这人精算；我只信亲眼见的。",),
+    "gossip.person.relation.a": ("「{topic}」我打过几回照面，点头的交情；要托这人办事，先把丑话讲在前头。",),
+    "gossip.person.relation.b": ("「{topic}」算不上熟，见面能说两句；这人底细我不清楚，你别把要紧事押上去。",),
+    "gossip.type.a": ("「{topic}」这号人我说不准：有老实念书的，也有拿字纸算人心的；你多留个心眼。",),
+    "gossip.type.b": ("「{topic}」哪一类人都有好坏；我不看身份看做事，你相处久了自然知道。",),
+    "gossip.impact.a": ("「{topic}」那边一乱，贩猪的车就少；肉价往上走，我买卖反倒多两单，心里并不踏实。",),
+    "gossip.impact.b": ("「{topic}」那边不太平，路上查得紧；进货慢半拍，我只能抬价，赚的是辛苦钱。",),
     "gossip.event.a": ("「{topic}」街面上传得凶，一版比一版玄；我只看亲眼见的，你别再往外传。",),
     "gossip.event.b": ("「{topic}」这事我听到两耳朵，真真假假掺着；你要沾边，先把日子过稳。",),
     "gossip.who": ("「{topic}」财不露白，我不敢乱指名；你去钱庄门口站半日，看谁进出不打怵。",),
-    "price.a": ("「{topic}」按今日行情走，一斤上下浮动两文；你诚心要，零头我抹，秤上不少你。",),
-    "price.b": ("「{topic}」我这儿看货定价，好的贵两文，次的折一文；称完你验秤，短一两我赔。",),
+    "price.meat.a": ("「{topic}」按今日行情走，一斤上下浮动两文；你诚心要，零头我抹，秤上不少你。",),
+    "price.meat.b": ("「{topic}」我这儿看货定价，好的贵两文，次的折一文；称完你验秤，短一两我赔。",),
+    "price.volume.a": ("「{topic}」一天卖半扇猪，逢集多两成；肉价随行就市，我薄利走量。",),
+    "price.volume.b": ("「{topic}」平日半扇，赶集能走一整扇；卖多卖少看天，我价不乱喊。",),
+    "price.offal.a": ("「{topic}」今早留了一副，洗得干净；你要，我按斤称，晚了就没。",),
+    "price.offal.b": ("「{topic}」一副刚收拾出来，心肝都在；要就趁早，我隔夜不留。",),
+    "price.cut.a": ("「{topic}」我教你半斤逆纹切薄片，快火一炒就嫩；要炖就切块，别拿刀背砸。",),
+    "price.cut.b": ("「{topic}」先剔筋膜再下刀，片要薄、丝要顺；我切半斤给你看，别切太厚。",),
+    "price.other.a": ("「{topic}」不是我的行当，我只懂肉案；你要问这路货，得找做这行的行家，别让我瞎报价。",),
+    "price.other.b": ("「{topic}」这货我没经手，价我说不准；你去问正经做这行的，别听我外行话。",),
+    "price.capital.a": ("「{topic}」小门脸少说要二十两，押一付三；我劝你先盘账，再谈价。",),
+    "price.capital.b": ("「{topic}」盘个铺子得备二十两上下，装修另算；我说实话，钱不够先合伙，别硬撑。",),
     "credit.a": ("「{topic}」可以赊，三天为限；第四天我上门讨，别让我空手回。",),
     "credit.b": ("「{topic}」我把话说明白：现钱付一半，余下三日清；到期不还，下回别再开口。",),
     "chitchat.daily.a": ("「{topic}」我天亮磨刀、晌午出摊，收摊爱喝两口；日子磨人，手上茧子比话实在。",),
@@ -82,10 +98,16 @@ TEMPLATES: dict[str, tuple[str, ...]] = {
     "chitchat.fate.b": ("「{topic}」信不信命都得干活；我把今天过踏实，明天怎样交给天。",),
     "chitchat.safety.a": ("「{topic}」我夜里收摊先磨刀，再挑灯底下走；僻静巷子不踩，钱袋塞怀里。",),
     "chitchat.safety.b": ("「{topic}」夜里我不走暗巷，听见怪响就绕道；你要出门最好结伴，别省那两步路。",),
+    "chitchat.sound.a": ("「{topic}」后墙根响过两回，像野猫又叫春；我提刀出去看，连个影都没有。",),
+    "chitchat.sound.b": ("「{topic}」夜里听着像磨刀，又像风刮棚布；我绕过去查过，没见人。",),
+    "chitchat.family.a": ("「{topic}」就我一个光棍，一人吃饱全家不饿；亲戚走动少，倒也清净。",),
+    "chitchat.family.b": ("「{topic}」屋里没别人，就我守着这摊；逢年过节才回去看看老娘。",),
     "chitchat.future.a": ("「{topic}」往后我不敢乱猜，摊子撑一天算一天；攒下钱先清欠账，别的以后再说。",),
     "chitchat.future.b": ("「{topic}」这镇子往后怎样，我说不准；我只管把今天的肉卖完，明天的事明天愁。",),
     "help.a": ("「{topic}」我搭把手可以，先讲清要办到哪一步；能应的我应，办不到我当面回你。",),
     "help.b": ("「{topic}」这忙我帮，但有条件：不沾赌、不赊账；你应得下，我明早就去。",),
+    "help.skill.a": ("「{topic}」我劝你找口碑好的师傅，先打三年下手；别怕挨骂，手艺是磨出来的。",),
+    "help.skill.b": ("「{topic}」我跟你说，先看师傅带不带人，再谈工钱；头一年只求站稳，别急着出师。",),
     "help.invite": ("「{topic}」我应了，地方你挑；酒钱各付各的，别灌我，喝多了我还得看摊。",),
     "rejection.a": ("不买就不买，我不恼；摊子摆到天黑，你改主意再回来。",),
     "rejection.b": ("你不乐意就算了，强卖没意思；我记你一张脸，下回价照旧。",),
@@ -236,15 +258,88 @@ def _intent(message: str) -> str:
     return best
 
 
-def _person_subject(message: str) -> str:
-    """从问句里取具体人名，取不到再退回“读书人”这类身份词。"""
-    m = re.search(r"([\u4e00-\u9fa5]{1}(?:掌柜|师爷|捕快|九娘|三娘))", message)
-    if m:
-        return re.sub(r"^(?:和|与|跟|同)", "", m.group(1))
-    for word in ("读书人", "书生", "货郎", "掌柜", "师爷", "捕快"):
+_PERSON_NAME_RE = re.compile(
+    r"([\u4e00-\u9fa5]{1}(?:掌柜|师爷|捕快|九娘|三娘|老板|先生|娘子|姑娘))"
+)
+
+
+def _person_name(message: str) -> str:
+    """只取具体人名/带姓称谓；“读书人”这类泛称不算人名。"""
+    m = _PERSON_NAME_RE.search(message)
+    if not m:
+        return ""
+    return re.sub(r"^(?:和|与|跟|同)", "", m.group(1))
+
+
+def _person_generic(message: str) -> str:
+    """取泛称人群/身份词，走“人物类型”骨架，不冒充具体某人。"""
+    for word in ("读书人", "书生", "货郎", "文人", "手艺人"):
         if word in message:
             return word
     return ""
+
+
+def _object_type(message: str, intent: str) -> str:
+    """识别“诉求对象”，与意图组成二维骨架选择。
+
+    商品细分到肉/下水/切法/其他货；人物区分具体人名与泛称；另有地点、
+    钱务、消息、杂务。泛称人物必须走 gossip.type，不能混进人名骨架。
+    """
+    if intent == "price":
+        if any(w in message for w in ("本钱", "盘铺子", "盘个", "租金", "押金")):
+            return "capital"
+        if any(w in message for w in ("卖多少", "一天能卖", "走量", "能走多少")):
+            return "volume"
+        if any(w in message for w in ("猪下水", "下水", "心肝", "肚")):
+            return "offal"
+        if any(
+            w in message for w in ("瘦肉", "肥肉", "五花", "里脊", "怎么切", "切法", "切最")
+        ):
+            return "cut"
+        if any(w in message for w in ("绣品", "绣活", "布匹", "药材")):
+            return "other"
+        return "meat"
+    if intent == "gossip":
+        if any(w in message for w in ("谁最", "谁有钱", "哪家")):
+            return "who"
+        if any(w in message for w in ("不太平", "受影响", "生意", "北边")):
+            return "impact"
+        if _person_name(message):
+            return "person"
+        if _person_generic(message):
+            return "type"
+        return "news"
+    if intent == "chitchat":
+        if any(w in message for w in ("家里", "亲人", "几口人", "老娘", "婆娘")):
+            return "family"
+        if any(w in message for w in ("怪声", "响动", "什么声音", "动静")):
+            return "sound"
+        if any(w in message for w in ("安全", "夜里", "天黑", "巡街", "暗巷")):
+            return "safety"
+        if any(w in message for w in ("以后", "将来", "会变", "会成", "往后")):
+            return "future"
+        if "信命" in message or "命" in message:
+            return "fate"
+        if any(w in message for w in ("怕不怕", "加税")):
+            return "opinion"
+        if any(
+            w in message for w in ("刀工", "跟谁学", "这把刀", "把刀", "砍刀", "年头")
+        ):
+            return "craft"
+        return "daily"
+    if intent == "help":
+        if any(w in message for w in ("喝酒", "赏脸", "请你", "喝碗酒")):
+            return "invite"
+        if any(w in message for w in ("学门手艺", "学手艺", "拜师", "收徒", "建议")):
+            return "skill"
+        return "errand"
+    if intent == "directions":
+        return "place"
+    if intent == "credit":
+        return "credit"
+    if intent == "rejection":
+        return "refusal"
+    return "none"
 
 
 def _topic(message: str, intent: str) -> str:
@@ -258,7 +353,7 @@ def _topic(message: str, intent: str) -> str:
     if intent == "gossip":
         if any(w in message for w in ("谁最", "谁有钱", "哪家")):
             return "谁最有钱"
-        name = _person_subject(message)
+        name = _person_name(message)
         if name:
             return name
     if intent == "chitchat":
@@ -307,39 +402,54 @@ def _topic(message: str, intent: str) -> str:
     return TOPIC_DEFAULT.get(intent, "这话")
 
 
-def _skeleton(intent: str, message: str, turn: int) -> str:
-    """同一意图内再用子类骨架分化；不同意图不复用同一骨架 id。
+def _skeleton(intent: str, message: str, turn: int, obj: str) -> str:
+    """二维骨架选择：意图类别 + 诉求对象，再用 turn 交替 a/b 变体。
 
-    变体按 turn 交替，保证同一 NPC 连续两轮不会给出完全相同的句子。
+    不同对象不复用同一骨架 id，避免“所有生意问题都答肉价”；同一对象
+    连续两轮由 turn 变体轮换，不会给出同一句。
     """
 
     def ab(base: str) -> str:
         return f"{base}.{'ab'[turn % 2]}"
 
+    if intent == "price":
+        base = {
+            "capital": "price.capital",
+            "volume": "price.volume",
+            "offal": "price.offal",
+            "cut": "price.cut",
+            "other": "price.other",
+        }.get(obj, "price.meat")
+        return ab(base)
     if intent == "gossip":
-        if any(w in message for w in ("谁最", "谁有钱", "哪家")):
+        if obj == "who":
             return "gossip.who"
-        if _person_subject(message) or any(
-            w in message for w in ("为人", "认识", "熟吗", "靠得住", "公道")
-        ):
-            return ab("gossip.person")
+        if obj == "impact":
+            return ab("gossip.impact")
+        if obj == "type":
+            return ab("gossip.type")
+        if obj == "person":
+            if any(w in message for w in ("认识", "熟吗", "熟不熟", "打过交道")):
+                return ab("gossip.person.relation")
+            return ab("gossip.person.reputation")
         return ab("gossip.event")
     if intent == "chitchat":
-        if any(w in message for w in ("安全", "怪声", "夜里", "天黑", "巡街")):
-            return ab("chitchat.safety")
-        if any(w in message for w in ("以后", "将来", "会变", "会成", "往后")):
-            return ab("chitchat.future")
-        if any(w in message for w in ("怕不怕", "信命")):
-            if "信命" in message:
-                return ab("chitchat.fate")
-            return ab("chitchat.opinion")
-        if any(w in message for w in ("刀工", "跟谁学", "这把刀", "把刀", "砍刀", "年头")):
-            return ab("chitchat.craft")
-        return ab("chitchat.daily")
-    if intent == "help" and any(
-        w in message for w in ("喝酒", "赏脸", "请你", "喝碗酒")
-    ):
-        return "help.invite"
+        base = {
+            "family": "chitchat.family",
+            "sound": "chitchat.sound",
+            "safety": "chitchat.safety",
+            "future": "chitchat.future",
+            "fate": "chitchat.fate",
+            "opinion": "chitchat.opinion",
+            "craft": "chitchat.craft",
+        }.get(obj, "chitchat.daily")
+        return ab(base)
+    if intent == "help":
+        if obj == "invite":
+            return "help.invite"
+        if obj == "skill":
+            return ab("help.skill")
+        return ab("help")
     return ab(intent)
 
 
@@ -403,8 +513,9 @@ def compose_talk(
     sent_digest = hashlib.sha256(f"{npc_id}|{message}|{tick}".encode("utf-8")).hexdigest()
 
     intent = _intent(message)
+    obj = _object_type(message, intent)
     topic = _topic(message, intent)
-    skeleton = _skeleton(intent, message, turn)
+    skeleton = _skeleton(intent, message, turn, obj)
     body = TEMPLATES[skeleton][0].format(
         role=profile["role"], place=profile["place"], topic=topic
     )
@@ -416,6 +527,7 @@ def compose_talk(
         "reply": reply,
         "quote": quote,
         "intent": intent,
+        "object": obj,
         "skeleton": skeleton,
         "topic": topic,
         "style": voice["style"],
