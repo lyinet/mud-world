@@ -805,8 +805,12 @@ class WorldUIAdapter:
         faction_id = ent.get("faction")
         biz_id = ent.get("business") or ent.get("employed_at")
         last_action = next(
-            (e for e in recent if not str(e.get("verb") or "").startswith("system_")),
-            recent[0] if recent else None,
+            (
+                e
+                for e in sorted(mine, key=lambda x: x["seq"], reverse=True)
+                if not str(e.get("verb") or "").startswith("system_")
+            ),
+            None,
         )
         doing = (
             f"{last_action['verb_label']}（{last_action['time']}，{last_action['location'] or '未知地点'}）"
