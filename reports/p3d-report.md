@@ -162,6 +162,11 @@ P3-D 的 2 天桩对照（上表）才是同窗口、同适配层的对照。
   - `event_final = 4f06496edb064919c8cfc558915d0b2cd957b7bcf07da31d91c7f7c52575bee8`
   - 唯一失败调用在回放中表现为 `transport:replay_miss`，世界结果相同。
 - `tools/replay.py` 对事件日志回放：**MATCH**。
+- 干净 worktree 验证：从 tag `delivery-p3d` 新建 `/tmp/wsim-p3d-clean`，
+  `pytest` **161 passed**；用同一录制文件回放 2 天（不联网、决策槽仍为假端点 3427），
+  得到与真实跑完全相同的 `state_final` / `event_final`，`events=208`、K1 7/91、
+  唯一失败调用为 `transport:replay_miss`，`tools/replay.py` **MATCH**。
+  说明“真实模型不可逐字复现，但录制返回可确定性复现世界”。
 
 ---
 

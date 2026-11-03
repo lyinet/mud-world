@@ -275,4 +275,4 @@
 ## D5 真实 2 天与冻结
 - [x] 真实 Xing 意图槽 2 天（seed 42 / 12 NPC），采集完整数字。
 - [x] 写 `reports/p3d-report.md`，与 P3-C 并列且标注不可比。
-- [ ] commit → `git tag -a delivery-p3d`；干净 worktree 重跑并回填。
+- [x] commit → `git tag -a delivery-p3d`；干净 worktree 重跑并回填。
