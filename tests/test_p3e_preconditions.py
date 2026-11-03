@@ -7,7 +7,7 @@ from wsim.actions.registry import build_registry
 from wsim.audit.illegal import illegal_stats
 from wsim.core.content import load_content
 from wsim.core.models import Effect, Event, Intent
-from wsim.sim.headless import intent_block_reason
+from wsim.sim.headless import intent_block_reason, is_prunable
 from wsim.world.effects import apply_effects
 from wsim.world.state import WorldState
 from wsim.world.store import EventStore
@@ -47,6 +47,30 @@ def test_llm_talk_without_move_is_blocked_before_event(tmp_path):
     if not reason:
         writer.submit(intent)
     assert store.read_all() == [], "前置不满足的 talk 不能生成 talk:not_together 事件"
+
+
+def test_location_precondition_is_pruned_before_blocked(tmp_path):
+    """位置类前置不满足时直接判不可行（pruned），不再计入 blocked。"""
+    registry, writer, store = _world(tmp_path)
+    talk = Intent(
+        actor="npc_a",
+        verb="talk",
+        args={"target": "npc_b", "message": "近来可好？"},
+        tick=6,
+        source="llm",
+    )
+    assert intent_block_reason(registry, writer.state, talk) == "not_together"
+    assert is_prunable("not_together") is True
+    assert is_prunable("not_at_giver") is True
+    assert is_prunable("item_not_held") is False
+    assert store.read_all() == []
+
+    ghost = Intent(
+        actor="npc_a", verb="talk", args={"target": "npc_ghost", "message": "喂"},
+        tick=6, source="llm",
+    )
+    assert intent_block_reason(registry, writer.state, ghost) == "unknown_target"
+    assert is_prunable("unknown_target") is False
 
 
 def test_planner_trade_and_quest_are_blocked_before_event(tmp_path):

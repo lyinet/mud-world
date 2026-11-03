@@ -50,36 +50,90 @@
 
 | 项 | 值 |
 | --- | --- |
-| events / rejected / precondition_blocked | 222 / 0 / 2 |
+| events / rejected / blocked / pruned | 222 / 0 / 0 / 2 |
 | 非法率（已执行动作口径） | 0/222 = 0.00% |
-| 非法率（违规尝试口径，严格） | (0+2)/222 = 0.90% |
+| 非法率（严格：rejected+blocked） | (0+0)/222 = 0.00%（PASS=True） |
+| 非法率（含剪枝：rejected+blocked+pruned） | (0+0+2)/222 = 0.90%（PASS=True） |
 | K1 | 7/91 = 7.69%（k1_pass=False） |
 | 动作来源 | model=0.7% / rule=99.3% |
 | LLM 调用 | {'decision': 19, 'intent': 19}；calls_by_timing={'night_batch': 14, 'realtime': 5} |
 | thinking 标记 | {'decision': {'reasoning_effort=none': 5}, 'intent': {'reasoning_effort=none': 19}} |
-| intent 结果 | ok=4 / clarification=4 / reject=11 |
-| grounding 拦截 | 3（{'hours': 1, 'message': 2}） |
+| intent 结果 | ok=10 / clarification=2 / reject=7 |
+| grounding 拦截 | 1（{'message': 1}） |
 | dialogue 调用 | slot=0；budget={} |
-| 延迟 p50/p95 | decision={'n': 19, 'p50': 0.995, 'p95': 1.552}；intent={'n': 19, 'p50': 0.823, 'p95': 0.952} |
-| 费用 / fallback | $0.082242 / 0 |
-| state/event hash | `9129402e7b8a516705809aacf626b746fab659f8b3ab9067b0c6d1fe55ca647a` / `65fb7c2a506d6fcd1f6140fbb09bb90d8d17c5fc53b18829005ba312e64e4db7` |
+| 延迟 p50/p95 | decision={'n': 19, 'p50': 0.911, 'p95': 1.209}；intent={'n': 19, 'p50': 0.72, 'p95': 0.883} |
+| 费用 / fallback | $0.081921 / 0 |
+| state/event hash | `28b733facdcf8044b75f74fc0568ffd4da642579b3f85ec388dd98adb809f452` / `b327360550d00c48f430045d4d353e48bd77439f62477cee22b36357f130c6f5` |
 
-## 3. K6 非法率两种口径（2 天假端点）
+## 3. K6 非法率（两套 2 天 run，三种口径）
 
-| 口径 | 公式 | 值 | 门槛 2% |
-| --- | --- | ---: | --- |
-| 已执行动作 | rejected / events | 0/816 = 0.00% | PASS |
-| 违规尝试（严格，结论） | (rejected + blocked) / events | (0+27)/816 = 3.31% | FAIL |
+口径定义：`已执行 = rejected/events`；`严格 = (rejected+blocked)/events`（结论口径）；`含剪枝 = (rejected+blocked+pruned)/events`（防止“把违规移出指标”的质疑）。
 
-- 拦截明细：{'quest_accept': {'not_at_giver': 2}, 'quest_deliver': {'quest_not_accepted_by_actor': 2}, 'sell': {'item_not_held': 1}, 'talk': {'not_together': 18}, 'trade': {'not_together': 4}}
-- `summary.verdict.k6_illegal_pass`（严格）= False；`k6_illegal_executed_pass` = True
+| run | events | rejected | blocked | pruned | 已执行 | 严格 | 含剪枝 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fake 旧（修复前） | 816 | 0 | 27 | 0 | 0.00% | 3.31% FAIL | n/a |
+| fake 新（修复后） | 824 | 0 | 2 | 5 | 0.00% | 0.24% PASS | 0.85% PASS |
+| deepseek 旧（修复前） | 222 | 0 | 2 | 0 | 0.00% | 0.90% FAIL | n/a |
+| deepseek 新（修复后） | 222 | 0 | 0 | 2 | 0.00% | 0.00% PASS | 0.90% PASS |
 
-## 4. 复现链
+## 4. blocked 逐条分布（旧 27 条 → 新 residual）
 
-- 事件日志回放：`reports/evidence/runs/p3e-deepseek-real-2d-12npc` → events=222，replayed=`9129402e7b8a516705809aacf626b746fab659f8b3ab9067b0c6d1fe55ca647a`，stored=`9129402e7b8a516705809aacf626b746fab659f8b3ab9067b0c6d1fe55ca647a`，**MATCH**
-- 仅 intent 槽录制重跑：events=220，state=`7a5ce1bd69e45283f2d098bd173ce8dad6e5c04580a96ba09146a5b94efe7988`，event=`53c1460f9d9dd7e5b031470cc56d8d6e1b86b3eb043feec1de8a933238d74cab`，intent_calls=19，replay_miss=19，intent_reject=19，cost_calls=38，fallbacks=0
+### 4.1 修复前后按动作 + 原因对比
+
+| 动作 | 原因 | 旧 blocked | 新 blocked | 新 pruned | 处置 |
+| --- | --- | ---: | ---: | ---: | --- |
+| quest_accept | not_at_giver | 2 | 0 | 2 | 提交前剪枝：未在委托人处 |
+| quest_deliver | quest_not_accepted_by_actor | 2 | 2 | 0 | 合理拦截：前置不可知（依赖当日规划是否成功接取） |
+| sell | item_not_held | 1 | 0 | 0 | 可由 sell 持有量前置校验消除 |
+| talk | not_together | 18 | 0 | 0 | 提交前剪枝：位置不一致，直接判不可行（零事件/零副作用） |
+| trade | not_together | 4 | 0 | 3 | 提交前剪枝：位置不一致，直接判不可行（零事件/零副作用） |
+| **合计** | | **27** | **2** | **5** | |
+
+### 4.2 旧 27 条逐条明细（summary 的 examples 上限 20 条）
+
+| # | 动作 | 原因 | actor | tick | source |
+| ---: | --- | --- | --- | ---: | --- |
+| 1 | talk | not_together | jin_mancang | 6 | llm |
+| 2 | talk | not_together | liu_sanniang | 7 | llm |
+| 3 | talk | not_together | xing_pojun | 7 | llm |
+| 4 | talk | not_together | duan_wudou | 13 | llm |
+| 5 | sell | item_not_held | jin_mancang | 22 | planner |
+| 6 | talk | not_together | jin_mancang | 45 | llm |
+| 7 | trade | not_together | meng_jiuniang | 49 | planner |
+| 8 | talk | not_together | duan_wudou | 52 | llm |
+| 9 | talk | not_together | liu_sanniang | 52 | llm |
+| 10 | talk | not_together | xing_pojun | 52 | llm |
+| 11 | trade | not_together | luo_qingxu | 83 | planner |
+| 12 | talk | not_together | jin_mancang | 89 | llm |
+| 13 | talk | not_together | duan_wudou | 90 | llm |
+| 14 | talk | not_together | liu_sanniang | 97 | llm |
+| 15 | talk | not_together | jin_mancang | 129 | llm |
+| 16 | talk | not_together | duan_wudou | 134 | llm |
+| 17 | talk | not_together | liu_sanniang | 139 | llm |
+| 18 | trade | not_together | cao_banxian | 148 | planner |
+| 19 | talk | not_together | yan_shouyi | 149 | llm |
+| 20 | talk | not_together | ruan_qingfu | 150 | llm |
+
+剩余 7 条未落入 examples 上限，按上表计数分布统计。
+
+### 4.3 新 residual 逐条明细
+
+| 类别 | # | 动作 | 原因 | actor | tick | source |
+| --- | ---: | --- | --- | --- | ---: | --- |
+| blocked | 1 | quest_deliver | quest_not_accepted_by_actor | yan_shouyi | 158 | planner |
+| blocked | 2 | quest_deliver | quest_not_accepted_by_actor | ruan_qingfu | 160 | planner |
+| pruned | 1 | trade | not_together | meng_jiuniang | 49 | planner |
+| pruned | 2 | trade | not_together | luo_qingxu | 83 | planner |
+| pruned | 3 | quest_accept | not_at_giver | yan_shouyi | 152 | planner |
+| pruned | 4 | trade | not_together | yan_shouyi | 155 | planner |
+| pruned | 5 | quest_accept | not_at_giver | ruan_qingfu | 156 | planner |
+
+## 5. 复现链
+
+- 事件日志回放：`reports/evidence/runs/p3e-deepseek-real-2d-12npc-k6fix` → events=222，replayed=`28b733facdcf8044b75f74fc0568ffd4da642579b3f85ec388dd98adb809f452`，stored=`28b733facdcf8044b75f74fc0568ffd4da642579b3f85ec388dd98adb809f452`，**MATCH**
+- 仅 intent 槽录制重跑：events=220，state=`7a5ce1bd69e45283f2d098bd173ce8dad6e5c04580a96ba09146a5b94efe7988`，event=`a35cd8bd48d3a8bf7e51d0a0406a68a2af3988c0e922a7c66759f1efcc113820`，intent_calls=19，replay_miss=18，intent_reject=19，blocked=0，pruned=2，cost_calls=38，fallbacks=0
 - 结论：事件日志可回放到同一 state hash；整跑不可复现（decision 槽未录制）。
 
-## 5. 意图录制复算
+## 6. 意图录制复算
 
 - 19 条；prompt/completion tokens = 25898/354；p50=0.823s，p95=0.952s

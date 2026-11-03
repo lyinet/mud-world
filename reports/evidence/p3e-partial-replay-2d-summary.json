@@ -1,8 +1,8 @@
 {
   "budget": {
     "day_cost": {
-      "0": 0.030155,
-      "1": 0.021255
+      "0": 0.030145,
+      "1": 0.02113
     },
     "day_tokens": {
       "0": 25846,
@@ -30,7 +30,7 @@
     },
     "mocked": 0,
     "mocked_by_day": {},
-    "month_cost": 0.05141,
+    "month_cost": 0.051275,
     "month_tokens": 41601
   },
   "content_audit": {
@@ -195,12 +195,12 @@
     "by_slot": {
       "decision": {
         "calls": 19,
-        "estimated_cost": 0.05141025,
+        "estimated_cost": 0.05127525,
         "input_tokens": 41601,
         "models": [
           "deepseek/deepseek-flash"
         ],
-        "output_tokens": 933,
+        "output_tokens": 896,
         "per_1k_input_tokens": 0.0015,
         "per_1k_output_tokens": 0.006,
         "schema_rejects": 0,
@@ -215,47 +215,48 @@
       },
       "intent": {
         "calls": 19,
-        "estimated_cost": 0.0,
-        "input_tokens": 0,
+        "estimated_cost": 0.002124,
+        "input_tokens": 1380,
         "models": [
           "deepseek/deepseek-flash"
         ],
-        "output_tokens": 0,
+        "output_tokens": 9,
         "per_1k_input_tokens": 0.0015,
         "per_1k_output_tokens": 0.006,
         "schema_rejects": 0,
         "thinking_disabled_by": {},
         "thinking_param_ignored": 0,
-        "token_missing_calls": 19,
+        "token_missing_calls": 18,
         "usage_sources": [
-          "missing"
+          "missing",
+          "reported"
         ]
       }
     },
     "by_tier": {
       "active": {
         "calls": 22,
-        "estimated_cost": 0.0399855,
-        "input_tokens": 24437,
-        "output_tokens": 555,
+        "estimated_cost": 0.0420495,
+        "input_tokens": 25817,
+        "output_tokens": 554,
         "persona_tokens": 3598,
         "schema_rejects": 0,
-        "token_missing_calls": 11
+        "token_missing_calls": 10
       },
       "background": {
         "calls": 10,
-        "estimated_cost": 0.0088425,
+        "estimated_cost": 0.0087735,
         "input_tokens": 10842,
-        "output_tokens": 237,
+        "output_tokens": 214,
         "persona_tokens": 1600,
         "schema_rejects": 0,
         "token_missing_calls": 5
       },
       "silent": {
         "calls": 6,
-        "estimated_cost": 0.00258225,
+        "estimated_cost": 0.00257625,
         "input_tokens": 6322,
-        "output_tokens": 141,
+        "output_tokens": 137,
         "persona_tokens": 924,
         "schema_rejects": 0,
         "token_missing_calls": 3
@@ -263,10 +264,10 @@
     },
     "calls": 38,
     "currency": "USD",
-    "estimated_cost": 0.05141025,
+    "estimated_cost": 0.05339925,
     "fallbacks": 0,
-    "input_tokens": 41601,
-    "output_tokens": 933,
+    "input_tokens": 42981,
+    "output_tokens": 905,
     "persona_tokens": 6122,
     "rates": {
       "per_1k_input_tokens": 0.0015,
@@ -284,7 +285,7 @@
       "reasoning_effort=none": 5
     },
     "thinking_param_ignored": 0,
-    "token_missing_calls": 19
+    "token_missing_calls": 18
   },
   "days": 2,
   "decisions": {
@@ -444,14 +445,16 @@
   "events": {
     "by_reason": {},
     "by_verb": {},
-    "illegal_attempt_rate": 0.00909090909090909,
+    "illegal_attempt_rate": 0.0,
+    "illegal_proposal_rate": 0.00909090909090909,
     "illegal_rate": 0.0,
-    "precondition_blocked": 2,
+    "precondition_blocked": 0,
+    "precondition_pruned": 2,
     "rejected": 0,
     "total": 220
   },
   "hashes": {
-    "event_final": "53c1460f9d9dd7e5b031470cc56d8d6e1b86b3eb043feec1de8a933238d74cab",
+    "event_final": "a35cd8bd48d3a8bf7e51d0a0406a68a2af3988c0e922a7c66759f1efcc113820",
     "state_day10": null,
     "state_final": "7a5ce1bd69e45283f2d098bd173ce8dad6e5c04580a96ba09146a5b94efe7988"
   },
@@ -3083,9 +3086,11 @@
       "by_reason": {},
       "by_verb": {},
       "events_total": 220,
-      "illegal_attempt_rate": 0.00909090909090909,
+      "illegal_attempt_rate": 0.0,
+      "illegal_proposal_rate": 0.00909090909090909,
       "illegal_rate": 0.0,
-      "precondition_blocked": 2,
+      "precondition_blocked": 0,
+      "precondition_pruned": 2,
       "rejected": 0
     },
     "relations_all_kinds": {
@@ -3129,12 +3134,12 @@
     "by_slot": {
       "decision": {
         "calls": 19,
-        "estimated_cost": 0.05141025,
+        "estimated_cost": 0.05127525,
         "input_tokens": 41601,
         "models": [
           "deepseek/deepseek-flash"
         ],
-        "output_tokens": 933,
+        "output_tokens": 896,
         "per_1k_input_tokens": 0.0015,
         "per_1k_output_tokens": 0.006,
         "schema_rejects": 0,
@@ -3149,20 +3154,21 @@
       },
       "intent": {
         "calls": 19,
-        "estimated_cost": 0.0,
-        "input_tokens": 0,
+        "estimated_cost": 0.002124,
+        "input_tokens": 1380,
         "models": [
           "deepseek/deepseek-flash"
         ],
-        "output_tokens": 0,
+        "output_tokens": 9,
         "per_1k_input_tokens": 0.0015,
         "per_1k_output_tokens": 0.006,
         "schema_rejects": 0,
         "thinking_disabled_by": {},
         "thinking_param_ignored": 0,
-        "token_missing_calls": 19,
+        "token_missing_calls": 18,
         "usage_sources": [
-          "missing"
+          "missing",
+          "reported"
         ]
       }
     },
@@ -3204,21 +3210,21 @@
     },
     "intent_error": "",
     "latency": {
-      "max": 1.74,
-      "mean": 0.531,
+      "max": 1.288,
+      "mean": 0.466,
       "min": 0.0,
-      "n": 36,
-      "p50": 0.782,
-      "p95": 1.412
+      "n": 38,
+      "p50": 0.002,
+      "p95": 1.171
     },
     "latency_by_slot": {
       "decision": {
         "n": 19,
-        "p50": 0.904,
-        "p95": 1.418
+        "p50": 0.938,
+        "p95": 1.173
       },
       "intent": {
-        "n": 17,
+        "n": 19,
         "p50": 0.0,
         "p95": 0.002
       }
@@ -3241,9 +3247,9 @@
       "first_fail": 0,
       "first_pass": 19,
       "first_pass_rate": 1.0,
-      "goal_from_model": 9,
-      "goal_from_rule": 7,
-      "goal_ignored": 7,
+      "goal_from_model": 8,
+      "goal_from_rule": 8,
+      "goal_ignored": 8,
       "intent_calls": 19,
       "intent_clarification": 0,
       "intent_client_stats": {
@@ -3268,7 +3274,7 @@
         },
         "calls": 19,
         "errors_by_kind": {
-          "replay_miss": 19
+          "replay_miss": 18
         },
         "http_429": 0,
         "latency": {
@@ -3281,7 +3287,7 @@
           "p95": 0.002
         },
         "retries": 0,
-        "success": 0
+        "success": 1
       },
       "intent_dropped_fields": {},
       "intent_grounding_blocked": 0,
@@ -3301,15 +3307,23 @@
       "intent_ok": 0,
       "intent_reject": 19,
       "intent_reject_by_reason": {
-        "transport:replay_miss": 19
+        "transport:replay_miss": 18,
+        "unknown_category": 1
       },
-      "intent_unknown_category": 0,
-      "intent_unknown_category_cases": [],
+      "intent_unknown_category": 1,
+      "intent_unknown_category_cases": [
+        {
+          "model_output": "{\"category\":\"unknown\",\"args\":{}}",
+          "npc": "liu_sanniang",
+          "tick": 210,
+          "utterance": "午后在摊后裁一版新花样，把绣活手艺再磨细些"
+        }
+      ],
       "intent_unknown_keys": {},
       "intent_usage": {
-        "completion_tokens": 0,
-        "missing_usage_calls": 19,
-        "prompt_tokens": 0
+        "completion_tokens": 9,
+        "missing_usage_calls": 18,
+        "prompt_tokens": 1380
       },
       "mock_by_timing": {},
       "model_actions": 0,
@@ -3318,7 +3332,7 @@
       "repair_calls": 0,
       "repair_succeeded": 0,
       "rule_actions": 282,
-      "wall_time_s": 8.9
+      "wall_time_s": 8.367
     },
     "reasoner_calls": 19,
     "reasoner_fallbacks": 0,
@@ -3380,8 +3394,8 @@
     },
     "success_rate": 1.0,
     "usage_source": {
-      "missing": 19,
-      "reported": 19
+      "missing": 18,
+      "reported": 20
     }
   },
   "lod": {
@@ -3482,6 +3496,11 @@
   },
   "npc_count": 12,
   "precondition_blocked": {
+    "by_verb": {},
+    "examples": [],
+    "total": 0
+  },
+  "precondition_pruned": {
     "by_verb": {
       "trade": {
         "not_together": 2
@@ -3615,6 +3634,7 @@
     "k3_status": "diagnostic_only",
     "k6_conservation_pass": true,
     "k6_illegal_executed_pass": true,
+    "k6_illegal_incl_pruned_pass": true,
     "k6_illegal_pass": true,
     "k6_relations_pass": true,
     "wage_chain_pass": true
@@ -4505,5 +4525,5 @@
       "work_events": 28
     }
   },
-  "wall_time_s": 9.24
+  "wall_time_s": 8.687
 }

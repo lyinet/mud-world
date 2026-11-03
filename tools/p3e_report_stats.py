@@ -33,7 +33,11 @@ from wsim.world.state import WorldState  # noqa: E402
 from wsim.world.store import EventStore  # noqa: E402
 
 EVIDENCE = ROOT / "reports" / "evidence"
-RUN = EVIDENCE / "runs" / "p3e-deepseek-real-2d-12npc"
+RUN = EVIDENCE / "runs" / "p3e-deepseek-real-2d-12npc-k6fix"
+REAL_SUMMARY = EVIDENCE / "p3e-deepseek-real-2d-12npc-k6fix-summary.json"
+REAL_BEFORE = EVIDENCE / "p3e-deepseek-real-2d-12npc-summary.json"
+FAKE_SUMMARY = EVIDENCE / "p3e-fake-llm-2d-summary-k6fix.json"
+FAKE_BEFORE = EVIDENCE / "p3e-fake-llm-2d-summary.json"
 
 
 def _rows(path: Path) -> list[dict]:
@@ -120,24 +124,34 @@ def recording_stats() -> dict:
 
 
 def real_run_stats() -> dict:
-    d = json.loads((EVIDENCE / "p3e-deepseek-real-2d-12npc-summary.json").read_text(encoding="utf-8"))
+    d = json.loads(REAL_SUMMARY.read_text(encoding="utf-8"))
     llm = d["llm"]
     reasoner = llm["reasoner"]
     by_slot = llm["by_slot"]
     latency = llm["latency_by_slot"]
+    total = d["events"]["total"]
+    rejected = d["events"]["rejected"]
+    blocked = d["precondition_blocked"]["total"]
+    pruned = d["precondition_pruned"]["total"]
     return {
         "run_id": d["run_id"],
         "seed": d["seed"],
         "days": d["days"],
         "npc_count": d["npc_count"],
         "content_hash": d["content_hash"],
-        "events_total": d["events"]["total"],
-        "rejected": d["events"]["rejected"],
+        "events_total": total,
+        "rejected": rejected,
         "illegal_rate_executed": d["events"]["illegal_rate"],
-        "precondition_blocked": d["precondition_blocked"]["total"],
+        "precondition_blocked": blocked,
         "precondition_blocked_by_verb": d["precondition_blocked"]["by_verb"],
-        "illegal_attempt_rate": (d["events"]["rejected"] + d["precondition_blocked"]["total"])
-        / d["events"]["total"],
+        "precondition_blocked_examples": d["precondition_blocked"]["examples"],
+        "precondition_pruned": pruned,
+        "precondition_pruned_by_verb": d["precondition_pruned"]["by_verb"],
+        "precondition_pruned_examples": d["precondition_pruned"]["examples"],
+        "illegal_attempt_rate": (rejected + blocked) / total,
+        "illegal_proposal_rate": (rejected + blocked + pruned) / total,
+        "k6_illegal_pass": d["verdict"]["k6_illegal_pass"],
+        "k6_illegal_incl_pruned_pass": d["verdict"]["k6_illegal_incl_pruned_pass"],
         "state_final": d["hashes"]["state_final"],
         "event_final": d["hashes"]["event_final"],
         "cost_calls": d["cost"]["calls"],
@@ -162,18 +176,48 @@ def real_run_stats() -> dict:
     }
 
 
-def fake_run_stats() -> dict:
-    d = json.loads((EVIDENCE / "p3e-fake-llm-2d-summary.json").read_text(encoding="utf-8"))
+DISPOSITION = {
+    "not_together": "提交前剪枝：位置不一致，直接判不可行（零事件/零副作用）",
+    "not_at_giver": "提交前剪枝：未在委托人处",
+    "not_at_target": "提交前剪枝：未在目标地点",
+    "wrong_location": "提交前剪枝：地点不一致",
+    "item_not_held": "可由 sell 持有量前置校验消除",
+    "quest_not_accepted_by_actor": "合理拦截：前置不可知（依赖当日规划是否成功接取）",
+    "unknown_target": "可由存在性前置校验消除",
+}
+
+
+def _flat_counts(by_verb: dict | None) -> dict[tuple[str, str], int]:
+    out: dict[tuple[str, str], int] = {}
+    for verb, reasons in (by_verb or {}).items():
+        for reason, n in (reasons or {}).items():
+            out[(verb, reason)] = int(n)
+    return out
+
+
+def fake_run_stats(path: Path = FAKE_SUMMARY) -> dict:
+    d = json.loads(path.read_text(encoding="utf-8"))
     reasoner = d["llm"]["reasoner"]
+    total = d["events"]["total"]
+    rejected = d["events"]["rejected"]
+    blocked_d = d.get("precondition_blocked") or {}
+    blocked = int(blocked_d.get("total", sum(_flat_counts(blocked_d.get("by_verb")).values())))
+    pruned_d = d.get("precondition_pruned") or {}
+    pruned = int(pruned_d.get("total", sum(_flat_counts(pruned_d.get("by_verb")).values()))) if pruned_d else 0
     return {
-        "events_total": d["events"]["total"],
-        "rejected": d["events"]["rejected"],
-        "precondition_blocked": d["precondition_blocked"]["total"],
+        "events_total": total,
+        "rejected": rejected,
+        "precondition_blocked": blocked,
         "precondition_blocked_by_verb": d["precondition_blocked"]["by_verb"],
+        "precondition_blocked_examples": d["precondition_blocked"]["examples"],
+        "precondition_pruned": pruned,
+        "precondition_pruned_by_verb": d.get("precondition_pruned", {}).get("by_verb", {}),
+        "precondition_pruned_examples": d.get("precondition_pruned", {}).get("examples", []),
         "illegal_rate_executed": d["events"]["illegal_rate"],
-        "illegal_attempt_rate": (d["events"]["rejected"] + d["precondition_blocked"]["total"])
-        / d["events"]["total"],
+        "illegal_attempt_rate": (rejected + blocked) / total,
+        "illegal_proposal_rate": (rejected + blocked + pruned) / total,
         "k6_illegal_pass_strict": d["verdict"]["k6_illegal_pass"],
+        "k6_illegal_incl_pruned_pass": d["verdict"].get("k6_illegal_incl_pruned_pass"),
         "k6_illegal_executed_pass": d["verdict"].get("k6_illegal_executed_pass"),
         "k1_rate": d["k1"]["k1_rate"],
         "action_ratio": reasoner.get("action_ratio"),
@@ -191,6 +235,8 @@ def partial_replay_stats() -> dict:
         "replay_miss": (stats.get("errors_by_kind") or {}).get("replay_miss", 0),
         "intent_calls": stats.get("calls"),
         "intent_reject": d["llm"]["reasoner"].get("intent_reject"),
+        "precondition_blocked": (d.get("precondition_blocked") or {}).get("total", 0),
+        "precondition_pruned": (d.get("precondition_pruned") or {}).get("total", 0),
         "cost_calls": d["cost"]["calls"],
         "fallbacks": d["cost"]["fallbacks"],
     }
@@ -222,14 +268,18 @@ def main() -> int:
     cov = coverage_stats()
     rec = recording_stats()
     real = real_run_stats()
+    real_before = fake_run_stats(REAL_BEFORE)
     fake = fake_run_stats()
+    fake_before = fake_run_stats(FAKE_BEFORE)
     partial = partial_replay_stats()
     replay = event_replay_stats()
     doc = {
         "coverage": cov,
         "intent_recordings": rec,
         "real_2d": real,
+        "real_2d_before_k6fix": real_before,
         "fake_2d_k6": fake,
+        "fake_2d_before_k6fix": fake_before,
         "partial_replay_2d": partial,
         "event_replay": replay,
     }
@@ -287,9 +337,14 @@ def main() -> int:
         "",
         "| 项 | 值 |",
         "| --- | --- |",
-        f"| events / rejected / precondition_blocked | {real['events_total']} / {real['rejected']} / {real['precondition_blocked']} |",
+        f"| events / rejected / blocked / pruned | {real['events_total']} / {real['rejected']} / "
+        f"{real['precondition_blocked']} / {real['precondition_pruned']} |",
         f"| 非法率（已执行动作口径） | {real['rejected']}/{real['events_total']} = {real['illegal_rate_executed']:.2%} |",
-        f"| 非法率（违规尝试口径，严格） | ({real['rejected']}+{real['precondition_blocked']})/{real['events_total']} = {real['illegal_attempt_rate']:.2%} |",
+        f"| 非法率（严格：rejected+blocked） | ({real['rejected']}+{real['precondition_blocked']})/"
+        f"{real['events_total']} = {real['illegal_attempt_rate']:.2%}（PASS={real['k6_illegal_pass']}） |",
+        f"| 非法率（含剪枝：rejected+blocked+pruned） | ({real['rejected']}+{real['precondition_blocked']}+"
+        f"{real['precondition_pruned']})/{real['events_total']} = {real['illegal_proposal_rate']:.2%}"
+        f"（PASS={real['k6_illegal_incl_pruned_pass']}） |",
         f"| K1 | {real['k1_progressed']}/{real['k1_total']} = {real['k1_rate']:.2%}（k1_pass={real['k1_pass']}） |",
         f"| 动作来源 | model={real['action_ratio']['model']:.1%} / rule={real['action_ratio']['rule']:.1%} |",
         f"| LLM 调用 | {real['llm_calls']}；calls_by_timing={real['calls_by_timing']} |",
@@ -301,20 +356,78 @@ def main() -> int:
         f"| 费用 / fallback | ${real['estimated_cost_usd']:.6f} / {real['fallbacks']} |",
         f"| state/event hash | `{real['state_final']}` / `{real['event_final']}` |",
         "",
-        "## 3. K6 非法率两种口径（2 天假端点）",
+        "## 3. K6 非法率（两套 2 天 run，三种口径）",
         "",
-        "| 口径 | 公式 | 值 | 门槛 2% |",
-        "| --- | --- | ---: | --- |",
-        f"| 已执行动作 | rejected / events | {fake['rejected']}/{fake['events_total']} = {fake['illegal_rate_executed']:.2%} | {'PASS' if fake['illegal_rate_executed'] < 0.02 else 'FAIL'} |",
-        f"| 违规尝试（严格，结论） | (rejected + blocked) / events | "
-        f"({fake['rejected']}+{fake['precondition_blocked']})/{fake['events_total']} = "
-        f"{fake['illegal_attempt_rate']:.2%} | {'PASS' if fake['illegal_attempt_rate'] < 0.02 else 'FAIL'} |",
+        "口径定义：`已执行 = rejected/events`；`严格 = (rejected+blocked)/events`（结论口径）；"
+        "`含剪枝 = (rejected+blocked+pruned)/events`（防止“把违规移出指标”的质疑）。",
         "",
-        f"- 拦截明细：{fake['precondition_blocked_by_verb']}",
-        f"- `summary.verdict.k6_illegal_pass`（严格）= {fake['k6_illegal_pass_strict']}；"
-        f"`k6_illegal_executed_pass` = {fake['k6_illegal_executed_pass']}",
+        "| run | events | rejected | blocked | pruned | 已执行 | 严格 | 含剪枝 |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        f"| fake 旧（修复前） | {fake_before['events_total']} | {fake_before['rejected']} | "
+        f"{fake_before['precondition_blocked']} | {fake_before['precondition_pruned']} | "
+        f"{fake_before['illegal_rate_executed']:.2%} | {fake_before['illegal_attempt_rate']:.2%} FAIL | n/a |",
+        f"| fake 新（修复后） | {fake['events_total']} | {fake['rejected']} | {fake['precondition_blocked']} | "
+        f"{fake['precondition_pruned']} | {fake['illegal_rate_executed']:.2%} | "
+        f"{fake['illegal_attempt_rate']:.2%} {'PASS' if fake['k6_illegal_pass_strict'] else 'FAIL'} | "
+        f"{fake['illegal_proposal_rate']:.2%} {'PASS' if fake['k6_illegal_incl_pruned_pass'] else 'FAIL'} |",
+        f"| deepseek 旧（修复前） | {real_before['events_total']} | {real_before['rejected']} | "
+        f"{real_before['precondition_blocked']} | {real_before['precondition_pruned']} | "
+        f"{real_before['illegal_rate_executed']:.2%} | {real_before['illegal_attempt_rate']:.2%} FAIL | n/a |",
+        f"| deepseek 新（修复后） | {real['events_total']} | {real['rejected']} | {real['precondition_blocked']} | "
+        f"{real['precondition_pruned']} | {real['illegal_rate_executed']:.2%} | "
+        f"{real['illegal_attempt_rate']:.2%} {'PASS' if real['k6_illegal_pass'] else 'FAIL'} | "
+        f"{real['illegal_proposal_rate']:.2%} {'PASS' if real['k6_illegal_incl_pruned_pass'] else 'FAIL'} |",
         "",
-        "## 4. 复现链",
+        "## 4. blocked 逐条分布（旧 27 条 → 新 residual）",
+        "",
+        "### 4.1 修复前后按动作 + 原因对比",
+        "",
+        "| 动作 | 原因 | 旧 blocked | 新 blocked | 新 pruned | 处置 |",
+        "| --- | --- | ---: | ---: | ---: | --- |",
+    ]
+    old_counts = _flat_counts(fake_before["precondition_blocked_by_verb"])
+    new_blocked = _flat_counts(fake["precondition_blocked_by_verb"])
+    new_pruned = _flat_counts(fake["precondition_pruned_by_verb"])
+    for key in sorted(set(old_counts) | set(new_blocked) | set(new_pruned)):
+        verb, reason = key
+        lines.append(
+            f"| {verb} | {reason} | {old_counts.get(key, 0)} | {new_blocked.get(key, 0)} | "
+            f"{new_pruned.get(key, 0)} | {DISPOSITION.get(reason, '待分类')} |"
+        )
+    lines += [
+        f"| **合计** | | **{sum(old_counts.values())}** | **{sum(new_blocked.values())}** | "
+        f"**{sum(new_pruned.values())}** | |",
+        "",
+        "### 4.2 旧 27 条逐条明细（summary 的 examples 上限 20 条）",
+        "",
+        "| # | 动作 | 原因 | actor | tick | source |",
+        "| ---: | --- | --- | --- | ---: | --- |",
+    ]
+    for idx, row in enumerate(fake_before["precondition_blocked_examples"], 1):
+        lines.append(
+            f"| {idx} | {row['verb']} | {row['reason']} | {row['actor']} | {row['tick']} | {row['source']} |"
+        )
+    lines += [
+        "",
+        f"剩余 {sum(old_counts.values()) - len(fake_before['precondition_blocked_examples'])} 条未落入 examples 上限，"
+        "按上表计数分布统计。",
+        "",
+        "### 4.3 新 residual 逐条明细",
+        "",
+        "| 类别 | # | 动作 | 原因 | actor | tick | source |",
+        "| --- | ---: | --- | --- | --- | ---: | --- |",
+    ]
+    for idx, row in enumerate(fake["precondition_blocked_examples"], 1):
+        lines.append(
+            f"| blocked | {idx} | {row['verb']} | {row['reason']} | {row['actor']} | {row['tick']} | {row['source']} |"
+        )
+    for idx, row in enumerate(fake["precondition_pruned_examples"], 1):
+        lines.append(
+            f"| pruned | {idx} | {row['verb']} | {row['reason']} | {row['actor']} | {row['tick']} | {row['source']} |"
+        )
+    lines += [
+        "",
+        "## 5. 复现链",
         "",
         f"- 事件日志回放：`{replay['run']}` → events={replay['events_total']}，"
         f"replayed=`{replay['replayed']}`，stored=`{replay['stored']}`，"
@@ -322,10 +435,12 @@ def main() -> int:
         f"- 仅 intent 槽录制重跑：events={partial['events_total']}，"
         f"state=`{partial['state_final']}`，event=`{partial['event_final']}`，"
         f"intent_calls={partial['intent_calls']}，replay_miss={partial['replay_miss']}，"
-        f"intent_reject={partial['intent_reject']}，cost_calls={partial['cost_calls']}，fallbacks={partial['fallbacks']}",
+        f"intent_reject={partial['intent_reject']}，blocked={partial['precondition_blocked']}，"
+        f"pruned={partial['precondition_pruned']}，"
+        f"cost_calls={partial['cost_calls']}，fallbacks={partial['fallbacks']}",
         "- 结论：事件日志可回放到同一 state hash；整跑不可复现（decision 槽未录制）。",
         "",
-        "## 5. 意图录制复算",
+        "## 6. 意图录制复算",
         "",
         f"- {rec['calls']} 条；prompt/completion tokens = {rec['prompt_tokens']}/{rec['completion_tokens']}；"
         f"p50={rec['p50_latency_s']:.3f}s，p95={rec['p95_latency_s']:.3f}s",

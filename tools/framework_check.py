@@ -531,7 +531,20 @@ def check_fake_llm_endpoint() -> str:
     total = len(events)
     rejected = sum(1 for e in events if e.outcome == "rejected")
     reject_rate = rejected / total if total else 1.0
+    blocked = int(summary.get("precondition_blocked", {}).get("total", 0))
+    pruned = int(summary.get("precondition_pruned", {}).get("total", 0))
+    attempt_rate = (rejected + blocked) / total if total else 1.0
+    proposal_rate = (rejected + blocked + pruned) / total if total else 1.0
     assert reject_rate <= MAX_REJECT_RATE, f"假端点 run 拒绝率 {reject_rate:.2%} 超上限"
+    assert attempt_rate <= MAX_REJECT_RATE, (
+        f"假端点 run 严格非法率 {attempt_rate:.2%}（reject={rejected} + blocked={blocked} / events={total}）超上限"
+    )
+    assert proposal_rate <= MAX_REJECT_RATE, (
+        f"假端点 run 含剪枝提案率 {proposal_rate:.2%}"
+        f"（reject={rejected} + blocked={blocked} + pruned={pruned} / events={total}）超上限"
+    )
+    assert summary["verdict"]["k6_illegal_pass"] is True, "K6 严格口径 verdict 未通过"
+    assert summary["verdict"]["k6_illegal_incl_pruned_pass"] is True, "含剪枝诊断口径未通过"
 
     content = CTX.get("content") or load_content(ROOT, allow_fixture=False, use_content=True)
     replay = WorldState(locations=content.locations)
@@ -553,7 +566,9 @@ def check_fake_llm_endpoint() -> str:
         f"realtime={dec['realtime']['model_calls']} replan={dec['replan']['model_calls']}"
         f"（入口触发 {dec['night_batch']['invocations']}/{dec['realtime']['invocations']}/"
         f"{dec['replan']['invocations']}）；calls={summary['llm']['reasoner_calls']} "
-        f"schema_reject=0 fallback=0 拒绝率={reject_rate:.2%} 守恒=0 replay=MATCH"
+        f"schema_reject=0 fallback=0 拒绝率={reject_rate:.2%} "
+        f"严格非法率=({rejected}+{blocked})/{total}={attempt_rate:.2%} "
+        f"含剪枝=({rejected}+{blocked}+{pruned})/{total}={proposal_rate:.2%} 守恒=0 replay=MATCH"
     )
 
 

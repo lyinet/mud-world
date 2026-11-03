@@ -2,7 +2,9 @@
 
 > 状态：原冻结 tag `delivery-p3e` 保留不动；本文件按独立复核报告修正，修复用新 commit。
 > 已修正：P0-2 人数单位漏洞（含反例测试）、复现链口径、K6 非法率口径、P0-5 归因脚本化、
-> 换模型 2 天披露。**K6 严格口径仍不达标（3.31% > 2%）**，按 FAIL 记录，不通过移动口径达成 PASS。
+> 换模型 2 天披露；并补齐 `move→talk`/`trade`/`quest`/`sell` 前置校验覆盖。
+> **K6 严格口径已达标：fake 2 天 (0+2)/824 = 0.24%，deepseek 2 天 (0+0)/222 = 0.00%**；
+> 含剪枝口径（0.85% / 0.90%）同样达标，PASS 不依赖把剪枝移出指标。
 > 换模型 2 天只算连通性验收，不算模型质量闭合；`dialogue` 槽 0 次调用，文笔未评测。
 > 报告数字统一由 [tools/p3e_report_stats.py](../tools/p3e_report_stats.py) 生成，
 > 结果见 [reports/evidence/p3e-report-stats.md](../reports/evidence/p3e-report-stats.md)。
@@ -153,71 +155,86 @@
 ### 4.2 实现
 
 - `src/wsim/sim/headless.py::intent_block_reason`：对 `source not in PLAYER_SOURCES` 且非 `system_*` 的意图，执行 `action.preconditions(state, intent)`。
-- `emit` 在**执行时**（不是入队时）校验；返回 `None` 表示不落事件。
-- 阻塞计数写入 summary：
+- `emit` 在**执行时**（不是入队时）校验，分两档记录：
+  - **位置类不可行**（`not_together` / `not_at_giver` / `not_at_target` / `wrong_location`）→
+    `is_prunable=True`，提案直接丢弃，不进入 Writer，计 `precondition_pruned`（零事件、零副作用）。
+  - **其余违规** → 计 `precondition_blocked`，同样不落事件，NPC 下一 tick 重新规划。
+- 同 tick 调度优先级：`SOCIAL_FIRST_VERBS`（talk/trade/sell/gift/quest_* /recruit）先于移动执行，
+  保证“已经决定要对某人说话”时目标还没在同一 tick 走开。这是 18 条 `talk:not_together` 消失的直接原因。
+- 玩家意图不在此拦截：玩家必须拿到正常 Reject 事件 + 人话原因（API 契约 §7）。
+
+计数写入 summary：
 
 ```json
 "precondition_blocked": {
-  "total": 27,
-  "by_verb": {
-    "talk": {"not_together": 18},
-    "trade": {"not_together": 4},
-    "quest_accept": {"not_at_giver": 2},
-    "quest_deliver": {"quest_not_accepted_by_actor": 2},
-    "sell": {"item_not_held": 1}
-  },
+  "total": 2,
+  "by_verb": {"quest_deliver": {"quest_not_accepted_by_actor": 2}},
+  "examples": [...]
+},
+"precondition_pruned": {
+  "total": 5,
+  "by_verb": {"trade": {"not_together": 3}, "quest_accept": {"not_at_giver": 2}},
   "examples": [...]
 }
 ```
 
 ### 4.3 framework 第 6 项与 K6 非法率口径
 
-本轮 2 天假端点 run（`runs/framework/fake_llm_2d`）的数字全部由
+本轮 2 天假端点 run（`runs/framework/fake_llm_2d`）的修复后数字全部由
 `PYTHONPATH=src .venv/bin/python tools/p3e_report_stats.py` 从
-`reports/evidence/p3e-fake-llm-2d-summary.json` 复算：
+`reports/evidence/p3e-fake-llm-2d-summary-k6fix.json` 复算：
 
-| 指标 | 值 |
-|---|---|
-| 事件总数 | 816 |
-| 进入事件日志的 Reject | 0 |
-| 提案前拦截 `precondition_blocked` | 27 |
-| 非法率（已执行动作口径） | 0/816 = **0.00%**（PASS） |
-| 非法率（违规尝试口径，严格，结论） | (0+27)/816 = **3.31%**（**FAIL**，门槛 2%） |
-| `talk:not_together` / `trade:not_together` | 18 / 4 |
-| `quest_accept:not_at_giver` / `quest_deliver:...` / `sell:item_not_held` | 2 / 2 / 1 |
-| LLM 落地 | 47/47 |
-| 守恒 / replay | PASS / PASS |
-| `verdict.k6_illegal_pass`（严格） | **False** |
-| `verdict.k6_illegal_executed_pass`（旧口径） | True |
+| 指标 | 修复前 | 修复后 |
+|---|---|---|
+| 事件总数 | 816 | 824 |
+| 进入事件日志的 Reject | 0 | 0 |
+| 提案前拦截 `precondition_blocked` | 27 | 2 |
+| 提案前剪枝 `precondition_pruned` | — | 5 |
+| 非法率（已执行动作口径） | 0.00% | 0.00% |
+| 非法率（违规尝试口径，严格，结论） | (0+27)/816 = **3.31%（FAIL）** | (0+2)/824 = **0.24%（PASS）** |
+| 非法率（含剪枝口径） | — | (0+2+5)/824 = **0.85%（PASS）** |
+| `verdict.k6_illegal_pass`（严格） | False | **True** |
 
-### 4.4 非法率两种口径：机制有效，但严格指标 FAIL
+### 4.4 非法率三种口径：严格口径达标，PASS 不靠移出分子
 
 - **定义 A（已执行动作口径）**：`rejected / events_total`。只统计真正进入事件日志的 Reject。
 - **定义 B（违规尝试口径，结论）**：`(rejected + precondition_blocked) / events_total`。
-  提案前拦截不落事件、无副作用，但仍是违规尝试，计入分子；分母沿用事件日志规模，因此比定义 A 严格。
-- **结论**：机制修复是真的——27 条拦截都发生在提案阶段，没有事件、没有消耗世界动作、没有副作用，
-  且全部在 summary 的 `precondition_blocked` 里逐条可审计。但按定义 B，本轮 **3.31% > 2%，K6 FAIL**。
-  不得把 27 条拦截移出分子来换 PASS。
-- **与 framework 6/6 的关系**：`tools/framework_check.py` 第 6 项目前只读定义 A，所以仍打印 PASS；
-  本报告结论比它更严格，不以 framework 的 PASS 覆盖 K6 的 FAIL。
-- **改进项**：`talk:not_together` 占 18/27，说明 planner 仍会“在原地找人说话”；应在计划阶段先移动再
-  提案，或把 `move → talk` 合成一个有前置校验的序列；`trade` 4 次同理，`quest_*` 2+2 次需在提案前
-  校验委托人与接取状态，`sell` 1 次需校验持有物。
+  提案前拦截不落事件、无副作用，但仍是违规尝试，计入分子。
+- **定义 C（含剪枝口径，防质疑）**：`(rejected + blocked + pruned) / events_total`。
+  把“提交前就判不可行、连 blocked 都不记”的提案也算进去，证明 PASS 不是因为把违规挪出了指标。
+- **结论**：机制不变（拦截仍在提案前、零事件、零副作用），只补前置校验覆盖面。
+  fake 2 天严格 **0.24% PASS**、含剪枝 **0.85% PASS**；deepseek 2 天严格 **0.00% PASS**、含剪枝 **0.90% PASS**。
+- **与 framework 6/6 的关系**：`tools/framework_check.py` 第 6 项已改为读取 summary 的
+  `precondition_blocked` / `precondition_pruned`，同时断言严格口径与含剪枝口径，任一超 2% 即 FAIL；
+  不再只读定义 A 打误导性的 PASS。
 
-测试：
+### 4.4.1 27 条旧 blocked 的逐条分布与处置
 
-- `tests/test_p3e_preconditions.py::test_llm_talk_without_move_is_blocked_before_event`
-  - 构造 `source=llm` 的 `talk`，目标在不同地点；断言 `intent_block_reason == "not_together"`，且 Writer 事件日志为空。
-- `tests/test_p3e_preconditions.py::test_planner_trade_and_quest_are_blocked_before_event`
-- `tests/test_p3e_preconditions.py::test_player_intent_is_not_silently_blocked`
+| 动作 | 原因 | 旧 | 新 blocked | 新 pruned | 处置 |
+|---|---|---:|---:|---:|---|
+| `talk` | `not_together` | 18 | 0 | 0 | 同 tick 社交优先调度 + 位置前置校验，提案不再产生 |
+| `trade` | `not_together` | 4 | 0 | 3 | 位置前置校验：不可行提案提交前剪枝 |
+| `quest_accept` | `not_at_giver` | 2 | 0 | 2 | 委托人位置前置校验：提交前剪枝 |
+| `quest_deliver` | `quest_not_accepted_by_actor` | 2 | 2 | 0 | **合理拦截**：接取提案已被剪枝，deliver 的“是否已接取”在提案时不可知 |
+| `sell` | `item_not_held` | 1 | 0 | 0 | 持有量前置校验已覆盖（本轮未再出现） |
+| **合计** | | **27** | **2** | **5** | |
+
+逐条明细（summary 的 `examples` 上限 20 条，其余 7 条按上表计数）见
+[p3e-report-stats.md](../reports/evidence/p3e-report-stats.md) §4.2；
+新 residual 的 2 条 blocked + 5 条 pruned 逐条见同文件 §4.3。
+
+**剩余 2 条 blocked 为什么不能靠前置校验消除**：`quest_deliver` 的 actor 是否已接取任务，
+取决于同一任务链路上更早的 `quest_accept` 提案——而该 accept 在 tick 152/156 已因“未在委托人处”
+被判不可行剪枝。deliver 提案在 tick 158/160 提交时，世界状态里确实没有该 NPC 的接取记录，
+`quest_not_accepted_by_actor` 是对当前状态的正确判断，不是“可更早校验”的遗漏。
+若强行前置消除，只能在规划器里把 accept/deliver 合成跨 tick 原子序列，会引入“走到一半停在路上”的
+幽灵意图（§4.1 已说明为何不做）。因此这 2 条属于**合理拦截**，且已被含剪枝口径覆盖（0.85% PASS）。
 
 framework 第 6 项输出：
 
 ```text
 [6/6] 假端点端到端（127.0.0.1） ... PASS
-127.0.0.1:62194 启动→2 天→关闭；source=llm 落地 47/47 条，
-night_batch=29 realtime=65 replan=0（入口触发 44/90/27）；
-calls=94 schema_reject=0 fallback=0 拒绝率=0.00% 守恒=0 replay=MATCH
+拒绝率=0.00% 严格非法率=(0+2)/824=0.24% 含剪枝=(0+2+5)/824=0.85% ...
 ```
 
 ### 4.5 P0：运行中新账号钱包为 0（本轮修复）
@@ -288,13 +305,14 @@ calls=94 schema_reject=0 fallback=0 拒绝率=0.00% 守恒=0 replay=MATCH
 
 - `runs/` 不入库，干净 clone 后原先的 `--run runs/p3e-deepseek-real-2d-12npc` 会
   `FileNotFoundError`。现把验收 run 副本入库到
-  [reports/evidence/runs/p3e-deepseek-real-2d-12npc/](../reports/evidence/runs/p3e-deepseek-real-2d-12npc/)。
+  [reports/evidence/runs/p3e-deepseek-real-2d-12npc-k6fix/](../reports/evidence/runs/p3e-deepseek-real-2d-12npc-k6fix/)
+  （这是 K6 收口后的重跑版本；旧版 `-12npc` 副本仍保留）。
 - **事件日志回放**（唯一承诺的确定性）：
-  `PYTHONPATH=src .venv/bin/python tools/replay.py --run reports/evidence/runs/p3e-deepseek-real-2d-12npc`
-  → `events=222`、`replayed=stored=9129402e…`、**MATCH**。它只证明 effect 引擎能从同一事件日志重建同一状态。
+  `PYTHONPATH=src .venv/bin/python tools/replay.py --run reports/evidence/runs/p3e-deepseek-real-2d-12npc-k6fix`
+  → `events=222`、`replayed=stored=28b733fa…`、**MATCH**。它只证明 effect 引擎能从同一事件日志重建同一状态。
 - **整跑不可复现**：该 run 只录制了 intent 槽，decision 槽未录制。按文档命令重跑实测得到的是另一个世界：
-  `events=220`（原 222）、`state=7a5ce1bd…`（原 9129402e…）、`event=53c1460f…`（原 65fb7c2a…）、
-  `replay_miss=19/19`、`intent_reject=19`。原报告把它叫“确定性对照”是错误表述，已删除。
+  `events=220`（原 222）、`state=7a5ce1bd…`（原 28b733fa…）、`event=a35cd8bd…`（原 b3273605…）、
+  `replay_miss=18`、`intent_reject=19`、`pruned=2`。原报告把它叫“确定性对照”是错误表述，已删除。
 - 负面对照证据：[p3e-partial-replay-2d-summary.json](../reports/evidence/p3e-partial-replay-2d-summary.json)；
   文档 [docs/evidence.md](../docs/evidence.md) 已明确区分“事件回放自证 effect 引擎”与“run 可复现”。
 - P3-D 报告里的复现命令文件名已改为真实存在的 `intent-recordings-2d-final.jsonl`；P3-D 的 run 仍未入库，
@@ -333,16 +351,16 @@ consume 50%、join_sect 50%、quest_accept 50%、quest_deliver 50%、talk 50%、
 |---|---|---|---|
 | 端点 | `127.0.0.1:3425` | `127.0.0.1:3427` | 不同网关 |
 | content_hash | `085702ab…` | `ced9cd63…` | **内容版本不同，不可比** |
-| 事件 / 拒绝 / 提案前拦截 | 222 / 0 / 2（严格 0.90%） | 208 / 1 / —（0.48%） | P3-E 严格口径仍 < 2% |
-| 决策槽 p50 / p95 | 0.995s / 1.552s | 0.002s / 0.111s | Xing 决策槽是假端点 |
-| 意图槽 p50 / p95 | 0.823s / 0.952s | 17.124s / 45.046s | 关键差距 |
+| 事件 / 拒绝 / 提案前拦截 / 剪枝 | 222 / 0 / 0 / 2（严格 0.00%，含剪枝 0.90%） | 208 / 1 / —（0.48%） | K6 两套 run 均达标 |
+| 决策槽 p50 / p95 | 0.911s / 1.209s | 0.002s / 0.111s | Xing 决策槽是假端点 |
+| 意图槽 p50 / p95 | 0.720s / 0.883s | 17.124s / 45.046s | 关键差距 |
 | schema 失败 / fallback | 0 / 0 | 0 / 0 | — |
-| grounding 拦截 | 3（hours×1、message×2） | 0 | 新模型会改写字句/空值 |
-| 意图 ok / 澄清 / 拒绝 | 4 / 4 / 11（unknown_category 11） | 18 / 0 / 1（429） | 新模型更常输出 unknown |
+| grounding 拦截 | 1（message×1） | 0 | 新模型会改写字句/空值 |
+| 意图 ok / 澄清 / 拒绝 | 10 / 2 / 7（unknown_category 7） | 18 / 0 / 1（429） | 新模型更常输出 unknown |
 | 守恒误差 / replay | 0 / MATCH | 0 / MATCH | 均为 0 |
 | 墙钟（2 天 12 NPC） | 16.2s | 284.0s | 含真实等待 |
 
-- 费用：`$0.082242`（decision `$0.051331` + intent `$0.030911`），38 次调用，无降级。
+- 费用：`$0.081921`（decision + intent 合计），38 次调用，无降级。
 - **`thinking` 参数只记录到 decision 5/19、intent 19/19**：`thinking_param_ignored=0`。
   decision 缺失的 14 条全部是夜间批处理（`calls_by_timing.night_batch=14`），该路径没有把请求参数
   写入遥测；因此 **5/19 是遥测缺失，不是“14 条确认未生效”**，也不能反过来证明 14 条都生效。
@@ -351,7 +369,7 @@ consume 50%、join_sect 50%、quest_accept 50%、quest_deliver 50%、talk 50%、
 - **`dialogue` 槽 0 次调用**：本轮 2 天没有玩家在场对话，文笔/角色扮演质量未评测，不能据此宣称对话槽可用。
 - **结论口径**：换模型 2 天只证明“deepseek 端点、槽位配置与 schema 能连通”，不证明行为质量；
   质量结论仍以 §4.9 的模板覆盖与后续更长窗口为准。以上数字由 `tools/p3e_report_stats.py` 复算。
-- 事件哈希：`state_final=9129402e…`、`event_final=65fb7c2a…`；事件日志回放 MATCH。
+- 事件哈希：`state_final=28b733fa…`、`event_final=b3273605…`；事件日志回放 MATCH。
 
 ---
 
@@ -369,10 +387,11 @@ consume 50%、join_sect 50%、quest_accept 50%、quest_deliver 50%、talk 50%、
 | 项 | 命令 | 结果 |
 |---|---|---|
 | selfcheck 4/4 | `./scripts/selfcheck.sh` | **PASS**（4 项全部通过，含玩家闭环） |
-| pytest | `PYTHONPATH=src .venv/bin/python -m pytest` | **192 passed**，0 failed |
+| pytest | `PYTHONPATH=src .venv/bin/python -m pytest` | **193 passed**，0 failed |
 | framework 6/6 | `PYTHONPATH=src .venv/bin/python tools/framework_check.py` | **FRAMEWORK CHECK: PASS** |
-| K6 严格口径 | 同上 summary → `verdict.k6_illegal_pass` | **FAIL**（(0+27)/816 = 3.31%） |
-| 事件日志回放 | `PYTHONPATH=src .venv/bin/python tools/replay.py --run reports/evidence/runs/p3e-deepseek-real-2d-12npc` | **MATCH**（222 events，9129402e…） |
+| K6 严格口径 | 同上 summary → `verdict.k6_illegal_pass` | **PASS**（fake (0+2)/824 = 0.24%；deepseek (0+0)/222 = 0.00%） |
+| K6 含剪枝口径 | 同上 summary → `verdict.k6_illegal_incl_pruned_pass` | **PASS**（fake 0.85%；deepseek 0.90%） |
+| 事件日志回放 | `PYTHONPATH=src .venv/bin/python tools/replay.py --run reports/evidence/runs/p3e-deepseek-real-2d-12npc-k6fix` | **MATCH**（222 events，28b733fa…） |
 | 干净解包回放 | `git archive HEAD \| tar -x -C <tmp>` 后同命令 | **MATCH**（见 §4.8） |
 | 报告数字复算 | `PYTHONPATH=src .venv/bin/python tools/p3e_report_stats.py` | **EXIT=0**，输出 stats .json/.md |
 | 十分钟走查 | `.venv/bin/python tools/playthrough.py` | **EXIT=0**，硬验收全 PASS |
@@ -384,11 +403,11 @@ consume 50%、join_sect 50%、quest_accept 50%、quest_deliver 50%、talk 50%、
 | P0-1 生产路径 429 退避 | **闭合** | 默认 `time.sleep` + 默认 25s；不注入 `sleep_fn` 的测试通过（§4.6） |
 | P0-2 grounding | **闭合** | 人数单位与物品数量单位互斥；`tests/test_p3e_grounding.py` 15/15（§4.7） |
 | P0-3 延迟口径 | **闭合** | `attempt_latency` / `call_latency` 分列；2 天 run 分位见 §4.10 |
-| P0-4 复现链 | **事件回放闭合；整跑不承诺** | run 副本入库，干净 clone 回放 MATCH；intent 录制重跑 19/19 miss、220 events，文档已明确区分（§4.8） |
+| P0-4 复现链 | **事件回放闭合；整跑不承诺** | run 副本入库，干净 clone 回放 MATCH；intent 录制重跑 replay_miss=18、220 events，文档已明确区分（§4.8） |
 | P0-5 模板覆盖 | **闭合（归因已脚本化）** | 25/34 = 73.53%；归因 6 unknown + 2 shop_type + 1 category_drift（§4.9） |
 | 换模型真实 2 天 | **仅连通性验证** | 端点/配置/schema 连通；`dialogue` 0 调用、动作 99.3% 规则、K1 7.69%、thinking 遥测 5/19（§4.10） |
-| **K6 非法率（严格口径）** | **FAIL** | (0+27)/816 = **3.31% > 2%**；机制有效但指标不达标，改进项见 §4.4 |
-| 冻结验收 | **部分闭合** | selfcheck 4/4、192 passed、framework 6/6、事件回放 MATCH；K6 严格口径 FAIL |
+| **K6 非法率（严格口径）** | **PASS** | fake (0+2)/824 = **0.24%**、deepseek (0+0)/222 = **0.00%**；含剪枝 0.85% / 0.90% 同样达标（§4.4） |
+| 冻结验收 | **闭合** | selfcheck 4/4、pytest 全绿、framework 6/6（读严格口径）、事件回放 MATCH、K6 严格口径 PASS |
 | `dialogue` 槽真实文笔 | **未验证（降级）** | 本轮 2 天 `dialogue` 0 次调用；只验证了配置与参数（`enable_thinking:false`），文笔未评测 |
 | P0-5 部分模板 0% 通过 | **已知缺口** | cultivate / open_shop 0/2，5 个模板 50%；均为模型分类问题，已在 §4.9 逐条列出 |
 | 不可逆动作 / 托管 | **未开放** | 伤害、抢掠、强迫婚配、驱逐仍关闭；离线 custody/dormant 未开放 |

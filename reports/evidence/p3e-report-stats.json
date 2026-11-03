@@ -278,11 +278,11 @@
   "event_replay": {
     "events_total": 222,
     "match": true,
-    "replayed": "9129402e7b8a516705809aacf626b746fab659f8b3ab9067b0c6d1fe55ca647a",
-    "run": "reports/evidence/runs/p3e-deepseek-real-2d-12npc",
-    "stored": "9129402e7b8a516705809aacf626b746fab659f8b3ab9067b0c6d1fe55ca647a"
+    "replayed": "28b733facdcf8044b75f74fc0568ffd4da642579b3f85ec388dd98adb809f452",
+    "run": "reports/evidence/runs/p3e-deepseek-real-2d-12npc-k6fix",
+    "stored": "28b733facdcf8044b75f74fc0568ffd4da642579b3f85ec388dd98adb809f452"
   },
-  "fake_2d_k6": {
+  "fake_2d_before_k6fix": {
     "action_ratio": {
       "model": 0.0618,
       "rule": 0.9382
@@ -290,9 +290,11 @@
     "dialogue_calls": {},
     "events_total": 816,
     "illegal_attempt_rate": 0.03308823529411765,
+    "illegal_proposal_rate": 0.03308823529411765,
     "illegal_rate_executed": 0.0,
     "k1_rate": 0.16483516483516483,
     "k6_illegal_executed_pass": true,
+    "k6_illegal_incl_pruned_pass": null,
     "k6_illegal_pass_strict": false,
     "precondition_blocked": 27,
     "precondition_blocked_by_verb": {
@@ -312,6 +314,388 @@
         "not_together": 4
       }
     },
+    "precondition_blocked_examples": [
+      {
+        "actor": "jin_mancang",
+        "args": {
+          "message": "近来可好？",
+          "reply": "尚可，你呢？",
+          "target": "duan_wudou"
+        },
+        "reason": "not_together",
+        "source": "llm",
+        "tick": 6,
+        "verb": "talk"
+      },
+      {
+        "actor": "liu_sanniang",
+        "args": {
+          "message": "近来可好？",
+          "reply": "尚可，你呢？",
+          "target": "cao_banxian"
+        },
+        "reason": "not_together",
+        "source": "llm",
+        "tick": 7,
+        "verb": "talk"
+      },
+      {
+        "actor": "xing_pojun",
+        "args": {
+          "message": "近来可好？",
+          "reply": "尚可，你呢？",
+          "target": "cao_banxian"
+        },
+        "reason": "not_together",
+        "source": "llm",
+        "tick": 7,
+        "verb": "talk"
+      },
+      {
+        "actor": "duan_wudou",
+        "args": {
+          "message": "近来可好？",
+          "reply": "尚可，你呢？",
+          "target": "cao_banxian"
+        },
+        "reason": "not_together",
+        "source": "llm",
+        "tick": 13,
+        "verb": "talk"
+      },
+      {
+        "actor": "jin_mancang",
+        "args": {
+          "item": "abacus",
+          "qty": 1,
+          "to": "temple"
+        },
+        "reason": "item_not_held",
+        "source": "planner",
+        "tick": 22,
+        "verb": "sell"
+      },
+      {
+        "actor": "jin_mancang",
+        "args": {
+          "message": "近来可好？",
+          "reply": "尚可，你呢？",
+          "target": "duan_wudou"
+        },
+        "reason": "not_together",
+        "source": "llm",
+        "tick": 45,
+        "verb": "talk"
+      },
+      {
+        "actor": "meng_jiuniang",
+        "args": {
+          "money_delta": 0,
+          "offer": [
+            {
+              "item": "silk",
+              "qty": 1
+            }
+          ],
+          "target": "luo_qingxu",
+          "want": []
+        },
+        "reason": "not_together",
+        "source": "planner",
+        "tick": 49,
+        "verb": "trade"
+      },
+      {
+        "actor": "duan_wudou",
+        "args": {
+          "message": "近来可好？",
+          "reply": "尚可，你呢？",
+          "target": "cao_banxian"
+        },
+        "reason": "not_together",
+        "source": "llm",
+        "tick": 52,
+        "verb": "talk"
+      },
+      {
+        "actor": "liu_sanniang",
+        "args": {
+          "message": "近来可好？",
+          "reply": "尚可，你呢？",
+          "target": "cao_banxian"
+        },
+        "reason": "not_together",
+        "source": "llm",
+        "tick": 52,
+        "verb": "talk"
+      },
+      {
+        "actor": "xing_pojun",
+        "args": {
+          "message": "近来可好？",
+          "reply": "尚可，你呢？",
+          "target": "cao_banxian"
+        },
+        "reason": "not_together",
+        "source": "llm",
+        "tick": 52,
+        "verb": "talk"
+      },
+      {
+        "actor": "luo_qingxu",
+        "args": {
+          "money_delta": 5,
+          "offer": [],
+          "target": "meng_jiuniang",
+          "want": []
+        },
+        "reason": "not_together",
+        "source": "planner",
+        "tick": 83,
+        "verb": "trade"
+      },
+      {
+        "actor": "jin_mancang",
+        "args": {
+          "message": "近来可好？",
+          "reply": "尚可，你呢？",
+          "target": "duan_wudou"
+        },
+        "reason": "not_together",
+        "source": "llm",
+        "tick": 89,
+        "verb": "talk"
+      },
+      {
+        "actor": "duan_wudou",
+        "args": {
+          "message": "近来可好？",
+          "reply": "尚可，你呢？",
+          "target": "cao_banxian"
+        },
+        "reason": "not_together",
+        "source": "llm",
+        "tick": 90,
+        "verb": "talk"
+      },
+      {
+        "actor": "liu_sanniang",
+        "args": {
+          "message": "近来可好？",
+          "reply": "尚可，你呢？",
+          "target": "jin_mancang"
+        },
+        "reason": "not_together",
+        "source": "llm",
+        "tick": 97,
+        "verb": "talk"
+      },
+      {
+        "actor": "jin_mancang",
+        "args": {
+          "message": "近来可好？",
+          "reply": "尚可，你呢？",
+          "target": "duan_wudou"
+        },
+        "reason": "not_together",
+        "source": "llm",
+        "tick": 129,
+        "verb": "talk"
+      },
+      {
+        "actor": "duan_wudou",
+        "args": {
+          "message": "近来可好？",
+          "reply": "尚可，你呢？",
+          "target": "cao_banxian"
+        },
+        "reason": "not_together",
+        "source": "llm",
+        "tick": 134,
+        "verb": "talk"
+      },
+      {
+        "actor": "liu_sanniang",
+        "args": {
+          "message": "近来可好？",
+          "reply": "尚可，你呢？",
+          "target": "cao_banxian"
+        },
+        "reason": "not_together",
+        "source": "llm",
+        "tick": 139,
+        "verb": "talk"
+      },
+      {
+        "actor": "cao_banxian",
+        "args": {
+          "money_delta": 0,
+          "offer": [
+            {
+              "item": "noodle",
+              "qty": 1
+            }
+          ],
+          "target": "xing_pojun",
+          "want": []
+        },
+        "reason": "not_together",
+        "source": "planner",
+        "tick": 148,
+        "verb": "trade"
+      },
+      {
+        "actor": "yan_shouyi",
+        "args": {
+          "message": "近来可好？",
+          "reply": "尚可，你呢？",
+          "target": "cao_banxian"
+        },
+        "reason": "not_together",
+        "source": "llm",
+        "tick": 149,
+        "verb": "talk"
+      },
+      {
+        "actor": "ruan_qingfu",
+        "args": {
+          "message": "近来可好？",
+          "reply": "尚可，你呢？",
+          "target": "fang_cunxin"
+        },
+        "reason": "not_together",
+        "source": "llm",
+        "tick": 150,
+        "verb": "talk"
+      }
+    ],
+    "precondition_pruned": 0,
+    "precondition_pruned_by_verb": {},
+    "precondition_pruned_examples": [],
+    "rejected": 0
+  },
+  "fake_2d_k6": {
+    "action_ratio": {
+      "model": 0.0611,
+      "rule": 0.9389
+    },
+    "dialogue_calls": {},
+    "events_total": 824,
+    "illegal_attempt_rate": 0.0024271844660194173,
+    "illegal_proposal_rate": 0.00849514563106796,
+    "illegal_rate_executed": 0.0,
+    "k1_rate": 0.16483516483516483,
+    "k6_illegal_executed_pass": true,
+    "k6_illegal_incl_pruned_pass": true,
+    "k6_illegal_pass_strict": true,
+    "precondition_blocked": 2,
+    "precondition_blocked_by_verb": {
+      "quest_deliver": {
+        "quest_not_accepted_by_actor": 2
+      }
+    },
+    "precondition_blocked_examples": [
+      {
+        "actor": "yan_shouyi",
+        "args": {
+          "quest": "quest:debt_duan_to_jin:0",
+          "quest_verb": "trade"
+        },
+        "reason": "quest_not_accepted_by_actor",
+        "source": "planner",
+        "tick": 158,
+        "verb": "quest_deliver"
+      },
+      {
+        "actor": "ruan_qingfu",
+        "args": {
+          "quest": "quest:errand_academy_notice:0",
+          "quest_verb": "trade"
+        },
+        "reason": "quest_not_accepted_by_actor",
+        "source": "planner",
+        "tick": 160,
+        "verb": "quest_deliver"
+      }
+    ],
+    "precondition_pruned": 5,
+    "precondition_pruned_by_verb": {
+      "quest_accept": {
+        "not_at_giver": 2
+      },
+      "trade": {
+        "not_together": 3
+      }
+    },
+    "precondition_pruned_examples": [
+      {
+        "actor": "meng_jiuniang",
+        "args": {
+          "money_delta": 0,
+          "offer": [
+            {
+              "item": "silk",
+              "qty": 1
+            }
+          ],
+          "target": "luo_qingxu",
+          "want": []
+        },
+        "reason": "not_together",
+        "source": "planner",
+        "tick": 49,
+        "verb": "trade"
+      },
+      {
+        "actor": "luo_qingxu",
+        "args": {
+          "money_delta": 5,
+          "offer": [],
+          "target": "meng_jiuniang",
+          "want": []
+        },
+        "reason": "not_together",
+        "source": "planner",
+        "tick": 83,
+        "verb": "trade"
+      },
+      {
+        "actor": "yan_shouyi",
+        "args": {
+          "quest": "quest:debt_duan_to_jin:0",
+          "quest_verb": "trade"
+        },
+        "reason": "not_at_giver",
+        "source": "planner",
+        "tick": 152,
+        "verb": "quest_accept"
+      },
+      {
+        "actor": "yan_shouyi",
+        "args": {
+          "money_delta": 300,
+          "offer": [],
+          "quest": "quest:debt_duan_to_jin:0",
+          "target": "duan_wudou",
+          "want": []
+        },
+        "reason": "not_together",
+        "source": "planner",
+        "tick": 155,
+        "verb": "trade"
+      },
+      {
+        "actor": "ruan_qingfu",
+        "args": {
+          "quest": "quest:errand_academy_notice:0",
+          "quest_verb": "trade"
+        },
+        "reason": "not_at_giver",
+        "source": "planner",
+        "tick": 156,
+        "verb": "quest_accept"
+      }
+    ],
     "rejected": 0
   },
   "intent_recordings": {
@@ -323,12 +707,14 @@
   },
   "partial_replay_2d": {
     "cost_calls": 38,
-    "event_final": "53c1460f9d9dd7e5b031470cc56d8d6e1b86b3eb043feec1de8a933238d74cab",
+    "event_final": "a35cd8bd48d3a8bf7e51d0a0406a68a2af3988c0e922a7c66759f1efcc113820",
     "events_total": 220,
     "fallbacks": 0,
     "intent_calls": 19,
     "intent_reject": 19,
-    "replay_miss": 19,
+    "precondition_blocked": 0,
+    "precondition_pruned": 2,
+    "replay_miss": 18,
     "state_final": "7a5ce1bd69e45283f2d098bd173ce8dad6e5c04580a96ba09146a5b94efe7988"
   },
   "real_2d": {
@@ -345,34 +731,36 @@
     "days": 2,
     "dialogue_calls": {},
     "dialogue_slot_calls": 0,
-    "estimated_cost_usd": 0.082242,
-    "event_final": "65fb7c2a506d6fcd1f6140fbb09bb90d8d17c5fc53b18829005ba312e64e4db7",
+    "estimated_cost_usd": 0.081920625,
+    "event_final": "b327360550d00c48f430045d4d353e48bd77439f62477cee22b36357f130c6f5",
     "events_total": 222,
     "fallbacks": 0,
-    "illegal_attempt_rate": 0.009009009009009009,
+    "illegal_attempt_rate": 0.0,
+    "illegal_proposal_rate": 0.009009009009009009,
     "illegal_rate_executed": 0.0,
-    "intent_clarification": 4,
-    "intent_grounding_blocked": 3,
+    "intent_clarification": 2,
+    "intent_grounding_blocked": 1,
     "intent_grounding_by_field": {
-      "hours": 1,
-      "message": 2
+      "message": 1
     },
-    "intent_ok": 4,
-    "intent_reject": 11,
+    "intent_ok": 10,
+    "intent_reject": 7,
     "k1_pass": false,
     "k1_progressed": 7,
     "k1_rate": 0.07692307692307693,
     "k1_total": 91,
+    "k6_illegal_incl_pruned_pass": true,
+    "k6_illegal_pass": true,
     "latency_by_slot": {
       "decision": {
         "n": 19,
-        "p50": 0.995,
-        "p95": 1.552
+        "p50": 0.911,
+        "p95": 1.209
       },
       "intent": {
         "n": 19,
-        "p50": 0.823,
-        "p95": 0.952
+        "p50": 0.72,
+        "p95": 0.883
       }
     },
     "llm_calls": {
@@ -380,16 +768,52 @@
       "intent": 19
     },
     "npc_count": 12,
-    "precondition_blocked": 2,
-    "precondition_blocked_by_verb": {
+    "precondition_blocked": 0,
+    "precondition_blocked_by_verb": {},
+    "precondition_blocked_examples": [],
+    "precondition_pruned": 2,
+    "precondition_pruned_by_verb": {
       "trade": {
         "not_together": 2
       }
     },
+    "precondition_pruned_examples": [
+      {
+        "actor": "wen_xiaoman",
+        "args": {
+          "money_delta": 5,
+          "offer": [],
+          "target": "shen_yanzhou",
+          "want": []
+        },
+        "reason": "not_together",
+        "source": "planner",
+        "tick": 151,
+        "verb": "trade"
+      },
+      {
+        "actor": "cui_tieyi",
+        "args": {
+          "money_delta": 0,
+          "offer": [
+            {
+              "item": "flatbread",
+              "qty": 1
+            }
+          ],
+          "target": "han_xinglin",
+          "want": []
+        },
+        "reason": "not_together",
+        "source": "planner",
+        "tick": 232,
+        "verb": "trade"
+      }
+    ],
     "rejected": 0,
-    "run_id": "p3e-deepseek-real-2d-12npc",
+    "run_id": "p3e-deepseek-real-2d-12npc-k6-v2",
     "seed": 42,
-    "state_final": "9129402e7b8a516705809aacf626b746fab659f8b3ab9067b0c6d1fe55ca647a",
+    "state_final": "28b733facdcf8044b75f74fc0568ffd4da642579b3f85ec388dd98adb809f452",
     "thinking_marked": {
       "decision": {
         "reasoning_effort=none": 5
@@ -398,5 +822,63 @@
         "reasoning_effort=none": 19
       }
     }
+  },
+  "real_2d_before_k6fix": {
+    "action_ratio": {
+      "model": 0.007,
+      "rule": 0.993
+    },
+    "dialogue_calls": {},
+    "events_total": 222,
+    "illegal_attempt_rate": 0.009009009009009009,
+    "illegal_proposal_rate": 0.009009009009009009,
+    "illegal_rate_executed": 0.0,
+    "k1_rate": 0.07692307692307693,
+    "k6_illegal_executed_pass": null,
+    "k6_illegal_incl_pruned_pass": null,
+    "k6_illegal_pass_strict": true,
+    "precondition_blocked": 2,
+    "precondition_blocked_by_verb": {
+      "trade": {
+        "not_together": 2
+      }
+    },
+    "precondition_blocked_examples": [
+      {
+        "actor": "wen_xiaoman",
+        "args": {
+          "money_delta": 5,
+          "offer": [],
+          "target": "shen_yanzhou",
+          "want": []
+        },
+        "reason": "not_together",
+        "source": "planner",
+        "tick": 151,
+        "verb": "trade"
+      },
+      {
+        "actor": "cui_tieyi",
+        "args": {
+          "money_delta": 0,
+          "offer": [
+            {
+              "item": "flatbread",
+              "qty": 1
+            }
+          ],
+          "target": "han_xinglin",
+          "want": []
+        },
+        "reason": "not_together",
+        "source": "planner",
+        "tick": 232,
+        "verb": "trade"
+      }
+    ],
+    "precondition_pruned": 0,
+    "precondition_pruned_by_verb": {},
+    "precondition_pruned_examples": [],
+    "rejected": 0
   }
 }

@@ -14,10 +14,11 @@ from collections import Counter
 from ..core.models import Event
 
 
-def illegal_stats(events: list[Event], precondition_blocked: int = 0) -> dict:
+def illegal_stats(events: list[Event], precondition_blocked: int = 0, precondition_pruned: int = 0) -> dict:
     total = len(events)
     rejected = [e for e in events if e.outcome == "rejected"]
     blocked = max(0, int(precondition_blocked))
+    pruned = max(0, int(precondition_pruned))
     by_reason: Counter[str] = Counter()
     by_verb: Counter[str] = Counter()
     for e in rejected:
@@ -25,12 +26,15 @@ def illegal_stats(events: list[Event], precondition_blocked: int = 0) -> dict:
         by_verb[e.verb] += 1
     rate = len(rejected) / total if total else 0.0
     attempt_rate = (len(rejected) + blocked) / total if total else 0.0
+    proposal_rate = (len(rejected) + blocked + pruned) / total if total else 0.0
     return {
         "events_total": total,
         "rejected": len(rejected),
         "precondition_blocked": blocked,
+        "precondition_pruned": pruned,
         "illegal_rate": rate,
         "illegal_attempt_rate": attempt_rate,
+        "illegal_proposal_rate": proposal_rate,
         "by_reason": dict(sorted(by_reason.items(), key=lambda x: (-x[1], x[0]))),
         "by_verb": dict(sorted(by_verb.items(), key=lambda x: (-x[1], x[0]))),
     }

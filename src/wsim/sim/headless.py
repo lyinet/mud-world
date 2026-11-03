@@ -41,7 +41,7 @@ from ..audit.wages import wage_trace
 from ..core.canonical import dumps, hash_obj
 from ..core.clock import TICKS_PER_DAY, day_of, stamp
 from ..core.content import Content, load_content
-from ..core.models import Intent
+from ..core.models import Intent, Reject
 from ..world.hash import event_hash, state_hash
 from ..world.state import WorldState
 from ..world.store import EventStore
@@ -62,8 +62,26 @@ def intent_block_reason(registry: ActionRegistry, state: WorldState, intent: Int
     action = registry.get(intent.verb)
     if action is None:
         return ""
-    reasons = action.preconditions(state, intent)
+    try:
+        reasons = action.preconditions(state, intent)
+    except Reject as exc:
+        # 目标/委托人不存在等存在性错误由 helper 直接抛 Reject，
+        # 在提案阶段同样是不可行，转为原因字符串，避免把整轮 sim 打崩。
+        return str(exc)
     return str(reasons[0]) if reasons else ""
+
+
+PRUNABLE_REASONS = frozenset({"not_together", "not_at_giver", "not_at_target", "wrong_location"})
+
+# 同 tick 调度优先级：社交/交易先于移动，保证“已经决定要对某人说话”时目标还没走开。
+SOCIAL_FIRST_VERBS = frozenset(
+    {"talk", "message", "trade", "sell", "gift", "quest_accept", "quest_deliver", "recruit"}
+)
+
+
+def is_prunable(reason: str) -> bool:
+    """位置类前置在提交前已判不可行：该提案不应进入 Writer，也不计 blocked。"""
+    return reason in PRUNABLE_REASONS
 
 
 @dataclass
@@ -167,12 +185,28 @@ def run_headless(
 
     blocked: Counter[tuple[str, str]] = Counter()
     blocked_examples: list[dict[str, Any]] = []
+    pruned: Counter[tuple[str, str]] = Counter()
+    prune_examples: list[dict[str, Any]] = []
 
     def emit(intent: Intent):
-        # 自主意图（LLM/planner）在提案前做前置校验：不满足就不进事件日志，
-        # 只记 precondition_blocked，并让 NPC 下一 tick 重新规划（选项 b）。
+        # 自主意图（LLM/planner）在提交前做前置校验：位置类不满足直接判不可行并丢弃
+        # （计 precondition_pruned，不计 blocked）；其余仍记 blocked 并触发下一 tick 重规划。
         reason = intent_block_reason(registry, writer.state, intent)
         if reason:
+            if is_prunable(reason):
+                pruned[(intent.verb, reason)] += 1
+                if len(prune_examples) < 20:
+                    prune_examples.append(
+                        {
+                            "source": intent.source,
+                            "actor": intent.actor,
+                            "verb": intent.verb,
+                            "reason": reason,
+                            "tick": intent.tick,
+                            "args": dict(intent.args or {}),
+                        }
+                    )
+                return None
             blocked[(intent.verb, reason)] += 1
             if len(blocked_examples) < 20:
                 blocked_examples.append(
@@ -321,7 +355,10 @@ def run_headless(
         decision_stats[timing]["actions"] += len(intents)
         for it in intents:
             intent_timing[id(it)] = timing
-            push(max(it.tick, at_tick), 2, "intent", it)
+            # 同一 tick 内先执行社交/交易，再执行移动：避免目标 NPC 先移动导致
+            # 已通过决策期校验的 talk/trade 在提交时变成位置类不可行。
+            prio = 1 if it.verb in SOCIAL_FIRST_VERBS else 2
+            push(max(it.tick, at_tick), prio, "intent", it)
 
     def track_landing(payload: Any, ev: Any) -> None:
         timing = intent_timing.pop(id(payload), None)
@@ -629,7 +666,9 @@ def run_headless(
     k1 = goal_stats(state, horizon, content)
     k3 = diversity_stats(events, npc_ids, seed=cfg.seed)
     k6_cons = conservation(state)
-    k6_ill = illegal_stats(events, precondition_blocked=sum(blocked.values()))
+    k6_ill = illegal_stats(
+        events, precondition_blocked=sum(blocked.values()), precondition_pruned=sum(pruned.values())
+    )
     k6_rel_strong = relation_stats(state)
     k6_rel_all = relation_stats(state, kinds=ALL_KINDS)
     ledger = debt_ledger(state)
@@ -862,6 +901,8 @@ def run_headless(
         # 结论取严格口径：提案前拦截也计入违规尝试。
         "k6_illegal_pass": k6_ill["illegal_attempt_rate"] < 0.02,
         "k6_illegal_executed_pass": k6_ill["illegal_rate"] < 0.02,
+        # 诊断：把“提交前判不可行而剪枝”的提案也当作违规尝试，仍须 ≤2%。
+        "k6_illegal_incl_pruned_pass": k6_ill["illegal_proposal_rate"] < 0.02,
         "k6_relations_pass": k6_rel_strong["conflict_rate"] < 0.01,
         "k1_pass": k1["k1_rate"] >= 0.60,
         "k3_status": "diagnostic_only",
@@ -892,7 +933,9 @@ def run_headless(
             "illegal_rate": k6_ill["illegal_rate"],
             # 违规尝试口径（严格）：(reject + 提案前拦截) / 事件数。
             "illegal_attempt_rate": k6_ill["illegal_attempt_rate"],
+            "illegal_proposal_rate": k6_ill["illegal_proposal_rate"],
             "precondition_blocked": k6_ill["precondition_blocked"],
+            "precondition_pruned": k6_ill["precondition_pruned"],
             "by_reason": k6_ill["by_reason"],
             "by_verb": k6_ill["by_verb"],
         },
@@ -903,6 +946,14 @@ def run_headless(
                 for verb in sorted({v for v, _ in blocked})
             },
             "examples": blocked_examples,
+        },
+        "precondition_pruned": {
+            "total": sum(pruned.values()),
+            "by_verb": {
+                verb: dict(sorted(Counter({reason: n for (v, reason), n in pruned.items() if v == verb}).items()))
+                for verb in sorted({v for v, _ in pruned})
+            },
+            "examples": prune_examples,
         },
         "k6": {
             "conservation": k6_cons,

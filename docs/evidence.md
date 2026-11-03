@@ -52,37 +52,41 @@ WSIM_INTENT_REPLAY=reports/evidence/p3d-xing-intent-recordings-2d-final.jsonl \
 
 | 文件 | 说明 |
 |---|---|
-| [reports/evidence/runs/p3e-deepseek-real-2d-12npc/](../reports/evidence/runs/p3e-deepseek-real-2d-12npc/) | 该 run 的验收副本（`events.sqlite` / `world_hash.txt` / `summary.json`），干净 clone 可直接回放 |
-| [reports/evidence/p3e-deepseek-real-2d-12npc-summary.json](../reports/evidence/p3e-deepseek-real-2d-12npc-summary.json) | deepseek 槽位 2 天 / seed 42 / 12 NPC 的 `summary.json` |
+| [reports/evidence/runs/p3e-deepseek-real-2d-12npc-k6fix/](../reports/evidence/runs/p3e-deepseek-real-2d-12npc-k6fix/) | K6 收口后的验收副本（`events.sqlite` / `world_hash.txt` / `summary.json`），干净 clone 可直接回放 |
+| [reports/evidence/p3e-deepseek-real-2d-12npc-k6fix-summary.json](../reports/evidence/p3e-deepseek-real-2d-12npc-k6fix-summary.json) | 该 run 的 `summary.json`（严格非法率 0.00%、含剪枝 0.90%） |
+| [reports/evidence/runs/p3e-deepseek-real-2d-12npc/](../reports/evidence/runs/p3e-deepseek-real-2d-12npc/) | K6 修复前的旧验收副本（保留供对照，严格非法率 0.90%） |
+| [reports/evidence/p3e-deepseek-real-2d-12npc-summary.json](../reports/evidence/p3e-deepseek-real-2d-12npc-summary.json) | 旧 run 的 `summary.json`（修复前基线） |
 | [reports/evidence/p3e-deepseek-intent-recordings-2d.jsonl](../reports/evidence/p3e-deepseek-intent-recordings-2d.jsonl) | 该 run 19 次意图调用录制（`prompt_sha` / 返回 / usage / 延迟） |
 | [reports/evidence/p3e-deepseek-intent-coverage.jsonl](../reports/evidence/p3e-deepseek-intent-coverage.jsonl) | P0-5 覆盖探针：17 模板 × 2 条真实意图调用录制（34 行） |
 | [reports/evidence/p3e-intent-coverage.json](../reports/evidence/p3e-intent-coverage.json) | 按模板成功率汇总（含 slot 指纹与延迟） |
 | [reports/evidence/p3e-intent-coverage.md](../reports/evidence/p3e-intent-coverage.md) | 同一数据的可读表格与失败样本清单 |
-| [reports/evidence/p3e-fake-llm-2d-summary.json](../reports/evidence/p3e-fake-llm-2d-summary.json) | 2 天假端点 run 的 `summary.json`；K6 两种口径的复算输入 |
-| [reports/evidence/p3e-partial-replay-2d-summary.json](../reports/evidence/p3e-partial-replay-2d-summary.json) | 仅 intent 录制重跑的负面对照（220 events / 19 次 miss） |
+| [reports/evidence/p3e-fake-llm-2d-summary-k6fix.json](../reports/evidence/p3e-fake-llm-2d-summary-k6fix.json) | 2 天假端点 run 的 `summary.json`（修复后；K6 三种口径复算输入） |
+| [reports/evidence/p3e-fake-llm-2d-summary.json](../reports/evidence/p3e-fake-llm-2d-summary.json) | 修复前假端点 run 的 `summary.json`（基线：27 条 blocked） |
+| [reports/evidence/p3e-partial-replay-2d-summary.json](../reports/evidence/p3e-partial-replay-2d-summary.json) | 仅 intent 录制重跑的负面对照（220 events / 18 次 miss） |
 | [reports/evidence/p3e-report-stats.md](../reports/evidence/p3e-report-stats.md) | 报告全部数字的脚本生成结果（勿手写） |
 
-P3-E 2 天真实跑关键哈希：
+P3-E 2 天真实跑关键哈希（K6 收口版）：
 
-- `state_final = 9129402e7b8a516705809aacf626b746fab659f8b3ab9067b0c6d1fe55ca647a`
-- `event_final = 65fb7c2a506d6fcd1f6140fbb09bb90d8d17c5fc53b18829005ba312e64e4db7`
-- `events = 222`、`rejected = 0`、`precondition_blocked = 2`、`conservation_error = 0`
+- `state_final = 28b733facdcf8044b75f74fc0568ffd4da642579b3f85ec388dd98adb809f452`
+- `event_final = b327360550d00c48f430045d4d353e48bd77439f62477cee22b36357f130c6f5`
+- `events = 222`、`rejected = 0`、`precondition_blocked = 0`、`precondition_pruned = 2`、
+  严格非法率 `0.00%`、含剪枝 `0.90%`、`conservation_error = 0`
 
 复现命令：
 
 ```bash
 # 1) 事件日志回放（入库的证据 run；只证明 effect 引擎可重建同一状态）
 PYTHONPATH=src .venv/bin/python tools/replay.py \
-  --run reports/evidence/runs/p3e-deepseek-real-2d-12npc
-# 实测：events=222；replayed=stored=9129402e…；MATCH
+  --run reports/evidence/runs/p3e-deepseek-real-2d-12npc-k6fix
+# 实测：events=222；replayed=stored=28b733fa…；MATCH
 
 # 2) 仅 intent 槽录制重跑（不是整跑复现；decision 槽未录制）
 LLM_API_KEY=fake XING_API_KEY=fake \
 WSIM_INTENT_REPLAY=reports/evidence/p3e-deepseek-intent-recordings-2d.jsonl \
 .venv/bin/python sim/run_headless.py --days 2 --seed 42 --npc 12 --enable-llm \
   --out runs --run-id p3e-replay-deepseek-2d-12npc
-# 实测：events=220（原 222）；state=7a5ce1bd…（原 9129402e…）；
-#       event=53c1460f…（原 65fb7c2a…）；replay_miss=19/19；intent_reject=19
+# 实测：events=220（原 222）；state=7a5ce1bd…（原 28b733fa…）；
+#       event=a35cd8bd…（原 b3273605…）；replay_miss=18；intent_reject=19；pruned=2
 
 # 3) P0-5 模板覆盖探针（真实端点，key 只从环境变量读）
 LLM_API_KEY=<你的 key> .venv/bin/python tools/intent_coverage.py
