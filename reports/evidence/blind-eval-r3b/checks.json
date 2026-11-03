@@ -1,0 +1,901 @@
+{
+  "before_duplicates": {
+    "group_count": 8,
+    "groups": [
+      {
+        "ids": [
+          38,
+          41,
+          42,
+          47,
+          48,
+          49,
+          50,
+          56,
+          59,
+          60,
+          64,
+          66,
+          69,
+          70
+        ],
+        "reply": "这话我没听出个头绪，你再说明白些，我才好接。一刀下去，斤两不会错！",
+        "rows": 14
+      },
+      {
+        "ids": [
+          1,
+          39,
+          40,
+          43,
+          44,
+          55,
+          57,
+          68
+        ],
+        "reply": "肉价这条，我按今日行情走，一斤上下浮动两文；你诚心要，零头我抹，秤上不少你。",
+        "rows": 8
+      },
+      {
+        "ids": [
+          16,
+          32,
+          54,
+          58,
+          62,
+          63
+        ],
+        "reply": "这笔可以赊，三天为限；第四天我上门讨，别让我空手回。",
+        "rows": 6
+      },
+      {
+        "ids": [
+          6,
+          33,
+          65,
+          67
+        ],
+        "reply": "找落脚处往东街走，过了石桥见红灯笼就是客栈；我摊子在集市，走岔了回来问我。",
+        "rows": 4
+      },
+      {
+        "ids": [
+          4,
+          36,
+          37
+        ],
+        "reply": "街面上传得凶，一版比一版玄；我只看亲眼见的，你别再往外传。",
+        "rows": 3
+      },
+      {
+        "ids": [
+          45,
+          46,
+          51
+        ],
+        "reply": "这忙我搭把手可以，先讲清要办到哪一步；能应的我应，办不到我当面回你。",
+        "rows": 3
+      },
+      {
+        "ids": [
+          52,
+          53,
+          61
+        ],
+        "reply": "不买就不买，我不恼；摊子摆到天黑，你改主意再回来。",
+        "rows": 3
+      },
+      {
+        "ids": [
+          3,
+          35
+        ],
+        "reply": "刀工是跟师傅学的，三年才出师；刀口深浅全靠手感，你看着简单，我练了半辈子。",
+        "rows": 2
+      }
+    ],
+    "row_count": 43
+  },
+  "bracket_hits": {
+    "model": [],
+    "template": [],
+    "total": 0
+  },
+  "distinct_skeletons": 70,
+  "fields": {
+    "answer_key": [
+      "id",
+      "model"
+    ],
+    "labels_only_in_answer_key": true,
+    "pairs": [
+      "id",
+      "prompt",
+      "A",
+      "B"
+    ]
+  },
+  "fingerprints": {
+    "answer_key_sha256": "8f695faebbdbbe4357550c8cc0853128c85fb06c4534872ac51ec55f4b17a08a",
+    "pairs_sha256": "d72dc9ef029a7008f059dc4460cb99263b18fd01ebb2c43a09b7567b21eee191"
+  },
+  "id_map": {
+    "r2": [
+      1,
+      30
+    ],
+    "r3": [
+      31,
+      70
+    ]
+  },
+  "markdown_model_hits": [
+    {
+      "id": 4,
+      "reply": "嗨，新鲜事嘛——金满仓又在我摊前念叨那三百文，我只好装没听见。**拍了下围裙上的油渍**倒是新到一批猪，膘厚得很！兄弟，来两斤不？"
+    },
+    {
+      "id": 35,
+      "reply": "柳三娘？她割肉的手艺我瞧过，刀口利落，不是跟我学的。**拍了拍油亮围裙** 要打听，您得去问她自个儿，我只管卖肉，不管拜师。"
+    }
+  ],
+  "max_family_reuse": 1,
+  "max_skeleton_reuse": 1,
+  "model_length": {
+    "avg": 52.81,
+    "buckets": {
+      "30-39": 5,
+      "40-49": 27,
+      "50-60": 20,
+      ">60": 18
+    },
+    "max": 78,
+    "min": 35
+  },
+  "position_balance": {
+    "alternating": false,
+    "longest_run": 4,
+    "model_as_A": 35,
+    "model_as_B": 35
+  },
+  "r3_model": {
+    "fallback": 0,
+    "fallback_ids": [],
+    "p95_latency_s": 4.0957,
+    "total_cost_usd": 0.110151
+  },
+  "reply_similarity": {
+    "pairs_over_60": [],
+    "template_duplicate_groups": 0,
+    "template_duplicate_rows": 0,
+    "threshold": 0.6,
+    "worst": 0.3509,
+    "worst_ids": [
+      52,
+      55
+    ]
+  },
+  "routing": [
+    {
+      "demand": "meat",
+      "id": 1,
+      "intent": "price",
+      "object": "meat",
+      "skeleton": "price.meat.a",
+      "source": "r2"
+    },
+    {
+      "demand": "",
+      "id": 2,
+      "intent": "gossip",
+      "object": "impact",
+      "skeleton": "gossip.impact.a",
+      "source": "r2"
+    },
+    {
+      "demand": "",
+      "id": 3,
+      "intent": "chitchat",
+      "object": "craft_origin",
+      "skeleton": "chitchat.craft.origin.a",
+      "source": "r2"
+    },
+    {
+      "demand": "event",
+      "id": 4,
+      "intent": "gossip",
+      "object": "news",
+      "skeleton": "gossip.event.a",
+      "source": "r2"
+    },
+    {
+      "demand": "other",
+      "id": 5,
+      "intent": "price",
+      "object": "other",
+      "skeleton": "price.other.a",
+      "source": "r2"
+    },
+    {
+      "demand": "place",
+      "id": 6,
+      "intent": "directions",
+      "object": "place",
+      "skeleton": "directions.a",
+      "source": "r2"
+    },
+    {
+      "demand": "reputation",
+      "id": 7,
+      "intent": "gossip",
+      "object": "person",
+      "skeleton": "gossip.person.reputation.a",
+      "source": "r2"
+    },
+    {
+      "demand": "volume",
+      "id": 8,
+      "intent": "price",
+      "object": "volume",
+      "skeleton": "price.volume.a",
+      "source": "r2"
+    },
+    {
+      "demand": "skill",
+      "id": 9,
+      "intent": "help",
+      "object": "skill",
+      "skeleton": "help.skill.a",
+      "source": "r2"
+    },
+    {
+      "demand": "",
+      "id": 10,
+      "intent": "gossip",
+      "object": "passersby",
+      "skeleton": "gossip.passersby.a",
+      "source": "r2"
+    },
+    {
+      "demand": "justice",
+      "id": 11,
+      "intent": "gossip",
+      "object": "person",
+      "skeleton": "gossip.person.justice.a",
+      "source": "r2"
+    },
+    {
+      "demand": "",
+      "id": 12,
+      "intent": "gossip",
+      "object": "who",
+      "skeleton": "gossip.who",
+      "source": "r2"
+    },
+    {
+      "demand": "acquaintance",
+      "id": 13,
+      "intent": "gossip",
+      "object": "person",
+      "skeleton": "gossip.person.relation.acquaintance.a",
+      "source": "r2"
+    },
+    {
+      "demand": "reason",
+      "id": 14,
+      "intent": "price",
+      "object": "reason",
+      "skeleton": "price.meat.reason.a",
+      "source": "r2"
+    },
+    {
+      "demand": "",
+      "id": 15,
+      "intent": "chitchat",
+      "object": "family",
+      "skeleton": "chitchat.family.a",
+      "source": "r2"
+    },
+    {
+      "demand": "credit",
+      "id": 16,
+      "intent": "credit",
+      "object": "credit",
+      "skeleton": "credit.a",
+      "source": "r2"
+    },
+    {
+      "demand": "",
+      "id": 17,
+      "intent": "chitchat",
+      "object": "safety",
+      "skeleton": "chitchat.safety.a",
+      "source": "r2"
+    },
+    {
+      "demand": "",
+      "id": 18,
+      "intent": "chitchat",
+      "object": "daily",
+      "skeleton": "chitchat.daily.a",
+      "source": "r2"
+    },
+    {
+      "demand": "",
+      "id": 19,
+      "intent": "gossip",
+      "object": "recruit",
+      "skeleton": "gossip.recruit.a",
+      "source": "r2"
+    },
+    {
+      "demand": "capital",
+      "id": 20,
+      "intent": "price",
+      "object": "capital",
+      "skeleton": "price.capital.a",
+      "source": "r2"
+    },
+    {
+      "demand": "",
+      "id": 21,
+      "intent": "chitchat",
+      "object": "future",
+      "skeleton": "chitchat.future.a",
+      "source": "r2"
+    },
+    {
+      "demand": "",
+      "id": 22,
+      "intent": "chitchat",
+      "object": "craft_knife",
+      "skeleton": "chitchat.craft.knife.a",
+      "source": "r2"
+    },
+    {
+      "demand": "offal",
+      "id": 23,
+      "intent": "price",
+      "object": "offal",
+      "skeleton": "price.offal.a",
+      "source": "r2"
+    },
+    {
+      "demand": "closeness",
+      "id": 24,
+      "intent": "gossip",
+      "object": "person",
+      "skeleton": "gossip.person.relation.closeness.a",
+      "source": "r2"
+    },
+    {
+      "demand": "",
+      "id": 25,
+      "intent": "chitchat",
+      "object": "opinion",
+      "skeleton": "chitchat.opinion.a",
+      "source": "r2"
+    },
+    {
+      "demand": "invite",
+      "id": 26,
+      "intent": "help",
+      "object": "invite",
+      "skeleton": "help.invite",
+      "source": "r2"
+    },
+    {
+      "demand": "",
+      "id": 27,
+      "intent": "gossip",
+      "object": "type",
+      "skeleton": "gossip.type.a",
+      "source": "r2"
+    },
+    {
+      "demand": "",
+      "id": 28,
+      "intent": "chitchat",
+      "object": "sound",
+      "skeleton": "chitchat.sound.a",
+      "source": "r2"
+    },
+    {
+      "demand": "cut",
+      "id": 29,
+      "intent": "price",
+      "object": "cut",
+      "skeleton": "price.cut.a",
+      "source": "r2"
+    },
+    {
+      "demand": "",
+      "id": 30,
+      "intent": "chitchat",
+      "object": "fate",
+      "skeleton": "chitchat.fate.a",
+      "source": "r2"
+    },
+    {
+      "demand": "history_trade",
+      "id": 31,
+      "intent": "gossip",
+      "object": "person",
+      "skeleton": "gossip.person.history.trade.a",
+      "source": "r3"
+    },
+    {
+      "demand": "origin",
+      "id": 32,
+      "intent": "credit",
+      "object": "credit",
+      "skeleton": "credit.origin.a",
+      "source": "r3"
+    },
+    {
+      "demand": "history_post",
+      "id": 33,
+      "intent": "gossip",
+      "object": "person",
+      "skeleton": "gossip.person.history.post.a",
+      "source": "r3"
+    },
+    {
+      "demand": "exam",
+      "id": 34,
+      "intent": "gossip",
+      "object": "person",
+      "skeleton": "gossip.person.exam.a",
+      "source": "r3"
+    },
+    {
+      "demand": "craft",
+      "id": 35,
+      "intent": "gossip",
+      "object": "person",
+      "skeleton": "gossip.person.craft.a",
+      "source": "r3"
+    },
+    {
+      "demand": "duration",
+      "id": 36,
+      "intent": "gossip",
+      "object": "person",
+      "skeleton": "gossip.person.relation.duration.a",
+      "source": "r3"
+    },
+    {
+      "demand": "whereabouts",
+      "id": 37,
+      "intent": "gossip",
+      "object": "news",
+      "skeleton": "gossip.person.whereabouts.a",
+      "source": "r3"
+    },
+    {
+      "demand": "bargain",
+      "id": 38,
+      "intent": "price",
+      "object": "meat",
+      "skeleton": "price.bargain.a",
+      "source": "r3"
+    },
+    {
+      "demand": "bulk",
+      "id": 39,
+      "intent": "price",
+      "object": "meat",
+      "skeleton": "price.bulk.a",
+      "source": "r3"
+    },
+    {
+      "demand": "mix",
+      "id": 40,
+      "intent": "price",
+      "object": "meat",
+      "skeleton": "price.mix.a",
+      "source": "r3"
+    },
+    {
+      "demand": "extra",
+      "id": 41,
+      "intent": "price",
+      "object": "meat",
+      "skeleton": "price.extra.a",
+      "source": "r3"
+    },
+    {
+      "demand": "compare",
+      "id": 42,
+      "intent": "price",
+      "object": "meat",
+      "skeleton": "price.compare.a",
+      "source": "r3"
+    },
+    {
+      "demand": "regular",
+      "id": 43,
+      "intent": "price",
+      "object": "meat",
+      "skeleton": "price.regular.a",
+      "source": "r3"
+    },
+    {
+      "demand": "credit_diff",
+      "id": 44,
+      "intent": "price",
+      "object": "meat",
+      "skeleton": "price.credit_diff.a",
+      "source": "r3"
+    },
+    {
+      "demand": "schedule",
+      "id": 45,
+      "intent": "help",
+      "object": "errand",
+      "skeleton": "help.schedule.a",
+      "source": "r3"
+    },
+    {
+      "demand": "status",
+      "id": 46,
+      "intent": "help",
+      "object": "errand",
+      "skeleton": "help.status.a",
+      "source": "r3"
+    },
+    {
+      "demand": "search",
+      "id": 47,
+      "intent": "help",
+      "object": "errand",
+      "skeleton": "help.search.a",
+      "source": "r3"
+    },
+    {
+      "demand": "referral",
+      "id": 48,
+      "intent": "help",
+      "object": "errand",
+      "skeleton": "help.referral.a",
+      "source": "r3"
+    },
+    {
+      "demand": "escort",
+      "id": 49,
+      "intent": "help",
+      "object": "errand",
+      "skeleton": "help.escort.a",
+      "source": "r3"
+    },
+    {
+      "demand": "progress",
+      "id": 50,
+      "intent": "help",
+      "object": "errand",
+      "skeleton": "help.progress.a",
+      "source": "r3"
+    },
+    {
+      "demand": "alternative",
+      "id": 51,
+      "intent": "help",
+      "object": "errand",
+      "skeleton": "help.alternative.a",
+      "source": "r3"
+    },
+    {
+      "demand": "borrow",
+      "id": 52,
+      "intent": "rejection",
+      "object": "refusal",
+      "skeleton": "rejection.borrow.a",
+      "source": "r3"
+    },
+    {
+      "demand": "change_mind",
+      "id": 53,
+      "intent": "rejection",
+      "object": "refusal",
+      "skeleton": "rejection.change_mind.a",
+      "source": "r3"
+    },
+    {
+      "demand": "collateral",
+      "id": 54,
+      "intent": "credit",
+      "object": "credit",
+      "skeleton": "credit.collateral.a",
+      "source": "r3"
+    },
+    {
+      "demand": "question",
+      "id": 55,
+      "intent": "rejection",
+      "object": "refusal",
+      "skeleton": "rejection.question.a",
+      "source": "r3"
+    },
+    {
+      "demand": "trust",
+      "id": 56,
+      "intent": "rejection",
+      "object": "refusal",
+      "skeleton": "rejection.trust.a",
+      "source": "r3"
+    },
+    {
+      "demand": "concession",
+      "id": 57,
+      "intent": "price",
+      "object": "meat",
+      "skeleton": "price.concession.a",
+      "source": "r3"
+    },
+    {
+      "demand": "defer",
+      "id": 58,
+      "intent": "credit",
+      "object": "credit",
+      "skeleton": "credit.defer.a",
+      "source": "r3"
+    },
+    {
+      "demand": "interest",
+      "id": 59,
+      "intent": "credit",
+      "object": "credit",
+      "skeleton": "credit.interest.a",
+      "source": "r3"
+    },
+    {
+      "demand": "repay",
+      "id": 60,
+      "intent": "credit",
+      "object": "credit",
+      "skeleton": "credit.repay.a",
+      "source": "r3"
+    },
+    {
+      "demand": "ledger",
+      "id": 61,
+      "intent": "credit",
+      "object": "credit",
+      "skeleton": "credit.ledger.a",
+      "source": "r3"
+    },
+    {
+      "demand": "owe",
+      "id": 62,
+      "intent": "credit",
+      "object": "credit",
+      "skeleton": "credit.owe.a",
+      "source": "r3"
+    },
+    {
+      "demand": "interest_regular",
+      "id": 63,
+      "intent": "credit",
+      "object": "credit",
+      "skeleton": "credit.interest_regular.a",
+      "source": "r3"
+    },
+    {
+      "demand": "landmark",
+      "id": 64,
+      "intent": "directions",
+      "object": "place",
+      "skeleton": "directions.landmark.a",
+      "source": "r3"
+    },
+    {
+      "demand": "inn_lamp",
+      "id": 65,
+      "intent": "directions",
+      "object": "place",
+      "skeleton": "directions.inn_lamp.a",
+      "source": "r3"
+    },
+    {
+      "demand": "ferry",
+      "id": 66,
+      "intent": "directions",
+      "object": "place",
+      "skeleton": "directions.ferry.a",
+      "source": "r3"
+    },
+    {
+      "demand": "avoid_patrol",
+      "id": 67,
+      "intent": "directions",
+      "object": "place",
+      "skeleton": "directions.avoid_patrol.a",
+      "source": "r3"
+    },
+    {
+      "demand": "goods",
+      "id": 68,
+      "intent": "price",
+      "object": "meat",
+      "skeleton": "price.goods.a",
+      "source": "r3"
+    },
+    {
+      "demand": "well",
+      "id": 69,
+      "intent": "directions",
+      "object": "place",
+      "skeleton": "directions.well.a",
+      "source": "r3"
+    },
+    {
+      "demand": "temple",
+      "id": 70,
+      "intent": "directions",
+      "object": "place",
+      "skeleton": "directions.temple.a",
+      "source": "r3"
+    }
+  ],
+  "samples": 70,
+  "seed": 20261104,
+  "skeleton_counts": {
+    "chitchat.craft.knife.a": 1,
+    "chitchat.craft.origin.a": 1,
+    "chitchat.daily.a": 1,
+    "chitchat.family.a": 1,
+    "chitchat.fate.a": 1,
+    "chitchat.future.a": 1,
+    "chitchat.opinion.a": 1,
+    "chitchat.safety.a": 1,
+    "chitchat.sound.a": 1,
+    "credit.a": 1,
+    "credit.collateral.a": 1,
+    "credit.defer.a": 1,
+    "credit.interest.a": 1,
+    "credit.interest_regular.a": 1,
+    "credit.ledger.a": 1,
+    "credit.origin.a": 1,
+    "credit.owe.a": 1,
+    "credit.repay.a": 1,
+    "directions.a": 1,
+    "directions.avoid_patrol.a": 1,
+    "directions.ferry.a": 1,
+    "directions.inn_lamp.a": 1,
+    "directions.landmark.a": 1,
+    "directions.temple.a": 1,
+    "directions.well.a": 1,
+    "gossip.event.a": 1,
+    "gossip.impact.a": 1,
+    "gossip.passersby.a": 1,
+    "gossip.person.craft.a": 1,
+    "gossip.person.exam.a": 1,
+    "gossip.person.history.post.a": 1,
+    "gossip.person.history.trade.a": 1,
+    "gossip.person.justice.a": 1,
+    "gossip.person.relation.acquaintance.a": 1,
+    "gossip.person.relation.closeness.a": 1,
+    "gossip.person.relation.duration.a": 1,
+    "gossip.person.reputation.a": 1,
+    "gossip.person.whereabouts.a": 1,
+    "gossip.recruit.a": 1,
+    "gossip.type.a": 1,
+    "gossip.who": 1,
+    "help.alternative.a": 1,
+    "help.escort.a": 1,
+    "help.invite": 1,
+    "help.progress.a": 1,
+    "help.referral.a": 1,
+    "help.schedule.a": 1,
+    "help.search.a": 1,
+    "help.skill.a": 1,
+    "help.status.a": 1,
+    "price.bargain.a": 1,
+    "price.bulk.a": 1,
+    "price.capital.a": 1,
+    "price.compare.a": 1,
+    "price.concession.a": 1,
+    "price.credit_diff.a": 1,
+    "price.cut.a": 1,
+    "price.extra.a": 1,
+    "price.goods.a": 1,
+    "price.meat.a": 1,
+    "price.meat.reason.a": 1,
+    "price.mix.a": 1,
+    "price.offal.a": 1,
+    "price.other.a": 1,
+    "price.regular.a": 1,
+    "price.volume.a": 1,
+    "rejection.borrow.a": 1,
+    "rejection.change_mind.a": 1,
+    "rejection.question.a": 1,
+    "rejection.trust.a": 1
+  },
+  "skeleton_family_counts": {
+    "chitchat.craft.knife": 1,
+    "chitchat.craft.origin": 1,
+    "chitchat.daily": 1,
+    "chitchat.family": 1,
+    "chitchat.fate": 1,
+    "chitchat.future": 1,
+    "chitchat.opinion": 1,
+    "chitchat.safety": 1,
+    "chitchat.sound": 1,
+    "credit": 1,
+    "credit.collateral": 1,
+    "credit.defer": 1,
+    "credit.interest": 1,
+    "credit.interest_regular": 1,
+    "credit.ledger": 1,
+    "credit.origin": 1,
+    "credit.owe": 1,
+    "credit.repay": 1,
+    "directions": 1,
+    "directions.avoid_patrol": 1,
+    "directions.ferry": 1,
+    "directions.inn_lamp": 1,
+    "directions.landmark": 1,
+    "directions.temple": 1,
+    "directions.well": 1,
+    "gossip.event": 1,
+    "gossip.impact": 1,
+    "gossip.passersby": 1,
+    "gossip.person.craft": 1,
+    "gossip.person.exam": 1,
+    "gossip.person.history.post": 1,
+    "gossip.person.history.trade": 1,
+    "gossip.person.justice": 1,
+    "gossip.person.relation.acquaintance": 1,
+    "gossip.person.relation.closeness": 1,
+    "gossip.person.relation.duration": 1,
+    "gossip.person.reputation": 1,
+    "gossip.person.whereabouts": 1,
+    "gossip.recruit": 1,
+    "gossip.type": 1,
+    "gossip.who": 1,
+    "help.alternative": 1,
+    "help.escort": 1,
+    "help.invite": 1,
+    "help.progress": 1,
+    "help.referral": 1,
+    "help.schedule": 1,
+    "help.search": 1,
+    "help.skill": 1,
+    "help.status": 1,
+    "price.bargain": 1,
+    "price.bulk": 1,
+    "price.capital": 1,
+    "price.compare": 1,
+    "price.concession": 1,
+    "price.credit_diff": 1,
+    "price.cut": 1,
+    "price.extra": 1,
+    "price.goods": 1,
+    "price.meat": 1,
+    "price.meat.reason": 1,
+    "price.mix": 1,
+    "price.offal": 1,
+    "price.other": 1,
+    "price.regular": 1,
+    "price.volume": 1,
+    "rejection.borrow": 1,
+    "rejection.change_mind": 1,
+    "rejection.question": 1,
+    "rejection.trust": 1
+  },
+  "sources": {
+    "r2_model_rows": 30,
+    "r3_model_rows": 40
+  },
+  "template_length": {
+    "avg": 31.0,
+    "buckets": {
+      "20-29": 29,
+      "30-39": 41
+    },
+    "in_20_60": 70,
+    "max": 39,
+    "min": 24
+  },
+  "third_person_template_hits": []
+}
