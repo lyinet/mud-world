@@ -73,10 +73,10 @@ def intent_block_reason(registry: ActionRegistry, state: WorldState, intent: Int
 
 PRUNABLE_REASONS = frozenset({"not_together", "not_at_giver", "not_at_target", "wrong_location"})
 
-# 同 tick 调度优先级：社交/交易先于移动，保证“已经决定要对某人说话”时目标还没走开。
-SOCIAL_FIRST_VERBS = frozenset(
-    {"talk", "message", "trade", "sell", "gift", "quest_accept", "quest_deliver", "recruit"}
-)
+# 同 tick 调度优先级：只让 talk 先于 move，消除“说话前目标先走开”的顺序依赖。
+# A/B 实测（2 天 seed=42 全 NPC）：把 trade/sell/quest_* 也提前与只提前 talk，
+# 事件数/state/经济流量/K6 完全一致，仅事件序哈希不同；故取影响面最小的 talk。
+SOCIAL_FIRST_VERBS = frozenset({"talk"})
 
 
 def is_prunable(reason: str) -> bool:
@@ -185,40 +185,34 @@ def run_headless(
 
     blocked: Counter[tuple[str, str]] = Counter()
     blocked_examples: list[dict[str, Any]] = []
+    blocked_records: list[dict[str, Any]] = []
     pruned: Counter[tuple[str, str]] = Counter()
     prune_examples: list[dict[str, Any]] = []
+    pruned_records: list[dict[str, Any]] = []
 
     def emit(intent: Intent):
         # 自主意图（LLM/planner）在提交前做前置校验：位置类不满足直接判不可行并丢弃
         # （计 precondition_pruned，不计 blocked）；其余仍记 blocked 并触发下一 tick 重规划。
         reason = intent_block_reason(registry, writer.state, intent)
         if reason:
+            record = {
+                "source": intent.source,
+                "actor": intent.actor,
+                "verb": intent.verb,
+                "reason": reason,
+                "tick": intent.tick,
+                "args": dict(intent.args or {}),
+            }
             if is_prunable(reason):
                 pruned[(intent.verb, reason)] += 1
+                pruned_records.append(record)
                 if len(prune_examples) < 20:
-                    prune_examples.append(
-                        {
-                            "source": intent.source,
-                            "actor": intent.actor,
-                            "verb": intent.verb,
-                            "reason": reason,
-                            "tick": intent.tick,
-                            "args": dict(intent.args or {}),
-                        }
-                    )
+                    prune_examples.append(record)
                 return None
             blocked[(intent.verb, reason)] += 1
+            blocked_records.append(record)
             if len(blocked_examples) < 20:
-                blocked_examples.append(
-                    {
-                        "source": intent.source,
-                        "actor": intent.actor,
-                        "verb": intent.verb,
-                        "reason": reason,
-                        "tick": intent.tick,
-                        "args": dict(intent.args or {}),
-                    }
-                )
+                blocked_examples.append(record)
             return None
         ev = writer.submit(intent)
         if ev.seq > events[-1].seq:
@@ -946,6 +940,8 @@ def run_headless(
                 for verb in sorted({v for v, _ in blocked})
             },
             "examples": blocked_examples,
+            # 全量可审计记录（不截断）；报告逐条对账以本字段为准。
+            "records": blocked_records,
         },
         "precondition_pruned": {
             "total": sum(pruned.values()),
@@ -954,6 +950,7 @@ def run_headless(
                 for verb in sorted({v for v, _ in pruned})
             },
             "examples": prune_examples,
+            "records": pruned_records,
         },
         "k6": {
             "conservation": k6_cons,
@@ -985,6 +982,12 @@ def run_headless(
     (out_dir / "summary.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8"
     )
+    # 全量导出：每条提案前拦截/剪枝都可逐条审计（不截断）。
+    for name, records in (("blocked", blocked_records), ("pruned", pruned_records)):
+        (out_dir / f"{name}.jsonl").write_text(
+            "".join(json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n" for r in records),
+            encoding="utf-8",
+        )
     (out_dir / "daily.jsonl").write_text(
         "\n".join(json.dumps(d, ensure_ascii=False, sort_keys=True) for d in daily) + "\n",
         encoding="utf-8",
