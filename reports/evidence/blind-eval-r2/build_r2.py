@@ -51,6 +51,7 @@ def main() -> int:
     enriched: list[dict] = []
     lengths: list[int] = []
     markdown_hits: list[dict] = []
+    bracket_hits: list[dict] = []
     third_person_hits: list[dict] = []
     missing_first_person: list[dict] = []
     by_intent: dict[str, list[dict]] = {}
@@ -76,6 +77,8 @@ def main() -> int:
         record = {"id": int(row["round"]), "reply": template_reply}
         if MARKDOWN_RE.search(template_reply):
             markdown_hits.append(record)
+        if "「" in template_reply or "」" in template_reply:
+            bracket_hits.append(record)
         if THIRD_PERSON_RE.search(template_reply):
             third_person_hits.append(record)
         if FIRST_PERSON not in template_reply:
@@ -142,6 +145,21 @@ def main() -> int:
             similarity_matrix[left][right] = round(pair_max, 4)
             if pair_max > worst_similarity:
                 worst_similarity, worst_pair = pair_max, [left, right]
+
+    reply_texts = [item["template"] for item in enriched]
+    worst_reply_similarity = 0.0
+    worst_reply_ids: list[int] | None = None
+    over_60: list[dict] = []
+    for i in range(len(reply_texts)):
+        for j in range(i + 1, len(reply_texts)):
+            ratio = SequenceMatcher(None, reply_texts[i], reply_texts[j]).ratio()
+            if ratio > worst_reply_similarity:
+                worst_reply_similarity = ratio
+                worst_reply_ids = [enriched[i]["id"], enriched[j]["id"]]
+            if ratio > 0.6:
+                over_60.append(
+                    {"ids": [enriched[i]["id"], enriched[j]["id"]], "ratio": round(ratio, 4)}
+                )
     checks = {
         "samples": len(pairs),
         "source": str(SOURCE.relative_to(ROOT)),
@@ -165,7 +183,15 @@ def main() -> int:
         "worst_similarity_pair": worst_pair,
         "similarity_threshold": 0.60,
         "similarity_matrix": similarity_matrix,
+        "reply_similarity": {
+            "worst": round(worst_reply_similarity, 4),
+            "worst_ids": worst_reply_ids,
+            "threshold": 0.60,
+            "pairs_over_60": len(over_60),
+            "over_60": over_60,
+        },
         "markdown_hits": markdown_hits,
+        "bracket_hits": bracket_hits,
         "third_person_hits": third_person_hits,
         "missing_first_person": missing_first_person,
         "position_balance": {
