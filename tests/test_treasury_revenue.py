@@ -1,6 +1,7 @@
 """金库收入侧杠杆：交易税分流、守恒、open_shop 缓冲延后。"""
 from __future__ import annotations
 
+from wsim.actions.basic import ConsumeAction
 from wsim.actions.business import OpenShopAction
 from wsim.actions.common import (
     tax_split_effects,
@@ -35,6 +36,32 @@ def test_tax_split_handles_odd_amount_without_loss(real_content, state):
     assert sum(e.data["amount"] for e in effects) == 51
     assert [e.data["amount"] for e in effects] == [26, 25]
     apply_effects(state, effects)
+    assert conservation(state)["conservation_error"] == 0
+
+
+def test_consume_tax_is_split_to_treasury(content, state):
+    content.economy["taxes"] = {"transaction": 0.04}
+    action = ConsumeAction(content)
+    intent = Intent(
+        actor="n1",
+        verb="consume",
+        args={"item": "food", "qty": 10},
+        tick=1,
+        source="test",
+    )
+    effects = action.apply(state, intent, None)
+    to_treasury = [
+        e for e in effects if e.op == "transfer" and e.data.get("reason") == "transaction_tax_treasury"
+    ]
+    burned = [e for e in effects if e.op == "burn" and e.data.get("reason") == "transaction_tax"]
+    assert sum(e.data["amount"] for e in to_treasury) == 1
+    assert sum(e.data["amount"] for e in burned) == 1
+
+    before = state.account_balance("treasury:region")
+    before_minted = state.minted_total
+    apply_effects(state, effects)
+    assert state.account_balance("treasury:region") == before + 50 + 1
+    assert state.minted_total == before_minted
     assert conservation(state)["conservation_error"] == 0
 
 

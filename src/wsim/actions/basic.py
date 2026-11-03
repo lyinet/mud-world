@@ -20,6 +20,7 @@ from .common import (
     payment_with_shortfall,
     require_entity,
     skill_for,
+    tax_split_effects,
     transaction_tax,
     wallet,
 )
@@ -225,7 +226,7 @@ class ConsumeAction(Action):
         boost = float(self.content.economy.get("food_stamina", 25)) if category in ("food", "drink") else 5.0
         return [
             Effect("transfer", {"src": wallet(ent.id), "dst": seller.cash_account, "amount": price, "reason": "consume"}),
-            *([Effect("burn", {"account": wallet(ent.id), "amount": tax, "reason": "transaction_tax"})] if tax > 0 else []),
+            *tax_split_effects(self.content, wallet(ent.id), tax),
             Effect("item_move", {"src": seller.id, "dst": ent.id, "item": item, "qty": qty}),
             Effect("item_consume", {"owner": ent.id, "item": item, "qty": qty}),
             Effect("stamina", {"entity": ent.id, "delta": boost}),

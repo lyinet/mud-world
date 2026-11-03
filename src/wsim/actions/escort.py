@@ -20,6 +20,7 @@ from .common import (
     payment_with_shortfall,
     require_entity,
     role_allowed,
+    tax_split_effects,
     transaction_tax,
     wallet,
 )
@@ -210,9 +211,7 @@ class SystemEscortArriveAction(Action):
                     else:
                         tax = min(tax, bal + min(share, state.account_balance(agency.cash_account)))
                     if tax > 0:
-                        effects.append(
-                            Effect("burn", {"account": wallet(carrier.id), "amount": tax, "reason": "transaction_tax"})
-                        )
+                        effects.extend(tax_split_effects(self.content, wallet(carrier.id), tax))
                 effects.extend(goal_progress(state, carrier.id, "escort", 1.0, intent.tick))
                 note = f"镖单{oid}送达，得银{share}文"
                 if order.risk_event:
