@@ -1,6 +1,6 @@
 # 已知限制（首发交付，不美化）
 
-> **过渡版本说明**：`delivery-p3f`（`943645f`）含他人在途的 `headless.py` 改动，仅作内部里程碑，**不作对外最终版**；对外以后续 `delivery-p3g` 为准。
+> **版本**：`delivery-p3g`（基线 `60e8596`）为对外首发；`delivery-p3f`（`943645f`）含他人在途改动，仅作内部里程碑，不作对外最终版。
 
 本文只记录**本次交付能证实**的范围。任何未达标项都按 FAIL / 未验证列出，不用“基本可用”“已优化”之类措辞。
 
@@ -10,13 +10,15 @@
 | --- | --- | --- | --- |
 | K1 自主目标推进率 | **7/91 = 7.69%** | **FAIL** | [p3e-report-stats.md](../reports/evidence/p3e-report-stats.md) §2；2 天 / 12 NPC / seed 42 / deepseek 端点 |
 | `dialogue` 槽调用 | **0 次** | **未验证** | 同上 §2：`LLM 调用 {'decision': 19, 'intent': 19}`，没有 dialogue；文笔/角色扮演质量未评测 |
-| 整跑级复现 | 只保证**事件日志回放** | **未承诺** | `tools/replay.py` 对同一 `events.jsonl` 回放 **MATCH**；用录制 intent 重跑得到 220 事件（原 222）、`replay_miss=18`，状态不同 |
-| K6 严格口径（违规尝试） | **2/824 = 0.24%** | PASS（本次口径） | fake 2 天 run；`rejected+blocked / attempts` |
-| K6 含剪枝口径 | **7/824 = 0.85%** | PASS（本次口径） | fake 2 天 run；额外计入 `pruned` |
+| 整跑级复现 | 只保证**事件日志回放** | **未承诺** | `tools/replay.py` 对 `k6r2` 的 `events.jsonl` 回放 **MATCH**（222 events，`e607d200…`）；用录制 intent 重跑得到 220 事件（原 222）、`replay_miss=18`，状态不同 |
+| K6 含剪枝口径（对外结论） | **7/824 = 0.85%**（fake 2 天）<br>**2/222 = 0.90%**（deepseek 2 天） | PASS | `(rejected+blocked+pruned)/events`；见 [fake summary](../reports/evidence/p3e-fake-llm-2d-summary-k6r2.json)、[deepseek summary](../reports/evidence/p3e-deepseek-real-2d-12npc-k6r2-summary.json) |
+| K6 严格口径（仅作分解） | **2/824 = 0.24%**（fake）<br>**0/222 = 0.00%**（deepseek） | PASS | `(rejected+blocked)/events`，不作为对外结论 |
 
 补充披露（同一份证据）：
 
-- deepseek 真实 2 天：K6 严格 **0/222 = 0.00%**、含剪枝 **2/222 = 0.90%**；但动作来源 model **0.7%** / rule **99.3%**，主要仍是规则驱动，不能当作模型质量验收。
+- **世界已改写**：确定性 fake run 从 **816 → 824 events**（state `b1a7edaf…` → `1bd870c4…`）；经济数字同步变化：sell 流入 **1165→849**、buy **956→795**、burned **112→113**、商户现金 **11925→12058**。原因是同 tick 调度改为只让 `talk` 先于 `move`，原本被前置拦截的话变成成功事件。该 824 事件世界已由 [tests/test_p3e_golden.py](../tests/test_p3e_golden.py) 锁死（事件总数/事件序哈希/state hash/经济流量）。**后续任何行为变更必须同步更新 golden 基线并重新出包**，不能沿用本包数字。
+- 全量拦截审计已落盘：[fake blocked](../reports/evidence/runs/p3e-fake-llm-2d-k6r2/blocked.jsonl)、[fake pruned](../reports/evidence/runs/p3e-fake-llm-2d-k6r2/pruned.jsonl)、[deepseek blocked](../reports/evidence/runs/p3e-deepseek-real-2d-12npc-k6r2/blocked.jsonl)、[deepseek pruned](../reports/evidence/runs/p3e-deepseek-real-2d-12npc-k6r2/pruned.jsonl)。
+- deepseek 新旧两次是**独立采样**，不是受控对照；新 run 的 2 条 blocked→pruned 属于**换桶**，不是行为改善。动作来源 model **0.7%** / rule **99.3%**，主要仍是规则驱动，不能当作模型质量验收。
 - K1 的 7.69% 是“2 天长窗口、无玩家在场”的真实进度，不是模型能力结论。72 天无玩家 run 的 75.56% 未进入本次首发表，不能拿来替代 7.69%。
 - 模板覆盖只到 **25/34 = 73.53%**（17 模板），`修炼`、`开店` 等仍有失败项；详见 [p3e-report-stats.md](../reports/evidence/p3e-report-stats.md) §1。
 
@@ -26,9 +28,12 @@
 # 指标汇总
 PYTHONPATH=src .venv/bin/python tools/p3e_report_stats.py
 
-# 事件日志回放（应输出 MATCH）
+# golden 基线（824 事件世界）
+PYTHONPATH=src .venv/bin/python -m pytest tests/test_p3e_golden.py -q
+
+# 事件日志回放（应输出 MATCH，state=e607d200…）
 PYTHONPATH=src .venv/bin/python tools/replay.py \
-  --run reports/evidence/runs/p3e-deepseek-real-2d-12npc-k6fix
+  --run reports/evidence/runs/p3e-deepseek-real-2d-12npc-k6r2
 ```
 
 ## 2. 玩家侧限制（本次实测确认）
@@ -52,7 +57,7 @@ PYTHONPATH=src .venv/bin/python tools/replay.py \
 
 ## 4. 仍然成立的能力边界
 
-- 事件日志回放可重建同一状态（`MATCH`）；
-- K6 严格口径 0.24% / 含剪枝 0.85% 在 fake 2 天 run 下 PASS；
+- 事件日志回放可重建同一状态（222 events，`e607d200…`，`MATCH`）；
+- K6 对外含剪枝口径 **0.85%**（fake 2 天）/ **0.90%**（deepseek 2 天）PASS；严格口径 **0.24% / 0.00%** 仅作分解；
 - 玩家闭环（进入 → 移动 → 对话 → 接任务 → 刷新保留）已在本次干净解包环境实测通过；
-- `selfcheck.sh` 4/4 PASS、`pytest` 193 passed。
+- `selfcheck.sh` 4/4 PASS、`pytest` **194 passed**。

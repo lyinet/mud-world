@@ -192,7 +192,7 @@ curl -sS -X POST http://127.0.0.1:8000/api/player/action \
 本机实测（2026-11-04）：
 
 ```text
-193 passed
+194 passed
 [PASS] 内容包校验 content/validate_content.py
 [PASS] 单元测试 pytest
 [PASS] 框架验收 tools/framework_check.py（临时副本，不写 runs/）
@@ -279,7 +279,7 @@ key 只从环境变量读取（见 [.env.example](../.env.example)）。401 检�
 - K1 自主目标推进率 **7.69%（7/91，FAIL）**；
 - `dialogue` 槽实测 **0 次调用**，文笔未评测；
 - 只保证**事件日志回放**（`MATCH`），不保证整跑复现；
-- K6 严格口径 **0.24%**、含剪枝 **0.85%**（fake 端点 2 天 run）。
+- K6 对外口径为**含剪枝**：fake 2 天 **0.85%**、deepseek 2 天 **0.90%**；严格口径 **0.24% / 0.00%** 仅作分解（见 Release Notes）。
 
 ## 6. 包里不含什么
 

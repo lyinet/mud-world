@@ -1,4 +1,6 @@
-# XKX / world-sim 首发试玩包（p3f）
+# XKX / world-sim 对外首发试玩包（p3g）
+
+本版基于 `60e8596`；`delivery-p3f` 仅内部里程碑，不作对外最终版。
 
 这是一个可离线运行的 MUD 世界：Python 引擎 `wsim.api` + 浏览器前端 `ui/player`。
 无需模型 key、数据库或 GPU；首次运行自动建 venv、装固定依赖、生成种子世界。
@@ -37,7 +39,8 @@ API_PORT=8120 PORT=8010 ./start.sh
 ## 文档
 
 - [快速开始（含每一步预期输出、断线验证）](docs/QUICKSTART.md)
-- [已知限制（K1 7.69% FAIL、dialogue 0 调用、只保证事件回放、K6 0.24%/0.85%）](docs/known-limitations.md)
+- [已知限制（K1 7.69% FAIL、dialogue 0 调用、只保证事件回放、K6 对外含剪枝 0.85%/0.90%）](docs/known-limitations.md)
+- [p3g Release Notes（golden 基线、816→824 漂移、K6 口径）](docs/RELEASE-NOTES-p3g.md)
 - [项目说明（仓库原有 README）](README-PROJECT.md)
 
 ## 自动自检
@@ -46,7 +49,7 @@ API_PORT=8120 PORT=8010 ./start.sh
 ./scripts/selfcheck.sh
 ```
 
-本机实测：`pytest 193 passed`，内容包 / 单元测试 / 框架验收 / 玩家闭环 4 项全 PASS。
+本机实测：`pytest 194 passed`，内容包 / 单元测试 / 框架验收 / 玩家闭环 4 项全 PASS；framework 6/6。
 
 ## 包内范围
 
