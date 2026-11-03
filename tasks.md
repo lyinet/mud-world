@@ -62,4 +62,4 @@
 - [x] 回填 `reports/delivery-p2.1.md`：tag/commit/content_hash、10d/72d 哈希、
       对话落地数、记忆条数、关系变化、过期单数、拒绝率、金库期末、税回流、
       开店延后次数、未达标项。
-- [ ] 清理临时 worktree；确认 `git status --short` 干净。
+- [x] 清理临时 worktree；确认 `git status --short` 干净。
