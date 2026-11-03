@@ -1,0 +1,2 @@
+{"actor": "yan_shouyi", "args": {"quest": "quest:debt_duan_to_jin:0", "quest_verb": "trade"}, "reason": "quest_not_accepted_by_actor", "source": "planner", "tick": 158, "verb": "quest_deliver"}
+{"actor": "ruan_qingfu", "args": {"quest": "quest:errand_academy_notice:0", "quest_verb": "trade"}, "reason": "quest_not_accepted_by_actor", "source": "planner", "tick": 160, "verb": "quest_deliver"}

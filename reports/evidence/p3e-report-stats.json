@@ -1,4 +1,216 @@
 {
+  "blocked_reconciliation": {
+    "counts": {
+      "成功事件": 16,
+      "换桶（blocked→pruned）": 2,
+      "未再提交": 2
+    },
+    "old_examples": 20,
+    "old_total": 27,
+    "rows": [
+      {
+        "actor": "jin_mancang",
+        "detail": "seq=42 tick=6 outcome=ok",
+        "old_tick": 6,
+        "outcome": "成功事件",
+        "quest": "",
+        "reason": "not_together",
+        "target": "duan_wudou",
+        "verb": "talk"
+      },
+      {
+        "actor": "liu_sanniang",
+        "detail": "seq=45 tick=7 outcome=ok",
+        "old_tick": 7,
+        "outcome": "成功事件",
+        "quest": "",
+        "reason": "not_together",
+        "target": "cao_banxian",
+        "verb": "talk"
+      },
+      {
+        "actor": "xing_pojun",
+        "detail": "seq=46 tick=7 outcome=ok",
+        "old_tick": 7,
+        "outcome": "成功事件",
+        "quest": "",
+        "reason": "not_together",
+        "target": "cao_banxian",
+        "verb": "talk"
+      },
+      {
+        "actor": "duan_wudou",
+        "detail": "seq=72 tick=13 outcome=ok",
+        "old_tick": 13,
+        "outcome": "成功事件",
+        "quest": "",
+        "reason": "not_together",
+        "target": "cao_banxian",
+        "verb": "talk"
+      },
+      {
+        "actor": "jin_mancang",
+        "detail": "seq=115 tick=22 outcome=ok",
+        "old_tick": 22,
+        "outcome": "成功事件",
+        "quest": "",
+        "reason": "item_not_held",
+        "target": "",
+        "verb": "sell"
+      },
+      {
+        "actor": "jin_mancang",
+        "detail": "seq=205 tick=45 outcome=ok",
+        "old_tick": 45,
+        "outcome": "成功事件",
+        "quest": "",
+        "reason": "not_together",
+        "target": "duan_wudou",
+        "verb": "talk"
+      },
+      {
+        "actor": "meng_jiuniang",
+        "detail": "tick=49 reason=not_together",
+        "old_tick": 49,
+        "outcome": "换桶（blocked→pruned）",
+        "quest": "",
+        "reason": "not_together",
+        "target": "luo_qingxu",
+        "verb": "trade"
+      },
+      {
+        "actor": "duan_wudou",
+        "detail": "seq=240 tick=52 outcome=ok",
+        "old_tick": 52,
+        "outcome": "成功事件",
+        "quest": "",
+        "reason": "not_together",
+        "target": "cao_banxian",
+        "verb": "talk"
+      },
+      {
+        "actor": "liu_sanniang",
+        "detail": "seq=241 tick=52 outcome=ok",
+        "old_tick": 52,
+        "outcome": "成功事件",
+        "quest": "",
+        "reason": "not_together",
+        "target": "cao_banxian",
+        "verb": "talk"
+      },
+      {
+        "actor": "xing_pojun",
+        "detail": "seq=242 tick=52 outcome=ok",
+        "old_tick": 52,
+        "outcome": "成功事件",
+        "quest": "",
+        "reason": "not_together",
+        "target": "cao_banxian",
+        "verb": "talk"
+      },
+      {
+        "actor": "luo_qingxu",
+        "detail": "tick=83 reason=not_together",
+        "old_tick": 83,
+        "outcome": "换桶（blocked→pruned）",
+        "quest": "",
+        "reason": "not_together",
+        "target": "meng_jiuniang",
+        "verb": "trade"
+      },
+      {
+        "actor": "jin_mancang",
+        "detail": "seq=347 tick=89 outcome=ok",
+        "old_tick": 89,
+        "outcome": "成功事件",
+        "quest": "",
+        "reason": "not_together",
+        "target": "duan_wudou",
+        "verb": "talk"
+      },
+      {
+        "actor": "duan_wudou",
+        "detail": "seq=353 tick=90 outcome=ok",
+        "old_tick": 90,
+        "outcome": "成功事件",
+        "quest": "",
+        "reason": "not_together",
+        "target": "cao_banxian",
+        "verb": "talk"
+      },
+      {
+        "actor": "liu_sanniang",
+        "detail": "seq=376 tick=97 outcome=ok",
+        "old_tick": 97,
+        "outcome": "成功事件",
+        "quest": "",
+        "reason": "not_together",
+        "target": "jin_mancang",
+        "verb": "talk"
+      },
+      {
+        "actor": "jin_mancang",
+        "detail": "seq=465 tick=129 outcome=ok",
+        "old_tick": 129,
+        "outcome": "成功事件",
+        "quest": "",
+        "reason": "not_together",
+        "target": "duan_wudou",
+        "verb": "talk"
+      },
+      {
+        "actor": "duan_wudou",
+        "detail": "seq=482 tick=134 outcome=ok",
+        "old_tick": 134,
+        "outcome": "成功事件",
+        "quest": "",
+        "reason": "not_together",
+        "target": "cao_banxian",
+        "verb": "talk"
+      },
+      {
+        "actor": "liu_sanniang",
+        "detail": "新 run 无同主体/同目标事件，也无拦截记录",
+        "old_tick": 139,
+        "outcome": "未再提交",
+        "quest": "",
+        "reason": "not_together",
+        "target": "cao_banxian",
+        "verb": "talk"
+      },
+      {
+        "actor": "cao_banxian",
+        "detail": "新 run 无同主体/同目标事件，也无拦截记录",
+        "old_tick": 148,
+        "outcome": "未再提交",
+        "quest": "",
+        "reason": "not_together",
+        "target": "xing_pojun",
+        "verb": "trade"
+      },
+      {
+        "actor": "yan_shouyi",
+        "detail": "seq=588 tick=149 outcome=ok",
+        "old_tick": 149,
+        "outcome": "成功事件",
+        "quest": "",
+        "reason": "not_together",
+        "target": "cao_banxian",
+        "verb": "talk"
+      },
+      {
+        "actor": "ruan_qingfu",
+        "detail": "seq=595 tick=150 outcome=ok",
+        "old_tick": 150,
+        "outcome": "成功事件",
+        "quest": "",
+        "reason": "not_together",
+        "target": "fang_cunxin",
+        "verb": "talk"
+      }
+    ],
+    "unaccounted": 7
+  },
   "coverage": {
     "by_template": {
       "上工": {
@@ -278,16 +490,20 @@
   "event_replay": {
     "events_total": 222,
     "match": true,
-    "replayed": "28b733facdcf8044b75f74fc0568ffd4da642579b3f85ec388dd98adb809f452",
-    "run": "reports/evidence/runs/p3e-deepseek-real-2d-12npc-k6fix",
-    "stored": "28b733facdcf8044b75f74fc0568ffd4da642579b3f85ec388dd98adb809f452"
+    "replayed": "e607d2008e8c53890ab2d30478e09e383d0020bd0f7715a1b81ad51c6eb6767e",
+    "run": "reports/evidence/runs/p3e-deepseek-real-2d-12npc-k6r2",
+    "stored": "e607d2008e8c53890ab2d30478e09e383d0020bd0f7715a1b81ad51c6eb6767e"
   },
   "fake_2d_before_k6fix": {
     "action_ratio": {
       "model": 0.0618,
       "rule": 0.9382
     },
+    "burned": 112,
+    "business_cash": 11925,
+    "buy_out": 956,
     "dialogue_calls": {},
+    "events_final": "8cbab6add8ba1208f2a5867e0eced1277669f06ad3181510d8fa7da7cf26bf0b",
     "events_total": 816,
     "illegal_attempt_rate": 0.03308823529411765,
     "illegal_proposal_rate": 0.03308823529411765,
@@ -569,17 +785,25 @@
         "verb": "talk"
       }
     ],
+    "precondition_blocked_records": [],
     "precondition_pruned": 0,
     "precondition_pruned_by_verb": {},
     "precondition_pruned_examples": [],
-    "rejected": 0
+    "precondition_pruned_records": [],
+    "rejected": 0,
+    "sell_in": 1165,
+    "state_final": "b1a7edaff511de1f8e1d52c84bd5113f9c683450c0ffa6a98bdf4b92d2063b50"
   },
   "fake_2d_k6": {
     "action_ratio": {
       "model": 0.0611,
       "rule": 0.9389
     },
+    "burned": 113,
+    "business_cash": 12058,
+    "buy_out": 795,
     "dialogue_calls": {},
+    "events_final": "4d4019291eaaeb6b58c5279dce7840efcaaa4622272223782bbb84ab778f35cf",
     "events_total": 824,
     "illegal_attempt_rate": 0.0024271844660194173,
     "illegal_proposal_rate": 0.00849514563106796,
@@ -595,6 +819,30 @@
       }
     },
     "precondition_blocked_examples": [
+      {
+        "actor": "yan_shouyi",
+        "args": {
+          "quest": "quest:debt_duan_to_jin:0",
+          "quest_verb": "trade"
+        },
+        "reason": "quest_not_accepted_by_actor",
+        "source": "planner",
+        "tick": 158,
+        "verb": "quest_deliver"
+      },
+      {
+        "actor": "ruan_qingfu",
+        "args": {
+          "quest": "quest:errand_academy_notice:0",
+          "quest_verb": "trade"
+        },
+        "reason": "quest_not_accepted_by_actor",
+        "source": "planner",
+        "tick": 160,
+        "verb": "quest_deliver"
+      }
+    ],
+    "precondition_blocked_records": [
       {
         "actor": "yan_shouyi",
         "args": {
@@ -696,7 +944,98 @@
         "verb": "quest_accept"
       }
     ],
-    "rejected": 0
+    "precondition_pruned_records": [
+      {
+        "actor": "meng_jiuniang",
+        "args": {
+          "money_delta": 0,
+          "offer": [
+            {
+              "item": "silk",
+              "qty": 1
+            }
+          ],
+          "target": "luo_qingxu",
+          "want": []
+        },
+        "reason": "not_together",
+        "source": "planner",
+        "tick": 49,
+        "verb": "trade"
+      },
+      {
+        "actor": "luo_qingxu",
+        "args": {
+          "money_delta": 5,
+          "offer": [],
+          "target": "meng_jiuniang",
+          "want": []
+        },
+        "reason": "not_together",
+        "source": "planner",
+        "tick": 83,
+        "verb": "trade"
+      },
+      {
+        "actor": "yan_shouyi",
+        "args": {
+          "quest": "quest:debt_duan_to_jin:0",
+          "quest_verb": "trade"
+        },
+        "reason": "not_at_giver",
+        "source": "planner",
+        "tick": 152,
+        "verb": "quest_accept"
+      },
+      {
+        "actor": "yan_shouyi",
+        "args": {
+          "money_delta": 300,
+          "offer": [],
+          "quest": "quest:debt_duan_to_jin:0",
+          "target": "duan_wudou",
+          "want": []
+        },
+        "reason": "not_together",
+        "source": "planner",
+        "tick": 155,
+        "verb": "trade"
+      },
+      {
+        "actor": "ruan_qingfu",
+        "args": {
+          "quest": "quest:errand_academy_notice:0",
+          "quest_verb": "trade"
+        },
+        "reason": "not_at_giver",
+        "source": "planner",
+        "tick": 156,
+        "verb": "quest_accept"
+      }
+    ],
+    "rejected": 0,
+    "sell_in": 849,
+    "state_final": "1bd870c4c8270da6117721f67a67a38bbc2d34dae12386a0d16f0ce3abedd226"
+  },
+  "fake_2d_world_drift": {
+    "after": {
+      "burned": 113,
+      "business_cash": 12058,
+      "buy_out": 795,
+      "events_total": 824,
+      "sell_in": 849,
+      "state_final": "1bd870c4c8270da6117721f67a67a38bbc2d34dae12386a0d16f0ce3abedd226"
+    },
+    "before": {
+      "burned": 112,
+      "business_cash": 11925,
+      "buy_out": 956,
+      "events_total": 816,
+      "sell_in": 1165,
+      "state_final": "b1a7edaff511de1f8e1d52c84bd5113f9c683450c0ffa6a98bdf4b92d2063b50"
+    },
+    "event_final_after": "4d4019291eaaeb6b58c5279dce7840efcaaa4622272223782bbb84ab778f35cf",
+    "event_final_before": "8cbab6add8ba1208f2a5867e0eced1277669f06ad3181510d8fa7da7cf26bf0b"
   },
   "intent_recordings": {
     "calls": 19,
@@ -722,6 +1061,9 @@
       "model": 0.007,
       "rule": 0.993
     },
+    "burned": 57,
+    "business_cash": 11564,
+    "buy_out": 342,
     "calls_by_timing": {
       "night_batch": 14,
       "realtime": 5
@@ -731,20 +1073,21 @@
     "days": 2,
     "dialogue_calls": {},
     "dialogue_slot_calls": 0,
-    "estimated_cost_usd": 0.081920625,
-    "event_final": "b327360550d00c48f430045d4d353e48bd77439f62477cee22b36357f130c6f5",
+    "estimated_cost_usd": 0.08232075,
+    "event_final": "9a5f070a31857368fe12631362e236796719435b00e84b6fd480a2fbdd0efc54",
     "events_total": 222,
     "fallbacks": 0,
     "illegal_attempt_rate": 0.0,
     "illegal_proposal_rate": 0.009009009009009009,
     "illegal_rate_executed": 0.0,
-    "intent_clarification": 2,
-    "intent_grounding_blocked": 1,
+    "intent_clarification": 4,
+    "intent_grounding_blocked": 3,
     "intent_grounding_by_field": {
-      "message": 1
+      "message": 2,
+      "skill": 1
     },
-    "intent_ok": 10,
-    "intent_reject": 7,
+    "intent_ok": 7,
+    "intent_reject": 8,
     "k1_pass": false,
     "k1_progressed": 7,
     "k1_rate": 0.07692307692307693,
@@ -754,13 +1097,13 @@
     "latency_by_slot": {
       "decision": {
         "n": 19,
-        "p50": 0.911,
-        "p95": 1.209
+        "p50": 0.807,
+        "p95": 1.125
       },
       "intent": {
         "n": 19,
-        "p50": 0.72,
-        "p95": 0.883
+        "p50": 0.785,
+        "p95": 0.938
       }
     },
     "llm_calls": {
@@ -771,6 +1114,7 @@
     "precondition_blocked": 0,
     "precondition_blocked_by_verb": {},
     "precondition_blocked_examples": [],
+    "precondition_blocked_records": [],
     "precondition_pruned": 2,
     "precondition_pruned_by_verb": {
       "trade": {
@@ -810,10 +1154,44 @@
         "verb": "trade"
       }
     ],
+    "precondition_pruned_records": [
+      {
+        "actor": "wen_xiaoman",
+        "args": {
+          "money_delta": 5,
+          "offer": [],
+          "target": "shen_yanzhou",
+          "want": []
+        },
+        "reason": "not_together",
+        "source": "planner",
+        "tick": 151,
+        "verb": "trade"
+      },
+      {
+        "actor": "cui_tieyi",
+        "args": {
+          "money_delta": 0,
+          "offer": [
+            {
+              "item": "flatbread",
+              "qty": 1
+            }
+          ],
+          "target": "han_xinglin",
+          "want": []
+        },
+        "reason": "not_together",
+        "source": "planner",
+        "tick": 232,
+        "verb": "trade"
+      }
+    ],
     "rejected": 0,
-    "run_id": "p3e-deepseek-real-2d-12npc-k6-v2",
+    "run_id": "p3e-deepseek-real-2d-12npc-k6r2",
     "seed": 42,
-    "state_final": "28b733facdcf8044b75f74fc0568ffd4da642579b3f85ec388dd98adb809f452",
+    "sell_in": 69,
+    "state_final": "e607d2008e8c53890ab2d30478e09e383d0020bd0f7715a1b81ad51c6eb6767e",
     "thinking_marked": {
       "decision": {
         "reasoning_effort=none": 5
@@ -828,7 +1206,11 @@
       "model": 0.007,
       "rule": 0.993
     },
+    "burned": 57,
+    "business_cash": 11564,
+    "buy_out": 342,
     "dialogue_calls": {},
+    "events_final": "65fb7c2a506d6fcd1f6140fbb09bb90d8d17c5fc53b18829005ba312e64e4db7",
     "events_total": 222,
     "illegal_attempt_rate": 0.009009009009009009,
     "illegal_proposal_rate": 0.009009009009009009,
@@ -876,9 +1258,13 @@
         "verb": "trade"
       }
     ],
+    "precondition_blocked_records": [],
     "precondition_pruned": 0,
     "precondition_pruned_by_verb": {},
     "precondition_pruned_examples": [],
-    "rejected": 0
+    "precondition_pruned_records": [],
+    "rejected": 0,
+    "sell_in": 69,
+    "state_final": "9129402e7b8a516705809aacf626b746fab659f8b3ab9067b0c6d1fe55ca647a"
   }
 }

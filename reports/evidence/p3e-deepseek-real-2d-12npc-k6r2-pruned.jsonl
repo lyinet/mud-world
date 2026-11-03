@@ -1,0 +1,2 @@
+{"actor": "wen_xiaoman", "args": {"money_delta": 5, "offer": [], "target": "shen_yanzhou", "want": []}, "reason": "not_together", "source": "planner", "tick": 151, "verb": "trade"}
+{"actor": "cui_tieyi", "args": {"money_delta": 0, "offer": [{"item": "flatbread", "qty": 1}], "target": "han_xinglin", "want": []}, "reason": "not_together", "source": "planner", "tick": 232, "verb": "trade"}

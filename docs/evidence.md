@@ -52,41 +52,48 @@ WSIM_INTENT_REPLAY=reports/evidence/p3d-xing-intent-recordings-2d-final.jsonl \
 
 | 文件 | 说明 |
 |---|---|
-| [reports/evidence/runs/p3e-deepseek-real-2d-12npc-k6fix/](../reports/evidence/runs/p3e-deepseek-real-2d-12npc-k6fix/) | K6 收口后的验收副本（`events.sqlite` / `world_hash.txt` / `summary.json`），干净 clone 可直接回放 |
-| [reports/evidence/p3e-deepseek-real-2d-12npc-k6fix-summary.json](../reports/evidence/p3e-deepseek-real-2d-12npc-k6fix-summary.json) | 该 run 的 `summary.json`（严格非法率 0.00%、含剪枝 0.90%） |
-| [reports/evidence/runs/p3e-deepseek-real-2d-12npc/](../reports/evidence/runs/p3e-deepseek-real-2d-12npc/) | K6 修复前的旧验收副本（保留供对照，严格非法率 0.90%） |
+| [reports/evidence/runs/p3e-deepseek-real-2d-12npc-k6r2/](../reports/evidence/runs/p3e-deepseek-real-2d-12npc-k6r2/) | 最新一次独立采样的验收副本（`events.sqlite` / `world_hash.txt` / `summary.json` / `pruned.jsonl` / `blocked.jsonl`），干净 clone 可直接回放 |
+| [reports/evidence/p3e-deepseek-real-2d-12npc-k6r2-summary.json](../reports/evidence/p3e-deepseek-real-2d-12npc-k6r2-summary.json) | 该 run 的 `summary.json`（严格 0.00%、含剪枝 0.90%） |
+| [reports/evidence/runs/p3e-deepseek-real-2d-12npc-k6fix/](../reports/evidence/runs/p3e-deepseek-real-2d-12npc-k6fix/) | 前一次独立采样（保留供采样波动对照） |
+| [reports/evidence/runs/p3e-deepseek-real-2d-12npc/](../reports/evidence/runs/p3e-deepseek-real-2d-12npc/) | K6 修复前的旧验收副本（严格 0.90%） |
 | [reports/evidence/p3e-deepseek-real-2d-12npc-summary.json](../reports/evidence/p3e-deepseek-real-2d-12npc-summary.json) | 旧 run 的 `summary.json`（修复前基线） |
 | [reports/evidence/p3e-deepseek-intent-recordings-2d.jsonl](../reports/evidence/p3e-deepseek-intent-recordings-2d.jsonl) | 该 run 19 次意图调用录制（`prompt_sha` / 返回 / usage / 延迟） |
 | [reports/evidence/p3e-deepseek-intent-coverage.jsonl](../reports/evidence/p3e-deepseek-intent-coverage.jsonl) | P0-5 覆盖探针：17 模板 × 2 条真实意图调用录制（34 行） |
 | [reports/evidence/p3e-intent-coverage.json](../reports/evidence/p3e-intent-coverage.json) | 按模板成功率汇总（含 slot 指纹与延迟） |
 | [reports/evidence/p3e-intent-coverage.md](../reports/evidence/p3e-intent-coverage.md) | 同一数据的可读表格与失败样本清单 |
-| [reports/evidence/p3e-fake-llm-2d-summary-k6fix.json](../reports/evidence/p3e-fake-llm-2d-summary-k6fix.json) | 2 天假端点 run 的 `summary.json`（修复后；K6 三种口径复算输入） |
-| [reports/evidence/p3e-fake-llm-2d-summary.json](../reports/evidence/p3e-fake-llm-2d-summary.json) | 修复前假端点 run 的 `summary.json`（基线：27 条 blocked） |
+| [reports/evidence/p3e-fake-llm-2d-summary-k6r2.json](../reports/evidence/p3e-fake-llm-2d-summary-k6r2.json) | 2 天假端点 run 的 `summary.json`（golden 基线） |
+| [reports/evidence/runs/p3e-fake-llm-2d-k6r2/](../reports/evidence/runs/p3e-fake-llm-2d-k6r2/) | 假端点 run 副本（`events.sqlite` + 全量拦截记录），供逐条对账 |
+| [reports/evidence/p3e-fake-llm-2d-pruned-k6r2.jsonl](../reports/evidence/p3e-fake-llm-2d-pruned-k6r2.jsonl) | 提案前剪枝全量记录（不截断） |
+| [reports/evidence/p3e-fake-llm-2d-blocked-k6r2.jsonl](../reports/evidence/p3e-fake-llm-2d-blocked-k6r2.jsonl) | 提案前拦截全量记录（不截断） |
+| [reports/evidence/p3e-deepseek-real-2d-12npc-k6r2-pruned.jsonl](../reports/evidence/p3e-deepseek-real-2d-12npc-k6r2-pruned.jsonl) | deepseek run 的剪枝全量记录 |
+| [reports/evidence/p3e-fake-llm-2d-summary.json](../reports/evidence/p3e-fake-llm-2d-summary.json) | 修复前假端点 run 的 `summary.json`（基线：816 events / 27 blocked） |
 | [reports/evidence/p3e-partial-replay-2d-summary.json](../reports/evidence/p3e-partial-replay-2d-summary.json) | 仅 intent 录制重跑的负面对照（220 events / 18 次 miss） |
 | [reports/evidence/p3e-report-stats.md](../reports/evidence/p3e-report-stats.md) | 报告全部数字的脚本生成结果（勿手写） |
 
-P3-E 2 天真实跑关键哈希（K6 收口版）：
+P3-E 2 天真实跑关键哈希（最新一次独立采样）：
 
-- `state_final = 28b733facdcf8044b75f74fc0568ffd4da642579b3f85ec388dd98adb809f452`
-- `event_final = b327360550d00c48f430045d4d353e48bd77439f62477cee22b36357f130c6f5`
+- `state_final = e607d2008e8c53890ab2d30478e09e383d0020bd0f7715a1b81ad51c6eb6767e`
+- `event_final = 9a5f070a31857368fe12631362e236796719435b00e84b6fd480a2fbdd0efc54`
 - `events = 222`、`rejected = 0`、`precondition_blocked = 0`、`precondition_pruned = 2`、
   严格非法率 `0.00%`、含剪枝 `0.90%`、`conservation_error = 0`
+- **采样说明**：该 run 与 `-k6fix`、`-12npc` 是三次独立模型采样，不是受控前后对照；
+  tick 0 的 talk 文案与 state hash 会变，但经济聚合一致（sell 69 / buy 342 / burned 57 / 商户现金 11564）。
 
-复现命令：
+复现命令（干净归档中没有 `.venv`，先按 README 安装依赖；以下用本机现有 `.venv`）：
 
 ```bash
 # 1) 事件日志回放（入库的证据 run；只证明 effect 引擎可重建同一状态）
 PYTHONPATH=src .venv/bin/python tools/replay.py \
-  --run reports/evidence/runs/p3e-deepseek-real-2d-12npc-k6fix
-# 实测：events=222；replayed=stored=28b733fa…；MATCH
+  --run reports/evidence/runs/p3e-deepseek-real-2d-12npc-k6r2
+# 实测：events=222；replayed=stored=e607d200…；MATCH
 
 # 2) 仅 intent 槽录制重跑（不是整跑复现；decision 槽未录制）
 LLM_API_KEY=fake XING_API_KEY=fake \
 WSIM_INTENT_REPLAY=reports/evidence/p3e-deepseek-intent-recordings-2d.jsonl \
 .venv/bin/python sim/run_headless.py --days 2 --seed 42 --npc 12 --enable-llm \
   --out runs --run-id p3e-replay-deepseek-2d-12npc
-# 实测：events=220（原 222）；state=7a5ce1bd…（原 28b733fa…）；
-#       event=a35cd8bd…（原 b3273605…）；replay_miss=18；intent_reject=19；pruned=2
+# 实测：events=220（原 222）；state=7a5ce1bd…（原 e607d200…）；
+#       event=a35cd8bd…（原 9a5f070a…）；replay_miss=18；intent_reject=19；pruned=2
 
 # 3) P0-5 模板覆盖探针（真实端点，key 只从环境变量读）
 LLM_API_KEY=<你的 key> .venv/bin/python tools/intent_coverage.py

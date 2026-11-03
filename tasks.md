@@ -39,15 +39,16 @@
 - [x] `tests/test_p3e_player.py`、`tests/test_p3e_api.py`、`tests/test_p3e_preconditions.py`
 - [x] `tests/test_p3e_endowment.py`：首次 300 / 二次不重发 / 双账号 / minted==总额 / replay 一致
 - [x] 修订 `tests/test_talk_action.py` 的 enter 前置
-- [x] 全量 pytest（冻结时 182 passed；复核后 193 passed）+ framework 6/6 + playthrough + replay MATCH
+- [x] 全量 pytest（冻结时 182 passed；R2 复核后 194 passed）+ framework 6/6 + playthrough + replay MATCH
 - [x] `reports/p3e-report.md`（真实叙事 + P0 关闭证据 + 换模型对照 + 未验证项）
 - [x] commit → `git tag -a delivery-p3e` → 干净 worktree 重跑 MATCH → 回填
 
 ## P3-E 复核修复（2026-11-04，新 commit，不改写 tag）
 - [x] P0-2 `_units_compatible`：人数单位与物品数量单位互斥；测试 15/15（含 `2人/3人/3位/3名` 反例）
 - [x] P0-4 复现链：run 副本入库 `reports/evidence/runs/`；文档只承诺事件日志回放，整跑不承诺
-- [x] K6 口径：同时输出已执行/严格/含剪枝三种口径，结论取严格口径；K6 收口后 fake **0.24% PASS**、deepseek **0.00% PASS**（含剪枝 0.85% / 0.90%）
-- [x] K6 前置校验补全：`is_prunable` 位置类提案提交前丢弃、同 tick 社交优先调度、trade/quest/sell 校验覆盖；27 条旧 blocked 逐条复查见 `reports/evidence/p3e-report-stats.md` §4
+- [x] K6 口径：同时输出已执行/严格/含剪枝三种口径，**对外结论取含剪枝**；fake **0.85% PASS**、deepseek **0.90% PASS**（严格 0.24% / 0.00% 仅作分解）
+- [x] 确定性 2 天 fake run 加 golden 断言（事件序 + state hash + sell/buy/burned/商户现金）；816→824 世界漂移已披露并重新基线
+- [x] K6 前置校验补全：`is_prunable` 位置类提案提交前丢弃、同 tick 只提前 `talk`、全量 blocked/pruned 记录导出；27 条旧 blocked 逐条对账见 `reports/evidence/p3e-report-stats.md` §5
 - [x] framework 第 6 项改读严格 + 含剪枝口径，不再只读已执行口径打 PASS
 - [x] P0-5 归因：`tools/p3e_report_stats.py` 脚本生成（6 unknown + 2 shop_type + 1 category_drift）
 - [x] 换模型 2 天披露：thinking 遥测 5/19、dialogue 0 次、动作 99.3% 规则、K1 7.69% 已写入报告

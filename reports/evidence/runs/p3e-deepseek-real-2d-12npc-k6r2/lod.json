@@ -1,0 +1,96 @@
+{
+  "by_tier": {
+    "active": 6,
+    "background": 4,
+    "silent": 2,
+    "spotlight": 0
+  },
+  "changes": [],
+  "decide_by_tier": {
+    "active": 11,
+    "background": 4,
+    "silent": 1,
+    "spotlight": 0
+  },
+  "decide_calls": 16,
+  "now": 287,
+  "npc_count": 12,
+  "processed_wakes": 16,
+  "state_provider_calls": 16,
+  "stats": {
+    "bai_lusheng": {
+      "cost_weight": 0.25,
+      "interval": 288,
+      "lod": "background",
+      "wakes": 1
+    },
+    "cui_tieyi": {
+      "cost_weight": 1.0,
+      "interval": 144,
+      "lod": "active",
+      "wakes": 2
+    },
+    "gu_qingya": {
+      "cost_weight": 1.0,
+      "interval": 144,
+      "lod": "active",
+      "wakes": 1
+    },
+    "han_xinglin": {
+      "cost_weight": 1.0,
+      "interval": 144,
+      "lod": "active",
+      "wakes": 2
+    },
+    "hua_jieyu": {
+      "cost_weight": 0.25,
+      "interval": 288,
+      "lod": "background",
+      "wakes": 1
+    },
+    "liu_sanniang": {
+      "cost_weight": 1.0,
+      "interval": 144,
+      "lod": "active",
+      "wakes": 2
+    },
+    "lu_jiujin": {
+      "cost_weight": 1.0,
+      "interval": 144,
+      "lod": "active",
+      "wakes": 2
+    },
+    "pei_wujiu": {
+      "cost_weight": 0.25,
+      "interval": 288,
+      "lod": "background",
+      "wakes": 1
+    },
+    "shen_yanzhou": {
+      "cost_weight": 0.05,
+      "interval": 1440,
+      "lod": "silent",
+      "wakes": 1
+    },
+    "su_hexiang": {
+      "cost_weight": 0.05,
+      "interval": 1440,
+      "lod": "silent",
+      "wakes": 0
+    },
+    "wen_xiaoman": {
+      "cost_weight": 1.0,
+      "interval": 144,
+      "lod": "active",
+      "wakes": 2
+    },
+    "xie_tingyun": {
+      "cost_weight": 0.25,
+      "interval": 288,
+      "lod": "background",
+      "wakes": 1
+    }
+  },
+  "tier_changes": 0,
+  "version": "1.0.0"
+}

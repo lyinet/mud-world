@@ -1,0 +1,5 @@
+{"actor": "meng_jiuniang", "args": {"money_delta": 0, "offer": [{"item": "silk", "qty": 1}], "target": "luo_qingxu", "want": []}, "reason": "not_together", "source": "planner", "tick": 49, "verb": "trade"}
+{"actor": "luo_qingxu", "args": {"money_delta": 5, "offer": [], "target": "meng_jiuniang", "want": []}, "reason": "not_together", "source": "planner", "tick": 83, "verb": "trade"}
+{"actor": "yan_shouyi", "args": {"quest": "quest:debt_duan_to_jin:0", "quest_verb": "trade"}, "reason": "not_at_giver", "source": "planner", "tick": 152, "verb": "quest_accept"}
+{"actor": "yan_shouyi", "args": {"money_delta": 300, "offer": [], "quest": "quest:debt_duan_to_jin:0", "target": "duan_wudou", "want": []}, "reason": "not_together", "source": "planner", "tick": 155, "verb": "trade"}
+{"actor": "ruan_qingfu", "args": {"quest": "quest:errand_academy_notice:0", "quest_verb": "trade"}, "reason": "not_at_giver", "source": "planner", "tick": 156, "verb": "quest_accept"}
