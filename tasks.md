@@ -1,4 +1,53 @@
-# Tasks · delivery-p3a（P2.2 / P2.1 任务保留）
+# Tasks · delivery-p3b（P3-A / P2.2 / P2.1 任务保留）
+
+## P3-B 混合决策、三槽位与意图理解
+
+### B1 混合决策
+- [x] `prompt.py`：17 动词白名单、`ACTION_SPECS`、世界状态注入、`build_decision_prompt` / `parse_decision_payload`。
+- [x] `provider.py`：规则底稿 + 模型增量社交；`_filter_model_actions` 逐条预检，命中生存动词记 `rule_owned_survival` 丢弃。
+- [x] `intent.py`：模型目标只在和规则 `GoalSelector` 一致时采纳，保留 `create` 与目标进度。
+- [x] `lod.py`：`advance_to_batched` 批量唤醒，不改变 jitter/事件顺序。
+- 验证：`tests/test_p3b_hybrid.py::test_model_cannot_replace_rule_actions`。
+
+### B2 Prompt 与修复重试
+- [x] Prompt 注入地点/相邻地点、钱与物品、可执行动作与前置条件、时间与剩余工时。
+- [x] schema 失败 1 次修复重试，回喂错误原因；仍失败才回退 Mock，记 `repair_attempted` / `repair_succeeded`。
+- 验证：`test_schema_repair_succeeds_once`；72d 首次通过率 100%，修复 0 次。
+
+### B3 延迟
+- [x] `dialogue_async.py`：玩家发话入队立即返回，NPC 回应异步写回，不阻塞 tick。
+- [x] `ProviderClient.complete_many` 线程池批处理（默认并发 4）。
+- [x] 12 NPC 1 日墙钟 0.361s；decision p50 0.059s / p95 0.137s。
+- 验证：`test_async_dialogue_does_not_block_tick`、`test_complete_many_runs_concurrently`。
+
+### B4 三槽位与分槽成本
+- [x] `config/llm.yaml`：`models.decision` / `models.dialogue` / `models.intent`；用户只改 base_url 与两个模型名。
+- [x] `cost.jsonl` 每条带 `slot` / `model` / `usage_source`；summary 与报告按槽汇总，不给混合总价。
+- [x] intent 上游不返回 usage → token 记 null（`usage_source=missing`）。
+- [x] `budget.py`：决策槽日 token、对话槽日调用数、意图槽日调用数；任一槽超限只降级该槽。
+- [x] P3-A 72d 6,812 次全部归 decision、dialogue 0；旧 $12.05 混合口径作废。
+- 验证：`test_cost_summary_splits_slots`、`test_intent_slot_records_null_tokens_when_upstream_has_no_usage`、`test_budget_slots_are_independent`。
+
+### B5 意图理解层
+- [x] `config/intents.yaml`：17 个意图模板，required/optional/source/destructive 齐全。
+- [x] `intent_model.py`：中文键映射、中文数量词、缺字段 `needs_clarification`、未知 category/verb 拒绝、破坏性二次确认。
+- [x] `tools/fake_intent_server.py`：参数缺失/中文数量词/否定句/改口四类用例。
+- [x] 功能表与 `verbs.yaml` 双向对齐测试；故意改 verbs 会失败。
+- 验证：`tests/test_p3b_intent_model.py`（10 项）。
+
+### B6 验收
+- [x] 假端点 72d：K1 **71/91 = 78.02%**（≥60%）、拒绝率 1.46%（≤2%）、守恒 0、replay MATCH。
+- [x] 10d 对照：K1 45/91 = 49.45%，与 Mock 同值；P3-A 10d 1/91。
+- [x] 与 P3-A 72d 3/91 并列，标注差异来自分工而非模型能力；content_hash 变化与 `non_comparable` 口径写明。
+- [x] `reports/p3b-report.md`。
+- [ ] 真实端点 ≤10 次抽样：本轮 0 次（无 key）。
+- [ ] 真实 Xing API：本轮 0 次（等 key）。
+
+### B7 冻结
+- [ ] commit → `git tag -a delivery-p3b`（附注 commit + content_hash）。
+- [ ] 从 tag 干净重跑 pytest / framework / 假端点 10d / 72d，回填报告第 10 节。
+
+---
 
 ## P3-A 真实模型接线
 

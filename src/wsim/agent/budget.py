@@ -28,25 +28,31 @@ class BudgetLimits:
     daily_cost: float = 5.0
     monthly_cost: float = 50.0
     soft_ratio: float = 0.8
+    dialogue_daily_calls: int = 50
+    intent_daily_calls: int = 2000
 
     @classmethod
     def from_dict(cls, raw: dict[str, Any] | None) -> "BudgetLimits":
         raw = raw or {}
         return cls(
-            daily_tokens=int(raw.get("daily_tokens", cls.daily_tokens)),
+            daily_tokens=int(raw.get("daily_tokens", raw.get("decision_daily_tokens", cls.daily_tokens))),
             monthly_tokens=int(raw.get("monthly_tokens", cls.monthly_tokens)),
             daily_cost=float(raw.get("daily_cost", cls.daily_cost)),
             monthly_cost=float(raw.get("monthly_cost", cls.monthly_cost)),
             soft_ratio=float(raw.get("soft_ratio", cls.soft_ratio)),
+            dialogue_daily_calls=int(raw.get("dialogue_daily_calls", cls.dialogue_daily_calls)),
+            intent_daily_calls=int(raw.get("intent_daily_calls", cls.intent_daily_calls)),
         )
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "daily_tokens": self.daily_tokens,
+            "decision_daily_tokens": self.daily_tokens,
             "monthly_tokens": self.monthly_tokens,
             "daily_cost": self.daily_cost,
             "monthly_cost": self.monthly_cost,
             "soft_ratio": self.soft_ratio,
+            "dialogue_daily_calls": self.dialogue_daily_calls,
+            "intent_daily_calls": self.intent_daily_calls,
         }
 
 
@@ -63,6 +69,12 @@ class BudgetGuard:
     mocked: int = 0
     mocked_by_day: dict[int, int] = field(default_factory=dict)
     degraded_by_day: dict[int, int] = field(default_factory=dict)
+    dialogue_calls: dict[int, int] = field(default_factory=dict)
+    dialogue_mocked: int = 0
+    dialogue_mocked_by_day: dict[int, int] = field(default_factory=dict)
+    intent_calls: dict[int, int] = field(default_factory=dict)
+    intent_mocked: int = 0
+    intent_mocked_by_day: dict[int, int] = field(default_factory=dict)
     _audited_days: set[int] = field(default_factory=set)
 
     def estimate_cost(self, tokens_in: int, tokens_out: int) -> float:
@@ -111,9 +123,33 @@ class BudgetGuard:
         self.month_tokens += int(tokens_in)
         self.month_cost += float(cost)
 
+    def check_dialogue(self, day: int) -> tuple[bool, str]:
+        """对话槽按“每日调用次数”限额；超限只降级对话，不影响决策槽。"""
+        used = self.dialogue_calls.get(day, 0)
+        limit = int(self.limits.dialogue_daily_calls)
+        if limit <= 0 or used >= limit:
+            self.dialogue_mocked += 1
+            self.dialogue_mocked_by_day[day] = self.dialogue_mocked_by_day.get(day, 0) + 1
+            return False, "dialogue_budget_exceeded"
+        return True, ""
+
+    def record_dialogue(self, day: int) -> None:
+        self.dialogue_calls[day] = self.dialogue_calls.get(day, 0) + 1
+
+    def check_intent(self, day: int) -> tuple[bool, str]:
+        """意图槽按调用次数限额；超限只回退规则调度，不影响其他槽。"""
+        used = self.intent_calls.get(day, 0)
+        if used >= max(1, self.limits.intent_daily_calls):
+            self.intent_mocked += 1
+            self.intent_mocked_by_day[day] = self.intent_mocked_by_day.get(day, 0) + 1
+            return False, "intent_budget_exceeded"
+        self.intent_calls[day] = used + 1
+        return True, ""
+
     def take_audit(self, day: int) -> bool:
-        """一天只允许写一条预算审计事件。"""
-        if self.mocked_by_day.get(day, 0) <= 0 or day in self._audited_days:
+        """一天只允许写一条预算审计事件（决策/对话/意图任一槽超限）。"""
+        if (self.mocked_by_day.get(day, 0) <= 0 and self.dialogue_mocked_by_day.get(day, 0) <= 0
+                and self.intent_mocked_by_day.get(day, 0) <= 0) or day in self._audited_days:
             return False
         self._audited_days.add(day)
         return True
@@ -129,5 +165,11 @@ class BudgetGuard:
             "mocked": self.mocked,
             "mocked_by_day": {str(k): v for k, v in sorted(self.mocked_by_day.items())},
             "degraded_by_day": {str(k): v for k, v in sorted(self.degraded_by_day.items())},
+            "dialogue_calls": {str(k): v for k, v in sorted(self.dialogue_calls.items())},
+            "dialogue_mocked": self.dialogue_mocked,
+            "dialogue_mocked_by_day": {str(k): v for k, v in sorted(self.dialogue_mocked_by_day.items())},
+            "intent_calls": {str(k): v for k, v in sorted(self.intent_calls.items())},
+            "intent_mocked": self.intent_mocked,
+            "intent_mocked_by_day": {str(k): v for k, v in sorted(self.intent_mocked_by_day.items())},
         }
 

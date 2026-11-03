@@ -524,7 +524,8 @@ def check_fake_llm_endpoint() -> str:
     assert summary["llm"]["fallbacks"] == 0, summary["llm"]["fallbacks"]
 
     dec = summary["decisions"]
-    assert dec["night_batch"]["invocations"] > 0 and dec["night_batch"]["applied"] > 0, dec["night_batch"]
+    # P3-B：夜间批处理只缓存意图，落地发生在白天实时唤醒。
+    assert dec["night_batch"]["invocations"] > 0 and dec["night_batch"]["model_calls"] > 0, dec["night_batch"]
     assert dec["realtime"]["invocations"] > 0 and dec["realtime"]["applied"] > 0, dec["realtime"]
 
     total = len(events)

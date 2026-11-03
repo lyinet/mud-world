@@ -1,15 +1,18 @@
-# LLM Provider / 成本 / 预算配置（P3-A）
+# LLM Provider / 双模型槽位 / 成本 / 预算配置（P3-B）
 #
-# 用户侧只需改两处：provider.base_url 与 provider.model。
+# 用户侧只需改两处：provider.base_url 与 models.decision.model / models.dialogue.model。
+# 若接入真实 Xing 意图模型，再改 models.intent.base_url（其余参数有默认值）。
+# 其余参数都有默认值；两个槽位填同一个模型名也允许（单模型双槽，成本仍按 slot 分开记）。
 # API key 一律通过环境变量传入（变量名见 provider.api_key_env），
 # 不要把 key 明文写进本文件或任何会被 git 跟踪的文件。
 #
-# 启动示例（本地聚合网关）：
+# 启动示例：
 #   export LLM_API_KEY=<你的 key>
-#   .venv/bin/python sim/run_headless.py --days 2 --with-players 1 --enable-llm
+#   .venv/bin/python sim/run_headless.py --days 2 --enable-llm
 #
 # 环境变量优先级高于本文件：
 #   LLM_BASE_URL / LLM_API_KEY / LLM_MODEL
+#   LLM_DECISION_MODEL / LLM_DIALOGUE_MODEL（分别覆盖两个槽位的模型名）
 version: "1"
 
 provider:
@@ -17,32 +20,61 @@ provider:
   enabled: false
   # 用户侧改这里：中转站地址（OpenAI 兼容，末尾可带 /v1）。
   base_url: "http://127.0.0.1:3425/v1"
-  # 用户侧改这里：网关暴露的模型名。
+  # 两槽共用的兜底模型名（槽位未写 model 时使用）。
   model: "group/all"
   # key 只从该环境变量读取；本文件不得写明文 key。
   api_key_env: "LLM_API_KEY"
-  # 连接与读取共用同一 socket 超时。
-  timeout_s: 60
   # 仅对 timeout / network / 5xx 重试；4xx 与 parse 不重试。
   max_retries: 2
   backoff_base_s: 1.0
-  # 实测：该网关是 reasoning 模型，512 会被 reasoning token 吃光并返回 content=null；
-  # 2048 仍有约 40% 的调用被 reasoning 截断，4096 才基本稳定拿到 JSON。
-  max_tokens: 4096
-  temperature: 0.0
   # 实测该网关接受 response_format={"type":"json_object"}；
-  # 若换到不认该字段的网关（返回 400），把这里改成 false 即可，
-  # Prompt 本身已有严格 JSON 指令。
+  # 若换到不认该字段的网关（返回 400），把这里改成 false 即可。
   json_mode: true
 
-# 预算护栏：日/月 token 与金额上限；soft_ratio 之后逐级降档，
-# 超过 1.0 直接降级 Mock，并在日终写一条 system_budget 审计事件。
+# 三槽位：决策 / 对话 / 意图理解分离，成本按 slot 记账。
+models:
+  decision:
+    # 夜间批处理、目标选择、replan；只输出自然语言意图，不给 JSON 动作。
+    type: openai_chat
+    model: "group/all"
+    model_env: "LLM_DECISION_MODEL"
+    max_tokens: 1024
+    temperature: 0.2
+    timeout_s: 30
+  dialogue:
+    # 玩家在场对话、聚光档 NPC 发言、角色扮演输出。
+    type: openai_chat
+    model: "group/all"
+    model_env: "LLM_DIALOGUE_MODEL"
+    max_tokens: 4096
+    temperature: 0.8
+    timeout_s: 60
+  intent:
+    # 意图分类 + 参数抽取（Xing4.0-29B-Intent 兼容）。
+    # 默认 xing_intent；若只想用普通 OpenAI 兼容模型，把 type 改成 openai_chat 即可。
+    type: xing_intent
+    base_url: "https://api.ctyun.cn/v1"   # 用户接入时替换为天翼 AI 开放平台地址
+    api_key_env: "XING_API_KEY"
+    model: "Xing4.0-29B-Intent"
+    model_env: "XING_INTENT_MODEL"
+    timeout_s: 10
+    max_retries: 1
+    max_tokens: 256
+    temperature: 0.0
+    json_mode: true
+
+# 预算护栏（分槽）：决策槽按日 token 上限；对话槽按日调用次数上限。
+# 任一槽超限只降级该槽：决策槽回退规则调度；对话槽返回固定兜底话术。
+# 超过上限时在日终写一条 system_budget 审计事件。
 budget:
-  daily_tokens: 200000
+  decision_daily_tokens: 200000
   monthly_tokens: 5000000
   daily_cost: 5.0
   monthly_cost: 50.0
   soft_ratio: 0.8
+  dialogue_daily_calls: 50
+  # 意图槽按调用次数限额；超限只回退规则调度，不停世界。
+  intent_daily_calls: 2000
 
 # 成本为估算值，单位：每 1k token 的计价货币金额。
 # 本地网关税价未知时，这里只是内部对账口径，不代表真实账单。

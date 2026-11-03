@@ -18,26 +18,74 @@ from ..core.models import Intent
 from ..world.state import WorldState
 from .cost import estimate_tokens
 
-# NPC 可执行的 17 个动词（含 P2-B 新增 4 个）。system_* 不允许由模型提议。
+# NPC 可执行的 17 个动词（与 config/intents.yaml 的功能表一一对应）。
+# system_* 不允许由模型提议；recruit 是规划器动词，不在意图白名单内。
 NPC_VERBS = (
     "move",
-    "cultivate",
     "work",
     "consume",
+    "cultivate",
+    "trade",
     "buy",
     "sell",
-    "trade",
     "apprentice",
-    "join_sect",
     "marry",
+    "join_sect",
+    "found_sect",
     "open_shop",
     "escort",
-    "found_sect",
-    "recruit",
     "quest_accept",
     "quest_deliver",
+    "talk",
     "debt_settle",
 )
+
+# P3-B 分工：生存/生计动作由规则调度器负责，模型不得替换。
+RULE_VERBS = (
+    "move", "cultivate", "work", "consume", "buy", "sell",
+    "open_shop", "escort", "quest_accept", "quest_deliver", "debt_settle",
+    # recruit 只由规则规划器（开宗立派）生成，模型不得提名。
+    "recruit",
+)
+# 模型只负责目标选择与社交动作。
+MODEL_VERBS = ("trade", "apprentice", "join_sect", "marry", "found_sect", "talk")
+
+# 模型动作清单：必填参数 + 前置条件摘要（提示用；真正的校验仍走动作注册表）。
+ACTION_SPECS: dict[str, dict[str, Any]] = {
+    "trade": {
+        "args": "target, offer[], want[], money_delta",
+        "pre": "target 必须同地点；offer 的物品必须自己持有；want 的物品必须对方持有；钱差不能超过双方余额；好感 >= -20",
+    },
+    "apprentice": {
+        "args": "target, duration_days>=7",
+        "pre": "target 必须同地点；自己还没有师父；target 最高技能 >= 自己最高技能 + 0.1 且 >= 0.5；不能成环",
+    },
+    "join_sect": {
+        "args": "target",
+        "pre": "target 必须是同地点的组织/门派；不能已在门派中",
+    },
+    "marry": {
+        "args": "target",
+        "pre": "target 必须同地点；双方都未婚；好感 >= 60",
+    },
+    "recruit": {
+        "args": "target",
+        "pre": "target 必须同地点；target 未入其他门派；不能已结拜",
+    },
+    "found_sect": {
+        "args": "at, name",
+        "pre": "必须在目标地点；需要足够的 sworn 成员；金库/资金满足门槛",
+    },
+    "talk": {
+        "args": "target, message, reply",
+        "pre": "target 必须存活；message/reply 非空且各自 <=200 字",
+    },
+}
+
+
+def _precondition_hint(verb: str) -> str:
+    spec = ACTION_SPECS.get(verb)
+    return str(spec["pre"]) if spec else "按动作注册表校验"
 
 INTENT_JSON_SCHEMA: dict[str, Any] = {
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -46,6 +94,10 @@ INTENT_JSON_SCHEMA: dict[str, Any] = {
     "required": ["actions"],
     "additionalProperties": False,
     "properties": {
+        "goal": {
+            "type": ["string", "null"],
+            "description": "可选：今天想推进的内容目标 id，必须来自 goal_candidates",
+        },
         "actions": {
             "type": "array",
             "minItems": 1,
@@ -154,9 +206,14 @@ def compose_persona(text: str, budget_tokens: int = PERSONA_TOKEN_BUDGET) -> tup
 
 SYSTEM_PROMPT = (
     "你是多 NPC 世界模拟器中的单个角色决策器。只允许输出 JSON，不要解释。"
-    "输出格式：{\"actions\":[{\"verb\":\"<动词>\",\"args\":{},\"reason\":\"<一句话动机>\"}]}。"
-    "动词必须在给定列表内；reason 必须具体、可审计；一次最多 4 个动作。"
-    "不要输出系统动词（system_*）、不要编造地点/物品/人物 id。"
+    "分工：移动/上工/吃饭/修炼/买卖/跑任务等生存与生计动作由规则调度器负责，"
+    "你不得输出这些动词，也不得替换它们。你只负责："
+    "(1) 从 goal_candidates 里选今天想推进的目标（goal 字段）；"
+    "(2) 社交动作 trade / apprentice / join_sect / marry / found_sect / talk；"
+    "(3) 计划失效后的重规划。"
+    "输出格式：{\"goal\":\"<goal_id 或 null>\",\"actions\":[{\"verb\":\"<社交动词>\",\"args\":{},\"reason\":\"<一句话动机>\"}]}。"
+    "动作必须满足该动作的前置条件；target 必须是 nearby_npcs 里的人；"
+    "一次最多 4 个动作；reason 必须具体、可审计。不要输出系统动词（system_*）、不要编造地点/物品/人物 id。"
 )
 
 
@@ -204,6 +261,67 @@ def _brief_debts(state: WorldState, npc: str, limit: int = 5) -> list[dict[str, 
     ]
 
 
+def _brief_nearby(state: WorldState, npc: str, limit: int = 5) -> list[dict[str, Any]]:
+    ent = state.entities.get(npc)
+    if ent is None:
+        return []
+    out = []
+    for other in sorted(state.entities.values(), key=lambda e: e.id):
+        if other.id == npc or other.location != ent.location or other.status != "alive":
+            continue
+        out.append(
+            {
+                "id": other.id,
+                "name": other.name,
+                "role": other.role,
+                "cash": state.account_balance(wallet(other.id)),
+                "affection": round(state.affection_between(npc, other.id), 2),
+            }
+        )
+        if len(out) >= limit:
+            break
+    return out
+
+
+def _brief_inventory(state: WorldState, npc: str, limit: int = 8) -> list[dict[str, Any]]:
+    ent = state.entities.get(npc)
+    if ent is None:
+        return []
+    rows = [{"item": k, "qty": int(v)} for k, v in sorted(ent.inventory.items()) if int(v) > 0]
+    return rows[:limit]
+
+
+def _goal_candidates(content, state: WorldState, npc: str, limit: int = 4) -> list[dict[str, Any]]:
+    row = next((n for n in content.npcs if str(n.get("id")) == npc), {})
+    out: list[dict[str, Any]] = []
+    for g in sorted(row.get("goals") or [], key=lambda x: (float(x.get("priority", 9)), str(x.get("id", "")))):
+        gid = f"{npc}:{g.get('id')}"
+        goal = state.goals.get(gid)
+        if goal is not None and goal.status in ("completed", "abandoned"):
+            continue
+        out.append(
+            {
+                "goal_id": gid,
+                "content_goal_id": str(g.get("id", "")),
+                "type": str(g.get("type", "")),
+                "priority": g.get("priority"),
+                "progress": round(float(goal.progress), 3) if goal is not None else 0.0,
+            }
+        )
+        if len(out) >= limit:
+            break
+    return out
+
+
+def action_catalog(allowed: Iterable[str] = MODEL_VERBS) -> list[dict[str, Any]]:
+    """可执行动作清单：必填参数 + 前置条件摘要。"""
+    out = []
+    for verb in allowed:
+        spec = ACTION_SPECS.get(verb, {})
+        out.append({"verb": verb, "args": spec.get("args", ""), "preconditions": spec.get("pre", "")})
+    return out
+
+
 def build_state_summary(
     content,
     state: WorldState,
@@ -218,11 +336,15 @@ def build_state_summary(
     cash = state.account_balance(wallet(npc))
     loc = content.locations.get(ent.location) or {}
     row = next((n for n in content.npcs if str(n.get("id")) == npc), {})
+    hour = (tick % TICKS_PER_DAY) / 6.0
     return {
         "npc": npc,
         "name": str(row.get("name") or npc),
         "tick": tick,
         "day": day_of(tick),
+        "hour": round(hour, 2),
+        "day_ticks_left": TICKS_PER_DAY - (tick % TICKS_PER_DAY),
+        "remaining_work_hours": round(max(0.0, 18.0 - hour), 2),
         "tier": tier,
         "role": ent.role,
         "location": ent.location,
@@ -231,12 +353,16 @@ def build_state_summary(
         "status": ent.status,
         "stamina": round(float(ent.stamina), 2),
         "cash": cash,
+        "inventory": _brief_inventory(state, npc),
         "skills": {k: round(float(v), 3) for k, v in sorted((ent.skills or {}).items())},
         "goal": _brief_goal(state, npc),
+        "goal_candidates": _goal_candidates(content, state, npc),
+        "nearby_npcs": _brief_nearby(state, npc),
         "relations": _brief_relations(state, npc),
         "debts": _brief_debts(state, npc),
         "recent_events": list(recent_events)[-5:],
-        "allowed_verbs": list(NPC_VERBS),
+        "allowed_verbs": list(MODEL_VERBS),
+        "action_catalog": action_catalog(MODEL_VERBS),
     }
 
 
@@ -255,6 +381,83 @@ def build_prompt(
     user = "角色设定：\n" + (persona or "（无设定，按身份与当前状态行事）") + "\n\n当前状态：\n"
     user += json.dumps(summary, ensure_ascii=False, sort_keys=True)
     return Prompt(system=SYSTEM_PROMPT, user=user, persona_tokens=persona_tokens)
+
+
+DECISION_SYSTEM_PROMPT = (
+    "你是多 NPC 世界模拟器中的单个角色决策器。只输出 JSON，不要解释。"
+    "分工：移动/上工/吃饭/修炼/买卖/跑任务/还债等生存与生计动作由规则调度器负责，"
+    "你不得指定这些动作，也不要给出动作参数。"
+    "你只负责用一句自然语言说清楚「今天想做什么」，例如“去找林掌柜聊聊货源”。"
+    "如果需要推进某个内容目标，从 goal_candidates 里选一个 goal_id；没有就不填。"
+    '输出格式：{"goal":"<goal_id 或 null>","intent":"<一句中文意图>"}。'
+    "intent 必须具体，提到人物/地点/物品时用状态里的名字；不要编造 id。"
+)
+
+
+def build_decision_prompt(
+    content,
+    state: WorldState,
+    npc: str,
+    tick: int,
+    tier: str,
+    recent_events: Iterable[str] = (),
+    persona_budget_tokens: int = PERSONA_TOKEN_BUDGET,
+) -> Prompt:
+    """决策槽 prompt：只让模型说「想做什么」，不产出 JSON 动作。
+
+    世界状态（地点/相邻地点/现金/物品/可执行清单/时间）仍完整注入，
+    便于模型给出具体、可被意图槽抽参数的句子。
+    """
+    raw = content.personas.get(npc, "") if content is not None else ""
+    persona, persona_tokens = compose_persona(raw, persona_budget_tokens) if raw else ("", 0)
+    summary = build_state_summary(content, state, npc, tick, tier, recent_events)
+    user = "角色设定：\n" + (persona or "（无设定，按身份与当前状态行事）") + "\n\n当前状态：\n"
+    user += json.dumps(summary, ensure_ascii=False, sort_keys=True)
+    return Prompt(system=DECISION_SYSTEM_PROMPT, user=user, persona_tokens=persona_tokens)
+
+
+def parse_decision_payload(text: str) -> tuple[str, str, list[Intent]]:
+    """解析决策槽输出：返回 (goal_id, 自然语言意图, 兼容旧格式的动作列表)。
+
+    兼容三种形态：新版 {"goal","intent"}、旧版 {"goal","actions"}、纯文本一句话。
+    旧版动作仍走原有 schema 校验；新版动作列表恒为空。
+    """
+    raw = str(text or "").strip()
+    if not raw:
+        raise SchemaError("empty_output")
+    payload, _meta = extract_intent_payload(raw)
+    if isinstance(payload, str):
+        try:
+            payload = json.loads(payload)
+        except (TypeError, ValueError):
+            payload = None
+    if isinstance(payload, dict) and isinstance(payload.get("actions"), list):
+        intents = validate_intent_json(payload, tick=0, allowed_verbs=NPC_VERBS)
+        goal = payload.get("goal")
+        return (str(goal) if isinstance(goal, str) else "", "", intents)
+    if isinstance(payload, dict):
+        goal = payload.get("goal")
+        intent = payload.get("intent", payload.get("utterance", ""))
+        if isinstance(intent, str) and intent.strip():
+            return (str(goal) if isinstance(goal, str) else "", intent.strip(), [])
+        raise SchemaError("missing_intent")
+    # 纯文本：整句作为意图，goal 留空。
+    return "", raw[:300], []
+
+
+def build_repair_prompt(base: Prompt, bad_output: str, error: str) -> Prompt:
+    """校验失败后的一次修复重试：把错误原因回喂给模型，要求只输出合法 JSON。"""
+    user = (
+        base.user
+        + "\n\n上一次输出：\n"
+        + str(bad_output)[:1200]
+        + "\n校验错误："
+        + str(error)
+        + "\n请修正后重新输出；只输出一个 JSON 对象，格式 "
+        + '{"goal":<goal_id 或 null>,"actions":[{"verb":"...","args":{},"reason":"..."}]}。'
+        + "不要输出被禁止的生存动词，不要输出解释或 markdown。"
+    )
+    return Prompt(system=base.system, user=user, persona_tokens=base.persona_tokens)
 
 
 def _validate_args(args: Any) -> dict[str, Any]:
@@ -376,16 +579,31 @@ def extract_intent_payload(text: str) -> tuple[Any, dict[str, Any]]:
     return (payload if payload is not None else candidate), info
 
 
+def parse_llm_payload(
+    text: str,
+    tick: int,
+    allowed_verbs: Iterable[str] = NPC_VERBS,
+    max_actions: int = 4,
+) -> tuple[list[Intent], dict[str, Any]]:
+    """解析 + 校验，并额外返回 goal 选择与提取元信息（不改 schema 语义）。"""
+    payload, meta = extract_intent_payload(text)
+    if isinstance(payload, str):
+        try:
+            payload = json.loads(payload)
+        except (TypeError, ValueError) as exc:
+            raise SchemaError("invalid_json", str(exc)[:80]) from exc
+    intents = validate_intent_json(payload, tick, allowed_verbs, max_actions)
+    goal = payload.get("goal") if isinstance(payload, dict) else None
+    meta = dict(meta)
+    meta["goal"] = str(goal) if isinstance(goal, str) else ""
+    return intents, meta
+
+
 def parse_llm_output(
     text: str,
     tick: int,
     allowed_verbs: Iterable[str] = NPC_VERBS,
     max_actions: int = 4,
 ) -> list[Intent]:
-    payload, _meta = extract_intent_payload(text)
-    if isinstance(payload, str):
-        try:
-            payload = json.loads(payload)
-        except (TypeError, ValueError) as exc:
-            raise SchemaError("invalid_json", str(exc)[:80]) from exc
-    return validate_intent_json(payload, tick, allowed_verbs, max_actions)
+    intents, _meta = parse_llm_payload(text, tick, allowed_verbs, max_actions)
+    return intents

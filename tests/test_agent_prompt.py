@@ -8,6 +8,7 @@ import pytest
 
 from wsim.agent.cost import CostTelemetry, estimate_tokens, load_cost_rates
 from wsim.agent.prompt import (
+    MODEL_VERBS,
     NPC_VERBS,
     SchemaError,
     build_prompt,
@@ -31,7 +32,7 @@ def test_prompt_contains_persona_and_state_summary(real_content, real_state):
     summary = json.loads(prompt.user.split("当前状态：\n", 1)[1])
     assert summary["npc"] == npc
     assert {"goal", "relations", "debts", "location", "recent_events"} <= set(summary)
-    assert summary["allowed_verbs"] == list(NPC_VERBS)
+    assert summary["allowed_verbs"] == list(MODEL_VERBS)
     assert summary["recent_events"] == ["system_goal:ok"]
 
 

@@ -176,6 +176,48 @@ class LODScheduler:
         self.now = target_tick
         return wakes
 
+    def advance_to_batched(self, target_tick: int, batch_size: int = 8) -> list[WakeResult]:
+        """批量版 advance_to：先收集到期唤醒，再按批调用 reasoner.decide_batch。
+
+        不改变事件顺序与 jitter 计算；只把 N 个独立模型请求合并成少数几批。
+        """
+        if target_tick < self.now:
+            raise ValueError("不能回拨 tick")
+        if not hasattr(self.reasoner, "decide_batch") or batch_size <= 1:
+            return self.advance_to(target_tick)
+        due: list[dict[str, Any]] = []
+        while self._heap and self._heap[0][0] <= target_tick:
+            tick, npc, gen = heapq.heappop(self._heap)
+            if gen != self._gen.get(npc, 0):
+                continue
+            self.wake_counts[npc] = self.wake_counts.get(npc, 0) + 1
+            tier = self.lod[npc]
+            interval = self.config.tiers[tier].wake_interval_ticks
+            view = dict(self._world_view_provider(tick))
+            view["tier"] = tier
+            view["interval"] = interval
+            self.state_provider_calls += 1
+            self.decide_calls += 1
+            self.decide_by_tier[tier] = self.decide_by_tier.get(tier, 0) + 1
+            jitter = PRNG(self.seed, self.wake_counts[npc], f"lod_jitter:{npc}").randint(
+                0, max(1, interval // 4)
+            )
+            heapq.heappush(self._heap, (tick + interval + jitter, npc, self._gen.get(npc, 0)))
+            due.append({"npc": npc, "tick": tick, "tier": tier, "view": view})
+        wakes: list[WakeResult] = []
+        for start in range(0, len(due), max(1, batch_size)):
+            chunk = due[start:start + max(1, batch_size)]
+            items = [
+                {"npc_state": self._state_provider(d["npc"]), "world_view": d["view"], "timing": "realtime"}
+                for d in chunk
+            ]
+            results = self.reasoner.decide_batch(items)
+            for d, intents in zip(chunk, results):
+                wakes.append(WakeResult(tick=d["tick"], npc_id=d["npc"], lod=d["tier"], intents=intents))
+        self.process_count += len(wakes)
+        self.now = target_tick
+        return wakes
+
     def _wake(self, npc: str, tick: int) -> WakeResult:
         self.wake_counts[npc] = self.wake_counts.get(npc, 0) + 1
         tier = self.lod[npc]

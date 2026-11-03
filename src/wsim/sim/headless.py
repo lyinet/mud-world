@@ -7,6 +7,7 @@ from __future__ import annotations
 import heapq
 import json
 import shutil
+import time
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
@@ -16,11 +17,14 @@ from ..actions.registry import build_registry
 from ..actions.common import treasury_balance, treasury_guard_threshold
 from ..agent.budget import BudgetGuard, BudgetLimits
 from ..agent.cost import CostTelemetry, load_cost_rates
+from ..agent.dialogue_async import AsyncDialogueQueue
+from ..agent.intent_model import load_intent_catalog
 from ..agent.provider import (
     LLMReasoner,
     ProviderClient,
     ProviderConfig,
     ProviderConfigError,
+    load_model_slots,
     load_provider_settings,
 )
 from ..audit.conservation import conservation, debt_ledger
@@ -107,6 +111,7 @@ def run_headless(
     if not npcs:
         raise RuntimeError("没有 NPC 可运行")
 
+    started_at = time.perf_counter()
     run_id = cfg.run_id or f"seed{cfg.seed}-{cfg.days}d-{len(npcs)}npc"
     out_dir = Path(cfg.out_root) / run_id
     if out_dir.exists():
@@ -158,25 +163,37 @@ def run_headless(
     reasoner: Any = mock_reasoner
     budget: BudgetGuard | None = None
     llm_info: dict[str, Any] = {"enabled": False, "model": "mock", "reason": "mock_only"}
+    dialogue_async = None
+    run_concurrency = max(1, int(load_provider_settings(root).get("concurrency", 4)))
     if cfg.enable_llm:
         settings = load_provider_settings(root)
-        try:
-            provider_cfg = ProviderConfig.from_env(
-                True,
-                timeout_s=float(settings.get("timeout_s", 30)),
-                max_retries=int(settings.get("max_retries", 2)),
-                backoff_base_s=float(settings.get("backoff_base_s", 1.0)),
-                max_tokens=int(settings.get("max_tokens", cfg.llm_max_tokens)),
-                temperature=float(settings.get("temperature", cfg.llm_temperature)),
-                base_url=str(settings.get("base_url", "")),
-                model=str(settings.get("model", "")),
-                key_env=str(settings.get("api_key_env", "LLM_API_KEY")),
-                json_mode=bool(settings.get("json_mode", True)),
+        slots = load_model_slots(root)
+
+        def slot_client(slot: str) -> ProviderClient:
+            s = dict(slots.get(slot) or settings)
+            return ProviderClient(
+                ProviderConfig.from_env(
+                    True,
+                    timeout_s=float(s.get("timeout_s", 30)),
+                    max_retries=int(s.get("max_retries", 2)),
+                    backoff_base_s=float(s.get("backoff_base_s", 1.0)),
+                    max_tokens=int(s.get("max_tokens", cfg.llm_max_tokens)),
+                    temperature=float(s.get("temperature", cfg.llm_temperature)),
+                    base_url=str(s.get("base_url", "")),
+                    model=str(s.get("model", "")),
+                    key_env=str(s.get("api_key_env", "LLM_API_KEY")),
+                    json_mode=bool(s.get("json_mode", True)),
+                    slot=slot,
+                    model_env=str(s.get("model_env", "")),
+                )
             )
+
+        try:
+            provider = slot_client("decision")
+            provider_cfg = provider.config
         except ProviderConfigError as exc:
             llm_info = {"enabled": False, "model": "mock", "reason": str(exc)}
         else:
-            assert provider_cfg is not None
             rates = load_cost_rates(root)
             raw_budget = cfg.llm_budget or settings.get("budget") or {}
             budget = BudgetGuard(
@@ -184,14 +201,41 @@ def run_headless(
                 input_rate=float(rates.per_1k_input_tokens) / 1000.0,
                 output_rate=float(rates.per_1k_output_tokens) / 1000.0,
             )
-            provider = ProviderClient(provider_cfg)
-            reasoner = LLMReasoner(provider, mock_reasoner, content, telemetry, budget=budget)
+            intent_client = None
+            intent_error = ""
+            try:
+                intent_client = slot_client("intent")
+            except ProviderConfigError as exc:
+                intent_error = str(exc)  # 无 key 时只降级意图槽，不影响决策/对话
+            dialogue_client = None
+            try:
+                dialogue_client = slot_client("dialogue")
+            except ProviderConfigError as exc:
+                llm_info["dialogue_error"] = str(exc)
+            catalog = load_intent_catalog(root, content.verbs) if intent_client else None
+            reasoner = LLMReasoner(
+                provider, mock_reasoner, content, telemetry,
+                budget=budget, registry=registry,
+                intent_client=intent_client, intent_catalog=catalog,
+                concurrency=run_concurrency,
+            )
             llm_info = {
                 "enabled": True,
                 "model": provider_cfg.model,
                 "fingerprint": provider_cfg.fingerprint(),
+                "slots": {
+                    "decision": provider_cfg.fingerprint(),
+                    "dialogue": dialogue_client.config.fingerprint() if dialogue_client else "unavailable",
+                    "intent": intent_client.config.fingerprint() if intent_client else "unavailable",
+                },
+                "intent_error": intent_error,
+                "dialogue_error": llm_info.get("dialogue_error", ""),
                 "extract_adapter": "fence/unwrap/move.destination->to/work.location->at",
             }
+            dialogue_async = AsyncDialogueQueue(
+                dialogue_client, budget=budget, log_dir=out_dir
+            ) if dialogue_client is not None else None
+            llm_info["dialogue_async"] = dialogue_async is not None
     scheduler = LODScheduler(
         sorted(npc_ids),
         lod_cfg,
@@ -252,6 +296,7 @@ def run_headless(
         """日界批处理：为当日非 spotlight 的 NPC 生成一份计划，供白天推进。"""
         if not bool(llm_info.get("enabled")):
             return
+        batch: list[dict[str, Any]] = []
         for npc in sorted(npc_ids):
             tier = scheduler.lod.get(npc, "active")
             if tier == "spotlight":
@@ -267,9 +312,14 @@ def run_headless(
                 "tier": tier,
                 "interval": lod_cfg.tiers[tier].wake_interval_ticks,
             }
-            timing_calls["night_batch"] += 1
-            intents = reasoner.decide({"id": npc}, view, timing="night_batch")
-            enqueue(intents, "night_batch", base)
+            batch.append({"npc_state": {"id": npc}, "world_view": view, "timing": "night_batch"})
+        if not batch:
+            return
+        timing_calls["night_batch"] += len(batch)
+        if hasattr(reasoner, "decide_batch"):
+            # 只预计算“今日意图”，不提前生成规则动作；动作在白天唤醒时落地。
+            reasoner.decide_batch(batch, draft=False)
+        # 夜间批处理不推进世界；events 全部来自白天及时机驱动。
 
     log.append(
         f"[{stamp(0)}] intent_layer=GoalSelector+Planner lod_initial="
@@ -331,7 +381,11 @@ def run_headless(
 
         for tick in range(base, base + TICKS_PER_DAY):
             # LOD：只弹出到期唤醒，复杂度 O(到期事件数)
-            for wake in scheduler.advance_to(tick):
+            if hasattr(reasoner, "decide_batch"):
+                wakes = scheduler.advance_to_batched(tick, batch_size=run_concurrency)
+            else:
+                wakes = scheduler.advance_to(tick)
+            for wake in wakes:
                 timing_calls["realtime"] += 1
                 enqueue(wake.intents, "realtime", tick)
 
@@ -396,6 +450,8 @@ def run_headless(
                             "day_no": day + 1,
                             "mocked": int(budget.mocked_by_day.get(day, 0)),
                             "degraded": int(budget.degraded_by_day.get(day, 0)),
+                            "dialogue_mocked": int(budget.dialogue_mocked_by_day.get(day, 0)),
+                            "intent_mocked": int(budget.intent_mocked_by_day.get(day, 0)),
                             "day_tokens": int(budget.day_tokens.get(day, 0)),
                             "month_tokens": int(budget.month_tokens),
                             "month_cost": round(float(budget.month_cost), 6),
@@ -579,6 +635,8 @@ def run_headless(
         llm_summary["calls_by_tier"] = dict(sorted(reasoner.calls_by_tier.items()))
         llm_summary["calls_by_timing"] = dict(sorted(reasoner.calls_by_timing.items()))
         llm_summary["mock_by_timing"] = dict(sorted(reasoner.mock_by_timing.items()))
+        llm_summary["reasoner"] = reasoner.summary()
+        llm_summary["by_slot"] = cost_summary.get("by_slot", {})
         latencies = sorted(
             float(r.get("latency_s", 0.0))
             for r in telemetry.records
@@ -597,6 +655,26 @@ def run_headless(
                 "max": round(latencies[-1], 3),
                 "mean": round(sum(latencies) / len(latencies), 3),
             }
+            by_slot_lat: dict[str, list[float]] = {}
+            for rec in telemetry.records:
+                if int(rec.get("calls", 0)) > 0 and float(rec.get("latency_s", 0.0)) > 0:
+                    by_slot_lat.setdefault(str(rec.get("slot") or "decision"), []).append(
+                        float(rec["latency_s"])
+                    )
+            llm_summary["latency_by_slot"] = {
+                slot: {
+                    "n": len(vals),
+                    "p50": _pct(sorted(vals), 0.5),
+                    "p95": _pct(sorted(vals), 0.95),
+                }
+                for slot, vals in sorted(by_slot_lat.items())
+            }
+        usage_src: dict[str, int] = {}
+        for rec in telemetry.records:
+            key = str(rec.get("usage_source") or "reported")
+            usage_src[key] = usage_src.get(key, 0) + int(rec.get("calls", 0))
+        llm_summary["usage_source"] = dict(sorted(usage_src.items()))
+        llm_summary["dialogue_async"] = dialogue_async.stats() if dialogue_async is not None else None
     budget_summary = budget.summary() if budget is not None else {"enabled": False}
     decisions_summary: dict[str, dict[str, Any]] = {}
     for name, row in decision_stats.items():
@@ -769,6 +847,7 @@ def run_headless(
         "decisions": decisions_summary,
         "budget": budget_summary,
         "verdict": verdict,
+        "wall_time_s": round(time.perf_counter() - started_at, 3),
     }
 
     (out_dir / "summary.json").write_text(

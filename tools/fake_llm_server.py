@@ -37,6 +37,7 @@ class FakeLLMConfig:
     fail_rate: float = 0.0
     bad_json_rate: float = 0.0
     long_output: bool = False
+    mode: str = "actions"  # actions=旧 JSON 动作；decision=自然语言意图（P3-B 三槽）
     counter: int = 0
     lock: threading.Lock = field(default_factory=threading.Lock)
 
@@ -80,6 +81,25 @@ def _generate_actions(summary: dict[str, Any], rng: random.Random, long_output: 
                 "reason": "假端点：静心修炼，稳住内息",
             }
         )
+    # P3-B：模型只允许社交动作。给一个同地点可见对象，确保有合法社交动作可落地。
+    self_id = str(summary.get("npc") or "")
+    nearby = [
+        x for x in (summary.get("nearby_npcs") or [])
+        if isinstance(x, dict)
+        and str(x.get("id") or "")
+        and str(x.get("id")) != self_id
+        and not str(x.get("id")).startswith("player:")
+    ]
+    if nearby:
+        target = str(nearby[0].get("id") or "")
+        if target:
+            actions.append(
+                {
+                    "verb": "talk",
+                    "args": {"target": target, "message": "近来可好？", "reply": "尚可，你呢？"},
+                    "reason": "假端点：与附近的人闲聊两句",
+                }
+            )
     return actions
 
 
@@ -95,6 +115,26 @@ def _response_content(cfg: FakeLLMConfig, body: dict[str, Any], index: int) -> s
     rng = random.Random((cfg.seed << 16) ^ index ^ salt)
     if cfg.bad_json_rate > 0 and rng.random() < cfg.bad_json_rate:
         return '{"actions":[{"verb":'
+    if cfg.mode == "decision":
+        raw_goal = summary.get("goal")
+        goal = raw_goal.get("id") if isinstance(raw_goal, dict) else raw_goal
+        nearby = [
+            n for n in (summary.get("nearby_npcs") or [])
+            if isinstance(n, dict) and str(n.get("id") or "")
+            and str(n.get("id")) != str(summary.get("npc") or "")
+            and not str(n.get("id")).startswith("player:")
+        ]
+        npc = str(summary.get("npc") or "")
+        # 每隔几个 NPC 给一句规则域意图（move），用于验证“模型不得替换生存动作”的丢弃原因分布。
+        rotate_move = bool(npc) and (sum(ord(ch) for ch in npc) % 7 == 0)
+        if rotate_move:
+            intent = "去集市看看"
+        elif nearby:
+            intent = f"找{nearby[0].get('name') or nearby[0].get('id')}闲聊几句"
+        else:
+            exits = [str(x) for x in (summary.get("exits") or []) if str(x)]
+            intent = f"去{exits[0] if exits else '集市'}看看"
+        return json.dumps({"goal": goal, "intent": intent}, ensure_ascii=False, sort_keys=True)
     actions = _generate_actions(summary, rng, cfg.long_output)
     return json.dumps({"actions": actions}, ensure_ascii=False, sort_keys=True)
 
@@ -176,6 +216,7 @@ class FakeLLMServer:
         fail_rate: float = 0.0,
         bad_json_rate: float = 0.0,
         long_output: bool = False,
+        mode: str = "actions",
     ):
         self._httpd = ThreadingHTTPServer(("127.0.0.1", port), _Handler)
         self._httpd.daemon_threads = True
@@ -185,6 +226,7 @@ class FakeLLMServer:
             fail_rate=fail_rate,
             bad_json_rate=bad_json_rate,
             long_output=long_output,
+            mode=mode,
         )
         self._thread: threading.Thread | None = None
 
@@ -227,6 +269,7 @@ def main() -> int:
     p.add_argument("--fail-rate", type=float, default=0.0, help="注入 HTTP 500 的比例")
     p.add_argument("--bad-json-rate", type=float, default=0.0, help="返回截断 JSON 的比例")
     p.add_argument("--long-output", action="store_true", help="返回 8 个动作（触发 too_many_actions）")
+    p.add_argument("--mode", choices=("actions", "decision"), default="actions")
     args = p.parse_args()
     srv = FakeLLMServer(
         port=args.port,
@@ -235,6 +278,7 @@ def main() -> int:
         fail_rate=args.fail_rate,
         bad_json_rate=args.bad_json_rate,
         long_output=args.long_output,
+        mode=args.mode,
     )
     print(f"PORT={srv.port}", flush=True)
     print(f"FAKE_LLM_BASE_URL={srv.base_url}", flush=True)

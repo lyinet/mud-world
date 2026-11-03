@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from ..actions.common import (
@@ -1275,7 +1275,12 @@ class MockReasoner(Reasoner):
         self.replan_count = 0
         self.postponed_open_shop = 0
 
-    def decide(self, npc_state: dict[str, Any], world_view: dict[str, Any]) -> list[Intent]:
+    def decide(
+        self,
+        npc_state: dict[str, Any],
+        world_view: dict[str, Any],
+        goal_override: str = "",
+    ) -> list[Intent]:
         npc = str(npc_state.get("id", ""))
         tick = int(world_view.get("tick", 0))
         state: WorldState | None = world_view.get("state")
@@ -1290,6 +1295,12 @@ class MockReasoner(Reasoner):
         interval = int(world_view.get("interval", TICKS_PER_DAY))
         tier = str(world_view.get("tier", "active"))
         choice = self.selector.choose(state, npc, tick)
+        if goal_override and choice is not None:
+            alt = self._choice_for_goal(state, npc, goal_override)
+            # 模型目标只在和规则选择器一致时才采纳；否则以规则为准，
+            # 避免把 NPC 拉离可达目标（P3-B 是分工修复，不是模型覆盖规则）。
+            if alt is not None and alt.goal_id == choice.goal_id:
+                choice = replace(choice, source="model", reason="模型选择今日目标")
         if choice is None:
             return []
 
@@ -1352,6 +1363,28 @@ class MockReasoner(Reasoner):
                 persona_tokens=prompt.persona_tokens,
             )
         return intents
+
+    def _choice_for_goal(self, state: WorldState, npc: str, goal_override: str) -> GoalChoice | None:
+        """把模型选择的目标 id 映射成规则可执行的目标；非法/已完成返回 None。"""
+        raw = str(goal_override).strip()
+        candidates = [raw] if ":" in raw else [f"{npc}:{raw}"]
+        for gid in candidates:
+            goal = state.goals.get(gid)
+            if goal is None or goal.npc != npc or goal.status in ("completed", "abandoned"):
+                continue
+            return GoalChoice(
+                npc=npc,
+                goal_id=goal.id,
+                content_goal_id=goal.content_goal_id,
+                content_type=goal.content_type,
+                kind=goal.kind,
+                target=goal.target,
+                source="model",
+                reason="模型选择今日目标",
+                # 已存在的目标只切换/保持，不重建，避免把进度清零。
+                create=False,
+            )
+        return None
 
     def _legacy(self, npc: str, npc_state: dict[str, Any], tick: int) -> list[Intent]:
         rng = PRNG(self.seed, tick, f"mock_reasoner:{npc}")

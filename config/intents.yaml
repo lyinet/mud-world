@@ -1,0 +1,161 @@
+# 意图模板（功能表）· Xing 意图理解模型的输入契约
+#
+# 每个条目对应一个引擎动词。required 必须与 content/verbs.yaml 的参数名一致
+# （tests/test_p3b_intent_model.py 会断言两边不脱节）。
+# source 说明参数值的来源清单；模型不得编造清单外的 id。
+- category: 去某地
+  verb: move
+  required: [destination]
+  optional: []
+  source:
+    destination: 地点清单（location_id 或中文地名）
+  destructive: false
+
+- category: 上工
+  verb: work
+  required: [at]
+  optional: [hours]
+  source:
+    at: 工作地点清单（雇主所在地）
+    hours: 1..12 的整数
+  destructive: false
+
+- category: 吃饭
+  verb: consume
+  required: [item]
+  optional: [qty]
+  source:
+    item: 自己背包里的物品清单
+    qty: "整数；中文数量词如“两瓶”需归一为 2"
+  destructive: false
+
+- category: 修炼
+  verb: cultivate
+  required: [skill]
+  optional: [hours]
+  source:
+    skill: 自己的技能清单
+    hours: 1..8 的整数
+  destructive: false
+
+- category: 交易
+  verb: trade
+  required: [target]
+  optional: [offer, want, money_delta]
+  source:
+    target: 同地点 NPC 清单
+    offer: 自己背包物品
+    want: 对方背包物品
+    money_delta: 整数（正数=自己付钱）
+  destructive: false
+
+- category: 购买
+  verb: buy
+  required: [item, from]
+  optional: [qty]
+  source:
+    item: 商店物品清单
+    from: 商店/地点清单
+    qty: 整数
+  destructive: false
+
+- category: 出售
+  verb: sell
+  required: [item, to]
+  optional: [qty]
+  source:
+    item: 自己背包物品
+    to: 收购地点清单
+    qty: 整数
+  destructive: true
+
+- category: 拜师
+  verb: apprentice
+  required: [target]
+  optional: [duration_days]
+  source:
+    target: 同地点 NPC 清单（对方最高技能须高于自己）
+    duration_days: ">=7 的整数，默认 30"
+  destructive: false
+
+- category: 婚配
+  verb: marry
+  required: [target]
+  optional: []
+  source:
+    target: 同地点 NPC 清单（双方未婚且好感>=60）
+  destructive: true
+
+- category: 入门派
+  verb: join_sect
+  required: [target]
+  optional: [dues]
+  source:
+    target: 同地点门派/组织清单
+    dues: ">=0 的整数"
+  destructive: false
+
+- category: 开宗立派
+  verb: found_sect
+  required: [name, at]
+  optional: [doctrine]
+  source:
+    name: 自由文本（门派名）
+    at: 地点清单
+    doctrine: 自由文本（宗旨）
+  destructive: true
+
+- category: 开店
+  verb: open_shop
+  required: [at, shop_type]
+  optional: [name]
+  source:
+    at: 地点清单
+    shop_type: "stall|storefront|branch"
+    name: 自由文本（店名）
+  destructive: true
+
+- category: 护送
+  verb: escort
+  required: [route, cargo_value, fee]
+  optional: []
+  source:
+    route: 地点清单（至少两站）
+    cargo_value: ">=100 的整数"
+    fee: ">=0 的整数"
+  destructive: false
+
+- category: 接任务
+  verb: quest_accept
+  required: [quest]
+  optional: []
+  source:
+    quest: 任务板上的任务清单
+  destructive: false
+
+- category: 交任务
+  verb: quest_deliver
+  required: [quest]
+  optional: [quest_verb]
+  source:
+    quest: 自己已接任务清单
+    quest_verb: 任务原始动词（工程字段）
+  destructive: false
+
+- category: 对话
+  verb: talk
+  required: [target, message]
+  optional: [reply]
+  source:
+    target: 同地点 NPC 清单
+    message: 自由文本（<=200 字）
+    reply: 自由文本（NPC 回复）
+  destructive: false
+
+- category: 还债
+  verb: debt_settle
+  required: [debt]
+  optional: []
+  source:
+    debt: 自己的债务清单
+  destructive: true

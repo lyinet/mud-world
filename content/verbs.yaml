@@ -57,3 +57,21 @@ verbs:
   - name: found_sect
     args: {name: "string", at: location_id, doctrine: "string"}
     allowed_roles: [师爷, 学究, 庙祝, 掌柜, 说书人, 算命先生]
+
+  # P3-B 意图模板覆盖：以下 4 个动词由引擎/规划器使用，补齐参数元数据，
+  # 让 config/intents.yaml 的功能表与 verbs.yaml 保持一致。
+  - name: recruit
+    args: {target: npc_id}
+    allowed_roles: ["*"]
+
+  - name: quest_accept
+    args: {quest: quest_id}
+    allowed_roles: ["*"]
+
+  - name: quest_deliver
+    args: {quest: quest_id, quest_verb: "string"}
+    allowed_roles: ["*"]
+
+  - name: debt_settle
+    args: {debt: debt_id}
+    allowed_roles: ["*"]
