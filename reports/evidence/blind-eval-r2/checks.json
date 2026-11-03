@@ -14,7 +14,7 @@
   },
   "fingerprints": {
     "answer_key_sha256": "802f2ded24f9f356b9ab9676d24758987a346fa790f56ba08cad17d587e66789",
-    "pairs_sha256": "5a41f623f754bdc4c2d7f6ba6f738e5f13e5951d99e86567ace9fa04e72d8d6d"
+    "pairs_sha256": "dbdab27dfc1f74c33418fd316e97cc4fc5f47e1ba76246f2fd8dde6436d517a6"
   },
   "intent_categories": [
     "chitchat",
@@ -25,12 +25,195 @@
     "price"
   ],
   "markdown_hits": [],
-  "max_cross_intent_similarity": 0.3385,
+  "max_cross_intent_similarity": 0.3429,
+  "max_skeleton_reuse": 3,
   "missing_first_person": [],
   "position_balance": {
     "model_as_A": 15,
     "model_as_B": 15
   },
+  "routing": [
+    {
+      "id": 1,
+      "intent": "price",
+      "object": "meat",
+      "skeleton": "price.meat.a"
+    },
+    {
+      "id": 2,
+      "intent": "gossip",
+      "object": "impact",
+      "skeleton": "gossip.impact.a"
+    },
+    {
+      "id": 3,
+      "intent": "chitchat",
+      "object": "craft",
+      "skeleton": "chitchat.craft.a"
+    },
+    {
+      "id": 4,
+      "intent": "gossip",
+      "object": "news",
+      "skeleton": "gossip.event.a"
+    },
+    {
+      "id": 5,
+      "intent": "price",
+      "object": "other",
+      "skeleton": "price.other.a"
+    },
+    {
+      "id": 6,
+      "intent": "directions",
+      "object": "place",
+      "skeleton": "directions.a"
+    },
+    {
+      "id": 7,
+      "intent": "gossip",
+      "object": "person",
+      "skeleton": "gossip.person.reputation.a"
+    },
+    {
+      "id": 8,
+      "intent": "price",
+      "object": "volume",
+      "skeleton": "price.volume.a"
+    },
+    {
+      "id": 9,
+      "intent": "help",
+      "object": "skill",
+      "skeleton": "help.skill.a"
+    },
+    {
+      "id": 10,
+      "intent": "gossip",
+      "object": "news",
+      "skeleton": "gossip.event.a"
+    },
+    {
+      "id": 11,
+      "intent": "gossip",
+      "object": "person",
+      "skeleton": "gossip.person.reputation.a"
+    },
+    {
+      "id": 12,
+      "intent": "gossip",
+      "object": "who",
+      "skeleton": "gossip.who"
+    },
+    {
+      "id": 13,
+      "intent": "gossip",
+      "object": "person",
+      "skeleton": "gossip.person.relation.a"
+    },
+    {
+      "id": 14,
+      "intent": "price",
+      "object": "meat",
+      "skeleton": "price.meat.a"
+    },
+    {
+      "id": 15,
+      "intent": "chitchat",
+      "object": "family",
+      "skeleton": "chitchat.family.a"
+    },
+    {
+      "id": 16,
+      "intent": "credit",
+      "object": "credit",
+      "skeleton": "credit.a"
+    },
+    {
+      "id": 17,
+      "intent": "chitchat",
+      "object": "safety",
+      "skeleton": "chitchat.safety.a"
+    },
+    {
+      "id": 18,
+      "intent": "chitchat",
+      "object": "daily",
+      "skeleton": "chitchat.daily.a"
+    },
+    {
+      "id": 19,
+      "intent": "gossip",
+      "object": "news",
+      "skeleton": "gossip.event.a"
+    },
+    {
+      "id": 20,
+      "intent": "price",
+      "object": "capital",
+      "skeleton": "price.capital.a"
+    },
+    {
+      "id": 21,
+      "intent": "chitchat",
+      "object": "future",
+      "skeleton": "chitchat.future.a"
+    },
+    {
+      "id": 22,
+      "intent": "chitchat",
+      "object": "craft",
+      "skeleton": "chitchat.craft.a"
+    },
+    {
+      "id": 23,
+      "intent": "price",
+      "object": "offal",
+      "skeleton": "price.offal.a"
+    },
+    {
+      "id": 24,
+      "intent": "gossip",
+      "object": "person",
+      "skeleton": "gossip.person.relation.a"
+    },
+    {
+      "id": 25,
+      "intent": "chitchat",
+      "object": "opinion",
+      "skeleton": "chitchat.opinion.a"
+    },
+    {
+      "id": 26,
+      "intent": "help",
+      "object": "invite",
+      "skeleton": "help.invite"
+    },
+    {
+      "id": 27,
+      "intent": "gossip",
+      "object": "type",
+      "skeleton": "gossip.type.a"
+    },
+    {
+      "id": 28,
+      "intent": "chitchat",
+      "object": "sound",
+      "skeleton": "chitchat.sound.a"
+    },
+    {
+      "id": 29,
+      "intent": "price",
+      "object": "cut",
+      "skeleton": "price.cut.a"
+    },
+    {
+      "id": 30,
+      "intent": "chitchat",
+      "object": "fate",
+      "skeleton": "chitchat.fate.a"
+    }
+  ],
   "samples": 30,
   "seed": 20261104,
   "similarity_matrix": {
@@ -38,60 +221,89 @@
       "chitchat": 1.0,
       "credit": 0.1935,
       "directions": 0.1579,
-      "gossip": 0.2432,
-      "help": 0.254,
-      "price": 0.1739
+      "gossip": 0.274,
+      "help": 0.3429,
+      "price": 0.2581
     },
     "credit": {
-      "chitchat": 0.2121,
+      "chitchat": 0.2295,
       "credit": 1.0,
       "directions": 0.1846,
-      "gossip": 0.2623,
-      "help": 0.3385,
-      "price": 0.2188
+      "gossip": 0.2581,
+      "help": 0.2623,
+      "price": 0.2647
     },
     "directions": {
       "chitchat": 0.169,
       "credit": 0.1846,
       "directions": 1.0,
-      "gossip": 0.1714,
-      "help": 0.1622,
-      "price": 0.1644
+      "gossip": 0.169,
+      "help": 0.1429,
+      "price": 0.1791
     },
     "gossip": {
-      "chitchat": 0.2667,
-      "credit": 0.2188,
-      "directions": 0.1714,
+      "chitchat": 0.274,
+      "credit": 0.2424,
+      "directions": 0.169,
       "gossip": 1.0,
-      "help": 0.2424,
-      "price": 0.2609
+      "help": 0.2388,
+      "price": 0.2941
     },
     "help": {
-      "chitchat": 0.25,
-      "credit": 0.3385,
+      "chitchat": 0.3429,
+      "credit": 0.2295,
       "directions": 0.1143,
-      "gossip": 0.2121,
+      "gossip": 0.2222,
       "help": 1.0,
-      "price": 0.1918
+      "price": 0.274
     },
     "price": {
-      "chitchat": 0.1867,
-      "credit": 0.2188,
-      "directions": 0.1644,
-      "gossip": 0.25,
-      "help": 0.2466,
+      "chitchat": 0.254,
+      "credit": 0.2456,
+      "directions": 0.1791,
+      "gossip": 0.2941,
+      "help": 0.2424,
       "price": 1.0
     }
   },
   "similarity_threshold": 0.6,
+  "skeleton_counts": {
+    "chitchat.craft.a": 2,
+    "chitchat.daily.a": 1,
+    "chitchat.family.a": 1,
+    "chitchat.fate.a": 1,
+    "chitchat.future.a": 1,
+    "chitchat.opinion.a": 1,
+    "chitchat.safety.a": 1,
+    "chitchat.sound.a": 1,
+    "credit.a": 1,
+    "directions.a": 1,
+    "gossip.event.a": 3,
+    "gossip.impact.a": 1,
+    "gossip.person.relation.a": 2,
+    "gossip.person.reputation.a": 2,
+    "gossip.type.a": 1,
+    "gossip.who": 1,
+    "help.invite": 1,
+    "help.skill.a": 1,
+    "price.capital.a": 1,
+    "price.cut.a": 1,
+    "price.meat.a": 2,
+    "price.offal.a": 1,
+    "price.other.a": 1,
+    "price.volume.a": 1
+  },
+  "skeleton_reuse_limit": 3,
   "skeletons_by_intent": {
     "chitchat": [
       "chitchat.craft.a",
       "chitchat.daily.a",
+      "chitchat.family.a",
       "chitchat.fate.a",
       "chitchat.future.a",
       "chitchat.opinion.a",
-      "chitchat.safety.a"
+      "chitchat.safety.a",
+      "chitchat.sound.a"
     ],
     "credit": [
       "credit.a"
@@ -101,27 +313,35 @@
     ],
     "gossip": [
       "gossip.event.a",
-      "gossip.person.a",
+      "gossip.impact.a",
+      "gossip.person.relation.a",
+      "gossip.person.reputation.a",
+      "gossip.type.a",
       "gossip.who"
     ],
     "help": [
-      "help.a",
-      "help.invite"
+      "help.invite",
+      "help.skill.a"
     ],
     "price": [
-      "price.a"
+      "price.capital.a",
+      "price.cut.a",
+      "price.meat.a",
+      "price.offal.a",
+      "price.other.a",
+      "price.volume.a"
     ]
   },
   "source": "runs/a2-dialogue-30/eval_raw.jsonl",
   "template_length": {
-    "avg": 36.13,
+    "avg": 35.0,
     "in_20_60": 30,
     "max": 41,
     "min": 28
   },
   "third_person_hits": [],
   "worst_similarity_pair": [
-    "credit",
+    "chitchat",
     "help"
   ]
 }

@@ -15,6 +15,7 @@ import json
 import random
 import re
 import sys
+from collections import Counter
 from difflib import SequenceMatcher
 from pathlib import Path
 
@@ -53,6 +54,8 @@ def main() -> int:
     third_person_hits: list[dict] = []
     missing_first_person: list[dict] = []
     by_intent: dict[str, list[dict]] = {}
+    routing: list[dict] = []
+    skeleton_counts: Counter[str] = Counter()
     for row in rows:
         message = str(row["message"])
         tick = int(row["tick"])
@@ -60,6 +63,16 @@ def main() -> int:
         out = compose_talk(persona, TARGET, str(npc.get("name") or ""), role, message, tick)
         template_reply = str(out["reply"])
         lengths.append(len(template_reply))
+        skeleton = str(out["skeleton"])
+        skeleton_counts[skeleton] += 1
+        routing.append(
+            {
+                "id": int(row["round"]),
+                "intent": str(out["intent"]),
+                "object": str(out["object"]),
+                "skeleton": skeleton,
+            }
+        )
         record = {"id": int(row["round"]), "reply": template_reply}
         if MARKDOWN_RE.search(template_reply):
             markdown_hits.append(record)
@@ -70,7 +83,7 @@ def main() -> int:
         by_intent.setdefault(str(out["intent"]), []).append(
             {
                 "id": int(row["round"]),
-                "skeleton": str(out["skeleton"]),
+                "skeleton": skeleton,
                 "reply": template_reply,
             }
         )
@@ -144,6 +157,10 @@ def main() -> int:
             category: sorted({item["skeleton"] for item in by_intent[category]})
             for category in categories
         },
+        "skeleton_counts": dict(sorted(skeleton_counts.items())),
+        "max_skeleton_reuse": max(skeleton_counts.values()),
+        "skeleton_reuse_limit": 3,
+        "routing": routing,
         "max_cross_intent_similarity": round(worst_similarity, 4),
         "worst_similarity_pair": worst_pair,
         "similarity_threshold": 0.60,
