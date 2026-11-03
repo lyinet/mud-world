@@ -50,16 +50,16 @@
 - 验证：`python3 -m pytest -q` 后启动 UI 抽查。
 
 ## T6 文档纠错
-- [ ] 复制 `reports/delivery-p2.md` → `reports/delivery-p2.1.md`。
-- [ ] 修正 180 章节、931/754/177 拆分、护栏归因。
-- [ ] 新增 talk / 任务板 / 金库三节改法与前后数字（先留占位，T7 回填）。
+- [x] 复制 `reports/delivery-p2.md` → `reports/delivery-p2.1.md`。
+- [x] 修正 180 章节、931/754/177 拆分、护栏归因。
+- [x] 新增 talk / 任务板 / 金库三节改法与前后数字。
 
 ## T7 重新冻结
-- [ ] commit 全部改动。
-- [ ] 计算新 `content_hash`，`git tag -a delivery-p2.1`（附注 commit + hash）。
-- [ ] `git worktree add /tmp/wsim-p21 delivery-p2.1`，跑 10d/72d、replay、framework_check、
+- [x] commit 全部改动。
+- [x] 计算新 `content_hash`，`git tag -a delivery-p2.1`（附注 commit + hash）。
+- [x] `git worktree add /tmp/wsim-p21b delivery-p2.1`，跑 10d/72d、replay、framework_check、
       pytest。
-- [ ] 回填 `reports/delivery-p2.1.md`：tag/commit/content_hash、10d/72d 哈希、
+- [x] 回填 `reports/delivery-p2.1.md`：tag/commit/content_hash、10d/72d 哈希、
       对话落地数、记忆条数、关系变化、过期单数、拒绝率、金库期末、税回流、
       开店延后次数、未达标项。
 - [ ] 清理临时 worktree；确认 `git status --short` 干净。
