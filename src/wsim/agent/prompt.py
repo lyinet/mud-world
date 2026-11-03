@@ -322,14 +322,70 @@ def validate_intent_json(
     return intents
 
 
+def extract_intent_payload(text: str) -> tuple[Any, dict[str, Any]]:
+    """只做提取、不改语义：剥掉 markdown 围栏/外层包装，并归一常见同义参数名。
+
+    返回 (payload, meta)；meta 记录提取动作，供报告与测试核对原始输出仍被保留。
+    不做任何 schema 放宽，未知字段/动词仍由 validate_intent_json 拒绝。
+    """
+    raw = str(text or "")
+    info: dict[str, Any] = {"stripped_fence": False, "unwrapped": False, "args_aliases": 0}
+    candidate = raw.strip()
+    if candidate.startswith("```"):
+        start = candidate.find("\n")
+        end = candidate.rfind("```")
+        if start != -1 and end != -1 and end > start:
+            candidate = candidate[start + 1 : end].strip()
+            info["stripped_fence"] = True
+    # 有些网关会再包一层 {"data": {...}} / {"result": {...}}。
+    try:
+        payload = json.loads(candidate)
+    except (TypeError, ValueError):
+        payload = None
+    if isinstance(payload, dict) and "actions" not in payload:
+        for key in ("data", "result", "output"):
+            inner = payload.get(key)
+            if isinstance(inner, dict) and "actions" in inner:
+                payload = inner
+                info["unwrapped"] = True
+                break
+    if isinstance(payload, dict) and isinstance(payload.get("actions"), list):
+        # 只做参数名提取/同义名归一，不补造缺失参数、不改动作语义。
+        aliases_by_verb = {
+            "move": ("destination", "target_location", "to_location"),
+            "work": ("location", "workplace", "place"),
+            "open_shop": ("location", "workplace", "place"),
+            "found_sect": ("location", "workplace", "place"),
+        }
+        canonical = {"move": "to", "work": "at", "open_shop": "at", "found_sect": "at"}
+        for item in payload["actions"]:
+            if not isinstance(item, dict):
+                continue
+            verb = item.get("verb")
+            if verb not in aliases_by_verb:
+                continue
+            args = item.get("args")
+            if not isinstance(args, dict):
+                continue
+            for alias in aliases_by_verb[verb]:
+                if alias in args:
+                    if canonical[verb] not in args:
+                        args[canonical[verb]] = args[alias]
+                        info["args_aliases"] += 1
+                    del args[alias]
+    return (payload if payload is not None else candidate), info
+
+
 def parse_llm_output(
     text: str,
     tick: int,
     allowed_verbs: Iterable[str] = NPC_VERBS,
     max_actions: int = 4,
 ) -> list[Intent]:
-    try:
-        payload = json.loads(text)
-    except (TypeError, ValueError) as exc:
-        raise SchemaError("invalid_json", str(exc)[:80]) from exc
+    payload, _meta = extract_intent_payload(text)
+    if isinstance(payload, str):
+        try:
+            payload = json.loads(payload)
+        except (TypeError, ValueError) as exc:
+            raise SchemaError("invalid_json", str(exc)[:80]) from exc
     return validate_intent_json(payload, tick, allowed_verbs, max_actions)

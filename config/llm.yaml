@@ -1,15 +1,51 @@
-# LLM Provider / 成本遥测配置（P3 预备，默认关闭）
+# LLM Provider / 成本 / 预算配置（P3-A）
+#
+# 用户侧只需改两处：provider.base_url 与 provider.model。
+# API key 一律通过环境变量传入（变量名见 provider.api_key_env），
+# 不要把 key 明文写进本文件或任何会被 git 跟踪的文件。
+#
+# 启动示例（本地聚合网关）：
+#   export LLM_API_KEY=<你的 key>
+#   .venv/bin/python sim/run_headless.py --days 2 --with-players 1 --enable-llm
+#
+# 环境变量优先级高于本文件：
+#   LLM_BASE_URL / LLM_API_KEY / LLM_MODEL
 version: "1"
 
 provider:
-  # 只有 run_headless --enable-llm 且环境变量齐全时才启用真实 HTTP。
+  # 默认关闭；实际启用由 run_headless --enable-llm 控制（避免误联网）。
   enabled: false
-  timeout_s: 30
+  # 用户侧改这里：中转站地址（OpenAI 兼容，末尾可带 /v1）。
+  base_url: "http://127.0.0.1:3425/v1"
+  # 用户侧改这里：网关暴露的模型名。
+  model: "group/all"
+  # key 只从该环境变量读取；本文件不得写明文 key。
+  api_key_env: "LLM_API_KEY"
+  # 连接与读取共用同一 socket 超时。
+  timeout_s: 60
+  # 仅对 timeout / network / 5xx 重试；4xx 与 parse 不重试。
   max_retries: 2
-  # 失败后重试的指数退避基数（秒）；测试可注入 sleep_fn。
   backoff_base_s: 1.0
+  # 实测：该网关是 reasoning 模型，512 会被 reasoning token 吃光并返回 content=null；
+  # 2048 仍有约 40% 的调用被 reasoning 截断，4096 才基本稳定拿到 JSON。
+  max_tokens: 4096
+  temperature: 0.0
+  # 实测该网关接受 response_format={"type":"json_object"}；
+  # 若换到不认该字段的网关（返回 400），把这里改成 false 即可，
+  # Prompt 本身已有严格 JSON 指令。
+  json_mode: true
+
+# 预算护栏：日/月 token 与金额上限；soft_ratio 之后逐级降档，
+# 超过 1.0 直接降级 Mock，并在日终写一条 system_budget 审计事件。
+budget:
+  daily_tokens: 200000
+  monthly_tokens: 5000000
+  daily_cost: 5.0
+  monthly_cost: 50.0
+  soft_ratio: 0.8
 
 # 成本为估算值，单位：每 1k token 的计价货币金额。
+# 本地网关税价未知时，这里只是内部对账口径，不代表真实账单。
 cost:
   currency: "USD"
   per_1k_input_tokens: 0.0015

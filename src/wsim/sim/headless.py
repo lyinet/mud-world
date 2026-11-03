@@ -14,6 +14,7 @@ from typing import Any
 
 from ..actions.registry import build_registry
 from ..actions.common import treasury_balance, treasury_guard_threshold
+from ..agent.budget import BudgetGuard, BudgetLimits
 from ..agent.cost import CostTelemetry, load_cost_rates
 from ..agent.provider import (
     LLMReasoner,
@@ -53,6 +54,9 @@ class RunConfig:
     with_players: int = 0
     dump_state: bool = False
     enable_llm: bool = False
+    llm_budget: dict[str, Any] | None = None
+    llm_max_tokens: int = 4096
+    llm_temperature: float = 0.0
 
 
 def _npc_money(state: WorldState) -> int:
@@ -147,8 +151,12 @@ def run_headless(
 
     lod_cfg = load_lod_config(root / "config" / "lod.yaml")
     telemetry = CostTelemetry(rates=load_cost_rates(root))
-    mock_reasoner = MockReasoner(seed=cfg.seed, content=content, telemetry=telemetry)
+    # LLM 模式下 cost.jsonl 只记真实模型调用；Mock 底稿是免费降级，不重复计费。
+    mock_reasoner = MockReasoner(
+        seed=cfg.seed, content=content, telemetry=None if cfg.enable_llm else telemetry
+    )
     reasoner: Any = mock_reasoner
+    budget: BudgetGuard | None = None
     llm_info: dict[str, Any] = {"enabled": False, "model": "mock", "reason": "mock_only"}
     if cfg.enable_llm:
         settings = load_provider_settings(root)
@@ -158,17 +166,31 @@ def run_headless(
                 timeout_s=float(settings.get("timeout_s", 30)),
                 max_retries=int(settings.get("max_retries", 2)),
                 backoff_base_s=float(settings.get("backoff_base_s", 1.0)),
+                max_tokens=int(settings.get("max_tokens", cfg.llm_max_tokens)),
+                temperature=float(settings.get("temperature", cfg.llm_temperature)),
+                base_url=str(settings.get("base_url", "")),
+                model=str(settings.get("model", "")),
+                key_env=str(settings.get("api_key_env", "LLM_API_KEY")),
+                json_mode=bool(settings.get("json_mode", True)),
             )
         except ProviderConfigError as exc:
             llm_info = {"enabled": False, "model": "mock", "reason": str(exc)}
         else:
             assert provider_cfg is not None
+            rates = load_cost_rates(root)
+            raw_budget = cfg.llm_budget or settings.get("budget") or {}
+            budget = BudgetGuard(
+                BudgetLimits.from_dict(raw_budget),
+                input_rate=float(rates.per_1k_input_tokens) / 1000.0,
+                output_rate=float(rates.per_1k_output_tokens) / 1000.0,
+            )
             provider = ProviderClient(provider_cfg)
-            reasoner = LLMReasoner(provider, mock_reasoner, content, telemetry)
+            reasoner = LLMReasoner(provider, mock_reasoner, content, telemetry, budget=budget)
             llm_info = {
                 "enabled": True,
                 "model": provider_cfg.model,
                 "fingerprint": provider_cfg.fingerprint(),
+                "extract_adapter": "fence/unwrap/move.destination->to/work.location->at",
             }
     scheduler = LODScheduler(
         sorted(npc_ids),
@@ -177,7 +199,12 @@ def run_headless(
         seed=cfg.seed,
         start_tick=0,
         state_provider=lambda npc: {"id": npc},
-        world_view_provider=lambda tick: {"tick": tick, "state": writer.state, "content": content},
+        world_view_provider=lambda tick: {
+            "tick": tick,
+            "day": tick // TICKS_PER_DAY,
+            "state": writer.state,
+            "content": content,
+        },
     )
 
     # 事件堆：只做「到期」推进，不做每 tick 全量 NPC 扫描。
@@ -188,6 +215,61 @@ def run_headless(
         nonlocal seq
         heapq.heappush(queue, (max(0, int(tick)), prio, seq, kind, payload))
         seq += 1
+
+    # 三种决策时机的落地统计：日界批处理 / 运行时实时 / 被拒后重决策。
+    decision_stats: dict[str, dict[str, int]] = {
+        name: {"decisions": 0, "actions": 0, "submitted": 0, "accepted": 0, "applied": 0}
+        for name in ("night_batch", "realtime", "replan")
+    }
+    # 决策调用次数（不管是否产出动作）与落地统计分开计数。
+    timing_calls: dict[str, int] = {name: 0 for name in decision_stats}
+    intent_timing: dict[int, str] = {}
+
+    def enqueue(intents: list[Intent], timing: str, at_tick: int) -> None:
+        if not intents:
+            return
+        decision_stats[timing]["decisions"] += 1
+        decision_stats[timing]["actions"] += len(intents)
+        for it in intents:
+            intent_timing[id(it)] = timing
+            push(max(it.tick, at_tick), 2, "intent", it)
+
+    def track_landing(payload: Any, ev: Any) -> None:
+        timing = intent_timing.pop(id(payload), None)
+        if timing is None:
+            return
+        decision_stats[timing]["submitted"] += 1
+        if ev.outcome == "ok":
+            decision_stats[timing]["accepted"] += 1
+            if ev.effects:
+                decision_stats[timing]["applied"] += 1
+
+    player_loc = ""
+    if cfg.with_players:
+        player_loc = "market" if "market" in content.locations else sorted(content.locations)[0]
+
+    def run_night_batch(base: int, day: int) -> None:
+        """日界批处理：为当日非 spotlight 的 NPC 生成一份计划，供白天推进。"""
+        if not bool(llm_info.get("enabled")):
+            return
+        for npc in sorted(npc_ids):
+            tier = scheduler.lod.get(npc, "active")
+            if tier == "spotlight":
+                continue
+            ent = writer.state.entities.get(npc)
+            if player_loc and ent is not None and ent.location == player_loc:
+                continue  # 玩家身边的 NPC 交给实时决策
+            view = {
+                "tick": base,
+                "day": day,
+                "state": writer.state,
+                "content": content,
+                "tier": tier,
+                "interval": lod_cfg.tiers[tier].wake_interval_ticks,
+            }
+            timing_calls["night_batch"] += 1
+            intents = reasoner.decide({"id": npc}, view, timing="night_batch")
+            enqueue(intents, "night_batch", base)
 
     log.append(
         f"[{stamp(0)}] intent_layer=GoalSelector+Planner lod_initial="
@@ -236,20 +318,31 @@ def run_headless(
             day_events.append(
                 emit(Intent(actor=npc["id"], verb="system_living", args={"day": day}, tick=base, source="system"))
             )
+        if player_loc:
+            nearby = {
+                npc["id"]
+                for npc in npcs
+                if writer.state.entities.get(npc["id"]) is not None
+                and writer.state.entities[npc["id"]].location == player_loc
+            }
+            for npc in sorted(nearby):
+                scheduler.set_tier(npc, "spotlight", now=base, reason="player_nearby")
+        run_night_batch(base, day)
 
         for tick in range(base, base + TICKS_PER_DAY):
             # LOD：只弹出到期唤醒，复杂度 O(到期事件数)
             for wake in scheduler.advance_to(tick):
-                for it in wake.intents:
-                    push(max(it.tick, tick), 2, "intent", it)
+                timing_calls["realtime"] += 1
+                enqueue(wake.intents, "realtime", tick)
 
             while queue and queue[0][0] <= tick:
                 _, _prio, _seq, kind, payload = heapq.heappop(queue)
                 if kind == "intent":
                     ev = emit(payload)
                     day_events.append(ev)
+                    track_landing(payload, ev)
                     reasoner.observe(ev)
-                    if ev.outcome == "rejected" and payload.source == "planner":
+                    if ev.outcome == "rejected" and payload.source in ("planner", "llm"):
                         if replan_today[payload.actor] < 6:
                             replan_today[payload.actor] += 1
                             push(tick + 1, 3, "replan", payload.actor)
@@ -276,8 +369,9 @@ def run_headless(
                         "tier": tier,
                         "interval": lod_cfg.tiers[tier].wake_interval_ticks,
                     }
-                    for it in reasoner.replan({"id": npc}, view):
-                        push(max(it.tick, tick), 2, "intent", it)
+                    timing_calls["replan"] += 1
+                    intents = reasoner.replan({"id": npc}, view, timing="replan")
+                    enqueue(intents, "replan", tick)
                 elif kind == "escort":
                     day_events.append(
                         emit(Intent(actor="system", verb="system_escort_arrive", args={}, tick=tick, source="system"))
@@ -290,6 +384,28 @@ def run_headless(
             emit(Intent(actor="system", verb="system_quest_fail", args={}, tick=base + TICKS_PER_DAY - 1,
                         source="system"))
         )
+        # 预算审计：当天真的因超限降级 Mock 才写，一天最多一条。
+        if budget is not None and budget.take_audit(day):
+            day_events.append(
+                emit(
+                    Intent(
+                        actor="system",
+                        verb="system_budget",
+                        args={
+                            "day": day,
+                            "day_no": day + 1,
+                            "mocked": int(budget.mocked_by_day.get(day, 0)),
+                            "degraded": int(budget.degraded_by_day.get(day, 0)),
+                            "day_tokens": int(budget.day_tokens.get(day, 0)),
+                            "month_tokens": int(budget.month_tokens),
+                            "month_cost": round(float(budget.month_cost), 6),
+                            "limits": budget.limits.to_dict(),
+                        },
+                        tick=base + TICKS_PER_DAY - 1,
+                        source="system",
+                    )
+                )
+            )
         if (day + 1) in (30, 60, 90):
             for verb in ("system_savings_tax", "system_shop_dividend", "system_shop_tax"):
                 day_events.append(
@@ -455,7 +571,49 @@ def run_headless(
     llm_summary["fallbacks"] = telemetry.fallbacks
     if isinstance(reasoner, LLMReasoner):
         llm_summary["reasoner_calls"] = reasoner.calls
+        llm_summary["reasoner_ok_calls"] = reasoner.ok_calls
+        llm_summary["success_rate"] = (
+            round(reasoner.ok_calls / reasoner.calls, 4) if reasoner.calls else 0.0
+        )
         llm_summary["reasoner_fallbacks"] = reasoner.fallback_count
+        llm_summary["calls_by_tier"] = dict(sorted(reasoner.calls_by_tier.items()))
+        llm_summary["calls_by_timing"] = dict(sorted(reasoner.calls_by_timing.items()))
+        llm_summary["mock_by_timing"] = dict(sorted(reasoner.mock_by_timing.items()))
+        latencies = sorted(
+            float(r.get("latency_s", 0.0))
+            for r in telemetry.records
+            if int(r.get("calls", 0)) > 0 and float(r.get("latency_s", 0.0)) > 0
+        )
+        if latencies:
+            def _pct(values: list[float], p: float) -> float:
+                idx = min(len(values) - 1, max(0, int(round((len(values) - 1) * p))))
+                return round(values[idx], 3)
+
+            llm_summary["latency"] = {
+                "n": len(latencies),
+                "min": round(latencies[0], 3),
+                "p50": _pct(latencies, 0.5),
+                "p95": _pct(latencies, 0.95),
+                "max": round(latencies[-1], 3),
+                "mean": round(sum(latencies) / len(latencies), 3),
+            }
+    budget_summary = budget.summary() if budget is not None else {"enabled": False}
+    decisions_summary: dict[str, dict[str, Any]] = {}
+    for name, row in decision_stats.items():
+        calls = timing_calls[name]
+        decisions_summary[name] = {
+            # invocations = 该时机的决策入口被触发次数；model_calls = 真正发出 HTTP 的次数。
+            "invocations": calls,
+            "model_calls": int(llm_summary.get("calls_by_timing", {}).get(name, 0)),
+            "decisions": row["decisions"],
+            "actions": row["actions"],
+            "avg_actions": round(row["actions"] / row["decisions"], 4) if row["decisions"] else 0.0,
+            "submitted": row["submitted"],
+            "accepted": row["accepted"],
+            "applied": row["applied"],
+            "accept_rate": round(row["accepted"] / row["submitted"], 4) if row["submitted"] else 0.0,
+            "apply_rate": round(row["applied"] / row["submitted"], 4) if row["submitted"] else 0.0,
+        }
 
     # 任务 / 镖单 / 门派成立统计（复核 B5/B7 需要直接给出数字）
     quest_status: dict[str, int] = {}
@@ -608,6 +766,8 @@ def run_headless(
         "sects": sect_summary,
         "cost": cost_summary,
         "llm": llm_summary,
+        "decisions": decisions_summary,
+        "budget": budget_summary,
         "verdict": verdict,
     }
 

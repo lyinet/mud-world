@@ -1392,7 +1392,12 @@ class MockReasoner(Reasoner):
         self._last_reject[npc] = event.reason
         self._variant[npc] = min(3, self._variant.get(npc, 0) + 1)
 
-    def replan(self, npc_state: dict[str, Any], world_view: dict[str, Any]) -> list[Intent]:
+    def replan(
+        self,
+        npc_state: dict[str, Any],
+        world_view: dict[str, Any],
+        timing: str = "replan",
+    ) -> list[Intent]:
         npc = str(npc_state.get("id", ""))
         tick = int(world_view.get("tick", 0))
         state: WorldState | None = world_view.get("state")

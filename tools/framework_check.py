@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""P2-B 框架验收：五项串行检查，全部通过才输出 PASS。
+"""P3-A 框架验收：六项串行检查，全部通过才输出 PASS。
 
 阻断项要求（见 reports/verify-p2-2026-11-03.md）：
 1. 门禁能抓住“世界停摆”：拒绝率上限、每日最少动作、burned>0、
@@ -8,12 +8,15 @@
 3. 插件隔离覆盖完整 state（tick / 地点图 / 关系表）。
 4. LOD 外部计数：decide 调用数 == 唤醒数，且 != NPC 总数；headless 不再提交 system_plan。
 5. 守恒为 0，债务审计 9 项全 true，且出现真实还款正样本。
+6. 假端点端到端：进程内启动 127.0.0.1 假 LLM → 推理 → Intent 落地 → 关闭；
+   校验 source=llm 的事件、三种决策时机的落地计数、守恒与 replay。
 
 运行：python3 tools/framework_check.py
 """
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import sys
 import tempfile
@@ -24,6 +27,7 @@ from typing import Any, Callable
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
+sys.path.insert(0, str(ROOT / "tools"))
 
 from wsim.actions.registry import build_registry  # noqa: E402
 from wsim.audit.debt_audit import debt_audit  # noqa: E402
@@ -52,7 +56,7 @@ MIN_ACTIONS_PER_NPC_DAY = 1
 
 def _print(idx: int, name: str, ok: bool, detail: str) -> None:
     status = "PASS" if ok else "FAIL"
-    print(f"[{idx}/5] {name} ... {status}")
+    print(f"[{idx}/6] {name} ... {status}")
     print(f"       {detail}")
 
 
@@ -474,6 +478,84 @@ def debt_ledger_counts(state_final: dict[str, Any]) -> int:
     return sum(1 for d in state_final.get("debts", {}).values() if d.get("status") == "active")
 
 
+def check_fake_llm_endpoint() -> str:
+    """假端点端到端：进程内 127.0.0.1 → 推理 → Intent 落地 → replay。"""
+    from fake_llm_server import FakeLLMServer
+
+    env_keys = ("LLM_BASE_URL", "LLM_API_KEY", "LLM_MODEL")
+    saved = {k: os.environ.get(k) for k in env_keys}
+    run_id = "fake_llm_2d"
+    run_dir = OUT / run_id
+    srv = FakeLLMServer(port=0, seed=7)
+    try:
+        srv.start()
+        os.environ["LLM_BASE_URL"] = srv.base_url
+        os.environ["LLM_API_KEY"] = "fake-ci-key"
+        os.environ["LLM_MODEL"] = "fake/model"
+        summary = run_headless(
+            ROOT,
+            RunConfig(
+                days=2, seed=42, npc_limit=0, out_root=OUT, run_id=run_id,
+                with_players=1, dump_state=True, enable_llm=True,
+                llm_budget={
+                    "daily_tokens": 2_000_000, "monthly_tokens": 20_000_000,
+                    "daily_cost": 100.0, "monthly_cost": 1000.0,
+                },
+            ),
+        )
+    finally:
+        srv.stop()
+        for key, value in saved.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+    events = _read_events(run_dir)
+    llm_ok = [e for e in events if e.source == "llm" and e.outcome == "ok"]
+    llm_applied = [e for e in llm_ok if e.effects]
+    assert llm_applied, "假端点推理没有落到世界（无 source=llm 且带 effects 的 ok 事件）"
+    assert summary["llm"]["enabled"] is True
+    assert str(summary["llm"]["fingerprint"]["base_url"]).startswith("http://127.0.0.1:"), (
+        "假端点必须全程 127.0.0.1"
+    )
+    assert summary["llm"]["reasoner_calls"] > 0, "reasoner 未真正调用模型"
+    assert summary["llm"]["schema_reject_total"] == 0, summary["llm"]["schema_rejects"]
+    assert summary["llm"]["fallbacks"] == 0, summary["llm"]["fallbacks"]
+
+    dec = summary["decisions"]
+    assert dec["night_batch"]["invocations"] > 0 and dec["night_batch"]["applied"] > 0, dec["night_batch"]
+    assert dec["realtime"]["invocations"] > 0 and dec["realtime"]["applied"] > 0, dec["realtime"]
+
+    total = len(events)
+    rejected = sum(1 for e in events if e.outcome == "rejected")
+    reject_rate = rejected / total if total else 1.0
+    assert reject_rate <= MAX_REJECT_RATE, f"假端点 run 拒绝率 {reject_rate:.2%} 超上限"
+
+    content = CTX.get("content") or load_content(ROOT, allow_fixture=False, use_content=True)
+    replay = WorldState(locations=content.locations)
+    for e in events:
+        if e.outcome != "ok":
+            continue
+        apply_effects(replay, [Effect.from_dict(x) for x in e.effects])
+        replay.tick = e.tick
+    accounts = sum(int(v) for v in replay.accounts.values())
+    minted = int(replay.minted_total)
+    burned = int(replay.burned_total)
+    assert accounts - (minted - burned) == 0, "假端点 run replay 守恒不为 0"
+    stored = (run_dir / "world_hash.txt").read_text(encoding="utf-8").strip()
+    assert replay.hash() == stored, "假端点 run replay 哈希不一致"
+
+    return (
+        f"127.0.0.1:{srv.port} 启动→2 天→关闭；source=llm 落地 {len(llm_applied)}/{len(llm_ok)} 条，"
+        f"night_batch={dec['night_batch']['model_calls']} "
+        f"realtime={dec['realtime']['model_calls']} replan={dec['replan']['model_calls']}"
+        f"（入口触发 {dec['night_batch']['invocations']}/{dec['realtime']['invocations']}/"
+        f"{dec['replan']['invocations']}）；calls={summary['llm']['reasoner_calls']} "
+        f"schema_reject=0 fallback=0 拒绝率={reject_rate:.2%} 守恒=0 replay=MATCH"
+    )
+
+
 def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
     _check(1, "新增内容不改码 + 停摆门禁", check_content_extension)
@@ -481,6 +563,7 @@ def main() -> int:
     _check(3, "MCP 身份映射与越权拒绝", check_mcp_sandbox)
     _check(4, "LOD 事件驱动与外部计数", check_lod_event_driven)
     _check(5, "守恒 / 债务独立重算", check_conservation)
+    _check(6, "假端点端到端（127.0.0.1）", check_fake_llm_endpoint)
 
     (OUT / "check.json").write_text(
         json.dumps({"results": RESULTS, "pass": all(r["ok"] for r in RESULTS)},

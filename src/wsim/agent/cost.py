@@ -83,19 +83,26 @@ class CostTelemetry:
         fallback: bool = False,
         error: str = "",
         persona_tokens: int = 0,
+        input_tokens: int | None = None,
+        output_tokens: int | None = None,
+        latency_s: float = 0.0,
     ) -> dict[str, Any]:
-        input_tokens = estimate_tokens(prompt_text)
-        output_tokens = estimate_tokens(output_text)
-        cost = self.rates.cost(tier, input_tokens, output_tokens)
+        # 优先使用网关返回的实测 usage；缺失时才回落到字符估算。
+        tokens_in = int(input_tokens) if input_tokens is not None else estimate_tokens(prompt_text)
+        tokens_out = int(output_tokens) if output_tokens is not None else estimate_tokens(output_text)
+        cost = self.rates.cost(tier, tokens_in, tokens_out)
         rec = {
             "tick": tick,
             "npc": npc,
             "tier": tier,
             "model": model,
             "calls": calls,
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
+            "input_tokens": tokens_in,
+            "output_tokens": tokens_out,
             "persona_tokens": int(persona_tokens),
+            # 原始输出保留（截断）用于审计与适配器回放；密钥不在其中。
+            "output_text": str(output_text)[:2000],
+            "latency_s": round(float(latency_s), 4),
             "estimated_cost": cost,
             "currency": self.rates.currency,
             "schema_reject": bool(schema_reject),

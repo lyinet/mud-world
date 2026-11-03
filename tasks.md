@@ -1,4 +1,51 @@
-# Tasks · delivery-p2.2（P2.1 任务保留）
+# Tasks · delivery-p3a（P2.2 / P2.1 任务保留）
+
+## P3-A 真实模型接线
+
+### A1 Provider 真实现
+- [x] `src/wsim/agent/provider.py`：标准库 `urllib` POST `/v1/chat/completions`，body 含 model/messages/temperature/max_tokens。
+- [x] 真实 socket 超时 + 指数退避（`max_retries` / `backoff_base_s` 可配）。
+- [x] 错误分类 `timeout / network / http_4xx / http_5xx / parse`；前 3 类重试，后 2 类不重试。
+- [x] `Completion(text, usage)`：实测 token 计入成本；失败响应也保留 usage。
+- [x] 密钥只从 `api_key_env` 读；`fingerprint()` 不含 key。
+- 验证：`python3 -m pytest -q tests/test_provider.py`。
+
+### A2 本地假端点
+- [x] `tools/fake_llm_server.py`：标准库、OpenAI 兼容、seed 稳定；可配延迟/失败率/畸形 JSON/超长输出。
+- [x] `tools/framework_check.py` 第 6 项：127.0.0.1 启动→2 天推理→Intent 落地→关闭。
+- 验证：`python3 tools/framework_check.py` → 6/6 PASS。
+
+### A3 接进主循环
+- [x] `src/wsim/sim/headless.py`：`night_batch` / `realtime` / `replan` 三种时机独立计数。
+- [x] LOD 档位决定谁被调用；无底稿的唤醒跳过模型。
+- [x] summary 输出 `decisions.*`（invocations/model_calls/actions/avg_actions/submitted/accepted/applied/accept_rate/apply_rate）。
+- 验证：10d/72d 假端点，三计数器对账，见 `reports/p3a-report.md` 第 3 节。
+
+### A4 预算护栏
+- [x] `src/wsim/agent/budget.py`：日/月 token 与金额上限、soft_ratio、降档 spotlight→active→background→silent→mock。
+- [x] 超限回退 Mock，日终写 `system_budget` 审计事件（每天最多一条）。
+- [x] `SystemBudgetAction` 注册（verb `system_budget`）。
+- [x] `tests/test_p3a_wiring.py`：极小上限实测降级且不停摆（拒绝率 0%）。
+- 验证：`python3 -m pytest -q tests/test_p3a_wiring.py`。
+
+### A5 提取适配器（不放宽 schema）
+- [x] `prompt.py` `extract_intent_payload`：剥围栏、解一层包装、参数别名（destination→to / location→at）。
+- [x] 未知动词（如 `go`）、缺失参数仍拒绝；原始输出保留在 `cost.jsonl.output_text`。
+- [x] 测试证明原始输出可回放、半截输出不入世界。
+
+### A6 真实端点实测
+- [x] 5 次探测（≤5）：HTTP 200 ×5；`response_format` 可用；`max_tokens` 需 4096。
+- [x] 真实 2 日小跑（12 NPC，18 次调用，$0.1511，replay MATCH，守恒 0）。
+- [x] `config/llm.yaml`：用户侧只改 base_url/model；key 走 `api_key_env`，无明文。
+- [ ] 真实 72 日跑：待用户确认预算（预估见报告 6.6）。
+
+### A7 端到端对比与冻结
+- [x] 假端点 10d/72d（seed 42）：调用数/token/成本/schema_reject/fallback/落地率/拒绝率/K1/K3/守恒。
+- [x] 与 `delivery-p2.2` 基线并列并标 `non_comparable`。
+- [ ] commit → `git tag -a delivery-p3a`（附注 commit + content_hash）。
+- [ ] 从 tag 干净重跑 10d/72d + pytest + framework，回填 `reports/p3a-report.md` 第 10 节。
+
+---
 
 ## P2.2 整改
 

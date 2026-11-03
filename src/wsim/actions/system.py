@@ -616,6 +616,27 @@ class SystemTreasuryGuardAction(Action):
         return []
 
 
+class SystemBudgetAction(Action):
+    """LLM 预算审计：超过上限降级 Mock 时写一条只读事件，不改变世界状态。
+
+    由 sim.headless 在日终按 BudgetGuard.take_audit(day) 提交；apply 必须无副作用，
+    保证回放状态与原始 run 一致。
+    """
+
+    verb = "system_budget"
+
+    def __init__(self, content):
+        self.content = content
+
+    def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
+        if not isinstance(intent.args.get("mocked", 0), int):
+            return ["bad_arg:mocked"]
+        return []
+
+    def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
+        return []
+
+
 class SystemShopDividendAction(Action):
     """私店分红：把当月利润的一部分转给店主（月度）。
 

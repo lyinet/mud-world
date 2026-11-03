@@ -32,7 +32,25 @@ def main() -> int:
         action="store_true",
         help="启用真实 LLM（还需 LLM_BASE_URL/LLM_API_KEY/LLM_MODEL；默认关闭，测试禁止联网）",
     )
+    p.add_argument("--llm-max-tokens", type=int, default=4096)
+    p.add_argument("--llm-temperature", type=float, default=0.0)
+    p.add_argument("--budget-daily-tokens", type=int, default=None)
+    p.add_argument("--budget-monthly-tokens", type=int, default=None)
+    p.add_argument("--budget-daily-cost", type=float, default=None)
+    p.add_argument("--budget-monthly-cost", type=float, default=None)
+    p.add_argument("--budget-soft-ratio", type=float, default=None)
     args = p.parse_args()
+
+    budget: dict[str, object] = {}
+    for key, value in (
+        ("daily_tokens", args.budget_daily_tokens),
+        ("monthly_tokens", args.budget_monthly_tokens),
+        ("daily_cost", args.budget_daily_cost),
+        ("monthly_cost", args.budget_monthly_cost),
+        ("soft_ratio", args.budget_soft_ratio),
+    ):
+        if value is not None:
+            budget[key] = value
 
     cfg = RunConfig(
         days=args.days,
@@ -43,6 +61,9 @@ def main() -> int:
         with_players=args.with_players,
         dump_state=args.dump_state,
         enable_llm=args.enable_llm,
+        llm_budget=budget or None,
+        llm_max_tokens=args.llm_max_tokens,
+        llm_temperature=args.llm_temperature,
     )
     s = run_headless(ROOT, cfg)
     out = {
@@ -113,6 +134,8 @@ def main() -> int:
         },
         "cost": s["cost"],
         "llm": s["llm"],
+        "decisions": s.get("decisions", {}),
+        "budget": s.get("budget", {}),
         "verdict": s["verdict"],
         "content_audit": {
             "issues": s["content_audit"]["issues"],

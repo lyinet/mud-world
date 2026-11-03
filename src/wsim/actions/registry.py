@@ -46,6 +46,7 @@ def build_registry(content, seed: int, plugin_dir: Path | None = None) -> Action
     from .escort import EscortAction, SystemEscortArriveAction
     from .social import ApprenticeAction, JoinSectAction, MarryAction, RecruitAction, TalkAction
     from .system import (
+        SystemBudgetAction,
         SystemDebtsAction,
         SystemGoalAction,
         SystemLivingAction,
@@ -90,6 +91,7 @@ def build_registry(content, seed: int, plugin_dir: Path | None = None) -> Action
     reg.register(SystemShopDividendAction(content))
     reg.register(SystemShopTaxAction(content))
     reg.register(SystemTreasuryGuardAction(content))
+    reg.register(SystemBudgetAction(content))
     reg.register(SystemEscortArriveAction(content))
 
     # 规则层：扫描插件目录。插件 verb 不得覆盖内核内置 verb。
