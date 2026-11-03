@@ -209,6 +209,7 @@ class WorldUIAdapter:
         self.decisions_by_npc: dict[str, dict[str, Any]] = {}
         self.state_hash_recomputed = ""
         self.state_hash_match = False
+        self.dialogue_turn = 0
         self.days = 0
         self.final_day = 0
         try:
@@ -756,6 +757,7 @@ class WorldUIAdapter:
             prev_aff = prev_rel.affection if prev_rel is not None else 0.0
             prev_trust = prev_rel.trust if prev_rel is not None else 40.0
             reasoning_ms = round((time.perf_counter() - started) * 1000, 1)
+            self.dialogue_turn += 1
 
             raw_intent = {
                 "actor": PLAYER_ID,
@@ -767,6 +769,7 @@ class WorldUIAdapter:
                     "affection_delta": talk["affection_delta"],
                     "trust_delta": talk["trust_delta"],
                     "from": "visitor",
+                    "turn": self.dialogue_turn,
                 },
                 "tick": tick,
                 "source": "ui:proposal",
