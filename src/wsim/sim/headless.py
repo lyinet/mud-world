@@ -657,7 +657,7 @@ def run_headless(
     events = store.read_all()
     horizon = cfg.days * TICKS_PER_DAY
 
-    k1 = goal_stats(state, horizon, content)
+    k1 = goal_stats(state, horizon, content, run_npc_ids=list(npc_ids))
     k3 = diversity_stats(events, npc_ids, seed=cfg.seed)
     k6_cons = conservation(state)
     k6_ill = illegal_stats(
@@ -899,6 +899,8 @@ def run_headless(
         "k6_illegal_incl_pruned_pass": k6_ill["illegal_proposal_rate"] < 0.02,
         "k6_relations_pass": k6_rel_strong["conflict_rate"] < 0.01,
         "k1_pass": k1["k1_rate"] >= 0.60,
+        "k1_in_scope_pass": k1["k1_rate_in_scope"] >= 0.60,
+        "k1_scope_fair": k1["k1_goals_out_of_run"] == 0,
         "k3_status": "diagnostic_only",
         "k3_note": (
             "K3 双层诊断（verb 层 + 对象层），P2 起意图驱动后仅作对照，不设 pass/fail；"

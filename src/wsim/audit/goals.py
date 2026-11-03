@@ -22,6 +22,7 @@ def goal_stats(
     state: WorldState,
     horizon_tick: int,
     content: Content | None = None,
+    run_npc_ids: list[str] | None = None,
 ) -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
     not_created: list[dict[str, Any]] = []
@@ -61,6 +62,8 @@ def goal_stats(
                 "basis": "same_snapshot_only",
                 "content_hash": None,
                 "goals_total": total,
+                "goals_in_scope": total,
+                "run_npcs": len({r["npc"] for r in rows}),
                 "cross_version_comparable": False,
             },
             "goals_total": total,
@@ -68,6 +71,14 @@ def goal_stats(
             "goals_progressed": passed,
             "k1_rate": passed / total if total else 0.0,
             "k1_rate_created_only": passed / total if total else 0.0,
+            "k1_scope_npcs": len({r["npc"] for r in rows}),
+            "k1_goals_out_of_run": 0,
+            "k1_goals_progressed_in_scope": passed,
+            "k1_rate_in_scope": passed / total if total else 0.0,
+            "k1_rate_in_scope_created_only": passed / total if total else 0.0,
+            "k1_rate_in_scope_excluding_one_shot": (
+                (passed - len(one_shot)) / max(1, total - sum(1 for r in rows if r["one_shot"]))
+            ),
             "k1_rate_excluding_one_shot": (passed - len(one_shot)) / max(1, total - sum(1 for r in rows if r["one_shot"])),
             "one_shot_created": sum(1 for r in rows if r["one_shot"]),
             "one_shot_progressed": len(one_shot),
@@ -208,12 +219,25 @@ def goal_stats(
     one_shot_passed = [r for r in rows if r["one_shot"] and r["monotonic"] and r["progressed"]]
     npcs_progressed = len({r["npc"] for r in rows if r["monotonic"] and r["progressed"]})
 
+    scope_ids = set(run_npc_ids) if run_npc_ids is not None else None
+    scope_rows = [r for r in rows if scope_ids is None or r["npc"] in scope_ids]
+    scope_total = len(scope_rows)
+    scope_created = sum(1 for r in scope_rows if r["created"])
+    scope_passed = sum(1 for r in scope_rows if r["monotonic"] and r["progressed"])
+    scope_one_shot_total = sum(1 for r in scope_rows if r["one_shot"])
+    scope_one_shot_passed = [
+        r for r in scope_rows if r["one_shot"] and r["monotonic"] and r["progressed"]
+    ]
+    scope_npcs = len({r["npc"] for r in scope_rows})
+
     return {
         "k1_scope": "all_content_goals",
         "comparison_basis": {
             "basis": "same_snapshot_only",
             "content_hash": content.content_hash,
             "goals_total": total,
+            "goals_in_scope": scope_total,
+            "run_npcs": scope_npcs,
             "cross_version_comparable": False,
         },
         "goals_total": total,
@@ -221,6 +245,18 @@ def goal_stats(
         "goals_progressed": passed,
         "k1_rate": passed / total if total else 0.0,
         "k1_rate_created_only": passed / created if created else 0.0,
+        # ---- 范围口径（不替代官方 k1_rate）----
+        "k1_scope_npcs": scope_npcs,
+        "k1_goals_out_of_run": total - scope_total,
+        "k1_goals_progressed_in_scope": scope_passed,
+        "k1_rate_in_scope": scope_passed / scope_total if scope_total else 0.0,
+        "k1_rate_in_scope_created_only": scope_passed / scope_created if scope_created else 0.0,
+        "k1_rate_in_scope_excluding_one_shot": (
+            (scope_passed - len(scope_one_shot_passed))
+            / (scope_total - scope_one_shot_total)
+            if scope_total - scope_one_shot_total > 0
+            else 0.0
+        ),
         "k1_rate_excluding_one_shot": (
             (passed - len(one_shot_passed)) / (total - one_shot_total)
             if total - one_shot_total > 0

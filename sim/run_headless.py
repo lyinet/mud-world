@@ -84,6 +84,15 @@ def main() -> int:
         "k1_comparison_basis": s["k1"]["comparison_basis"],
         "k1_rate_created_only": s["k1"]["k1_rate_created_only"],
         "k1_rate_excluding_one_shot": s["k1"]["k1_rate_excluding_one_shot"],
+        "k1_rate_in_scope": s["k1"]["k1_rate_in_scope"],
+        "k1_rate_in_scope_created_only": s["k1"]["k1_rate_in_scope_created_only"],
+        "k1_rate_in_scope_excluding_one_shot": s["k1"]["k1_rate_in_scope_excluding_one_shot"],
+        "k1_scope": {
+            "npcs": s["k1"]["k1_scope_npcs"],
+            "goals_out_of_run": s["k1"]["k1_goals_out_of_run"],
+            "goals_in_scope": s["k1"]["goals_total"] - s["k1"]["k1_goals_out_of_run"],
+            "goals_progressed_in_scope": s["k1"]["k1_goals_progressed_in_scope"],
+        },
         "k1_goals": f"{s['k1']['goals_progressed']}/{s['k1']['goals_total']}",
         "k1_created": f"{s['k1']['goals_created']}/{s['k1']['goals_total']}",
         "k1_one_shot": {
