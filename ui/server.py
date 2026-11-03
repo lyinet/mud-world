@@ -40,6 +40,9 @@ class UIHandler(BaseHTTPRequestHandler):
             if path == "/api/overview":
                 self._json(200, self.adapter.overview())
                 return
+            if path == "/api/quests":
+                self._json(200, self.adapter.quests())
+                return
             if path.startswith("/api/npc/"):
                 npc_id = unquote(path[len("/api/npc/"):])
                 self._json(200, self.adapter.npc_detail(npc_id))

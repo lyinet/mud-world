@@ -339,20 +339,18 @@ def tax_split_effects(content, account: str, amount: int, reason: str = "transac
     return effects
 
 
-def daily_wage_bill(state: WorldState, content) -> int:
-    """当前在雇 NPC 的日工资合计（用于开店前的 7 日工资缓冲）。"""
-    total = 0
-    for ent in state.entities.values():
-        if ent.status != "alive" or not ent.employed_at:
-            continue
-        total += int(content.wage_for(ent.role))
-    return total
+def treasury_open_shop_buffer(content, cost: int, shop_type: str) -> int:
+    """金库余额门槛：保底线 + 开店成本 + 该店 3 日预计工资。
 
-
-def treasury_open_shop_buffer(state: WorldState, content, cost: int) -> int:
-    """金库余额门槛：保底线 + 开店成本 + 7 日工资。"""
+    只用店铺自身岗位（`shop_opening.expected_staff`）× 对应职业日薪，
+    不把全区域工资池算进来。
+    """
+    cfg = content.economy.get("shop_opening") or {}
     reserve = int((content.economy.get("work") or {}).get("employer_reserve", 2000))
-    return reserve + int(cost) + 7 * daily_wage_bill(state, content)
+    days = int(cfg.get("expected_wage_days", 3))
+    roles = (cfg.get("expected_staff") or {}).get(shop_type) or []
+    wage = sum(int(content.wage_for(str(role))) for role in roles)
+    return reserve + int(cost) + days * wage
 
 
 def income_tax(content, amount: int) -> int:

@@ -227,6 +227,7 @@ pre.code{white-space:pre-wrap;word-break:break-all;background:#f7f8fa;border:1px
     <div class="tabs">
       <button class="tab active" data-tab="overview" onclick="setTab('overview')">世界总览</button>
       <button class="tab" data-tab="detail" onclick="setTab('detail')">NPC 详情</button>
+      <button class="tab" data-tab="quests" onclick="setTab('quests')">任务板</button>
       <button class="tab" data-tab="timeline" onclick="setTab('timeline')">事件时间轴</button>
     </div>
 
@@ -254,6 +255,11 @@ pre.code{white-space:pre-wrap;word-break:break-all;background:#f7f8fa;border:1px
       <div id="detailBody" class="empty">从左侧 NPC 列表选择一个人，查看目标、关系、事件与人设卡。</div>
     </div>
 
+    <div id="panelQuests" class="tab-panel hidden">
+      <div class="notice" id="questNotice">任务板：发布人地点、是否需同行、当前是否可接。</div>
+      <div class="table-wrap"><table id="questTable"></table></div>
+    </div>
+
     <div id="panelTimeline" class="tab-panel hidden">
       <div class="timeline-controls">
         <div class="field"><label for="daySelect">日期</label><select id="daySelect"></select></div>
@@ -271,6 +277,7 @@ pre.code{white-space:pre-wrap;word-break:break-all;background:#f7f8fa;border:1px
 let OVERVIEW = null;
 let CURRENT_NPC = null;
 let TIMELINE_READY = false;
+let QUESTS_READY = false;
 
 const VERB_EXTRA = {
   talk: "发言（提案）", system_goal:"系统·目标", system_living:"系统·生活",
@@ -326,10 +333,11 @@ function setTab(name){
   document.querySelectorAll(".tab").forEach(b=>{
     b.classList.toggle("active", b.dataset.tab === name);
   });
-  ["overview","detail","timeline"].forEach(k=>{
+  ["overview","detail","quests","timeline"].forEach(k=>{
     document.getElementById("panel"+k.charAt(0).toUpperCase()+k.slice(1)).classList.toggle("hidden", k!==name);
   });
   if(name==="timeline" && !TIMELINE_READY) loadTimeline();
+  if(name==="quests" && !QUESTS_READY) loadQuests();
 }
 
 /* ------------------------------------------------------------------ boot */
@@ -352,9 +360,11 @@ async function boot(){
 
 function renderMeta(){
   const r = OVERVIEW.run;
-  const hashOk = r.state_hash_match
-    ? '<span class="pill ok">哈希校验通过</span>'
-    : '<span class="pill bad">哈希不一致</span>';
+  const hashOk = (r.state_hash_status === "conversation_appended")
+    ? '<span class="pill">对话已持久化 · state 随事件推进</span>'
+    : (r.state_hash_match
+      ? '<span class="pill ok">哈希校验通过</span>'
+      : '<span class="pill bad">哈希不一致</span>');
   document.getElementById("runMeta").innerHTML =
     esc(r.run_id)+' · seed '+esc(r.seed)+' · '+esc(r.days)+' 天 · '+esc(r.npc_count)+' NPC'+hashOk+
     '<br><span class="hash">'+esc((r.state_hash_recomputed||"").slice(0,16))+'…</span>'+
@@ -400,11 +410,14 @@ function renderOverview(){
   const r = OVERVIEW.run;
   document.getElementById("sourceKv").innerHTML =
     '<div class="k">run 目录</div><div>'+esc(r.path)+'</div>'+
-    '<div class="k">数据口径</div><div>events.jsonl 事件回放 + MCPGateway 只读快照；不读 SQLite，不写世界</div>'+
+    '<div class="k">数据口径</div><div>events.sqlite 为事实源；只读快照 + 对话经审批链追加到该 run</div>'+
     '<div class="k">重建哈希</div><div class="mono">'+esc(r.state_hash_recomputed||"—")+'</div>'+
     '<div class="k">原始哈希</div><div class="mono">'+esc((r.hashes||{}).state_final||"—")+'</div>'+
-    '<div class="k">校验结果</div><div>'+(r.state_hash_match?'<span class="plus">一致</span>':'<span class="minus">不一致</span>')+
-      ' <span class="muted small">（不一致时界面仍可只读浏览，但请先核对 run）</span></div>';
+    '<div class="k">校验结果</div><div>'+(
+      r.state_hash_status==="conversation_appended"
+        ? '<span class="badge lod">对话已追加到 events.sqlite</span> <span class="muted small">（原哈希对应对话前快照）</span>'
+        : (r.state_hash_match?'<span class="plus">一致</span>':'<span class="minus">不一致</span>')
+    )+'</div>';
 }
 
 function renderNpcList(){
@@ -454,6 +467,9 @@ function renderDetail(d){
   const today = d.today_schedule || [];
   const recent = d.recent_events || [];
   const voice = (p.voice_lines||[]);
+  const doing = n.doing || ((last && last.actions && last.actions.length)
+    ? last.actions.map(verbName).join(" → ")
+    : (recent[0] ? (recent[0].verb_label || verbName(recent[0].verb)) : "无记录"));
 
   const head = '<div class="detail-head">'+
     '<div class="who"><h2>'+esc(n.name)+'</h2>'+
@@ -465,6 +481,7 @@ function renderDetail(d){
       '<div class="fact"><div class="k">现钱</div><div class="v">'+Number(n.cash||0).toLocaleString()+' 文</div></div>'+
       '<div class="fact"><div class="k">体力</div><div class="v">'+esc(n.stamina)+' / '+esc(n.max_stamina)+'</div></div>'+
       '<div class="fact"><div class="k">LOD</div><div class="v">'+lodBadge(lod.tier||"未记录")+'</div></div>'+
+      '<div class="fact"><div class="k">现在在做什么</div><div class="v">'+esc(doing)+'</div></div>'+
     '</div></div>';
 
   const goalHtml = goals.length ? goals.map(g=>{
@@ -628,6 +645,30 @@ function renderFilters(){
     '<option value="'+esc(l.id)+'">'+esc(l.name)+'</option>').join("");
 }
 
+/* ------------------------------------------------------------------ 任务板 */
+async function loadQuests(){
+  const d = await api("/api/quests");
+  QUESTS_READY = true;
+  const c = d.counts || {};
+  document.getElementById("questNotice").innerHTML =
+    '共 '+esc(c.total||0)+' 张 · 可接 '+esc(c.acceptable||0)+
+    ' · 进行中 '+esc(c.accepted||0)+' · 待接 '+esc(c.open||0)+
+    '<span class="muted small">　提示会说清“先去哪儿找谁”。</span>';
+  document.getElementById("questTable").innerHTML =
+    '<thead><tr><th>任务</th><th>发布人 / 地点</th><th>同行</th><th>可接</th><th>给你的提示</th></tr></thead><tbody>'+
+    (d.quests||[]).map(q=>{
+      const state = q.acceptable ? badge("可接","ok") : badge(q.status||"—", q.status==="accepted"?"lod":"bad");
+      return '<tr>'+
+        '<td><strong>'+esc(q.name)+'</strong><div class="muted small">'+esc(q.category||"")+
+          (q.reward_money?' · '+esc(q.reward_money)+' 文':'')+'</div></td>'+
+        '<td>'+esc(q.giver_name)+'<div class="muted small">'+esc(q.giver_location_name||"—")+'</div></td>'+
+        '<td>'+(q.needs_together?'是<div class="muted small">需与'+esc(q.target_name)+'同行</div>':'否')+'</td>'+
+        '<td>'+state+'<div class="muted small">'+(q.deadline_day?('第 '+q.deadline_day+' 天截止'):'')+'</div></td>'+
+        '<td>'+esc(q.hint)+'</td>'+
+      '</tr>';
+    }).join("")+'</tbody>';
+}
+
 async function loadTimeline(){
   if(!OVERVIEW) return;
   TIMELINE_READY = true;
@@ -647,15 +688,16 @@ async function loadTimeline(){
       (d.truncated?' <span class="badge">已截断，最多 500 条</span>':'')+
       '<span>'+esc(d.filters.npc?("NPC="+d.filters.npc+" "):"")+esc(d.filters.location?("地点="+d.filters.location):"")+'</span>';
     table.innerHTML =
-      '<thead><tr><th class="num">seq</th><th>时间</th><th>NPC</th><th>动作</th><th>地点</th><th class="num">金额变化</th><th>结果</th><th>动机</th></tr></thead><tbody>'+
+      '<thead><tr><th class="num">seq</th><th>时间</th><th>NPC</th><th>动作</th><th>地点</th><th class="num">金额变化</th><th>结果</th><th>动机</th><th>建议</th></tr></thead><tbody>'+
       (d.events.length ? d.events.map(e=>{
         const locText = e.location + (e.dest ? " → "+e.dest : "");
         return '<tr><td class="num muted">'+esc(e.seq)+'</td><td class="muted" style="white-space:nowrap">'+esc(e.time)+'</td>'+
           '<td>'+esc(e.actor_name||e.actor)+'</td><td>'+esc(e.verb_label)+'</td>'+
           '<td class="muted">'+esc(locText)+'</td><td class="num">'+money(e.money_delta)+'</td>'+
           '<td class="'+(e.outcome==="ok"?"out-ok":"out-rejected")+'">'+esc(e.outcome)+'</td>'+
-          '<td class="ellip" title="'+esc(e.reason)+'">'+esc(e.reason||"—")+'</td></tr>';
-      }).join("") : '<tr><td colspan="8" class="empty">该筛选条件下当天没有事件。换一天或清空筛选试试。</td></tr>')+
+          '<td class="ellip" title="'+esc(e.reason)+'">'+esc(e.reason||"—")+'</td>'+
+          '<td class="muted">'+esc(e.hint||"—")+'</td></tr>';
+      }).join("") : '<tr><td colspan="9" class="empty">该筛选条件下当天没有事件。换一天或清空筛选试试。</td></tr>')+
       '</tbody>';
   }catch(err){
     summary.innerHTML = '<span class="minus">'+esc(err.error||"读取失败")+'</span> <span class="muted">'+esc(err.hint||"")+'</span>';

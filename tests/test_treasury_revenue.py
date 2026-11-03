@@ -66,7 +66,11 @@ def test_consume_tax_is_split_to_treasury(content, state):
 
 
 def test_open_shop_precondition_requires_treasury_buffer(content, state):
-    content.economy["shop_opening"] = {"stall": 300}
+    content.economy["shop_opening"] = {
+        "stall": 300,
+        "expected_wage_days": 3,
+        "expected_staff": {"stall": ["掌柜"]},
+    }
     content.economy["work"] = {"employer_reserve": 100, "treasury_guard_multiplier": 1.0}
     action = OpenShopAction(content)
     intent = Intent(
@@ -77,12 +81,12 @@ def test_open_shop_precondition_requires_treasury_buffer(content, state):
         source="test",
     )
     assert treasury_balance(state) == 1000
-    assert treasury_open_shop_buffer(state, content, 300) == 540
+    assert treasury_open_shop_buffer(content, 300, "stall") == 100 + 300 + 3 * content.wage_for("掌柜")
     assert "insufficient_money" in action.preconditions(state, intent)
 
     apply_effects(state, [Effect("mint", {"account": wallet("n1"), "amount": 300, "reason": "test"})])
-    apply_effects(state, [Effect("burn", {"account": "treasury:region", "amount": 500, "reason": "test"})])
-    assert treasury_balance(state) == 500
+    apply_effects(state, [Effect("burn", {"account": "treasury:region", "amount": 650, "reason": "test"})])
+    assert treasury_balance(state) == 350
     assert "treasury_buffer" in action.preconditions(state, intent)
 
 

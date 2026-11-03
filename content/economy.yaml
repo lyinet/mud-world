@@ -104,6 +104,14 @@ shop_opening:
   stall: 300
   storefront: 1200
   branch: 3000
+  # 开店缓冲按“该店自身 3 日预计工资”计算，不把全区域工资池算进去。
+  # 岗位 × 对应职业日薪；stall=掌柜(36) → 108，storefront=掌柜+酒保 → 168，
+  # branch=掌柜+酒保+脚夫 → 222。
+  expected_wage_days: 3
+  expected_staff:
+    stall: [掌柜]
+    storefront: [掌柜, 酒保]
+    branch: [掌柜, 酒保, 脚夫]
   monthly_upkeep:
     stall: 30
     storefront: 120

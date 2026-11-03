@@ -41,8 +41,8 @@ class OpenShopAction(Action):
         cost = int((self.content.economy.get("shop_opening") or {}).get(shop_type, 10**9))
         if state.account_balance(wallet(ent.id)) < cost:
             return ["insufficient_money"]
-        # 金库必须留足「保底线 + 开店成本 + 7 日工资」，否则这条开店动作应延后。
-        if treasury_balance(state) < treasury_open_shop_buffer(state, self.content, cost):
+        # 金库必须留足「保底线 + 开店成本 + 该店 3 日预计工资」，否则延后。
+        if treasury_balance(state) < treasury_open_shop_buffer(self.content, cost, shop_type):
             return ["treasury_buffer"]
         return []
 

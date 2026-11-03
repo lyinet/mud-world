@@ -2,9 +2,9 @@
 
 边界：
 - 世界状态只通过 MCPGateway 的 `world.read_snapshot` 获取；
-- 对话走 `world.propose_intent` → `admin.request/approve/apply`，由 Writer 落到
-  一份 run 目录的临时副本（不写回原 run）；
-- run 目录里的 JSON/JSONL 只做只读解析；SQLite 只复制到临时 session 后写入；
+- 对话走 `world.propose_intent` → `admin.request/approve/apply`，由 Writer 直接追加到
+  该 run 的 `events.sqlite`（持久化，刷新与回放都还在）；
+- run 目录里的 JSON/JSONL 只做只读解析；SQLite 是唯一可写事实源；
 - 本模块只用 Python 标准库（导入的 wsim 内核模块也均为标准库实现）。
 
 数据来源（默认 runs/p2b-72d）：
@@ -13,17 +13,14 @@ content/locations.yaml + content/additions/locations.yaml /
 content/personas/<id>.md。
 
 注意：这是离线 run 快照，不是实时世界。事件回放重建只读投影；
-对话写入只发生在临时 session 副本，原 run 不被修改。
+对话写入会真实追加到该 run 的 events.sqlite，原 run 的事件数随之增加。
 """
 from __future__ import annotations
 
-import atexit
 import hashlib
 import json
 import re
-import shutil
 import sys
-import tempfile
 import threading
 import time
 from pathlib import Path
@@ -55,7 +52,7 @@ from wsim.world.writer import Writer  # noqa: E402
 UI_CALLER = "ui"
 UI_REQUESTER = "ui:requester"
 UI_REVIEWER = "ui:reviewer"
-NOTICE = "数据来自离线 run 快照；对话经审批链落到临时 session，原 run 不被修改。"
+NOTICE = "数据来自离线 run 快照；对话经审批链直接追加到该 run 的 events.sqlite（持久化）。"
 
 VERB_LABEL = {
     "move": "移动",
@@ -199,8 +196,8 @@ class WorldUIAdapter:
         self.error: SnapshotError | None = None
         self.state: WorldState | None = None
         self.gateway: MCPGateway | None = None
-        self.session_dir: Path | None = None
-        self.session_writer: Writer | None = None
+        self.persistent_writer: Writer | None = None
+        self.content = None
         self.summary: dict[str, Any] = {}
         self.lod: dict[str, Any] = {}
         self.locations: dict[str, dict[str, Any]] = {}
@@ -272,12 +269,13 @@ class WorldUIAdapter:
         self.state_hash_recomputed = state_hash(self.state)
         self.state_hash_match = bool(expected) and expected == self.state_hash_recomputed
 
-        self._setup_session_writer()
+        self._setup_persistent_writer()
+        self.dialogue_turn = sum(1 for e in self.events if e.get("verb") == "talk")
 
         # 对话走审批链：proposer 只能提案，requester/reviewer 是两个不同身份的管理员。
         self.gateway = MCPGateway(
             state_provider=self._active_state,
-            writer=self.session_writer,
+            writer=self.persistent_writer,
             audit=AuditLog(None),
             tick_provider=lambda: int(self._active_state().tick),
             identities={
@@ -288,33 +286,71 @@ class WorldUIAdapter:
         )
 
     def _active_state(self) -> WorldState:
-        if self.session_writer is not None:
-            return self.session_writer.state
+        if self.persistent_writer is not None:
+            return self.persistent_writer.state
         assert self.state is not None
         return self.state
 
-    def _setup_session_writer(self) -> None:
-        """把 run 的 events.sqlite 复制到临时目录，绑定 Writer 做对话落地。"""
+    def _setup_persistent_writer(self) -> None:
+        """把 Writer 绑到 run 自己的 events.sqlite，对话 effect 直接持久化。"""
         src = self.run_path / "events.sqlite"
         if not src.exists() or self.state is None:
             return
-        self.session_dir = Path(tempfile.mkdtemp(prefix="wsim-ui-"))
-        dst = self.session_dir / "events.sqlite"
-        shutil.copy2(src, dst)
         content = load_content(WORLD_ROOT, min_npcs=0, allow_fixture=False, use_content=True)
+        self.content = content
         seed = int(self.summary.get("seed") or 42)
-        store = EventStore(dst)
+        store = EventStore(src)
         registry = build_registry(content, seed)
-        self.session_writer = Writer(self.state.clone(), store, registry, seed)
-        atexit.register(shutil.rmtree, str(self.session_dir), True)
+        self.persistent_writer = Writer(self.state.clone(), store, registry, seed)
+
+    def _event_rows(self) -> list[dict[str, Any]]:
+        """优先读 events.sqlite（对话会追加到这里）；缺失时退回 events.jsonl。"""
+        sqlite_path = self.run_path / "events.sqlite"
+        if sqlite_path.exists() and sqlite_path.stat().st_size > 0:
+            store = EventStore(sqlite_path)
+            try:
+                return [e.to_dict() for e in store.read_all()]
+            finally:
+                store.close()
+        return _read_jsonl(self.run_path / "events.jsonl")
+
+    def _sync_run_hashes(self) -> None:
+        """对话追加后同步 world_hash.txt 与 summary 哈希，保证 replay 仍 MATCH。"""
+        assert self.persistent_writer is not None
+        state_hash_value = state_hash(self.persistent_writer.state)
+        store = self.persistent_writer.store
+        event_hash_value = store.event_hash()
+        store.set_meta("world_hash", state_hash_value)
+        store.set_meta("event_hash", event_hash_value)
+        (self.run_path / "world_hash.txt").write_text(state_hash_value + "\n", encoding="utf-8")
+
+        summary_path = self.run_path / "summary.json"
+        if not summary_path.exists():
+            return
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        summary.setdefault("hashes", {})["state_final"] = state_hash_value
+        summary["hashes"]["event_final"] = event_hash_value
+        events_block = summary.setdefault("events", {})
+        total = len(store.read_all())
+        rejected = int(events_block.get("rejected") or 0)
+        events_block["total"] = total
+        events_block["rejected"] = rejected
+        events_block["illegal_rate"] = round(rejected / total, 6) if total else 0.0
+        tmp = summary_path.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+        tmp.replace(summary_path)
+        (self.run_path / "event_hash.txt").write_text(event_hash_value + "\n", encoding="utf-8")
+        self.summary = summary
+        self.state_hash_recomputed = state_hash_value
+        self.state_hash_match = True
 
     def _replay_events(self) -> None:
-        """用 events.jsonl 的 Effect 重建只读投影，并建立事件索引。"""
+        """用事件 Effect 重建只读投影，并建立事件索引。"""
         assert self.locations, "没有解析到任何地点，拒绝在空地点图上回放"
         state = WorldState(locations=self.locations)
         events: list[dict[str, Any]] = []
 
-        for row in _read_jsonl(self.run_path / "events.jsonl"):
+        for row in self._event_rows():
             effects = row.get("effects") or []
             actor = str(row.get("actor") or "")
             loc_before = state.entities[actor].location if actor in state.entities else ""
@@ -471,7 +507,56 @@ class WorldUIAdapter:
             "location": e["location_name"] or e["location"],
             "dest": e["dest_name"] if e["dest"] != e["location"] else "",
             "money_delta": e["money_delta"],
+            "hint": self._event_hint(e),
         }
+
+    def _quest_hint_parts(self, args: dict[str, Any]) -> tuple[str, str, str]:
+        """从事件参数与任务模板解析 (giver_id, giver_name, 发布地点名)。
+
+        任务过期后会被 prune，state 里查不到；此时退回模板的 giver。
+        """
+        state = self._active_state()
+        quest = state.quests.get(str(args.get("quest") or ""))
+        giver_id = ""
+        if quest is not None:
+            giver_id = str(quest.giver)
+        else:
+            template_id = str(args.get("quest") or "").split(":")[1] if ":" in str(args.get("quest") or "") else ""
+            tpl = (self._content().quests or {}).get(template_id) or {}
+            giver_id = str(tpl.get("giver") or "")
+        ent = state.entities.get(giver_id)
+        name = ent.name if ent else giver_id
+        loc = self.locations.get(ent.location if ent else "", {}).get("name", "发布人所在地")
+        return giver_id, name, loc
+
+    def _event_hint(self, e: dict[str, Any]) -> str:
+        if e.get("outcome") != "rejected":
+            return ""
+        reason = str(e.get("reason") or "").removeprefix("rejected:")
+        args = e.get("args") or {}
+        state = self._active_state()
+        quest = state.quests.get(str(args.get("quest") or ""))
+        if reason == "not_at_giver":
+            _, giver_name, loc = self._quest_hint_parts(args)
+            return f"先去{loc}找{giver_name}接单。"
+        if reason == "not_together":
+            target = str(args.get("target") or (quest.target_npc if quest else ""))
+            name = state.entities[target].name if target in state.entities else "对方"
+            return f"先走到{name}所在的地点，和对方待在一起再交易。"
+        if reason == "not_adjacent":
+            dest = str(args.get("to") or "")
+            name = self.locations.get(dest, {}).get("name", dest)
+            return f"先移动到与{name}相邻的地点，再继续走。"
+        if reason == "quest_not_accepted_by_actor":
+            _, giver_name, loc = self._quest_hint_parts(args)
+            return f"先回{loc}找{giver_name}接单，再去做任务。"
+        if reason == "not_at_target":
+            _, giver_name, loc = self._quest_hint_parts(args)
+            return f"先回{loc}找{giver_name}交付，下一步再去目标地点。"
+        if reason == "quest_expired":
+            _, giver_name, _ = self._quest_hint_parts(args)
+            return f"这张已过期，等{giver_name}发下一张。"
+        return "先看任务卡的地点与同行条件，再行动。"
 
     # ---------------------------------------------------------------- views
     def overview(self) -> dict[str, Any]:
@@ -543,6 +628,12 @@ class WorldUIAdapter:
                 "hashes": self.summary.get("hashes"),
                 "state_hash_recomputed": self.state_hash_recomputed,
                 "state_hash_match": self.state_hash_match,
+                "state_hash_status": (
+                    "conversation_appended"
+                    if any(e.get("verb") == "talk" for e in self.events)
+                    else ("match" if self.state_hash_match else "mismatch")
+                ),
+                "talk_events": len([e for e in self.events if e.get("verb") == "talk"]),
                 "path": self.run_label,
                 "source": "离线 run 快照",
             },
@@ -555,6 +646,82 @@ class WorldUIAdapter:
             "lod_by_tier": by_tier,
             "locations": locations,
             "npcs": npc_rows,
+        }
+
+    def _content(self):
+        if self.content is None:
+            self.content = load_content(WORLD_ROOT, min_npcs=0, allow_fixture=False, use_content=True)
+        return self.content
+
+    def quests(self) -> dict[str, Any]:
+        """任务卡片：发布人地点、是否需同行、当前可接性、给玩家的一句话提示。"""
+        self._require_ready()
+        snapshot, tick = self._read_snapshot()
+        entities = snapshot.get("entities") or {}
+        raw = snapshot.get("quests") or {}
+        quests = list(raw.values()) if isinstance(raw, dict) else list(raw)
+        content = self._content()
+
+        rows = []
+        for q in sorted(quests, key=lambda x: int(x.get("deadline_tick") or 0)):
+            giver = str(q.get("giver") or "")
+            giver_ent = entities.get(giver) or {}
+            giver_loc = str(giver_ent.get("location") or "")
+            giver_name = str(giver_ent.get("name") or giver)
+            target_npc = str(q.get("target_npc") or "")
+            target_name = self._entity_name(entities, target_npc) if target_npc else ""
+            target_loc = str(q.get("target_location") or "")
+            tpl = (content.quests or {}).get(str(q.get("template_id") or "")) or {}
+            status = str(q.get("status") or "")
+            deadline = int(q.get("deadline_tick") or 0)
+            needs_together = bool(target_npc) and str(q.get("verb") or "") in {"trade", "marry"}
+            acceptable = status == "open" and tick <= deadline and str(giver_ent.get("status") or "") == "alive"
+
+            if acceptable:
+                hint = f"可接：先去{self.locations.get(giver_loc, {}).get('name', giver_loc)}找{giver_name}接单"
+                if needs_together:
+                    hint += f"，接单时需与{target_name}同行"
+            elif status == "accepted":
+                acceptor = str(q.get("acceptor") or "")
+                hint = f"已被{self._entity_name(entities, acceptor)}接走"
+            elif status == "completed":
+                hint = f"已完成（{self._entity_name(entities, str(q.get('acceptor') or ''))}）"
+            elif tick > deadline or status in {"expired", "failed"}:
+                hint = f"已过期，等{giver_name}发下一张"
+            else:
+                hint = f"发布人{giver_name}当前不可用"
+
+            rows.append(
+                {
+                    "id": q.get("id"),
+                    "template_id": q.get("template_id"),
+                    "name": tpl.get("name") or q.get("template_id"),
+                    "category": tpl.get("category"),
+                    "status": status,
+                    "giver": giver,
+                    "giver_name": giver_name,
+                    "giver_location": giver_loc,
+                    "giver_location_name": self.locations.get(giver_loc, {}).get("name", giver_loc),
+                    "target_npc": target_npc,
+                    "target_name": target_name,
+                    "target_location": target_loc,
+                    "target_location_name": self.locations.get(target_loc, {}).get("name", target_loc),
+                    "needs_together": needs_together,
+                    "acceptable": acceptable,
+                    "deadline_day": (deadline // 144) + 1 if deadline else None,
+                    "reward_money": q.get("reward_money"),
+                    "hint": hint,
+                }
+            )
+        return {
+            "tick": tick,
+            "counts": {
+                "total": len(rows),
+                "open": sum(1 for r in rows if r["status"] == "open"),
+                "acceptable": sum(1 for r in rows if r["acceptable"]),
+                "accepted": sum(1 for r in rows if r["status"] == "accepted"),
+            },
+            "quests": rows,
         }
 
     def npc_detail(self, npc_id: str) -> dict[str, Any]:
@@ -637,6 +804,15 @@ class WorldUIAdapter:
         loc = str(ent.get("location") or "")
         faction_id = ent.get("faction")
         biz_id = ent.get("business") or ent.get("employed_at")
+        last_action = next(
+            (e for e in recent if not str(e.get("verb") or "").startswith("system_")),
+            recent[0] if recent else None,
+        )
+        doing = (
+            f"{last_action['verb_label']}（{last_action['time']}，{last_action['location'] or '未知地点'}）"
+            if last_action
+            else "无记录"
+        )
         return {
             "notice": NOTICE,
             "clock": {"tick": tick, "label": self._time_label(tick), "final_day": self.final_day},
@@ -647,6 +823,7 @@ class WorldUIAdapter:
                 "status": ent.get("status"),
                 "location": loc,
                 "location_name": self.locations.get(loc, {}).get("name", loc),
+                "doing": doing,
                 "home": ent.get("home"),
                 "home_name": self.locations.get(str(ent.get("home") or ""), {}).get("name", ent.get("home")),
                 "cash": int(accounts.get(f"wallet:{npc_id}") or 0),
@@ -727,9 +904,11 @@ class WorldUIAdapter:
     def dialogue(self, npc_id: str, message: str) -> dict[str, Any]:
         """对话落地：人设卡回应 → propose_intent → 双人审批 → Writer 写事件。
 
-        - 回应由 `agent.dialogue.compose_talk` 消费人设卡（台词原文 + 反应倾向）；
+        - 回应由 `agent.dialogue.compose_talk` 消费人设卡（台词原文 + 反应倾向），
+          并按同一 NPC 的轮次轮换台词/句式，避免同 tick 机械重复；
         - 提案走 MCPGateway 的 world.propose_intent 进入 outbox；
-        - 再经 admin.request → admin.approve → admin.apply，由 Writer 写入临时 session；
+        - 再经 admin.request → admin.approve → admin.apply，由 Writer 直接追加到
+          该 run 的 events.sqlite（持久化，刷新后仍在）；
         - 记忆与关系变化随 Effect 进事件日志，可回放；不产生任何钱变动。
         """
         self._require_ready()
@@ -751,9 +930,35 @@ class WorldUIAdapter:
             loc = str(ent.get("location") or "")
             name = str(ent.get("name") or npc_id)
             role = str(ent.get("role") or "")
-            talk = compose_talk(self.personas.get(npc_id, ""), npc_id, name, role, message, tick)
+            active = self._active_state()
+            npc_history = [
+                m
+                for m in active.memories.get(npc_id, [])
+                if str(m.get("source", "")) == "talk:npc"
+            ]
+            player_history = [
+                m
+                for m in active.memories.get(npc_id, [])
+                if str(m.get("source", "")) == "talk:player"
+            ]
+            npc_turn = len(npc_history)
+            last_reply = str(npc_history[-1].get("text", "")).removeprefix("我答：") if npc_history else ""
+            last_message = (
+                str(player_history[-1].get("text", "")).removeprefix("访客说：") if player_history else ""
+            )
+            talk = compose_talk(
+                self.personas.get(npc_id, ""),
+                npc_id,
+                name,
+                role,
+                message,
+                tick,
+                turn=npc_turn,
+                last_message=last_message,
+                last_reply=last_reply,
+            )
             reply = str(talk["reply"])
-            prev_rel = self.state.relation(PLAYER_ID, npc_id, "acquaintance")
+            prev_rel = active.relation(PLAYER_ID, npc_id, "acquaintance")
             prev_aff = prev_rel.affection if prev_rel is not None else 0.0
             prev_trust = prev_rel.trust if prev_rel is not None else 40.0
             reasoning_ms = round((time.perf_counter() - started) * 1000, 1)
@@ -793,7 +998,7 @@ class WorldUIAdapter:
                 proposed = {}
                 proposal = {"ok": False, "status": "被拒", "error": str(exc), "state_unchanged": True}
 
-            if self.session_writer is None:
+            if self.persistent_writer is None:
                 landed = {"landed": False, "error": "run_missing_events_sqlite"}
             elif not proposal["ok"]:
                 landed = {"landed": False, "error": proposal.get("error", "proposal_rejected")}
@@ -804,7 +1009,11 @@ class WorldUIAdapter:
                     )
                     self.gateway.call(UI_REVIEWER, "admin.approve", {"token": request["token"]})
                     applied = self.gateway.call(UI_REVIEWER, "admin.apply", {"token": request["token"]})
-                    self.state = self.session_writer.state
+                    self.state = self.persistent_writer.state
+                    # 重新从 events.sqlite 回放，让事件索引/时间轴立刻包含新 talk。
+                    self._replay_events()
+                    self.state = self.persistent_writer.state
+                    self._sync_run_hashes()
                     memory = [
                         m
                         for m in self.state.memories.get(npc_id, [])

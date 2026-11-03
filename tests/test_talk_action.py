@@ -74,6 +74,39 @@ def test_talk_relation_delta_is_capped_per_tick_and_day(content, state):
     assert state.talk_ledger["n1"]["day_affection"] <= 8.0
 
 
+def test_compose_talk_rotates_reply_over_three_turns(real_content):
+    persona = real_content.personas["liu_sanniang"]
+    messages = ["三娘，今日可好？", "今日气色不错，辛苦了。", "绣坊近来生意如何？"]
+    replies: list[str] = []
+    for turn, message in enumerate(messages):
+        out = compose_talk(
+            persona,
+            "liu_sanniang",
+            "柳三娘",
+            "绣娘",
+            message,
+            10,
+            turn=turn,
+            last_message=messages[turn - 1] if turn else "",
+            last_reply=replies[-1] if replies else "",
+        )
+        replies.append(out["reply"])
+    assert len(set(replies)) == 3, "同一 NPC 同 tick 连续 3 轮回应必须不同"
+
+
+def test_talk_cross_day_accumulates_at_most_24(content, state):
+    action = TalkAction(content)
+    # 每天 8 个 tick，每 tick 请求 +2；日上限 8，三日累计上限 24。
+    for day in range(3):
+        for offset in range(8):
+            tick = day * 144 + offset
+            apply_effects(state, action.apply(state, _talk("多谢", "嗯", tick=tick), None))
+    rel = state.relation(PLAYER_ID, "n1", "acquaintance")
+    assert rel.affection == 24.0
+    assert rel.trust == 64.0
+    assert rel.affection <= 24.0
+
+
 def test_talk_keeps_conservation_zero(content, state):
     before_minted = state.minted_total
     before_burned = state.burned_total
@@ -118,3 +151,10 @@ def test_gateway_propose_approve_apply_lands_talk(content, state, tmp_path):
     talk_event = [e for e in events if e.verb == "talk"][-1]
     assert talk_event.effects and any(e["op"] == "memory_add" for e in talk_event.effects)
     assert any("访客说" in m["text"] for m in writer.state.memories["n1"])
+
+    # 关掉 store 再重开：事件必须仍在（证明 effect 写进了持久 store，不是内存）。
+    reopened = EventStore(tmp_path / "events.sqlite")
+    durable = [e for e in reopened.read_all() if e.verb == "talk"]
+    reopened.close()
+    assert len(durable) == 1
+    assert durable[0].seq == applied["seq"]

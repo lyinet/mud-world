@@ -83,22 +83,44 @@ def compose_talk(
     npc_role: str,
     message: str,
     tick: int,
+    turn: int = 0,
+    last_message: str = "",
+    last_reply: str = "",
 ) -> dict[str, Any]:
-    """生成回应与情感增量；上限不在这里做，由 TalkAction 统一 clamp。"""
+    """生成回应与情感增量；上限不在这里做，由 TalkAction 统一 clamp。
+
+    `turn` 是同一 NPC 的对话轮次（从 0 开始），用于轮换台词与句式；
+    `last_reply` 用来避免连续两轮选到同一句台词。
+    """
     message = (message or "").strip()
     voice = extract_persona_voice(persona_text)
-    digest = hashlib.sha256(f"{npc_id}|{message}|{tick}".encode("utf-8")).hexdigest()
+    digest = hashlib.sha256(f"{npc_id}|{message}|{tick}|{turn}".encode("utf-8")).hexdigest()
+    sent_digest = hashlib.sha256(f"{npc_id}|{message}|{tick}".encode("utf-8")).hexdigest()
 
     quote = ""
     if voice["quotes"]:
-        quote = voice["quotes"][int(digest[:8], 16) % len(voice["quotes"])]
+        idx = (int(digest[:8], 16) + turn) % len(voice["quotes"])
+        if len(voice["quotes"]) > 1 and voice["quotes"][idx] in (last_reply or ""):
+            idx = (idx + 1) % len(voice["quotes"])
+        quote = voice["quotes"][idx]
 
     reaction = voice["reaction"] or voice["style"]
-    lead = f"{npc_name}（{npc_role}）听了你的话，" if npc_role else f"{npc_name}听了你的话，"
     reaction = reaction.rstrip("。；;，, ")
+    if npc_role:
+        who = f"{npc_name}（{npc_role}）"
+    else:
+        who = npc_name
+    if turn > 0 and last_message:
+        lead = f"{who}听你又提起「{last_message[:16]}」，"
+    elif turn % 3 == 1:
+        lead = f"{who}抬眼看了看你，"
+    elif turn % 3 == 2:
+        lead = f"{who}顿了顿，"
+    else:
+        lead = f"{who}听了你的话，"
     body = f"{lead}{reaction}。" if reaction else f"{lead}先没有立刻作答。"
     reply = f"{body}\n「{quote}」" if quote else body
-    aff, trust = _sentiment(message, digest)
+    aff, trust = _sentiment(message, sent_digest)
     return {
         "reply": reply,
         "quote": quote,

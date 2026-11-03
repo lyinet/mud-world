@@ -903,8 +903,8 @@ class Planner:
                 return loc, cursor, cash
             kind = "stall"
             cost = int((self.content.economy.get("shop_opening") or {}).get(kind, 300))
-            # 金库不够「保底线 + 开店成本 + 7 日工资」时延后，不生成 intent（不是拒绝）。
-            if treasury_balance(state) < treasury_open_shop_buffer(state, self.content, cost):
+            # 金库不够「保底线 + 开店成本 + 该店 3 日预计工资」时延后，不生成 intent（不是拒绝）。
+            if treasury_balance(state) < treasury_open_shop_buffer(self.content, cost, kind):
                 self.postponed_open_shop += 1
                 return loc, cursor, cash
             if cash >= cost:
