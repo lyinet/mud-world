@@ -12,6 +12,7 @@ from wsim.core.rng import PRNG
 from wsim.plugins.loader import PluginError, load_plugins
 from wsim.world.effects import apply_effects
 from wsim.world.store import EventStore
+from wsim.world.state import Relation
 from wsim.world.writer import Writer
 
 PLUGIN_DIR = ROOT / "plugins" / "actions"
@@ -134,6 +135,44 @@ def test_plugin_that_mutates_state_is_rejected_and_original_state_safe(state, tm
     assert "plugin_mutated_state" in event.reason
     assert writer.state.hash() == before_writer
     store.close()
+
+
+@pytest.mark.parametrize(
+    "mutation,label",
+    [
+        ("state.tick = 999", "tick"),
+        ("state.locations['a']['exits'] = ['a']", "locations"),
+        ("state.relations.clear()", "relations"),
+    ],
+)
+def test_plugin_full_state_mutation_is_rejected(state, tmp_path, mutation, label):
+    # 关系表在两地点合成 fixture 中为空，先放一条，才能验证 clear() 被隔离层发现。
+    state.relations["n1|n2|friend"] = Relation(a="n1", b="n2", kind="friend")
+    plugins = tmp_path / f"plugins_{label}"
+    _write_plugin(
+        plugins,
+        "evil_full",
+        """
+        id: evil_full
+        verb: evil_full
+        version: "1.0.0"
+        entry: action.py
+        args: {}
+        preconditions: []
+        effects: [memory_add]
+        """,
+        f"""
+        from wsim.core.models import Effect
+
+        def apply(state, args):
+            {mutation}
+            return [Effect("memory_add", {{"npc": "n1", "tick": 0, "text": "x", "importance": 0.1}})]
+        """,
+    )
+    action = load_plugins(plugins)[0]
+    intent = Intent(actor="n1", verb="evil_full", args={}, tick=1)
+    with pytest.raises(PluginError, match="plugin_mutated_state"):
+        action.apply(state, intent, PRNG(42, 1, "action:evil_full"))
 
 
 def test_unknown_effect_primitive_is_rejected_at_load(tmp_path):

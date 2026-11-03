@@ -22,6 +22,9 @@ NPC_VERBS = {
     "found_sect",
 }
 
+# P2-B：由引擎意图层/插件提供、不要求内容包声明的动词。
+ENGINE_ONLY_ALLOWED = {"quest_accept", "quest_deliver", "recruit", "debt_settle"}
+
 
 def content_audit(content: Content, registry, genesis_mismatches: list[str] | None = None) -> dict:
     issues: list[str] = list(genesis_mismatches or [])
@@ -35,14 +38,16 @@ def content_audit(content: Content, registry, genesis_mismatches: list[str] | No
             issues.append(f"role_missing_living_cost:{role}")
 
     content_verbs = set(content.verbs.keys())
-    # P2：插件 verb 也是引擎可执行动词；system_* 是内核内部动作，不要求内容声明。
+    # P2：插件 verb / 意图层内核 verb 也是引擎可执行动词，但不必由内容包声明；
+    # system_* 同样属于内核内部动作。其余未声明的引擎动词仍然算内容/代码不一致。
     engine_verbs = {v for v in registry.verbs() if not v.startswith("system_")}
-    if content_verbs != engine_verbs:
+    unknown_engine = engine_verbs - content_verbs - ENGINE_ONLY_ALLOWED
+    if content_verbs - engine_verbs or unknown_engine:
         issues.append(
             "verbs_mismatch:content_only="
             + ",".join(sorted(content_verbs - engine_verbs))
             + ";engine_only="
-            + ",".join(sorted(engine_verbs - content_verbs))
+            + ",".join(sorted(unknown_engine))
         )
     for verb, meta in sorted(content.verbs.items()):
         for role in (meta.get("allowed_roles") or []):

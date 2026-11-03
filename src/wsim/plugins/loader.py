@@ -136,7 +136,7 @@ class PluginAction:
         # 插件拿到的是 state 的深拷贝：即使插件试图写入，也碰不到真实状态。
         # 调用后再比较拷贝的哈希，发现变更即违约，整笔事务由 Writer 拒绝。
         sandbox = copy.deepcopy(state)
-        before = sandbox.hash()
+        before = sandbox.full_hash()
         call_args = {"actor": intent.actor}
         call_args.update(dict(intent.args))
         try:
@@ -145,7 +145,7 @@ class PluginAction:
             raise
         except Exception as exc:  # 插件内部错误统一变成可读的 EffectError
             raise PluginError(f"plugin_apply_error:{type(exc).__name__}:{exc}") from exc
-        if sandbox.hash() != before:
+        if sandbox.full_hash() != before:
             raise PluginError("plugin_mutated_state")
         if not isinstance(raw, list):
             raise PluginError("plugin_must_return_effect_list")

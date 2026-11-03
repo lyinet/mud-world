@@ -171,6 +171,12 @@ class EscortOrder:
     success: bool = False
     arrive_tick: int = 0
     created_tick: int = 0
+    route_id: str = ""
+    agency_cut: float = 0.0
+    fee_penalty: int = 0
+    cargo_loss_ratio: float = 0.0
+    risk_event: str = ""
+    risk_stamina: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -185,6 +191,52 @@ class EscortOrder:
             "success": self.success,
             "arrive_tick": self.arrive_tick,
             "created_tick": self.created_tick,
+            "route_id": self.route_id,
+            "agency_cut": self.agency_cut,
+            "fee_penalty": self.fee_penalty,
+            "cargo_loss_ratio": self.cargo_loss_ratio,
+            "risk_event": self.risk_event,
+            "risk_stamina": self.risk_stamina,
+        }
+
+
+@dataclass
+class Quest:
+    id: str
+    template_id: str
+    giver: str
+    acceptor: str | None
+    target_npc: str
+    target_location: str
+    verb: str
+    args: dict[str, Any]
+    reward_money: int
+    reward_relation: float
+    deadline_tick: int
+    status: str = "open"  # open / accepted / completed / failed
+    created_tick: int = 0
+    accepted_tick: int = -1
+    completed_tick: int = -1
+    settlement_amount: int = 0
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "template_id": self.template_id,
+            "giver": self.giver,
+            "acceptor": self.acceptor,
+            "target_npc": self.target_npc,
+            "target_location": self.target_location,
+            "verb": self.verb,
+            "args": self.args,
+            "reward_money": self.reward_money,
+            "reward_relation": self.reward_relation,
+            "deadline_tick": self.deadline_tick,
+            "status": self.status,
+            "created_tick": self.created_tick,
+            "accepted_tick": self.accepted_tick,
+            "completed_tick": self.completed_tick,
+            "settlement_amount": self.settlement_amount,
         }
 
 
@@ -228,6 +280,7 @@ class WorldState:
     relations: dict[str, Relation] = field(default_factory=dict)
     debts: dict[str, Debt] = field(default_factory=dict)
     escorts: dict[str, EscortOrder] = field(default_factory=dict)
+    quests: dict[str, Quest] = field(default_factory=dict)
     goals: dict[str, Goal] = field(default_factory=dict)
     accounts: dict[str, int] = field(default_factory=dict)
     schedule: dict[str, ScheduleItem] = field(default_factory=dict)
@@ -247,6 +300,7 @@ class WorldState:
             relations=copy.deepcopy(self.relations),
             debts=copy.deepcopy(self.debts),
             escorts=copy.deepcopy(self.escorts),
+            quests=copy.deepcopy(self.quests),
             goals=copy.deepcopy(self.goals),
             accounts=dict(self.accounts),
             schedule=copy.deepcopy(self.schedule),
@@ -265,6 +319,7 @@ class WorldState:
             "relations": {k: v.to_dict() for k, v in sorted(self.relations.items())},
             "debts": {k: v.to_dict() for k, v in sorted(self.debts.items())},
             "escorts": {k: v.to_dict() for k, v in sorted(self.escorts.items())},
+            "quests": {k: v.to_dict() for k, v in sorted(self.quests.items())},
             "goals": {k: v.to_dict() for k, v in sorted(self.goals.items())},
             "accounts": dict(sorted(self.accounts.items())),
             "schedule": {k: v.to_dict() for k, v in sorted(self.schedule.items())},
@@ -277,6 +332,27 @@ class WorldState:
 
     def hash(self) -> str:
         return hash_obj(self.to_dict())
+
+    def full_dict(self) -> dict[str, Any]:
+        """完整状态快照：补上 to_dict 漏掉的 tick 与地点图（含出口）。
+
+        插件隔离必须比较完整状态，否则恶意插件改 tick / 地点连接不会被发现。
+        """
+        data = self.to_dict()
+        data["tick"] = self.tick
+        data["locations"] = {
+            lid: {
+                "id": loc.get("id", lid),
+                "name": loc.get("name", ""),
+                "exits": sorted(str(x) for x in (loc.get("exits") or [])),
+                "services": sorted(str(x) for x in (loc.get("services") or [])),
+            }
+            for lid, loc in sorted(self.locations.items())
+        }
+        return data
+
+    def full_hash(self) -> str:
+        return hash_obj(self.full_dict())
 
     def alive_entities(self) -> list[Entity]:
         return sorted((e for e in self.entities.values() if e.status == "alive"), key=lambda e: e.id)

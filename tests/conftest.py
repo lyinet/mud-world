@@ -1,7 +1,9 @@
-"""测试共用：一个只有 2 个地点、1 个 NPC、1 个商业体的最小确定性世界。
+"""测试共用。
 
-测试不读取 content/（内容包由另一会话维护），只用手工构造的 Content。
-这也保证测试不会因为内容包改版而失效。
+- `content` / `state`：2 地点、1 NPC、4 动词的最小合成世界，供单元测试锁定
+  纯函数与 Effect 语义，不随内容包改版漂移；
+- `real_content` / `real_state`：加载真实 `content/`（31 NPC / 9 地点 / 全动词），
+  供集成测试与回归测试覆盖真实路径（阻断项要求）。
 """
 from __future__ import annotations
 
@@ -82,3 +84,22 @@ def seed_state(content: Content) -> WorldState:
 @pytest.fixture
 def state(content) -> WorldState:
     return seed_state(content)
+
+
+@pytest.fixture(scope="session")
+def real_content():
+    """真实内容包（31 NPC / 9 地点 / 31 物品 / 全部动词与门派）。"""
+    from wsim.core.content import load_content
+
+    return load_content(ROOT, allow_fixture=False, use_content=True)
+
+
+@pytest.fixture
+def real_state(real_content) -> WorldState:
+    """用真实内容包走创世流程的状态，供意图层/回归测试使用。"""
+    from wsim.sim.genesis import build_genesis
+
+    state = WorldState(locations=real_content.locations)
+    genesis = build_genesis(real_content, real_content.npcs, root=ROOT)
+    apply_effects(state, genesis.effects)
+    return state

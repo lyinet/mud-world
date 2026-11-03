@@ -1,11 +1,12 @@
-"""MCP 沙箱网关（P2 骨架）。
+"""MCP 沙箱网关（P2）。
 
-三级权限：
+三级权限由**服务端身份映射**决定，调用方不能自称权限：
 - read          只读世界快照；
 - propose_intent 只能产生 Intent 放入 outbox，交 Writer，不能改状态；
-- admin_apply   改状态，必须二次 token + 第二人批准，并写审计。
+- admin_apply   改状态，必须二次 token + 第二人批准，且 apply 只能由批准人执行。
 
-所有调用（含被拒绝的越权调用）都写审计日志：谁、权限、参数摘要、结果、虚拟时间。
+所有调用（含被拒绝的越权调用）都写审计日志：调用者、服务端解析的权限、参数摘要、
+结果、虚拟时间、身份来源。
 """
 from __future__ import annotations
 
@@ -57,6 +58,7 @@ class MCPGateway:
         audit: AuditLog | None = None,
         audit_path: Path | None = None,
         tick_provider: Callable[[], int] | None = None,
+        identities: dict[str, str] | None = None,
     ):
         self._state_provider = state_provider
         self.writer = writer
@@ -64,21 +66,35 @@ class MCPGateway:
         self._tick_provider = tick_provider
         self._seq = 0
         self._token_seq = 0
+        self.identities: dict[str, str] = dict(identities or {})
         self.outbox: list[Intent] = []
         self.tokens: dict[str, _AdminToken] = {}
 
+    def register_identity(self, caller: str, permission: str) -> None:
+        """仅服务端可调用；调用方永远不能通过请求参数声明权限。"""
+        if permission not in PERMISSION_RANK:
+            raise ValueError(f"unknown_permission:{permission}")
+        self.identities[caller] = permission
+
+    def permission_of(self, caller: str) -> str | None:
+        return self.identities.get(caller)
+
     # ---------------------------------------------------------------- public
-    def call(self, caller: str, permission: str, method: str, params: dict[str, Any] | None = None) -> Any:
+    def call(self, caller: str, method: str, params: dict[str, Any] | None = None) -> Any:
         params = dict(params or {})
         seq = self._seq
         self._seq += 1
         tick = self._tick()
         digest = hash_obj(normalize(params))
+        permission = self.identities.get(caller)
+        if permission not in PERMISSION_RANK:
+            permission = "unregistered"
         ok = True
         result: dict[str, Any] = {}
         error = ""
         try:
-            self._require(permission)
+            if permission == "unregistered":
+                raise PermissionDenied("unregistered_identity")
             result = self._dispatch(caller, permission, method, params)
         except PermissionDenied as exc:
             ok, error = False, f"permission_denied:{exc.reason}"
@@ -101,6 +117,7 @@ class MCPGateway:
                     ok=ok,
                     result=self._summary(method, result),
                     error=error,
+                    identity_source="server_map",
                 )
             )
         if not ok:
@@ -146,7 +163,9 @@ class MCPGateway:
             self._need(permission, PERMISSION_ADMIN, method)
             intent = self._intent_from(params, default_source="mcp:admin")
             self._token_seq += 1
-            token = f"admin:{self._token_seq}"
+            token = "admin:" + hash_obj(
+                {"requester": caller, "seq": self._token_seq, "tick": self._tick(), "intent": normalize(params.get("intent", {}))}
+            )[:16]
             self.tokens[token] = _AdminToken(
                 token=token, intent=intent, requester=caller, reason=str(params.get("reason", ""))
             )
@@ -165,7 +184,7 @@ class MCPGateway:
             if caller == rec.requester:
                 raise GatewayError("second_person_required")
             rec.approved_by = caller
-            return {"token": token, "approved": True, "approved_by": caller}
+            return {"token": token, "approved": True, "approved_by": caller, "requester": rec.requester}
 
         if method == "admin.apply":
             self._need(permission, PERMISSION_ADMIN, method)
@@ -177,6 +196,10 @@ class MCPGateway:
                 raise GatewayError("token_used")
             if rec.approved_by is None:
                 raise GatewayError("not_approved:second_person_required")
+            if caller == rec.requester:
+                raise GatewayError("second_person_required")
+            if caller != rec.approved_by:
+                raise GatewayError("apply_by_approver_only")
             if self.writer is None:
                 raise GatewayError("gateway_not_bound_to_writer")
             rec.used = True

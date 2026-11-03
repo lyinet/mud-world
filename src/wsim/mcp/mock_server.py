@@ -21,10 +21,13 @@ class MockMCPServer:
         return self.gateway.tools()
 
     def handle(self, request: dict[str, Any]) -> dict[str, Any]:
+        """调用方只能提交 caller；权限由网关服务端身份映射解析。
+
+        请求里的 permission 字段被忽略（保留只为暴露旧客户端）。
+        """
         try:
             result = self.gateway.call(
                 caller=str(request.get("caller", "unknown")),
-                permission=str(request.get("permission", "read")),
                 method=str(request.get("method", "")),
                 params=dict(request.get("params") or {}),
             )

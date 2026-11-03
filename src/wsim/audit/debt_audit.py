@@ -131,6 +131,14 @@ def debt_audit(
                     "origin_actor": e.actor,
                 }
                 created_here.append(declared[did])
+            elif op == "debt_increase":
+                # 工资欠条续欠：同一债务金额累加，必须同步到 declared 才能与 state 对账。
+                did = str(d["id"])
+                debt = declared.get(did)
+                if debt is None:
+                    settle_mismatches.append({"seq": e.seq, "debt": did, "reason": "increase_unknown_debt"})
+                else:
+                    debt["amount"] += int(d["amount"])
             elif op == "debt_settle":
                 did = str(d["id"])
                 settled_here.append({"id": did, "amount": int(d["amount"]), "seq": e.seq})

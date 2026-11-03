@@ -123,7 +123,8 @@ class LODScheduler:
     """事件驱动 LOD 调度器。
 
     `advance_to(target_tick)` 从堆中弹出所有 tick <= target 的唤醒项；未到期 NPC
-    不参与遍历。`process_count` 与 `len(wakes)` 恒等，可作为“没有全量扫描”的证据。
+    不参与遍历。外部可通过 `decide_calls` / `state_provider_calls` / `process_count`
+    三个独立计数器核对“没有全量扫描”，而不是靠调度器自证。
     """
 
     def __init__(
@@ -146,6 +147,10 @@ class LODScheduler:
         self.lod: dict[str, str] = {}
         self.wake_counts: dict[str, int] = {npc: 0 for npc in npc_ids}
         self.process_count = 0
+        # 外部可核对的计数器：decide 调用数 / state_provider 调用数 / 分档唤醒数。
+        self.decide_calls = 0
+        self.state_provider_calls = 0
+        self.decide_by_tier: dict[str, int] = {name: 0 for name in TIER_ORDER}
         self.tier_changes: list[dict[str, Any]] = []
         self._state_provider = state_provider or (lambda npc: {"id": npc})
         self._world_view_provider = world_view_provider or (lambda tick: {"tick": tick})
@@ -178,7 +183,10 @@ class LODScheduler:
         view = dict(self._world_view_provider(tick))
         view["tier"] = tier
         view["interval"] = interval
+        self.state_provider_calls += 1
         intents = self.reasoner.decide(self._state_provider(npc), view)
+        self.decide_calls += 1
+        self.decide_by_tier[tier] = self.decide_by_tier.get(tier, 0) + 1
         jitter = PRNG(self.seed, self.wake_counts[npc], f"lod_jitter:{npc}").randint(0, max(1, interval // 4))
         heapq.heappush(self._heap, (tick + interval + jitter, npc, self._gen.get(npc, 0)))
         return WakeResult(tick=tick, npc_id=npc, lod=tier, intents=intents)
@@ -259,6 +267,9 @@ class LODScheduler:
             "now": self.now,
             "npc_count": len(self.lod),
             "processed_wakes": self.process_count,
+            "decide_calls": self.decide_calls,
+            "state_provider_calls": self.state_provider_calls,
+            "decide_by_tier": dict(self.decide_by_tier),
             "by_tier": by_tier,
             "tier_changes": len(self.tier_changes),
             "stats": self.stats(),

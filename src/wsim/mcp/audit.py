@@ -21,6 +21,7 @@ class AuditRecord:
     ok: bool
     result: dict[str, Any]
     error: str = ""
+    identity_source: str = "server_map"
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -33,6 +34,7 @@ class AuditRecord:
             "ok": self.ok,
             "result": self.result,
             "error": self.error,
+            "identity_source": self.identity_source,
         }
 
 
