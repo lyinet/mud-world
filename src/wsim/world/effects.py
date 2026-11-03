@@ -24,6 +24,8 @@ _ENTITY_FIELDS = {
     "escort_id",
     "role",
     "last_action_tick",
+    "presence",
+    "last_seen_tick",
 }
 
 # 插件只能声明/返回这些原语。`mint` 虽然存在，但只允许 genesis/system 使用，
@@ -67,6 +69,7 @@ EFFECT_OPS = frozenset(
         "memory_add",
         "talk_ledger",
         "quest_prune",
+        "audit_log",
     }
 )
 
@@ -656,6 +659,22 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         mem.append(entry)
         if len(mem) > 80:
             del mem[: len(mem) - 80]
+        return
+
+    if op == "audit_log":
+        kind = str(d.get("kind", "")).strip()
+        if not kind:
+            raise EffectError("audit kind 不能为空")
+        entry = {
+            "kind": kind,
+            "actor": str(d.get("actor", "")),
+            "tick": _as_int(d.get("tick", 0), "tick"),
+            "fields": [str(x) for x in (d.get("fields") or [])],
+            "note": str(d.get("note", "")),
+        }
+        state.audit_log.append(entry)
+        if len(state.audit_log) > 500:
+            del state.audit_log[: len(state.audit_log) - 500]
         return
 
     if op == "talk_ledger":

@@ -99,8 +99,17 @@ def _args(cat: str, utterance: str, ctx: dict[str, Any]) -> dict[str, Any]:
     if cat == "去某地":
         m = re.search(r"(?:去|前往|走到|赶往)([^，。,.；;的]+)", utterance)
         dest = m.group(1).strip() if m else ""
+        # P3-C：去掉“看看/走走/逛逛/一趟”等口语尾缀，避免把尾缀当地名。
+        dest = re.sub(r"[看走逛溜]一?[看走逛溜]?$", "", dest).strip()
         if dest in ("一趟", "一下", "那边", "这边", "那里", "这里") or dest.startswith("一"):
             dest = ""
+        reach = [r for r in (ctx.get("reachable_locations") or []) if isinstance(r, dict)]
+        for row in reach:
+            rid = str(row.get("id") or "")
+            name = str(row.get("name") or "")
+            if dest and (dest == rid and name):
+                dest = name
+                break
         return {"地点": dest} if dest else {}
     if cat == "吃饭":
         item = ""

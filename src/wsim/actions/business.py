@@ -11,6 +11,7 @@ from .common import (
     memory,
     organization_at,
     require_entity,
+    role_allowed,
     treasury_balance,
     treasury_guard_active,
     treasury_open_shop_buffer,
@@ -104,6 +105,8 @@ class FoundSectAction(Action):
 
     def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
         ent = require_entity(state, intent.actor)
+        if not role_allowed(self.content, "found_sect", ent.role):
+            return ["role_not_allowed"]
         at = arg_str(intent, "at")
         arg_str(intent, "name")
         sect_id = arg_str(intent, "sect_id", required=False) or ""

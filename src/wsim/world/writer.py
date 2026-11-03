@@ -26,6 +26,7 @@ class Writer:
         self.registry = registry
         self.seed = seed
         self._seen: dict[str, Event] = {}
+        self._player_ticks: dict[str, int] = {}
         self.committed_intents = 0
 
     def bootstrap(self, effects: list[Effect], tick: int = 0, verb: str = "genesis") -> Event:
@@ -57,6 +58,13 @@ class Writer:
             return self._seen[iid]
 
         seq = self.store.count() + 1
+        # 玩家写操作必须单调且不能写未来：NPC/系统调度不受影响。
+        if self._is_player_intent(intent):
+            last = self._player_ticks.get(intent.actor)
+            if (last is not None and intent.tick < last) or intent.tick > self.state.tick:
+                return self._record_reject(intent, iid, seq, "rejected:stale_tick")
+            self._player_ticks[intent.actor] = intent.tick
+
         action = self.registry.get(intent.verb)
         if action is None:
             return self._record_reject(intent, iid, seq, "rejected:unknown_verb")
@@ -97,6 +105,12 @@ class Writer:
         self._seen[iid] = event
         self.committed_intents += 1
         return event
+
+    def _is_player_intent(self, intent: Intent) -> bool:
+        return (
+            str(intent.actor).startswith("player:")
+            and intent.source not in ("npc", "planner", "system")
+        )
 
     def _record_reject(self, intent: Intent, iid: str, seq: int, reason: str) -> Event:
         event = Event(

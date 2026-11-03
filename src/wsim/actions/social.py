@@ -1,7 +1,7 @@
 """社交/组织动词：apprentice（仅拜师）、join_sect（入会/入门派）、marry、talk。"""
 from __future__ import annotations
 
-from ..agent.dialogue import PLAYER_ID, PLAYER_NAME
+from ..agent.dialogue import PLAYER_NAME, compose_talk
 from ..core.clock import TICKS_PER_DAY
 from ..core.models import Effect, Intent, Reject
 from ..world.state import WorldState
@@ -18,6 +18,9 @@ from .common import (
 )
 from .registry import Action
 
+# 这些 source 代表玩家侧输入；缺身份时必须拒绝，不能回退到 actor。
+PLAYER_SOURCES = frozenset({"player", "proposal", "test"})
+
 
 def _clamp_delta(requested: float, tick_used: float, day_used: float) -> float:
     """同时受「单 tick ±2」与「单日 ±8」余量约束。"""
@@ -28,8 +31,34 @@ def _clamp_delta(requested: float, tick_used: float, day_used: float) -> float:
     return max(lower, min(upper, requested))
 
 
+def _speaker_id(state: WorldState, intent: Intent) -> str:
+    """对话发起者身份。
+
+    - 优先 `args.player_id`（必须是 `player:` 命名空间，避免冒用 NPC id）；
+    - 否则玩家会话身份（`actor` 以 `player:` 开头）；
+    - 玩家来源的 intent 若两者都没有，返回空串（调用方必须拒绝）；
+    - NPC/规划器由服务端调度，`actor` 本身就是服务端会话身份，
+      但必须已注册，防止伪造未知实体。
+    """
+    pid = str(intent.args.get("player_id") or "").strip()
+    if pid:
+        return pid if pid.startswith("player:") else ""
+    actor = str(intent.actor or "").strip()
+    if actor.startswith("player:"):
+        return actor
+    if intent.source in PLAYER_SOURCES:
+        return ""
+    if actor and actor in state.entities:
+        return actor
+    return ""
+
+
 class TalkAction(Action):
-    """玩家发言落地：写 NPC 记忆 + 小幅关系变化；不产生任何钱变动。"""
+    """玩家发言落地：写 NPC 记忆 + 小幅关系变化；不产生任何钱变动。
+
+    P3-C：关系增量与回复必须由服务端计算。调用方传入的
+    affection_delta / trust_delta / reply 一律丢弃，并记 spoofed_arg 审计。
+    """
 
     verb = "talk"
 
@@ -37,29 +66,32 @@ class TalkAction(Action):
         self.content = content
 
     def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
+        if not _speaker_id(state, intent):
+            return ["missing_player_id"]
         alive(state, arg_str(intent, "target"))
         message = intent.args.get("message")
-        reply = intent.args.get("reply")
         if not isinstance(message, str) or not message.strip():
             return ["bad_message"]
         if len(message) > 200:
             return ["bad_message"]
-        if not isinstance(reply, str) or not reply.strip():
-            return ["missing_reply"]
         return []
 
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
+        pid = _speaker_id(state, intent)
+        if not pid:
+            raise Reject("missing_player_id")
         target = alive(state, arg_str(intent, "target"))
         message = str(intent.args["message"]).strip()
-        reply = str(intent.args["reply"]).strip()
-        try:
-            req_aff = float(intent.args.get("affection_delta", 0.0))
-            req_trust = float(intent.args.get("trust_delta", 0.0))
-        except (TypeError, ValueError) as exc:
-            raise Reject("bad_arg:deltas") from exc
-
         tick = int(intent.tick)
         day = tick // TICKS_PER_DAY
+
+        # 服务端按人设卡重新生成回复与情感增量；调用方字段全部忽略。
+        persona = self.content.personas.get(target.id, "") if self.content is not None else ""
+        server = compose_talk(persona, target.id, target.name, target.role, message, tick)
+        reply = str(server["reply"])
+        req_aff = float(server["affection_delta"])
+        req_trust = float(server["trust_delta"])
+
         ledger = dict(state.talk_ledger.get(target.id) or {})
         day_aff = float(ledger.get("day_affection", 0.0))
         day_trust = float(ledger.get("day_trust", 0.0))
@@ -75,13 +107,34 @@ class TalkAction(Action):
         d_trust = _clamp_delta(req_trust, tick_trust, day_trust)
 
         effects: list[Effect] = []
-        if PLAYER_ID not in state.entities:
+        spoofed = [
+            field
+            for field in ("affection_delta", "trust_delta", "reply")
+            if field in intent.args
+        ]
+        if spoofed:
+            effects.append(
+                Effect(
+                    "audit_log",
+                    {
+                        "kind": "spoofed_arg",
+                        "actor": pid,
+                        "tick": tick,
+                        "fields": spoofed,
+                        "note": "服务端忽略调用方传入的关系增量/回复",
+                    },
+                )
+            )
+
+        if pid not in state.entities:
+            raw_name = intent.args.get("player_name") or intent.args.get("name")
+            player_name = str(raw_name or PLAYER_NAME).strip() or PLAYER_NAME
             effects.append(
                 Effect(
                     "create_entity",
                     {
-                        "id": PLAYER_ID,
-                        "name": PLAYER_NAME,
+                        "id": pid,
+                        "name": player_name,
                         "role": "visitor",
                         "location": target.location,
                         "stamina": 100.0,
@@ -89,6 +142,13 @@ class TalkAction(Action):
                     },
                 )
             )
+        player_name = (
+            state.entities[pid].name if pid in state.entities
+            else str(intent.args.get("player_name") or intent.args.get("name") or PLAYER_NAME).strip()
+            or PLAYER_NAME
+        )
+        if wallet(pid) not in state.accounts:
+            effects.append(Effect("create_account", {"account": wallet(pid), "balance": 0}))
 
         effects.append(
             Effect(
@@ -96,7 +156,7 @@ class TalkAction(Action):
                 {
                     "npc": target.id,
                     "tick": tick,
-                    "text": f"{PLAYER_NAME}说：{message}",
+                    "text": f"{player_name}说：{message}",
                     "importance": 0.4,
                     "source": "talk:player",
                 },
@@ -115,9 +175,9 @@ class TalkAction(Action):
             )
         )
 
-        existing = state.relation(PLAYER_ID, target.id, "acquaintance")
+        existing = state.relation(pid, target.id, "acquaintance")
         relation = {
-            "a": PLAYER_ID,
+            "a": pid,
             "b": target.id,
             "kind": "acquaintance",
         }
@@ -143,7 +203,9 @@ class TalkAction(Action):
             )
         )
         effects.append(Effect("set_field", {"entity": target.id, "field": "last_action_tick", "value": tick}))
-        effects.append(Effect("set_field", {"entity": PLAYER_ID, "field": "last_action_tick", "value": tick}))
+        effects.append(Effect("set_field", {"entity": pid, "field": "last_action_tick", "value": tick}))
+        effects.append(Effect("set_field", {"entity": pid, "field": "presence", "value": "online"}))
+        effects.append(Effect("set_field", {"entity": pid, "field": "last_seen_tick", "value": tick}))
         return effects
 
 

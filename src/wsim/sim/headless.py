@@ -291,6 +291,22 @@ def run_headless(
     player_loc = ""
     if cfg.with_players:
         player_loc = "market" if "market" in content.locations else sorted(content.locations)[0]
+        enter = writer.submit(
+            Intent(
+                actor="player:visitor",
+                verb="player_enter",
+                args={"player_id": "player:visitor", "name": "访客", "at": player_loc},
+                tick=0,
+                source="player",
+                reason="玩家进入世界",
+            )
+        )
+        if enter.seq > events[-1].seq:
+            events.append(enter)
+        log.append(
+            f"[{stamp(0)}] player_enter seq={enter.seq} outcome={enter.outcome} "
+            f"presence={writer.state.entities.get('player:visitor').presence if 'player:visitor' in writer.state.entities else 'missing'}"
+        )
 
     def run_night_batch(base: int, day: int) -> None:
         """日界批处理：为当日非 spotlight 的 NPC 生成一份计划，供白天推进。"""

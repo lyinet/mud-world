@@ -334,9 +334,14 @@ def build_state_summary(
     if ent is None:
         return {"npc": npc, "tick": tick, "tier": tier, "missing": True}
     cash = state.account_balance(wallet(npc))
-    loc = content.locations.get(ent.location) or {}
+    loc = content.locations.get(ent.location) or state.locations.get(ent.location) or {}
     row = next((n for n in content.npcs if str(n.get("id")) == npc), {})
     hour = (tick % TICKS_PER_DAY) / 6.0
+    exits = sorted(str(x) for x in (loc.get("exits") or []))
+    reachable = []
+    for lid in exits:
+        lrow = state.locations.get(lid) or content.locations.get(lid) or {}
+        reachable.append({"id": lid, "name": str(lrow.get("name") or lid)})
     return {
         "npc": npc,
         "name": str(row.get("name") or npc),
@@ -349,7 +354,12 @@ def build_state_summary(
         "role": ent.role,
         "location": ent.location,
         "location_name": str(loc.get("name") or ent.location),
-        "exits": sorted(str(x) for x in (loc.get("exits") or [])),
+        "exits": exits,
+        "reachable_locations": reachable,
+        "previous_location": {
+            "id": ent.location,
+            "name": str(loc.get("name") or ent.location),
+        },
         "status": ent.status,
         "stamina": round(float(ent.stamina), 2),
         "cash": cash,

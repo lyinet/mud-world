@@ -61,8 +61,16 @@ class Event:
     outcome: str  # ok / rejected
     reason: str
     source: str
+    # 旧 run 的 player:visitor 事件在读取时标记；不参与规范哈希，保证旧 run 可回放。
+    legacy: bool = False
 
     def to_dict(self) -> dict[str, Any]:
+        data = self.to_canonical_dict()
+        if self.legacy:
+            data["legacy"] = True
+        return data
+
+    def to_canonical_dict(self) -> dict[str, Any]:
         return {
             "seq": self.seq,
             "tick": self.tick,

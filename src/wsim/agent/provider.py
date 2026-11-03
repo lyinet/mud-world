@@ -456,6 +456,8 @@ class LLMReasoner(Reasoner):
         self.intent_reject_by_reason: Counter[str] = Counter()
         self.intent_missing: Counter[str] = Counter()
         self._recent: dict[str, deque[str]] = {}
+        # P3-C：记录每个 NPC 上一轮决策时的地点，供意图 prompt 的“你刚才在哪”。
+        self._last_locations: dict[str, dict[str, str]] = {}
         # 夜间批处理产出的“今日意图”缓存；白天唤醒时套上规则底稿再落地。
         self._hints: dict[str, dict[str, Any]] = {}
         self.wall_time_s = 0.0
@@ -603,6 +605,19 @@ class LLMReasoner(Reasoner):
             p["content"], p["state"], p["npc"], p["tick"], p["tier"],
             self._recent.get(p["npc"], ()),
         )
+        if summary.get("location"):
+            npc = str(p["npc"])
+            summary["previous_location"] = dict(
+                self._last_locations.get(npc)
+                or {
+                    "id": str(summary["location"]),
+                    "name": str(summary.get("location_name") or summary["location"]),
+                }
+            )
+            self._last_locations[npc] = {
+                "id": str(summary["location"]),
+                "name": str(summary.get("location_name") or summary["location"]),
+            }
         system, user = build_intent_prompt(
             self.intent_catalog, utterance, summary, list(self._recent.get(p["npc"], ()))[-4:]
         )

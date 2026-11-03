@@ -11,8 +11,10 @@ def state_hash(state: WorldState) -> str:
 
 
 def event_hash(events: list[Event]) -> str:
-    return hash_obj([e.to_dict() for e in events])
+    return hash_obj([e.to_canonical_dict() for e in events])
 
 
 def combined_hash(state: WorldState, events: list[Event]) -> str:
-    return hash_obj({"state": state.to_dict(), "events": [e.to_dict() for e in events]})
+    return hash_obj(
+        {"state": state.to_dict(), "events": [e.to_canonical_dict() for e in events]}
+    )

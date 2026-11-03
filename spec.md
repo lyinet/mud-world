@@ -332,3 +332,149 @@ def treasury_open_shop_buffer(state, content, cost: int) -> int:
 - 不修改 K1/K3 口径；
 - 不删除旧报告 `reports/delivery-p2.md`；
 - 不为 `talk` 增加 NPC→NPC 自动闲聊（本轮只做玩家→NPC 落地）。
+
+# P3-C：安全/正确性四个缺陷 + 缺 location 追问 + 玩家最小切片
+
+不调用真实 Xing API；全部用假端点与单元测试验收。
+
+## 0. 需求到实现的对照（验收时逐条回填）
+
+| 用户要求 | 实现位置 | 验收测试 |
+| --- | --- | --- |
+| 对话身份不写死 `player:visitor`；缺失拒绝；旧事件标 legacy | `actions/social.py` `_speaker_id`；`core/models.py` `Event.legacy`；`world/store.py` `_infer_legacy` | `test_player_id_arg_overrides_actor`、`test_actor_session_identity_is_used`、`test_talk_without_identity_is_rejected`、`test_legacy_events_marked_without_hash_change` |
+| 忽略调用方 `affection_delta` / `reply`；记 `spoofed_arg` 但不整包拒绝 | `actions/social.py` `TalkAction.apply`；`world/effects.py` `audit_log` | `test_talk_ignores_spoofed_reply_and_deltas`、`test_talk_records_spoofed_arg_audit` |
+| 玩家 tick 单调且不写未来；`stale_tick`；NPC 不受影响 | `world/writer.py` `_is_player_intent` / `_player_ticks` | `test_writer_rejects_stale_player_tick`、`test_writer_rejects_future_player_tick`、`test_writer_npc_tick_not_checked` |
+| `found_sect` 按内容包 `allowed_roles` 拦截 | `actions/business.py` `FoundSectAction.preconditions` | `test_found_sect_role_not_allowed`、`test_found_sect_allowed_role_passes` |
+| 意图 prompt 列相邻地点 + 上一句位置；clarification ≤3% | `agent/prompt.py`、`agent/intent_model.py`、`agent/provider.py`、`tools/fake_*_server.py` | `test_intent_prompt_lists_reachable_locations`、`test_intent_prompt_includes_previous_location`、`test_fake_intent_resolves_reachable_name`；72d 假端点统计 |
+| `player:<id>` 实体 + enter/presence/leave；status 已登记 | 新建 `actions/player.py`；`actions/registry.py`；`sim/headless.py` | `test_player_enter_registers_entity_wallet_presence`、`test_player_presence_updates_location`、`test_player_leave_sets_offline`、`test_player_minimal_chain_replay_match` |
+| 冻结与干净重跑 | `tasks.md`、`reports/p3c-report.md` | pytest / framework / 10d / 72d / worktree 记录 |
+
+## 1. 四个缺陷（必须修，各配测试）
+
+### 1.1 对话身份不再写死 `player:visitor`
+
+- 文件：`src/wsim/actions/social.py`
+- 新函数 `_speaker_id(state, intent)`：
+  - 优先 `intent.args["player_id"]`；
+  - 否则玩家会话身份 `actor.startswith("player:")`；
+  - 否则只有 actor 已在 `state.entities` 中（服务端调度的 NPC）才用 actor；
+  - 都取不到返回空串。
+- `TalkAction.preconditions` 空身份 → `["missing_player_id"]`；
+  `TalkAction.apply` 空身份 → `Reject("missing_player_id")`。
+- 实体/钱包/记忆/`relation_upsert`/`talk_ledger`/`set_field` 全部使用解析出的身份，
+  删除 `PLAYER_ID` 引用（`PLAYER_NAME` 仅作无 `player_name` 时的显示名回退）。
+- 迁移：`src/wsim/core/models.py` 的 `Event.legacy`；`src/wsim/world/store.py`
+  旧库无 `legacy` 列时不 ALTER，读取时 `_infer_legacy(actor, verb)` 把
+  `player:visitor` 的 talk/presence 事件标记 `legacy=True`；
+  `src/wsim/world/hash.py`、`EventStore.event_hash` 用 `to_canonical_dict()`，
+  `legacy` 不进哈希，旧 run 哈希与回放不变。
+
+### 1.2 服务端忽略调用方关系增量与回复
+
+- 文件：`src/wsim/actions/social.py`
+- `TalkAction.apply` 用 `compose_talk(...)` 重新计算 `reply/affection_delta/trust_delta`；
+  `intent.args` 里出现的 `affection_delta` / `trust_delta` / `reply` 一律不参与计算。
+- 命中字段时追加 `Effect("audit_log", {"kind":"spoofed_arg", ...})`，
+  记录 actor/tick/fields，不整包拒绝。
+- `src/wsim/world/effects.py`：`EFFECT_OPS` 加 `audit_log`；只接受非空 kind，
+  写 `WorldState.audit_log`，最多保留 500 条。
+- `src/wsim/world/state.py`：`WorldState.audit_log` 仅在非空时进入 `to_dict()`，
+  保持旧 run 状态哈希不变。
+
+### 1.3 Writer 校验玩家 tick
+
+- 文件：`src/wsim/world/writer.py`
+- `_is_player_intent`：actor 以 `player:` 开头且 `source not in (npc, planner, system)`。
+- `submit` 在取 action 前校验：`tick >= self._player_ticks[actor]` 且
+  `tick <= state.tick`；否则 `_record_reject(..., "rejected:stale_tick")`。
+- 通过后更新 `_player_ticks[actor]`；NPC/planner/system 不受影响。
+
+### 1.4 `found_sect` 在 Action 层执行 `allowed_roles`
+
+- 文件：`src/wsim/actions/business.py`
+- 导入 `role_allowed`；`FoundSectAction.preconditions` 在 `require_entity` 后：
+  `if not role_allowed(self.content, "found_sect", ent.role): return ["role_not_allowed"]`。
+- 角色清单来自 `content/verbs.yaml` 的 `found_sect.allowed_roles`。
+- `apply` 不重复校验，Writer 只会在 preconditions 通过后调用。
+
+## 2. 缺 location 追问
+
+- 文件：`src/wsim/agent/prompt.py`
+- `build_state_summary` 新增：
+  - `reachable_locations`：当前地点 `exits` 的 `[{id,name}]`（取自世界状态）；
+  - `previous_location`：`{id,name}`（由 provider 每轮写入，缺省为当前地点）。
+- 文件：`src/wsim/agent/intent_model.py`
+- `build_intent_prompt` 新增显式段落：
+  - `【你刚才在哪】`；
+  - `【当前可到达的相邻地点（只可从这些里选 destination）】`，逐行 `名称（id）`；
+  - `【当前上下文】` JSON 同步带 `reachable_locations` / `previous_location`；
+  - system prompt 明确：目的地只能来自相邻地点，缺则 `needs_clarification` 且只缺 destination。
+- 文件：`src/wsim/agent/provider.py`
+- `LLMReasoner._prepare_intent` 维护 `_last_locations[npc]`，把上一轮地点写入
+  summary 的 `previous_location`，处理完更新为当前地点。
+- 文件：`tools/fake_llm_server.py`
+- decision 模式只用 `reachable_locations` 的 `name` 组装 “去{name}看看”，
+  不再使用 `exits[0]` 的地点 id。
+- 文件：`tools/fake_intent_server.py`
+- `去某地` 参数去掉尾部 “看看/走走/逛逛/一趟”，并优先在相邻地点清单里查；
+  查不到才返回缺 destination。
+
+验收：72d 假端点 run 中 `needs_clarification / intent_calls` 从 9.45%（195/2064）
+降到 ≤3%；仍缺的按 missing 字段类别列出（预期只剩非 destination 类）。
+
+## 3. 玩家最小切片
+
+- 新建 `src/wsim/actions/player.py`：
+  - `PlayerEnterAction`（verb `player_enter`）：解析身份；`at` 必须在世界地点；
+    缺实体则 `create_entity`（role `visitor`），缺账户则 `create_account wallet:<id>`；
+    `presence=online`、`last_seen_tick=tick`、`location=at`；重复进入若已在线返回
+    `already_online`。
+  - `PlayerPresenceAction`（verb `player_presence`）：实体必须存在；可选 `at`
+    校验后 `set_location`；刷新 presence/last_seen_tick。
+  - `PlayerLeaveAction`（verb `player_leave`）：实体必须存在；`presence=offline`，
+    刷新 last_seen_tick。
+- `src/wsim/actions/registry.py` 注册三个动作。
+- `src/wsim/sim/headless.py`：`cfg.with_players` 时在 tick 0、创世后提交
+  `player_enter`（actor `player:visitor`，`at=player_loc`，source `player`），
+  让 UI/终端 `status` 显示“已登记”；不自动 leave。
+- 玩家动作仍只走 `propose → admin approve → apply → Writer`；不开放杀害/抢掠/强迫婚配。
+- 完整链路实测（测试内用临时 EventStore）：
+  `player_enter` → `talk`（服务端算关系）→ `player_presence`（换地点）→
+  `player_leave` → `tools/replay.py` 回放 MATCH；报告输出各事件 seq 与最终哈希。
+
+## 4. 测试清单
+
+- `tests/test_talk_action.py`：
+  - 身份：`args.player_id` 优先、`actor=player:*` 回退、无身份拒绝；
+  - spoofed：传 `reply/affection_delta/trust_delta` 时输出服务端回复，
+    `audit_log` 有 `spoofed_arg`，关系与不传时一致；
+  - 既有上限/守恒测试改为服务端计算口径。
+- `tests/test_p3c_security.py`（新）：
+  - Writer `stale_tick`（回退 tick、未来 tick、NPC 不受影响）；
+  - 旧 schema EventStore 读取 `player:visitor` → `legacy=True`，event hash 不变；
+  - `found_sect` 越权 → `rejected:role_not_allowed`。
+- `tests/test_p3c_intent_location.py`（新）：
+  - prompt 含 `reachable_locations` / `previous_location` 与显式段落；
+  - 假 intent 端点对相邻地点名可解析；无地点仍 `needs_clarification`。
+- `tests/test_p3c_player.py`（新）：
+  - enter/presence/leave 状态与钱包、presence；
+  - 完整链路 + replay MATCH。
+- 全部测试禁止真实网络请求；假端点进程内启动。
+
+## 5. 验收与冻结
+
+1. `PYTHONPATH=src .venv/bin/python -m pytest -q` 全过。
+2. `python3 tools/framework_check.py` 全过。
+3. 假端点 10d / 72d：记录 K1、拒绝率、守恒、replay、state/event hash。
+4. 写 `reports/p3c-report.md`：四缺陷修复位置与测试名、clarification 前后比例、
+   玩家链路 seq/哈希、未做项。
+5. commit → `git tag -a delivery-p3c`。
+6. `git worktree add /tmp/wsim-p3c delivery-p3c`，从 tag 干净重跑 pytest /
+   framework / 10d / 72d，回填报告，清理 worktree。
+
+## 6. 明确不做
+
+- 不调用真实 Xing / 真实决策端点（0 次）；
+- 不做完整玩家系统（8 人周）：不开放杀害、抢掠、强迫婚配；
+- 不做多玩家会话管理、账号体系、玩家背包 UI；
+- 不改 K1/K3 口径，不为达标调参。

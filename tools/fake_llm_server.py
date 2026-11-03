@@ -132,8 +132,16 @@ def _response_content(cfg: FakeLLMConfig, body: dict[str, Any], index: int) -> s
         elif nearby:
             intent = f"找{nearby[0].get('name') or nearby[0].get('id')}闲聊几句"
         else:
-            exits = [str(x) for x in (summary.get("exits") or []) if str(x)]
-            intent = f"去{exits[0] if exits else '集市'}看看"
+            reachable = [
+                r for r in (summary.get("reachable_locations") or [])
+                if isinstance(r, dict) and str(r.get("id") or "")
+            ]
+            if reachable:
+                # P3-C：用相邻地点的中文名（不是地点 id），让意图层能解析 destination。
+                name = str(reachable[0].get("name") or reachable[0]["id"])
+                intent = f"去{name}看看"
+            else:
+                intent = "去集市看看"
         return json.dumps({"goal": goal, "intent": intent}, ensure_ascii=False, sort_keys=True)
     actions = _generate_actions(summary, rng, cfg.long_output)
     return json.dumps({"actions": actions}, ensure_ascii=False, sort_keys=True)

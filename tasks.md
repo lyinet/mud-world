@@ -192,3 +192,59 @@
       对话落地数、记忆条数、关系变化、过期单数、拒绝率、金库期末、税回流、
       开店延后次数、未达标项。
 - [x] 清理临时 worktree；确认 `git status --short` 干净。
+
+# P3-C · delivery-p3c
+
+## C1 对话身份（缺陷 1）
+- [x] `src/wsim/actions/social.py`：`_speaker_id(state, intent)` 解析
+      `args.player_id` → `actor=player:*` → 已注册 NPC actor → 否则空；
+      `TalkAction` 全链路改用解析身份；空身份 `missing_player_id`。
+- [x] `src/wsim/core/models.py`：`Event.legacy` + `to_canonical_dict()`。
+- [x] `src/wsim/world/store.py`：新库带 `legacy` 列；旧库不 ALTER，
+      `_infer_legacy` 标记 `player:visitor` 的 talk/presence 事件。
+- [x] `src/wsim/world/hash.py`：`event_hash` / `combined_hash` 用 canonical dict。
+- [x] 测试：`args.player_id` 优先、会话身份回退、缺身份拒绝、旧库 legacy &
+      哈希不变。
+
+## C2 服务端计算关系（缺陷 2）
+- [x] `TalkAction.apply`：`compose_talk` 重算 reply/affection/trust；
+      调用方字段丢弃。
+- [x] `src/wsim/world/effects.py`：`audit_log` 原语（kind 非空、上限 500）。
+- [x] `src/wsim/world/state.py`：`audit_log` 仅在非空时进入哈希。
+- [x] 测试：`spoofed_arg` 审计、服务端回复覆盖、与不传时关系一致。
+
+## C3 玩家 tick 单调（缺陷 3）
+- [x] `src/wsim/world/writer.py`：`_is_player_intent` + `_player_ticks`；
+      回退/未来 tick → `rejected:stale_tick`；NPC 不受影响。
+- [x] 测试：回退 tick、未来 tick、NPC 通过。
+
+## C4 found_sect 角色拦截（缺陷 4）
+- [x] `src/wsim/actions/business.py`：`role_allowed(content,"found_sect",role)`；
+      越权 `role_not_allowed`。
+- [x] 测试：越权拒绝理由明确，授权角色不受影响。
+
+## C5 缺 location 追问
+- [x] `src/wsim/agent/prompt.py`：`reachable_locations`（id+name）与
+      `previous_location`。
+- [x] `src/wsim/agent/intent_model.py`：prompt 显式段落 + system 约束。
+- [x] `src/wsim/agent/provider.py`：`_last_locations` 传入 previous_location。
+- [x] `tools/fake_llm_server.py`：decision 用 `reachable_locations.name`。
+- [x] `tools/fake_intent_server.py`：去尾缀、优先相邻地点。
+- [x] 测试：prompt 字段/段落；假端点解析；无地点仍 clarify。
+- [x] 72d 对比：clarification 9.45% → 0%（≤3%），按 missing 字段分类列出。
+
+## C6 玩家最小切片
+- [x] 新建 `src/wsim/actions/player.py`：`player_enter` / `player_presence` /
+      `player_leave`。
+- [x] `src/wsim/actions/registry.py` 注册。
+- [x] `src/wsim/sim/headless.py`：`with_players` 时 tick 0 提交 `player_enter`。
+- [x] 测试：实体/钱包/位置/presence；enter→talk→presence→leave→replay MATCH，
+      记录 seq 与哈希。
+
+## C7 验收与冻结
+- [x] `pytest -q` 全过；`tools/framework_check.py` 全过。
+- [x] 假端点 10d / 72d：K1、拒绝率、守恒、replay、state/event hash。
+- [x] 写 `reports/p3c-report.md`；更新 tasks.md 勾选。
+- [ ] commit → `git tag -a delivery-p3c`。
+- [ ] `git worktree add /tmp/wsim-p3c delivery-p3c` 干净重跑并回填，清理 worktree。
+- [x] 真实 Xing / 真实端点调用 0 次，报告列为未验证。

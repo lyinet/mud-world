@@ -167,6 +167,8 @@ def build_intent_prompt(
         "你是意图理解模型，只做意图分类与参数抽取，不做决策。"
         "只输出 JSON：{\"category\":\"<类别>\",\"args\":{\"<字段>\":\"<原文值>\"}}。"
         "信息没说全时不要猜，输出 {\"needs_clarification\":[<缺失字段>]}。"
+        "用户说“去某地”但没给目的地时，只能从【当前可到达的相邻地点】里选；"
+        "无法确定就只缺 destination，不要猜。"
         "否定句（如“不去”“别给我”）视为不执行，输出 {\"category\":\"none\",\"args\":{}}。"
         "未知意图输出 {\"category\":\"unknown\",\"args\":{}}。"
         "不要改写原文参数值。"
@@ -188,6 +190,8 @@ def build_intent_prompt(
             "npc": state_summary.get("npc"),
             "location": state_summary.get("location"),
             "exits": state_summary.get("exits"),
+            "reachable_locations": state_summary.get("reachable_locations"),
+            "previous_location": state_summary.get("previous_location"),
             "cash": state_summary.get("cash"),
             "inventory": state_summary.get("inventory"),
             "nearby_npcs": [
@@ -197,6 +201,21 @@ def build_intent_prompt(
             "goal": state_summary.get("goal"),
         }
         lines += ["", "【当前上下文】", json.dumps(ctx, ensure_ascii=False, sort_keys=True)]
+        prev = state_summary.get("previous_location") or {}
+        cur = {
+            "id": state_summary.get("location"),
+            "name": state_summary.get("location_name"),
+        }
+        lines += [
+            "",
+            "【你刚才在哪】",
+            f"- 上一句时你在 {prev.get('name') or cur['name']}（{prev.get('id') or cur['id']}）",
+        ]
+        lines += ["", "【当前可到达的相邻地点（只可从这些里选 destination）】"]
+        for row in state_summary.get("reachable_locations") or []:
+            lines.append(f"- {row.get('name') or row.get('id')}（{row.get('id')}）")
+        if not state_summary.get("reachable_locations"):
+            lines.append("- 无相邻地点；需要目的地时输出 needs_clarification，只缺 destination")
     return system, "\n".join(lines)
 
 

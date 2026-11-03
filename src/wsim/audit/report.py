@@ -23,7 +23,11 @@ NPC_VERBS = {
 }
 
 # P2-B：由引擎意图层/插件提供、不要求内容包声明的动词。
-ENGINE_ONLY_ALLOWED = {"quest_accept", "quest_deliver", "recruit", "debt_settle"}
+ENGINE_ONLY_ALLOWED = {
+    "quest_accept", "quest_deliver", "recruit", "debt_settle",
+    # P3-C 玩家最小切片：由 UI/会话层直接 propose，不属于 NPC 决策动词。
+    "player_enter", "player_presence", "player_leave",
+}
 
 
 def content_audit(content: Content, registry, genesis_mismatches: list[str] | None = None) -> dict:

@@ -36,9 +36,12 @@ class Entity:
     goal_id: str | None = None
     escort_id: str | None = None
     last_action_tick: int = 0
+    # 玩家在场状态（P3-C）：online / offline。NPC 默认 online 且不写哈希。
+    presence: str = "online"
+    last_seen_tick: int = 0
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        data = {
             "id": self.id,
             "name": self.name,
             "role": self.role,
@@ -60,6 +63,12 @@ class Entity:
             "escort_id": self.escort_id,
             "last_action_tick": self.last_action_tick,
         }
+        # 只在非默认值时出现，避免旧 run 的世界哈希被新字段改写。
+        if self.presence != "online":
+            data["presence"] = self.presence
+        if self.last_seen_tick:
+            data["last_seen_tick"] = self.last_seen_tick
+        return data
 
 
 @dataclass
@@ -295,6 +304,8 @@ class WorldState:
     burned_total: int = 0
     items_created: dict[str, int] = field(default_factory=dict)
     items_burned: dict[str, int] = field(default_factory=dict)
+    # 服务端审计（如 spoofed_arg）。空列表不写入哈希，保证旧 run 可回放。
+    audit_log: list[dict[str, Any]] = field(default_factory=list)
 
     def clone(self) -> "WorldState":
         return WorldState(
@@ -318,10 +329,11 @@ class WorldState:
             burned_total=self.burned_total,
             items_created=dict(self.items_created),
             items_burned=dict(self.items_burned),
+            audit_log=copy.deepcopy(self.audit_log),
         )
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        data = {
             "entities": {k: v.to_dict() for k, v in sorted(self.entities.items())},
             "businesses": {k: v.to_dict() for k, v in sorted(self.businesses.items())},
             "factions": {k: v.to_dict() for k, v in sorted(self.factions.items())},
@@ -343,6 +355,9 @@ class WorldState:
             "items_created": dict(sorted(self.items_created.items())),
             "items_burned": dict(sorted(self.items_burned.items())),
         }
+        if self.audit_log:
+            data["audit_log"] = list(self.audit_log)
+        return data
 
     def hash(self) -> str:
         return hash_obj(self.to_dict())
