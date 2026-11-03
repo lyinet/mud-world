@@ -1,4 +1,37 @@
-# Tasks · delivery-p2.1
+# Tasks · delivery-p2.2（P2.1 任务保留）
+
+## P2.2 整改
+
+### P1 对话持久化
+- [x] `ui/adapter.py`：直接把 run 的 `events.sqlite` 交给 `Writer`，对话 effect 追加到持久 store。
+- [x] 对话写入后同步 `world_hash.txt` / `event_hash.txt` / `summary.json`，刷新与 replay 可重建。
+- [x] `src/wsim/agent/dialogue.py`：按 `turn` + `last_reply` 轮换台词与引导句，连续 3 轮不重复。
+- [x] `tests/test_talk_action.py`：3 轮不重复、跨 3 日累积（affection 24 / trust 64）、关库重开仍在。
+- 验证：`python3 -m pytest -q tests/test_talk_action.py`；`tools/replay.py --run /tmp/p22v-ui` → MATCH。
+
+### P2 `open_shop` 门槛
+- [x] `content/economy.yaml`：`shop_opening.expected_wage_days: 3` + `expected_staff`。
+- [x] `src/wsim/actions/common.py`：`treasury_open_shop_buffer` 只按店铺岗位工资计算。
+- [x] `business.py` / `intent.py` 同步新缓冲；`tests/test_treasury_revenue.py` 更新断言。
+- 验证：72d `open_shop_postponed=0`，开店 11 次。
+
+### P3 UI 任务指引
+- [x] `/api/quests` + 任务板：发布人地点 / 同行 / 可接 / 提示。
+- [x] `_event_hint`：拒绝事件输出可执行一句话。
+- [x] NPC 详情显示当前地点与最近动作。
+
+### P4 文档
+- [x] `reports/delivery-p2.2.md`：四项改动、前后数字、K1 `non_comparable`、税差舍入、失败数口径。
+- [x] `reports/delivery-p2.1.md` 顶部加 P2.2 更正指针；旧两份报告保留。
+
+### P5 冻结
+- [x] commit 代码 → `git tag -a delivery-p2.2`（附注 commit + content_hash）。
+- [x] 从 tag 干净重跑 10d / 72d，replay MATCH，framework 5/5，pytest 89 passed。
+- [x] 回填 `reports/delivery-p2.2.md` 并提交文档。
+
+---
+
+## P2.1 任务（历史）
 
 ## T1 状态与 Effect 底座
 - [x] `src/wsim/world/state.py`：加 `talk_ledger`、`quest_stats`、`quests_expired_total`；
