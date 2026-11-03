@@ -1,0 +1,35 @@
+{
+  "fields": {
+    "answer_key": [
+      "id",
+      "model"
+    ],
+    "labels_only_in_answer_key": true,
+    "pairs": [
+      "id",
+      "prompt",
+      "A",
+      "B"
+    ]
+  },
+  "fingerprints": {
+    "answer_key_sha256": "802f2ded24f9f356b9ab9676d24758987a346fa790f56ba08cad17d587e66789",
+    "pairs_sha256": "3a653725641a53046d48c9b19f4b15ba8e6a5bc2c5acf8c1a12b79ced11804aa"
+  },
+  "markdown_hits": [],
+  "missing_first_person": [],
+  "position_balance": {
+    "model_as_A": 15,
+    "model_as_B": 15
+  },
+  "samples": 30,
+  "seed": 20261104,
+  "source": "runs/a2-dialogue-30/eval_raw.jsonl",
+  "template_length": {
+    "avg": 34.33,
+    "in_20_60": 30,
+    "max": 46,
+    "min": 26
+  },
+  "third_person_hits": []
+}
