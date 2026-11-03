@@ -30,6 +30,15 @@ GOLDEN = {
     "precondition_pruned": 5,
 }
 
+# A2：dialogue 显式开启后，talk 的“我答：…”文本换成模型台词，事件数不变，
+# 但 event/state hash 必然漂移。此基线锁定该开启路径的确定性（FakeLLMServer seed=7）。
+DIALOGUE_GOLDEN = {
+    "events_total": 824,
+    "state_final": "a52d5a482f5708298fb3be5c863df8a777428716e67cd811644b674d16565b96",
+    "event_final": "86946e7c66012dcd2c51ed65f1004752eae165742d050431e2d5fb3b80e1a6a0",
+    "dialogue_calls": 65,
+}
+
 
 def test_deterministic_2d_fake_run_is_golden(tmp_path):
     env_keys = ("LLM_BASE_URL", "LLM_API_KEY", "LLM_MODEL")
@@ -84,3 +93,47 @@ def test_deterministic_2d_fake_run_is_golden(tmp_path):
     assert pruned_file.exists() and blocked_file.exists(), "缺少全量拦截记录导出"
     assert len(pruned_file.read_text(encoding="utf-8").splitlines()) == GOLDEN["precondition_pruned"]
     assert len(blocked_file.read_text(encoding="utf-8").splitlines()) == GOLDEN["precondition_blocked"]
+
+
+def test_dialogue_enabled_fake_run_is_golden(tmp_path):
+    """A2 开启路径基线：事件数不漂移，文本进入记忆导致 event/state hash 显式漂移。"""
+    env_keys = ("LLM_BASE_URL", "LLM_API_KEY", "LLM_MODEL", "WSIM_DIALOGUE")
+    saved = {k: os.environ.get(k) for k in env_keys}
+    srv = FakeLLMServer(port=0, seed=7)
+    try:
+        srv.start()
+        os.environ["LLM_BASE_URL"] = srv.base_url
+        os.environ["LLM_API_KEY"] = "fake-ci-key"
+        os.environ["LLM_MODEL"] = "fake/model"
+        os.environ["WSIM_DIALOGUE"] = "1"
+        summary = run_headless(
+            ROOT,
+            RunConfig(
+                days=2, seed=42, npc_limit=0, out_root=tmp_path, run_id="golden-dialogue",
+                with_players=1, dump_state=True, enable_llm=True,
+                llm_budget={
+                    "daily_tokens": 2_000_000, "monthly_tokens": 20_000_000,
+                    "daily_cost": 100.0, "monthly_cost": 1000.0,
+                },
+            ),
+        )
+    finally:
+        srv.stop()
+        for key, value in saved.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+    got = {
+        "events_total": summary["events"]["total"],
+        "state_final": summary["hashes"]["state_final"],
+        "event_final": summary["hashes"]["event_final"],
+        "dialogue_calls": summary["llm"]["dialogue_async"]["calls"],
+    }
+    drift = {k: (DIALOGUE_GOLDEN[k], got[k]) for k in DIALOGUE_GOLDEN if got[k] != DIALOGUE_GOLDEN[k]}
+    assert not drift, (
+        "dialogue 开启路径基线漂移（golden, actual）："
+        + json.dumps(drift, ensure_ascii=False)
+        + "；若确属有意变更，请同步更新 DIALOGUE_GOLDEN 与报告基线说明"
+    )
