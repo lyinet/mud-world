@@ -761,6 +761,12 @@ class Planner:
     ) -> tuple[str, int, int]:
         npc = ent.id
         ct = choice.content_type
+        # 只有内容包指定的发起人能开对应门派；其他 NPC 的 found_sect 目标
+        # 退化为“入会”，避免出现谢停云抢先开清议社这种冒名顶替。
+        if ct == "found_sect" and not any(
+            str(s.get("founder_candidate")) == npc for s in self.content.sects.values()
+        ):
+            ct = "join_sect"
         name = ent.name
         reason = lambda text: f"{name}：{text}（{choice.reason.split('：', 1)[-1]}）"
 
@@ -903,8 +909,10 @@ class Planner:
                 return loc, cursor, cash
             sect_cfg = next(
                 (s for s in self.content.sects.values() if s.get("founder_candidate") == ent.id),
-                self.content.sect_at(ent.home or ent.location) or {},
+                {},
             )
+            if not sect_cfg:
+                return loc, cursor, cash
             at = str(sect_cfg.get("location") or ent.home or ent.location)
             loc, cursor = self._move(state, intents, npc, loc, at, cursor, end, reason("回门派驻地"))
             min_rel = float((self.content.economy.get("sect") or {}).get("min_relation_value", 30))
