@@ -29,7 +29,7 @@ LOCATION_NAMES = {
     "temple": "城隍庙",
 }
 
-# 意图关键词与权重：按分值取最高者，同分按 INTENT_RULES 的先后顺序。
+# 意图优先按语义类别分化：不同类别使用不同句式骨架，禁止只替换话题名词。
 INTENT_RULES: tuple[tuple[str, tuple[tuple[str, int], ...]], ...] = (
     ("rejection", (("不买", 5), ("不要", 4), ("不用", 4), ("算了", 4),
                    ("免了", 4), ("没兴趣", 5), ("滚", 5), ("走开", 4), ("别烦", 4))),
@@ -38,102 +38,74 @@ INTENT_RULES: tuple[tuple[str, tuple[tuple[str, int], ...]], ...] = (
     ("directions", (("哪里", 3), ("哪儿", 3), ("怎么走", 4), ("怎么去", 4),
                     ("落脚", 5), ("住处", 4), ("客栈", 3), ("迷路", 3))),
     ("help", (("帮我", 4), ("帮忙", 4), ("劳烦", 4), ("求你", 4), ("能不能", 3),
-              ("赏脸", 5), ("请你", 4), ("建议", 3), ("怎么办", 2), ("学门手艺", 5))),
-    ("safety", (("安全", 4), ("怪声", 4), ("夜里", 3), ("天黑", 3), ("巡街", 2))),
-    ("object", (("这把刀", 5), ("把刀", 4), ("砍刀", 4), ("年头", 4))),
-    ("speculate", (("以后", 4), ("将来", 4), ("会变", 5), ("会成", 4), ("往后", 3))),
-    ("who", (("谁最", 5), ("谁有钱", 5), ("哪家", 4))),
-    ("person", (("为人", 4), ("认识", 4), ("熟吗", 4), ("靠得住", 4), ("公道", 4),
-                ("什么人", 3), ("师爷", 3), ("捕快", 3), ("掌柜", 3), ("九娘", 3),
-                ("三娘", 3), ("读书人", 4))),
-    ("news", (("听说", 3), ("新鲜事", 5), ("消息", 4), ("传闻", 4), ("外乡人", 5),
-              ("招人", 4), ("官府", 2), ("加税", 2), ("最近", 2), ("镇上", 2))),
-    ("business", (("肉价", 5), ("价钱", 4), ("价格", 4), ("多少钱", 4), ("几文", 4),
-                  ("本钱", 5), ("盘铺子", 5), ("赊账", 5), ("下水", 4), ("瘦肉", 4),
-                  ("绣品", 4), ("卖", 3), ("买", 3), ("生意", 3), ("铺子", 3),
-                  ("贵", 3), ("斤", 2))),
-    ("opinion", (("怕不怕", 5), ("信命", 5))),
+              ("赏脸", 5), ("请你", 4), ("建议", 3), ("借", 2), ("学门手艺", 5))),
+    ("credit", (("赊账", 6), ("赊", 4), ("借钱", 6), ("借我", 4), ("欠账", 5),
+                ("欠", 3), ("账期", 5), ("还钱", 5), ("缓两天", 4), ("手头紧", 3))),
+    ("gossip", (("听说", 3), ("新鲜事", 5), ("消息", 4), ("传闻", 4), ("外乡人", 5),
+                ("招人", 4), ("官府", 2), ("加税", 2), ("最近", 2), ("镇上", 2),
+                ("为人", 4), ("认识", 4), ("熟吗", 4), ("靠得住", 4), ("公道", 4),
+                ("什么人", 3), ("谁最", 5), ("谁有钱", 5), ("哪家", 4),
+                ("师爷", 3), ("捕快", 3), ("掌柜", 3), ("九娘", 3), ("三娘", 3),
+                ("读书人", 4))),
+    ("price", (("肉价", 5), ("价钱", 4), ("价格", 4), ("多少钱", 4), ("几文", 4),
+               ("本钱", 5), ("盘铺子", 5), ("下水", 4), ("瘦肉", 4), ("绣品", 4),
+               ("卖", 3), ("买", 3), ("生意", 3), ("铺子", 3), ("贵", 3), ("斤", 2))),
     ("chitchat", (("平时", 4), ("除了", 3), ("家里", 4), ("还做什么", 4),
-                  ("怎么切", 3), ("刀工", 4), ("跟谁学", 4))),
+                  ("怎么切", 3), ("刀工", 4), ("跟谁学", 4), ("怕不怕", 5),
+                  ("信命", 5), ("安全", 4), ("怪声", 4), ("夜里", 3), ("天黑", 3),
+                  ("巡街", 2), ("这把刀", 5), ("把刀", 4), ("砍刀", 4), ("年头", 4),
+                  ("以后", 4), ("将来", 4), ("会变", 5), ("会成", 4), ("往后", 3))),
 )
 
-# 同一意图的两种句式，按 digest 选一种，避免机械重复。
+# 每个骨架只表达一件事；跨类别不复用同一句尾口号或同一组语义内容。
 TEMPLATES: dict[str, tuple[str, ...]] = {
-    "greeting": (
-        "我在呢，{role}这行我干惯了，从早忙到晚。你有话直说，我不爱绕弯子。",
-        "来啦，我正守着摊子。做{role}的没别的本事，你有事尽管开口。",
-    ),
-    "directions": (
-        "找落脚处往客栈去，我收摊后常在那儿喝两碗，提我名字好使。",
-        "{place}这带我熟，往客栈走能吃能睡；迷了路就来摊上问我。",
-    ),
-    "news": (
-        "「{topic}」这事我也听了些，{place}这两天风声紧，我只顾守好摊子。",
-        "你问「{topic}」，街面上传得热闹；我不掺和，做{role}的只管本分。",
-    ),
-    "person": (
-        "「{topic}」我打过照面，不算深交。干{role}这些年，我看人只信日久见人心。",
-        "「{topic}」啊，面上热络，我瞧这人心里都有算盘。你跟这人来往，多留个心眼。",
-    ),
-    "who": (
-        "「{topic}」这话不好明说，财不露白。你去钱庄那头打听，比问我强。",
-        "「{topic}」我可不敢乱指名，钱的事传出去要惹祸，你自己瞧人去吧。",
-    ),
-    "business": (
-        "「{topic}」好说，今日行情见涨；你诚心要，价钱我让一文，斤两不短。",
-        "「{topic}」我不含糊，先看货再论价；熟客抹零，生客照规矩来。",
-    ),
-    "chitchat": (
-        "「{topic}」嘛，我做{role}的日子就是天亮忙到天黑，落几个钱心里才踏实。",
-        "「{topic}」我懂的不多，只晓得本分行当；旁的闲话，我不往外传。",
-    ),
-    "help": (
-        "「{topic}」这忙我能搭把手，丑话说前头，账目得慢慢算清。",
-        "「{topic}」你先讲难处；能应的我拍胸脯，不能应的也不诓你。",
-    ),
-    "rejection": (
-        "不买也不打紧，买卖不成情义在，下回你来，我照样给你留好的。",
-        "行，你不乐意就作罢，我不强留；做{role}这行，靠的是回头客。",
-    ),
-    "safety": (
-        "「{topic}」你问着了，天黑我劝你少往僻静处走，钱袋揣紧些。",
-        "「{topic}」我也留神，夜里收了摊就回，你别一个人走暗路。",
-    ),
-    "object": (
-        "「{topic}」跟了我些年头，用顺手了；谁要动它，我可不依。",
-        "「{topic}」是吃饭的家伙，我天天擦天天磨，舍不得换。",
-    ),
-    "speculate": (
-        "「{topic}」谁说得准，我只顾眼下把手上的活做好，日子总归要过。",
-        "往后的事我不多想，天亮了照旧出摊，能把今天的钱挣到手就成。",
-    ),
-    "opinion": (
-        "「{topic}」啊，怕也没用，真来了我照旧出摊，先把今天的钱挣了。",
-        "「{topic}」这事我想得开，日子还得过，谁也不比谁少熬一天。",
-    ),
-    "deflection": (
-        "这话我没听出个头绪，你再说明白些，我才好接。",
-        "你说的我一时没摸着门道，换个说法，我再答你。",
-    ),
+    "greeting.a": ("我在呢，{role}这行我干惯了，从早忙到晚；你有话直说，我不爱绕弯子。",),
+    "greeting.b": ("来啦，我正守着摊子；做{role}的没别的本事，你有事尽管开口。",),
+    "directions.a": ("找落脚处往东街走，过了石桥见红灯笼就是客栈；我摊子在{place}，走岔了回来问我。",),
+    "directions.b": ("从{place}往北两条街，门挂蓝布帘的是客栈；路口老槐树作记号，走岔了回来问我。",),
+    "gossip.person.a": ("「{topic}」这人我打过照面：嘴上是热络的，心里各有一本账；你跟这人来往，先护住钱袋。",),
+    "gossip.person.b": ("「{topic}」听来的话分两说：有人夸这人仗义，有人说这人精算；我只信亲眼见的。",),
+    "gossip.event.a": ("「{topic}」街面上传得凶，一版比一版玄；我只看亲眼见的，你别再往外传。",),
+    "gossip.event.b": ("「{topic}」这事我听到两耳朵，真真假假掺着；你要沾边，先把日子过稳。",),
+    "gossip.who": ("「{topic}」财不露白，我不敢乱指名；你去钱庄门口站半日，看谁进出不打怵。",),
+    "price.a": ("「{topic}」按今日行情走，一斤上下浮动两文；你诚心要，零头我抹，秤上不少你。",),
+    "price.b": ("「{topic}」我这儿看货定价，好的贵两文，次的折一文；称完你验秤，短一两我赔。",),
+    "credit.a": ("「{topic}」可以赊，三天为限；第四天我上门讨，别让我空手回。",),
+    "credit.b": ("「{topic}」我把话说明白：现钱付一半，余下三日清；到期不还，下回别再开口。",),
+    "chitchat.daily.a": ("「{topic}」我天亮磨刀、晌午出摊，收摊爱喝两口；日子磨人，手上茧子比话实在。",),
+    "chitchat.daily.b": ("「{topic}」我这人不讲究，案板裂了就拿铁钉楔上；闲下来只喝酒，不赌也不凑热闹。",),
+    "chitchat.craft.a": ("「{topic}」这刀我每日都磨，钝了就换；手艺是挨骂挨出来的，如今靠它糊口。",),
+    "chitchat.craft.b": ("「{topic}」跟师傅学了三年才出师，刀口深浅全靠手感；你看着简单，我练了半辈子。",),
+    "chitchat.opinion.a": ("「{topic}」我不敢说看透，只知道天亮出摊、天黑收工；怕也挡不住事，先把今天过完。",),
+    "chitchat.opinion.b": ("「{topic}」要问我怕不怕，我说怕也没用；该来的挡不住，先把今天的钱挣了。",),
+    "chitchat.fate.a": ("「{topic}」命这事我不常想；该挣的钱照挣，该吃的苦照吃，怨天没用。",),
+    "chitchat.fate.b": ("「{topic}」信不信命都得干活；我把今天过踏实，明天怎样交给天。",),
+    "chitchat.safety.a": ("「{topic}」我夜里收摊先磨刀，再挑灯底下走；僻静巷子不踩，钱袋塞怀里。",),
+    "chitchat.safety.b": ("「{topic}」夜里我不走暗巷，听见怪响就绕道；你要出门最好结伴，别省那两步路。",),
+    "chitchat.future.a": ("「{topic}」往后我不敢乱猜，摊子撑一天算一天；攒下钱先清欠账，别的以后再说。",),
+    "chitchat.future.b": ("「{topic}」这镇子往后怎样，我说不准；我只管把今天的肉卖完，明天的事明天愁。",),
+    "help.a": ("「{topic}」我搭把手可以，先讲清要办到哪一步；能应的我应，办不到我当面回你。",),
+    "help.b": ("「{topic}」这忙我帮，但有条件：不沾赌、不赊账；你应得下，我明早就去。",),
+    "help.invite": ("「{topic}」我应了，地方你挑；酒钱各付各的，别灌我，喝多了我还得看摊。",),
+    "rejection.a": ("不买就不买，我不恼；摊子摆到天黑，你改主意再回来。",),
+    "rejection.b": ("你不乐意就算了，强卖没意思；我记你一张脸，下回价照旧。",),
+    "deflection.a": ("这话我没听出个头绪，你再说明白些，我才好接。",),
+    "deflection.b": ("你说的我一时没摸着门道，换个说法，我再答你。",),
 }
 
-# 各意图里更贴题的人设台词优先；没有命中时按 digest 轮换。
-QUOTE_HINTS: dict[str, tuple[str, ...]] = {
-    "business": ("账", "钱", "价", "斤两", "卖", "买", "货"),
-    "rejection": ("账", "认", "糊弄", "兄弟"),
-    "safety": ("刀", "犯法", "盯着"),
-    "object": ("刀", "斤两"),
-    "help": ("包在", "话"),
-}
+# 只有“回避”骨架保留人设台词；避免同一句口号跨类别复用。
+QUOTE_HINTS: dict[str, tuple[str, ...]] = {}
 
 # 具体话题优先于从原句里切出来的短语。
 TOPIC_HINTS: tuple[tuple[str, str], ...] = (
     ("肉价", "肉价"), ("价钱", "价钱"), ("价格", "价钱"), ("多少钱", "价钱"),
-    ("本钱", "本钱"), ("盘铺子", "铺子"), ("赊账", "赊账"), ("猪下水", "下水"),
-    ("下水", "下水"), ("瘦肉", "瘦肉"), ("绣品", "绣品"), ("新鲜事", "新鲜事"),
-    ("外乡人", "外乡人"), ("招人", "招人入伙"), ("北边", "北边"), ("怪声", "怪声"),
-    ("加税", "加税"), ("官府", "官府"), ("信命", "命"), ("学门手艺", "学手艺"),
-    ("喝碗酒", "喝酒"), ("喝酒", "喝酒"), ("卖多少肉", "行情"),
+    ("本钱", "本钱"), ("盘铺子", "铺子"), ("赊账", "赊账"), ("借钱", "借钱"),
+    ("账期", "账期"), ("欠账", "欠账"), ("缓两天", "账期"), ("手头紧", "账期"),
+    ("猪下水", "下水"), ("下水", "下水"), ("瘦肉", "瘦肉"), ("绣品", "绣品"),
+    ("新鲜事", "新鲜事"), ("外乡人", "外乡人"), ("招人", "招人入伙"),
+    ("北边", "北边"), ("怪声", "怪声"), ("加税", "加税"), ("官府", "官府"),
+    ("信命", "命"), ("学门手艺", "学手艺"), ("喝碗酒", "喝酒"), ("喝酒", "喝酒"),
+    ("卖多少肉", "行情"), ("卖多少", "行情"), ("铺子", "铺子"),
     ("家里", "家里的事"), ("平时", "平日营生"),
     ("除了", "平日营生"), ("刀工", "刀工"), ("这把刀", "这把刀"),
     ("把刀", "这把刀"), ("客栈", "落脚"),
@@ -142,24 +114,24 @@ TOPIC_HINTS: tuple[tuple[str, str], ...] = (
 TOPIC_DEFAULT = {
     "greeting": "这话",
     "directions": "落脚",
-    "news": "新鲜事",
-    "person": "这人",
-    "who": "谁最有钱",
-    "business": "这买卖",
+    "gossip": "新鲜事",
+    "price": "这买卖",
+    "credit": "赊账",
     "chitchat": "这话",
-    "help": "这事",
+    "help": "这忙",
     "rejection": "买卖",
-    "safety": "夜里的事",
-    "object": "这把刀",
-    "speculate": "往后的日子",
-    "opinion": "这事",
     "deflection": "这话",
 }
 
 _LEAD_WORDS = (
     "最后一个问题", "听说", "最近", "近来", "今日", "今天", "这镇上", "镇上",
     "你觉得", "你说", "我想问", "我想", "请问", "那么", "还有", "若是", "如果",
-    "若有人", "若", "我初来乍到",
+    "若有人", "若", "我初来乍到", "能帮我", "帮我", "劳烦", "能不能",
+)
+
+# 只去掉真正的呼语（“段大哥，”“三娘，”），不要把“借钱给你，……”这类内容截掉。
+_VOCATIVE_RE = re.compile(
+    r"^(?:[\u4e00-\u9fa5]{0,2}(?:大哥|大姐|掌柜|师爷|捕快|先生|娘子|姑娘|老板|三娘|九娘))[，,]"
 )
 
 _TAIL_PATTERNS = (
@@ -167,7 +139,7 @@ _TAIL_PATTERNS = (
     "可有什么", "有什么", "有没有", "知道吗", "认识吗", "熟吗", "靠得住吗",
     "公道吗", "肯赏脸吗", "怎么办", "怎么切最好", "怎么切", "是跟谁学的",
     "跟谁学的", "好不好", "行不行", "有些年头了", "看着有些年头了",
-    "为人如何", "为人怎么样",
+    "为人如何", "为人怎么样", "吗", "呢", "吧",
 )
 
 
@@ -254,7 +226,7 @@ def _sentiment(message: str, digest: str) -> tuple[float, float]:
 
 def _intent(message: str) -> str:
     # 开头的“三娘，”“段大哥，”只是呼语，不参与意图打分。
-    message = re.sub(r"^[^，,]{1,4}[，,]\s*", "", message or "")
+    message = _VOCATIVE_RE.sub("", message or "")
     best = "deflection"
     best_score = 0
     for name, rules in INTENT_RULES:
@@ -276,22 +248,46 @@ def _person_subject(message: str) -> str:
 
 
 def _topic(message: str, intent: str) -> str:
-    if intent == "speculate":
-        return "往后的日子"
-    if intent == "safety":
-        return "怪声" if "怪声" in message else "夜里的事"
-    if intent == "person":
+    if intent == "directions":
+        return "落脚"
+    if intent == "credit":
+        for word in ("赊账", "借钱", "账期", "欠账", "手头紧", "缓两天"):
+            if word in message:
+                return "账期" if word in ("手头紧", "缓两天") else word
+        return "赊账"
+    if intent == "gossip":
+        if any(w in message for w in ("谁最", "谁有钱", "哪家")):
+            return "谁最有钱"
         name = _person_subject(message)
         if name:
             return name
-    if intent == "directions":
-        return "落脚"
+    if intent == "chitchat":
+        if any(w in message for w in ("安全", "怪声", "夜里", "天黑", "巡街")):
+            return "怪声" if "怪声" in message else "夜里的事"
+        if any(w in message for w in ("以后", "将来", "会变", "会成", "往后")):
+            return "往后的日子"
+        if any(w in message for w in ("怕不怕", "信命")):
+            return "加税" if "加税" in message else "命"
+        if any(w in message for w in ("刀工", "跟谁学")):
+            return "刀工"
+        if any(w in message for w in ("这把刀", "把刀", "砍刀", "年头")):
+            return "这把刀"
+        if "家里" in message:
+            return "家里的事"
+        if any(w in message for w in ("平时", "除了", "还做什么")):
+            return "平日营生"
+    if intent == "help":
+        if any(w in message for w in ("喝酒", "赏脸", "请你", "喝碗酒")):
+            return "喝酒"
+        if any(w in message for w in ("学门手艺", "建议")):
+            return "学手艺"
     text = (message or "").strip()
-    text = re.sub(r"^[^，,]{1,4}[，,]\s*", "", text)  # 去掉“段大哥，”“三娘，”这类呼语
-    for word in _LEAD_WORDS:
-        if text.startswith(word):
-            text = text[len(word):]
-            break
+    text = _VOCATIVE_RE.sub("", text)
+    for _ in range(2):
+        for word in _LEAD_WORDS:
+            if text.startswith(word):
+                text = text[len(word):]
+                break
     text = re.split(r"[，,。；;！!]", text)[0]
     text = re.sub(r"^(?:你们|我们|他们|你这|我那|他那|这镇子|镇子|镇上|这|那|你|我|他|她)", "", text)
     text = text.strip("　 ，,。；;！!？?…“”\"'")
@@ -309,6 +305,42 @@ def _topic(message: str, intent: str) -> str:
     if 0 < len(text) <= 10:
         return text
     return TOPIC_DEFAULT.get(intent, "这话")
+
+
+def _skeleton(intent: str, message: str, turn: int) -> str:
+    """同一意图内再用子类骨架分化；不同意图不复用同一骨架 id。
+
+    变体按 turn 交替，保证同一 NPC 连续两轮不会给出完全相同的句子。
+    """
+
+    def ab(base: str) -> str:
+        return f"{base}.{'ab'[turn % 2]}"
+
+    if intent == "gossip":
+        if any(w in message for w in ("谁最", "谁有钱", "哪家")):
+            return "gossip.who"
+        if _person_subject(message) or any(
+            w in message for w in ("为人", "认识", "熟吗", "靠得住", "公道")
+        ):
+            return ab("gossip.person")
+        return ab("gossip.event")
+    if intent == "chitchat":
+        if any(w in message for w in ("安全", "怪声", "夜里", "天黑", "巡街")):
+            return ab("chitchat.safety")
+        if any(w in message for w in ("以后", "将来", "会变", "会成", "往后")):
+            return ab("chitchat.future")
+        if any(w in message for w in ("怕不怕", "信命")):
+            if "信命" in message:
+                return ab("chitchat.fate")
+            return ab("chitchat.opinion")
+        if any(w in message for w in ("刀工", "跟谁学", "这把刀", "把刀", "砍刀", "年头")):
+            return ab("chitchat.craft")
+        return ab("chitchat.daily")
+    if intent == "help" and any(
+        w in message for w in ("喝酒", "赏脸", "请你", "喝碗酒")
+    ):
+        return "help.invite"
+    return ab(intent)
 
 
 def _pick_quote(voice: dict[str, Any], intent: str, digest: str, last_reply: str) -> str:
@@ -331,15 +363,6 @@ def _pick_quote(voice: dict[str, Any], intent: str, digest: str, last_reply: str
             continue
         return quote
     return quotes[ordered[0]]
-
-
-def _quote_fits(intent: str, quote: str) -> bool:
-    """只有台词与当前意图沾边时才收尾；打招呼和回避必须有台词。"""
-    if not quote:
-        return False
-    if intent in ("greeting", "deflection"):
-        return True
-    return any(h in quote for h in QUOTE_HINTS.get(intent, ()))
 
 
 def _trim(body: str, quote: str) -> str:
@@ -381,19 +404,19 @@ def compose_talk(
 
     intent = _intent(message)
     topic = _topic(message, intent)
-    variants = TEMPLATES[intent]
-    body = variants[int(digest, 16) % len(variants)].format(
+    skeleton = _skeleton(intent, message, turn)
+    body = TEMPLATES[skeleton][0].format(
         role=profile["role"], place=profile["place"], topic=topic
     )
-    quote = _pick_quote(voice, intent, digest, last_reply)
-    if not _quote_fits(intent, quote):
-        quote = ""
+    # 台词只挂在“回避”骨架上，避免不同意图复用同一句尾口号。
+    quote = _pick_quote(voice, intent, digest, last_reply) if intent == "deflection" else ""
     reply = _trim(body, quote)
     aff, trust = _sentiment(message, sent_digest)
     return {
         "reply": reply,
         "quote": quote,
         "intent": intent,
+        "skeleton": skeleton,
         "topic": topic,
         "style": voice["style"],
         "reaction": voice["reaction"],
