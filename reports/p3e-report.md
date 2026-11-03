@@ -198,6 +198,8 @@
 - **结论**：机制修复是真的——27 条拦截都发生在提案阶段，没有事件、没有消耗世界动作、没有副作用，
   且全部在 summary 的 `precondition_blocked` 里逐条可审计。但按定义 B，本轮 **3.31% > 2%，K6 FAIL**。
   不得把 27 条拦截移出分子来换 PASS。
+- **与 framework 6/6 的关系**：`tools/framework_check.py` 第 6 项目前只读定义 A，所以仍打印 PASS；
+  本报告结论比它更严格，不以 framework 的 PASS 覆盖 K6 的 FAIL。
 - **改进项**：`talk:not_together` 占 18/27，说明 planner 仍会“在原地找人说话”；应在计划阶段先移动再
   提案，或把 `move → talk` 合成一个有前置校验的序列；`trade` 4 次同理，`quest_*` 2+2 次需在提案前
   校验委托人与接取状态，`sell` 1 次需校验持有物。
