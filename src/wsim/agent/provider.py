@@ -902,6 +902,8 @@ class LLMReasoner(Reasoner):
                     schema_reject=True, fallback=True,
                     error=f"schema_reject:{getattr(error, 'code', 'decision')}",
                     day=day, usage=usage, latency_s=latency, calls=1,
+                    thinking_disabled_by=str(res.get("thinking_disabled_by") or ""),
+                    thinking_param_ignored=bool(res.get("thinking_param_ignored")),
                 )
                 return self._rule_draft(p)
             text, goal, utterance, usage, latency = repaired
@@ -915,6 +917,8 @@ class LLMReasoner(Reasoner):
         self._record(
             tick=tick, npc=npc, tier=tier, prompt=prompt, output=text,
             day=day, usage=usage, latency_s=latency, calls=1,
+            thinking_disabled_by=str(res.get("thinking_disabled_by") or ""),
+            thinking_param_ignored=bool(res.get("thinking_param_ignored")),
         )
         if not p.get("draft_mode", True):
             # 夜间批处理：只缓存意图，不推进世界；白天唤醒时套规则底稿。
