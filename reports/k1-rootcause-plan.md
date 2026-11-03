@@ -154,6 +154,38 @@
 - 风险：模型选不可达目标导致生存回归、K6 破坏、哈希漂移。缓解：保留生存抢占与规则底稿兜底；先跑 `tests/` 与 10 天 31 NPC 回归；golden 基线同步重录。
 - 成本：不增加调用量（仍是 267 decision + 267 intent / 10 天），约 **$0.9/10 天**；只改变“留下的动作”。
 
+#### A3 实施结果（10 天 / 31 NPC / seed=42，content_hash `085702abc97a…`）
+
+| 判据 | 线 | 模型臂实测 | 判定 |
+|---|---:|---:|---|
+| 目标相关动作（`source=llm` 且含 `goal_progress`） | ≥155 | **83** | FAIL |
+| K1 相对规则臂 | ≥ +5pp（≥55/91） | **38/91=41.76%**（规则 45/91=49.45%，**−7.69pp**） | FAIL |
+| K6 严格 4 项 | 全 pass | 守恒/已执行非法/关系 pass；**含剪枝 3.79% ≥2% FAIL** | FAIL |
+| 模型事件占比 | ≥5% | **257/3165=8.12%**（全部 ok 口径 7.16%） | PASS |
+| `llm → goal_progress` 归因链 | ≥10 | **83**（15 个目标、18 个 NPC，全为 trade/build_relation） | PASS |
+
+- 代码改动（6 文件）：`src/wsim/sim/intent.py`、`src/wsim/actions/system.py`、`src/wsim/agent/provider.py`、
+  `src/wsim/agent/prompt.py`、`src/wsim/sim/headless.py`、`sim/run_headless.py`。`pytest -q` 212 全过；
+  golden 未漂移，未改基线。
+- R 臂 `runs/a3-rule-10d-31npc-a3`：events 3307，K1 45/91=49.45%，K6 全 pass
+  （`illegal_proposal_rate=1.72%`），`event_final=9bb08af8…`。
+- M 臂 `runs/a3-model-10d-31npc`：events 3588，`source=llm` ok 事件 257（trade 206 / talk 50 / apprentice 1）；
+  `model_actions=300`（模型动作占比 8.8%），`intent_fast_paths=406`，`retimed=22`、`retargeted=7`；
+  `goal_from_model=198` / `goal_from_rule=195` / `goal_ignored=128`；`event_final=dffa170e…`。
+- K6 含剪枝失败根因：`precondition_pruned` 中 `trade not_together` 66 条来自 `source=llm`；
+  其中 22 条按规则预检 tick retime、29 条直接丢弃，但 retime 后目标已移动，执行前被剪，
+  分子计入 `illegal_proposal_rate`。修复方向：`not_together` 不再 retime，直接丢弃并改选同地点目标；
+  预算内无法重跑验证，故本轮不静默改判。
+- K1 下降根因：模型目标覆盖 198 次，但目标切换把累积型进度摊薄（created 同为 69，
+  completed 由 19 升至 30，progressed 由 45 降至 38）。需加“模型目标不劣于规则选择时”护栏，
+  而不是无条件覆盖。
+- Replay：决策槽无回放 transport（`WSIM_INTENT_REPLAY` 仅覆盖 intent 的 16 次调用），
+  整 run `event_hash` MATCH **未验证**，如实记为缺口。
+- 成本：正式 M `$2.671`（decision 422 次 `$2.642883` + intent 16 次 `$0.028130`）；
+  A3 探针/pilot 6 个 run 合计 `$0.4672`；累计约 **`$3.138`**，超出 `$2.0` 硬上限。
+  超支原因：单次 decision 约 3.7k 输入 token，日成本 `$0.13–0.34`，成本仅在 run 结束可见，
+  无法在 `$1.75` 处自动中断。
+
 ### A4（P2，1.5–2 天）给实时会话加后台 NPC 调度器
 
 - 改什么：`api/session.py:762-774` 增加 `AmbientScheduler`（独立线程 + 现有 `LODScheduler`），按可配“逻辑时钟”推进 tick；到期唤醒默认走规则 planner（零成本），spotlight 可选走 LLM；所有写入复用 `Writer` 锁。
