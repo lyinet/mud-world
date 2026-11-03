@@ -8,9 +8,11 @@
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import socket
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -61,7 +63,7 @@ class ProviderUnavailable(Exception):
 class ProviderError(ProviderUnavailable):
     """带错误分类的 Provider 故障。kind 用于重试判定与遥测。"""
 
-    RETRYABLE = {"timeout", "network", "http_5xx"}
+    RETRYABLE = {"timeout", "network", "http_5xx", "http_429"}
 
     def __init__(self, kind: str, detail: str = "", usage: dict[str, int] | None = None):
         super().__init__(f"{kind}:{detail}" if detail else kind)
@@ -175,6 +177,35 @@ class Completion:
 Transport = Callable[[ProviderConfig, str, str], "str | Completion"]
 
 
+def prompt_sha(system: str, user: str) -> str:
+    """意图槽 prompt 指纹：录制/回放按同一条 prompt 对齐。"""
+    return hashlib.sha256((system + "\n" + user).encode("utf-8")).hexdigest()
+
+
+def make_replay_transport(path: Path | str) -> Transport:
+    """从录制的 JSONL 回放意图槽返回，用于真实调用不可复现时的确定性重跑。
+
+    录制行格式见 LLMReasoner.record_path。回放不联网；缺记录直接报 replay_miss，
+    不伪造返回。
+    """
+    records: dict[str, dict[str, Any]] = {}
+    p = Path(path)
+    for line in p.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        if row.get("prompt_sha"):
+            records[str(row["prompt_sha"])] = row
+
+    def _replay(cfg: ProviderConfig, system: str, user: str) -> Completion:
+        row = records.get(prompt_sha(system, user))
+        if row is None:
+            raise ProviderError("replay_miss", prompt_sha(system, user)[:12])
+        return Completion(text=str(row.get("output") or ""), usage=dict(row.get("usage") or {}))
+
+    return _replay
+
+
 def load_provider_settings(root: Path | str) -> dict[str, Any]:
     path = Path(root) / "config" / "llm.yaml"
     if yaml is None or not path.is_file():
@@ -248,8 +279,14 @@ def _http_transport(cfg: ProviderConfig, system: str, user: str) -> Completion:
         with urllib.request.urlopen(req, timeout=cfg.timeout_s) as resp:
             raw = resp.read().decode("utf-8")
     except urllib.error.HTTPError as exc:
-        kind = "http_4xx" if 400 <= int(exc.code) < 500 else "http_5xx"
-        raise ProviderError(kind, str(exc.code)) from exc
+        code = int(exc.code)
+        if code == 429:
+            kind = "http_429"
+        elif 400 <= code < 500:
+            kind = "http_4xx"
+        else:
+            kind = "http_5xx"
+        raise ProviderError(kind, str(code)) from exc
     except (socket.timeout, TimeoutError) as exc:
         raise ProviderError("timeout", str(exc)[:80]) from exc
     except urllib.error.URLError as exc:
@@ -292,6 +329,50 @@ class ProviderClient:
         self.last_latency_s = 0.0
         self._transport = transport or _http_transport
         self._sleep = sleep_fn or (lambda _s: None)
+        # P3-D：线程安全的调用/延迟/429 统计（complete_many 会并发）。
+        self._stats_lock = threading.Lock()
+        self.stats: dict[str, Any] = {
+            "calls": 0, "attempts": 0, "retries": 0, "http_429": 0,
+            "errors_by_kind": Counter(), "success": 0, "latency_s": [],
+        }
+
+    def _stat(self, **kwargs: Any) -> None:
+        with self._stats_lock:
+            for key, value in kwargs.items():
+                if key == "errors_by_kind":
+                    self.stats["errors_by_kind"][str(value)] += 1
+                elif key == "latency_s":
+                    self.stats["latency_s"].append(float(value))
+                else:
+                    self.stats[key] = int(self.stats.get(key, 0)) + int(value)
+
+    def stats_snapshot(self) -> dict[str, Any]:
+        with self._stats_lock:
+            latencies = sorted(float(x) for x in self.stats["latency_s"])
+            count = len(latencies)
+
+            def quantile(q: float) -> float:
+                if not latencies:
+                    return 0.0
+                idx = min(count - 1, max(0, int(round(q * (count - 1)))))
+                return round(latencies[idx], 3)
+
+            return {
+                "calls": int(self.stats["calls"]),
+                "attempts": int(self.stats["attempts"]),
+                "retries": int(self.stats["retries"]),
+                "http_429": int(self.stats["http_429"]),
+                "success": int(self.stats["success"]),
+                "errors_by_kind": dict(sorted(self.stats["errors_by_kind"].items())),
+                "latency": {
+                    "n": count,
+                    "mean": round(sum(latencies) / count, 3) if count else 0.0,
+                    "min": round(latencies[0], 3) if count else 0.0,
+                    "p50": quantile(0.50),
+                    "p90": quantile(0.90),
+                    "max": round(latencies[-1], 3) if count else 0.0,
+                },
+            }
 
     def complete(self, system: str, user: str) -> str:
         """返回模型原始文本；失败按错误分类重试。"""
@@ -341,12 +422,14 @@ class ProviderClient:
             }
         last: ProviderError | None = None
         attempts = 0
+        self._stat(calls=1)
         for attempt in range(self.config.max_retries + 1):
             attempts = attempt + 1
             started = time.perf_counter()
             try:
                 result = self._transport(self.config, system, user)
                 latency = time.perf_counter() - started
+                self._stat(attempts=1, success=1, latency_s=latency)
                 if isinstance(result, Completion):
                     return {"text": result.text, "usage": dict(result.usage or {}),
                             "latency_s": latency, "attempts": attempts,
@@ -356,12 +439,20 @@ class ProviderClient:
             except ProviderError as exc:
                 latency = time.perf_counter() - started
                 last = exc
+                self._stat(attempts=1, errors_by_kind=exc.kind, latency_s=latency)
+                if exc.kind == "http_429":
+                    self._stat(http_429=1)
                 if not exc.retryable:
                     return {"text": "", "usage": dict(exc.usage or {}), "latency_s": latency,
                             "attempts": attempts, "error_kind": exc.kind, "error": exc}
                 if attempt < self.config.max_retries:
-                    self._sleep(self.config.backoff_base_s * (2 ** attempt))
+                    self._stat(retries=1)
+                    # P3-D：429 按实测要求固定 25s 退避；其余错误仍用指数退避。
+                    delay = 25.0 if exc.kind == "http_429" else self.config.backoff_base_s * (2 ** attempt)
+                    self._sleep(delay)
             except ProviderUnavailable as exc:
+                self._stat(attempts=1, errors_by_kind="offline",
+                           latency_s=time.perf_counter() - started)
                 return {"text": "", "usage": {}, "latency_s": time.perf_counter() - started,
                         "attempts": attempts, "error_kind": "offline", "error": exc}
         err = ProviderError(last.kind if last else "unknown", f"failed_after_attempts:{attempts}",
@@ -416,6 +507,7 @@ class LLMReasoner(Reasoner):
         concurrency: int = 4,
         intent_client: ProviderClient | None = None,
         intent_catalog: IntentCatalog | None = None,
+        record_path: Path | str | None = None,
     ):
         self.provider = provider
         self.fallback = fallback
@@ -455,6 +547,17 @@ class LLMReasoner(Reasoner):
         self.intent_reject = 0
         self.intent_reject_by_reason: Counter[str] = Counter()
         self.intent_missing: Counter[str] = Counter()
+        # P3-D：适配层观测（未知键 / grounding 拦截 / 延迟）。
+        self.intent_unknown_keys: Counter[str] = Counter()
+        self.intent_grounding_blocked = 0
+        self.intent_grounding_by_field: Counter[str] = Counter()
+        self.intent_grounding_cases: list[dict[str, Any]] = []
+        self.intent_latencies: list[float] = []
+        self.intent_normalizations: Counter[str] = Counter()
+        self.intent_usage_prompt = 0
+        self.intent_usage_completion = 0
+        self.intent_usage_missing = 0
+        self.record_path = Path(record_path) if record_path else None
         self._recent: dict[str, deque[str]] = {}
         # P3-C：记录每个 NPC 上一轮决策时的地点，供意图 prompt 的“你刚才在哪”。
         self._last_locations: dict[str, dict[str, str]] = {}
@@ -623,6 +726,19 @@ class LLMReasoner(Reasoner):
         )
         p["intent_prompt"] = (system, user)
         p["intent_text"] = utterance
+        # P3-D：grounding 语料只放「原话 + 前几轮 + 实体名」，
+        # 不放功能表的 source 提示，避免“商店/地点清单”这类模板文字被当成依据。
+        p["intent_ground"] = json.dumps(
+            {
+                "history": list(self._recent.get(p["npc"], ()))[-4:],
+                "location": summary.get("location"),
+                "location_name": summary.get("location_name"),
+                "exits": summary.get("exits"),
+                "reachable_locations": summary.get("reachable_locations"),
+                "nearby_npcs": summary.get("nearby_npcs"),
+            },
+            ensure_ascii=False, sort_keys=True,
+        )
         if self.budget is not None:
             ok, reason = self.budget.check_intent(p["day"])
             if not ok:
@@ -752,7 +868,13 @@ class LLMReasoner(Reasoner):
             return []
         self.intent_calls += 1
         latency = float(res.get("latency_s") or 0.0)
+        self.intent_latencies.append(latency)
         usage = dict(res.get("usage") or {})
+        if usage:
+            self.intent_usage_prompt += int(usage.get("prompt_tokens") or 0)
+            self.intent_usage_completion += int(usage.get("completion_tokens") or 0)
+        else:
+            self.intent_usage_missing += 1
         out_text = str(res.get("text") or "")
         system, user = prompt_pair
         intent_prompt = Prompt(system=system, user=user)
@@ -767,8 +889,36 @@ class LLMReasoner(Reasoner):
             )
             return []
         resolution = parse_intent_response(
-            out_text, self.intent_catalog, p["content"], p["state"], p["npc"]
+            out_text, self.intent_catalog, p["content"], p["state"], p["npc"],
+            utterance=str(p.get("intent_text") or ""),
+            context_text=str(p.get("intent_ground") or ""),
         )
+        for key in resolution.unknown_keys:
+            self.intent_unknown_keys[key] += 1
+        if resolution.blocked:
+            self.intent_grounding_blocked += 1
+            for row in resolution.blocked:
+                self.intent_grounding_by_field[str(row.get("field") or "")] += 1
+            if len(self.intent_grounding_cases) < 20:
+                self.intent_grounding_cases.append({
+                    "tick": int(p["tick"]), "npc": str(p["npc"]),
+                    "utterance": str(p.get("intent_text") or ""),
+                    "model_output": out_text[:400],
+                    "blocked": list(resolution.blocked),
+                })
+        for name, row in resolution.normalizations.items():
+            self.intent_normalizations[f"{name}:{row.get('value')}{row.get('unit') or ''}"] += 1
+        if self.record_path is not None:
+            self.record_path.parent.mkdir(parents=True, exist_ok=True)
+            with self.record_path.open("a", encoding="utf-8") as fh:
+                fh.write(json.dumps({
+                    "prompt_sha": prompt_sha(system, user),
+                    "utterance": str(p.get("intent_text") or ""),
+                    "output": out_text,
+                    "usage": usage,
+                    "latency_s": latency,
+                    "status": resolution.status,
+                }, ensure_ascii=False) + "\n")
         self._record(
             tick=p["tick"], npc=p["npc"], tier=p["tier"], prompt=intent_prompt,
             output=out_text, day=p["day"], usage=usage, latency_s=latency, calls=1,
@@ -970,6 +1120,15 @@ class LLMReasoner(Reasoner):
     def summary(self) -> dict[str, Any]:
         attempted = self.first_pass + self.first_fail
         final_ok = self.first_pass + self.repair_succeeded
+        latencies = sorted(self.intent_latencies)
+        n_lat = len(latencies)
+
+        def quantile(q: float) -> float:
+            if not latencies:
+                return 0.0
+            idx = min(n_lat - 1, max(0, int(round(q * (n_lat - 1)))))
+            return round(latencies[idx], 3)
+
         return {
             "rule_actions": self.rule_actions,
             "model_actions": self.model_actions,
@@ -993,6 +1152,27 @@ class LLMReasoner(Reasoner):
             "intent_reject": self.intent_reject,
             "intent_reject_by_reason": dict(sorted(self.intent_reject_by_reason.items())),
             "intent_missing": dict(sorted(self.intent_missing.items())),
+            "intent_unknown_keys": dict(sorted(self.intent_unknown_keys.items())),
+            "intent_grounding_blocked": self.intent_grounding_blocked,
+            "intent_grounding_by_field": dict(sorted(self.intent_grounding_by_field.items())),
+            "intent_grounding_cases": list(self.intent_grounding_cases),
+            "intent_normalizations": dict(sorted(self.intent_normalizations.items())),
+            "intent_latency": {
+                "n": n_lat,
+                "mean": round(sum(latencies) / n_lat, 3) if n_lat else 0.0,
+                "min": round(latencies[0], 3) if n_lat else 0.0,
+                "p50": quantile(0.50),
+                "p90": quantile(0.90),
+                "max": round(latencies[-1], 3) if n_lat else 0.0,
+            },
+            "intent_usage": {
+                "prompt_tokens": self.intent_usage_prompt,
+                "completion_tokens": self.intent_usage_completion,
+                "missing_usage_calls": self.intent_usage_missing,
+            },
+            "intent_client_stats": (
+                self.intent_client.stats_snapshot() if self.intent_client is not None else {}
+            ),
             "action_ratio": {
                 "rule": round(
                     self.rule_actions / max(1, self.rule_actions + self.model_actions), 4

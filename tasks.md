@@ -248,3 +248,31 @@
 - [x] commit → `git tag -a delivery-p3c`（commit `a54d439`）。
 - [x] `git worktree add /tmp/wsim-p3c delivery-p3c` 干净重跑并回填，清理 worktree。
 - [x] 真实 Xing / 真实端点调用 0 次，报告列为未验证。
+
+# P3-D 真实 Xing 意图槽（2 个游戏日）
+
+## D1 适配层：剥围栏 + 键名归一
+- [x] `_strip_payload` 三级回退（围栏/原文/首末花括号）。
+- [x] 顶层与字段的中英文键归一；`unknown_keys` 白名单外丢弃。
+- [x] `IntentResolution` 增 `unknown_keys` / `blocked` / `normalizations` / `grounding`。
+
+## D2 原文 grounding
+- [x] 字符串回指「原话 + 上下文实体名」；数字只回指原话。
+- [x] 数字/单位归一（“两斗”→ qty=2、unit=斗、source=两斗）。
+- [x] 缺依据按缺失处理；必填缺失 → `needs_clarification`，可选被拦只丢弃。
+- [x] 旧调用（不传 utterance）grounding 关闭，P3-B 语义不变。
+
+## D3 限额、重试与观测
+- [x] `config/llm.yaml` intent 槽：3425、正式模型 id、1500 tokens、60s、2 retries。
+- [x] 429 → `http_429` 可重试，固定 25s，最多 2 次。
+- [x] `summary()` 增 unknown/grounding/延迟/usage/客户端统计。
+- [x] `WSIM_INTENT_RECORD` / `WSIM_INTENT_REPLAY` 录制回放。
+
+## D4 测试
+- [x] `tests/test_p3d_xing_adapter.py`：16 条，全部离线。
+- [x] `tests/test_provider.py` 429 分类更新为 `http_429`。
+
+## D5 真实 2 天与冻结
+- [x] 真实 Xing 意图槽 2 天（seed 42 / 12 NPC），采集完整数字。
+- [x] 写 `reports/p3d-report.md`，与 P3-C 并列且标注不可比。
+- [ ] commit → `git tag -a delivery-p3d`；干净 worktree 重跑并回填。

@@ -53,13 +53,14 @@ models:
     # 意图分类 + 参数抽取（Xing4.0-29B-Intent 兼容）。
     # 默认 xing_intent；若只想用普通 OpenAI 兼容模型，把 type 改成 openai_chat 即可。
     type: xing_intent
-    base_url: "https://api.ctyun.cn/v1"   # 用户接入时替换为天翼 AI 开放平台地址
+    base_url: "http://127.0.0.1:3425/v1"   # P3-D 实测端点；换环境时改这里
     api_key_env: "XING_API_KEY"
-    model: "Xing4.0-29B-Intent"
+    model: "openrouter/xingchen-agi/xing4.0-29b-a4b:free"
     model_env: "XING_INTENT_MODEL"
-    timeout_s: 10
-    max_retries: 1
-    max_tokens: 256
+    # 实测 reasoning 会吃掉 token：64/800 都会返回空 content，结构化任务至少 1500。
+    timeout_s: 60
+    max_retries: 2
+    max_tokens: 1500
     temperature: 0.0
     json_mode: true
 

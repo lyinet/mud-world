@@ -116,7 +116,7 @@ def test_http_transport_maps_real_exceptions_without_network(monkeypatch):
 
         return _open
 
-    for code, expected in ((429, "http_4xx"), (503, "http_5xx")):
+    for code, expected in ((429, "http_429"), (400, "http_4xx"), (503, "http_5xx")):
         monkeypatch.setattr(mod.urllib.request, "urlopen", _http_error(code))
         with pytest.raises(mod.ProviderError) as exc:
             mod._http_transport(cfg, "s", "u")

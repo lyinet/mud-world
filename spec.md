@@ -478,3 +478,56 @@ def treasury_open_shop_buffer(state, content, cost: int) -> int:
 - 不做完整玩家系统（8 人周）：不开放杀害、抢掠、强迫婚配；
 - 不做多玩家会话管理、账号体系、玩家背包 UI；
 - 不改 K1/K3 口径，不为达标调参。
+
+# P3-D 真实 Xing 意图槽（2 个游戏日）
+
+目标：把已实测的 Xing 网关（`http://127.0.0.1:3425/v1`，key `magpie`，
+`openrouter/xingchen-agi/xing4.0-29b-a4b:free`）接进 `intent` 槽，只跑 2 天，
+不跑 72 天真实调用。
+
+## 1. 适配层（`src/wsim/agent/intent_model.py`）
+
+1. 剥围栏：```json / ``` / 围栏前后带解释文字 / 首个 `{` 到末个 `}` 三级回退。
+2. 键名归一：
+   - 顶层中文（意图/类别/类型/动作）与英文（intent/category/type/action/verb）→ `category`；
+   - 顶层中文（参数/字段/槽位）与英文（args/arguments/params/slots）→ `args`；
+   - 字段中文（物品/数量/卖家/…）与英文（item/quantity/seller/…）→ 模板字段名；
+   - 白名单外的键丢弃并记 `unknown_keys`，不进入参数。
+3. 原文 grounding：
+   - 字符串值必须出现在「用户原话 + 本轮上下文实体名」中；
+   - 数字（含中文数量词）归一后必须回指用户原话里的数字词（“两斗”→ 2，单位斗）；
+     上下文里的无关整数（tick/库存）不得为编造数量背书；
+   - 找不到依据的字段按缺失处理，绝不填充：必填缺失 → `needs_clarification`，
+     可选字段被拦则丢弃并记 `blocked`；
+   - 归一结果记 `normalizations`（value/unit/source），source 保留原文片段。
+4. 兼容：不传 `utterance` 的旧调用（P3-B 单测）grounding 关闭，语义不变。
+
+## 2. 限额、重试与观测（`src/wsim/agent/provider.py`）
+
+- intent 槽配置：`max_tokens=1500`、`timeout_s=60`、`max_retries=2`；
+- 429 分类为 `http_429` 并重试，固定 25s 退避，最多 2 次；其余仍指数退避；
+- 每次调用记 `usage` 与延迟；`summary()` 增 `intent_latency`（min/p50/p90/max）、
+  `intent_client_stats`（calls/attempts/retries/http_429/errors）。
+- `intent_unknown_keys`、`intent_grounding_blocked/by_field/cases`、
+  `intent_normalizations` 进入 `summary()`，供报告与审计。
+
+## 3. 录制回放
+
+- `WSIM_INTENT_RECORD=<path>.jsonl` 时把每次意图返回按 `prompt_sha` 落盘；
+- `WSIM_INTENT_REPLAY=<path>.jsonl` 时 intent 槽改用回放 transport，不联网；
+  缺记录报 `replay_miss`，不伪造返回。
+
+## 4. 验收
+
+1. `tests/test_p3d_xing_adapter.py` 全过（围栏、键归一、grounding 拦截、
+   “两斗”回指、429 25s×2、配置限额、录制回放）。
+2. 真实 2 天：`--days 2 --seed 42 --npc 12 --enable-llm`，决策槽用假端点、
+   意图槽用真实 Xing；报告调用数、成功率、schema 失败、grounding 拦截、429、
+   clarification 比例、K1、拒绝率、守恒、replay、延迟分布。
+3. 与 P3-C（全桩）并列，明确标注“真模型 vs 桩，不可直接比较”。
+4. `reports/p3d-report.md`；commit → `git tag -a delivery-p3d`；干净 worktree 重跑。
+
+## 5. 明确不做
+
+- 不跑 72 天真实调用；真实 2 天足够。
+- 不因真实模型表现调 K1/K3 口径。

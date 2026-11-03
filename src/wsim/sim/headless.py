@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import heapq
 import json
+import os
 import shutil
 import time
 from collections import Counter
@@ -26,6 +27,7 @@ from ..agent.provider import (
     ProviderConfigError,
     load_model_slots,
     load_provider_settings,
+    make_replay_transport,
 )
 from ..audit.conservation import conservation, debt_ledger
 from ..audit.debt_audit import debt_audit
@@ -169,7 +171,7 @@ def run_headless(
         settings = load_provider_settings(root)
         slots = load_model_slots(root)
 
-        def slot_client(slot: str) -> ProviderClient:
+        def slot_client(slot: str, transport=None) -> ProviderClient:
             s = dict(slots.get(slot) or settings)
             return ProviderClient(
                 ProviderConfig.from_env(
@@ -185,7 +187,8 @@ def run_headless(
                     json_mode=bool(s.get("json_mode", True)),
                     slot=slot,
                     model_env=str(s.get("model_env", "")),
-                )
+                ),
+                transport=transport,
             )
 
         try:
@@ -203,8 +206,11 @@ def run_headless(
             )
             intent_client = None
             intent_error = ""
+            replay_path = os.environ.get("WSIM_INTENT_REPLAY", "").strip()
             try:
-                intent_client = slot_client("intent")
+                intent_client = slot_client(
+                    "intent", transport=make_replay_transport(replay_path) if replay_path else None
+                )
             except ProviderConfigError as exc:
                 intent_error = str(exc)  # 无 key 时只降级意图槽，不影响决策/对话
             dialogue_client = None
@@ -218,6 +224,7 @@ def run_headless(
                 budget=budget, registry=registry,
                 intent_client=intent_client, intent_catalog=catalog,
                 concurrency=run_concurrency,
+                record_path=(os.environ.get("WSIM_INTENT_RECORD", "").strip() or None),
             )
             llm_info = {
                 "enabled": True,
@@ -230,7 +237,7 @@ def run_headless(
                 },
                 "intent_error": intent_error,
                 "dialogue_error": llm_info.get("dialogue_error", ""),
-                "extract_adapter": "fence/unwrap/move.destination->to/work.location->at",
+                "extract_adapter": "fence/unwrap+zh-en-key-normalize+utterance-grounding+unknown_key",
             }
             dialogue_async = AsyncDialogueQueue(
                 dialogue_client, budget=budget, log_dir=out_dir

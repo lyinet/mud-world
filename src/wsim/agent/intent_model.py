@@ -33,14 +33,16 @@ STATUSES = ("ok", "needs_clarification", "needs_confirmation", "reject")
 # 意图模板字段 -> 引擎参数名。只有 move 的 `destination` 与引擎 `to` 不同名。
 ENGINE_FIELD_ALIAS = {"move": {"destination": "to"}}
 
-# 上游可能返回中文键名；这里归一成模板字段名。
+# 上游可能返回中文键名；这里归一成模板字段名。P3-D 起同时接受英文键名。
 FIELD_ALIASES = {
     "地点": "destination", "目的地": "destination", "去往": "destination",
     "地点编号": "destination", "位置": "destination",
     "人物": "target", "对象": "target", "目标": "target", "目标人物": "target",
     "门派": "target", "组织": "target",
-    "物品": "item", "东西": "item", "货物": "item",
+    "物品": "item", "东西": "item", "货物": "item", "商品": "item",
     "数量": "qty", "份数": "qty",
+    "卖家": "from", "商家": "from", "店铺": "from", "卖方": "from",
+    "买家": "to", "买主": "to", "买方": "to",
     "时辰": "hours", "时长": "hours", "小时": "hours",
     "天数": "duration_days",
     "路线": "route", "行程": "route",
@@ -51,12 +53,68 @@ FIELD_ALIASES = {
     "类型": "shop_type", "店铺类型": "shop_type",
     "宗旨": "doctrine", "会费": "dues",
     "说的话": "message", "内容": "message", "回复": "reply",
+    # P3-D：实测 Xing 会在中英文键名之间漂移，这里把英文键也归一到同一内部结构。
+    "goods": "item", "good": "item", "product": "item", "thing": "item",
+    "items": "item", "item_name": "item",
+    "quantity": "qty", "amount": "qty", "count": "qty", "num": "qty", "number": "qty",
+    "place": "destination", "location": "destination", "dest": "destination",
+    "where": "destination", "target_location": "destination",
+    "person": "target", "npc": "target", "who": "target", "target_person": "target",
+    "seller": "from", "vendor": "from", "from_shop": "from",
+    "buyer": "to", "receiver": "to", "to_person": "to",
+    "duration": "duration_days", "days": "duration_days",
+    "period": "hours", "duration_hours": "hours",
+    "text": "message", "words": "message", "utterance": "message", "message_text": "message",
+    "path": "route", "route_plan": "route",
+    "value": "cargo_value", "cargo": "cargo_value",
+    "cost": "fee", "price": "fee", "payment": "fee",
+    "quest_name": "quest", "debt_id": "debt", "skill_name": "skill",
+    "shop_name": "name", "sect_name": "name",
+    "store_type": "shop_type", "kind": "shop_type",
+    "purpose": "doctrine", "dues_amount": "dues",
+    "reply_text": "reply", "answer": "reply",
 }
+
+# 顶层键名：类别容器与参数容器在两种语言下都认。
+TOP_ALIASES = {
+    "category": "category", "intent": "category", "intent_type": "category",
+    "type": "category", "action": "category", "verb": "category",
+    "意图": "category", "意图类别": "category", "意图类型": "category",
+    "类别": "category", "类型": "category", "动作": "category",
+    "args": "args", "arguments": "args", "params": "args", "parameters": "args",
+    "slots": "args", "slot": "args", "参数": "args", "字段": "args",
+    "槽位": "args", "参数值": "args",
+    "needs_clarification": "needs_clarification", "clarification": "needs_clarification",
+    "missing": "needs_clarification", "缺少": "needs_clarification",
+}
+
+NUMERIC_FIELDS = {
+    "qty", "hours", "duration_days", "cargo_value", "fee", "money_delta", "dues",
+}
+
+# 生成型字段不是从原话里“抽取”的，而是模型替 NPC 说的话；不参与原文 grounding。
+GENERATIVE_FIELDS = {"reply"}
+
+# 中文数量词后面的常见量词；用于把“两斗”归一为 (2, "斗")。
+CN_UNITS = (
+    "斗", "升", "石", "斤", "文", "贯", "个", "只", "头", "匹", "袋", "包",
+    "瓶", "坛", "串", "块", "张", "本", "份", "枚", "担", "碗", "壶", "盘",
+    "件", "套", "车", "船",
+)
+NUMBER_RE = re.compile(r"[0-9]+|[零一二两三四五六七八九十百千万]+")
+_UNIT_ALT = "|".join(sorted((re.escape(u) for u in CN_UNITS), key=len, reverse=True))
 
 
 def _field_name(raw: str) -> str:
     key = str(raw or "").strip()
-    return FIELD_ALIASES.get(key, key)
+    return FIELD_ALIASES.get(key, FIELD_ALIASES.get(key.lower(), key))
+
+
+def _top_key(raw: str) -> str:
+    key = str(raw or "").strip()
+    if key in TOP_ALIASES:
+        return TOP_ALIASES[key]
+    return TOP_ALIASES.get(key.lower(), "")
 
 
 def _map_engine_fields(verb: str, fields: dict[str, Any]) -> dict[str, Any]:
@@ -220,14 +278,28 @@ def build_intent_prompt(
 
 
 def _strip_payload(text: str) -> Any:
-    raw = str(text).strip()
-    if raw.startswith("```"):
-        raw = re.sub(r"^```[a-zA-Z0-9_-]*\s*", "", raw)
-        raw = re.sub(r"\s*```$", "", raw).strip()
-    try:
-        return json.loads(raw)
-    except (TypeError, ValueError):
+    """剥离模型输出里的 ```json 围栏与前后杂文本，尽量拿到 JSON 对象。
+
+    实测 Xing 会在裸 JSON / ```json 围栏 / 围栏前后带解释文字之间漂移，
+    因此这里按“围栏内容 → 原文 → 首个 { 到末个 }”三级回退。
+    """
+    raw = str(text or "").strip().lstrip("\ufeff")
+    if not raw:
         return raw
+    fenced = re.search(r"```[a-zA-Z0-9_-]*\s*(.*?)```", raw, re.S)
+    source = fenced.group(1).strip() if fenced else raw
+    for candidate in (source, raw):
+        try:
+            return json.loads(candidate)
+        except (TypeError, ValueError):
+            pass
+        start, end = candidate.find("{"), candidate.rfind("}")
+        if start != -1 and end > start:
+            try:
+                return json.loads(candidate[start:end + 1])
+            except (TypeError, ValueError):
+                pass
+    return raw
 
 
 def _cn_number(token: str) -> int | None:
@@ -261,14 +333,25 @@ def _cn_number(token: str) -> int | None:
     return total + section + numeral
 
 
-def parse_quantity(value: Any) -> int | None:
+def parse_quantity_unit(value: Any) -> tuple[int | None, str]:
+    """数量词归一：返回 (数值, 量词)。"两斗" -> (2, "斗")，"2瓶" -> (2, "瓶")。"""
+    if isinstance(value, bool):
+        return None, ""
     if isinstance(value, (int, float)):
-        return int(value)
+        return int(value), ""
     text = str(value).strip()
-    match = re.search(r"[0-9]+|[零一二两三四五六七八九十百千万]+", text)
+    match = NUMBER_RE.search(text)
     if not match:
-        return None
-    return _cn_number(match.group(0))
+        return None, ""
+    number = _cn_number(match.group(0))
+    rest = text[match.end():].lstrip()
+    unit_match = re.match(rf"(?:{_UNIT_ALT})", rest)
+    unit = unit_match.group(0) if unit_match else ""
+    return number, unit
+
+
+def parse_quantity(value: Any) -> int | None:
+    return parse_quantity_unit(value)[0]
 
 
 def _norm(text: Any) -> str:
@@ -390,6 +473,105 @@ def _resolve_by_field(field: str, value: Any, content, state, npc: str) -> Any:
     return _norm(value)
 
 
+def _collect_args(value: Any) -> dict[str, Any]:
+    """把 args 容器（dict / [{key,value}] / [{...}]）摊平成字段名 -> 原值。"""
+    if isinstance(value, list):
+        merged: dict[str, Any] = {}
+        for row in value:
+            if isinstance(row, dict):
+                if "key" in row and "value" in row:
+                    merged[_field_name(row["key"])] = row["value"]
+                else:
+                    merged.update({_field_name(k): v for k, v in row.items()})
+        return merged
+    if isinstance(value, dict):
+        return {_field_name(k): v for k, v in value.items()}
+    return {}
+
+
+def _normalize_payload(
+    payload: dict[str, Any], allowed: set[str]
+) -> tuple[str, dict[str, Any], list[str]]:
+    """P3-D 适配层：中英文顶层键 -> category/args；白名单外键丢弃并记 unknown。
+
+    先收参数容器，再收被模型摊平到顶层的已知字段；未知键（含未知英文键）只记录
+    键名，不进入 args，避免“多出来的字段”被当成参数落地。
+    """
+    unknown: list[str] = []
+    category = ""
+    args: dict[str, Any] = {}
+    for raw_key, value in payload.items():
+        top = _top_key(raw_key)
+        if top == "category":
+            category = _norm(value)
+        elif top == "args":
+            args.update(_collect_args(value))
+    for raw_key, value in payload.items():
+        top = _top_key(raw_key)
+        if top:
+            continue
+        field = _field_name(raw_key)
+        if field in allowed:
+            args[field] = value
+        else:
+            unknown.append(str(raw_key))
+    # 参数容器里也可能混入未知字段（例如模型顺手加了 reason）。
+    for key in list(args):
+        if key not in allowed:
+            unknown.append(str(key))
+            args.pop(key)
+    return category, args, sorted(set(unknown))
+
+
+def _ground_string(value: Any, corpus: str) -> bool:
+    raw = _norm(value)
+    return bool(raw) and raw in corpus
+
+
+def _ground_number(value: Any, corpus: str) -> bool:
+    """数字归一后必须能在原文/上下文里找到同一个数（"两斗" 与 2 等价）。"""
+    number, _unit = parse_quantity_unit(value)
+    if number is None:
+        return False
+    tokens = {_cn_number(m) for m in NUMBER_RE.findall(corpus)}
+    return number in tokens
+
+
+def _ground_value(field: str, value: Any, corpus: str, number_corpus: str = "") -> bool:
+    """参数值是否能在原文/本轮上下文里找到字符串或数字依据。
+
+    字符串可回指「本轮上下文」（如相邻地点名）；数字必须回指用户原文片段，
+    避免上下文里的无关整数（库存、tick）给编造的数量背书。
+    """
+    numbers = number_corpus or corpus
+    if field in GENERATIVE_FIELDS:
+        return bool(_norm(value))
+    if field in ("offer", "want"):
+        rows = value if isinstance(value, list) else [value]
+        if not rows:
+            return False
+        for row in rows:
+            if isinstance(row, dict):
+                item, qty = row.get("item"), row.get("qty")
+            else:
+                item, qty = row, None
+            if not _ground_string(item, corpus):
+                return False
+            if qty is not None and not _ground_number(qty, numbers):
+                return False
+        return True
+    if field == "route":
+        rows = value if isinstance(value, list) else [value]
+        return bool(rows) and all(_ground_string(x, corpus) for x in rows)
+    if field in NUMERIC_FIELDS:
+        return _ground_number(value, numbers)
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return _ground_number(value, numbers)
+    if isinstance(value, list):
+        return all(_ground_string(x, corpus) for x in value)
+    return _ground_string(value, corpus)
+
+
 @dataclass
 class IntentResolution:
     status: str
@@ -399,6 +581,10 @@ class IntentResolution:
     missing: list[str] = field(default_factory=list)
     reason: str = ""
     destructive: bool = False
+    unknown_keys: list[str] = field(default_factory=list)
+    blocked: list[dict[str, Any]] = field(default_factory=list)
+    normalizations: dict[str, dict[str, Any]] = field(default_factory=dict)
+    grounding: bool = False
 
     def intent(self, actor: str, tick: int) -> Intent | None:
         if self.status != "ok" or not self.verb:
@@ -409,7 +595,9 @@ class IntentResolution:
         return {
             "status": self.status, "category": self.category, "verb": self.verb,
             "args": self.args, "missing": self.missing, "reason": self.reason,
-            "destructive": self.destructive,
+            "destructive": self.destructive, "unknown_keys": self.unknown_keys,
+            "blocked": self.blocked, "normalizations": self.normalizations,
+            "grounding": self.grounding,
         }
 
 
@@ -420,10 +608,15 @@ def parse_intent_response(
     state,
     npc: str,
     confirm: bool = False,
+    utterance: str = "",
+    context_text: str = "",
 ) -> IntentResolution:
     payload = _strip_payload(text)
     if not isinstance(payload, dict):
         return IntentResolution(status="reject", reason="invalid_json")
+    grounding = bool(_norm(utterance))
+    corpus = "\n".join(x for x in (_norm(utterance), str(context_text or "")) if x)
+    number_corpus = _norm(utterance)
     if payload.get("needs_clarification"):
         missing = payload.get("needs_clarification")
         if isinstance(missing, dict):
@@ -434,48 +627,79 @@ def parse_intent_response(
             status="needs_clarification",
             missing=[_field_name(x) for x in missing],
             reason="model_needs_clarification",
+            grounding=grounding,
         )
-    category = _norm(payload.get("category"))
+    category, unknown_keys = "", []
+    # 先定类别，才能知道该模板允许哪些字段（未知键按模板白名单判定）。
+    for raw_key, value in payload.items():
+        if _top_key(raw_key) == "category":
+            category = _norm(value)
+            break
+    template = catalog.by_category.get(category) or catalog.by_verb.get(category)
+    if template is not None and category != template.category:
+        category = template.category
     if not category or category in ("none", "unknown"):
-        return IntentResolution(status="reject", category=category, reason="unknown_category")
-    template = catalog.by_category.get(category)
+        return IntentResolution(status="reject", category=category, reason="unknown_category",
+                                grounding=grounding)
+    if category in ("needs_clarification", "clarification", "clarify", "missing"):
+        # 实测模型也会把 needs_clarification 当 category 返回，缺失字段塞在 args 的 null 里。
+        raw_args = payload.get("args") or {}
+        missing = [k for k, v in (raw_args or {}).items() if v in (None, "", [], {})]
+        return IntentResolution(
+            status="needs_clarification", category="",
+            missing=[_field_name(x) for x in missing] or ["unknown"],
+            reason="model_needs_clarification_category", grounding=grounding,
+        )
     if template is None:
-        return IntentResolution(status="reject", category=category, reason="unknown_category")
-    raw_args = payload.get("args") or {}
-    if isinstance(raw_args, list):
-        merged: dict[str, Any] = {}
-        for row in raw_args:
-            if isinstance(row, dict):
-                if "key" in row and "value" in row:
-                    merged[_field_name(row["key"])] = row["value"]
-                else:
-                    merged.update({_field_name(k): v for k, v in row.items()})
-        raw_args = merged
-    if not isinstance(raw_args, dict):
-        return IntentResolution(status="reject", category=category, verb=template.verb,
-                                reason="invalid_args")
-    raw_args = {_field_name(k): v for k, v in raw_args.items()}
+        return IntentResolution(status="reject", category=category, reason="unknown_category",
+                                grounding=grounding)
+    allowed = set(template.required) | set(template.optional)
+    _cat, raw_args, unknown_keys = _normalize_payload(payload, allowed)
     args: dict[str, Any] = {}
     missing: list[str] = []
+    blocked: list[dict[str, Any]] = []
+    normalizations: dict[str, dict[str, Any]] = {}
     for name in template.required + template.optional:
         if name not in raw_args:
             if name in template.required:
                 missing.append(name)
             continue
-        value = _resolve_by_field(name, raw_args.get(name), content, state, npc)
+        raw_value = raw_args.get(name)
+        if grounding and not _ground_value(name, raw_value, corpus, number_corpus):
+            # 实测模型会在缺字段时自行编造（"去买点米" → 数量=1、卖家="买家"）。
+            # 找不到原文依据一律按缺失处理，绝不填充。
+            blocked.append({"field": name, "raw": raw_value})
+            if name in template.required:
+                missing.append(name)
+            continue
+        value = _resolve_by_field(name, raw_value, content, state, npc)
         if value == "" or value is None or value == []:
             if name in template.required:
                 missing.append(name)
             continue
+        if name in NUMERIC_FIELDS:
+            number, unit = parse_quantity_unit(raw_value)
+            if number is not None:
+                normalizations[name] = {
+                    "value": number,
+                    "unit": unit,
+                    "source": _norm(raw_value),
+                }
         args[name] = value
     if missing:
+        reason = "grounding_missing_required" if blocked else "missing_required"
         return IntentResolution(status="needs_clarification", category=category, verb=template.verb,
-                                args=args, missing=missing, reason="missing_required",
-                                destructive=template.destructive)
+                                args=args, missing=missing, reason=reason,
+                                destructive=template.destructive, unknown_keys=unknown_keys,
+                                blocked=blocked, normalizations=normalizations,
+                                grounding=grounding)
     args = _map_engine_fields(template.verb, args)
     if template.destructive and not confirm:
         return IntentResolution(status="needs_confirmation", category=category, verb=template.verb,
                                 args=args, reason="destructive_requires_confirmation",
-                                destructive=True)
+                                destructive=True, unknown_keys=unknown_keys, blocked=blocked,
+                                normalizations=normalizations, grounding=grounding)
     return IntentResolution(status="ok", category=category, verb=template.verb, args=args,
-                            destructive=template.destructive)
+                            destructive=template.destructive, unknown_keys=unknown_keys,
+                            blocked=blocked, normalizations=normalizations,
+                            grounding=grounding)
