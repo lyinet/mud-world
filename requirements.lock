@@ -1,0 +1,8 @@
+# 完整冻结（含 pytest 传递依赖），由 .venv 的 pip freeze 生成。
+# 安装：python3 -m venv .venv && .venv/bin/pip install -r requirements.lock
+iniconfig==2.3.1
+packaging==26.3
+pluggy==1.7.0
+Pygments==2.21.0
+pytest==9.2.0
+PyYAML==6.0.3

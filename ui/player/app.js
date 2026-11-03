@@ -178,6 +178,44 @@
     box.classList.add(state.session && state.session.mode === 'readonly' ? 'warn' : 'ok');
   }
 
+  function renderRunTag() {
+    const health = state.health || {};
+    const readonly = !!health.readonly;
+    el('runTag').textContent = readonly
+      ? '只读模式 · ' + (health.run || '本地回放')
+      : '可写 · 真 API · ' + (health.upstream || '127.0.0.1:8020') +
+        (health.upstream_ok === false ? '（不可达）' : '');
+  }
+
+  async function refreshHealth() {
+    const wasDown = !!(state.health && state.health.upstream_ok === false);
+    try {
+      state.health = await API.health();
+    } catch (err) {
+      markDegraded(err);
+    }
+    const down = state.health.upstream_ok === false && !state.health.readonly;
+    if (down !== wasDown) {
+      if (down) {
+        toast('真 API 已断开：页面显示“上游不可达”，重启 wsim.api 后会自动恢复。', true);
+      } else {
+        toast('真 API 已恢复。');
+      }
+    }
+    renderRunTag();
+    renderNotice(state.st);
+  }
+
+  function markDegraded(err) {
+    state.health = Object.assign({}, state.health || {}, {
+      mode: 'degraded',
+      upstream_ok: false,
+      message: '无法连接前端服务：' + (err && (err.message || err) || '未知错误')
+    });
+    renderRunTag();
+    renderNotice(state.st);
+  }
+
   async function loadState(accountId) {
     const st = await API.state(accountId);
     if (!st || !st.ok || !st.player) {
@@ -733,11 +771,7 @@
     initEntryForm();
     try {
       state.health = await API.health();
-      const readonly = !!state.health.readonly;
-      el('runTag').textContent = readonly
-        ? '只读模式 · ' + (state.health.run || '本地回放')
-        : '可写 · 真 API · ' + (state.health.upstream || '127.0.0.1:8020') +
-          (state.health.upstream_ok === false ? '（不可达）' : '');
+      renderRunTag();
       if (!state.health.ok) {
         const box = el('entryError');
         box.textContent = '世界不可用：' + (state.health.message || state.health.error || '未知错误');
@@ -746,7 +780,7 @@
         return;
       }
       const restored = await restoreAccount();
-      renderNotice(null);
+      renderNotice(state.st);
       if (restored) {
         showEntry(false);
       } else {
@@ -755,10 +789,15 @@
       if (state.st) render(state.st);
       clearInterval(state.pollTimer);
       state.pollTimer = setInterval(async function () {
+        await refreshHealth();
         if (el('entryOverlay').classList.contains('hidden') && state.session) {
-          try { await loadState(state.session.accountId); } catch (err) { /* 下轮再试 */ }
+          try {
+            await loadState(state.session.accountId);
+          } catch (err) {
+            markDegraded(err);
+          }
         }
-      }, 20000);
+      }, 10000);
     } catch (err) {
       const box = el('entryError');
       box.textContent = '无法连接服务端：' + (err.message || err);

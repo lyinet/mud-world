@@ -3,7 +3,7 @@ name = "xk-world-sim"
 version = "0.1.0"
 description = "AI NPC MUD P1 无头世界审计器"
 requires-python = ">=3.10"
-dependencies = ["PyYAML>=6.0"]
+dependencies = ["PyYAML==6.0.3"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
