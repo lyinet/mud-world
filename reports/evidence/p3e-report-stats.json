@@ -1,0 +1,402 @@
+{
+  "coverage": {
+    "by_template": {
+      "上工": {
+        "samples": 2,
+        "statuses": {
+          "ok": 2
+        },
+        "success": 2,
+        "success_rate": 1.0,
+        "verb": "work"
+      },
+      "交任务": {
+        "samples": 2,
+        "statuses": {
+          "ok": 1,
+          "reject": 1
+        },
+        "success": 1,
+        "success_rate": 0.5,
+        "verb": "quest_deliver"
+      },
+      "交易": {
+        "samples": 2,
+        "statuses": {
+          "ok": 2
+        },
+        "success": 2,
+        "success_rate": 1.0,
+        "verb": "trade"
+      },
+      "修炼": {
+        "samples": 2,
+        "statuses": {
+          "reject": 2
+        },
+        "success": 0,
+        "success_rate": 0.0,
+        "verb": "cultivate"
+      },
+      "入门派": {
+        "samples": 2,
+        "statuses": {
+          "ok": 1,
+          "reject": 1
+        },
+        "success": 1,
+        "success_rate": 0.5,
+        "verb": "join_sect"
+      },
+      "出售": {
+        "samples": 2,
+        "statuses": {
+          "needs_confirmation": 2
+        },
+        "success": 2,
+        "success_rate": 1.0,
+        "verb": "sell"
+      },
+      "去某地": {
+        "samples": 2,
+        "statuses": {
+          "ok": 2
+        },
+        "success": 2,
+        "success_rate": 1.0,
+        "verb": "move"
+      },
+      "吃饭": {
+        "samples": 2,
+        "statuses": {
+          "ok": 1,
+          "reject": 1
+        },
+        "success": 1,
+        "success_rate": 0.5,
+        "verb": "consume"
+      },
+      "婚配": {
+        "samples": 2,
+        "statuses": {
+          "needs_confirmation": 2
+        },
+        "success": 2,
+        "success_rate": 1.0,
+        "verb": "marry"
+      },
+      "对话": {
+        "samples": 2,
+        "statuses": {
+          "ok": 2
+        },
+        "success": 1,
+        "success_rate": 0.5,
+        "verb": "talk"
+      },
+      "开宗立派": {
+        "samples": 2,
+        "statuses": {
+          "needs_confirmation": 2
+        },
+        "success": 2,
+        "success_rate": 1.0,
+        "verb": "found_sect"
+      },
+      "开店": {
+        "samples": 2,
+        "statuses": {
+          "needs_clarification": 2
+        },
+        "success": 0,
+        "success_rate": 0.0,
+        "verb": "open_shop"
+      },
+      "护送": {
+        "samples": 2,
+        "statuses": {
+          "ok": 2
+        },
+        "success": 2,
+        "success_rate": 1.0,
+        "verb": "escort"
+      },
+      "拜师": {
+        "samples": 2,
+        "statuses": {
+          "ok": 2
+        },
+        "success": 2,
+        "success_rate": 1.0,
+        "verb": "apprentice"
+      },
+      "接任务": {
+        "samples": 2,
+        "statuses": {
+          "ok": 1,
+          "reject": 1
+        },
+        "success": 1,
+        "success_rate": 0.5,
+        "verb": "quest_accept"
+      },
+      "购买": {
+        "samples": 2,
+        "statuses": {
+          "ok": 2
+        },
+        "success": 2,
+        "success_rate": 1.0,
+        "verb": "buy"
+      },
+      "还债": {
+        "samples": 2,
+        "statuses": {
+          "needs_confirmation": 2
+        },
+        "success": 2,
+        "success_rate": 1.0,
+        "verb": "debt_settle"
+      }
+    },
+    "failure_attribution": {
+      "category_drift": 1,
+      "shop_type_grounding": 2,
+      "unknown_category": 6
+    },
+    "failure_details": [
+      {
+        "attribution": "unknown_category",
+        "blocked": [],
+        "category": "吃饭",
+        "missing": [],
+        "parsed_category": "unknown",
+        "status": "reject",
+        "utterance": "喝一壶浊酒暖暖身子",
+        "verb": "consume"
+      },
+      {
+        "attribution": "unknown_category",
+        "blocked": [],
+        "category": "修炼",
+        "missing": [],
+        "parsed_category": "unknown",
+        "status": "reject",
+        "utterance": "练两个时辰绣娘手艺",
+        "verb": "cultivate"
+      },
+      {
+        "attribution": "unknown_category",
+        "blocked": [],
+        "category": "修炼",
+        "missing": [],
+        "parsed_category": "unknown",
+        "status": "reject",
+        "utterance": "练四个时辰绣娘针法",
+        "verb": "cultivate"
+      },
+      {
+        "attribution": "unknown_category",
+        "blocked": [],
+        "category": "入门派",
+        "missing": [],
+        "parsed_category": "unknown",
+        "status": "reject",
+        "utterance": "我要入清议社",
+        "verb": "join_sect"
+      },
+      {
+        "attribution": "shop_type_grounding",
+        "blocked": [
+          {
+            "field": "shop_type",
+            "raw": "stall"
+          }
+        ],
+        "category": "开店",
+        "missing": [
+          "shop_type"
+        ],
+        "parsed_category": "开店",
+        "status": "needs_clarification",
+        "utterance": "在集市摆个摊位卖炊饼",
+        "verb": "open_shop"
+      },
+      {
+        "attribution": "shop_type_grounding",
+        "blocked": [
+          {
+            "field": "shop_type",
+            "raw": "stall"
+          }
+        ],
+        "category": "开店",
+        "missing": [
+          "shop_type"
+        ],
+        "parsed_category": "开店",
+        "status": "needs_clarification",
+        "utterance": "在客栈盘一间店铺",
+        "verb": "open_shop"
+      },
+      {
+        "attribution": "unknown_category",
+        "blocked": [],
+        "category": "接任务",
+        "missing": [],
+        "parsed_category": "unknown",
+        "status": "reject",
+        "utterance": "接「送一匹绸样」这趟差事",
+        "verb": "quest_accept"
+      },
+      {
+        "attribution": "unknown_category",
+        "blocked": [],
+        "category": "交任务",
+        "missing": [],
+        "parsed_category": "unknown",
+        "status": "reject",
+        "utterance": "把送一匹绸样交了",
+        "verb": "quest_deliver"
+      },
+      {
+        "attribution": "category_drift",
+        "blocked": [],
+        "category": "对话",
+        "missing": [],
+        "parsed_category": "交易",
+        "status": "ok",
+        "utterance": "对金满仓说「这批铁器我全要了」",
+        "verb": "talk"
+      }
+    ],
+    "success": 25,
+    "success_rate": 0.7352941176470589,
+    "templates": 17,
+    "total": 34
+  },
+  "event_replay": {
+    "events_total": 222,
+    "match": true,
+    "replayed": "9129402e7b8a516705809aacf626b746fab659f8b3ab9067b0c6d1fe55ca647a",
+    "run": "reports/evidence/runs/p3e-deepseek-real-2d-12npc",
+    "stored": "9129402e7b8a516705809aacf626b746fab659f8b3ab9067b0c6d1fe55ca647a"
+  },
+  "fake_2d_k6": {
+    "action_ratio": {
+      "model": 0.0618,
+      "rule": 0.9382
+    },
+    "dialogue_calls": {},
+    "events_total": 816,
+    "illegal_attempt_rate": 0.03308823529411765,
+    "illegal_rate_executed": 0.0,
+    "k1_rate": 0.16483516483516483,
+    "k6_illegal_executed_pass": true,
+    "k6_illegal_pass_strict": false,
+    "precondition_blocked": 27,
+    "precondition_blocked_by_verb": {
+      "quest_accept": {
+        "not_at_giver": 2
+      },
+      "quest_deliver": {
+        "quest_not_accepted_by_actor": 2
+      },
+      "sell": {
+        "item_not_held": 1
+      },
+      "talk": {
+        "not_together": 18
+      },
+      "trade": {
+        "not_together": 4
+      }
+    },
+    "rejected": 0
+  },
+  "intent_recordings": {
+    "calls": 19,
+    "completion_tokens": 354,
+    "p50_latency_s": 0.8228141670115292,
+    "p95_latency_s": 0.9521459579700604,
+    "prompt_tokens": 25898
+  },
+  "partial_replay_2d": {
+    "cost_calls": 38,
+    "event_final": "53c1460f9d9dd7e5b031470cc56d8d6e1b86b3eb043feec1de8a933238d74cab",
+    "events_total": 220,
+    "fallbacks": 0,
+    "intent_calls": 19,
+    "intent_reject": 19,
+    "replay_miss": 19,
+    "state_final": "7a5ce1bd69e45283f2d098bd173ce8dad6e5c04580a96ba09146a5b94efe7988"
+  },
+  "real_2d": {
+    "action_ratio": {
+      "model": 0.007,
+      "rule": 0.993
+    },
+    "calls_by_timing": {
+      "night_batch": 14,
+      "realtime": 5
+    },
+    "content_hash": "085702abc97ab96a31f5b696dc81ae1144b9b64b4cdc5ea9737ccfc3d0563516",
+    "cost_calls": 38,
+    "days": 2,
+    "dialogue_calls": {},
+    "dialogue_slot_calls": 0,
+    "estimated_cost_usd": 0.082242,
+    "event_final": "65fb7c2a506d6fcd1f6140fbb09bb90d8d17c5fc53b18829005ba312e64e4db7",
+    "events_total": 222,
+    "fallbacks": 0,
+    "illegal_attempt_rate": 0.009009009009009009,
+    "illegal_rate_executed": 0.0,
+    "intent_clarification": 4,
+    "intent_grounding_blocked": 3,
+    "intent_grounding_by_field": {
+      "hours": 1,
+      "message": 2
+    },
+    "intent_ok": 4,
+    "intent_reject": 11,
+    "k1_pass": false,
+    "k1_progressed": 7,
+    "k1_rate": 0.07692307692307693,
+    "k1_total": 91,
+    "latency_by_slot": {
+      "decision": {
+        "n": 19,
+        "p50": 0.995,
+        "p95": 1.552
+      },
+      "intent": {
+        "n": 19,
+        "p50": 0.823,
+        "p95": 0.952
+      }
+    },
+    "llm_calls": {
+      "decision": 19,
+      "intent": 19
+    },
+    "npc_count": 12,
+    "precondition_blocked": 2,
+    "precondition_blocked_by_verb": {
+      "trade": {
+        "not_together": 2
+      }
+    },
+    "rejected": 0,
+    "run_id": "p3e-deepseek-real-2d-12npc",
+    "seed": 42,
+    "state_final": "9129402e7b8a516705809aacf626b746fab659f8b3ab9067b0c6d1fe55ca647a",
+    "thinking_marked": {
+      "decision": {
+        "reasoning_effort=none": 5
+      },
+      "intent": {
+        "reasoning_effort=none": 19
+      }
+    }
+  }
+}

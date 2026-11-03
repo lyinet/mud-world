@@ -6,4 +6,7 @@ __pycache__/
 *.pyo
 *.sqlite
 *.sqlite-journal
+# 交付证据里的 run 目录需要入库，供干净 clone 直接事件回放。
+!reports/evidence/runs/
+!reports/evidence/runs/**
 .DS_Store

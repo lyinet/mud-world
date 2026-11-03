@@ -1,8 +1,11 @@
-# P3-E 报告（已冻结）
+# P3-E 报告（复核修复版）
 
-> 状态：**已冻结（`delivery-p3e`）**。P0-1 / P0-2 / P0-4 / P0-5 与换模型 2 天真实跑均已闭合；
-> 冻结验收：`selfcheck.sh` 4/4、pytest 182 passed、framework 6/6、干净 worktree replay MATCH。
-> 唯一未验证项是 `dialogue` 槽真实文笔（本轮 2 天跑该槽 0 次调用），已在 §7 与 tag 附注列明。
+> 状态：原冻结 tag `delivery-p3e` 保留不动；本文件按独立复核报告修正，修复用新 commit。
+> 已修正：P0-2 人数单位漏洞（含反例测试）、复现链口径、K6 非法率口径、P0-5 归因脚本化、
+> 换模型 2 天披露。**K6 严格口径仍不达标（3.31% > 2%）**，按 FAIL 记录，不通过移动口径达成 PASS。
+> 换模型 2 天只算连通性验收，不算模型质量闭合；`dialogue` 槽 0 次调用，文笔未评测。
+> 报告数字统一由 [tools/p3e_report_stats.py](../tools/p3e_report_stats.py) 生成，
+> 结果见 [reports/evidence/p3e-report-stats.md](../reports/evidence/p3e-report-stats.md)。
 > 契约文档：[docs/player-api.md](../docs/player-api.md)
 
 ---
@@ -167,32 +170,37 @@
 }
 ```
 
-### 4.3 framework 第 6 项：修复前后
+### 4.3 framework 第 6 项与 K6 非法率口径
 
-| 指标 | 修复前 | 修复后 |
-|---|---|---|
-| 事件总数（2 天 fake LLM） | 782 | 816 |
-| 拒绝数 | 22 | 0 |
-| 拒绝率 | 2.81% | **0.00%** |
-| `talk:not_together` 事件 | 14 | **0** |
-| `trade:not_together` | 3 | 0 |
-| `quest_accept:not_at_giver` | 2 | 0 |
-| `quest_deliver:quest_not_accepted_by_actor` | 2 | 0 |
-| `sell:item_not_held` | 1 | 0 |
-| 前置拦截（不计事件） | — | 27 |
-| LLM 落地 | 47 | 47/47 |
-| 守恒 / replay | PASS | PASS |
-| framework | PASS（第 6 项 FAIL） | **PASS** |
+本轮 2 天假端点 run（`runs/framework/fake_llm_2d`）的数字全部由
+`PYTHONPATH=src .venv/bin/python tools/p3e_report_stats.py` 从
+`reports/evidence/p3e-fake-llm-2d-summary.json` 复算：
 
-### 4.4 非法率口径变化（为什么不算掩盖）
+| 指标 | 值 |
+|---|---|
+| 事件总数 | 816 |
+| 进入事件日志的 Reject | 0 |
+| 提案前拦截 `precondition_blocked` | 27 |
+| 非法率（已执行动作口径） | 0/816 = **0.00%**（PASS） |
+| 非法率（违规尝试口径，严格，结论） | (0+27)/816 = **3.31%**（**FAIL**，门槛 2%） |
+| `talk:not_together` / `trade:not_together` | 18 / 4 |
+| `quest_accept:not_at_giver` / `quest_deliver:...` / `sell:item_not_held` | 2 / 2 / 1 |
+| LLM 落地 | 47/47 |
+| 守恒 / replay | PASS / PASS |
+| `verdict.k6_illegal_pass`（严格） | **False** |
+| `verdict.k6_illegal_executed_pass`（旧口径） | True |
 
-- 旧口径：所有 `outcome=rejected` 事件都计入非法率，包括“人不在同一地点”这种正常交互前置条件。
-- 新口径：**非法率只统计真正违反世界规则、进入事件日志的 Reject**；前置条件不满足的自主意图在提案前被拦截，单独记 `precondition_blocked`（按 verb/reason/examples 可审计）。
-- 为什么不算掩盖：
-  1. 拦截发生在提案阶段，没有事件、没有消耗世界动作；
-  2. 所有被拦截条目都在 summary 里计数并附最多 20 条 examples，可逐条复核；
-  3. 玩家意图没有被静默吞掉，仍产生可解释 Reject（API 返回原因）；
-  4. 真正的规则违反（越权、守恒、非法状态变更）仍走 Reject 事件，口径不变。
+### 4.4 非法率两种口径：机制有效，但严格指标 FAIL
+
+- **定义 A（已执行动作口径）**：`rejected / events_total`。只统计真正进入事件日志的 Reject。
+- **定义 B（违规尝试口径，结论）**：`(rejected + precondition_blocked) / events_total`。
+  提案前拦截不落事件、无副作用，但仍是违规尝试，计入分子；分母沿用事件日志规模，因此比定义 A 严格。
+- **结论**：机制修复是真的——27 条拦截都发生在提案阶段，没有事件、没有消耗世界动作、没有副作用，
+  且全部在 summary 的 `precondition_blocked` 里逐条可审计。但按定义 B，本轮 **3.31% > 2%，K6 FAIL**。
+  不得把 27 条拦截移出分子来换 PASS。
+- **改进项**：`talk:not_together` 占 18/27，说明 planner 仍会“在原地找人说话”；应在计划阶段先移动再
+  提案，或把 `move → talk` 合成一个有前置校验的序列；`trade` 4 次同理，`quest_*` 2+2 次需在提案前
+  校验委托人与接取状态，`sell` 1 次需校验持有物。
 
 测试：
 
@@ -252,26 +260,43 @@ calls=94 schema_reject=0 fallback=0 拒绝率=0.00% 守恒=0 replay=MATCH
   不注入 `sleep_fn`、传输层连续两次 429，断言 `elapsed >= 0.04s`、`http_429=2`、`retries=1`，
   并断言默认值仍是 25.0s。测试通过。
 
-### 4.7 P0-2：grounding 六用例
+### 4.7 P0-2：grounding 六用例 + 人数单位反例
 
-文件 `tests/test_p3e_grounding.py`（6/6 通过）。所有数量都必须与目标物品**同分句**且量词兼容：
+文件 `tests/test_p3e_grounding.py`（**15/15 通过**）。所有数量都必须与目标物品**同分句**且量词兼容：
 
 | # | 原话 | 模型给的参数 | 结果 |
 |---|---|---|---|
 | 1 | 先来三个人，再去集市买两斗米 | `qty=3斗`（跨分句借了“三个人”的 3） | 丢弃，`blocked=[qty]` |
-| 2 | 有三个人要去集市买米 | `qty=3`，单位=人 | 人数单位不给物品数量背书，丢弃 |
+| 2 | 有三个人要去集市买米 | `qty=3`（无单位） | 丢弃，`blocked=[qty]` |
 | 3 | 去集市买两斗米 | `qty=2斤`（量词不匹） | 丢弃 |
 | 4 | 去集市买俩炊饼 | 模型给 `qty=俩` → 归一 `2` | 通过，`normalizations.qty={value:2}` |
 | 5 | 去集市买半斤米 | 模型给 `qty=半斤` → 归一 `1` | 通过 |
 | 6 | 去集市买米 | 模型自行补 `qty=5` | 丢弃且 `dropped_fields=["qty"]` |
+| 7 | 在集市碰到两人买米 | `qty="2人"`（人数单位原样带回） | 丢弃，`blocked=[qty]` |
+| 8 | 有三个人要去集市买米 | `qty="3人"` / `"3位"` / `"3名"` | 丢弃，`blocked=[qty]` |
+| 9 | 去集市买两斗米 / 两斤米 / 三斤米 | 正常物品量（带单位或不带单位） | 通过，`qty=2/2/3` |
 
-实现要点：`_quantity_tokens` 识别 `三` + 尾字`人/名/位` 的人数单位；`_units_compatible` 禁止人数给物品背书；
-可选字段被丢弃时写入 `dropped_fields`，必填字段被丢弃时写 `blocked` 并转 `needs_clarification`。
+修复点：原 `_units_compatible` 在“两边都是人数单位”时返回 True，导致 `2人/3人/3位/3名` 被当作物品数量。
+现改为**任一侧出现人数单位即不兼容**，人数单位与物品数量单位不可互换；无单位值仍可按同分句的物品量词补全。
+新增 9 个参数化反例/正例（`test_people_unit_in_qty_value_is_blocked`、
+`test_people_count_without_unit_is_blocked`、`test_normal_item_quantity_is_not_over_blocked`），
+避免只测无单位值绕过缺陷。可选字段被丢弃时写入 `dropped_fields`，必填字段被丢弃时写 `blocked` 并转 `needs_clarification`。
 
-### 4.8 P0-4：证据入库、复现命令与密钥
+### 4.8 P0-4：复现链口径修正
 
-- 证据固定路径 `reports/evidence/`（清单与哈希见 [docs/evidence.md](../docs/evidence.md)）。
-- P3-D 报告里的复现命令文件名已改为真实存在的 `intent-recordings-2d-final.jsonl`。
+- `runs/` 不入库，干净 clone 后原先的 `--run runs/p3e-deepseek-real-2d-12npc` 会
+  `FileNotFoundError`。现把验收 run 副本入库到
+  [reports/evidence/runs/p3e-deepseek-real-2d-12npc/](../reports/evidence/runs/p3e-deepseek-real-2d-12npc/)。
+- **事件日志回放**（唯一承诺的确定性）：
+  `PYTHONPATH=src .venv/bin/python tools/replay.py --run reports/evidence/runs/p3e-deepseek-real-2d-12npc`
+  → `events=222`、`replayed=stored=9129402e…`、**MATCH**。它只证明 effect 引擎能从同一事件日志重建同一状态。
+- **整跑不可复现**：该 run 只录制了 intent 槽，decision 槽未录制。按文档命令重跑实测得到的是另一个世界：
+  `events=220`（原 222）、`state=7a5ce1bd…`（原 9129402e…）、`event=53c1460f…`（原 65fb7c2a…）、
+  `replay_miss=19/19`、`intent_reject=19`。原报告把它叫“确定性对照”是错误表述，已删除。
+- 负面对照证据：[p3e-partial-replay-2d-summary.json](../reports/evidence/p3e-partial-replay-2d-summary.json)；
+  文档 [docs/evidence.md](../docs/evidence.md) 已明确区分“事件回放自证 effect 引擎”与“run 可复现”。
+- P3-D 报告里的复现命令文件名已改为真实存在的 `intent-recordings-2d-final.jsonl`；P3-D 的 run 仍未入库，
+  文档已标注“需要本机保留 runs/p3d-real-2d-12npc”，不再承诺干净 clone 整跑。
 - 报告中的明文测试 key 已替换为 `<REDACTED>`，README 顶部写明：该 key 如为真实凭证必须立即轮换。
 - 仓库不再保存明文 key；运行期只从 `LLM_API_KEY` / `XING_API_KEY` 等环境变量读取。
 
@@ -290,8 +315,11 @@ calls=94 schema_reject=0 fallback=0 拒绝率=0.00% 守恒=0 replay=MATCH
 apprentice 100%、marry 100%（待确认）、found_sect 100%（待确认）、escort 100%、debt_settle 100%（待确认）、
 consume 50%、join_sect 50%、quest_accept 50%、quest_deliver 50%、talk 50%、cultivate 0%、open_shop 0%。
 
-失败集中在模型分类而非 grounding：8 条 `unknown_category`（喝/练功/入社/摆摊/接任务等口语），
-1 条 `shop_type=stall` 与“店铺”不匹配被 grounding 拦下，1 条 talk 被模型判成 trade。
+失败归因由脚本逐条判定，不再手写：
+**6 条 `unknown_category` + 2 条 `shop_type_grounding` + 1 条 `category_drift` = 9 条失败**
+（原报告写成 8+1+1 是错的；2 条 shop_type 分别来自 open_shop 的“店铺/摊子”参数）。
+复算命令：`PYTHONPATH=src .venv/bin/python tools/p3e_report_stats.py`；
+脚本输出 [p3e-report-stats.md](../reports/evidence/p3e-report-stats.md)（含 25/34=73.53%、逐模板成功率与失败明细）。
 这正是“按模板报成功率”要暴露的问题；未调 prompt 掩盖。
 
 ### 4.10 换模型 2 天真实跑（与 Xing 并列，不可比）
@@ -303,7 +331,7 @@ consume 50%、join_sect 50%、quest_accept 50%、quest_deliver 50%、talk 50%、
 |---|---|---|---|
 | 端点 | `127.0.0.1:3425` | `127.0.0.1:3427` | 不同网关 |
 | content_hash | `085702ab…` | `ced9cd63…` | **内容版本不同，不可比** |
-| 事件 / 拒绝 | 222 / 0（0.00%） | 208 / 1（0.48%） | — |
+| 事件 / 拒绝 / 提案前拦截 | 222 / 0 / 2（严格 0.90%） | 208 / 1 / —（0.48%） | P3-E 严格口径仍 < 2% |
 | 决策槽 p50 / p95 | 0.995s / 1.552s | 0.002s / 0.111s | Xing 决策槽是假端点 |
 | 意图槽 p50 / p95 | 0.823s / 0.952s | 17.124s / 45.046s | 关键差距 |
 | schema 失败 / fallback | 0 / 0 | 0 / 0 | — |
@@ -313,8 +341,14 @@ consume 50%、join_sect 50%、quest_accept 50%、quest_deliver 50%、talk 50%、
 | 墙钟（2 天 12 NPC） | 16.2s | 284.0s | 含真实等待 |
 
 - 费用：`$0.082242`（decision `$0.051331` + intent `$0.030911`），38 次调用，无降级。
-- `thinking` 参数：`reasoning_effort=none` 被接受 decision 5/19、intent 19/19；`thinking_param_ignored=0`。
+- **`thinking` 参数只记录到 decision 5/19、intent 19/19**：`thinking_param_ignored=0`。
+  decision 缺失的 14 条全部是夜间批处理（`calls_by_timing.night_batch=14`），该路径没有把请求参数
+  写入遥测；因此 **5/19 是遥测缺失，不是“14 条确认未生效”**，也不能反过来证明 14 条都生效。
+- **动作来源 model 0.7% / rule 99.3%**：2 天跑的动作几乎全部来自规则路径/规则兜底，LLM decision 未主导行为。
+- **K1 仅 7/91 = 7.69%（FAIL）**：这是 2 天长窗口下的真实进度，不是模型质量达标证据。
 - **`dialogue` 槽 0 次调用**：本轮 2 天没有玩家在场对话，文笔/角色扮演质量未评测，不能据此宣称对话槽可用。
+- **结论口径**：换模型 2 天只证明“deepseek 端点、槽位配置与 schema 能连通”，不证明行为质量；
+  质量结论仍以 §4.9 的模板覆盖与后续更长窗口为准。以上数字由 `tools/p3e_report_stats.py` 复算。
 - 事件哈希：`state_final=9129402e…`、`event_final=65fb7c2a…`；事件日志回放 MATCH。
 
 ---
@@ -328,15 +362,17 @@ consume 50%、join_sect 50%、quest_accept 50%、quest_deliver 50%、talk 50%、
 
 ---
 
-## 6. 测试与框架（冻结验收）
+## 6. 测试与框架（复核验收）
 
 | 项 | 命令 | 结果 |
 |---|---|---|
 | selfcheck 4/4 | `./scripts/selfcheck.sh` | **PASS**（4 项全部通过，含玩家闭环） |
-| pytest | `.venv/bin/python -m pytest -q` | **182 passed**，0 failed |
-| framework 6/6 | `.venv/bin/python tools/framework_check.py` | **FRAMEWORK CHECK: PASS** |
-| replay（事件日志） | `.venv/bin/python tools/replay.py --run runs/p3e-deepseek-real-2d-12npc` | **MATCH** |
-| 干净 worktree replay | `git worktree add` 后同命令 | **MATCH** |
+| pytest | `PYTHONPATH=src .venv/bin/python -m pytest` | **192 passed**，0 failed |
+| framework 6/6 | `PYTHONPATH=src .venv/bin/python tools/framework_check.py` | **FRAMEWORK CHECK: PASS** |
+| K6 严格口径 | 同上 summary → `verdict.k6_illegal_pass` | **FAIL**（(0+27)/816 = 3.31%） |
+| 事件日志回放 | `PYTHONPATH=src .venv/bin/python tools/replay.py --run reports/evidence/runs/p3e-deepseek-real-2d-12npc` | **MATCH**（222 events，9129402e…） |
+| 干净解包回放 | `git archive HEAD \| tar -x -C <tmp>` 后同命令 | **MATCH**（见 §4.8） |
+| 报告数字复算 | `PYTHONPATH=src .venv/bin/python tools/p3e_report_stats.py` | **EXIT=0**，输出 stats .json/.md |
 | 十分钟走查 | `.venv/bin/python tools/playthrough.py` | **EXIT=0**，硬验收全 PASS |
 
 ## 7. 关闭状态与未验证项
@@ -344,12 +380,13 @@ consume 50%、join_sect 50%、quest_accept 50%、quest_deliver 50%、talk 50%、
 | 项 | 状态 | 证据 / 影响 |
 |---|---|---|
 | P0-1 生产路径 429 退避 | **闭合** | 默认 `time.sleep` + 默认 25s；不注入 `sleep_fn` 的测试通过（§4.6） |
-| P0-2 grounding 六用例 | **闭合** | `tests/test_p3e_grounding.py` 6/6（§4.7） |
+| P0-2 grounding | **闭合** | 人数单位与物品数量单位互斥；`tests/test_p3e_grounding.py` 15/15（§4.7） |
 | P0-3 延迟口径 | **闭合** | `attempt_latency` / `call_latency` 分列；2 天 run 分位见 §4.10 |
-| P0-4 证据与密钥 | **闭合** | `reports/evidence/` + `docs/evidence.md`；命令文件名修正；key 脱敏与 README 轮换提示（§4.8） |
-| P0-5 模板覆盖 | **闭合** | 17 模板 × 2 条真实录制，按模板成功率 73.53%（§4.9） |
-| 换模型真实 2 天 | **闭合** | `deepseek-flash` / `deepseek-v4.1-flash` 配置 + 12 NPC / 2 天真实跑 + 与 Xing 并列（§4.10） |
-| 冻结验收 | **闭合** | selfcheck 4/4、182 passed、framework 6/6、replay MATCH（含干净 worktree） |
+| P0-4 复现链 | **事件回放闭合；整跑不承诺** | run 副本入库，干净 clone 回放 MATCH；intent 录制重跑 19/19 miss、220 events，文档已明确区分（§4.8） |
+| P0-5 模板覆盖 | **闭合（归因已脚本化）** | 25/34 = 73.53%；归因 6 unknown + 2 shop_type + 1 category_drift（§4.9） |
+| 换模型真实 2 天 | **仅连通性验证** | 端点/配置/schema 连通；`dialogue` 0 调用、动作 99.3% 规则、K1 7.69%、thinking 遥测 5/19（§4.10） |
+| **K6 非法率（严格口径）** | **FAIL** | (0+27)/816 = **3.31% > 2%**；机制有效但指标不达标，改进项见 §4.4 |
+| 冻结验收 | **部分闭合** | selfcheck 4/4、192 passed、framework 6/6、事件回放 MATCH；K6 严格口径 FAIL |
 | `dialogue` 槽真实文笔 | **未验证（降级）** | 本轮 2 天 `dialogue` 0 次调用；只验证了配置与参数（`enable_thinking:false`），文笔未评测 |
 | P0-5 部分模板 0% 通过 | **已知缺口** | cultivate / open_shop 0/2，5 个模板 50%；均为模型分类问题，已在 §4.9 逐条列出 |
 | 不可逆动作 / 托管 | **未开放** | 伤害、抢掠、强迫婚配、驱逐仍关闭；离线 custody/dormant 未开放 |

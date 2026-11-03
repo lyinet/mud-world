@@ -4,8 +4,9 @@ from __future__ import annotations
 from pathlib import Path
 
 from wsim.actions.registry import build_registry
+from wsim.audit.illegal import illegal_stats
 from wsim.core.content import load_content
-from wsim.core.models import Effect, Intent
+from wsim.core.models import Effect, Event, Intent
 from wsim.sim.headless import intent_block_reason
 from wsim.world.effects import apply_effects
 from wsim.world.state import WorldState
@@ -70,6 +71,25 @@ def test_planner_trade_and_quest_are_blocked_before_event(tmp_path):
         if not intent_block_reason(registry, writer.state, intent):
             writer.submit(intent)
     assert store.read_all() == []
+
+
+def test_k6_reports_executed_and_attempt_rates():
+    """K6 必须同时给出两种口径；严格口径把提案前拦截计入违规尝试。"""
+    def event(seq: int, outcome: str, reason: str = "") -> Event:
+        return Event(
+            seq=seq, tick=seq, day=1, intent_id=f"intent:{seq}", actor="npc_a",
+            verb="talk", args={}, effects=[], outcome=outcome, reason=reason, source="llm",
+        )
+
+    stats = illegal_stats(
+        [event(1, "ok"), event(2, "ok"), event(3, "rejected", "not_together"), event(4, "ok")],
+        precondition_blocked=2,
+    )
+    assert stats["events_total"] == 4
+    assert stats["rejected"] == 1
+    assert stats["illegal_rate"] == 1 / 4
+    assert stats["precondition_blocked"] == 2
+    assert stats["illegal_attempt_rate"] == (1 + 2) / 4
 
 
 def test_player_intent_is_not_silently_blocked(tmp_path):

@@ -629,7 +629,7 @@ def run_headless(
     k1 = goal_stats(state, horizon, content)
     k3 = diversity_stats(events, npc_ids, seed=cfg.seed)
     k6_cons = conservation(state)
-    k6_ill = illegal_stats(events)
+    k6_ill = illegal_stats(events, precondition_blocked=sum(blocked.values()))
     k6_rel_strong = relation_stats(state)
     k6_rel_all = relation_stats(state, kinds=ALL_KINDS)
     ledger = debt_ledger(state)
@@ -859,7 +859,9 @@ def run_headless(
         "k6_conservation_pass": k6_cons["conservation_error"] == 0
         and not k6_cons["negative_accounts"]
         and debts_audit["status"] == "pass",
-        "k6_illegal_pass": k6_ill["illegal_rate"] < 0.02,
+        # 结论取严格口径：提案前拦截也计入违规尝试。
+        "k6_illegal_pass": k6_ill["illegal_attempt_rate"] < 0.02,
+        "k6_illegal_executed_pass": k6_ill["illegal_rate"] < 0.02,
         "k6_relations_pass": k6_rel_strong["conflict_rate"] < 0.01,
         "k1_pass": k1["k1_rate"] >= 0.60,
         "k3_status": "diagnostic_only",
@@ -886,7 +888,11 @@ def run_headless(
         "events": {
             "total": len(events),
             "rejected": k6_ill["rejected"],
+            # 已执行动作口径（历史字段，保持兼容）。
             "illegal_rate": k6_ill["illegal_rate"],
+            # 违规尝试口径（严格）：(reject + 提案前拦截) / 事件数。
+            "illegal_attempt_rate": k6_ill["illegal_attempt_rate"],
+            "precondition_blocked": k6_ill["precondition_blocked"],
             "by_reason": k6_ill["by_reason"],
             "by_verb": k6_ill["by_verb"],
         },

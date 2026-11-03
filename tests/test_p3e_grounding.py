@@ -8,6 +8,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 
@@ -97,3 +99,52 @@ def test_dropped_optional_field_is_recorded(real_content, real_state):
     assert "qty" not in res.args
     assert {"field": "qty", "raw": 5} in res.blocked
     assert "qty" in res.dropped_fields
+
+
+@pytest.mark.parametrize(
+    "utterance,qty",
+    [
+        ("在集市碰到两人买米", "2人"),
+        ("有三个人要去集市买米", "3人"),
+        ("有三个人要去集市买米", "3位"),
+        ("有三个人要去集市买米", "3名"),
+    ],
+)
+def test_people_unit_in_qty_value_is_blocked(real_content, real_state, utterance, qty):
+    """模型把人数单位原样带回（2人/3人/3位/3名）时，不能当作物品数量。"""
+    res = _parse(_buy("米", qty), real_content, real_state, utterance=utterance)
+    assert res.status == "ok"
+    assert "qty" not in res.args
+    assert {"field": "qty", "raw": qty} in res.blocked
+    assert res.dropped_fields == ["qty"]
+
+
+@pytest.mark.parametrize(
+    "utterance,qty",
+    [
+        ("在集市碰到两人买米", 2),
+        ("有三个人要去集市买米", 3),
+    ],
+)
+def test_people_count_without_unit_is_blocked(real_content, real_state, utterance, qty):
+    """模型只给数字、不给单位时，也不能从原文的“两人/三个人”借数量。"""
+    res = _parse(_buy("米", qty), real_content, real_state, utterance=utterance)
+    assert res.status == "ok"
+    assert "qty" not in res.args
+    assert {"field": "qty", "raw": qty} in res.blocked
+
+
+@pytest.mark.parametrize(
+    "utterance,qty,expected",
+    [
+        ("去集市买两斗米", "2斗", 2),
+        ("去集市买两斤米", 2, 2),
+        ("去集市买三斤米", "3斤", 3),
+    ],
+)
+def test_normal_item_quantity_is_not_over_blocked(real_content, real_state, utterance, qty, expected):
+    """正常物品数量（带单位/不带单位）不能被人数单位修复误伤。"""
+    res = _parse(_buy("米", qty), real_content, real_state, utterance=utterance)
+    assert res.status == "ok"
+    assert res.args["qty"] == expected
+    assert res.blocked == []

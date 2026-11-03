@@ -603,8 +603,10 @@ PEOPLE_UNITS = {"人", "名", "位"}
 
 def _units_compatible(a: str, b: str) -> bool:
     # P0-2：人数单位不能给物品数量背书（“三个人买米”不能推出 qty=3）。
+    # 人物数量单位与物品数量单位语义不同，任一侧出现人数单位即不兼容；
+    # 即使两侧都是“人/名/位”，也仍然不能作为物品 qty 的依据。
     if a in PEOPLE_UNITS or b in PEOPLE_UNITS:
-        return a in PEOPLE_UNITS and b in PEOPLE_UNITS
+        return False
     if not a or not b:
         return True
     return b in UNIT_GROUPS.get(a, {a})
