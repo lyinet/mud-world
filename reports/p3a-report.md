@@ -4,6 +4,7 @@
 - 范围：Provider 真实 HTTP、本地假端点、三种决策时机接入主循环、预算护栏、端到端对比、真实网关实测
 - 内容哈希：`c9d6bb66f2858616c3b5a926dbc1bfad32f245ca71be5b18fda846ad9aaedc98`（与 `delivery-p2.2` 相同，内容包未改）
 - tag：`delivery-p3a`（附注 tag，附 commit 与 content_hash）
+- tag 指向 commit：`cfd0ea8`
 - 冻结后干净重跑结果见第 10 节
 
 ## 0. 结论
@@ -73,11 +74,11 @@ LOD 档位决定谁被调用：只有产生底稿（有目标/计划）的 NPC �
 
 | run | 时机 | invocations | model_calls | decisions | actions | avg_actions | submitted | accepted | applied | accept_rate |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| fake-10d | night_batch | 152 | 98 | 98 | 212 | 2.163 | 212 | 212 | 212 | 100% |
-| fake-10d | realtime | 657 | 483 | 483 | 1041 | 2.155 | 1041 | 1041 | 1041 | 100% |
+| fake-10d | night_batch | 152 | 77 | 77 | 163 | 2.117 | 163 | 163 | 163 | 100% |
+| fake-10d | realtime | 637 | 552 | 552 | 1191 | 2.158 | 1191 | 1191 | 1191 | 100% |
 | fake-10d | replan | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | — |
-| fake-72d | night_batch | 476 | 203 | 203 | 415 | 2.044 | 415 | 415 | 415 | 100% |
-| fake-72d | realtime | 6422 | 6170 | 6170 | 13414 | 2.174 | 13414 | 13414 | 13414 | 100% |
+| fake-72d | night_batch | 323 | 158 | 158 | 353 | 2.234 | 353 | 353 | 353 | 100% |
+| fake-72d | realtime | 6930 | 6654 | 6654 | 14430 | 2.169 | 14430 | 14430 | 14430 | 100% |
 | fake-72d | replan | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | — |
 | real-2d | night_batch | 24 | 18 | 18 | 53 | 2.944 | 53 | 35 | 35 | 66.04% |
 | real-2d | realtime | 16 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | — |
@@ -89,11 +90,11 @@ LOD 档位决定谁被调用：只有产生底稿（有目标/计划）的 NPC �
 
 | run | LOD decide_calls | processed_wakes | state_provider_calls | active / background / silent / spotlight | 模型调用（night + realtime） | 差额解释 |
 | --- | ---: | ---: | ---: | --- | ---: | --- |
-| fake-10d | 657 | 657 | 657 | 47 / 38 / 3 / 569 | 98 + 483 = 581 | 76 个唤醒无底稿，跳过模型 |
-| fake-72d | 6422 | 6422 | 6422 | 92 / 64 / 21 / 6245 | 203 + 6170 = 6373 | 49 个唤醒无底稿，跳过模型 |
+| fake-10d | 637 | 637 | 637 | 28 / 39 / 4 / 566 | 77 + 552 = 629 | 85 个唤醒无底稿，跳过模型 |
+| fake-72d | 6930 | 6930 | 6930 | 61 / 65 / 10 / 6794 | 158 + 6654 = 6812 | 305 个唤醒/批次无底稿，跳过模型 |
 | real-2d | 16 | 16 | 16 | 11 / 4 / 1 / 0 | 18 + 0 = 18 | 18 次全部来自夜间批处理；无玩家，spotlight 为 0 |
 
-三个独立计数器（调度器唤醒、处理队列、状态视图请求）逐 run 完全相等，说明“LOD 决定谁被调用”没有旁路。spotlight 唤醒占 10d 的 86.6%，与 36 tick 的 spotlight 间隔和玩家在场升档一致；silent 仅 3/1 次，与 1440 tick 间隔一致。
+三个独立计数器（调度器唤醒、处理队列、状态视图请求）逐 run 完全相等，说明“LOD 决定谁被调用”没有旁路。spotlight 唤醒占 10d 的 88.9%（566/637），与 36 tick 的 spotlight 间隔和玩家在场升档一致；silent 仅 4 次，与 1440 tick 间隔一致。
 
 ## 4. 预算护栏
 
@@ -125,15 +126,15 @@ LOD 档位决定谁被调用：只有产生底稿（有目标/计划）的 NPC �
 
 | 指标 | P2.2 10d（Mock） | P3-A 10d（假端点） | P2.2 72d（Mock） | P3-A 72d（假端点） |
 | --- | ---: | ---: | ---: | ---: |
-| 模型/推理调用 | 199 | 581 | 751 | 6,373 |
-| input tokens | 76,851 | 238,767 | 290,849 | 2,637,148 |
-| output tokens | 73,829 | 27,277 | 272,104 | 293,254 |
-| 估算成本（仓库费率） | $0.5306 | $0.9363 | $1.9814 | $11.2017 |
+| 模型/推理调用 | 199 | 629 | 751 | 6,812 |
+| input tokens | 76,851 | 259,195 | 290,849 | 2,822,304 |
+| output tokens | 73,829 | 29,439 | 272,104 | 314,111 |
+| 估算成本（仓库费率） | $0.5306 | $1.0427 | $1.9814 | $12.0496 |
 | schema_reject | 0 | 0 | 0 | 0 |
 | fallback | 0 | 0 | 0 | 0 |
-| 事件总数 | 2,841 | 1,310 | 12,616 | 13,193 |
+| 事件总数 | 2,841 | 1,371 | 12,616 | 13,904 |
 | 拒绝数 / 拒绝率 | 44 / 1.55% | 0 / 0.00% | 188 / 1.49% | 0 / 0.00% |
-| K1（全量 91） | 45 (49.45%) | 0 (0.00%) | 71 (78.02%) | 3 (3.30%) |
+| K1（全量 91） | 45 (49.45%) | 1 (1.10%) | 71 (78.02%) | 3 (3.30%) |
 | K3 action_signatures | 86 | 34 | 100 | 34 |
 | 守恒误差 | 0 | 0 | 0 | 0 |
 | replay | MATCH | MATCH | MATCH | MATCH |
@@ -152,8 +153,8 @@ K1 大幅下降的原因不是“模型更差”，而是假端点只输出 `mov
 
 | run | events | minted | burned | accounts | 账户合计 | 误差 | 负余额 | replay |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| fake-10d | 1,310 | 47,150 | 0 | 41 | 47,150 | 0 | 0 | MATCH |
-| fake-72d | 13,193 | 47,150 | 302 | 41 | 46,848 | 0 | 0 | MATCH |
+| fake-10d | 1,371 | 47,150 | 0 | 41 | 47,150 | 0 | 0 | MATCH |
+| fake-72d | 13,904 | 47,150 | 302 | 41 | 46,848 | 0 | 0 | MATCH |
 | real-2d | 100 | 26,200 | 40 | 22 | 26,160 | 0 | 0 | MATCH |
 
 ## 6. 真实端点实测
@@ -289,14 +290,14 @@ export LLM_BASE_URL=http://127.0.0.1:64310/v1
 export LLM_API_KEY=test-key
 export LLM_MODEL=fake/model
 python3 sim/run_headless.py --days 10 --seed 42 --npc 0 --with-players 1 \
-  --enable-llm --llm-max-tokens 2048 --run-id fake-10d
+  --enable-llm --llm-max-tokens 2048 --run-id p3a-clean-10d
 python3 sim/run_headless.py --days 72 --seed 42 --npc 0 --with-players 1 \
-  --enable-llm --llm-max-tokens 2048 --run-id fake-72d
+  --enable-llm --llm-max-tokens 2048 --run-id p3a-clean-72d
 kill %1
 
 # 重放
-python3 tools/replay.py --run runs/fake-10d   # MATCH
-python3 tools/replay.py --run runs/fake-72d   # MATCH
+python3 tools/replay.py --run runs/p3a-clean-10d   # MATCH
+python3 tools/replay.py --run runs/p3a-clean-72d   # MATCH
 ```
 
 独立守恒复算（不读 summary）：
@@ -312,13 +313,15 @@ PY
 ## 10. 冻结与干净重跑
 
 - tag：`delivery-p3a`
-- tag 指向 commit：待回填
+- tag 指向 commit：`cfd0ea8`（附注 tag 内同时记录 content_hash）
 - content_hash：`c9d6bb66f2858616c3b5a926dbc1bfad32f245ca71be5b18fda846ad9aaedc98`
-- 干净 worktree：待回填
-- pytest：待回填
-- framework：待回填
-- 10d / 72d 假端点哈希：待回填
-- replay：待回填
+- 干净 worktree：`/tmp/wsim-p3a`（`git worktree add /tmp/wsim-p3a delivery-p3a`，分离头指针 `cfd0ea8`）
+- pytest：`105 passed in 9.61s`
+- framework：`FRAMEWORK CHECK: PASS`（6/6；第 6 项 `127.0.0.1:64382` 启动→2 天→关闭，source=llm 落地 157/157，拒绝率 0.00%，守恒 0，replay MATCH）
+- 假端点 10d：state `47ee761c…`、event `06646383…`，replay MATCH
+- 假端点 72d：state `236deb47…`、event `e894c632…`，replay MATCH
+- 确定性复核：在干净 worktree 对 10d 连跑两次（`p3a-clean-10d` / `p3a-clean-10d-b`），calls 629、events 1371、state `47ee761c…` 完全一致
+- 两套干净重跑目录已复制回主仓库 `runs/p3a-clean-10d` / `runs/p3a-clean-72d`；本报告第 3/5 节数字全部来自这两次运行
 
 ## 11. 仍未验证 / 未达标
 

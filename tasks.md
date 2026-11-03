@@ -42,8 +42,8 @@
 ### A7 端到端对比与冻结
 - [x] 假端点 10d/72d（seed 42）：调用数/token/成本/schema_reject/fallback/落地率/拒绝率/K1/K3/守恒。
 - [x] 与 `delivery-p2.2` 基线并列并标 `non_comparable`。
-- [ ] commit → `git tag -a delivery-p3a`（附注 commit + content_hash）。
-- [ ] 从 tag 干净重跑 10d/72d + pytest + framework，回填 `reports/p3a-report.md` 第 10 节。
+- [x] commit → `git tag -a delivery-p3a`（附注 commit + content_hash）。
+- [x] 从 tag 干净重跑 10d/72d + pytest + framework，回填 `reports/p3a-report.md` 第 10 节。
 
 ---
 
