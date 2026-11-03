@@ -186,6 +186,37 @@
   超支原因：单次 decision 约 3.7k 输入 token，日成本 `$0.13–0.34`，成本仅在 run 结束可见，
   无法在 `$1.75` 处自动中断。
 
+#### A3 第二轮：成本硬闸、回放与护栏（2026-11-04）
+
+阶段一（零 API 成本，commit `9242c1e`）：
+
+| 项 | 结果 | 证据 |
+|---|---|---|
+| `not_together` 丢弃/改选 | PASS（逻辑） | 不再 retime；旧 66 条按同 tick 已执行 trade 代理：改选 0、丢弃 41（llm）、仍由 emit 剪 25（planner）。新 M 臂过滤期丢弃 28、改选 0 |
+| 决策+intent 合并 | PARTIAL | 旧 M：422 decision + 16 intent；新 M：423 decision + **11 intent**（未归零，`join_sect` 无可解析会馆等仍回退） |
+| 决策槽整 run 回放 | PASS | 录制 `c4fc017c…` → 回放同 hash、同 state hash、events 3697；`cost=0.0`，日志 `llm.replay.mode=replay` |
+| 成本硬闸 | PASS | 单元/集成测试触发 soft+hard；真实 run 在 `$2.5015` 打印 soft 警告，未触 hard |
+
+阶段二（新 M 臂 `runs/a3-model2-10d-31npc`，预算 $2.658 / 上限 $3.0）：
+
+| 判据 | 线 | 实测 | 判定 |
+|---|---:|---:|---|
+| 目标相关动作 | ≥155 | **80** | FAIL |
+| K1 | ≥ R+5pp（≥55/91） | **41/91=45.05%**（R 49.45%，**−4.4pp**） | FAIL（较上轮 +3.3pp，未回到规则臂） |
+| K6 严格/含剪枝 | 全 pass | 严格 pass；含剪枝 **76/2007=3.79%** | FAIL |
+| 模型事件占比 | ≥5% | **280/3271=8.56%** | PASS |
+| `llm→goal_progress` 链 | ≥10 | **80** | PASS |
+| replay MATCH | 必须 | **PASS**（`c4fc017c…`） | PASS |
+
+- 护栏为启发式：规则目标进度 ≤5% 时允许覆盖，否则要求模型目标进度 ≥规则 +5pp；
+  本 run `goal_override_skipped` 计数未能落盘为 0（字段接入但未触发/统计口径待下轮核对）。
+- K6 含剪枝仍未过：57 条 `trade not_together` 中 38 条来自 llm，主要是“规划时同地点、
+  同 tick 目标先被移动后执行”的竞态；`SOCIAL_FIRST_VERBS` 目前只含 talk。
+  修复方向：把 trade 提前到 move 之前，或在提交前二次校验；未在本轮验证。
+- 成本：decision 423 次 `$2.641396` + intent 11 次 `$0.016576` = **`$2.657972`**；
+  阶段一零调用。累计 A3 两轮约 **`$5.796`**（跨轮预算不合并）。
+- 未达项、根因与建议均保留，未静默改基线/指标。
+
 ### A4（P2，1.5–2 天）给实时会话加后台 NPC 调度器
 
 - 改什么：`api/session.py:762-774` 增加 `AmbientScheduler`（独立线程 + 现有 `LODScheduler`），按可配“逻辑时钟”推进 tick；到期唤醒默认走规则 planner（零成本），spotlight 可选走 LLM；所有写入复用 `Writer` 锁。

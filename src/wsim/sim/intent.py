@@ -1274,6 +1274,7 @@ class MockReasoner(Reasoner):
         self.decisions: list[dict[str, Any]] = []
         self.replan_count = 0
         self.postponed_open_shop = 0
+        self.goal_override_skipped = 0
 
     def decide(
         self,
@@ -1295,12 +1296,17 @@ class MockReasoner(Reasoner):
         interval = int(world_view.get("interval", TICKS_PER_DAY))
         tier = str(world_view.get("tier", "active"))
         choice = self.selector.choose(state, npc, tick)
-        # A3：模型目标合法且可规划时直接采用（不再要求与规则选择器一致）。
-        # 紧急/生存目标仍由规则抢占，模型不得覆盖。
+        # A3：模型目标合法且可规划时直接采用；紧急/生存目标仍由规则抢占。
+        # 第二轮护栏（启发式，非证明）：模型目标“不劣于”规则目标才覆盖，避免
+        # 反复切换把累积型目标的进度摊薄。判据：模型目标无进度、规则目标也几乎
+        # 没进度时允许换；否则要求模型目标的归一化进度不低于规则目标 + 5pp。
         if goal_override and choice is not None and choice.source != "urgent":
             alt = self._choice_for_goal(state, npc, goal_override)
             if alt is not None:
-                choice = alt
+                if self._override_not_worse(state, choice, alt, npc):
+                    choice = alt
+                else:
+                    self.goal_override_skipped += 1
         if choice is None:
             return []
 
@@ -1363,6 +1369,16 @@ class MockReasoner(Reasoner):
                 persona_tokens=prompt.persona_tokens,
             )
         return intents
+
+    def _override_not_worse(self, state: WorldState, rule: GoalChoice, alt: GoalChoice, npc: str) -> bool:
+        """启发式护栏：只在模型目标不劣于规则目标时覆盖。"""
+        if alt.goal_id == rule.goal_id:
+            return True
+        rule_prog = float(state.goals[rule.goal_id].progress) if rule.goal_id in state.goals else 0.0
+        alt_prog = float(state.goals[alt.goal_id].progress) if alt.goal_id in state.goals else 0.0
+        if rule_prog <= 0.05:
+            return True
+        return alt_prog >= rule_prog + 0.05
 
     def _choice_for_goal(self, state: WorldState, npc: str, goal_override: str) -> GoalChoice | None:
         """把模型选择的目标 id 映射成规则可执行的目标；非法/已完成返回 None。

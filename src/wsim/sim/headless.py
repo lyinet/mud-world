@@ -732,6 +732,7 @@ def run_headless(
         for row in model_goal_chains:
             fh.write(json.dumps(row, ensure_ascii=False) + "\n")
     model_agency = {
+        "goal_override_skipped": getattr(mock_reasoner, "goal_override_skipped", 0),
         "model_events": len(llm_events),
         "model_event_share": round(len(llm_events) / len(ok_nonsys), 4) if ok_nonsys else 0.0,
         "model_event_share_all_ok": round(len(llm_events) / len(ok_events), 4) if ok_events else 0.0,
