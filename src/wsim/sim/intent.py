@@ -24,6 +24,7 @@ from ..actions.common import (
     nearest_location,
     organization_at,
     path_between,
+    role_allowed,
     sell_price,
     skill_for,
     wallet,
@@ -114,6 +115,25 @@ class GoalSelector:
             )
             for n in content.npcs
         }
+        # 门派发起人：内容包 sects.yaml 的 founder_candidate 自动补一条 found_sect 目标。
+        for sid in sorted(content.sects):
+            sect = content.sects[sid]
+            cand = str(sect.get("founder_candidate") or "")
+            if not cand or cand not in self._content_goals:
+                continue
+            if any(str(g.get("type")) == "found_sect" and str(g.get("sect", sid)) == sid
+                   for g in self._content_goals[cand]):
+                continue
+            self._content_goals[cand].insert(
+                0,
+                {
+                    "id": f"found_{sid}",
+                    "type": "found_sect",
+                    "priority": 1,
+                    "sect": sid,
+                    "name": sect.get("name", sid),
+                },
+            )
 
     def _name(self, npc: str) -> str:
         row = next((n for n in self.content.npcs if str(n["id"]) == npc), None)
@@ -134,10 +154,21 @@ class GoalSelector:
         return goal
 
     def _next_content_goal(self, state: WorldState, npc: str):
+        """按内容优先级轮转：当前目标已推进（progress >= 0.1）就转向下一个。
+
+        只做“深度优先”会把后续目标全部堵死（K1 分母失效）；轮转保证每个
+        NPC 在 72 天内能触达多条内容目标，同时仍只有一个 active 主目标。
+        """
+        active = self._active(state, npc)
         for g in self._content_goals.get(npc, []):
             gid = f"{npc}:{g['id']}"
             sg = state.goals.get(gid)
             if sg is not None and sg.status in ("completed", "abandoned"):
+                continue
+            if active is not None and active.id == gid and active.progress >= 0.1:
+                # found_sect 不轮转：招人本身就是进度，轮转会让门派永远凑不齐人。
+                if str(g.get("type")) == "found_sect":
+                    return g
                 continue
             return g
         return None
@@ -166,6 +197,8 @@ class GoalSelector:
             return None
         name = self._name(npc)
         trait = self._trait(npc)
+        persona = self.content.personas.get(npc, "") if self.content is not None else ""
+        ptag = f"｜{persona[:26]}" if persona else ""
         active = self._active(state, npc)
         urgent = self._urgent(state, npc)
         last_urgent = self._urgent_last.get(npc, -10_000)
@@ -183,7 +216,7 @@ class GoalSelector:
                     kind=active.kind,
                     target=active.target,
                     source="urgent",
-                    reason=f"{name}（{trait}）：{motivation}，继续处理",
+                    reason=f"{name}（{trait}{ptag}）：{motivation}，继续处理",
                     create=False,
                 )
             if active is not None and active.content_type.startswith("urgent_") and not cooldown_ok:
@@ -201,10 +234,14 @@ class GoalSelector:
                 kind=kind,
                 target=float(goal_target(self.content, kind)),
                 source="urgent",
-                reason=f"{name}（{trait}）：{motivation}，抢占主线",
+                reason=f"{name}（{trait}{ptag}）：{motivation}，抢占主线",
                 create=gid not in state.goals,
                 preempted=active is not None,
-                abandon=active.id if active is not None and active.id != gid else "",
+                abandon=(
+                    active.id
+                    if active is not None and active.id != gid and active.content_type != "found_sect"
+                    else ""
+                ),
             )
             self.changes.append(
                 {
@@ -232,11 +269,11 @@ class GoalSelector:
                 kind=goal_kind(str(content_goal.get("type", ""))),
                 target=float(goal_target(self.content, goal_kind(str(content_goal.get("type", ""))))),
                 source="content",
-                reason=f"{name}（{trait}）：按内容目标推进「{GOAL_LABEL.get(str(content_goal.get('type')), content_goal.get('type'))}」",
+                reason=f"{name}（{trait}{ptag}）：按内容目标推进「{GOAL_LABEL.get(str(content_goal.get('type')), content_goal.get('type'))}」",
                 create=False,
             )
         abandon = active.id if active is not None and active.content_type.startswith("urgent_") else ""
-        reason = f"{name}（{trait}）：急事已了，回到主线「{GOAL_LABEL.get(str(content_goal.get('type')), content_goal.get('type'))}」"
+        reason = f"{name}（{trait}{ptag}）：急事已了，回到主线「{GOAL_LABEL.get(str(content_goal.get('type')), content_goal.get('type'))}」"
         if abandon:
             self.changes.append(
                 {
@@ -275,6 +312,15 @@ class GoalSelector:
         )
 
 
+def _as_ids(raw) -> list[str]:
+    if not isinstance(raw, list):
+        return []
+    return [str(x) for x in raw]
+
+
+section_ids = _as_ids
+
+
 class Planner:
     """把目标拆成可执行动作序列；routine（通勤/上工/吃饭）每天固定，目标动作按档位深度。
 
@@ -286,6 +332,8 @@ class Planner:
         self.content = content
         self.seed = seed
         self._stamina = 100.0
+        # quest_id -> 上次尝试 tick（避免同一任务反复被拒）
+        self._quest_attempt: dict[str, int] = {}
 
     def _cost(self, verb: str, args: dict) -> float:
         econ = self.content.economy
@@ -360,7 +408,9 @@ class Planner:
         name = ent.name
 
         def reason(text: str) -> str:
-            return f"{name}：{text}（目标：{label}）"
+            persona = self.content.personas.get(ent.id, "") if self.content is not None else ""
+            tag = f"｜{persona[:26]}" if persona else ""
+            return f"{name}：{text}（目标：{label}{tag}）"
 
         day_last = day_of(max(start_tick, horizon - 1))
         for day in range(day_of(start_tick), day_last + 1):
@@ -374,12 +424,21 @@ class Planner:
                 self._stamina = min(100.0, self._stamina + recover)
 
             work_loc = self._work_location(state, ent)
-            if work_loc:
+            sect_cost = int((self.content.economy.get("sect") or {}).get("founding_cost", 2500))
+            active_goal = state.goals.get(ent.goal_id) if ent.goal_id else None
+            raising = (
+                active_goal is not None
+                and str(getattr(active_goal, "content_type", "")) == "found_sect"
+                and cash < sect_cost
+            )
+            if work_loc and (day % 2 == 0 or raising):
+                # 正在攒注册费的门派发起人每天上工，其余人隔日上工。
                 loc, cursor = self._move(state, intents, npc, loc, work_loc, cursor, seg_end, reason("去上工"))
                 if loc == work_loc and cursor < seg_end:
                     cursor = self._add(intents, npc, "work", {"at": loc, "hours": 8}, cursor, seg_end, reason("上工糊口"))
                     cash += self._net_wage(ent)
             else:
+                # 隔日上工 / 无雇主：留在原地练手艺，减少通勤与工资外流。
                 cursor = self._add(
                     intents,
                     npc,
@@ -392,6 +451,12 @@ class Planner:
 
             # 午饭（一天一顿，减少无效往返；晚饭取消）
             loc, cursor, cash = self._meal(state, intents, npc, loc, cursor, seg_end, cash, "午饭")
+
+            # 任务优先：接单 -> 执行（交付由 headless 在动作成功后推进）
+            loc, cursor, cash = self._quest_step(state, intents, npc, loc, cursor, seg_end, cash, memo)
+
+            # 消费倾向：有余钱就买一件非口粮品，钱回流店铺
+            loc, cursor, cash = self._propensity_buy(state, intents, npc, loc, cursor, seg_end, cash, memo)
 
             # 目标动作：按档位深度
             for k in range(depth):
@@ -432,14 +497,19 @@ class Planner:
         cash: int,
         label: str,
     ) -> tuple[str, int, int]:
-        foods = set(food_locations(state, self.content))
-        if not foods:
-            return loc, cursor, cash
-        food_loc = nearest_location(state, loc, foods)
-        if food_loc is None:
-            return loc, cursor, cash
-        loc, cursor = self._move(state, intents, npc, loc, food_loc, cursor, end, f"{label}：去饭点")
-        item = cheapest_food(self.content, loc, state, min_stock=10)
+        # 就近吃饭：当前地点有吃的就不动；没有才走，且不为一顿饭横穿全城。
+        item = cheapest_food(self.content, loc, state, min_stock=1)
+        if item is None:
+            foods = set(food_locations(state, self.content))
+            if not foods:
+                return loc, cursor, cash
+            food_loc = nearest_location(state, loc, foods)
+            if food_loc is None:
+                return loc, cursor, cash
+            if len(path_between(state, loc, food_loc)) > 2:
+                return loc, cursor, cash  # 太远，改日再吃（体力仍按日恢复）
+            loc, cursor = self._move(state, intents, npc, loc, food_loc, cursor, end, f"{label}：去饭点")
+            item = cheapest_food(self.content, loc, state, min_stock=1)
         if item is None:
             return loc, cursor, cash
         price = self.content.item_price(item)
@@ -457,6 +527,224 @@ class Planner:
         )
         cash -= price + tax
         return loc, cursor, cash
+
+    def _quest_step(
+        self,
+        state: WorldState,
+        intents: list[Intent],
+        npc: str,
+        loc: str,
+        cursor: int,
+        end: int,
+        cash: int,
+        memo: dict[str, Any],
+    ) -> tuple[str, int, int]:
+        if memo.get("quest_done") or cursor >= end:
+            return loc, cursor, cash
+        ent = state.entities[npc]
+        accepted = sorted(
+            (q for q in state.quests.values()
+             if q.status == "accepted" and q.acceptor == npc
+             and q.accepted_tick >= 0 and cursor - q.accepted_tick >= TICKS_PER_DAY),
+            key=lambda q: q.id,
+        )
+        if accepted:
+            q = accepted[0]
+            last = self._quest_attempt.get(q.id, -TICKS_PER_DAY * 2)
+            if cursor - last < TICKS_PER_DAY:
+                return loc, cursor, cash
+            self._quest_attempt[q.id] = cursor
+            memo["quest_done"] = q.id
+            return self._quest_execute(state, intents, npc, loc, cursor, end, cash, q)
+        open_quests = [
+            q for q in sorted(state.quests.values(), key=lambda q: q.id)
+            if q.status == "open"
+        ]
+        if open_quests and memo.get("quest_look"):
+            return loc, cursor, cash
+        memo["quest_look"] = True
+        for q in open_quests:
+            if q.giver == npc or not self._quest_feasible(state, ent, q):
+                continue
+            # 截止太近就不接，避免“接了也来不及交付”的必拒。
+            if q.deadline_tick >= 0 and q.deadline_tick - cursor < TICKS_PER_DAY:
+                continue
+            giver = state.entities.get(q.giver)
+            if giver is None or giver.status != "alive":
+                continue
+            if giver.location != loc:
+                # 前置条件不满足（不在发起人处）：换路径——走近一点再谈，
+                # 避免全城 NPC 为了接任务每天长途奔袭，把 move 占比重新推高。
+                # 押镖是职业行为，允许走两步到镖局。
+                path = path_between(state, loc, giver.location)
+                max_hops = 2 if q.verb == "escort" else 1
+                if len(path) > max_hops:
+                    continue
+                loc, cursor = self._move(
+                    state, intents, npc, loc, giver.location, cursor, end, "去找任务发起人"
+                )
+                if loc != giver.location or cursor >= end:
+                    return loc, cursor, cash
+            # 不再用“同地点最小 id 排他”：那会把 escort 任务永久卡在
+            # 不合格的 NPC 身上（该地点最小 id 未必有押镖资格）。
+            # 竞争由单写者事件顺序自然裁决，落败者最多产生少量 quest_not_open。
+            last = self._quest_attempt.get(q.id, -TICKS_PER_DAY * 2)
+            if cursor - last < TICKS_PER_DAY:
+                continue
+            self._quest_attempt[q.id] = cursor
+            cursor = self._add(
+                intents, npc, "quest_accept", {"quest": q.id}, cursor, end,
+                f"在{giver.name}处接下任务「{q.template_id}」",
+            )
+            memo["quest_done"] = q.id
+            return self._quest_execute(state, intents, npc, loc, cursor, end, cash, q)
+        return loc, cursor, cash
+
+    def _quest_feasible(self, state: WorldState, ent, quest) -> bool:
+        """只接当前角色真能执行的任务，避免把必拒动作塞进计划。"""
+        tpl = self.content.quests.get(quest.template_id) or {}
+        if quest.verb == "escort":
+            if not role_allowed(self.content, "escort", ent.role):
+                return False
+            path = [str(x) for x in (quest.args.get("route") or [])]
+            if not path:
+                return False
+            for a, b in zip(path, path[1:]):
+                if a not in state.locations or b not in state.locations[a].get("exits", []):
+                    return False
+            return True
+        if quest.verb == "buy":
+            at = str(quest.args.get("from") or quest.target_location)
+            item = str(quest.args.get("item") or "")
+            return any(b.stock.get(item, 0) >= 3 for b in state.business_at(at))
+        if quest.verb == "work":
+            at = str(quest.args.get("at") or quest.target_location)
+            return bool([b for b in state.business_at(at) if b.kind != "service_room"])
+        if quest.verb == "trade":
+            target = state.entities.get(str(tpl.get("target_npc") or ""))
+            if target is None or target.status != "alive":
+                return False
+            delta = int((quest.args or {}).get("money_delta") or 0)
+            if delta > 0 and state.account_balance(wallet(target.id)) < delta:
+                return False
+            return True
+        return True
+
+    def _quest_execute(
+        self,
+        state: WorldState,
+        intents: list[Intent],
+        npc: str,
+        loc: str,
+        cursor: int,
+        end: int,
+        cash: int,
+        quest,
+    ) -> tuple[str, int, int]:
+        ent = state.entities[npc]
+        if cursor >= end:
+            return loc, cursor, cash
+        if quest.verb == "escort":
+            path = [str(x) for x in (quest.args.get("route") or [])]
+            if not path:
+                return loc, cursor, cash
+            if loc != path[0]:
+                loc, cursor = self._move(state, intents, npc, loc, path[0], cursor, end, "去镖局接镖")
+            if loc == path[0] and cursor < end and ent.escort_id is None:
+                args = dict(quest.args)
+                args["quest"] = quest.id
+                for route in self.content.escort_routes.values():
+                    if [str(x) for x in (route.get("route") or [])] == path:
+                        args["route_id"] = str(route["id"])
+                        break
+                cursor = self._add(intents, npc, "escort", args, cursor, end, "押镖赶路")
+            return loc, cursor, cash
+
+        target_npc = state.entities.get(quest.target_npc) if quest.target_npc else None
+        exec_loc = quest.target_location
+        if target_npc is not None and target_npc.status == "alive":
+            exec_loc = target_npc.location
+        if quest.verb == "buy" or quest.verb == "work":
+            exec_loc = str(quest.args.get("from") or quest.args.get("at") or quest.target_location)
+        if quest.verb == "move":
+            exec_loc = str(quest.args.get("to") or quest.target_location)
+        if loc != exec_loc:
+            loc, cursor = self._move(state, intents, npc, loc, exec_loc, cursor, end, "去办事")
+        if loc == exec_loc and cursor < end:
+            args = dict(quest.args)
+            args["quest"] = quest.id
+            if quest.verb == "trade" and quest.target_npc:
+                args.setdefault("target", quest.target_npc)
+            cursor = self._add(intents, npc, quest.verb, args, cursor, end, f"执行任务「{quest.template_id}」")
+            post_loc = str(args.get("to") or exec_loc) if quest.verb == "move" else exec_loc
+            giver = state.entities.get(quest.giver)
+            if giver is not None and giver.status == "alive":
+                loc, cursor = self._move(
+                    state, intents, npc, post_loc, giver.location, cursor, end, "回去交付任务"
+                )
+                if loc == giver.location and cursor < end:
+                    cursor = self._add(
+                        intents, npc, "quest_deliver", {"quest": quest.id}, cursor, end, "交付任务"
+                    )
+        return loc, cursor, cash
+
+    def _propensity_buy(
+        self,
+        state: WorldState,
+        intents: list[Intent],
+        npc: str,
+        loc: str,
+        cursor: int,
+        end: int,
+        cash: int,
+        memo: dict[str, Any],
+    ) -> tuple[str, int, int]:
+        """消费倾向：有余钱买一件非口粮品，钱回流店铺（非 top3 动作）。"""
+        if memo.get("bought") or cursor >= end or cash < 120:
+            return loc, cursor, cash
+        best: tuple[int, str] | None = None
+        for biz in state.business_at(loc):
+            for iid, qty in sorted(biz.stock.items()):
+                if qty < 3 or iid not in self.content.items:
+                    continue
+                if str(self.content.items[iid].get("category", "")) in ("food", "drink", "service", "meal"):
+                    continue
+                price = self.content.item_price(iid)
+                if price <= 0 or price * 3 > cash:
+                    continue
+                if best is None or price < best[0]:
+                    best = (price, iid)
+        if best is None:
+            return loc, cursor, cash
+        price, iid = best
+        before = cursor
+        cursor = self._add(
+            intents, npc, "buy", {"from": loc, "item": iid, "qty": 1},
+            cursor, end, f"手头宽裕，添置{iid}",
+        )
+        if cursor != before:
+            memo["bought"] = iid
+            cash -= price + int(price * float((self.content.economy.get("taxes") or {}).get("transaction", 0.0)))
+        return loc, cursor, cash
+
+    def _recruit_target(self, state: WorldState, ent, sect_cfg: dict, members: list[str]):
+        """优先按内容包 recruit_targets 选人，已结盟/已入派/已故者跳过。"""
+        seen = set(members)
+        for tid in section_ids(sect_cfg.get("recruit_targets")):
+            other = state.entities.get(tid)
+            if other is None or other.status != "alive" or other.id in seen:
+                continue
+            if other.faction and str(other.faction).startswith("sect:"):
+                continue
+            return other
+        for rid in sorted(state.entities):
+            other = state.entities[rid]
+            if rid == ent.id or other.status != "alive" or rid in seen:
+                continue
+            if other.role == "official" or (other.faction and str(other.faction).startswith("sect:")):
+                continue
+            return other
+        return None
 
     def _goal_step(
         self,
@@ -485,6 +773,29 @@ class Planner:
             return loc, cursor, cash
 
         if ct in ("earn_money", "urgent_money", "urgent_debt"):
+            if ct == "urgent_debt":
+                # 还款是插件动作（plugins/actions/debt_settle），证明插件层可用。
+                if memo.get("debt_paid"):
+                    return loc, cursor, cash
+                for d in sorted(state.debts.values(), key=lambda x: (x.amount, x.id)):
+                    if d.status != "active" or d.debtor != npc or d.amount <= 0:
+                        continue
+                    # 只还 system_debts 不会自动清偿的欠条（初始欠债/长期欠债），
+                    # 避免与日终自动结算竞争产生 no_debt 必拒。
+                    if d.note != "initial_debt" and not d.long_term:
+                        continue
+                    pay = min(int(d.amount), int(cash))
+                    if pay <= 0:
+                        break
+                    before = cursor
+                    cursor = self._add(
+                        intents, npc, "debt_settle", {"debt": d.id, "amount": pay},
+                        cursor, end, reason(f"还{d.creditor}的欠债{pay}文"),
+                    )
+                    if cursor != before:
+                        memo["debt_paid"] = d.id
+                        cash -= pay
+                    return loc, cursor, cash
             step = variant % 3
             if step == 0:
                 item = self._sellable(ent, memo)
@@ -513,15 +824,12 @@ class Planner:
                         )
                         cash += 5
                         return loc, cursor, cash
-            work_loc = self._work_location(state, ent)
-            if work_loc:
-                loc, cursor = self._move(state, intents, npc, loc, work_loc, cursor, end, reason("加个短工"))
-                if loc == work_loc and cursor < end:
-                    cursor = self._add(
-                        intents, npc, "work", {"at": loc, "hours": 4},
-                        cursor, end, reason("加短工挣现钱"),
-                    )
-                    cash += self._net_wage(ent) // 2
+            # P2-B：取消“加短工”——它会重复占用岗位并制造大量工资欠条。
+            cursor = self._add(
+                intents, npc, "cultivate",
+                {"skill": skill_for(self.content, ent.role), "hours": 2},
+                cursor, end, reason("加练手艺等机会"),
+            )
             return loc, cursor, cash
 
         if ct == "urgent_recover":
@@ -567,6 +875,10 @@ class Planner:
             return loc, cursor, cash
 
         if ct in ("gain_status", "join_sect"):
+            if any(str(s.get("founder_candidate")) == ent.id for s in self.content.sects.values()):
+                # 门派发起人不去入别人的会：否则一旦 faction_join，found_sect 永远被
+                # already_in_faction 挡住，门派就再也发不起来。
+                return loc, cursor, cash
             if ent.faction is not None or memo.get("joined"):
                 return loc, cursor, cash
             target_loc = join_target_location(state, self.content) or loc
@@ -589,24 +901,66 @@ class Planner:
         if ct == "found_sect":
             if (ent.faction is not None and str(ent.faction).startswith("sect:")) or memo.get("founded"):
                 return loc, cursor, cash
-            seat = self.content.sect_at(ent.home or ent.location) or {}
-            at = str(seat.get("location") or ent.home or ent.location)
+            sect_cfg = next(
+                (s for s in self.content.sects.values() if s.get("founder_candidate") == ent.id),
+                self.content.sect_at(ent.home or ent.location) or {},
+            )
+            at = str(sect_cfg.get("location") or ent.home or ent.location)
             loc, cursor = self._move(state, intents, npc, loc, at, cursor, end, reason("回门派驻地"))
-            members = founding_members(state, ent, float((self.content.economy.get("sect") or {}).get("min_relation_value", 30)))
+            min_rel = float((self.content.economy.get("sect") or {}).get("min_relation_value", 30))
+            members = founding_members(state, ent, min_rel)
             need = max(5, int((self.content.economy.get("sect") or {}).get("min_members", 5)))
-            if len(members) >= need and cash >= 2500 and cursor < end:
+            cost = int((self.content.economy.get("sect") or {}).get(
+                "founding_cost",
+                max(int((self.content.economy.get("sect") or {}).get("registration_fee", 500)),
+                    int((self.content.economy.get("sect") or {}).get("min_money", 2000))),
+            ))
+            if len(members) < need and not memo.get("recruited"):
+                target = self._recruit_target(state, ent, sect_cfg, members)
+                if target is not None:
+                    loc, cursor = self._move(state, intents, npc, loc, target.location, cursor, end,
+                                             reason(f"去招揽{target.name}"))
+                    if loc == target.location and cursor < end:
+                        cursor = self._add(
+                            intents, npc, "recruit", {"target": target.id},
+                            cursor, end, reason(f"邀{target.name}结盟（人手{len(members)}/{need}）"),
+                        )
+                        memo["recruited"] = target.id
+                    return loc, cursor, cash
+            if len(members) >= need and cash >= cost and cursor < end:
                 cursor = self._add(
                     intents, npc, "found_sect",
-                    {"name": f"{ent.name}会", "at": loc, "doctrine": "自守"},
-                    cursor, end, reason("凑齐人手，开宗立派"),
+                    {
+                        "name": str(sect_cfg.get("name") or f"{ent.name}会"),
+                        "at": loc,
+                        "doctrine": "自守",
+                        "sect_id": str(sect_cfg.get("id") or ""),
+                    },
+                    cursor, end, reason(f"凑齐{len(members)}人，纳{cost}文注册费开派"),
                 )
                 memo["founded"] = True
-                cash -= 2500
+                cash -= cost
+            elif len(members) >= need and cursor < end:
+                # 人已齐、钱不够：去挣注册费，而不是原地空练。
+                item = self._sellable(ent, memo)
+                if item is not None:
+                    dest = self._sell_location(state, item, loc)
+                    if dest:
+                        loc, cursor = self._move(state, intents, npc, loc, dest, cursor, end,
+                                                 reason(f"卖{item}凑注册费"))
+                    if loc == dest and state.business_at(loc) and cursor < end:
+                        cursor = self._add(
+                            intents, npc, "sell", {"item": item, "qty": 1, "to": loc},
+                            cursor, end, reason(f"卖{item}凑{cost}文注册费"),
+                        )
+                        self._mark_used(memo, item)
+                        cash += sell_price(self.content, item)
+                        return loc, cursor, cash
             else:
                 cursor = self._add(
                     intents, npc, "cultivate",
                     {"skill": skill_for(self.content, ent.role), "hours": 2},
-                    cursor, end, reason(f"人手{len(members)}/{need}，先攒声望"),
+                    cursor, end, reason(f"人手{len(members)}/{need}、现钱{cash}/{cost}，先攒资源"),
                 )
             return loc, cursor, cash
 
@@ -884,6 +1238,7 @@ class MockReasoner(Reasoner):
                 "preempted": choice.preempted,
                 "create": bool(choice.create),
                 "reason": choice.reason,
+                "persona": (self.content.personas.get(npc, "") if self.content is not None else ""),
                 "planned_through": self._planned_through[npc],
                 "actions": [i.verb for i in intents],
             }

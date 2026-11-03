@@ -1,12 +1,19 @@
-"""押镖动词与到达结算系统动作。"""
+"""押镖动词与到达结算系统动作（P2-B：逐线路结算）。
+
+结算优先级（唯一事实源）：
+1. `content/escort_routes.yaml` 命中线路 -> 该线路的 duration_days / fee 区间 /
+   agency_cut / risk_loss_prob / risk_events 全部生效；
+2. 未命中线路（或旧 Intent 只给了 route 路径）-> 回退到 `economy.escort` 全局值，
+   并写一条 `escort_global_fallback` 记忆，便于审计。
+不得同时使用线路值和全局值（旧实现的双重计算已删除）。
+"""
 from __future__ import annotations
 
+from ..core.clock import TICKS_PER_DAY, TICKS_PER_HOUR
 from ..core.models import Effect, Intent, Reject
-from ..core.clock import TICKS_PER_HOUR
 from ..world.state import WorldState
 from .common import (
     arg_int,
-    arg_str,
     escort_business,
     goal_progress,
     memory,
@@ -19,24 +26,36 @@ from .common import (
 from .registry import Action
 
 
+def _route_path(intent: Intent) -> list[str]:
+    raw = intent.args.get("route")
+    if not isinstance(raw, list) or len(raw) < 2:
+        raise Reject("bad_arg:route")
+    return [str(x) for x in raw]
+
+
+def resolve_route(content, intent: Intent) -> dict | None:
+    """按 route_id 或路径精确匹配内容包线路；匹配不上返回 None。"""
+    rid = intent.args.get("route_id")
+    if rid and str(rid) in content.escort_routes:
+        return content.escort_routes[str(rid)]
+    path = _route_path(intent)
+    for route in content.escort_routes.values():
+        if [str(x) for x in (route.get("route") or [])] == path:
+            return route
+    return None
+
+
 class EscortAction(Action):
     verb = "escort"
 
     def __init__(self, content):
         self.content = content
 
-    def _route(self, intent: Intent) -> list[str]:
-        raw = intent.args.get("route")
-        if not isinstance(raw, list) or len(raw) < 2:
-            raise Reject("bad_arg:route")
-        route = [str(x) for x in raw]
-        return route
-
     def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
         ent = require_entity(state, intent.actor)
         if not role_allowed(self.content, "escort", ent.role):
             return ["role_not_allowed"]
-        route = self._route(intent)
+        route = _route_path(intent)
         if route[0] != ent.location:
             return ["not_at_origin"]
         for a, b in zip(route, route[1:]):
@@ -53,24 +72,62 @@ class EscortAction(Action):
             return ["no_escort_agency"]
         if state.account_balance(agency.cash_account) < fee:
             return ["agency_insufficient_cash"]
-        if cargo < int((self.content.economy.get("escort") or {}).get("cargo_min_value", 100)):
+        meta = resolve_route(self.content, intent)
+        if meta is not None:
+            if cargo < int(meta.get("cargo_value_min", 100)):
+                return ["cargo_too_low"]
+            if cargo > int(meta.get("cargo_value_max", 100000)):
+                return ["cargo_too_high"]
+            if fee < int(meta.get("fee_min", 1)):
+                return ["fee_too_low"]
+            if fee > int(meta.get("fee_max", 100000)):
+                return ["fee_too_high"]
+        elif cargo < int((self.content.economy.get("escort") or {}).get("cargo_min_value", 100)):
             return ["cargo_too_low"]
         return []
 
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
         ent = require_entity(state, intent.actor)
-        route = self._route(intent)
+        route = _route_path(intent)
         cargo = arg_int(intent, "cargo_value", 100, minimum=100, maximum=100000)
         fee = arg_int(intent, "fee", 0, minimum=1, maximum=100000)
         agency = escort_business(state, route[0])
         if agency is None:
             raise Reject("no_escort_agency")
+        meta = resolve_route(self.content, intent)
         cfg = self.content.economy.get("escort") or {}
-        risk = float(cfg.get("risk_loss_prob", 0.15))
-        duration = int(cfg.get("duration_hours", 24)) * TICKS_PER_HOUR
+        if meta is not None:
+            duration = int(meta.get("duration_days", 1)) * TICKS_PER_DAY
+            risk = float(meta.get("risk_loss_prob", 0.15))
+            cut = float(meta.get("agency_cut", 0.30))
+            route_id = str(meta["id"])
+            fallback = False
+        else:  # 仅当线路未命中时才读全局值（不允许两者叠加）
+            duration = int(cfg.get("duration_hours", 24)) * TICKS_PER_HOUR
+            risk = float(cfg.get("risk_loss_prob", 0.15))
+            cut = float(cfg.get("agency_cut", 0.30))
+            route_id = ""
+            fallback = True
+
         success = not rng.chance(risk)
+        fee_penalty = 0
+        cargo_loss = 0.0
+        stamina_penalty = 0.0
+        risk_event = ""
+        delay = 0
+        if success and meta is not None:
+            for ev in meta.get("risk_events") or []:
+                if rng.chance(float(ev.get("probability", 0.0))):
+                    risk_event = str(ev.get("id", ""))
+                    fee_penalty = int(ev.get("fee_penalty", 0))
+                    cargo_loss = float(ev.get("cargo_loss_ratio", 0.0))
+                    stamina_penalty = float(ev.get("stamina_penalty", 0.0))
+                    if str(ev.get("effect", "")) == "delay":
+                        delay = TICKS_PER_DAY // 2
+                    break
+
         oid = f"escort:{ent.id}:{intent.tick}"
-        return [
+        effects = [
             Effect(
                 "escort_order_create",
                 {
@@ -89,7 +146,13 @@ class EscortAction(Action):
                     "id": oid,
                     "carrier": ent.id,
                     "success": success,
-                    "arrive_tick": intent.tick + duration,
+                    "arrive_tick": intent.tick + duration + delay,
+                    "route_id": route_id,
+                    "agency_cut": cut,
+                    "fee_penalty": fee_penalty,
+                    "cargo_loss_ratio": cargo_loss,
+                    "risk_event": risk_event,
+                    "risk_stamina": stamina_penalty,
                 },
             ),
             Effect("set_field", {"entity": ent.id, "field": "last_action_tick", "value": intent.tick}),
@@ -97,10 +160,13 @@ class EscortAction(Action):
                 state,
                 ent.id,
                 intent.tick,
-                f"接下{route[0]}->{route[-1]}的镖单，镖银{fee}文，{'预计顺利' if success else '预感有险'}",
+                f"接下{route[0]}->{route[-1]}的镖单（{route_id or 'global'}），镖银{fee}文"
+                + (f"，风险事件{risk_event}" if risk_event else "")
+                + ("，回退全局费率" if fallback else ""),
                 0.5,
             ),
         ]
+        return effects
 
 
 class SystemEscortArriveAction(Action):
@@ -112,7 +178,6 @@ class SystemEscortArriveAction(Action):
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
         effects: list[Effect] = []
         cfg = self.content.economy.get("escort") or {}
-        cut = float(cfg.get("agency_cut", 0.30))
         for oid in sorted(state.escorts):
             order = state.escorts[oid]
             if order.status != "active" or order.arrive_tick > intent.tick:
@@ -122,8 +187,10 @@ class SystemEscortArriveAction(Action):
                 effects.append(Effect("escort_settle", {"id": oid}))
                 continue
             agency = escort_business(state, order.origin) or escort_business(state)
+            cut = order.agency_cut if order.route_id else float(cfg.get("agency_cut", 0.30))
             if order.success:
-                share = max(1, order.fee - int(order.fee * cut))
+                net_fee = max(1, order.fee - order.fee_penalty)
+                share = max(1, net_fee - int(net_fee * cut))
                 if agency is not None:
                     effects.extend(
                         payment_with_shortfall(
@@ -138,21 +205,45 @@ class SystemEscortArriveAction(Action):
                     )
                     tax = transaction_tax(self.content, share)
                     bal = state.account_balance(wallet(carrier.id))
-                    if agency is not None and state.account_balance(agency.cash_account) >= share:
+                    if state.account_balance(agency.cash_account) >= share:
                         tax = min(tax, bal + share)
                     else:
                         tax = min(tax, bal + min(share, state.account_balance(agency.cash_account)))
                     if tax > 0:
-                        effects.append(Effect("burn", {"account": wallet(carrier.id), "amount": tax, "reason": "transaction_tax"}))
+                        effects.append(
+                            Effect("burn", {"account": wallet(carrier.id), "amount": tax, "reason": "transaction_tax"})
+                        )
                 effects.extend(goal_progress(state, carrier.id, "escort", 1.0, intent.tick))
-                effects.extend(memory(state, carrier.id, intent.tick, f"镖单{oid}送达，得银{share}文", 0.6))
+                note = f"镖单{oid}送达，得银{share}文"
+                if order.risk_event:
+                    note += f"（风险事件 {order.risk_event}，扣{order.fee_penalty}文"
+                    if order.cargo_loss_ratio:
+                        note += f"，货损{order.cargo_loss_ratio:.0%}"
+                    note += "）"
+                effects.extend(memory(state, carrier.id, intent.tick, note, 0.6))
             else:
                 effects.extend(memory(state, carrier.id, intent.tick, f"镖单{oid}途中失手", 0.8))
+            if order.cargo_loss_ratio > 0:
+                effects.extend(
+                    memory(
+                        state,
+                        carrier.id,
+                        intent.tick,
+                        f"镖货损失约{order.cargo_loss_ratio:.0%}，需向镖局说明",
+                        0.7,
+                    )
+                )
             effects.extend(
                 [
                     Effect("escort_settle", {"id": oid}),
                     Effect("set_location", {"entity": carrier.id, "to": order.destination}),
-                    Effect("stamina", {"entity": carrier.id, "delta": -10.0}),
+                    Effect(
+                        "stamina",
+                        {
+                            "entity": carrier.id,
+                            "delta": -10.0 - float(order.cargo_loss_ratio) * 20.0 - float(order.risk_stamina),
+                        },
+                    ),
                 ]
             )
         return effects

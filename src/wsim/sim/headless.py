@@ -163,7 +163,26 @@ def run_headless(
 
     replan_today: Counter = Counter()
     escort_queued: set[int] = set()
+    quest_delivery_queued: set[str] = set()
     lod_changes: list[dict[str, Any]] = []
+
+    def schedule_quest_deliver(actor: str, quest_id: str, tick: int) -> None:
+        if not quest_id or quest_id in quest_delivery_queued:
+            return
+        quest_delivery_queued.add(quest_id)
+        push(
+            tick + 1,
+            6,
+            "intent",
+            Intent(
+                actor=actor,
+                verb="quest_deliver",
+                args={"quest": quest_id},
+                tick=tick + 1,
+                source="planner",
+                reason="任务办妥，回去交付",
+            ),
+        )
 
     for day in range(cfg.days):
         base = day * TICKS_PER_DAY
@@ -171,6 +190,9 @@ def run_headless(
         replan_today = Counter()
         # 每日维护：日界一次性 O(N) 事件（生活成本），不是每 tick 扫描。
         day_events.append(emit(Intent(actor="system", verb="system_recover", args={}, tick=base, source="system")))
+        day_events.append(
+            emit(Intent(actor="system", verb="system_quest_post", args={"day": day}, tick=base, source="system"))
+        )
         for npc in sorted(npcs, key=lambda n: n["id"]):
             day_events.append(
                 emit(Intent(actor=npc["id"], verb="system_living", args={"day": day}, tick=base, source="system"))
@@ -193,12 +215,18 @@ def run_headless(
                             replan_today[payload.actor] += 1
                             push(tick + 1, 3, "replan", payload.actor)
                     if ev.outcome == "ok":
+                        quest_id = str((payload.args or {}).get("quest") or "")
+                        if quest_id and payload.verb != "quest_deliver":
+                            if payload.verb == "escort":
+                                pass  # 到达后再安排交付（见 escort_start 分支）
                         for eff in ev.effects:
                             if eff.get("op") == "escort_start":
                                 arrive = int((eff.get("data") or {}).get("arrive_tick", tick))
                                 if arrive not in escort_queued:
                                     escort_queued.add(arrive)
                                     push(arrive, 4, "escort", None)
+                                if quest_id and payload.verb == "escort":
+                                    schedule_quest_deliver(payload.actor, quest_id, arrive)
                 elif kind == "replan":
                     npc = str(payload)
                     tier = scheduler.lod.get(npc, "active")
@@ -219,18 +247,23 @@ def run_headless(
         day_events.append(
             emit(Intent(actor="system", verb="system_debts", args={}, tick=base + TICKS_PER_DAY - 1, source="system"))
         )
+        day_events.append(
+            emit(Intent(actor="system", verb="system_quest_fail", args={}, tick=base + TICKS_PER_DAY - 1,
+                        source="system"))
+        )
         if (day + 1) in (30, 60, 90):
-            day_events.append(
-                emit(
-                    Intent(
-                        actor="system",
-                        verb="system_shop_tax",
-                        args={"day": day},
-                        tick=base + TICKS_PER_DAY - 1,
-                        source="system",
+            for verb in ("system_savings_tax", "system_shop_dividend", "system_shop_tax"):
+                day_events.append(
+                    emit(
+                        Intent(
+                            actor="system",
+                            verb=verb,
+                            args={"day": day},
+                            tick=base + TICKS_PER_DAY - 1,
+                            source="system",
+                        )
                     )
                 )
-            )
 
         # 日界：动态档位（关系活跃升温 / 长期无交互降档 / 玩家靠近）
         heat = Counter()

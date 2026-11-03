@@ -44,13 +44,21 @@ def build_registry(content, seed: int, plugin_dir: Path | None = None) -> Action
     from .business import FoundSectAction, OpenShopAction
     from .commerce import BuyAction, SellAction, TradeAction
     from .escort import EscortAction, SystemEscortArriveAction
-    from .social import ApprenticeAction, JoinSectAction, MarryAction
+    from .social import ApprenticeAction, JoinSectAction, MarryAction, RecruitAction
     from .system import (
         SystemDebtsAction,
         SystemGoalAction,
         SystemLivingAction,
         SystemRecoverAction,
+        SystemSavingsTaxAction,
+        SystemShopDividendAction,
         SystemShopTaxAction,
+    )
+    from .quests import (
+        QuestAcceptAction,
+        QuestDeliverAction,
+        SystemQuestFailAction,
+        SystemQuestPostAction,
     )
 
     reg = ActionRegistry()
@@ -64,13 +72,20 @@ def build_registry(content, seed: int, plugin_dir: Path | None = None) -> Action
     reg.register(ApprenticeAction(content))
     reg.register(JoinSectAction(content))
     reg.register(MarryAction(content))
+    reg.register(RecruitAction(content))
     reg.register(OpenShopAction(content))
     reg.register(EscortAction(content))
     reg.register(FoundSectAction(content))
+    reg.register(QuestAcceptAction(content))
+    reg.register(QuestDeliverAction(content))
+    reg.register(SystemQuestPostAction(content))
+    reg.register(SystemQuestFailAction(content))
     reg.register(SystemGoalAction(content))
     reg.register(SystemRecoverAction(content))
     reg.register(SystemLivingAction(content))
     reg.register(SystemDebtsAction(content))
+    reg.register(SystemSavingsTaxAction(content))
+    reg.register(SystemShopDividendAction(content))
     reg.register(SystemShopTaxAction(content))
     reg.register(SystemEscortArriveAction(content))
 

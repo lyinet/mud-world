@@ -95,6 +95,10 @@ def build_genesis(
     declared_sects: dict[str, dict[str, Any]] = {}
     for sid in sorted(getattr(content, "sects", {}) or {}):
         sect = content.sects[sid]
+        # 有发起人的门派不在创世时预置：必须由发起人用 found_sect 真实创立，
+        # 否则 P2-B 的“三门派可被发起”会变成同名重复社团。
+        if sect.get("founder_candidate"):
+            continue
         if sect.get("location") in content.locations:
             declared_sects[str(sect["location"])] = sect
     for lid in loc_ids:

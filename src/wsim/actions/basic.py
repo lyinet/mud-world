@@ -100,7 +100,16 @@ class WorkAction(Action):
         hours = arg_int(intent, "hours", 8, minimum=1, maximum=12)
         if at != ent.location:
             return ["not_at_workplace"]
-        bid = employer_of(state, ent)
+        bid = None
+        if intent.args.get("quest") and arg_str(intent, "at", required=False):
+            cands = [b for b in state.business_at(at) if b.kind != "service_room"]
+            bid = cands[0].id if cands else None
+        if bid is None:
+            bid = employer_of(state, ent)
+        if not bid:
+            # 任务代工：允许在指定地点的店铺做短工（不必是长期雇主）。
+            cands = [b for b in state.business_at(at) if b.kind != "service_room"]
+            bid = cands[0].id if cands else None
         if not bid or bid not in state.businesses:
             return ["no_employer"]
         biz = state.businesses[bid]
@@ -114,7 +123,17 @@ class WorkAction(Action):
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
         ent = require_entity(state, intent.actor)
         hours = arg_int(intent, "hours", 8, minimum=1, maximum=12)
-        bid = employer_of(state, ent)
+        bid = None
+        if intent.args.get("quest") and intent.args.get("at"):
+            at = str(intent.args["at"])
+            cands = [b for b in state.business_at(at) if b.kind != "service_room"]
+            bid = cands[0].id if cands else None
+        if bid is None:
+            bid = employer_of(state, ent)
+        if not bid:
+            at = arg_str(intent, "at", required=False) or ent.location
+            cands = [b for b in state.business_at(at) if b.kind != "service_room"]
+            bid = cands[0].id if cands else None
         if not bid or bid not in state.businesses:
             raise Reject("no_employer")
         biz = state.businesses[bid]
@@ -137,7 +156,7 @@ class WorkAction(Action):
                 biz.id,
                 ent.id,
                 gross,
-                debt_id=f"debt:wage:{bid}:{ent.id}:{intent.tick}",
+                debt_id=f"debt:wage:{bid}:{ent.id}",
                 created_tick=intent.tick,
                 note="unpaid_wage",
                 transfer_reason="wage",

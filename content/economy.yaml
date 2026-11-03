@@ -63,6 +63,12 @@ taxes:
   income: 0.10
   transaction: 0.03
   shop_monthly_tax: 60
+  savings_rate: 0.01
+  savings_threshold: 500
+
+# 私店每月把部分现金分给店主（P2-B 经济回流）。
+dividends:
+  rate: 0.05
 
 # 生活成本（文/日）。income_tax 由 taxes.income 统一计算，不在此表重复。
 living_costs:
@@ -112,6 +118,7 @@ escort:
 
 sect:
   min_money: 2000
+  founding_cost: 2500
   min_members: 5
   min_reputation: 40
   min_relation_value: 30

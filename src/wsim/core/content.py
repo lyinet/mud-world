@@ -51,6 +51,9 @@ class Content:
     economy: dict[str, Any] = field(default_factory=dict)
     roles: dict[str, dict[str, Any]] = field(default_factory=dict)
     sects: dict[str, dict[str, Any]] = field(default_factory=dict)
+    quests: dict[str, dict[str, Any]] = field(default_factory=dict)
+    escort_routes: dict[str, dict[str, Any]] = field(default_factory=dict)
+    personas: dict[str, str] = field(default_factory=dict)
     manifest_version: str = ""
     sources: dict[str, str] = field(default_factory=dict)
 
@@ -65,6 +68,9 @@ class Content:
                 "economy": self.economy,
                 "roles": self.roles,
                 "sects": self.sects,
+                "quests": self.quests,
+                "escort_routes": self.escort_routes,
+                "personas": self.personas,
                 "manifest_version": self.manifest_version,
             }
         )
@@ -339,10 +345,56 @@ def load_content(
             "location": str(sect.get("location") or ""),
         }
 
+    # 基础门派（P2-B 起引擎真实读取）：sects.yaml 未在 manifest 声明，直接读。
+    sp = content_dir / "sects.yaml"
+    if use_content and sp.exists():
+        raw_base = _read_yaml(sp) or {}
+        for sect in (raw_base.get("sects") if isinstance(raw_base, dict) else raw_base) or []:
+            if not isinstance(sect, dict) or not sect.get("id"):
+                continue
+            sid = str(sect["id"])
+            loc = str(sect.get("seat") or sect.get("location") or "")
+            entry = content.sects.setdefault(sid, {"id": sid, "name": str(sect.get("name") or sid)})
+            entry.setdefault("name", str(sect.get("name") or sid))
+            entry.setdefault("location", loc)
+            for key in ("founder_candidate", "fallback_founder", "recruit_targets", "founding_cost",
+                        "min_members", "min_money", "registration_fee", "min_reputation",
+                        "min_relation_value", "dues", "activity_locations", "skill_directions"):
+                if key in sect:
+                    entry.setdefault(key, sect[key])
+        content.sources["sects"] = "content/sects.yaml"
+
     if not content.locations:
         raise RuntimeError("没有可用的 locations 数据（content/locations.yaml 与 fixture 均缺失）")
     if not content.npcs:
         raise RuntimeError("没有可用的 npcs 数据（content/npcs.yaml 与 fixture 均缺失）")
+
+    # 任务模板与镖路：P2 起直接读取内容包（不写 manifest，避免把只读内容包当扩展校验）。
+    if use_content:
+        qp = content_dir / "quests.yaml"
+        if qp.exists():
+            raw_q = _read_yaml(qp) or {}
+            for q in (raw_q.get("quests") if isinstance(raw_q, dict) else raw_q) or []:
+                if isinstance(q, dict) and q.get("id"):
+                    content.quests[str(q["id"])] = dict(q)
+            content.sources["quests"] = "content/quests.yaml"
+        rp = content_dir / "escort_routes.yaml"
+        if rp.exists():
+            raw_r = _read_yaml(rp) or {}
+            for r in (raw_r.get("escort_routes") if isinstance(raw_r, dict) else raw_r) or []:
+                if isinstance(r, dict) and r.get("id"):
+                    content.escort_routes[str(r["id"])] = dict(r)
+            content.sources["escort_routes"] = "content/escort_routes.yaml"
+
+    # personas：真实模型接入时作为决策上下文字料；规则桩也会把摘要写进 reason。
+    persona_dir = content_dir / "personas"
+    if use_content and persona_dir.is_dir():
+        for p in sorted(persona_dir.glob("*.md")):
+            lines = [ln.strip() for ln in p.read_text(encoding="utf-8").splitlines()]
+            body = next((ln for ln in lines if ln and not ln.startswith("#")), "")
+            content.personas[p.stem] = body[:160]
+        if content.personas:
+            content.sources["personas"] = "content/personas/*.md"
 
     _repair_exits(content)
     return content

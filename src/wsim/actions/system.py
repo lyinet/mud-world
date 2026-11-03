@@ -563,6 +563,70 @@ class SystemDebtsAction(Action):
         return effects
 
 
+class SystemSavingsTaxAction(Action):
+    """储蓄税：对超过阈值的闲钱按比例销毁，抑制囤积（月度）。"""
+
+    verb = "system_savings_tax"
+
+    def __init__(self, content):
+        self.content = content
+
+    def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
+        taxes = self.content.economy.get("taxes") or {}
+        rate = float(taxes.get("savings_rate", 0.0))
+        threshold = int(taxes.get("savings_threshold", 0))
+        if rate <= 0:
+            return []
+        effects: list[Effect] = []
+        for eid in sorted(state.entities):
+            ent = state.entities[eid]
+            if ent.status != "alive":
+                continue
+            bal = state.account_balance(wallet(eid))
+            excess = bal - threshold
+            if excess <= 0:
+                continue
+            amount = int(round(excess * rate))
+            if amount > 0:
+                effects.append(
+                    Effect("burn", {"account": wallet(eid), "amount": amount, "reason": "savings_tax"})
+                )
+        return effects
+
+
+class SystemShopDividendAction(Action):
+    """私店分红：把当月利润的一部分转给店主（月度）。"""
+
+    verb = "system_shop_dividend"
+
+    def __init__(self, content):
+        self.content = content
+
+    def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
+        rate = float((self.content.economy.get("dividends") or {}).get("rate", 0.0))
+        if rate <= 0:
+            return []
+        effects: list[Effect] = []
+        for bid in sorted(state.businesses):
+            biz = state.businesses[bid]
+            if biz.owner is None or biz.owner not in state.entities:
+                continue
+            cash = state.account_balance(biz.cash_account)
+            if cash <= 100:
+                continue
+            amount = int(round(cash * rate))
+            if amount <= 0:
+                continue
+            effects.append(
+                Effect(
+                    "transfer",
+                    {"src": biz.cash_account, "dst": wallet(biz.owner), "amount": amount,
+                     "reason": "shop_dividend"},
+                )
+            )
+        return effects
+
+
 class SystemShopTaxAction(Action):
     verb = "system_shop_tax"
 

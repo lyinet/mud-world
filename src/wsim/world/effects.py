@@ -9,7 +9,7 @@ from typing import Any
 
 from ..core.canonical import normalize
 from ..core.models import Effect, EffectError, ScheduleItem
-from .state import Business, Debt, Entity, EscortOrder, Faction, Goal, Relation, WorldState
+from .state import Business, Debt, Entity, EscortOrder, Faction, Goal, Quest, Relation, WorldState
 
 _ENTITY_FIELDS = {
     "location",
@@ -50,10 +50,15 @@ EFFECT_OPS = frozenset(
         "faction_join",
         "add_disciple",
         "debt_create",
+        "debt_increase",
         "debt_settle",
         "escort_order_create",
         "escort_start",
         "escort_settle",
+        "quest_create",
+        "quest_accept",
+        "quest_complete",
+        "quest_fail",
         "goal_create",
         "goal_progress",
         "goal_abandon",
@@ -390,6 +395,19 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         )
         return
 
+    if op == "debt_increase":
+        did = str(d["id"])
+        debt = state.debts.get(did)
+        if debt is None:
+            raise EffectError(f"债务不存在: {did}")
+        if debt.status != "active":
+            raise EffectError("债务已结清")
+        amount = _as_int(d["amount"], "amount")
+        if amount <= 0:
+            raise EffectError("债务金额必须为正")
+        debt.amount += amount
+        return
+
     if op == "debt_settle":
         did = str(d["id"])
         debt = state.debts.get(did)
@@ -450,7 +468,62 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         order.carrier = carrier.id
         order.success = bool(d["success"])
         order.arrive_tick = _as_int(d["arrive_tick"], "arrive_tick")
+        order.route_id = str(d.get("route_id", ""))
+        order.agency_cut = _as_num(d.get("agency_cut", 0.0), "agency_cut")
+        order.fee_penalty = _as_int(d.get("fee_penalty", 0), "fee_penalty")
+        order.cargo_loss_ratio = _as_num(d.get("cargo_loss_ratio", 0.0), "cargo_loss_ratio")
+        order.risk_event = str(d.get("risk_event", ""))
+        order.risk_stamina = _as_num(d.get("risk_stamina", 0.0), "risk_stamina")
         carrier.escort_id = oid
+        return
+
+    if op == "quest_create":
+        qid = str(d["id"])
+        if qid in state.quests:
+            raise EffectError(f"任务已存在: {qid}")
+        giver = str(d["giver"])
+        _entity(state, giver)
+        if d["target_location"] not in state.locations:
+            raise EffectError(f"地点不存在: {d['target_location']}")
+        state.quests[qid] = Quest(
+            id=qid,
+            template_id=str(d["template_id"]),
+            giver=giver,
+            acceptor=None,
+            target_npc=str(d.get("target_npc", "")),
+            target_location=str(d["target_location"]),
+            verb=str(d["verb"]),
+            args=dict(d.get("args") or {}),
+            reward_money=_as_int(d.get("reward_money", 0), "reward_money"),
+            reward_relation=_as_num(d.get("reward_relation", 0.0), "reward_relation"),
+            deadline_tick=_as_int(d["deadline_tick"], "deadline_tick"),
+            created_tick=_as_int(d.get("created_tick", 0), "created_tick"),
+            settlement_amount=_as_int(d.get("settlement_amount", 0), "settlement_amount"),
+        )
+        return
+
+    if op == "quest_accept":
+        qid = str(d["id"])
+        quest = state.quests.get(qid)
+        if quest is None:
+            raise EffectError(f"任务不存在: {qid}")
+        if quest.status != "open":
+            raise EffectError("任务已被接走")
+        ent = _entity(state, str(d["actor"]))
+        quest.status = "accepted"
+        quest.acceptor = ent.id
+        quest.accepted_tick = _as_int(d.get("tick", 0), "tick")
+        return
+
+    if op in ("quest_complete", "quest_fail"):
+        qid = str(d["id"])
+        quest = state.quests.get(qid)
+        if quest is None:
+            raise EffectError(f"任务不存在: {qid}")
+        if quest.status != "accepted":
+            raise EffectError("任务不在进行中")
+        quest.status = "completed" if op == "quest_complete" else "failed"
+        quest.completed_tick = _as_int(d.get("tick", 0), "tick")
         return
 
     if op == "escort_settle":

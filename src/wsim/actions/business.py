@@ -98,16 +98,19 @@ class FoundSectAction(Action):
         ent = require_entity(state, intent.actor)
         at = arg_str(intent, "at")
         arg_str(intent, "name")
+        sect_id = arg_str(intent, "sect_id", required=False) or ""
         if at != ent.location:
             return ["wrong_location"]
+        if sect_id and f"sect:{sect_id}" in state.factions:
+            return ["sect_exists"]
         # 已加入地点行会（org:）仍可自立门派；只有已在别的 sect: 才拒绝。
         # found_sect 的目标本身就是“从学徒/行会成员走向开宗立派”。
         if ent.faction is not None and str(ent.faction).startswith("sect:"):
             return ["already_in_faction"]
         sect = self.content.economy.get("sect") or {}
         fee = int(sect.get("registration_fee", 500))
-        min_money = int(sect.get("min_money", 2000))
-        if state.account_balance(wallet(ent.id)) < max(fee, min_money):
+        founding_cost = int(sect.get("founding_cost", int(sect.get("min_money", 2000)) + fee))
+        if state.account_balance(wallet(ent.id)) < founding_cost:
             return ["insufficient_money"]
         if self._reputation(state, ent.id) < float(sect.get("min_reputation", 40)):
             return ["low_reputation"]
@@ -123,15 +126,25 @@ class FoundSectAction(Action):
         name = arg_str(intent, "name")
         sect = self.content.economy.get("sect") or {}
         fee = int(sect.get("registration_fee", 500))
+        founding_cost = int(sect.get("founding_cost", 2500))
         members = founding_members(state, ent, float(sect.get("min_relation_value", 30)) )
-        fid = f"sect:{ent.id}"
+        sid = arg_str(intent, "sect_id", required=False) or ent.id
+        fid = f"sect:{sid}"
         treasury = f"treasury:{fid}"
-        effects: list[Effect] = []
+        effects: list[Effect] = [Effect("create_account", {"account": treasury})]
+        # founding_cost 含注册费：注册费上缴销毁，其余作为门派公账启动资金。
+        startup = max(0, founding_cost - fee)
         if fee > 0:
             effects.append(Effect("burn", {"account": wallet(ent.id), "amount": fee, "reason": "sect_registration"}))
+        if startup > 0:
+            effects.append(
+                Effect(
+                    "transfer",
+                    {"src": wallet(ent.id), "dst": treasury, "amount": startup, "reason": "sect_endowment"},
+                )
+            )
         effects.extend(
             [
-                Effect("create_account", {"account": treasury}),
                 Effect(
                     "create_faction",
                     {

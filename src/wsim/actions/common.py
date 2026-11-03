@@ -65,9 +65,8 @@ def founding_members(
 ) -> list[str]:
     """找到可以随 founder 一起开宗的成员。
 
-    内容包只给了 sect.min_members，没有单独的门派招人动作，因此 P1 把
-    “创始成员”定义为：创始人本人 + 在世弟子 + 亲密度 >= min_relation_value
-    的 friend/family/ally，且这些人当前不在其他 sect:。
+    P2-B 起，创始成员只认**真实招揽动作**（`recruit`）建立的 sworn 关系与弟子，
+    不再把开局就有的 friend/family/ally 直接算进人数（避免“一次性拉人”）。
     """
     members = {ent.id}
     for did in ent.disciples:
@@ -80,7 +79,7 @@ def founding_members(
     for rel in state.relations.values():
         if rel.status != "active" or rel.a != ent.id:
             continue
-        if rel.kind not in ("friend", "family", "ally"):
+        if rel.kind != "sworn":
             continue
         if rel.affection < min_relation_value:
             continue
@@ -369,18 +368,22 @@ def payment_with_shortfall(
         )
     short = amount - paid
     if short > 0:
-        effects.append(
-            Effect(
-                "debt_create",
-                {
-                    "id": debt_id,
-                    "creditor": payee_party,
-                    "debtor": payer_party,
-                    "amount": short,
-                    "long_term": long_term,
-                    "created_tick": created_tick,
-                    "note": note,
-                },
+        existing = state.debts.get(debt_id)
+        if existing is not None and existing.status == "active":
+            effects.append(Effect("debt_increase", {"id": debt_id, "amount": short}))
+        else:
+            effects.append(
+                Effect(
+                    "debt_create",
+                    {
+                        "id": debt_id,
+                        "creditor": payee_party,
+                        "debtor": payer_party,
+                        "amount": short,
+                        "long_term": long_term,
+                        "created_tick": created_tick,
+                        "note": note,
+                    },
+                )
             )
-        )
     return effects

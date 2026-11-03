@@ -144,6 +144,60 @@ class JoinSectAction(Action):
         return effects
 
 
+class RecruitAction(Action):
+    """真实招揽：同地点、面对面把对方拉进门派（sworn 关系）。
+
+    开宗立派前没有 faction，recruit 先建立 sworn 关系；found_sect 只认这些
+    由真实动作建立的成员，不再靠开局关系一次性凑数。
+    """
+
+    verb = "recruit"
+
+    def __init__(self, content):
+        self.content = content
+
+    def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
+        ent = require_entity(state, intent.actor)
+        target = alive(state, arg_str(intent, "target"))
+        if target.id == ent.id:
+            return ["self_recruit"]
+        if target.location != ent.location:
+            return ["not_together"]
+        if target.faction and str(target.faction).startswith("sect:"):
+            return ["target_in_sect"]
+        if any(
+            r.kind == "sworn" and r.status == "active" and r.a == ent.id and r.b == target.id
+            for r in state.relations.values()
+        ):
+            return ["already_sworn"]
+        return []
+
+    def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
+        ent = require_entity(state, intent.actor)
+        target = alive(state, arg_str(intent, "target"))
+        current = state.affection_between(ent.id, target.id)
+        delta = max(1.0, 30.0 - current)
+        effects: list[Effect] = [
+            Effect(
+                "relation_upsert",
+                {"a": ent.id, "b": target.id, "kind": "sworn", "affection": 30.0,
+                 "affection_delta": delta, "trust": 45.0},
+            ),
+            Effect(
+                "relation_upsert",
+                {"a": target.id, "b": ent.id, "kind": "sworn", "affection": 30.0,
+                 "affection_delta": delta, "trust": 45.0},
+            ),
+            Effect("set_field", {"entity": ent.id, "field": "last_action_tick", "value": intent.tick}),
+            *goal_progress(state, ent.id, "faction", 0.2, intent.tick),
+            *memory(state, ent.id, intent.tick, f"招揽{target.name}入伙", 0.5),
+            *memory(state, target.id, intent.tick, f"答应与{ent.name}共举门派", 0.4),
+        ]
+        if ent.faction:
+            effects.insert(2, Effect("faction_join", {"entity": target.id, "faction": ent.faction}))
+        return effects
+
+
 class MarryAction(Action):
     verb = "marry"
 

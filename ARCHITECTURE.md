@@ -1,4 +1,4 @@
-# 架构说明（P1）
+# 架构说明（P2-B）
 
 ## 数据流
 
@@ -30,7 +30,7 @@ content/*.yaml ──load──> Content
 | `world/state.py` | `WorldState`：实体、账户、商业体、门派、债务、关系、物品、目标、日程、记忆；`clone()` / `to_dict()` / `hash()` | 不实现业务规则 |
 | `world/effects.py` | 所有状态变更原语：`mint/burn/transfer/create_*/set_*/item_*/relation_*/debt_*/goal_*/schedule_*`；非法变更抛 `EffectError` | 不做决策 |
 | `world/writer.py` | 唯一写者；一个 Intent 一个事务：前置检查 → 纯 apply → clone 上原子应用 → 追加事件 → 切换投影 | 不解释内容 |
-| `actions/` | 13 个 NPC 动词（move/cultivate/work/consume/buy/sell/trade/apprentice/join_sect/marry/open_shop/escort/found_sect）+ `system_*` 计划/回复/生活/债务/店税/押镖到达 | 不直接改 state，只返回 Effect[] |
+| `actions/` | 17 个 NPC/意图动词（move/cultivate/work/consume/buy/sell/trade/apprentice/join_sect/marry/open_shop/escort/found_sect/recruit/quest_accept/quest_deliver/debt_settle）+ `system_*` 计划/回复/生活/债务/店税/储蓄税/分红/任务发布与超时/押镖到达 | 不直接改 state，只返回 Effect[] |
 | `sim/genesis.py` | 把内容包投影成创世事件；唯一允许 `mint` 的地方（初始资产 + 区域 float） | 不做日常增发 |
 | `sim/headless.py` | 虚拟时钟主循环、系统动作排程、日终结算、K6/K1/K3 采集、输出 | 不做业务计算 |
 | `audit/` | 独立采集：守恒/债务投影、非法率、K1 全量目标、K3 双层诊断、关系一致性、现金流、工资链路、债务事件级独立审计、内容对齐 | 不修改状态 |
@@ -40,8 +40,8 @@ content/*.yaml ──load──> Content
 
 - **K6**：守恒误差 + 债务事件级独立审计。`debt_ledger` 只是投影，“应收 == 应付”
   是恒真式，不作校验；`audit/debt_audit.py` 从事件日志重建账户与每笔债务来源。
-- **K1**：分母为内容包全部目标（当前 90），未创建记失败；同时报告已创建口径、
-  一次性目标占比与剔除一次性后的口径。
+- **K1**：分母为内容包全部目标（当前 91），未创建记失败；同时报告 `k1_rate_excluding_one_shot`
+  （剔除一次性目标后的口径）。P1 基线 68/91 = 74.73%。
 - **K3**：verb 层 + 对象层双层诊断，P1 只做诊断、不做 pass/fail；v2 阈值已标记
   `revoked`，并强制同时报告 move 折叠视图。
 
@@ -146,10 +146,11 @@ plugins/actions/<id>/
 | `admin_apply` | 改状态 | 必须二次 token + 第二人批准，且经 Writer 提交 |
 
 - 所有调用（含越权）写审计：caller、permission、method、params_digest、结果、
-  error、虚拟 tick、audit seq。审计不读墙钟，保证回放一致。
+  error、虚拟 tick、audit seq、`identity_source=server_map`。审计不读墙钟，保证回放一致。
+- 权限不再由调用方自报：`MCPGateway` 持有服务端 `identity -> permission` 映射；
+  `admin.request` 的 token 绑定 requester + tick + intent 摘要，`admin.approve`
+  必须由另一 identity 执行，`admin.apply` 只接受“批准人本人且不是申请者”。
 - `MockMCPServer` 提供本地函数调用与 stdio JSON 模式，不接外部服务。
-- P2 的 admin 双人确认是桩：token 由 `admin.request` 产生，`admin.approve` 必须
-  由另一 caller 执行，`admin.apply` 才提交 Writer；未来替换成真实身份系统。
 
 ## 调度层 `src/wsim/sim/lod.py`
 
@@ -160,8 +161,40 @@ plugins/actions/<id>/
   到期项，复杂度 O(到期数·log N)，不遍历全部 NPC。
 - `Reasoner.decide(npc_state, world_view) -> Intent[]` 是真实模型接入点；
   本阶段只有确定性 `MockReasoner`（规则 + PRNG）。
+- 动态升降档：`update_tiers(active_players/relations)` 依据玩家邻近、关系活跃度、
+  长期无交互调整档位；档位变化写入 `lod_tiers.jsonl`，供成本模型验证。
 - `stats()` 输出每个 NPC 的 LOD 档位与累计唤醒次数，`framework_check` 写
   `runs/framework/lod.json`。
+
+## 意图层 `src/wsim/sim/intent.py`（P2-B）
+
+- `GoalSelector`：按内容目标优先级轮转；紧急状态（stamina<25 / 欠债≥50 / 现钱<40）
+  可抢占主线，同一 NPC 两次紧急抢占至少间隔 2 天；`found_sect` 目标不轮转、不放弃。
+- `Planner`：routine（就近进食 → 隔日上工 → 目标动作）+ 目标动作深度按 LOD 档位
+  （silent/background 1、active 2、spotlight 3）；任务、采购、招揽、押镖都在这里
+  展开为 Intent；前置不满足时换路径（先移动/换货源），不是直接拒绝。
+- `MockReasoner v1`：确定性（SplitMix64 / 纯排序，无 `random`/墙钟），每次决策写
+  `reason`（含 persona 摘要）；运行期被拒后由 `replan` 切换变体。
+- 主循环只处理 LOD 到期唤醒 + 事件堆；`system_plan` 已下线，`headless` 不再提交它。
+
+## 内容机制（P2-B）
+
+- **任务**：`content/quests.yaml` 12 个模板；`system_quest_post` 每日发单，NPC
+  `quest_accept` / `quest_deliver`，超时 `system_quest_fail`。报酬/时限全部来自内容包，
+  状态写入 `quest_*` 事件，可回放。
+- **镖路**：以 `content/escort_routes.yaml` **线路值为准**（`duration_days` / `fee_min`
+  / `fee_max` / `agency_cut` / `risk_loss_prob` / `risk_events`）；只有未命中线路时才
+  回退 `economy.escort` 全局值，并写 `escort_global_fallback` 记忆。**两条路径互斥，
+  不再叠加计算**。
+- **门派**：`founding_cost=2500`（含 500 注册费，其余 2000 进入门派公账），
+  `min_members=5`；清议社/药行会/镖行同盟由白露生/苏合香/卓不凡通过真实
+  `recruit` → `found_sect` 发起；创世不再预置有发起人的门派。
+- **经济回流**：储蓄税（burn）、店铺分红（transfer 给店主）、店税；`debt_settle`
+  作为插件实现（`plugins/actions/debt_settle`），由 urgent_debt 目标触发，产生
+  真实还款正样本。
+- **personas**：`content/personas/*.md` 首行摘要注入 MockReasoner 的 `reason`，
+  真实模型接入时复用同一路径。
+
 
 ## Provider `src/wsim/agent/provider.py`
 
@@ -179,9 +212,21 @@ python3 tools/framework_check.py
 
 五项依次检查，全部 PASS 才算通过：
 
-1. 新增内容不改码（manifest + additions；10 天守恒 0）；
-2. 新增插件不改码（目录扫描注册；apply 前后 state 哈希不变）；
-3. 越权 MCP 被拒（read->propose/admin 拒绝并留审计）；
-4. LOD 不遍历全量（稳定期 60 tick 只唤醒到期 NPC）；
-5. 守恒仍为 0（复用 10 天 run 的 K6 结果）。
+1. 新增内容不改码 + 停摆门禁（拒绝率 ≤2%、每日最少动作、每 NPC 有动作、`burned>0`、
+   `unknown_verb`/`system_plan` 出现即 FAIL；并从 `events.sqlite` 独立重算）；
+2. 新增插件不改码（目录扫描注册；apply 前后**完整 state 哈希**不变，含 tick/地点/关系；
+   `evil_tick` 改 tick=999 必须被拒）；
+3. MCP 身份映射与越权拒绝（服务端 permission、双人 token、申请人/第三人 apply 被拒、
+   审计 `identity_source=server_map`）；
+4. LOD 不遍历全量（外部计数：60 tick 内 `decide` 调用数 == 唤醒数且 != NPC 总数；
+   `headless` 10 天 `system_plan=0`）；
+5. 守恒 / 债务独立重算（从 `events.sqlite` 重放：minted/burned/账户和、9 项债务审计、
+   `settled_events>0`、与 `state_final` 哈希对账）。
+
+## 冻结与复现
+
+- 每个阶段一个 commit；交付数字前冻结 `src/`，从干净提交重跑并附 commit hash。
+- 同 seed 必须同 state/event 哈希；`python3 tools/replay.py --run runs/<id>` 必须 MATCH。
+- 测试 fixture 使用真实 `content/`（`real_content` / `real_state`），合成 fixture 只保留
+  插件/单元测试的最小场景。
 

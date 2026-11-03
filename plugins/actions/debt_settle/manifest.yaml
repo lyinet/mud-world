@@ -1,0 +1,16 @@
+# debt_settle 插件：债务人主动还款（部分或全额），全部走 Effect 原语。
+# 证明插件层可用：不改 state、不增发、未知原语/越权会被 loader 拒绝。
+id: debt_settle
+verb: debt_settle
+version: "1.0.0"
+entry: action.py
+
+args:
+  debt: "可选，指定债务 id"
+  amount: "可选，还款金额；缺省为全额"
+
+preconditions: []
+
+effects:
+  - debt_settle
+  - memory_add
