@@ -383,9 +383,15 @@ class ProviderClient:
         config: ProviderConfig,
         transport: Transport | None = None,
         sleep_fn: Callable[[float], None] | None = None,
+        record_path: Path | str | None = None,
+        replay: bool = False,
     ):
         config.validate()
         self.config = config
+        # A3：决策槽逐步录制/回放。回放不联网，也不重复计费。
+        self.record_path = Path(record_path) if record_path else None
+        self.replay = bool(replay)
+        self._record_lock = threading.Lock()
         self.last_attempts = 0
         self.last_error_kind = ""
         self.last_usage: dict[str, int] = {}
@@ -497,6 +503,26 @@ class ProviderClient:
         with ThreadPoolExecutor(max_workers=max(1, int(concurrency)) ) as pool:
             return list(pool.map(lambda pair: self._run(pair[0], pair[1]), requests))
 
+    def _log_record(
+        self, system: str, user: str, text: str, usage: dict[str, int],
+        latency_s: float, status: str,
+    ) -> None:
+        """逐请求落盘决策槽输出，供 `WSIM_DECISION_REPLAY` 零成本复现同一事件流。"""
+        if self.record_path is None or self.replay:
+            return
+        row = {
+            "prompt_sha": prompt_sha(system, user),
+            "slot": self.config.slot,
+            "output": text,
+            "usage": dict(usage or {}),
+            "latency_s": round(float(latency_s), 4),
+            "status": status,
+        }
+        self.record_path.parent.mkdir(parents=True, exist_ok=True)
+        with self._record_lock:
+            with self.record_path.open("a", encoding="utf-8") as fh:
+                fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+
     def _run(self, system: str, user: str) -> dict[str, Any]:
         """单次调用（含重试）的无状态实现，供 complete/complete_many 共用。"""
         if self.config.offline:
@@ -520,11 +546,14 @@ class ProviderClient:
                 self._stat(attempts=1, success=1, latency_s=call_latency,
                            attempt_latency_s=attempt_latency)
                 if isinstance(result, Completion):
+                    self._log_record(system, user, result.text, dict(result.usage or {}),
+                                     call_latency, "ok")
                     return {"text": result.text, "usage": dict(result.usage or {}),
                             "latency_s": call_latency, "attempt_latency_s": attempt_latency,
                             "attempts": attempts, "error_kind": "", "error": None,
                             "thinking_disabled_by": result.thinking_disabled_by,
                             "thinking_param_ignored": result.thinking_param_ignored}
+                self._log_record(system, user, str(result), {}, call_latency, "ok")
                 return {"text": str(result), "usage": {}, "latency_s": call_latency,
                         "attempt_latency_s": attempt_latency,
                         "attempts": attempts, "error_kind": "", "error": None,
@@ -615,8 +644,11 @@ class LLMReasoner(Reasoner):
         intent_client: ProviderClient | None = None,
         intent_catalog: IntentCatalog | None = None,
         record_path: Path | str | None = None,
+        replay_mode: bool = False,
     ):
         self.provider = provider
+        # 决策槽回放：不重复计预算，也不触发成本硬闸。
+        self.replay_mode = bool(replay_mode)
         self.fallback = fallback
         self.content = content
         self.telemetry = telemetry
@@ -641,6 +673,9 @@ class LLMReasoner(Reasoner):
         self.model_actions = 0
         self.retimed_model_actions = 0
         self.retargeted_model_actions = 0
+        self.not_together_total = 0
+        self.not_together_retargeted = 0
+        self.not_together_dropped = 0
         self.dropped_by_reason: Counter[str] = Counter()
         self.goal_from_model = 0
         self.goal_from_rule = 0
@@ -800,6 +835,16 @@ class LLMReasoner(Reasoner):
             return base
         make = build_decision_prompt if self.intent_client is not None else build_prompt
         prompt = make(content, state, npc, tick, tier, self._recent.get(npc, ()))
+        if self.budget is not None and self.budget.aborted:
+            # A3 成本硬闸已触发：不再发起新请求，直接交回规则底稿。
+            self.fallback_count += 1
+            self.mock_by_timing[timing] = self.mock_by_timing.get(timing, 0) + 1
+            self._record(
+                tick=tick, npc=npc, tier=tier, prompt=prompt, output="",
+                fallback=True, error="budget_aborted", calls=0, day=day,
+            )
+            base["fallback_draft"] = True
+            return base
         if self.budget is not None:
             effective_tier, reason = self.budget.check(
                 day, tier, prompt.text(), self.provider.config.max_tokens
@@ -870,12 +915,16 @@ class LLMReasoner(Reasoner):
     ) -> Intent | None:
         """A3 快路径：决策已给出 verb/target 时直接构造 Intent，省掉意图槽调用。
 
-        只接低风险动作（talk/trade/apprentice）；其余交给意图槽。
+        A3 第二轮：覆盖全部 6 个模型动作，决策 JSON 与意图槽合并为一次调用；
+        只有参数字段必需但目标无法解析时才回退意图槽。
         """
-        if verb not in ("talk", "trade", "apprentice") or not target_name:
+        if verb not in MODEL_VERBS or not target_name:
             return None
         state = p.get("state")
         if state is None:
+            return None
+        actor = state.entities.get(p["npc"])
+        if actor is None:
             return None
         target = str(target_name)
         tid = target if target in state.entities else ""
@@ -884,17 +933,32 @@ class LLMReasoner(Reasoner):
                 if getattr(ent, "name", "") == target:
                     tid = ent.id
                     break
-        if not tid or tid == p["npc"]:
+        if verb == "found_sect":
+            args = {"at": actor.location, "name": f"{getattr(actor, 'name', p['npc'])}派"}
+        elif verb == "join_sect":
+            fid = target if target in state.factions else ""
+            if not fid:
+                from ..actions.social import organization_at
+
+                fac = organization_at(state, actor.location)
+                fid = fac.id if fac is not None else ""
+            if not fid:
+                return None
+            args = {"target": fid, "dues": 0}
+        elif not tid or tid == p["npc"]:
             return None
-        ent = state.entities.get(tid)
-        if ent is None or getattr(ent, "status", "") == "dead":
-            return None
-        if verb == "talk":
-            args = {"target": tid, "message": utterance.strip()[:200]}
-        elif verb == "trade":
-            args = {"target": tid, "offer": [], "want": [], "money_delta": 0}
         else:
-            args = {"target": tid, "duration_days": 30}
+            ent = state.entities.get(tid)
+            if ent is None or getattr(ent, "status", "") == "dead":
+                return None
+            if verb == "talk":
+                args = {"target": tid, "message": utterance.strip()[:200]}
+            elif verb == "trade":
+                args = {"target": tid, "offer": [], "want": [], "money_delta": 0}
+            elif verb == "apprentice":
+                args = {"target": tid, "duration_days": 30}
+            else:  # marry
+                args = {"target": tid}
         self.intent_fast_paths += 1
         return Intent(
             actor=p["npc"], verb=verb, args=args, tick=int(p["tick"]),
@@ -1197,6 +1261,32 @@ class LLMReasoner(Reasoner):
             )
         return self._rule_draft(p)
 
+    @staticmethod
+    def _same_location_target(
+        intent: Intent,
+        draft: list[Intent],
+        state,
+        npc: str,
+        replaced_rule_ids: set[int],
+    ) -> Intent | None:
+        """在同一 tick 的规则底稿里找同 verb、不同目标且与 NPC 同地点的动作。"""
+        actor = state.entities.get(npc)
+        if actor is None:
+            return None
+        for item in draft:
+            if (
+                item.verb != intent.verb
+                or item.tick != intent.tick
+                or id(item) in replaced_rule_ids
+                or not item.args.get("target")
+                or item.args.get("target") == intent.args.get("target")
+            ):
+                continue
+            target = state.entities.get(str(item.args["target"]))
+            if target is not None and getattr(target, "location", "") == actor.location:
+                return item
+        return None
+
     def _filter_model_actions(
         self,
         intents: list[Intent],
@@ -1262,28 +1352,24 @@ class LLMReasoner(Reasoner):
                 continue
             if reasons:
                 reason_key = str(reasons[0]).split(":")[0]
-                # 夜间快照里目标不在同一地点：若规则底稿已为同名动作排过另一个人，
-                # 就沿用规则的人与 tick（模型保留“做什么”的选择权，规则负责可达性）。
+                # A3 第二轮：not_together 不再 retime。只在同一 tick 的规则底稿里
+                # 改选一个“同地点”的替代目标；找不到就直接丢弃，避免延后执行再被剪。
                 if reason_key == "not_together" and "target" in intent.args:
-                    alt = next(
-                        (d for d in draft
-                         if d.verb == intent.verb and id(d) not in replaced_rule_ids
-                         and d.args.get("target") and d.args.get("target") != intent.args.get("target")),
-                        None,
+                    self.not_together_total += 1
+                    alt = self._same_location_target(
+                        intent, draft, state, npc, replaced_rule_ids
                     )
                     if alt is not None:
-                        intent = replace(
-                            intent,
-                            args={**intent.args, "target": alt.args["target"]},
-                            tick=max(intent.tick, alt.tick),
-                        )
+                        intent = replace(intent, args={**intent.args, "target": alt.args["target"]})
                         replaced_rule_ids.add(id(alt))
                         self.dropped_by_reason["rule_dup_replaced"] += 1
                         self.retargeted_model_actions += 1
+                        self.not_together_retargeted += 1
                         kept.append(intent)
                         seen.add(key)
                         self.model_actions += 1
                         continue
+                    self.not_together_dropped += 1
                 self.dropped_by_reason[reason_key] += 1
                 continue
             kept.append(intent)
@@ -1352,7 +1438,7 @@ class LLMReasoner(Reasoner):
         )
         if schema_reject:
             self.telemetry.reject("schema_reject")
-        if self.budget is not None and calls > 0 and charge_budget:
+        if self.budget is not None and calls > 0 and charge_budget and not self.replay_mode:
             self.budget.record(
                 int(day if day is not None else tick // 144),
                 int(rec["input_tokens"] or 0),
@@ -1378,6 +1464,9 @@ class LLMReasoner(Reasoner):
             "model_actions": self.model_actions,
             "retimed_model_actions": self.retimed_model_actions,
             "retargeted_model_actions": self.retargeted_model_actions,
+            "not_together_total": self.not_together_total,
+            "not_together_retargeted": self.not_together_retargeted,
+            "not_together_dropped": self.not_together_dropped,
             "dropped_actions": sum(self.dropped_by_reason.values()),
             "dropped_by_reason": dict(sorted(self.dropped_by_reason.items())),
             "first_pass": self.first_pass,

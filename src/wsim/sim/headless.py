@@ -235,7 +235,7 @@ def run_headless(
         settings = load_provider_settings(root)
         slots = load_model_slots(root)
 
-        def slot_client(slot: str, transport=None) -> ProviderClient:
+        def slot_client(slot: str, transport=None, record_path=None, replay=False) -> ProviderClient:
             s = dict(slots.get(slot) or settings)
             return ProviderClient(
                 ProviderConfig.from_env(
@@ -255,10 +255,19 @@ def run_headless(
                     backoff_429_s=float(s.get("backoff_429_s", 25.0)),
                 ),
                 transport=transport,
+                record_path=record_path,
+                replay=replay,
             )
 
+        decision_replay_path = os.environ.get("WSIM_DECISION_REPLAY", "").strip()
+        decision_record_path = os.environ.get("WSIM_DECISION_RECORD", "").strip()
         try:
-            provider = slot_client("decision")
+            provider = slot_client(
+                "decision",
+                transport=make_replay_transport(decision_replay_path) if decision_replay_path else None,
+                record_path=(decision_record_path or None),
+                replay=bool(decision_replay_path),
+            )
             provider_cfg = provider.config
         except ProviderConfigError as exc:
             llm_info = {"enabled": False, "model": "mock", "reason": str(exc)}
@@ -275,7 +284,9 @@ def run_headless(
             replay_path = os.environ.get("WSIM_INTENT_REPLAY", "").strip()
             try:
                 intent_client = slot_client(
-                    "intent", transport=make_replay_transport(replay_path) if replay_path else None
+                    "intent",
+                    transport=make_replay_transport(replay_path) if replay_path else None,
+                    replay=bool(replay_path),
                 )
             except ProviderConfigError as exc:
                 intent_error = str(exc)  # 无 key 时只降级意图槽，不影响决策/对话
@@ -291,6 +302,7 @@ def run_headless(
                 intent_client=intent_client, intent_catalog=catalog,
                 concurrency=run_concurrency,
                 record_path=(os.environ.get("WSIM_INTENT_RECORD", "").strip() or None),
+                replay_mode=bool(decision_replay_path),
             )
             llm_info = {
                 "enabled": True,
@@ -304,6 +316,11 @@ def run_headless(
                 "intent_error": intent_error,
                 "dialogue_error": llm_info.get("dialogue_error", ""),
                 "extract_adapter": "fence/unwrap+zh-en-key-normalize+utterance-grounding+unknown_key",
+                "replay": {
+                    "decision_replay": decision_replay_path,
+                    "decision_record": decision_record_path,
+                    "mode": "replay" if decision_replay_path else ("record" if decision_record_path else "off"),
+                },
             }
             # 对话默认关闭，避免改变 deterministic 基线与离线成本；
             # WSIM_DIALOGUE=1 时把模型回复真正接到 TalkAction。
@@ -457,6 +474,9 @@ def run_headless(
         )
 
     for day in range(cfg.days):
+        if budget is not None and budget.aborted:
+            log.append(f"[{stamp(day * TICKS_PER_DAY)}] aborted_at_day={day + 1} reason=budget_hard_limit")
+            break
         base = day * TICKS_PER_DAY
         day_events: list = []
         replan_today = Counter()
@@ -481,6 +501,9 @@ def run_headless(
         run_night_batch(base, day)
 
         for tick in range(base, base + TICKS_PER_DAY):
+            if budget is not None and budget.aborted:
+                log.append(f"[{stamp(tick)}] aborted_at_tick={tick} reason=budget_hard_limit")
+                break
             # LOD：只弹出到期唤醒，复杂度 O(到期事件数)
             if hasattr(reasoner, "decide_batch"):
                 wakes = scheduler.advance_to_batched(tick, batch_size=run_concurrency)
@@ -665,6 +688,19 @@ def run_headless(
     state = writer.state
     events = store.read_all()
     horizon = cfg.days * TICKS_PER_DAY
+    aborted_info: dict[str, Any] = {"aborted": False}
+    if budget is not None and budget.aborted:
+        aborted_info = {
+            "aborted": True,
+            "reason": "budget_hard_limit",
+            "cost_usd": round(budget.month_cost, 6),
+            "hard_cost": budget.limits.hard_cost,
+            "last_tick": events[-1].tick if events else 0,
+            "state_file": "state_abort.json",
+        }
+        (out_dir / "state_abort.json").write_text(
+            json.dumps(state.to_dict(), ensure_ascii=False, sort_keys=True), encoding="utf-8"
+        )
 
     # A3 观测：模型是否真的在推目标（不改事件流，只做归因统计）。
     ok_events = [e for e in events if e.outcome == "ok"]
@@ -966,6 +1002,7 @@ def run_headless(
         "npc_count": len(npcs),
         "content_hash": content.content_hash,
         "content_sources": dict(content.sources),
+        "aborted": aborted_info,
         "hashes": {
             "state_day10": hash_10d,
             "state_final": final_hash,

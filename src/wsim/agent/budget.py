@@ -3,9 +3,11 @@
 - 降档顺序：spotlight → active → background → silent → mock。
 - 只做纯计算，不发事件；审计事件由 headless 在日终统一写一条 `system_budget`。
 - 金额与 token 均按累计值判断；月度按整个 run 记账（P3-A 的单 run 即一个月度窗口）。
+- A3 起增加 run 级成本硬闸：软阈值只告警，硬阈值置 aborted，由 headless 在下一 tick 中止。
 """
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -30,6 +32,9 @@ class BudgetLimits:
     soft_ratio: float = 0.8
     dialogue_daily_calls: int = 50
     intent_daily_calls: int = 2000
+    # run 级成本硬闸（美元）：soft 只告警，hard 置 aborted 并中止 run。
+    soft_cost: float = 2.5
+    hard_cost: float = 3.0
 
     @classmethod
     def from_dict(cls, raw: dict[str, Any] | None) -> "BudgetLimits":
@@ -42,6 +47,8 @@ class BudgetLimits:
             soft_ratio=float(raw.get("soft_ratio", cls.soft_ratio)),
             dialogue_daily_calls=int(raw.get("dialogue_daily_calls", cls.dialogue_daily_calls)),
             intent_daily_calls=int(raw.get("intent_daily_calls", cls.intent_daily_calls)),
+            soft_cost=float(raw.get("soft_cost", cls.soft_cost)),
+            hard_cost=float(raw.get("hard_cost", cls.hard_cost)),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -53,6 +60,8 @@ class BudgetLimits:
             "soft_ratio": self.soft_ratio,
             "dialogue_daily_calls": self.dialogue_daily_calls,
             "intent_daily_calls": self.intent_daily_calls,
+            "soft_cost": self.soft_cost,
+            "hard_cost": self.hard_cost,
         }
 
 
@@ -75,6 +84,11 @@ class BudgetGuard:
     intent_calls: dict[int, int] = field(default_factory=dict)
     intent_mocked: int = 0
     intent_mocked_by_day: dict[int, int] = field(default_factory=dict)
+    # run 级成本硬闸状态（A3）：记录触发点与实际累计成本。
+    soft_triggered: bool = False
+    hard_triggered: bool = False
+    aborted: bool = False
+    warnings: list[str] = field(default_factory=list)
     _audited_days: set[int] = field(default_factory=set)
 
     def estimate_cost(self, tokens_in: int, tokens_out: int) -> float:
@@ -122,6 +136,23 @@ class BudgetGuard:
         self.day_cost[day] = self.day_cost.get(day, 0.0) + float(cost)
         self.month_tokens += int(tokens_in)
         self.month_cost += float(cost)
+        self._check_run_cost()
+
+    def _check_run_cost(self) -> None:
+        """每次请求记账后检查 run 级成本闸；软阈值只告警，硬阈值直接置 aborted。"""
+        soft = float(self.limits.soft_cost)
+        hard = float(self.limits.hard_cost)
+        if soft > 0 and not self.soft_triggered and self.month_cost >= soft:
+            self.soft_triggered = True
+            msg = f"budget_soft_limit:${self.month_cost:.4f}>=${soft:.2f}"
+            self.warnings.append(msg)
+            print(f"[wsim] WARNING {msg}", file=sys.stderr, flush=True)
+        if hard > 0 and not self.hard_triggered and self.month_cost >= hard:
+            self.hard_triggered = True
+            self.aborted = True
+            msg = f"budget_hard_limit:${self.month_cost:.4f}>=${hard:.2f}"
+            self.warnings.append(msg)
+            print(f"[wsim] ABORT {msg}", file=sys.stderr, flush=True)
 
     def check_dialogue(self, day: int) -> tuple[bool, str]:
         """对话槽按“每日调用次数”限额；超限只降级对话，不影响决策槽。"""
@@ -171,5 +202,11 @@ class BudgetGuard:
             "intent_calls": {str(k): v for k, v in sorted(self.intent_calls.items())},
             "intent_mocked": self.intent_mocked,
             "intent_mocked_by_day": {str(k): v for k, v in sorted(self.intent_mocked_by_day.items())},
+            "soft_cost": self.limits.soft_cost,
+            "hard_cost": self.limits.hard_cost,
+            "soft_triggered": self.soft_triggered,
+            "hard_triggered": self.hard_triggered,
+            "aborted": self.aborted,
+            "warnings": list(self.warnings),
         }
 
