@@ -36,14 +36,19 @@ content/*.yaml ──load──> Content
 | `audit/` | 独立采集：守恒/债务投影、非法率、K1 全量目标、K3 双层诊断、关系一致性、现金流、工资链路、债务事件级独立审计、内容对齐 | 不修改状态 |
 | `tools/replay.py` | 事件回放与哈希校验 | 不写事件 |
 
-## 指标口径（v1.0.0，见 `docs/metrics.md`）
+## 指标口径（v1.1.0，见 `docs/metrics.md`）
 
 - **K6**：守恒误差 + 债务事件级独立审计。`debt_ledger` 只是投影，“应收 == 应付”
   是恒真式，不作校验；`audit/debt_audit.py` 从事件日志重建账户与每笔债务来源。
 - **K1**：分母为内容包全部目标（当前 91），未创建记失败；同时报告 `k1_rate_excluding_one_shot`
-  （剔除一次性目标后的口径）。P1 基线 68/91 = 74.73%。
+  （剔除一次性目标后的口径）。**K1 只允许同一快照内比较**：跨 `content_hash` 一律
+  `non_comparable`，summary 强制输出 `k1.comparison_basis`（basis / content_hash /
+  goals_total / cross_version_comparable=false）。
 - **K3**：verb 层 + 对象层双层诊断，P1 只做诊断、不做 pass/fail；v2 阈值已标记
-  `revoked`，并强制同时报告 move 折叠视图。
+  `revoked`，并强制同时报告 move 折叠视图。签名 spec 于 2026-11-03 升到 **v1.1.0**，
+  补齐 `debt_settle` / `quest_accept` / `quest_deliver` / `recruit` 四个动词；
+  同一 run 同时输出 v1.1.0 主口径、v1.0.0 兼容口径，以及“剔除 4 个新动词”的固定
+  敏感性对照。`k3.v10_compat` 与 `k3.sensitivity_excluding_new_verbs` 均写入 summary。
 
 ## 关键约束
 
@@ -181,7 +186,9 @@ plugins/actions/<id>/
 
 - **任务**：`content/quests.yaml` 12 个模板；`system_quest_post` 每日发单，NPC
   `quest_accept` / `quest_deliver`，超时 `system_quest_fail`。报酬/时限全部来自内容包，
-  状态写入 `quest_*` 事件，可回放。
+  状态写入 `quest_*` 事件，可回放。一个 NPC 同时最多挂
+  `economy.quests.max_concurrent`（当前 2）单，接单距离
+  `economy.quests.accept_max_hops`（当前 3 跳）。
 - **镖路**：以 `content/escort_routes.yaml` **线路值为准**（`duration_days` / `fee_min`
   / `fee_max` / `agency_cut` / `risk_loss_prob` / `risk_events`）；只有未命中线路时才
   回退 `economy.escort` 全局值，并写 `escort_global_fallback` 记忆。**两条路径互斥，
@@ -189,20 +196,45 @@ plugins/actions/<id>/
 - **门派**：`founding_cost=2500`（含 500 注册费，其余 2000 进入门派公账），
   `min_members=5`；清议社/药行会/镖行同盟由白露生/苏合香/卓不凡通过真实
   `recruit` → `found_sect` 发起；创世不再预置有发起人的门派。
+  发起人按 `sects.yaml` 的 `recruit_targets` 招人，`recruit` 只推进进度
+  0.1（5 人 = 0.5），`found_sect` 才给 1.0，避免“招满 5 人就判目标完成却没立派”。
+  人齐但注册费不足时，发起人先变现最值钱的余物、否则加一个 4 小时晚班
+  （`work hours=4`）攒钱；门槛 `min_members=5` / `founding_cost=2500` 不变。
+  `content/personas/*.md` 首行摘要注入 MockReasoner 的 `reason`，真实模型接入时复用同一路径。
 - **经济回流**：储蓄税（burn）、店铺分红（transfer 给店主）、店税；`debt_settle`
   作为插件实现（`plugins/actions/debt_settle`），由 urgent_debt 目标触发，产生
-  真实还款正样本。
+  真实还款正样本。日工不再隔日：只要雇主（创世中所有商业体共用 `treasury:region`
+  现金账户）余额 >= 当日工资 + `economy.work.employer_reserve`（当前 2000），
+  就连续上工；否则练手艺/接任务，不增发、不打欠条。summary 输出
+  `economy.cash_delta_breakdown`，把 NPC 现金净变化拆成经营净流入与资本开支
+  （门派注册费/入账、铺租），并校验 `operating_net - capital_out == npc_net_change`。
 - **personas**：`content/personas/*.md` 首行摘要注入 MockReasoner 的 `reason`，
   真实模型接入时复用同一路径。
 
 
 ## Provider `src/wsim/agent/provider.py`
 
-- 单一配置 `base_url + key + model`，加 `timeout_s / max_retries / offline`。
-- `ProviderClient` 在 P2 不联网（`_request` 故意抛 `ProviderUnavailable`）；
-  `FallbackReasoner` 捕获后降级到 `MockReasoner`，并记录降级次数/尝试次数。
-- 接入真实模型时必须补：HTTP 传输、超时实现、错误分类、密钥管理、
-  prompt/响应 schema、成本与速率限制。
+- 单一配置 `base_url + key + model`，加 `timeout_s / max_retries / backoff_base_s / offline`。
+- **默认离线**：`ProviderConfig.from_env(False)` 返回 None；只有
+  `run_headless.py --enable-llm` 且 `LLM_BASE_URL` / `LLM_API_KEY` / `LLM_MODEL`
+  齐全时才构造真实客户端。测试禁止联网：重试/降级测试通过注入 `transport` 模拟失败。
+- 真实 HTTP 用标准库 `urllib` 调 OpenAI 兼容 `/chat/completions`；错误分类
+  `timeout / network / http_4xx / http_5xx / parse`，仅 `timeout / network / http_5xx`
+  重试（指数退避）；4xx 与 schema 错误不重试。
+- `LLMReasoner`：目标层仍由确定性 GoalSelector 产生 `system_goal`，模型只把当前
+  目标展开成动作；输出经 `agent/prompt.py` 的 JSON schema 校验。失败或 schema 拒绝
+  一律回退 MockReasoner，并记 `schema_reject` / `fallback`。
+
+## Prompt 与成本遥测（P3 预备）
+
+- `agent/prompt.py`：`build_prompt(content, state, npc, tick, tier, recent_events)`
+  注入 `content/personas/*.md` 与状态摘要（目标、关系、债务、地点、技能、近期事件）；
+  `validate_intent_json` 只接受 17 个 NPC 动词、非空 reason、最多 4 个动作、扁平参数。
+- `agent/cost.py`：每次推理估算输入/输出 token、按 `config/llm.yaml` 的档位单价
+  计算成本，写 `runs/<run>/cost.jsonl`，summary 输出 `cost.calls / by_tier /
+  estimated_cost / schema_rejects / fallbacks`。Mock 也产生同样的遥测。
+- 真实模型接入仍需补：密钥管理、prompt 版本管理、成本上限与速率限制。当前
+  `--enable-llm` 未在 CI/测试中使用。
 
 ## P2 验收
 

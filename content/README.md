@@ -114,7 +114,7 @@ npcs:
 - **P1 不声明 `cooldown`。** 冷却约束将在 P2 计划器实现后随动作窗一起回归，P1 阶段以 `last_action_tick` 轻量节流代替。`verbs.yaml` 里保留该字段只会造成文档与引擎行为不一致。
 - `args`：简化的 JSON-Schema 描述，引擎自行解释；`int>=1`、`array<...>` 等是约定字符串，不是完整 JSON Schema。
 - `allowed_roles`：`"*"` 表示所有职业；否则必须是 `economy.wages_daily` 中存在的职业名。
-- 当前共 **13 个动词**，与引擎 `actions/registry.py` 注册的 13 个玩家动作逐一对齐：`move / cultivate / work / consume / buy / sell / trade / apprentice / join_sect / marry / open_shop / escort / found_sect`。引擎另有 6 个 `system_*` 内部动作（plan / recover / living / debts / shop_tax / escort_arrive），它们不是玩家动词，按设计不出现在 `verbs.yaml`。
+- 当前 `verbs.yaml` 声明 **13 个玩家动词**：`move / cultivate / work / consume / buy / sell / trade / apprentice / join_sect / marry / open_shop / escort / found_sect`。P2-B 另有 4 个引擎动词（`quest_accept / quest_deliver / recruit / debt_settle`，由意图层/插件提供，不需要内容包声明），合计 17 个 NPC 动词；引擎内的 `system_*` 动作不是玩家动词，按设计不出现在 `verbs.yaml`。
 - `apprentice` 只表示**拜师**，`args.target` 必须是 NPC；`join_sect` 表示**加入门派/讲会**，`args.target` 是门派组织 id 或地点 id，`dues` 是入会费。两者不再互相兼任。
 - 方寸心的 `join_sect` goal 指向书院讲会（组织/地点），由 `join_sect` 承载；她与白露生的师徒关系仍由 `apprentice` 和 `master/disciple` 关系承载。
 
@@ -292,7 +292,7 @@ npcs:
 - 地点 8 个、出口对称、整图连通、services 非空且指向存在的物品；
 - 物品 20-30 种、category 合法、base_price 为正且落在常见区间；
 - 所有物品至少被 NPC 资产或地点服务引用一次，所有 service 类物品挂在地点；
-- 13 个动词齐全、不再声明 `cooldown`、参数与 allowed_roles 合法；
+- 13 个内容包声明动词齐全、不再声明 `cooldown`、参数与 allowed_roles 合法；引擎侧 4 个新增动词（`quest_accept / quest_deliver / recruit / debt_settle`）由意图层与插件提供，不要求在 `verbs.yaml` 声明；
 - `join_sect` goal 与 `join_sect` 动词对齐，`apprentice` 与 `join_sect` 同时存在；
 - 工资/生活成本覆盖所有职业，净结余为正且不暴增，货币存量声明一致；
 - 7 类 goal 均至少有 NPC 使用；
@@ -307,7 +307,7 @@ npcs:
 
 ## 动词语义边界
 
-需求给定的 12 个动词里没有独立的 `join_sect`，会造成"拜师"与"入派"语义混淆。本内容包已把 `join_sect` 补为第 13 个动词，边界如下：
+需求给定的 12 个动词里没有独立的 `join_sect`，会造成"拜师"与"入派"语义混淆。本内容包已把 `join_sect` 补为第 13 个声明动词（P2-B 引擎另有 4 个不经内容包声明的动词），边界如下：
 
 | 场景 | 动词 | `target` | 配套数据 |
 | --- | --- | --- | --- |

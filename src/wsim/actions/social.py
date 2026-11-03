@@ -189,7 +189,9 @@ class RecruitAction(Action):
                  "affection_delta": delta, "trust": 45.0},
             ),
             Effect("set_field", {"entity": ent.id, "field": "last_action_tick", "value": intent.tick}),
-            *goal_progress(state, ent.id, "faction", 0.2, intent.tick),
+            # 招人只是进度，不能把 found_sect 目标提前判成完成：
+            # 5 次招揽才累计 0.5，真正的 1.0 由 found_sect 动作给出。
+            *goal_progress(state, ent.id, "faction", 0.1, intent.tick),
             *memory(state, ent.id, intent.tick, f"招揽{target.name}入伙", 0.5),
             *memory(state, target.id, intent.tick, f"答应与{ent.name}共举门派", 0.4),
         ]

@@ -460,8 +460,14 @@ class Planner:
             # 任务优先：接单 -> 执行（交付由 headless 在动作成功后推进）
             loc, cursor, cash = self._quest_step(state, intents, npc, loc, cursor, seg_end, cash, memo)
 
-            # 消费倾向：有余钱就买一件非口粮品，钱回流店铺
-            loc, cursor, cash = self._propensity_buy(state, intents, npc, loc, cursor, seg_end, cash, memo)
+            # 消费倾向：有余钱就买一件非口粮品，钱回流店铺；
+            # 正在攒注册费的发起人不做可选消费，否则永远差最后几百文。
+            saving_for_sect = (
+                choice.content_type == "found_sect"
+                and cash < int((self.content.economy.get("sect") or {}).get("founding_cost", 2500))
+            )
+            if not saving_for_sect:
+                loc, cursor, cash = self._propensity_buy(state, intents, npc, loc, cursor, seg_end, cash, memo)
 
             # 目标动作：按档位深度
             for k in range(depth):
@@ -964,9 +970,11 @@ class Planner:
                 memo["founded"] = True
                 cash -= cost
             elif len(members) >= need and cursor < end:
-                # 人已齐、钱不够：去挣注册费，而不是原地空练。
-                item = self._sellable(ent, memo)
-                if item is not None:
+                # 人已齐、钱不够：先用能一笔补上缺口的贵重余物变现，再考虑白天的
+                # 4 小时晚班（兼职）。两条都不靠发钱、不降门槛。
+                gap = cost - cash
+                item = self._best_sellable(ent, memo)
+                if item is not None and sell_price(self.content, item) >= gap:
                     dest = self._sell_location(state, item, loc)
                     if dest:
                         loc, cursor = self._move(state, intents, npc, loc, dest, cursor, end,
@@ -978,6 +986,23 @@ class Planner:
                         )
                         self._mark_used(memo, item)
                         cash += sell_price(self.content, item)
+                        return loc, cursor, cash
+                employer = self._employer(state, ent)
+                reserve = int((self.content.economy.get("work") or {}).get("employer_reserve", 300))
+                half_shift = max(1, int(round(self._gross_wage(ent) * 4 / 8.0)))
+                if (
+                    employer is not None
+                    and cursor < end
+                    and state.account_balance(employer.cash_account) >= half_shift + reserve
+                ):
+                    loc, cursor = self._move(state, intents, npc, loc, employer.location, cursor, end,
+                                             reason(f"加班凑{cost}文注册费"))
+                    if loc == employer.location and cursor < end:
+                        cursor = self._add(
+                            intents, npc, "work", {"at": loc, "hours": 4},
+                            cursor, end, reason(f"加班凑{cost}文注册费"),
+                        )
+                        cash += int(round(int(round(self._gross_wage(ent) * 4 / 8.0)) * 0.9))
                         return loc, cursor, cash
             else:
                 cursor = self._add(
@@ -1067,6 +1092,17 @@ class Planner:
             if self._available(ent, item, memo) > 0 and self.content.items.get(item, {}).get("category") != "service":
                 return item
         return None
+
+    def _best_sellable(self, ent, memo: dict[str, Any] | None = None) -> str | None:
+        """变现时优先卖最值钱的余物，避免先卖便宜货、越卖越穷。"""
+        cands = [
+            iid
+            for iid in sorted(ent.inventory)
+            if self._available(ent, iid, memo) > 0 and self.content.items.get(iid, {}).get("category") != "service"
+        ]
+        if not cands:
+            return None
+        return max(cands, key=lambda iid: (sell_price(self.content, iid), iid))
 
     def _sell_location(self, state: WorldState, item: str, loc: str) -> str | None:
         revenue = sell_price(self.content, item)
