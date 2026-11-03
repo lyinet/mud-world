@@ -666,6 +666,46 @@ def run_headless(
     events = store.read_all()
     horizon = cfg.days * TICKS_PER_DAY
 
+    # A3 观测：模型是否真的在推目标（不改事件流，只做归因统计）。
+    ok_events = [e for e in events if e.outcome == "ok"]
+    ok_nonsys = [e for e in ok_events if e.source != "system" and not e.verb.startswith("system_")]
+    llm_events = [e for e in ok_nonsys if e.source == "llm"]
+    model_goal_chains: list[dict[str, Any]] = []
+    for e in llm_events:
+        for eff in e.effects or []:
+            if eff.get("op") != "goal_progress":
+                continue
+            data = eff.get("data") or {}
+            gid = str(data.get("id") or "")
+            goal = state.goals.get(gid)
+            model_goal_chains.append({
+                "seq": e.seq,
+                "tick": e.tick,
+                "day": e.day,
+                "npc": e.actor,
+                "verb": e.verb,
+                "goal_id": gid,
+                "content_type": goal.content_type if goal is not None else "",
+                "goal_status": goal.status if goal is not None else "",
+                "goal_progress": round(float(goal.progress), 4) if goal is not None else None,
+                "delta": data.get("delta"),
+                "reason": str(e.reason or "")[:120],
+            })
+    chain_path = out_dir / "model_goal_chains.jsonl"
+    with chain_path.open("w", encoding="utf-8") as fh:
+        for row in model_goal_chains:
+            fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+    model_agency = {
+        "model_events": len(llm_events),
+        "model_event_share": round(len(llm_events) / len(ok_nonsys), 4) if ok_nonsys else 0.0,
+        "model_event_share_all_ok": round(len(llm_events) / len(ok_events), 4) if ok_events else 0.0,
+        "model_goal_relevant_actions": len(model_goal_chains),
+        "attribution_chains": len(model_goal_chains),
+        "model_verbs": dict(sorted(Counter(e.verb for e in llm_events).items())),
+        "chains_file": str(chain_path.relative_to(out_dir)),
+        "chains_sample": model_goal_chains[:5],
+    }
+
     k1 = goal_stats(state, horizon, content, run_npc_ids=list(npc_ids))
     k3 = diversity_stats(events, npc_ids, seed=cfg.seed)
     k6_cons = conservation(state)
@@ -975,6 +1015,7 @@ def run_headless(
         "k3": k3,
         "lod": lod_summary,
         "intent": intent_audit,
+        "model_agency": model_agency,
         "economy": econ,
         "wages": wages,
         "content_audit": audit,

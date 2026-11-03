@@ -144,6 +144,7 @@ def main() -> int:
         "cost": s["cost"],
         "llm": s["llm"],
         "decisions": s.get("decisions", {}),
+        "model_agency": s.get("model_agency", {}),
         "budget": s.get("budget", {}),
         "verdict": s["verdict"],
         "content_audit": {

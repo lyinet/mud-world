@@ -451,13 +451,15 @@ class SystemGoalAction(Action):
         abandon = str(args.get("abandon", ""))
         if abandon and abandon in state.goals and abandon != goal_id:
             effects.append(Effect("goal_abandon", {"id": abandon}))
+        goal_source = str(args.get("goal_source", "content"))
         payload = {
             "id": goal_id,
             "npc": ent.id,
             "kind": str(args.get("kind", "wealth")),
             "target": float(args.get("target", 1.0)),
             "created_tick": intent.tick,
-            "source": "npc" if str(args.get("goal_source", "content")) == "content" else "urgent",
+            # A3：只有 urgent 目标不进 K1 分母；content/model 都是内容目标（source=npc）。
+            "source": "urgent" if goal_source == "urgent" else "npc",
             "content_goal_id": str(args.get("content_goal_id", "")),
             "content_type": str(args.get("content_type", "")),
         }

@@ -1295,12 +1295,12 @@ class MockReasoner(Reasoner):
         interval = int(world_view.get("interval", TICKS_PER_DAY))
         tier = str(world_view.get("tier", "active"))
         choice = self.selector.choose(state, npc, tick)
-        if goal_override and choice is not None:
+        # A3：模型目标合法且可规划时直接采用（不再要求与规则选择器一致）。
+        # 紧急/生存目标仍由规则抢占，模型不得覆盖。
+        if goal_override and choice is not None and choice.source != "urgent":
             alt = self._choice_for_goal(state, npc, goal_override)
-            # 模型目标只在和规则选择器一致时才采纳；否则以规则为准，
-            # 避免把 NPC 拉离可达目标（P3-B 是分工修复，不是模型覆盖规则）。
-            if alt is not None and alt.goal_id == choice.goal_id:
-                choice = replace(choice, source="model", reason="模型选择今日目标")
+            if alt is not None:
+                choice = alt
         if choice is None:
             return []
 
@@ -1365,25 +1365,50 @@ class MockReasoner(Reasoner):
         return intents
 
     def _choice_for_goal(self, state: WorldState, npc: str, goal_override: str) -> GoalChoice | None:
-        """把模型选择的目标 id 映射成规则可执行的目标；非法/已完成返回 None。"""
+        """把模型选择的目标 id 映射成规则可执行的目标；非法/已完成返回 None。
+
+        A3：允许选择内容包里存在、但 world 里尚未创建的目标（create=True），
+        这样模型才真正拥有“今天推哪个内容目标”的选择权。
+        """
         raw = str(goal_override).strip()
         candidates = [raw] if ":" in raw else [f"{npc}:{raw}"]
         for gid in candidates:
             goal = state.goals.get(gid)
-            if goal is None or goal.npc != npc or goal.status in ("completed", "abandoned"):
-                continue
-            return GoalChoice(
-                npc=npc,
-                goal_id=goal.id,
-                content_goal_id=goal.content_goal_id,
-                content_type=goal.content_type,
-                kind=goal.kind,
-                target=goal.target,
-                source="model",
-                reason="模型选择今日目标",
-                # 已存在的目标只切换/保持，不重建，避免把进度清零。
-                create=False,
-            )
+            if goal is not None:
+                if goal.npc != npc or goal.status in ("completed", "abandoned"):
+                    continue
+                return GoalChoice(
+                    npc=npc,
+                    goal_id=goal.id,
+                    content_goal_id=goal.content_goal_id,
+                    content_type=goal.content_type,
+                    kind=goal.kind,
+                    target=goal.target,
+                    source="model",
+                    reason="模型选择今日目标",
+                    # 已存在的目标只切换/保持，不重建，避免把进度清零。
+                    create=False,
+                )
+            # 尚未创建：从内容包目标清单里找同 id 且类型可规划的目标。
+            cid = gid.split(":", 1)[1] if ":" in gid else gid
+            for row in self.selector._content_goals.get(npc, []) if self.selector is not None else []:
+                if str(row.get("id")) != cid:
+                    continue
+                ctype = str(row.get("type", ""))
+                if ctype not in CONTENT_GOAL_TYPES:
+                    break
+                kind = goal_kind(ctype)
+                return GoalChoice(
+                    npc=npc,
+                    goal_id=f"{npc}:{cid}",
+                    content_goal_id=cid,
+                    content_type=ctype,
+                    kind=kind,
+                    target=float(goal_target(self.content, kind)),
+                    source="model",
+                    reason="模型选择今日目标",
+                    create=True,
+                )
         return None
 
     def _legacy(self, npc: str, npc_state: dict[str, Any], tick: int) -> list[Intent]:

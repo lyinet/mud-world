@@ -47,6 +47,7 @@ from .prompt import (
     build_state_summary,
     build_repair_prompt,
     parse_decision_payload,
+    parse_decision_hint,
     parse_llm_output,
     parse_llm_payload,
 )
@@ -638,6 +639,8 @@ class LLMReasoner(Reasoner):
         self.mock_by_timing: dict[str, int] = {}
         self.rule_actions = 0
         self.model_actions = 0
+        self.retimed_model_actions = 0
+        self.retargeted_model_actions = 0
         self.dropped_by_reason: Counter[str] = Counter()
         self.goal_from_model = 0
         self.goal_from_rule = 0
@@ -649,6 +652,7 @@ class LLMReasoner(Reasoner):
         self.final_fail = 0
         self.intent_calls = 0
         self.intent_ok = 0
+        self.intent_fast_paths = 0
         self.intent_clarification = 0
         self.intent_reject = 0
         self.intent_reject_by_reason: Counter[str] = Counter()
@@ -727,6 +731,12 @@ class LLMReasoner(Reasoner):
                 p["decision_error"] = exc
                 continue
             p["goal"], p["utterance"], p["legacy_intents"] = goal, utterance, legacy
+            hint_verb, hint_target = parse_decision_hint(str(res.get("text") or ""))
+            direct = self._direct_intent(p, hint_verb, hint_target, utterance)
+            if direct is not None:
+                # 决策已给出可用 verb/target：跳过意图槽网络调用。
+                p["direct_intent"] = direct
+                continue
             if self.intent_client is not None and utterance and p.get("state") is not None:
                 self._prepare_intent(p, utterance)
                 if p.get("intent_prompt") is not None:
@@ -855,6 +865,42 @@ class LLMReasoner(Reasoner):
                 p["intent_prompt"] = None
 
     # ---- 阶段 3：解析、修复、过滤、合并 ---------------------------------------
+    def _direct_intent(
+        self, p: dict[str, Any], verb: str, target_name: str, utterance: str
+    ) -> Intent | None:
+        """A3 快路径：决策已给出 verb/target 时直接构造 Intent，省掉意图槽调用。
+
+        只接低风险动作（talk/trade/apprentice）；其余交给意图槽。
+        """
+        if verb not in ("talk", "trade", "apprentice") or not target_name:
+            return None
+        state = p.get("state")
+        if state is None:
+            return None
+        target = str(target_name)
+        tid = target if target in state.entities else ""
+        if not tid:
+            for ent in state.entities.values():
+                if getattr(ent, "name", "") == target:
+                    tid = ent.id
+                    break
+        if not tid or tid == p["npc"]:
+            return None
+        ent = state.entities.get(tid)
+        if ent is None or getattr(ent, "status", "") == "dead":
+            return None
+        if verb == "talk":
+            args = {"target": tid, "message": utterance.strip()[:200]}
+        elif verb == "trade":
+            args = {"target": tid, "offer": [], "want": [], "money_delta": 0}
+        else:
+            args = {"target": tid, "duration_days": 30}
+        self.intent_fast_paths += 1
+        return Intent(
+            actor=p["npc"], verb=verb, args=args, tick=int(p["tick"]),
+            source="llm", reason=utterance.strip()[:80],
+        )
+
     def _finish(self, p: dict[str, Any]) -> list[Intent]:
         npc_state = p["npc_state"]
         world_view = p["world_view"]
@@ -911,7 +957,9 @@ class LLMReasoner(Reasoner):
         else:
             self.first_pass += 1
 
-        if utterance:
+        if p.get("direct_intent") is not None:
+            intents.append(p["direct_intent"])
+        elif utterance:
             intents.extend(self._resolve_intent(p))
         self.ok_calls += 1
         self._record(
@@ -927,7 +975,7 @@ class LLMReasoner(Reasoner):
             }
             return []
         draft = self._rule_draft(p, goal_override=goal)
-        kept = self._filter_model_actions(intents, draft, state, npc)
+        draft, kept = self._filter_model_actions(intents, draft, state, npc)
         return draft + kept
 
     def _finish_hint(self, p: dict[str, Any]) -> list[Intent]:
@@ -936,7 +984,7 @@ class LLMReasoner(Reasoner):
         goal = str(hint.get("goal") or "")
         intents = list(hint.get("intents") or [])
         draft = self._rule_draft(p, goal_override=goal)
-        kept = self._filter_model_actions(intents, draft, p["state"], p["npc"])
+        draft, kept = self._filter_model_actions(intents, draft, p["state"], p["npc"])
         return draft + kept
 
     def _finish_legacy(self, p: dict[str, Any], text: str, usage: dict[str, int], latency: float) -> list[Intent]:
@@ -965,7 +1013,7 @@ class LLMReasoner(Reasoner):
             self.repair_succeeded += 1
         goal = str(meta.get("goal") or "")
         draft = self._rule_draft(p, goal_override=goal)
-        kept = self._filter_model_actions(intents, draft, state, npc)
+        draft, kept = self._filter_model_actions(intents, draft, state, npc)
         self.ok_calls += 1
         self._record(
             tick=tick, npc=npc, tier=tier, prompt=prompt, output=text,
@@ -1155,10 +1203,27 @@ class LLMReasoner(Reasoner):
         draft: list[Intent],
         state,
         npc: str,
-    ) -> list[Intent]:
-        rule_pairs = {(i.verb, _args_key(i.args)) for i in draft if i.verb != "system_goal"}
+    ) -> tuple[list[Intent], list[Intent]]:
+        """逐条预检模型动作；返回 (过滤后的规则底稿, 保留的模型动作)。
+
+        A3：MODEL_VERBS 的冲突按 (verb, target) 判定。命中规则重复项时，
+        丢弃规则那条、保留模型动作，让模型社交动作真正落地。
+        """
+        def _target_key(intent: Intent) -> tuple[str, str]:
+            if intent.verb == "found_sect":
+                target = str(intent.args.get("at") or intent.args.get("sect_id") or "")
+            else:
+                target = str(intent.args.get("target") or "")
+            return (intent.verb, target)
+
+        rule_dups: dict[tuple[str, str], list[Intent]] = {}
+        for item in draft:
+            if item.verb != "system_goal" and item.verb in MODEL_VERBS:
+                rule_dups.setdefault(_target_key(item), []).append(item)
+
         kept: list[Intent] = []
         seen: set[tuple[str, str]] = set()
+        replaced_rule_ids: set[int] = set()
         for intent in intents:
             intent = replace(intent, actor=npc, source="llm")
             key = (intent.verb, _args_key(intent.args))
@@ -1168,9 +1233,6 @@ class LLMReasoner(Reasoner):
             if intent.verb not in MODEL_VERBS:
                 self.dropped_by_reason["not_model_scope"] += 1
                 continue
-            if key in rule_pairs:
-                self.dropped_by_reason["duplicate_rule"] += 1
-                continue
             if key in seen:
                 self.dropped_by_reason["duplicate_model"] += 1
                 continue
@@ -1178,18 +1240,58 @@ class LLMReasoner(Reasoner):
             if action is None:
                 self.dropped_by_reason["unknown_action"] += 1
                 continue
+            # 规则底稿里已有同名 (verb,target)：说明规则已为该目标排过 move + 动作，
+            # 直接把模型动作顺延到该 tick 并采信规则的前置校验，避免夜间快照误判 not_together。
+            dups = [d for d in rule_dups.get(_target_key(intent), []) if id(d) not in replaced_rule_ids]
+            if dups:
+                retime = max(d.tick for d in dups)
+                if retime > intent.tick:
+                    intent = replace(intent, tick=retime)
+                    self.retimed_model_actions += 1
+                for dup in dups:
+                    replaced_rule_ids.add(id(dup))
+                    self.dropped_by_reason["rule_dup_replaced"] += 1
+                kept.append(intent)
+                seen.add(key)
+                self.model_actions += 1
+                continue
             try:
                 reasons = action.preconditions(state, intent)
             except Exception as exc:  # 前置条件自身异常不应拖垮整包
                 self.dropped_by_reason[f"precheck_error:{type(exc).__name__}"] += 1
                 continue
             if reasons:
-                self.dropped_by_reason[str(reasons[0]).split(":")[0]] += 1
+                reason_key = str(reasons[0]).split(":")[0]
+                # 夜间快照里目标不在同一地点：若规则底稿已为同名动作排过另一个人，
+                # 就沿用规则的人与 tick（模型保留“做什么”的选择权，规则负责可达性）。
+                if reason_key == "not_together" and "target" in intent.args:
+                    alt = next(
+                        (d for d in draft
+                         if d.verb == intent.verb and id(d) not in replaced_rule_ids
+                         and d.args.get("target") and d.args.get("target") != intent.args.get("target")),
+                        None,
+                    )
+                    if alt is not None:
+                        intent = replace(
+                            intent,
+                            args={**intent.args, "target": alt.args["target"]},
+                            tick=max(intent.tick, alt.tick),
+                        )
+                        replaced_rule_ids.add(id(alt))
+                        self.dropped_by_reason["rule_dup_replaced"] += 1
+                        self.retargeted_model_actions += 1
+                        kept.append(intent)
+                        seen.add(key)
+                        self.model_actions += 1
+                        continue
+                self.dropped_by_reason[reason_key] += 1
                 continue
             kept.append(intent)
             seen.add(key)
             self.model_actions += 1
-        return kept
+        if replaced_rule_ids:
+            draft = [item for item in draft if id(item) not in replaced_rule_ids]
+        return draft, kept
 
     def _record(
         self,
@@ -1274,6 +1376,8 @@ class LLMReasoner(Reasoner):
         return {
             "rule_actions": self.rule_actions,
             "model_actions": self.model_actions,
+            "retimed_model_actions": self.retimed_model_actions,
+            "retargeted_model_actions": self.retargeted_model_actions,
             "dropped_actions": sum(self.dropped_by_reason.values()),
             "dropped_by_reason": dict(sorted(self.dropped_by_reason.items())),
             "first_pass": self.first_pass,
@@ -1290,6 +1394,7 @@ class LLMReasoner(Reasoner):
             "repair_calls": self.repair_calls,
             "intent_calls": self.intent_calls,
             "intent_ok": self.intent_ok,
+            "intent_fast_paths": self.intent_fast_paths,
             "intent_clarification": self.intent_clarification,
             "intent_reject": self.intent_reject,
             "intent_reject_by_reason": dict(sorted(self.intent_reject_by_reason.items())),

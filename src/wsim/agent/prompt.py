@@ -395,12 +395,20 @@ def build_prompt(
 
 DECISION_SYSTEM_PROMPT = (
     "你是多 NPC 世界模拟器中的单个角色决策器。只输出 JSON，不要解释。"
-    "分工：移动/上工/吃饭/修炼/买卖/跑任务/还债等生存与生计动作由规则调度器负责，"
+    "分工：移动/上工/吃饭/修炼/买卖/跑任务/还债/巡视摆摊看病等日常生计动作由规则调度器负责，"
     "你不得指定这些动作，也不要给出动作参数。"
-    "你只负责用一句自然语言说清楚「今天想做什么」，例如“去找林掌柜聊聊货源”。"
-    "如果需要推进某个内容目标，从 goal_candidates 里选一个 goal_id；没有就不填。"
-    '输出格式：{"goal":"<goal_id 或 null>","intent":"<一句中文意图>"}。'
-    "intent 必须具体，提到人物/地点/物品时用状态里的名字；不要编造 id。"
+    "你只负责选定「今天要推动哪一个具体社交或目标动作」，并说清对谁做。"
+    "只能从这些模型动作里选一个：trade（交易/叙旧）、apprentice（拜师）、join_sect（入会）、"
+    "marry（成婚）、found_sect（开派）、talk（交谈）。"
+    "goal 必须从 goal_candidates 里选一个 goal_id；没有合适目标填 null。"
+    "target 必须是 nearby_npcs 里同地点的人；没有合适的同地点目标时用 talk。"
+    "verb/target 的对应关系：build_relation → trade（有同地点的人时优先 trade，talk 不推进目标）；"
+    "advance_skill → apprentice（附近有更高技能者）；join_sect/gain_status → join_sect；"
+    "marry → marry；found_sect → found_sect。"
+    "intent 必须是一句具体的「对谁做什么」，人物用 nearby_npcs 或状态里的名字，不要编造 id。"
+    "不要写泛化的日常计划（如巡视、摆摊、看病、练手艺、赶路、打听消息），这些不会被执行。"
+    '输出格式：{"goal":"<goal_id 或 null>","intent":"<一句中文具体动作>",'
+    '"verb":"trade|apprentice|join_sect|marry|found_sect|talk","target":"<人物名字>"}。'
 )
 
 
@@ -424,6 +432,31 @@ def build_decision_prompt(
     user = "角色设定：\n" + (persona or "（无设定，按身份与当前状态行事）") + "\n\n当前状态：\n"
     user += json.dumps(summary, ensure_ascii=False, sort_keys=True)
     return Prompt(system=DECISION_SYSTEM_PROMPT, user=user, persona_tokens=persona_tokens)
+
+
+def parse_decision_hint(text: str) -> tuple[str, str]:
+    """从决策 JSON 里取 (verb, target)；缺失/非法返回空串，交给意图槽兜底。
+
+    A3：决策模型直接给出可用动作时，可跳过意图槽调用（省一次网络与 token），
+    只在 verb 属于模型动作且 target 可在状态里解析时才走快路径。
+    """
+    raw = str(text or "").strip()
+    try:
+        payload, _meta = extract_intent_payload(raw)
+    except (TypeError, ValueError, AttributeError, SchemaError):
+        return "", ""
+    if isinstance(payload, str):
+        try:
+            payload = json.loads(payload)
+        except (TypeError, ValueError):
+            return "", ""
+    if not isinstance(payload, dict):
+        return "", ""
+    verb = str(payload.get("verb") or "").strip()
+    target = str(payload.get("target") or "").strip()
+    if verb not in MODEL_VERBS:
+        return "", ""
+    return verb, target
 
 
 def parse_decision_payload(text: str) -> tuple[str, str, list[Intent]]:
