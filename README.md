@@ -6,7 +6,18 @@ SQLite `events` append-only 日志是唯一事实源，内存 `WorldState` 只�
 内容数据全部来自 `content/`（由另一会话维护，本目录只读）。运行模拟时
 `allow_fixture=False`，内容缺失会直接报错；`fixtures/default/` 只在单元测试里使用。
 
-指标口径固定在 [docs/metrics.md](docs/metrics.md)（v1.0.0，2026-11-03 生效，含 CHANGELOG）。
+指标口径固定在 [docs/metrics.md](docs/metrics.md)（v1.1.0，2026-11-03 生效，含 CHANGELOG）。
+
+## 对比归因规则（强制）
+
+`p2b-baseline` tag 冻结了 P2-B 交付快照（`3b1762e` / 代码 `42f4914`，
+`content_hash=7acace8f2337…`）。**此后任何指标对比必须同时给出两边的 commit 与
+content hash，否则视为不可归因**：
+
+- K1 只允许同一快照内比较（同一 `content_hash`、同一目标集、同一 seed、同一天数）；
+  跨内容版本一律标记 `non_comparable`，summary 输出 `k1.comparison_basis`。
+- K3 对比必须注明两边使用的签名 spec 版本（v1.0.0 / v1.1.0），同一 run 同时输出两版。
+- 只给百分比、不给 commit 与 content hash 的数字，不得写进结论。
 
 ## 安装
 
