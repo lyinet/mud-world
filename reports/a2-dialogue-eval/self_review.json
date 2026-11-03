@@ -1,0 +1,51 @@
+{
+  "reviewer": "single agent self-eval (non-independent)",
+  "blind_protocol_followed": false,
+  "note": "评审者知道 answer key，且只有一名评审；仅用于给出可复现的自评结果，不构成独立盲评。",
+  "rubric": [
+    "人设一致性：是否保持段五斗（屠户、直爽、贪酒赌、欠金满仓三百文）",
+    "切题：是否回应玩家这一句的具体问题",
+    "自然度：是否像当面说话，而非旁白/规则描述",
+    "出戏与冗余：是否复述问题、解释规则、空泛兜底"
+  ],
+  "verdicts": [
+    {"id": 1, "winner": "model"},
+    {"id": 2, "winner": "model"},
+    {"id": 3, "winner": "model"},
+    {"id": 4, "winner": "model"},
+    {"id": 5, "winner": "model"},
+    {"id": 6, "winner": "model"},
+    {"id": 7, "winner": "model"},
+    {"id": 8, "winner": "model"},
+    {"id": 9, "winner": "model"},
+    {"id": 10, "winner": "model"},
+    {"id": 11, "winner": "model"},
+    {"id": 12, "winner": "model"},
+    {"id": 13, "winner": "model"},
+    {"id": 14, "winner": "model"},
+    {"id": 15, "winner": "model"},
+    {"id": 16, "winner": "model"},
+    {"id": 17, "winner": "model"},
+    {"id": 18, "winner": "model"},
+    {"id": 19, "winner": "model"},
+    {"id": 20, "winner": "model"},
+    {"id": 21, "winner": "model"},
+    {"id": 22, "winner": "model"},
+    {"id": 23, "winner": "model"},
+    {"id": 24, "winner": "model"},
+    {"id": 25, "winner": "model"},
+    {"id": 26, "winner": "model"},
+    {"id": 27, "winner": "model"},
+    {"id": 28, "winner": "model"},
+    {"id": 29, "winner": "model"},
+    {"id": 30, "winner": "model"}
+  ],
+  "result": {
+    "scored": 30,
+    "model_wins": 30,
+    "template_wins": 0,
+    "ties": 0,
+    "model_win_rate": 1.0,
+    "status": "未达 60% 胜率验证：这是单评审自评，非独立盲评；需第二名评审用 blind_pairs.jsonl 复评后才可宣称胜率。"
+  }
+}

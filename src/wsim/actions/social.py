@@ -74,8 +74,10 @@ class TalkAction(Action):
 
     verb = "talk"
 
-    def __init__(self, content):
+    def __init__(self, content, dialogue=None):
         self.content = content
+        # 可选：AsyncDialogueQueue。未注入时保持纯模板路径（golden/离线 deterministic）。
+        self.dialogue = dialogue
 
     def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
         pid = _speaker_id(state, intent)
@@ -110,6 +112,30 @@ class TalkAction(Action):
         persona = self.content.personas.get(target.id, "") if self.content is not None else ""
         server = compose_talk(persona, target.id, target.name, target.role, message, tick)
         reply = str(server["reply"])
+        # 模型回复：成功则替换台词，失败/超时保留上面的模板回复（关系增量不变）。
+        if self.dialogue is not None:
+            summary = {
+                "name": target.name,
+                "role": target.role,
+                "location": target.location,
+                "faction": target.faction or "",
+                "stamina": round(float(target.stamina), 1),
+                "affection": round(state.affection_between(pid, target.id), 1),
+            }
+            try:
+                dlg = self.dialogue.reply_sync(
+                    npc=target.id,
+                    player_text=message,
+                    day=day,
+                    tick=tick,
+                    persona=persona,
+                    state_summary=summary,
+                    timeout_s=8.0,
+                )
+                if dlg.ok and dlg.text.strip():
+                    reply = dlg.text.strip()
+            except Exception:  # noqa: BLE001 - 对话失败不得影响动作落地
+                pass
         req_aff = float(server["affection_delta"])
         req_trust = float(server["trust_delta"])
 

@@ -305,9 +305,18 @@ def run_headless(
                 "dialogue_error": llm_info.get("dialogue_error", ""),
                 "extract_adapter": "fence/unwrap+zh-en-key-normalize+utterance-grounding+unknown_key",
             }
+            # 对话默认关闭，避免改变 deterministic 基线与离线成本；
+            # WSIM_DIALOGUE=1 时把模型回复真正接到 TalkAction。
+            dialogue_enabled = os.environ.get("WSIM_DIALOGUE", "").strip().lower() in (
+                "1", "true", "yes", "on",
+            )
             dialogue_async = AsyncDialogueQueue(
-                dialogue_client, budget=budget, log_dir=out_dir
-            ) if dialogue_client is not None else None
+                dialogue_client, budget=budget, log_dir=out_dir, telemetry=telemetry
+            ) if dialogue_client is not None and dialogue_enabled else None
+            if dialogue_async is not None:
+                talk = registry.get("talk")
+                if talk is not None:
+                    talk.dialogue = dialogue_async
             llm_info["dialogue_async"] = dialogue_async is not None
     scheduler = LODScheduler(
         sorted(npc_ids),
@@ -1030,6 +1039,8 @@ def run_headless(
     store.set_meta("world_hash", final_hash)
     store.set_meta("event_hash", ev_hash)
     store.set_meta("content_hash", content.content_hash)
+    if dialogue_async is not None:
+        dialogue_async.close()
     store.close()
 
     return summary
