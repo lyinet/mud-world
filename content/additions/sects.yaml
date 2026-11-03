@@ -1,0 +1,6 @@
+# P2 内容层验收：新增 1 个门派。genesis 会按 location 实例化为公共组织（founder=""），
+# 因此 join_sect 目标地点仍走原有 organization_at 逻辑，不需要改动作代码。
+sects:
+  - id: tea_guild
+    name: 茶行
+    location: teahouse

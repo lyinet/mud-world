@@ -1,0 +1,179 @@
+# P2/P3 预留：P1 引擎没有任务系统，不读取本文件。
+# 每个任务都只使用 verbs.yaml 已注册的动词组装 Intent，没有发明新动词。
+# intent_args 可直接作为 Intent.args；deadline_days / reward / settlement 需要 P2 任务系统解释。
+# 报酬按日薪 14-36 文与常见物价设计：单任务现金报酬不超过 2 日最高日薪，折合每日不超过最高日薪。
+quests:
+  - id: errand_silk_sample
+    name: 送一匹绸样
+    category: errand
+    repeatable: true
+    giver: liu_sanniang
+    target_npc: su_hexiang
+    target_location: pharmacy
+    target_item: silk
+    verb: move
+    intent_args: {to: pharmacy}
+    deadline_days: 1
+    reward: {money: 6, relation: 2}
+    notes: "柳三娘让学徒把新染的绸样送到药铺，给苏合香做药囊衬里。"
+  - id: errand_academy_notice
+    name: 送书院口信
+    category: errand
+    repeatable: true
+    giver: yan_shouyi
+    target_npc: bai_lusheng
+    target_location: academy
+    verb: move
+    intent_args: {to: academy}
+    deadline_days: 2
+    reward: {money: 5, relation: 3}
+    notes: "庙里要把下月的香会日子捎给书院，白露生好提前知会学生。"
+
+  - id: escort_iron_short
+    name: 短镖送铁器
+    category: escort
+    repeatable: true
+    giver: pei_wujiu
+    target_location: market
+    verb: escort
+    intent_args:
+      route: [escort_agency, smithy, market]
+      cargo_value: 150
+      fee: 140
+    deadline_days: 2
+    reward: {money: 12, relation: 2}
+    notes: "裴无咎把一批铁器押到集市，镖银按 economy.escort 抽成后另算。"
+  - id: escort_medicine_temple
+    name: 护药进城隍庙
+    category: escort
+    repeatable: true
+    giver: zhuo_bufan
+    target_location: temple
+    verb: escort
+    intent_args:
+      route: [escort_agency, ferry, inn, temple]
+      cargo_value: 260
+      fee: 190
+    deadline_days: 3
+    reward: {money: 18, relation: 2}
+    notes: "卓不凡押一箱药材去城隍庙施药，路上要过河渡与客栈。"
+
+  - id: procure_ginseng
+    name: 采购参片
+    category: procurement
+    repeatable: true
+    giver: su_hexiang
+    target_npc: su_hexiang
+    target_location: pharmacy
+    target_item: ginseng
+    verb: buy
+    intent_args: {item: ginseng, qty: 1, from: pharmacy}
+    deadline_days: 1
+    reward: {money: 8, relation: 2}
+    notes: "苏合香要补一味参片，采购价按 items.yaml 的 ginseng 基准价另算。"
+  - id: procure_charcoal
+    name: 采购木炭
+    category: procurement
+    repeatable: true
+    giver: song_henian
+    target_npc: song_henian
+    target_location: ferry
+    target_item: charcoal
+    verb: buy
+    intent_args: {item: charcoal, qty: 2, from: ferry}
+    deadline_days: 2
+    reward: {money: 10, relation: 2}
+    notes: "客栈灶上缺炭，宋鹤年让人去河渡买两担。"
+
+  - id: inquiry_luo_marriage
+    name: 打听罗家婚事
+    category: inquiry
+    repeatable: true
+    giver: meng_jiuniang
+    target_npc: luo_qingxu
+    target_location: market
+    verb: trade
+    intent_args:
+      target: luo_qingxu
+      offer: []
+      want: []
+      money_delta: 0
+    deadline_days: 1
+    reward: {money: 6, relation: 2}
+    notes: "孟九娘想探罗轻絮的口风，用零钱换消息，不涉及货物。"
+  - id: inquiry_academy_lecture
+    name: 打听书院讲期
+    category: inquiry
+    repeatable: true
+    giver: cao_banxian
+    target_npc: bai_lusheng
+    target_location: academy
+    verb: trade
+    intent_args:
+      target: bai_lusheng
+      offer: []
+      want: []
+      money_delta: 0
+    deadline_days: 2
+    reward: {money: 8, relation: 2}
+    notes: "曹半仙想蹭书院的讲期摆卦摊，先让跑腿的去套话。"
+
+  - id: commission_stonework
+    name: 铁匠铺代工
+    category: commission
+    repeatable: true
+    giver: shi_gandang
+    target_npc: shi_gandang
+    target_location: smithy
+    verb: work
+    intent_args: {at: smithy, hours: 4}
+    deadline_days: 1
+    reward: {money: 12, relation: 2}
+    notes: "石敢当接了一批石活，让短工在铁匠铺后院凿四小时；工钱另按工资结算。"
+  - id: commission_herb_sorting
+    name: 药铺分药
+    category: commission
+    repeatable: true
+    giver: han_xinglin
+    target_npc: han_xinglin
+    target_location: pharmacy
+    verb: work
+    intent_args: {at: pharmacy, hours: 6}
+    deadline_days: 1
+    reward: {money: 14, relation: 2}
+    notes: "韩杏林要人帮忙分拣药材，六小时短工，药铺另付工钱。"
+
+  - id: debt_duan_to_jin
+    name: 代金满仓讨债
+    category: debt_collection
+    repeatable: false
+    giver: jin_mancang
+    target_npc: duan_wudou
+    target_location: market
+    verb: trade
+    intent_args:
+      target: duan_wudou
+      offer: []
+      want: []
+      money_delta: 300
+    deadline_days: 3
+    reward: {money: 25, relation: 2}
+    settlement: {kind: remit_to_giver, amount: 300}
+    notes: "段五斗欠金满仓 300 文；讨回后按 settlement 交回金满仓，讨债人只拿 25 文跑腿钱。"
+  - id: debt_lu_to_song
+    name: 代宋鹤年讨债
+    category: debt_collection
+    repeatable: false
+    giver: song_henian
+    target_npc: lu_jiujin
+    target_location: inn
+    verb: trade
+    intent_args:
+      target: lu_jiujin
+      offer: []
+      want: []
+      money_delta: 80
+    deadline_days: 2
+    reward: {money: 8, relation: 2}
+    settlement: {kind: remit_to_giver, amount: 80}
+    notes: "陆九斤欠宋鹤年 80 文；讨回后交回客栈，讨债人只拿 8 文跑腿钱。"

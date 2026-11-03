@@ -1,0 +1,9 @@
+# P2 内容层验收：新增 1 个职业。加载器会把它合并进 economy 的工资/生活成本/技能表，
+# 引擎代码仍按 role 名读取，无需改 src/。
+roles:
+  - id: 茶博士
+    name: 茶博士
+    wage: 22
+    skill: tea_brew
+    workplace: teahouse
+    living_cost: {food: 9, housing: 2, upkeep: 1, dues: 1}

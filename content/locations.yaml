@@ -1,0 +1,42 @@
+# 单区域 8 个地点。exits 必须双向对称，整张图必须连通。
+# services 为可在此地购买/提供的物品 id（含 service 类）。
+locations:
+  - id: market
+    name: 集市
+    exits: [smithy, inn, pharmacy, academy]
+    services: [noodle, flatbread, rice, coarse_cloth, raw_silk]
+
+  - id: smithy
+    name: 铁匠铺
+    exits: [market, escort_agency]
+    services: [hammer, cleaver, good_blade, iron_ingot]
+
+  - id: inn
+    name: 客栈
+    exits: [market, ferry, temple]
+    services: [service_room, wine, cured_meat, noodle, service_storytelling]
+
+  - id: escort_agency
+    name: 镖局
+    exits: [smithy, ferry]
+    services: [service_escort, leather]
+
+  - id: pharmacy
+    name: 药铺
+    exits: [market, temple]
+    services: [service_diagnosis, wound_powder, ginseng, mugwort, plaster]
+
+  - id: academy
+    name: 书院
+    exits: [market, temple]
+    services: [service_copying, abacus]
+
+  - id: ferry
+    name: 河渡
+    exits: [inn, escort_agency]
+    services: [service_ferry, charcoal]
+
+  - id: temple
+    name: 城隍庙
+    exits: [inn, pharmacy, academy]
+    services: [service_incense]

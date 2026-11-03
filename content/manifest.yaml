@@ -1,0 +1,52 @@
+# 内容包清单（P2）。加载器只认本文件声明的包，additions/ 下的文件必须显式登记。
+# manifest_version 只支持 1.x；引擎版本低于 engine_min_version 时启动失败。
+manifest_version: "1.0.0"
+engine_min_version: "0.1.0"
+
+packages:
+  - id: base-npcs
+    type: npcs
+    path: npcs.yaml
+    version: "1.0.0"
+  - id: base-locations
+    type: locations
+    path: locations.yaml
+    version: "1.0.0"
+  - id: base-items
+    type: items
+    path: items.yaml
+    version: "1.0.0"
+  - id: base-verbs
+    type: verbs
+    path: verbs.yaml
+    version: "1.0.0"
+  - id: base-economy
+    type: economy
+    path: economy.yaml
+    version: "1.0.0"
+
+  # P2 内容层验收：以下扩展只新增数据，不修改 base 文件，也不需要改 src/。
+  - id: p2-add-npcs
+    type: npcs
+    path: additions/npcs.yaml
+    version: "1.0.0"
+  - id: p2-add-locations
+    type: locations
+    path: additions/locations.yaml
+    version: "1.0.0"
+  - id: p2-add-items
+    type: items
+    path: additions/items.yaml
+    version: "1.0.0"
+  - id: p2-add-roles
+    type: roles
+    path: additions/roles.yaml
+    version: "1.0.0"
+  - id: p2-add-sects
+    type: sects
+    path: additions/sects.yaml
+    version: "1.0.0"
+  - id: p2-add-verbs
+    type: verbs
+    path: additions/verbs.yaml
+    version: "1.0.0"

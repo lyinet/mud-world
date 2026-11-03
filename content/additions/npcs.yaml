@@ -1,0 +1,22 @@
+# P2 内容层验收：新增 1 个 NPC。字段与 base npcs.yaml 相同，由 manifest 显式登记。
+npcs:
+  - id: ming_chabo
+    name: 阿茗
+    role: 茶博士
+    home: teahouse
+    personality:
+      traits: [手巧, 爱打听, 起早]
+      speech_style: "茶棚里练出的软和嗓子，爱用「您慢用」收尾"
+    goals:
+      - id: goal_ming_chabo_1
+        type: earn_money
+        priority: 1
+    assets:
+      money: 0
+      items:
+        - id: tea
+          qty: 3
+    relations:
+      - target: su_hexiang
+        type: friend
+        value: 25

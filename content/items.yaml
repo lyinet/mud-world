@@ -1,0 +1,127 @@
+# 30 种物品。base_price 单位为文，量级参照汉地古代城镇。
+items:
+  - id: noodle
+    name: 阳春面
+    category: food
+    base_price: 5
+  - id: flatbread
+    name: 炊饼
+    category: food
+    base_price: 3
+  - id: rice
+    name: 糙米（一斗）
+    category: food
+    base_price: 12
+  - id: cured_meat
+    name: 腊肉（一斤）
+    category: food
+    base_price: 25
+  - id: wine
+    name: 浊酒（一壶）
+    category: food
+    base_price: 20
+
+  - id: iron_ingot
+    name: 铁锭
+    category: material
+    base_price: 45
+  - id: raw_silk
+    name: 生丝（一两）
+    category: material
+    base_price: 60
+  - id: coarse_cloth
+    name: 粗布（一匹）
+    category: material
+    base_price: 25
+  - id: charcoal
+    name: 木炭（一筐）
+    category: material
+    base_price: 15
+  - id: leather
+    name: 硝皮（一张）
+    category: material
+    base_price: 35
+
+  - id: hammer
+    name: 铁锤
+    category: tool
+    base_price: 120
+  - id: cleaver
+    name: 菜刀
+    category: tool
+    base_price: 80
+  - id: good_blade
+    name: 百炼刀
+    category: tool
+    base_price: 450
+  - id: needle
+    name: 绣针（一套）
+    category: tool
+    base_price: 25
+  - id: medicine_mill
+    name: 药碾
+    category: tool
+    base_price: 90
+  - id: abacus
+    name: 算盘
+    category: tool
+    base_price: 60
+
+  - id: wound_powder
+    name: 金疮药
+    category: medicine
+    base_price: 25
+  - id: ginseng
+    name: 参片
+    category: medicine
+    base_price: 120
+  - id: mugwort
+    name: 艾草
+    category: medicine
+    base_price: 6
+  - id: plaster
+    name: 膏药
+    category: medicine
+    base_price: 10
+
+  - id: silver_hairpin
+    name: 银簪
+    category: luxury
+    base_price: 260
+  - id: jade_pendant
+    name: 玉佩
+    category: luxury
+    base_price: 500
+  - id: silk
+    name: 绸缎（一匹）
+    category: luxury
+    base_price: 180
+
+  - id: service_room
+    name: 客房一晚
+    category: service
+    base_price: 12
+  - id: service_diagnosis
+    name: 诊金
+    category: service
+    base_price: 20
+  - id: service_escort
+    name: 镖局护送（一趟）
+    category: service
+    base_price: 180
+  - id: service_storytelling
+    name: 说书（一场）
+    category: service
+    base_price: 3
+  - id: service_ferry
+    name: 渡船钱
+    category: service
+    base_price: 2
+  - id: service_incense
+    name: 香火（一份）
+    category: service
+    base_price: 3
+  - id: service_copying
+    name: 抄经（一卷）
+    category: service
+    base_price: 4

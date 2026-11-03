@@ -1,0 +1,49 @@
+{
+  "wage_default": 20,
+  "wage_by_role": {
+    "swordsman": 24,
+    "swordswoman": 24,
+    "musician": 18,
+    "sect_leader": 30,
+    "wanderer": 16,
+    "nun": 12,
+    "elder": 28,
+    "poison_master": 18
+  },
+  "skill_by_role": {
+    "swordsman": "sword",
+    "swordswoman": "sword",
+    "musician": "music",
+    "sect_leader": "leadership",
+    "wanderer": "stealth",
+    "nun": "meditation",
+    "elder": "leadership",
+    "poison_master": "poison"
+  },
+  "role_workplace": {
+    "swordsman": "guild",
+    "swordswoman": "guild",
+    "musician": "tavern",
+    "sect_leader": "guild",
+    "wanderer": "market",
+    "nun": "temple",
+    "elder": "guild",
+    "poison_master": "market"
+  },
+  "price_markup": 1.0,
+  "tax_rate": 0.01,
+  "mint_per_npc": 30,
+  "stamina_move": 5,
+  "stamina_work": 12,
+  "food_stamina": 25,
+  "starting_business_cash": 500,
+  "business_stock": 500,
+  "goal_targets": {
+    "wealth": 400.0,
+    "mastery": 0.25,
+    "bond": 0.35,
+    "shop": 1.0,
+    "faction": 1.0,
+    "escort": 1.0
+  }
+}

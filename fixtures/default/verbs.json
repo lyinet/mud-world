@@ -1,0 +1,7 @@
+{
+  "verbs": [
+    {"name":"move","args":["to"],"cooldown":0,"allowed_roles":[]},
+    {"name":"earn","args":["employer"],"cooldown":0,"allowed_roles":[]},
+    {"name":"consume","args":["item","qty"],"cooldown":0,"allowed_roles":[]}
+  ]
+}

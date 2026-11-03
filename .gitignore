@@ -1,0 +1,9 @@
+.venv/
+runs/
+.pytest_cache/
+__pycache__/
+*.pyc
+*.pyo
+*.sqlite
+*.sqlite-journal
+.DS_Store

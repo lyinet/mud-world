@@ -1,0 +1,55 @@
+# P2/P3 预留：P1 引擎不读取本文件。
+# 门派门槛必须与 economy.sect 一致：min_money 2000 + registration_fee 500 = 2500 文，
+# min_members 5，min_reputation 40，min_relation_value 30。引擎 found_sect 只校验
+# 资金、声望、成员数，不会自动扣除会费或自动招募。
+sects:
+  - id: qingyi_society
+    name: 清议社
+    doctrine: "以文会友，清议乡里；不附官、不欺民。"
+    seat: academy
+    activity_locations: [academy, market, temple]
+    founder_candidate: bai_lusheng
+    fallback_founder: xie_tingyun
+    dues: 50
+    min_reputation: 40
+    min_members: 5
+    min_money: 2000
+    registration_fee: 500
+    founding_cost: 2500
+    skill_directions: [治学, 算术, 辩才]
+    recruit_targets: [fang_cunxin, xie_tingyun, yan_shouyi, jiang_tingyu, han_xinglin]
+    founding_path: "白露生现有声望 70（师徒 35 + 友 15 + 20），已有徒弟方寸心一条 35 关系；再与谢停云、严守一、蒋听雨各做 2-5 次交易式互动，把关系推到 30，即可凑齐 5 人。初始 1600 文加 72 日学究净结余约 475 文，越过 2000 文资金门槛。"
+
+  - id: pharmacy_guild
+    name: 药行会
+    doctrine: "药不欺病，价不欺客；同行互济，秘方共守。"
+    seat: pharmacy
+    activity_locations: [pharmacy, market, temple]
+    founder_candidate: su_hexiang
+    fallback_founder: gu_qingya
+    dues: 50
+    min_reputation: 40
+    min_members: 5
+    min_money: 2000
+    registration_fee: 500
+    founding_cost: 2500
+    skill_directions: [医术, 辨药, 账目]
+    recruit_targets: [han_xinglin, liu_sanniang, gu_qingya, song_henian, chang_banxia]
+    founding_path: "苏合香现有声望 70（师徒 45 + 友 25），徒弟韩杏林已是 45 关系；柳三娘 25、顾青崖 20，各补 2-4 次互动即可到 30，再拉宋鹤年入会。初始 3100 文足够直接支付 2500 文门槛。"
+
+  - id: biao_league
+    name: 镖行同盟
+    doctrine: "重诺轻利，护商安旅；镖不出卖，路不欺生。"
+    seat: escort_agency
+    activity_locations: [escort_agency, market, ferry, inn]
+    founder_candidate: zhuo_bufan
+    fallback_founder: pei_wujiu
+    dues: 50
+    min_reputation: 40
+    min_members: 5
+    min_money: 2000
+    registration_fee: 500
+    founding_cost: 2500
+    skill_directions: [武艺, 押镖, 谈判]
+    recruit_targets: [pei_wujiu, cui_tieyi, xing_pojun, qin_wangchuan, shi_gandang]
+    founding_path: "卓不凡现有声望 100（师徒 45 + 三笔友 20/15/20），徒弟裴无咎已是 45 关系；崔铁衣、邢破军各 20，秦望川 15，补 4-5 次互动可到 30。初始 2400 文已越过资金门槛，72 日内只剩招人这一步。"

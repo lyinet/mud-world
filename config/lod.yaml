@@ -1,0 +1,21 @@
+# LOD（Level of Detail）调度配置（P2）。
+# 四档：静默 / 背景 / 活跃 / 聚光。share 决定 NPC 初始分布，wake_interval_ticks
+# 决定唤醒间隔，cost_weight 供未来成本模型核算。修改本文件不需要改 src/。
+version: "1.0.0"
+tiers:
+  silent:
+    wake_interval_ticks: 1440   # 10 天
+    cost_weight: 0.05
+    share: 0.20
+  background:
+    wake_interval_ticks: 288    # 2 天
+    cost_weight: 0.25
+    share: 0.40
+  active:
+    wake_interval_ticks: 144    # 1 天
+    cost_weight: 1.00
+    share: 0.30
+  spotlight:
+    wake_interval_ticks: 36     # 6 小时
+    cost_weight: 4.00
+    share: 0.10

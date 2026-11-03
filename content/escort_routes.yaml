@@ -1,0 +1,154 @@
+# P2/P3 预留：P1 引擎不读取本文件的 duration_days、risk_events 与逐线费率。
+# P1 的 escort 动作只吃 verbs.yaml 的 args：route / cargo_value / fee；
+# 实际耗时统一取 economy.escort.duration_hours=24，风险统一取 risk_loss_prob=0.15。
+# P2 计划器接入本文件后，才按线路结算天数、抽成与风险事件。
+#
+# 4 条线路全部从 escort_agency 出发（P1 引擎要求起点有镖局业务）。
+# 风险与收益按 duration_days / cargo_value_max / fee_max / risk_loss_prob 单调递增。
+escort_routes:
+  - id: route_market_short
+    name: 铁匠铺—集市短镖
+    origin: escort_agency
+    destination: market
+    route: [escort_agency, smithy, market]
+    duration_days: 1
+    cargo_value_min: 100
+    cargo_value_max: 180
+    fee_min: 120
+    fee_max: 140
+    agency_cut: 0.30
+    risk_loss_prob: 0.06
+    risk_events:
+      - id: short_drunk
+        name: 醉汉拦路
+        probability: 0.03
+        effect: delay
+        consequence: "耽误半日，当日行程顺延，不损失货物"
+        fee_penalty: 5
+      - id: short_mud
+        name: 雨后陷车
+        probability: 0.02
+        effect: cargo_loss
+        consequence: "货箱受潮，货值损失约一成"
+        cargo_loss_ratio: 0.10
+      - id: short_scrape
+        name: 抬货扭伤
+        probability: 0.01
+        effect: injury
+        consequence: "镖师体力下降，需要休息半日"
+        stamina_penalty: 10
+
+  - id: route_ferry_temple
+    name: 河渡—城隍庙香货
+    origin: escort_agency
+    destination: temple
+    route: [escort_agency, ferry, inn, temple]
+    duration_days: 2
+    cargo_value_min: 180
+    cargo_value_max: 300
+    fee_min: 150
+    fee_max: 190
+    agency_cut: 0.30
+    risk_loss_prob: 0.12
+    risk_events:
+      - id: ferry_wait
+        name: 渡口等潮
+        probability: 0.04
+        effect: delay
+        consequence: "等潮半日，行程顺延，不损失货物"
+        fee_penalty: 8
+      - id: ferry_toll
+        name: 私渡抽头
+        probability: 0.03
+        effect: toll
+        consequence: "被地方私渡收过路钱，镖银少收十文"
+        fee_penalty: 10
+      - id: ferry_wet
+        name: 香货受潮
+        probability: 0.03
+        effect: cargo_loss
+        consequence: "香货受潮，货值损失约一成半"
+        cargo_loss_ratio: 0.15
+      - id: ferry_fall
+        name: 跳板失足
+        probability: 0.02
+        effect: injury
+        consequence: "镖师扭伤，需要休息一日"
+        stamina_penalty: 16
+
+  - id: route_academy_temple
+    name: 书院—城隍庙文货运镖
+    origin: escort_agency
+    destination: temple
+    route: [escort_agency, smithy, market, academy, temple]
+    duration_days: 3
+    cargo_value_min: 300
+    cargo_value_max: 500
+    fee_min: 190
+    fee_max: 230
+    agency_cut: 0.30
+    risk_loss_prob: 0.18
+    risk_events:
+      - id: academy_rain
+        name: 书箱遇雨
+        probability: 0.05
+        effect: cargo_loss
+        consequence: "书箱受潮，货值损失约两成"
+        cargo_loss_ratio: 0.20
+      - id: academy_thief
+        name: 集市扒手
+        probability: 0.05
+        effect: theft
+        consequence: "小件文货被窃，货值损失约两成半"
+        cargo_loss_ratio: 0.25
+      - id: academy_rob
+        name: 路匪拦镖
+        probability: 0.05
+        effect: theft
+        consequence: "路匪索买路钱，镖银少收二十文"
+        fee_penalty: 20
+      - id: academy_strain
+        name: 长途劳损
+        probability: 0.03
+        effect: injury
+        consequence: "镖师劳损，需要休息一日"
+        stamina_penalty: 24
+
+  - id: route_full_loop
+    name: 环城长镖
+    origin: escort_agency
+    destination: temple
+    route: [escort_agency, ferry, inn, market, pharmacy, temple]
+    duration_days: 5
+    cargo_value_min: 500
+    cargo_value_max: 800
+    fee_min: 230
+    fee_max: 260
+    agency_cut: 0.30
+    risk_loss_prob: 0.26
+    risk_events:
+      - id: loop_flood
+        name: 河水涨潮
+        probability: 0.08
+        effect: delay
+        consequence: "河路封闭，绕行多走两日"
+        fee_penalty: 15
+      - id: loop_theft
+        name: 客栈失窃
+        probability: 0.07
+        effect: theft
+        consequence: "夜宿时货物被窃，货值损失约三成"
+        cargo_loss_ratio: 0.30
+      - id: loop_rob
+        name: 长路劫镖
+        probability: 0.06
+        effect: theft
+        consequence: "遭遇劫镖，货值损失约三成半，镖师可能受伤"
+        cargo_loss_ratio: 0.35
+        stamina_penalty: 20
+      - id: loop_sick
+        name: 水土不服
+        probability: 0.05
+        effect: injury
+        consequence: "镖师病倒，需要休息两日"
+        stamina_penalty: 32

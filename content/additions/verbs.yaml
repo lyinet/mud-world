@@ -1,0 +1,7 @@
+# P2 内容层验收：新增 1 个动词的元数据（args/allowed_roles）。
+# 行为实现不在 src/，而在 plugins/actions/borrow_money/action.py。
+verbs:
+  - name: borrow_money
+    args: {target: npc_id, amount: "int>=1"}
+    allowed_roles: ["*"]
+    description: "向任意在世 NPC 借款；实现见 plugins/actions/borrow_money"

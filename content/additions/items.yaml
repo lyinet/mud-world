@@ -1,0 +1,6 @@
+# P2 内容层验收：新增 1 个物品。
+items:
+  - id: tea
+    name: 粗茶（一碗）
+    category: food
+    base_price: 4

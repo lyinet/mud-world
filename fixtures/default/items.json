@@ -1,0 +1,12 @@
+{
+  "items": [
+    {"id":"item.food_bun","name":"肉包","category":"food","base_price":5},
+    {"id":"item.noodles","name":"阳春面","category":"food","base_price":6},
+    {"id":"item.tea","name":"清茶","category":"drink","base_price":3},
+    {"id":"item.wine","name":"女儿红","category":"drink","base_price":8},
+    {"id":"item.herb","name":"金创药","category":"herb","base_price":12},
+    {"id":"item.iron_sword","name":"铁剑","category":"weapon","base_price":40},
+    {"id":"item.cloth","name":"青布","category":"misc","base_price":10},
+    {"id":"item.book","name":"剑谱","category":"book","base_price":20}
+  ]
+}

@@ -1,0 +1,6 @@
+# P2 内容层验收：新增 1 个地点。只声明单向 exit，加载器会补齐反向边。
+locations:
+  - id: teahouse
+    name: 茶棚
+    exits: [market]
+    services: [tea]

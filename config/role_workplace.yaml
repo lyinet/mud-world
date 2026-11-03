@@ -1,0 +1,27 @@
+# 引擎侧职业-工作地映射（不是 content 内容包；内容包未提供 role_workplace）。
+# 找不到映射时，引擎按 NPC id 哈希确定工作地点。
+roles:
+  铁匠: smithy
+  绣娘: market
+  脚夫: escort_agency
+  掌柜: inn
+  游医: pharmacy
+  镖师: escort_agency
+  酒保: inn
+  捕快: market
+  说书人: inn
+  师爷: academy
+  学究: academy
+  药童: pharmacy
+  屠户: market
+  船夫: ferry
+  更夫: market
+  媒婆: market
+  石匠: smithy
+  香客: temple
+  货郎: market
+  算命先生: temple
+  渔娘: ferry
+  菜农: market
+  抄经人: academy
+  庙祝: temple

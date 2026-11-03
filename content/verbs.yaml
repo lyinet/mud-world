@@ -1,0 +1,55 @@
+# 13 个基础动词。P1 不声明冷却字段：引擎以 last_action_tick 做轻量节流。
+# apprentice = 拜师（target 必须是 NPC）；join_sect = 加入门派/讲会（target 是组织或地点）。
+# args 为简化的 JSON-Schema 描述；allowed_roles 中的 "*" 表示所有职业可用。
+verbs:
+  - name: move
+    args: {to: location_id}
+    allowed_roles: ["*"]
+
+  - name: cultivate
+    args: {skill: skill_id, hours: "int 1..8"}
+    allowed_roles: ["*"]
+
+  - name: work
+    args: {at: location_id, hours: "int 1..12"}
+    allowed_roles: ["*"]
+
+  - name: consume
+    args: {item: item_id, qty: "int>=1"}
+    allowed_roles: ["*"]
+
+  - name: buy
+    args: {item: item_id, qty: "int>=1", from: location_id}
+    allowed_roles: ["*"]
+
+  - name: sell
+    args: {item: item_id, qty: "int>=1", to: location_id}
+    allowed_roles: ["*"]
+
+  - name: trade
+    args: {target: npc_id, offer: "array<{item: item_id, qty: int>=1}>", want: "array<{item: item_id, qty: int>=1}>", money_delta: "int"}
+    allowed_roles: ["*"]
+
+  - name: apprentice
+    args: {target: npc_id, duration_days: "int>=7"}
+    allowed_roles: ["*"]
+
+  - name: join_sect
+    args: {target: "sect_id|location_id", dues: "int>=0"}
+    allowed_roles: ["*"]
+
+  - name: marry
+    args: {target: npc_id}
+    allowed_roles: ["*"]
+
+  - name: open_shop
+    args: {at: location_id, shop_type: "enum<stall|storefront|branch>", name: "string"}
+    allowed_roles: ["*"]
+
+  - name: escort
+    args: {route: "array<location_id, length>=2>", cargo_value: "int>=100", fee: "int>=0"}
+    allowed_roles: [镖师, 脚夫, 捕快, 船夫]
+
+  - name: found_sect
+    args: {name: "string", at: location_id, doctrine: "string"}
+    allowed_roles: [师爷, 学究, 庙祝, 掌柜, 说书人, 算命先生]

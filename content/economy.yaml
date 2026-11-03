@@ -1,0 +1,205 @@
+# 经济参数。单位统一为「文」，1 两银 ≈ 1000 文（仅作换算参考，P1 不用银两）。
+# 本文件同时承担「闭环约束」：引擎应按 money_supply / payroll_rules 实现，不得凭空造钱。
+currency:
+  name: 文
+  silver_liang_in_wen: 1000
+
+money_supply:
+  initial_npc_total: 35650
+  initial_location_float_total: 11500
+  location_float:
+    market: 3000
+    smithy: 1200
+    inn: 1800
+    escort_agency: 1500
+    pharmacy: 2000
+    academy: 800
+    ferry: 500
+    temple: 700
+  sources: []
+  sinks: [income_tax, transaction_tax, shop_monthly_tax]
+  conservation: "任何付款方余额不足时记欠账或拒绝交易，禁止引擎直接增发余额；税收进入官仓后不再回流。"
+
+# 各职业日薪（税前，单位：文/日）。
+wages_daily:
+  铁匠: 32
+  绣娘: 24
+  脚夫: 18
+  掌柜: 36
+  游医: 28
+  镖师: 30
+  酒保: 20
+  捕快: 26
+  说书人: 22
+  师爷: 30
+  学究: 24
+  药童: 15
+  屠户: 30
+  船夫: 20
+  更夫: 16
+  媒婆: 24
+  石匠: 28
+  香客: 14
+  货郎: 26
+  算命先生: 22
+  渔娘: 20
+  菜农: 20
+  抄经人: 14
+  庙祝: 18
+
+price_baseline:
+  plain_meal: 3
+  bowl_of_noodle: 5
+  daily_food_thrifty: 8
+  daily_food_standard: 12
+  unskilled_day_labor: 18
+  skilled_day_labor: 32
+  common_tool: 80
+  fine_blade: 450
+  common_medicine: 25
+  luxury_gift: 260
+
+taxes:
+  income: 0.10
+  transaction: 0.03
+  shop_monthly_tax: 60
+
+# 生活成本（文/日）。income_tax 由 taxes.income 统一计算，不在此表重复。
+living_costs:
+  by_role:
+    铁匠: {food: 12, housing: 4, upkeep: 4, dues: 2}
+    绣娘: {food: 10, housing: 3, upkeep: 2, dues: 1}
+    脚夫: {food: 10, housing: 3, upkeep: 0, dues: 1}
+    掌柜: {food: 12, housing: 6, upkeep: 1, dues: 3}
+    游医: {food: 10, housing: 3, upkeep: 2, dues: 1}
+    镖师: {food: 12, housing: 4, upkeep: 3, dues: 1}
+    酒保: {food: 8, housing: 3, upkeep: 0, dues: 1}
+    捕快: {food: 11, housing: 4, upkeep: 0, dues: 1}
+    说书人: {food: 10, housing: 3, upkeep: 0, dues: 1}
+    师爷: {food: 12, housing: 5, upkeep: 0, dues: 2}
+    学究: {food: 10, housing: 3, upkeep: 1, dues: 1}
+    药童: {food: 9, housing: 2, upkeep: 0, dues: 1}
+    屠户: {food: 12, housing: 4, upkeep: 3, dues: 1}
+    船夫: {food: 10, housing: 2, upkeep: 2, dues: 1}
+    更夫: {food: 10, housing: 2, upkeep: 0, dues: 1}
+    媒婆: {food: 10, housing: 3, upkeep: 0, dues: 2}
+    石匠: {food: 12, housing: 4, upkeep: 3, dues: 1}
+    香客: {food: 8, housing: 2, upkeep: 0, dues: 1}
+    货郎: {food: 10, housing: 3, upkeep: 2, dues: 2}
+    算命先生: {food: 10, housing: 3, upkeep: 0, dues: 1}
+    渔娘: {food: 10, housing: 2, upkeep: 2, dues: 1}
+    菜农: {food: 9, housing: 2, upkeep: 1, dues: 1}
+    抄经人: {food: 8, housing: 2, upkeep: 0, dues: 1}
+    庙祝: {food: 9, housing: 3, upkeep: 0, dues: 1}
+
+shop_opening:
+  stall: 300
+  storefront: 1200
+  branch: 3000
+  monthly_upkeep:
+    stall: 30
+    storefront: 120
+    branch: 300
+
+escort:
+  fee_min: 120
+  fee_max: 260
+  base_fee: 180
+  agency_cut: 0.30
+  duration_hours: 24
+  risk_loss_prob: 0.15
+  cargo_min_value: 100
+
+sect:
+  min_money: 2000
+  min_members: 5
+  min_reputation: 40
+  min_relation_value: 30
+  registration_fee: 500
+
+# 目标量化。下面 5 个键是引擎契约：引擎按 goal kind 读取标量，缺失时会回落到
+# actions/common.py 的 GOAL_DEFAULTS。by_type 是 7 类内容目标的完整定义，供审计与 P2 计划器使用。
+goal_targets:
+  wealth: 600
+  mastery: 0.6
+  bond: 40
+  shop: 1
+  faction: 1
+
+# 7 类内容目标的完整定义、推导依据与派生门槛。引擎不直接读取本段，审计与 P2 计划器使用。
+goal_targets_by_type:
+  earn_money:
+    kind: wealth
+    engine_value: 600
+    value: 600
+    metric: money_earned
+    basis: "600 文约等于人均初始资产 1,188 文的 50%，也等于最低日薪职业 72 日毛净收入 907 文的 66%。按 8 小时工作日计，低收入者需要约 48 个工作日，掌柜约 19 个工作日，72 日内可达成但不轻松。"
+  advance_skill:
+    kind: mastery
+    engine_value: 0.6
+    value: 0.6
+    metric: mastery_0_1
+    level_equivalent: 3
+    hours_per_point: 400
+    basis: "引擎以 0-1 熟练度计量，每修炼 1 小时 +0.0025，满值需 400 小时。0.60 等价 5 级制中的 3 级，需 240 小时；72 日按每日 8 小时上限共 576 小时，占 42%，可达成但要挤占工作时间。"
+  gain_status:
+    kind: faction
+    engine_value: 1
+    value: 1
+    metric: faction_event_count
+    reputation_threshold: 40
+    basis: "引擎把 gain_status 归入 faction kind，进度单位是组织事件数，因此配置 1 次。声望 40 是 found_sect 的前置门槛；按每次关键行动 +3 计约需 14 次，72 日内约每 5 天一次。"
+  build_relation:
+    kind: bond
+    engine_value: 40
+    value: 40
+    metric: affection_points
+    basis: "引擎按交易 +3、拜师 +5、成婚 +10 累计关系值。40 需约 14 次交易或 8 次拜师；现有 friend 关系最高仅 35，纯靠开局关系无法直接达成。"
+  build_shop:
+    kind: shop
+    engine_value: 1
+    value: 1
+    metric: shop_count
+    funds_threshold: 600
+    tier: stall
+    basis: "引擎每成功开一家店 +1，且实体只能持有一家，因此配置 1。资金门槛 600 = 摊位费 300 + 首月周转 300（约 10 天进货，按 common_tool 80 文 3-4 件估算）。P1 引擎实际只校验 shop_opening.stall=300，600 是计划器应预留的周转目标。"
+  join_sect:
+    kind: faction
+    engine_value: 1
+    value: 1
+    metric: faction_event_count
+    dues: 50
+    basis: "一次入会 +1。会费 50 约为中位 NPC 8 天净结余；最低收入者 72 日可攒 101 文，50 在可支付范围内，又足以形成一次性门槛。P1 引擎不强制会费，dues 由动作参数传入，50 作为计划器默认值。"
+  found_sect:
+    kind: faction
+    engine_value: 1
+    value: 1
+    metric: faction_event_count
+    min_money: 2000
+    registration_fee: 500
+    total_capital: 2500
+    members: 5
+    reputation: 40
+    basis: "一次立派 +1。2000 文会底 + 500 文注册费 = 2500 文，占全区域净资产 47,150 文的 5.3%；单人仅金满仓、宋鹤年、苏合香能直接凑齐，卓不凡需 72 日积蓄，其余必须 5 人合股（人均 500 文）。5 人约占 30 人的 17%，门槛中高但合理。"
+
+payroll_rules:
+  payer: "NPC 所属地点的金库；掌柜/东家可先行垫付"
+  insufficient_float: "记欠薪（IOU），不得增发货币，不得产生负余额"
+  wage_cycle: "每游戏日结算一次，72 日共 72 次"
+
+closure_model:
+  formula: "net_daily = wage * (1 - taxes.income) - food - housing - upkeep - dues"
+  horizon_days: 72
+  expected_net_range: [0.5, 11.0]
+  assumptions:
+    - "所有 NPC 每日按 by_role 的 food 成本足额吃饭，不额外消费酒肉与衣饰。"
+    - "住房、工具维护、行会/人情份子按 by_role 固定扣除。"
+    - "税率 10% 为简化值，实际古代税制更复杂；此处只用于制造货币回笼。"
+    - "重体力职业（铁匠、镖师、石匠、屠户）按更高 food 与 upkeep 计。"
+    - "未计入赌博、看病、送礼等随机支出；计入后净结余只会更低。"
+  estimates:
+    - "所有日薪：按 18-36 文/日 的城镇雇工区间估值，不是史料精确值。"
+    - "生活成本：按「两餐一饭」与合租/自住房的混合情况估算。"
+    - "镖局抽成 30%、风险损失率 15%：玩法平衡值，不是行业史实。"
+    - "店铺开张成本与门派门槛：为 72 日模拟的进度节奏估值。"
+    - "税率 10% / 3%：简化模型值。"

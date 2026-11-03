@@ -1,0 +1,28 @@
+# borrow_money 插件：向同地在世 NPC 借款。
+# 只使用已有 Effect 原语；不直接改 state；不增发货币。
+id: borrow_money
+verb: borrow_money
+version: "1.0.0"
+entry: action.py
+
+args:
+  target: npc_id
+  amount: "int>=1"
+
+preconditions:
+  - kind: entity_alive
+    arg: actor
+  - kind: entity_alive
+    arg: target
+  - kind: not_self
+    arg: target
+  - kind: positive_int
+    arg: amount
+  - kind: balance_gte
+    account: "wallet:{target}"
+    arg: amount
+
+effects:
+  - transfer
+  - debt_create
+  - memory_add

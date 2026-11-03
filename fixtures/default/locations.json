@@ -1,0 +1,10 @@
+{
+  "locations": [
+    {"id":"loc.market","name":"东市","exits":["loc.tavern","loc.guild","loc.training","loc.residential"],"services":["market"]},
+    {"id":"loc.tavern","name":"醉仙楼","exits":["loc.market","loc.residential"],"services":["tavern"]},
+    {"id":"loc.guild","name":"威远镖局","exits":["loc.market","loc.training"],"services":["guild"]},
+    {"id":"loc.training","name":"演武场","exits":["loc.market","loc.guild","loc.temple"],"services":[]},
+    {"id":"loc.residential","name":"民居巷","exits":["loc.market","loc.tavern","loc.temple"],"services":["inn"]},
+    {"id":"loc.temple","name":"白马寺","exits":["loc.training","loc.residential"],"services":["temple"]}
+  ]
+}
