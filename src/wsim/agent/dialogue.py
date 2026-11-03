@@ -63,52 +63,64 @@ TEMPLATES: dict[str, tuple[str, ...]] = {
     "greeting.b": ("来啦，我正守着摊子；做{role}的没别的本事，你有事尽管开口。",),
     "directions.a": ("找落脚处往东街走，过了石桥见红灯笼就是客栈；我摊子在{place}，走岔了回来问我。",),
     "directions.b": ("从{place}往北两条街，门挂蓝布帘的是客栈；路口老槐树作记号，走岔了回来问我。",),
-    "gossip.person.reputation.a": ("「{topic}」这人我打过照面：嘴上是热络的，心里各有一本账；你跟这人来往，先护住钱袋。",),
-    "gossip.person.reputation.b": ("「{topic}」听来的话分两说：有人夸这人仗义，有人说这人精算；我只信亲眼见的。",),
-    "gossip.person.relation.a": ("「{topic}」我打过几回照面，点头的交情；要托这人办事，先把丑话讲在前头。",),
-    "gossip.person.relation.b": ("「{topic}」算不上熟，见面能说两句；这人底细我不清楚，你别把要紧事押上去。",),
-    "gossip.type.a": ("「{topic}」这号人我说不准：有老实念书的，也有拿字纸算人心的；你多留个心眼。",),
-    "gossip.type.b": ("「{topic}」哪一类人都有好坏；我不看身份看做事，你相处久了自然知道。",),
-    "gossip.impact.a": ("「{topic}」那边一乱，贩猪的车就少；肉价往上走，我买卖反倒多两单，心里并不踏实。",),
-    "gossip.impact.b": ("「{topic}」那边不太平，路上查得紧；进货慢半拍，我只能抬价，赚的是辛苦钱。",),
-    "gossip.event.a": ("「{topic}」街面上传得凶，一版比一版玄；我只看亲眼见的，你别再往外传。",),
-    "gossip.event.b": ("「{topic}」这事我听到两耳朵，真真假假掺着；你要沾边，先把日子过稳。",),
-    "gossip.who": ("「{topic}」财不露白，我不敢乱指名；你去钱庄门口站半日，看谁进出不打怵。",),
-    "price.meat.a": ("「{topic}」按今日行情走，一斤上下浮动两文；你诚心要，零头我抹，秤上不少你。",),
-    "price.meat.b": ("「{topic}」我这儿看货定价，好的贵两文，次的折一文；称完你验秤，短一两我赔。",),
-    "price.volume.a": ("「{topic}」一天卖半扇猪，逢集多两成；肉价随行就市，我薄利走量。",),
-    "price.volume.b": ("「{topic}」平日半扇，赶集能走一整扇；卖多卖少看天，我价不乱喊。",),
-    "price.offal.a": ("「{topic}」今早留了一副，洗得干净；你要，我按斤称，晚了就没。",),
-    "price.offal.b": ("「{topic}」一副刚收拾出来，心肝都在；要就趁早，我隔夜不留。",),
-    "price.cut.a": ("「{topic}」我教你半斤逆纹切薄片，快火一炒就嫩；要炖就切块，别拿刀背砸。",),
-    "price.cut.b": ("「{topic}」先剔筋膜再下刀，片要薄、丝要顺；我切半斤给你看，别切太厚。",),
-    "price.other.a": ("「{topic}」不是我的行当，我只懂肉案；你要问这路货，得找做这行的行家，别让我瞎报价。",),
-    "price.other.b": ("「{topic}」这货我没经手，价我说不准；你去问正经做这行的，别听我外行话。",),
-    "price.capital.a": ("「{topic}」小门脸少说要二十两，押一付三；我劝你先盘账，再谈价。",),
-    "price.capital.b": ("「{topic}」盘个铺子得备二十两上下，装修另算；我说实话，钱不够先合伙，别硬撑。",),
-    "credit.a": ("「{topic}」可以赊，三天为限；第四天我上门讨，别让我空手回。",),
-    "credit.b": ("「{topic}」我把话说明白：现钱付一半，余下三日清；到期不还，下回别再开口。",),
-    "chitchat.daily.a": ("「{topic}」我天亮磨刀、晌午出摊，收摊爱喝两口；日子磨人，手上茧子比话实在。",),
-    "chitchat.daily.b": ("「{topic}」我这人不讲究，案板裂了就拿铁钉楔上；闲下来只喝酒，不赌也不凑热闹。",),
-    "chitchat.craft.a": ("「{topic}」这刀我每日都磨，钝了就换；手艺是挨骂挨出来的，如今靠它糊口。",),
-    "chitchat.craft.b": ("「{topic}」跟师傅学了三年才出师，刀口深浅全靠手感；你看着简单，我练了半辈子。",),
-    "chitchat.opinion.a": ("「{topic}」我不敢说看透，只知道天亮出摊、天黑收工；怕也挡不住事，先把今天过完。",),
-    "chitchat.opinion.b": ("「{topic}」要问我怕不怕，我说怕也没用；该来的挡不住，先把今天的钱挣了。",),
-    "chitchat.fate.a": ("「{topic}」命这事我不常想；该挣的钱照挣，该吃的苦照吃，怨天没用。",),
-    "chitchat.fate.b": ("「{topic}」信不信命都得干活；我把今天过踏实，明天怎样交给天。",),
-    "chitchat.safety.a": ("「{topic}」我夜里收摊先磨刀，再挑灯底下走；僻静巷子不踩，钱袋塞怀里。",),
-    "chitchat.safety.b": ("「{topic}」夜里我不走暗巷，听见怪响就绕道；你要出门最好结伴，别省那两步路。",),
-    "chitchat.sound.a": ("「{topic}」后墙根响过两回，像野猫又叫春；我提刀出去看，连个影都没有。",),
-    "chitchat.sound.b": ("「{topic}」夜里听着像磨刀，又像风刮棚布；我绕过去查过，没见人。",),
-    "chitchat.family.a": ("「{topic}」就我一个光棍，一人吃饱全家不饿；亲戚走动少，倒也清净。",),
-    "chitchat.family.b": ("「{topic}」屋里没别人，就我守着这摊；逢年过节才回去看看老娘。",),
-    "chitchat.future.a": ("「{topic}」往后我不敢乱猜，摊子撑一天算一天；攒下钱先清欠账，别的以后再说。",),
-    "chitchat.future.b": ("「{topic}」这镇子往后怎样，我说不准；我只管把今天的肉卖完，明天的事明天愁。",),
-    "help.a": ("「{topic}」我搭把手可以，先讲清要办到哪一步；能应的我应，办不到我当面回你。",),
-    "help.b": ("「{topic}」这忙我帮，但有条件：不沾赌、不赊账；你应得下，我明早就去。",),
-    "help.skill.a": ("「{topic}」我劝你找口碑好的师傅，先打三年下手；别怕挨骂，手艺是磨出来的。",),
-    "help.skill.b": ("「{topic}」我跟你说，先看师傅带不带人，再谈工钱；头一年只求站稳，别急着出师。",),
-    "help.invite": ("「{topic}」我应了，地方你挑；酒钱各付各的，别灌我，喝多了我还得看摊。",),
+    "gossip.person.reputation.a": ("{topic}这人我打过照面：嘴上是热络的，心里各有一本账；你跟这人来往，先护住钱袋。",),
+    "gossip.person.reputation.b": ("{topic}我听过两说：有人夸这人仗义，有人说这人精算；我只信亲眼见的。",),
+    "gossip.person.justice.a": ("{topic}办案我见过两回：嘴上讲公道，落笔看人情；你要递状子，先把证人备齐。",),
+    "gossip.person.justice.b": ("{topic}断事不算糊涂，也不全按律条；我劝你有冤就去衙门，别只信旁人嚼舌。",),
+    "gossip.person.relation.acquaintance.a": ("{topic}我打过几回照面，点头的交情；要托这人办事，先把丑话讲在前头。",),
+    "gossip.person.relation.acquaintance.b": ("{topic}算认识，没深交；托人办事前，我先看这人办不办得成。",),
+    "gossip.person.relation.closeness.a": ("{topic}跟我算不上熟，见面能说两句；这人底细我不清楚，你别把要紧事押上去。",),
+    "gossip.person.relation.closeness.b": ("{topic}交情不深，喝过一回酒；真要共事，我还得再看看。",),
+    "gossip.type.a": ("{topic}这号人我说不准：有老实念书的，也有拿字纸算人心的；你多留个心眼。",),
+    "gossip.type.b": ("{topic}哪一类人都有好坏；我不看身份看做事，你相处久了自然知道。",),
+    "gossip.impact.a": ("{topic}那边一乱，贩猪的车就少；肉价往上走，我买卖反倒多两单，心里并不踏实。",),
+    "gossip.impact.b": ("{topic}那边不太平，路上查得紧；进货慢半拍，我只能抬价，赚的是辛苦钱。",),
+    "gossip.passersby.a": ("外乡人前日过去两拨，都急着赶路；有一个打听客栈，我指了东街。",),
+    "gossip.passersby.b": ("过路的外乡人不少，问价的多、落脚的少；我看这些人身上没多少盘缠。",),
+    "gossip.recruit.a": ("招人入伙的话我听了一耳朵，说是镖局缺人手；工钱不高，你先别急着应。",),
+    "gossip.recruit.b": ("我跟你说，是有人在招人，走镖的活计要签生死状；你家里没牵挂才去得。",),
+    "gossip.event.a": ("街面上传得凶，一版比一版玄；我只看亲眼见的，你别再往外传。",),
+    "gossip.event.b": ("这事我听到两耳朵，真真假假掺着；你要沾边，先把日子过稳。",),
+    "gossip.who": ("财不露白，我不敢乱指名；你去钱庄门口站半日，看谁进出不打怵。",),
+    "price.meat.a": ("肉价这条，我按今日行情走，一斤上下浮动两文；你诚心要，零头我抹，秤上不少你。",),
+    "price.meat.b": ("肉价我这儿看货定价，好的贵两文，次的折一文；称完你验秤，短一两我赔。",),
+    "price.meat.reason.a": ("肉价涨是上月猪少，贩子抬了价；这几日我这儿回落两文，你要买趁早。",),
+    "price.meat.reason.b": ("价贵不怪我，进价就高；等下一车猪到了，我能让一文。",),
+    "price.volume.a": ("铺子一天卖半扇猪，逢集多两成；肉价随行就市，我薄利走量。",),
+    "price.volume.b": ("平日半扇，赶集能走一整扇；卖多卖少看天，我价不乱喊。",),
+    "price.offal.a": ("下水今早留了一副，洗得干净；你要，我按斤称，晚了就没。",),
+    "price.offal.b": ("一副刚收拾出来，心肝都在；要就趁早，我隔夜不留。",),
+    "price.cut.a": ("瘦肉我教你半斤逆纹切薄片，快火一炒就嫩；要炖就切块，别拿刀背砸。",),
+    "price.cut.b": ("瘦肉先剔筋膜再下刀，片要薄、丝要顺；我切半斤给你看，别切太厚。",),
+    "price.other.a": ("{topic}不是我的行当，我只懂肉案；你要问这路货，得找做这行的行家，别让我瞎报价。",),
+    "price.other.b": ("{topic}我没经手，价我说不准；你去问正经做这行的，别听我外行话。",),
+    "price.capital.a": ("盘铺子的本钱，小门脸少说要二十两，押一付三；我劝你先盘账，再谈价。",),
+    "price.capital.b": ("盘个铺子得备二十两上下，装修另算；我说实话，钱不够先合伙，别硬撑。",),
+    "credit.a": ("这笔可以赊，三天为限；第四天我上门讨，别让我空手回。",),
+    "credit.b": ("我把话说明白：现钱付一半，余下三日清；到期不还，下回别再开口。",),
+    "chitchat.daily.a": ("卖完肉我收摊喝酒，偶尔去赌摊边站站；别的营生没本钱，也不眼馋。",),
+    "chitchat.daily.b": ("除了守摊，我闲下来只喝酒；赌不沾，别的活计也插不上手。",),
+    "chitchat.craft.origin.a": ("刀工是跟师傅学的，三年才出师；刀口深浅全靠手感，你看着简单，我练了半辈子。",),
+    "chitchat.craft.origin.b": ("我师父脾气坏，骂了三年才放我出师；如今这刀口，是挨骂挨出来的。",),
+    "chitchat.craft.knife.a": ("这把刀用了七八年，钝了就磨；刀口我从不外借，砍骨全靠它。",),
+    "chitchat.craft.knife.b": ("刀是老师傅打的，钢口好；年头久了握柄发滑，我缠了布条。",),
+    "chitchat.opinion.a": ("我不敢说看透，只知道天亮出摊、天黑收工；怕也挡不住事，先把今天过完。",),
+    "chitchat.opinion.b": ("要问我怕不怕，我说怕也没用；该来的挡不住，先把今天的钱挣了。",),
+    "chitchat.fate.a": ("命这事我不常想；该挣的钱照挣，该吃的苦照吃，怨天没用。",),
+    "chitchat.fate.b": ("信不信命都得干活；我把今天过踏实，明天怎样交给天。",),
+    "chitchat.safety.a": ("我夜里收摊先磨刀，再挑灯底下走；僻静巷子不踩，钱袋塞怀里。",),
+    "chitchat.safety.b": ("夜里我不走暗巷，听见怪响就绕道；你要出门最好结伴，别省那两步路。",),
+    "chitchat.sound.a": ("后墙根响过两回，像野猫又叫春；我提刀出去看，连个影都没有。",),
+    "chitchat.sound.b": ("夜里听着像磨刀，又像风刮棚布；我绕过去查过，没见人。",),
+    "chitchat.family.a": ("家里就我一个光棍，一人吃饱全家不饿；亲戚走动少，倒也清净。",),
+    "chitchat.family.b": ("屋里没别人，就我守着这摊；逢年过节才回去看看老娘。",),
+    "chitchat.future.a": ("往后我不敢乱猜，摊子撑一天算一天；攒下钱先清欠账，别的以后再说。",),
+    "chitchat.future.b": ("这镇子往后怎样，我说不准；我只管把今天的肉卖完，明天的事明天愁。",),
+    "help.a": ("这忙我搭把手可以，先讲清要办到哪一步；能应的我应，办不到我当面回你。",),
+    "help.b": ("这忙我帮，但有条件：不沾赌、不赊账；你应得下，我明早就去。",),
+    "help.skill.a": ("学手艺我劝你找口碑好的师傅，先打三年下手；别怕挨骂，手艺是磨出来的。",),
+    "help.skill.b": ("想学手艺，我跟你说，先看师傅带不带人，再谈工钱；头一年只求站稳，别急着出师。",),
+    "help.invite": ("喝酒我应了，地方你挑；酒钱各付各的，别灌我，喝多了我还得看摊。",),
     "rejection.a": ("不买就不买，我不恼；摊子摆到天黑，你改主意再回来。",),
     "rejection.b": ("你不乐意就算了，强卖没意思；我记你一张脸，下回价照旧。",),
     "deflection.a": ("这话我没听出个头绪，你再说明白些，我才好接。",),
@@ -298,10 +310,16 @@ def _object_type(message: str, intent: str) -> str:
             return "cut"
         if any(w in message for w in ("绣品", "绣活", "布匹", "药材")):
             return "other"
+        if any(w in message for w in ("为何", "为什么", "涨", "跌", "贵了", "便宜了", "回落")):
+            return "reason"
         return "meat"
     if intent == "gossip":
         if any(w in message for w in ("谁最", "谁有钱", "哪家")):
             return "who"
+        if any(w in message for w in ("招人", "入伙", "收人", "缺人手")):
+            return "recruit"
+        if any(w in message for w in ("外乡人", "过路", "经过", "路人")):
+            return "passersby"
         if any(w in message for w in ("不太平", "受影响", "生意", "北边")):
             return "impact"
         if _person_name(message):
@@ -322,10 +340,10 @@ def _object_type(message: str, intent: str) -> str:
             return "fate"
         if any(w in message for w in ("怕不怕", "加税")):
             return "opinion"
-        if any(
-            w in message for w in ("刀工", "跟谁学", "这把刀", "把刀", "砍刀", "年头")
-        ):
-            return "craft"
+        if any(w in message for w in ("刀工", "跟谁学", "学出来的", "哪儿学")):
+            return "craft_origin"
+        if any(w in message for w in ("这把刀", "把刀", "砍刀", "年头")):
+            return "craft_knife"
         return "daily"
     if intent == "help":
         if any(w in message for w in ("喝酒", "赏脸", "请你", "喝碗酒")):
@@ -419,18 +437,23 @@ def _skeleton(intent: str, message: str, turn: int, obj: str) -> str:
             "offal": "price.offal",
             "cut": "price.cut",
             "other": "price.other",
+            "reason": "price.meat.reason",
         }.get(obj, "price.meat")
         return ab(base)
     if intent == "gossip":
         if obj == "who":
             return "gossip.who"
-        if obj == "impact":
-            return ab("gossip.impact")
+        if obj in ("impact", "recruit", "passersby"):
+            return ab(f"gossip.{obj}")
         if obj == "type":
             return ab("gossip.type")
         if obj == "person":
-            if any(w in message for w in ("认识", "熟吗", "熟不熟", "打过交道")):
-                return ab("gossip.person.relation")
+            if any(w in message for w in ("办案", "公道", "断案", "官司")):
+                return ab("gossip.person.justice")
+            if any(w in message for w in ("认识", "打过交道")):
+                return ab("gossip.person.relation.acquaintance")
+            if any(w in message for w in ("熟吗", "熟不熟", "交情")):
+                return ab("gossip.person.relation.closeness")
             return ab("gossip.person.reputation")
         return ab("gossip.event")
     if intent == "chitchat":
@@ -441,7 +464,8 @@ def _skeleton(intent: str, message: str, turn: int, obj: str) -> str:
             "future": "chitchat.future",
             "fate": "chitchat.fate",
             "opinion": "chitchat.opinion",
-            "craft": "chitchat.craft",
+            "craft_origin": "chitchat.craft.origin",
+            "craft_knife": "chitchat.craft.knife",
         }.get(obj, "chitchat.daily")
         return ab(base)
     if intent == "help":
