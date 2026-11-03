@@ -196,10 +196,25 @@ intent 2,201 次 token 全为 null（上游无 usage），dialogue 0 次。
 
 ## 6. 冻结记录
 
-- tag `delivery-p3c`：见下方回填。
-- 从 tag 干净 worktree 重跑：pytest / framework_check / 10d / 72d / replay，
-  结果回填于此。
+- tag `delivery-p3c` → commit `a54d439343dd8ae4ac85a28c96e2b1f56f402445`
+- tag 附注包含 `content_hash`：`ced9cd63fe96177015b9be56259a9dbdd8745362cb8b9509f7a6ffb98b266fdd`
+- 从 tag 干净 worktree（`/tmp/wsim-p3c`，分离头指针）重跑：
 
-```text
-（干净重跑结果将在冻结后回填）
-```
+| 检查 | 干净重跑结果 |
+| --- | --- |
+| pytest | **145 passed** |
+| framework_check | **6/6 PASS** |
+| 10d state_final | `c9200801997d394864003869773216da5b8c6224ef9d529ce8e5835f7ffb68f0` |
+| 10d event_final | `0a453afb73970035d9494f2ad4de3f959daa603df95b6ae2ebac05283f147e15` |
+| 10d replay | MATCH（3,035 events，1.45% 拒绝，clarification 0/267） |
+| 72d state_final | `5b71b5d6e19650c73522b533336d71e1654d79a4230db540c97a6a563e36cff5` |
+| 72d event_final | `fd9c74573a6a841d3c6a66880d965b87d2d993466c451b1841ac4ecec16bb576` |
+| 72d K1 / 拒绝率 | 71/91 = 78.02% / 1.35%（191/14,098） |
+| 72d clarification | 0/2,201 |
+| 72d 守恒 | 0（minted 47,150 / burned 4,361 / net 42,789） |
+| 72d replay | MATCH |
+| 72d 墙钟 | 197.59s（主工作区 193.55s，哈希一致，差异来自机器负载） |
+
+主工作区与干净 worktree 的 10d/72d 事件哈希、状态哈希完全一致；
+本报告采用干净 worktree 的墙钟值。
+

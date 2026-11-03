@@ -245,6 +245,6 @@
 - [x] `pytest -q` 全过；`tools/framework_check.py` 全过。
 - [x] 假端点 10d / 72d：K1、拒绝率、守恒、replay、state/event hash。
 - [x] 写 `reports/p3c-report.md`；更新 tasks.md 勾选。
-- [ ] commit → `git tag -a delivery-p3c`。
-- [ ] `git worktree add /tmp/wsim-p3c delivery-p3c` 干净重跑并回填，清理 worktree。
+- [x] commit → `git tag -a delivery-p3c`（commit `a54d439`）。
+- [x] `git worktree add /tmp/wsim-p3c delivery-p3c` 干净重跑并回填，清理 worktree。
 - [x] 真实 Xing / 真实端点调用 0 次，报告列为未验证。
