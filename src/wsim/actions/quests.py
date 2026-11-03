@@ -189,4 +189,8 @@ class SystemQuestFailAction(Action):
                     effects.extend(
                         memory(state, q.acceptor, intent.tick, f"任务「{q.template_id}」超时未交付", 0.4)
                     )
+            elif q.status == "open" and intent.tick > q.deadline_tick:
+                # 无人接单且已过期：关闭模板占位，让后续 system_quest_post 能重发。
+                # 不写 NPC 记忆（没有接单人就没人需要解释）。
+                effects.append(Effect("quest_fail", {"id": qid, "tick": intent.tick}))
         return effects

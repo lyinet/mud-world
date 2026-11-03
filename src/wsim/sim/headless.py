@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from ..actions.registry import build_registry
+from ..actions.common import treasury_balance, treasury_guard_threshold
 from ..agent.cost import CostTelemetry, load_cost_rates
 from ..agent.provider import (
     LLMReasoner,
@@ -197,6 +198,11 @@ def run_headless(
     escort_queued: set[int] = set()
     quest_delivery_queued: set[str] = set()
     lod_changes: list[dict[str, Any]] = []
+    # 金库保底告警：日界按 treasury:region 实际余额判定，进出各写一条事件。
+    guard_threshold = treasury_guard_threshold(content)
+    guard_active = False
+    guard_days = 0
+    guard_events: list[dict[str, Any]] = []
 
     def schedule_quest_deliver(actor: str, quest_id: str, tick: int) -> None:
         if not quest_id or quest_id in quest_delivery_queued:
@@ -298,6 +304,41 @@ def run_headless(
                     )
                 )
 
+        # 日界金库保底告警：余额跌破阈值即进入 guard，回到阈值以上才退出。
+        # 事件只记录状态（无 Effect），回放仍按原事件序列重建，守恒不受影响。
+        treasury_now = treasury_balance(writer.state)
+        guard_now = treasury_now < guard_threshold
+        if guard_now != guard_active:
+            guard_active = guard_now
+            guard_events.append(
+                {
+                    "day": day + 1,
+                    "tick": base + TICKS_PER_DAY - 1,
+                    "active": guard_now,
+                    "balance": treasury_now,
+                    "threshold": guard_threshold,
+                }
+            )
+            day_events.append(
+                emit(
+                    Intent(
+                        actor="system",
+                        verb="system_treasury_guard",
+                        args={
+                            "day": day,
+                            "day_no": day + 1,
+                            "active": guard_now,
+                            "balance": treasury_now,
+                            "threshold": guard_threshold,
+                        },
+                        tick=base + TICKS_PER_DAY - 1,
+                        source="system",
+                    )
+                )
+            )
+        if guard_now:
+            guard_days += 1
+
         # 日界：动态档位（关系活跃升温 / 长期无交互降档 / 玩家靠近）
         heat = Counter()
         for ev in day_events:
@@ -323,6 +364,11 @@ def run_headless(
 
         state = writer.state
         snapshot = _daily_snapshot(state, day_events, day, prev_npc_money, len(npcs))
+        snapshot["treasury"] = {
+            "balance": treasury_now,
+            "threshold": guard_threshold,
+            "guard": guard_now,
+        }
         snapshot["last_seq"] = events[-1].seq
         daily.append(snapshot)
         prev_npc_money = snapshot["npc_money"]
@@ -441,6 +487,7 @@ def run_headless(
         "status": dict(sorted(quest_status.items())),
         "completed": quest_status.get("completed", 0),
         "failed": quest_status.get("failed", 0),
+        "expired": quest_status.get("expired", 0),
         "accepted": quest_status.get("accepted", 0),
         "open": quest_status.get("open", 0),
         "by_template": dict(sorted(quest_by_template.items())),
@@ -451,6 +498,24 @@ def run_headless(
         "done": escort_status.get("done", 0),
         "created_events": sum(1 for e in events if e.verb == "escort" and e.outcome == "ok"),
         "arrived_events": sum(1 for e in events if e.verb == "system_escort_arrive" and e.outcome == "ok"),
+    }
+    work_cfg = content.economy.get("work") or {}
+    treasury_summary = {
+        "account": "treasury:region",
+        "reserve": int(work_cfg.get("employer_reserve", 2000)),
+        "multiplier": float(work_cfg.get("treasury_guard_multiplier", 1.2)),
+        "threshold": guard_threshold,
+        "balance_final": state.account_balance("treasury:region"),
+        "guard": {
+            "enters": sum(1 for g in guard_events if g["active"]),
+            "exits": sum(1 for g in guard_events if not g["active"]),
+            "days_active": guard_days,
+            "days_total": cfg.days,
+            "active_at_end": guard_active,
+            "entered_day": next((g["day"] for g in guard_events if g["active"]), None),
+            "suspended_actions": ["open_shop", "propensity_buy", "system_shop_dividend"],
+            "transitions": guard_events,
+        },
     }
     sect_summary = {"founded": founded, "founded_count": len(founded)}
 
@@ -508,6 +573,7 @@ def run_headless(
         "content_audit": audit,
         "quests": quest_summary,
         "escorts": escort_summary,
+        "treasury": treasury_summary,
         "sects": sect_summary,
         "cost": cost_summary,
         "llm": llm_summary,

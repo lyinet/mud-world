@@ -297,6 +297,7 @@ class LLMReasoner(Reasoner):
             schema_reject=schema_reject,
             fallback=fallback,
             error=error,
+            persona_tokens=prompt.persona_tokens,
         )
         if schema_reject:
             self.telemetry.reject("schema_reject")

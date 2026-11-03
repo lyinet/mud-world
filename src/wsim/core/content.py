@@ -386,13 +386,11 @@ def load_content(
                     content.escort_routes[str(r["id"])] = dict(r)
             content.sources["escort_routes"] = "content/escort_routes.yaml"
 
-    # personas：真实模型接入时作为决策上下文字料；规则桩也会把摘要写进 reason。
+    # personas：整卡读入，供 Prompt 按 token 预算与章节优先级截断（见 agent/prompt.py）。
     persona_dir = content_dir / "personas"
     if use_content and persona_dir.is_dir():
         for p in sorted(persona_dir.glob("*.md")):
-            lines = [ln.strip() for ln in p.read_text(encoding="utf-8").splitlines()]
-            body = next((ln for ln in lines if ln and not ln.startswith("#")), "")
-            content.personas[p.stem] = body[:160]
+            content.personas[p.stem] = p.read_text(encoding="utf-8").strip()
         if content.personas:
             content.sources["personas"] = "content/personas/*.md"
 

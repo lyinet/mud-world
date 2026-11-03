@@ -11,6 +11,7 @@ from .common import (
     memory,
     organization_at,
     require_entity,
+    treasury_guard_active,
     wallet,
 )
 from .registry import Action
@@ -27,6 +28,8 @@ class OpenShopAction(Action):
         at = arg_str(intent, "at")
         shop_type = arg_str(intent, "shop_type")
         arg_str(intent, "name")
+        if treasury_guard_active(state, self.content):
+            return ["treasury_guard"]
         if at != ent.location:
             return ["wrong_location"]
         if shop_type not in ("stall", "storefront", "branch"):

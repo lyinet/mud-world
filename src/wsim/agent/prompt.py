@@ -16,6 +16,7 @@ from ..actions.common import wallet
 from ..core.clock import TICKS_PER_DAY, day_of
 from ..core.models import Intent
 from ..world.state import WorldState
+from .cost import estimate_tokens
 
 # NPC 可执行的 17 个动词（含 P2-B 新增 4 个）。system_* 不允许由模型提议。
 NPC_VERBS = (
@@ -77,9 +78,78 @@ class SchemaError(ValueError):
 class Prompt:
     system: str
     user: str
+    persona_tokens: int = 0
 
     def text(self) -> str:
         return f"{self.system}\n{self.user}"
+
+
+# 每张人设卡的默认 token 预算（300–500 区间，按 4 字符≈1 token 估算）。
+PERSONA_TOKEN_BUDGET = 450
+PERSONA_PRIORITY = (
+    "一句话性格",
+    "说话风格",
+    "在意的东西",
+    "遇事反应倾向",
+    "日常锚点",
+    "张力",
+)
+
+
+def _split_persona(text: str) -> tuple[list[str], list[dict[str, Any]]]:
+    preamble: list[str] = []
+    sections: list[dict[str, Any]] = []
+    cur: dict[str, Any] | None = None
+    for raw in text.splitlines():
+        line = raw.rstrip()
+        if line.startswith("## "):
+            cur = {"title": line[3:].strip(), "lines": []}
+            sections.append(cur)
+        elif cur is None:
+            preamble.append(line)
+        else:
+            cur["lines"].append(line)
+    return preamble, sections
+
+
+def _priority_rank(title: str) -> tuple[int, str]:
+    for i, key in enumerate(PERSONA_PRIORITY):
+        if key in title:
+            return i, title
+    return len(PERSONA_PRIORITY), title
+
+
+def compose_persona(text: str, budget_tokens: int = PERSONA_TOKEN_BUDGET) -> tuple[str, int]:
+    """按章节优先级把整张人设卡压进 token 预算。
+
+    顺序：一句话性格 > 说话风格与台词 > 在意的东西 > 遇事反应倾向 > 日常锚点 > 张力。
+    超预算时优先丢弃低优先级章节；单章节超长则截断并加省略号。
+    """
+    budget_chars = max(1, int(budget_tokens)) * 4
+    preamble, sections = _split_persona(text)
+    out: list[str] = []
+    used = 0
+    head = "\n".join(preamble).strip()
+    if head:
+        if len(head) > budget_chars:
+            head = head[: max(0, budget_chars - 1)].rstrip() + "…"
+        out.append(head)
+        used += len(head) + 2  # 章节间以 "\n\n" 连接
+    for sec in sorted(sections, key=lambda s: _priority_rank(str(s["title"]))):
+        body = "\n".join(sec["lines"]).strip()
+        block = f"## {sec['title']}\n{body}".strip()
+        remaining = budget_chars - used
+        if remaining <= 1:
+            break
+        if len(block) > remaining:
+            block = block[: max(0, remaining - 1)].rstrip() + "…"
+            out.append(block)
+            used += len(block) + 2
+            break
+        out.append(block)
+        used += len(block) + 2
+    composed = "\n\n".join(out)
+    return composed, estimate_tokens(composed)
 
 
 SYSTEM_PROMPT = (
@@ -177,12 +247,14 @@ def build_prompt(
     tick: int,
     tier: str,
     recent_events: Iterable[str] = (),
+    persona_budget_tokens: int = PERSONA_TOKEN_BUDGET,
 ) -> Prompt:
-    persona = content.personas.get(npc, "") if content is not None else ""
+    raw = content.personas.get(npc, "") if content is not None else ""
+    persona, persona_tokens = compose_persona(raw, persona_budget_tokens) if raw else ("", 0)
     summary = build_state_summary(content, state, npc, tick, tier, recent_events)
-    user = "角色设定：\n" + (persona.strip() or "（无设定，按身份与当前状态行事）") + "\n\n当前状态：\n"
+    user = "角色设定：\n" + (persona or "（无设定，按身份与当前状态行事）") + "\n\n当前状态：\n"
     user += json.dumps(summary, ensure_ascii=False, sort_keys=True)
-    return Prompt(system=SYSTEM_PROMPT, user=user)
+    return Prompt(system=SYSTEM_PROMPT, user=user, persona_tokens=persona_tokens)
 
 
 def _validate_args(args: Any) -> dict[str, Any]:

@@ -144,6 +144,27 @@ def wallet(npc: str) -> str:
     return f"wallet:{npc}"
 
 
+TREASURY_ACCOUNT = "treasury:region"
+
+
+def treasury_balance(state: WorldState) -> int:
+    """区域结算金库余额（创世时所有商业体共用该 cash_account）。"""
+    return state.account_balance(TREASURY_ACCOUNT)
+
+
+def treasury_guard_threshold(content) -> int:
+    """保底线 × 倍数（默认 2000 × 1.2 = 2400 文）。"""
+    cfg = content.economy.get("work") or {}
+    reserve = int(cfg.get("employer_reserve", 2000))
+    mult = float(cfg.get("treasury_guard_multiplier", 1.2))
+    return int(round(reserve * mult))
+
+
+def treasury_guard_active(state: WorldState, content) -> bool:
+    """金库低于阈值即进入 treasury_guard：暂停非必要资本开支。"""
+    return treasury_balance(state) < treasury_guard_threshold(content)
+
+
 def first_business_at(state: WorldState, location: str) -> Business | None:
     biz = state.business_at(location)
     return biz[0] if biz else None

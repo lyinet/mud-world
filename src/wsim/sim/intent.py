@@ -28,6 +28,7 @@ from ..actions.common import (
     role_allowed,
     sell_price,
     skill_for,
+    treasury_guard_active,
     wallet,
 )
 from ..core.clock import TICKS_PER_DAY, day_of
@@ -563,6 +564,7 @@ class Planner:
         ent = state.entities[npc]
         quest_cfg = self.content.economy.get("quests") or {}
         limit = max(1, int(quest_cfg.get("max_concurrent", 2)))
+        escort_limit = max(1, int(quest_cfg.get("max_concurrent_escort", 1)))
         max_hops = max(1, int(quest_cfg.get("accept_max_hops", 3)))
         accepted = sorted(
             (q for q in state.quests.values()
@@ -577,15 +579,25 @@ class Planner:
                 self._quest_attempt[q.id] = cursor
                 memo["quest_executed"] = q.id
                 return self._quest_execute(state, intents, npc, loc, cursor, end, cash, q)
+        # 押镖单独立占位：不占普通任务的并发额度，避免长期被采购/跑腿挤掉。
+        escort_accepted = [q for q in accepted if q.verb == "escort"]
+        errand_accepted = [q for q in accepted if q.verb != "escort"]
         open_quests = [
             q for q in sorted(state.quests.values(), key=lambda q: q.id)
             if q.status == "open"
         ]
-        if len(accepted) >= limit or memo.get("quest_look"):
+        if (len(errand_accepted) >= limit and len(escort_accepted) >= escort_limit) or memo.get(
+            "quest_look"
+        ):
             return loc, cursor, cash
         memo["quest_look"] = True
         for q in open_quests:
             if q.giver == npc or not self._quest_feasible(state, ent, q):
+                continue
+            if q.verb == "escort":
+                if len(escort_accepted) >= escort_limit:
+                    continue
+            elif len(errand_accepted) >= limit:
                 continue
             # 截止太近就不接，避免“接了也来不及交付”的必拒。
             if q.deadline_tick >= 0 and q.deadline_tick - cursor < TICKS_PER_DAY:
@@ -720,8 +732,13 @@ class Planner:
         cash: int,
         memo: dict[str, Any],
     ) -> tuple[str, int, int]:
-        """消费倾向：有余钱买一件非口粮品，钱回流店铺（非 top3 动作）。"""
+        """消费倾向：有余钱买一件非口粮品，钱回流店铺（非 top3 动作）。
+
+        treasury_guard 期间暂停这类非紧急采购，把现金留给工资与已承诺镖单。
+        """
         if memo.get("bought") or cursor >= end or cash < 120:
+            return loc, cursor, cash
+        if treasury_guard_active(state, self.content):
             return loc, cursor, cash
         best: tuple[int, str] | None = None
         for biz in state.business_at(loc):
@@ -1321,6 +1338,7 @@ class MockReasoner(Reasoner):
                 output_text=output,
                 model="mock",
                 calls=1,
+                persona_tokens=prompt.persona_tokens,
             )
         return intents
 

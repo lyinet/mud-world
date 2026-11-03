@@ -53,6 +53,7 @@ def build_registry(content, seed: int, plugin_dir: Path | None = None) -> Action
         SystemSavingsTaxAction,
         SystemShopDividendAction,
         SystemShopTaxAction,
+        SystemTreasuryGuardAction,
     )
     from .quests import (
         QuestAcceptAction,
@@ -87,6 +88,7 @@ def build_registry(content, seed: int, plugin_dir: Path | None = None) -> Action
     reg.register(SystemSavingsTaxAction(content))
     reg.register(SystemShopDividendAction(content))
     reg.register(SystemShopTaxAction(content))
+    reg.register(SystemTreasuryGuardAction(content))
     reg.register(SystemEscortArriveAction(content))
 
     # 规则层：扫描插件目录。插件 verb 不得覆盖内核内置 verb。

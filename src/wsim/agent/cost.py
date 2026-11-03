@@ -82,6 +82,7 @@ class CostTelemetry:
         schema_reject: bool = False,
         fallback: bool = False,
         error: str = "",
+        persona_tokens: int = 0,
     ) -> dict[str, Any]:
         input_tokens = estimate_tokens(prompt_text)
         output_tokens = estimate_tokens(output_text)
@@ -94,6 +95,7 @@ class CostTelemetry:
             "calls": calls,
             "input_tokens": input_tokens,
             "output_tokens": output_tokens,
+            "persona_tokens": int(persona_tokens),
             "estimated_cost": cost,
             "currency": self.rates.currency,
             "schema_reject": bool(schema_reject),
@@ -113,15 +115,25 @@ class CostTelemetry:
         total_cost = 0.0
         total_in = 0
         total_out = 0
+        total_persona = 0
         for rec in self.records:
             tier = rec["tier"]
             bucket = by_tier.setdefault(
                 tier,
-                {"calls": 0, "input_tokens": 0, "output_tokens": 0, "estimated_cost": 0.0, "schema_rejects": 0},
+                {
+                    "calls": 0,
+                    "input_tokens": 0,
+                    "output_tokens": 0,
+                    "persona_tokens": 0,
+                    "estimated_cost": 0.0,
+                    "schema_rejects": 0,
+                },
             )
             bucket["calls"] += rec["calls"]
             bucket["input_tokens"] += rec["input_tokens"]
             bucket["output_tokens"] += rec["output_tokens"]
+            bucket["persona_tokens"] += rec.get("persona_tokens", 0)
+            total_persona += rec.get("persona_tokens", 0)
             bucket["estimated_cost"] = round(bucket["estimated_cost"] + rec["estimated_cost"], 10)
             if rec["schema_reject"]:
                 bucket["schema_rejects"] += 1
@@ -133,6 +145,7 @@ class CostTelemetry:
             "calls": sum(r["calls"] for r in self.records),
             "input_tokens": total_in,
             "output_tokens": total_out,
+            "persona_tokens": total_persona,
             "estimated_cost": round(total_cost, 10),
             "by_tier": by_tier,
             "schema_rejects": dict(sorted(self.schema_rejects.items())),

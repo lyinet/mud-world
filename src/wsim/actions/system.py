@@ -32,6 +32,7 @@ from .common import (
     sellable_items,
     sell_price,
     skill_for,
+    treasury_guard_active,
     wallet,
 )
 from .registry import Action
@@ -594,8 +595,32 @@ class SystemSavingsTaxAction(Action):
         return effects
 
 
+class SystemTreasuryGuardAction(Action):
+    """金库保底告警事件：进入/退出 treasury_guard 只做日志，不改变任何余额。
+
+    由 sim.headless 在日界按 `treasury:region` 实际余额判定后提交；
+    apply 必须无副作用，保证回放状态与原始 run 一致。
+    """
+
+    verb = "system_treasury_guard"
+
+    def __init__(self, content):
+        self.content = content
+
+    def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
+        if not isinstance(intent.args.get("active"), bool):
+            return ["missing_arg:active"]
+        return []
+
+    def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
+        return []
+
+
 class SystemShopDividendAction(Action):
-    """私店分红：把当月利润的一部分转给店主（月度）。"""
+    """私店分红：把当月利润的一部分转给店主（月度）。
+
+    treasury_guard 期间暂停：这是金库为数不多的非必要流出，优先保工资与镖单。
+    """
 
     verb = "system_shop_dividend"
 
@@ -604,7 +629,7 @@ class SystemShopDividendAction(Action):
 
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
         rate = float((self.content.economy.get("dividends") or {}).get("rate", 0.0))
-        if rate <= 0:
+        if rate <= 0 or treasury_guard_active(state, self.content):
             return []
         effects: list[Effect] = []
         for bid in sorted(state.businesses):

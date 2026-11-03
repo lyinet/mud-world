@@ -520,6 +520,12 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         quest = state.quests.get(qid)
         if quest is None:
             raise EffectError(f"任务不存在: {qid}")
+        # 无人接单的 open 任务过期后关闭为 expired：否则它会永久占住模板名，
+        # 让 system_quest_post 再也不发新单（镖单 32→25 的根因）。
+        if quest.status == "open" and op == "quest_fail":
+            quest.status = "expired"
+            quest.completed_tick = _as_int(d.get("tick", 0), "tick")
+            return
         if quest.status != "accepted":
             raise EffectError("任务不在进行中")
         quest.status = "completed" if op == "quest_complete" else "failed"
