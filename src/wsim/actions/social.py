@@ -1,6 +1,8 @@
-"""社交/组织动词：apprentice（仅拜师）、join_sect（入会/入门派）、marry。"""
+"""社交/组织动词：apprentice（仅拜师）、join_sect（入会/入门派）、marry、talk。"""
 from __future__ import annotations
 
+from ..agent.dialogue import PLAYER_ID, PLAYER_NAME
+from ..core.clock import TICKS_PER_DAY
 from ..core.models import Effect, Intent, Reject
 from ..world.state import WorldState
 from .common import (
@@ -15,6 +17,134 @@ from .common import (
     wallet,
 )
 from .registry import Action
+
+
+def _clamp_delta(requested: float, tick_used: float, day_used: float) -> float:
+    """同时受「单 tick ±2」与「单日 ±8」余量约束。"""
+    lower = max(-2.0 - tick_used, -8.0 - day_used)
+    upper = min(2.0 - tick_used, 8.0 - day_used)
+    if lower > upper:
+        return 0.0
+    return max(lower, min(upper, requested))
+
+
+class TalkAction(Action):
+    """玩家发言落地：写 NPC 记忆 + 小幅关系变化；不产生任何钱变动。"""
+
+    verb = "talk"
+
+    def __init__(self, content):
+        self.content = content
+
+    def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
+        alive(state, arg_str(intent, "target"))
+        message = intent.args.get("message")
+        reply = intent.args.get("reply")
+        if not isinstance(message, str) or not message.strip():
+            return ["bad_message"]
+        if len(message) > 200:
+            return ["bad_message"]
+        if not isinstance(reply, str) or not reply.strip():
+            return ["missing_reply"]
+        return []
+
+    def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
+        target = alive(state, arg_str(intent, "target"))
+        message = str(intent.args["message"]).strip()
+        reply = str(intent.args["reply"]).strip()
+        try:
+            req_aff = float(intent.args.get("affection_delta", 0.0))
+            req_trust = float(intent.args.get("trust_delta", 0.0))
+        except (TypeError, ValueError) as exc:
+            raise Reject("bad_arg:deltas") from exc
+
+        tick = int(intent.tick)
+        day = tick // TICKS_PER_DAY
+        ledger = dict(state.talk_ledger.get(target.id) or {})
+        day_aff = float(ledger.get("day_affection", 0.0))
+        day_trust = float(ledger.get("day_trust", 0.0))
+        tick_aff = float(ledger.get("tick_affection", 0.0))
+        tick_trust = float(ledger.get("tick_trust", 0.0))
+        if int(ledger.get("day", day)) != day:
+            day_aff = day_trust = 0.0
+            tick_aff = tick_trust = 0.0
+        if int(ledger.get("last_tick", tick)) != tick:
+            tick_aff = tick_trust = 0.0
+
+        d_aff = _clamp_delta(req_aff, tick_aff, day_aff)
+        d_trust = _clamp_delta(req_trust, tick_trust, day_trust)
+
+        effects: list[Effect] = []
+        if PLAYER_ID not in state.entities:
+            effects.append(
+                Effect(
+                    "create_entity",
+                    {
+                        "id": PLAYER_ID,
+                        "name": PLAYER_NAME,
+                        "role": "visitor",
+                        "location": target.location,
+                        "stamina": 100.0,
+                        "max_stamina": 100.0,
+                    },
+                )
+            )
+
+        effects.append(
+            Effect(
+                "memory_add",
+                {
+                    "npc": target.id,
+                    "tick": tick,
+                    "text": f"{PLAYER_NAME}说：{message}",
+                    "importance": 0.4,
+                    "source": "talk:player",
+                },
+            )
+        )
+        effects.append(
+            Effect(
+                "memory_add",
+                {
+                    "npc": target.id,
+                    "tick": tick,
+                    "text": f"我答：{reply}",
+                    "importance": 0.3,
+                    "source": "talk:npc",
+                },
+            )
+        )
+
+        existing = state.relation(PLAYER_ID, target.id, "acquaintance")
+        relation = {
+            "a": PLAYER_ID,
+            "b": target.id,
+            "kind": "acquaintance",
+        }
+        if existing is None:
+            relation["affection"] = max(-100.0, min(100.0, d_aff))
+            relation["trust"] = max(-100.0, min(100.0, 40.0 + d_trust))
+        else:
+            relation["affection_delta"] = d_aff
+            relation["trust_delta"] = d_trust
+        effects.append(Effect("relation_upsert", relation))
+        effects.append(
+            Effect(
+                "talk_ledger",
+                {
+                    "npc": target.id,
+                    "day": day,
+                    "day_affection": day_aff + d_aff,
+                    "day_trust": day_trust + d_trust,
+                    "last_tick": tick,
+                    "tick_affection": tick_aff + d_aff,
+                    "tick_trust": tick_trust + d_trust,
+                },
+            )
+        )
+        effects.append(Effect("set_field", {"entity": target.id, "field": "last_action_tick", "value": tick}))
+        effects.append(Effect("set_field", {"entity": PLAYER_ID, "field": "last_action_tick", "value": tick}))
+        return effects
 
 
 class ApprenticeAction(Action):

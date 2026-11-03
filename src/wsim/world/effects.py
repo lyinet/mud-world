@@ -65,6 +65,8 @@ EFFECT_OPS = frozenset(
         "schedule_add",
         "schedule_remove",
         "memory_add",
+        "talk_ledger",
+        "quest_prune",
     }
 )
 
@@ -482,6 +484,7 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         if qid in state.quests:
             raise EffectError(f"任务已存在: {qid}")
         giver = str(d["giver"])
+        tid = str(d["template_id"])
         _entity(state, giver)
         if d["target_location"] not in state.locations:
             raise EffectError(f"地点不存在: {d['target_location']}")
@@ -500,6 +503,9 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             created_tick=_as_int(d.get("created_tick", 0), "created_tick"),
             settlement_amount=_as_int(d.get("settlement_amount", 0), "settlement_amount"),
         )
+        state.quest_stats.setdefault(
+            tid, {"created": 0, "completed": 0, "failed": 0, "expired": 0}
+        )["created"] += 1
         return
 
     if op == "quest_accept":
@@ -522,14 +528,36 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             raise EffectError(f"任务不存在: {qid}")
         # 无人接单的 open 任务过期后关闭为 expired：否则它会永久占住模板名，
         # 让 system_quest_post 再也不发新单（镖单 32→25 的根因）。
+        stats = state.quest_stats.setdefault(
+            quest.template_id, {"created": 0, "completed": 0, "failed": 0, "expired": 0}
+        )
         if quest.status == "open" and op == "quest_fail":
             quest.status = "expired"
             quest.completed_tick = _as_int(d.get("tick", 0), "tick")
+            stats["expired"] += 1
+            state.quests_expired_total += 1
             return
         if quest.status != "accepted":
             raise EffectError("任务不在进行中")
         quest.status = "completed" if op == "quest_complete" else "failed"
         quest.completed_tick = _as_int(d.get("tick", 0), "tick")
+        if quest.status == "completed":
+            stats["completed"] += 1
+        else:
+            stats["failed"] += 1
+        return
+
+    if op == "quest_prune":
+        ids = d.get("ids") or []
+        if not isinstance(ids, list):
+            raise EffectError("quest_prune.ids 必须是列表")
+        for qid in ids:
+            quest = state.quests.get(str(qid))
+            if quest is None:
+                continue
+            if quest.status in ("open", "accepted"):
+                raise EffectError(f"不能清理在途任务: {qid}")
+            state.quests.pop(str(qid), None)
         return
 
     if op == "escort_settle":
@@ -622,11 +650,25 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             "tick": _as_int(d.get("tick", 0), "tick"),
             "text": str(d.get("text", "")),
             "importance": _as_num(d.get("importance", 0.1), "importance"),
+            "source": str(d.get("source", "")),
         }
         mem = state.memories.setdefault(npc, [])
         mem.append(entry)
         if len(mem) > 80:
             del mem[: len(mem) - 80]
+        return
+
+    if op == "talk_ledger":
+        npc = str(d["npc"])
+        _entity(state, npc)
+        state.talk_ledger[npc] = {
+            "day": _as_int(d.get("day", 0), "day"),
+            "day_affection": _as_num(d.get("day_affection", 0.0), "day_affection"),
+            "day_trust": _as_num(d.get("day_trust", 0.0), "day_trust"),
+            "last_tick": _as_int(d.get("last_tick", 0), "last_tick"),
+            "tick_affection": _as_num(d.get("tick_affection", 0.0), "tick_affection"),
+            "tick_trust": _as_num(d.get("tick_trust", 0.0), "tick_trust"),
+        }
         return
 
     raise EffectError(f"未知 Effect: {op}")

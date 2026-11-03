@@ -2,24 +2,28 @@
 
 边界：
 - 世界状态只通过 MCPGateway 的 `world.read_snapshot` 获取；
-- 对话只通过 `world.propose_intent` 提交，写进 gateway.outbox，不修改世界；
-- run 目录里的 JSON/JSONL 只做只读解析，不打开 SQLite，不改任何文件；
+- 对话走 `world.propose_intent` → `admin.request/approve/apply`，由 Writer 落到
+  一份 run 目录的临时副本（不写回原 run）；
+- run 目录里的 JSON/JSONL 只做只读解析；SQLite 只复制到临时 session 后写入；
 - 本模块只用 Python 标准库（导入的 wsim 内核模块也均为标准库实现）。
 
 数据来源（默认 runs/p2b-72d）：
-summary.json / events.jsonl / lod.json / decisions.jsonl /
+summary.json / events.jsonl / lod.json / decisions.jsonl / events.sqlite /
 content/locations.yaml + content/additions/locations.yaml /
 content/personas/<id>.md。
 
-注意：这是离线 run 快照，不是实时世界。事件回放只用于重建只读投影，
-不写回 run，也不写回 state。
+注意：这是离线 run 快照，不是实时世界。事件回放重建只读投影；
+对话写入只发生在临时 session 副本，原 run 不被修改。
 """
 from __future__ import annotations
 
+import atexit
 import hashlib
 import json
 import re
+import shutil
 import sys
+import tempfile
 import threading
 import time
 from pathlib import Path
@@ -30,16 +34,28 @@ SRC_DIR = WORLD_ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
+from wsim.actions.registry import build_registry  # noqa: E402
+from wsim.agent.dialogue import PLAYER_ID, compose_talk  # noqa: E402
+from wsim.core.content import load_content  # noqa: E402
 from wsim.core.models import Effect  # noqa: E402
 from wsim.mcp.audit import AuditLog  # noqa: E402
-from wsim.mcp.gateway import GatewayError, MCPGateway, PERMISSION_PROPOSE  # noqa: E402
-from wsim.sim.intent import GOAL_LABEL, MockReasoner  # noqa: E402
+from wsim.mcp.gateway import (  # noqa: E402
+    GatewayError,
+    MCPGateway,
+    PERMISSION_ADMIN,
+    PERMISSION_PROPOSE,
+)
+from wsim.sim.intent import GOAL_LABEL  # noqa: E402
 from wsim.world.effects import apply_effects  # noqa: E402
 from wsim.world.hash import state_hash  # noqa: E402
 from wsim.world.state import WorldState  # noqa: E402
+from wsim.world.store import EventStore  # noqa: E402
+from wsim.world.writer import Writer  # noqa: E402
 
 UI_CALLER = "ui"
-NOTICE = "数据来自离线 run 快照，非实时世界；对话仅是提案，不会直接改世界。"
+UI_REQUESTER = "ui:requester"
+UI_REVIEWER = "ui:reviewer"
+NOTICE = "数据来自离线 run 快照；对话经审批链落到临时 session，原 run 不被修改。"
 
 VERB_LABEL = {
     "move": "移动",
@@ -60,7 +76,7 @@ VERB_LABEL = {
     "quest_deliver": "交任务",
     "debt_settle": "还债",
     "borrow_money": "借钱",
-    "talk": "发言（提案）",
+    "talk": "发言",
     "system_goal": "系统·目标",
     "system_living": "系统·生活",
     "system_recover": "系统·恢复",
@@ -183,6 +199,8 @@ class WorldUIAdapter:
         self.error: SnapshotError | None = None
         self.state: WorldState | None = None
         self.gateway: MCPGateway | None = None
+        self.session_dir: Path | None = None
+        self.session_writer: Writer | None = None
         self.summary: dict[str, Any] = {}
         self.lod: dict[str, Any] = {}
         self.locations: dict[str, dict[str, Any]] = {}
@@ -253,14 +271,41 @@ class WorldUIAdapter:
         self.state_hash_recomputed = state_hash(self.state)
         self.state_hash_match = bool(expected) and expected == self.state_hash_recomputed
 
-        # 单一写者只读世界：UI 身份拥有 propose_intent（rank 1，同时可执行 read）。
+        self._setup_session_writer()
+
+        # 对话走审批链：proposer 只能提案，requester/reviewer 是两个不同身份的管理员。
         self.gateway = MCPGateway(
-            state_provider=lambda: self.state,
-            writer=None,
+            state_provider=self._active_state,
+            writer=self.session_writer,
             audit=AuditLog(None),
-            tick_provider=lambda: int(self.state.tick if self.state is not None else 0),
-            identities={UI_CALLER: PERMISSION_PROPOSE},
+            tick_provider=lambda: int(self._active_state().tick),
+            identities={
+                UI_CALLER: PERMISSION_PROPOSE,
+                UI_REQUESTER: PERMISSION_ADMIN,
+                UI_REVIEWER: PERMISSION_ADMIN,
+            },
         )
+
+    def _active_state(self) -> WorldState:
+        if self.session_writer is not None:
+            return self.session_writer.state
+        assert self.state is not None
+        return self.state
+
+    def _setup_session_writer(self) -> None:
+        """把 run 的 events.sqlite 复制到临时目录，绑定 Writer 做对话落地。"""
+        src = self.run_path / "events.sqlite"
+        if not src.exists() or self.state is None:
+            return
+        self.session_dir = Path(tempfile.mkdtemp(prefix="wsim-ui-"))
+        dst = self.session_dir / "events.sqlite"
+        shutil.copy2(src, dst)
+        content = load_content(WORLD_ROOT, min_npcs=0, allow_fixture=False, use_content=True)
+        seed = int(self.summary.get("seed") or 42)
+        store = EventStore(dst)
+        registry = build_registry(content, seed)
+        self.session_writer = Writer(self.state.clone(), store, registry, seed)
+        atexit.register(shutil.rmtree, str(self.session_dir), True)
 
     def _replay_events(self) -> None:
         """用 events.jsonl 的 Effect 重建只读投影，并建立事件索引。"""
@@ -679,12 +724,12 @@ class WorldUIAdapter:
 
     # ---------------------------------------------------------------- dialogue
     def dialogue(self, npc_id: str, message: str) -> dict[str, Any]:
-        """对话 = MockReasoner 生成回应 + propose_intent 提交提案。
+        """对话落地：人设卡回应 → propose_intent → 双人审批 → Writer 写事件。
 
-        - 回应由 MockReasoner（规则桩）在本地生成，不联网、不读模型；
-        - 提案通过 MCPGateway 的 world.propose_intent 进入 outbox；
-        - gateway 不绑定 writer，因此 state_unchanged=true，世界不会改变；
-        - 返回本次调用的审计条目。
+        - 回应由 `agent.dialogue.compose_talk` 消费人设卡（台词原文 + 反应倾向）；
+        - 提案走 MCPGateway 的 world.propose_intent 进入 outbox；
+        - 再经 admin.request → admin.approve → admin.apply，由 Writer 写入临时 session；
+        - 记忆与关系变化随 Effect 进事件日志，可回放；不产生任何钱变动。
         """
         self._require_ready()
         message = (message or "").strip()
@@ -703,102 +748,110 @@ class WorldUIAdapter:
 
             started = time.perf_counter()
             loc = str(ent.get("location") or "")
-            exits = sorted((self.locations.get(loc) or {}).get("exits") or [])
-            npc_state = {"id": npc_id, "stamina": ent.get("stamina", 100.0), "exits": exits}
-            reasoner = MockReasoner(seed=int(self.summary.get("seed") or 42))
-            intents = reasoner.decide(npc_state, {"tick": tick})
-            intent_rows = [
-                {"actor": it.actor, "verb": it.verb, "args": it.args, "tick": it.tick, "source": it.source}
-                for it in intents
-            ]
-            reply = self._compose_reply(npc_id, ent, intents, message, tick)
+            name = str(ent.get("name") or npc_id)
+            role = str(ent.get("role") or "")
+            talk = compose_talk(self.personas.get(npc_id, ""), npc_id, name, role, message, tick)
+            reply = str(talk["reply"])
+            prev_rel = self.state.relation(PLAYER_ID, npc_id, "acquaintance")
+            prev_aff = prev_rel.affection if prev_rel is not None else 0.0
+            prev_trust = prev_rel.trust if prev_rel is not None else 40.0
             reasoning_ms = round((time.perf_counter() - started) * 1000, 1)
 
-            proposal_params = {
-                "intent": {
-                    "actor": npc_id,
-                    "verb": "talk",
-                    "args": {
-                        "message": message,
-                        "from": "visitor",
-                        "mock_reasoner": True,
-                        "note": "dialogue_proposal_only",
-                    },
-                    "tick": tick,
-                    "source": "ui:proposal",
-                }
+            raw_intent = {
+                "actor": PLAYER_ID,
+                "verb": "talk",
+                "args": {
+                    "target": npc_id,
+                    "message": message,
+                    "reply": reply,
+                    "affection_delta": talk["affection_delta"],
+                    "trust_delta": talk["trust_delta"],
+                    "from": "visitor",
+                },
+                "tick": tick,
+                "source": "ui:proposal",
             }
             before = len(self.gateway.audit.read_all())
             proposal: dict[str, Any]
+            landed: dict[str, Any]
+            relation: dict[str, Any] = {}
+            memory: list[dict[str, Any]] = []
             try:
-                result = self.gateway.call(UI_CALLER, "world.propose_intent", proposal_params)
+                proposed = self.gateway.call(UI_CALLER, "world.propose_intent", {"intent": raw_intent})
                 proposal = {
                     "ok": True,
                     "status": "已提交意图",
-                    "accepted": bool(result.get("accepted")),
-                    "intent_id": result.get("intent_id"),
-                    "tick": result.get("tick"),
-                    "state_unchanged": bool(result.get("state_unchanged")),
+                    "accepted": bool(proposed.get("accepted")),
+                    "intent_id": proposed.get("intent_id"),
+                    "tick": proposed.get("tick"),
+                    "state_unchanged": bool(proposed.get("state_unchanged")),
                 }
             except GatewayError as exc:
-                proposal = {
-                    "ok": False,
-                    "status": "被拒",
-                    "error": str(exc),
-                    "state_unchanged": True,
-                }
+                proposed = {}
+                proposal = {"ok": False, "status": "被拒", "error": str(exc), "state_unchanged": True}
+
+            if self.session_writer is None:
+                landed = {"landed": False, "error": "run_missing_events_sqlite"}
+            elif not proposal["ok"]:
+                landed = {"landed": False, "error": proposal.get("error", "proposal_rejected")}
+            else:
+                try:
+                    request = self.gateway.call(
+                        UI_REQUESTER, "admin.request", {"intent": raw_intent, "reason": "ui dialogue"}
+                    )
+                    self.gateway.call(UI_REVIEWER, "admin.approve", {"token": request["token"]})
+                    applied = self.gateway.call(UI_REVIEWER, "admin.apply", {"token": request["token"]})
+                    self.state = self.session_writer.state
+                    memory = [
+                        m
+                        for m in self.state.memories.get(npc_id, [])
+                        if str(m.get("source", "")).startswith("talk:")
+                    ][-2:]
+                    rel = self.state.relation(PLAYER_ID, npc_id, "acquaintance")
+                    if rel is not None:
+                        relation = {
+                            "kind": rel.kind,
+                            "affection": round(rel.affection, 4),
+                            "trust": round(rel.trust, 4),
+                            "affection_delta": round(rel.affection - prev_aff, 4),
+                            "trust_delta": round(rel.trust - prev_trust, 4),
+                        }
+                    landed = {
+                        "landed": applied.get("outcome") == "ok",
+                        "seq": applied.get("seq"),
+                        "outcome": applied.get("outcome"),
+                        "verb": applied.get("verb"),
+                        "memory": memory,
+                        "relation": relation,
+                    }
+                except GatewayError as exc:
+                    landed = {"landed": False, "error": str(exc)}
+
             audit_records = self.gateway.audit.read_all()[before:]
             audit = audit_records[-1] if audit_records else {}
 
             return {
-                "notice": "这是提案，不是直接改世界。提案进入 gateway.outbox，等待 Writer；本版没有 talk 执行器，也不会推进世界。",
-                "npc": {"id": npc_id, "name": ent.get("name"), "role": ent.get("role"), "location_name": self.locations.get(loc, {}).get("name", loc)},
+                "notice": "对话已落地：记忆与关系已写入事件日志，可回放；不产生任何钱变动。",
+                "npc": {
+                    "id": npc_id,
+                    "name": name,
+                    "role": role,
+                    "location_name": self.locations.get(loc, {}).get("name", loc),
+                },
                 "message": message,
                 "reply": reply,
                 "proposal": proposal,
+                "landed": landed,
+                "relation": relation,
+                "memory": memory,
                 "audit": audit,
+                "audit_records": audit_records,
                 "mock_reasoner": {
-                    "kind": "MockReasoner（确定性规则桩，非真实模型）",
+                    "kind": "MockReasoner（人设卡台词 + 确定性规则，非真实模型）",
                     "seed": self.summary.get("seed"),
                     "virtual_tick": tick,
                     "reasoning_ms": reasoning_ms,
-                    "would_do": intent_rows,
+                    "quote": talk["quote"],
+                    "style": talk["style"],
                 },
             }
-
-    def _compose_reply(self, npc_id: str, ent: dict[str, Any], intents: list[Any], message: str, tick: int) -> str:
-        name = str(ent.get("name") or npc_id)
-        role = str(ent.get("role") or "")
-        actions: list[str] = []
-        for it in intents[:3]:
-            if it.verb == "move":
-                dest = str((it.args or {}).get("to") or "")
-                dest_name = (self.locations.get(dest) or {}).get("name") or dest
-                actions.append(f"正打算往{dest_name}走走")
-            elif it.verb == "cultivate":
-                actions.append("想先就地把手艺练一练")
-            else:
-                label = VERB_LABEL.get(it.verb, it.verb)
-                actions.append(f"心里记挂着{label}")
-        if not actions:
-            actions.append("眼下还没什么打算，先看看再说")
-
-        persona = self.personas.get(npc_id, "")
-        voices: list[str] = []
-        for line in persona.splitlines():
-            m = re.match(r"\s*>\s*(.+)$", line)
-            if m:
-                text = m.group(1).strip().strip("“”\"'")
-                if text:
-                    voices.append(text)
-        quote = ""
-        if voices:
-            digest = hashlib.sha256(f"{npc_id}|{message}|{tick}".encode("utf-8")).hexdigest()
-            quote = voices[int(digest[:8], 16) % len(voices)]
-
-        prefix = f"{name}（{role}）听了你的话，" if role else f"{name}听了你的话，"
-        body = "；".join(actions) + "。"
-        if quote:
-            return f"{prefix}{body}\n「{quote}」"
-        style = str((ent.get("personality") or {}).get("speech_style") or "")
-        return f"{prefix}{body}" + (f"\n（{style}）" if style else "")

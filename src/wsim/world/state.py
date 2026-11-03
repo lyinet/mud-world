@@ -285,6 +285,12 @@ class WorldState:
     accounts: dict[str, int] = field(default_factory=dict)
     schedule: dict[str, ScheduleItem] = field(default_factory=dict)
     memories: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
+    # 玩家对话的关系增量台账：npc -> {day, day_affection, day_trust,
+    # last_tick, tick_affection, tick_trust}。用于 ±2/tick、±8/日 上限。
+    talk_ledger: dict[str, dict[str, Any]] = field(default_factory=dict)
+    # 任务模板历史统计：template_id -> {created, completed, failed, expired}。
+    quest_stats: dict[str, dict[str, int]] = field(default_factory=dict)
+    quests_expired_total: int = 0
     minted_total: int = 0
     burned_total: int = 0
     items_created: dict[str, int] = field(default_factory=dict)
@@ -305,6 +311,9 @@ class WorldState:
             accounts=dict(self.accounts),
             schedule=copy.deepcopy(self.schedule),
             memories=copy.deepcopy(self.memories),
+            talk_ledger=copy.deepcopy(self.talk_ledger),
+            quest_stats=copy.deepcopy(self.quest_stats),
+            quests_expired_total=self.quests_expired_total,
             minted_total=self.minted_total,
             burned_total=self.burned_total,
             items_created=dict(self.items_created),
@@ -324,6 +333,11 @@ class WorldState:
             "accounts": dict(sorted(self.accounts.items())),
             "schedule": {k: v.to_dict() for k, v in sorted(self.schedule.items())},
             "memories": {k: v for k, v in sorted(self.memories.items())},
+            "talk_ledger": {k: dict(sorted(v.items())) for k, v in sorted(self.talk_ledger.items())},
+            "quest_stats": {
+                k: dict(sorted(v.items())) for k, v in sorted(self.quest_stats.items())
+            },
+            "quests_expired_total": self.quests_expired_total,
             "minted_total": self.minted_total,
             "burned_total": self.burned_total,
             "items_created": dict(sorted(self.items_created.items())),

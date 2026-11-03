@@ -11,7 +11,9 @@ from .common import (
     memory,
     organization_at,
     require_entity,
+    treasury_balance,
     treasury_guard_active,
+    treasury_open_shop_buffer,
     wallet,
 )
 from .registry import Action
@@ -39,6 +41,9 @@ class OpenShopAction(Action):
         cost = int((self.content.economy.get("shop_opening") or {}).get(shop_type, 10**9))
         if state.account_balance(wallet(ent.id)) < cost:
             return ["insufficient_money"]
+        # 金库必须留足「保底线 + 开店成本 + 7 日工资」，否则这条开店动作应延后。
+        if treasury_balance(state) < treasury_open_shop_buffer(state, self.content, cost):
+            return ["treasury_buffer"]
         return []
 
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:

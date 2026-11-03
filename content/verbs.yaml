@@ -50,6 +50,10 @@ verbs:
     args: {route: "array<location_id, length>=2>", cargo_value: "int>=100", fee: "int>=0"}
     allowed_roles: [镖师, 脚夫, 捕快, 船夫]
 
+  - name: talk
+    args: {target: npc_id, message: "string<=200", reply: "string"}
+    allowed_roles: ["*"]
+
   - name: found_sect
     args: {name: "string", at: location_id, doctrine: "string"}
     allowed_roles: [师爷, 学究, 庙祝, 掌柜, 说书人, 算命先生]

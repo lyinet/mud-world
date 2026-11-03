@@ -307,6 +307,54 @@ def transaction_tax(content, amount: int) -> int:
     return int(amount * rate)
 
 
+def tax_split_effects(content, account: str, amount: int, reason: str = "transaction_tax") -> list[Effect]:
+    """交易税分流：一部分转入区域金库（账户间转移），其余 burn。
+
+    默认 50% 回流；比例由 `taxes.transaction_treasury_share` 配置。
+    总额守恒：transfer + burn == amount，不产生 mint。
+    """
+    if amount <= 0:
+        return []
+    share = float((content.economy.get("taxes") or {}).get("transaction_treasury_share", 0.5))
+    share = max(0.0, min(1.0, share))
+    to_treasury = int(round(amount * share))
+    burned = amount - to_treasury
+    effects: list[Effect] = []
+    if to_treasury > 0 and account != TREASURY_ACCOUNT:
+        effects.append(
+            Effect(
+                "transfer",
+                {
+                    "src": account,
+                    "dst": TREASURY_ACCOUNT,
+                    "amount": to_treasury,
+                    "reason": f"{reason}_treasury",
+                },
+            )
+        )
+    elif to_treasury > 0:
+        burned += to_treasury  # 税源本身就是金库：只能销毁，避免自转
+    if burned > 0:
+        effects.append(Effect("burn", {"account": account, "amount": burned, "reason": reason}))
+    return effects
+
+
+def daily_wage_bill(state: WorldState, content) -> int:
+    """当前在雇 NPC 的日工资合计（用于开店前的 7 日工资缓冲）。"""
+    total = 0
+    for ent in state.entities.values():
+        if ent.status != "alive" or not ent.employed_at:
+            continue
+        total += int(content.wage_for(ent.role))
+    return total
+
+
+def treasury_open_shop_buffer(state: WorldState, content, cost: int) -> int:
+    """金库余额门槛：保底线 + 开店成本 + 7 日工资。"""
+    reserve = int((content.economy.get("work") or {}).get("employer_reserve", 2000))
+    return reserve + int(cost) + 7 * daily_wage_bill(state, content)
+
+
 def income_tax(content, amount: int) -> int:
     rate = float((content.economy.get("taxes") or {}).get("income", 0.0))
     return int(amount * rate)

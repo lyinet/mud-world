@@ -13,6 +13,7 @@ from .common import (
     memory,
     require_entity,
     sell_price,
+    tax_split_effects,
     transaction_tax,
     wallet,
 )
@@ -77,7 +78,7 @@ class BuyAction(Action):
             *memory(state, ent.id, intent.tick, f"在{seller.name}买入{item}x{qty}，花费{price}文", 0.2),
         ]
         if tax > 0:
-            effects.insert(1, Effect("burn", {"account": wallet(ent.id), "amount": tax, "reason": "transaction_tax"}))
+            effects[1:1] = tax_split_effects(self.content, wallet(ent.id), tax)
         return effects
 
 
@@ -122,7 +123,7 @@ class SellAction(Action):
             *memory(state, ent.id, intent.tick, f"向{buyer.name}卖出{item}x{qty}，得{revenue}文", 0.2),
         ]
         if tax > 0:
-            effects.insert(2, Effect("burn", {"account": wallet(ent.id), "amount": tax, "reason": "transaction_tax"}))
+            effects[2:2] = tax_split_effects(self.content, wallet(ent.id), tax)
         return effects
 
 
@@ -174,13 +175,13 @@ class TradeAction(Action):
             effects.append(Effect("transfer", {"src": wallet(target.id), "dst": wallet(ent.id), "amount": delta, "reason": "trade"}))
             tax = transaction_tax(self.content, delta)
             if tax > 0:
-                effects.append(Effect("burn", {"account": wallet(target.id), "amount": tax, "reason": "transaction_tax"}))
+                effects.extend(tax_split_effects(self.content, wallet(target.id), tax))
         elif delta < 0:
             amount = -delta
             effects.append(Effect("transfer", {"src": wallet(ent.id), "dst": wallet(target.id), "amount": amount, "reason": "trade"}))
             tax = transaction_tax(self.content, amount)
             if tax > 0:
-                effects.append(Effect("burn", {"account": wallet(ent.id), "amount": tax, "reason": "transaction_tax"}))
+                effects.extend(tax_split_effects(self.content, wallet(ent.id), tax))
         for a, b in ((ent.id, target.id), (target.id, ent.id)):
             effects.append(
                 Effect(

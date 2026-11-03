@@ -44,7 +44,7 @@ def build_registry(content, seed: int, plugin_dir: Path | None = None) -> Action
     from .business import FoundSectAction, OpenShopAction
     from .commerce import BuyAction, SellAction, TradeAction
     from .escort import EscortAction, SystemEscortArriveAction
-    from .social import ApprenticeAction, JoinSectAction, MarryAction, RecruitAction
+    from .social import ApprenticeAction, JoinSectAction, MarryAction, RecruitAction, TalkAction
     from .system import (
         SystemDebtsAction,
         SystemGoalAction,
@@ -74,6 +74,7 @@ def build_registry(content, seed: int, plugin_dir: Path | None = None) -> Action
     reg.register(JoinSectAction(content))
     reg.register(MarryAction(content))
     reg.register(RecruitAction(content))
+    reg.register(TalkAction(content))
     reg.register(OpenShopAction(content))
     reg.register(EscortAction(content))
     reg.register(FoundSectAction(content))

@@ -530,11 +530,11 @@ function renderDetail(d){
         '<div class="section"><h3>当天日程 <span class="hint">'+esc(d.today_label)+' · 事件回放</span></h3>'+scheduleHtml+planHtml+'</div>'+
         '<div class="section"><h3>最近 10 条事件 <span class="hint">按 seq 倒序</span></h3>'+recentHtml+'</div>'+
       '</div>'+
-      '<div class="section" id="dialogueSection"><h3>对话 <span class="hint">MockReasoner 回应 · 提案不落地</span></h3>'+
-        '<div class="proposal-note"><strong>这是提案，不是直接改世界。</strong> 消息会经 MCPGateway 的 <code>world.propose_intent</code> 进入 outbox，等待 Writer；本版不接真实模型。</div>'+
+      '<div class="section" id="dialogueSection"><h3>对话 <span class="hint">人设卡回应 · 已落地</span></h3>'+
+        '<div class="proposal-note"><strong>对话已能改变世界。</strong> 消息经 <code>world.propose_intent</code> → 双人审批 → <code>talk</code> 执行，写入 NPC 记忆与关系事件，可回放；不产生钱变动。</div>'+
         '<form class="dialogue-form" onsubmit="submitDialogue(event, \''+esc(n.id)+'\')">'+
           '<input id="dialogueInput" maxlength="200" placeholder="对'+esc(n.name)+'说一句话…" autocomplete="off">'+
-          '<button class="btn" id="dialogueBtn" type="submit">提交提案</button>'+
+          '<button class="btn" id="dialogueBtn" type="submit">发送（落地）</button>'+
         '</form>'+
         '<div id="dialogueResult"></div>'+
       '</div>'+
@@ -549,8 +549,8 @@ async function submitDialogue(ev, npcId){
   const box = document.getElementById("dialogueResult");
   const message = (input.value||"").trim();
   if(!message){ box.innerHTML = '<div class="empty">先说一句话再提交。</div>'; return; }
-  btn.disabled = true; btn.textContent = "提交中…";
-  box.innerHTML = '<div class="empty">正在走 propose_intent…</div>';
+  btn.disabled = true; btn.textContent = "落地中…";
+  box.innerHTML = '<div class="empty">正在走 propose_intent → 审批 → talk…</div>';
   try{
     const d = await api("/api/dialogue", {
       method:"POST", headers:{"Content-Type":"application/json"},
@@ -562,39 +562,54 @@ async function submitDialogue(ev, npcId){
     box.innerHTML = '<div class="dialogue-result"><div class="result-line"><span class="badge bad">请求失败</span>'+
       '<span>'+esc(err.error||"未知错误")+'</span></div><div class="small muted">'+esc(err.hint||"")+'</div></div>';
   }finally{
-    btn.disabled = false; btn.textContent = "提交提案";
+    btn.disabled = false; btn.textContent = "发送（落地）";
   }
 }
 
 function renderDialogue(d){
   const p = d.proposal || {};
-  const a = d.audit || {};
+  const l = d.landed || {};
+  const rel = d.relation || {};
+  const mem = d.memory || [];
+  const records = d.audit_records || [];
   const mr = d.mock_reasoner || {};
-  const statusBadge = p.ok
-    ? '<span class="badge ok">已提交意图</span>'
-    : '<span class="badge bad">被拒</span>';
-  const proposalDetail = p.ok
-    ? '<span class="small">intent_id <span class="mono">'+esc(p.intent_id)+'</span> · tick '+esc(p.tick)+
-      ' · <span class="plus">state_unchanged=true</span></span>'
-    : '<span class="small minus">'+esc(p.error||"未知原因")+'</span>';
-  const wouldDo = (mr.would_do||[]).map(x=>esc(x.verb)+"("+esc(JSON.stringify(x.args||{}))+")").join(" · ") || "无动作";
+  const statusBadge = l.landed
+    ? '<span class="badge ok">已落地</span>'
+    : '<span class="badge bad">未落地</span>';
+  const landedDetail = l.landed
+    ? '<span class="small">事件 seq <span class="mono">'+esc(l.seq)+'</span> · outcome '+esc(l.outcome)+
+      ' · verb '+esc(l.verb)+' · 记忆 '+esc(mem.length)+' 条</span>'
+    : '<span class="small minus">'+esc(l.error||p.error||"未知原因")+'</span>';
+  const relationHtml = rel.kind
+    ? '<span class="small">关系 <span class="mono">'+esc(rel.kind)+'</span> · 好感 '+esc(rel.affection)+
+      '（'+esc((rel.affection_delta>=0?"+":"")+rel.affection_delta)+'） · 信任 '+esc(rel.trust)+
+      '（'+esc((rel.trust_delta>=0?"+":"")+rel.trust_delta)+'）</span>'
+    : '<span class="small muted">本次没有关系变化</span>';
+  const memoryHtml = mem.length
+    ? '<ul class="small" style="margin:5px 0 0;padding-left:18px">'+mem.map(m=>
+        '<li>'+esc(m.text)+' <span class="muted">['+esc(m.source)+']</span></li>').join("")+'</ul>'
+    : '<div class="small muted">记忆未写入</div>';
   const auditHtml =
-    '<div class="table-wrap"><table><thead><tr><th class="num">seq</th><th class="num">tick</th><th>调用者</th><th>权限</th><th>方法</th><th>结果</th><th>错误</th><th>参数摘要</th></tr></thead><tbody>'+
-    '<tr><td class="num">'+esc(a.seq)+'</td><td class="num">'+esc(a.tick)+'</td><td>'+esc(a.caller)+'</td>'+
-    '<td>'+esc(a.permission)+'</td><td>'+esc(a.method)+'</td><td class="'+(a.ok?"out-ok":"out-rejected")+'">'+esc(a.ok)+'</td>'+
-    '<td class="mono small">'+esc(a.error||"—")+'</td><td class="mono small">'+esc((a.params_digest||"").slice(0,18))+'…</td></tr>'+
+    '<div class="table-wrap"><table><thead><tr><th class="num">seq</th><th class="num">tick</th><th>调用者</th><th>权限</th><th>方法</th><th>结果</th><th>错误</th></tr></thead><tbody>'+
+    records.map(a=>
+      '<tr><td class="num">'+esc(a.seq)+'</td><td class="num">'+esc(a.tick)+'</td><td>'+esc(a.caller)+'</td>'+
+      '<td>'+esc(a.permission)+'</td><td>'+esc(a.method)+'</td><td class="'+(a.ok?"out-ok":"out-rejected")+'">'+esc(a.ok)+'</td>'+
+      '<td class="mono small">'+esc(a.error||"—")+'</td></tr>').join("")+
     '</tbody></table></div>';
 
   document.getElementById("dialogueResult").innerHTML =
     '<div class="dialogue-result">'+
-      '<div class="notice" style="margin:0 0 9px">这是提案，不是直接改世界。</div>'+
-      '<div class="result-line">'+statusBadge+proposalDetail+'</div>'+
+      '<div class="notice" style="margin:0 0 9px">'+esc(d.notice)+'</div>'+
+      '<div class="result-line">'+statusBadge+landedDetail+'</div>'+
       '<div class="reply">'+esc(d.reply)+'</div>'+
       '<div class="small muted">你的话：'+esc(d.message)+'</div>'+
+      '<div class="result-line" style="margin-top:6px">'+relationHtml+'</div>'+
+      '<div class="small"><span class="muted">NPC 记忆：</span>'+memoryHtml+'</div>'+
       '<div class="small muted" style="margin-top:5px">回应来源：'+esc(mr.kind)+' · 虚拟 tick '+esc(mr.virtual_tick)+
-        ' · 推理耗时 '+esc(mr.reasoning_ms)+' ms（要求 &lt; 1 秒）<br>本轮打算：'+wouldDo+'</div>'+
-      '<div class="audit"><h4 class="small" style="margin:9px 0 5px">审计条目（MCP gateway）</h4>'+auditHtml+'</div>'+
-      '<details style="margin-top:7px"><summary>查看完整审计 JSON</summary><pre class="code">'+esc(JSON.stringify(a,null,2))+'</pre></details>'+
+        ' · 推理耗时 '+esc(mr.reasoning_ms)+' ms<br>引用台词：'+esc(mr.quote||"—")+
+        (mr.style?'<br>说话风格：'+esc(mr.style):'')+'</div>'+
+      '<div class="audit"><h4 class="small" style="margin:9px 0 5px">审批链审计（propose → request → approve → apply）</h4>'+auditHtml+'</div>'+
+      '<details style="margin-top:7px"><summary>查看完整审计 JSON</summary><pre class="code">'+esc(JSON.stringify(records,null,2))+'</pre></details>'+
     '</div>';
 }
 

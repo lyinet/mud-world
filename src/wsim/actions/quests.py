@@ -18,6 +18,11 @@ class SystemQuestPostAction(Action):
 
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
         effects: list[Effect] = []
+        qcfg = self.content.economy.get("quests") or {}
+        expired_cap = int(qcfg.get("expired_cap_per_template", 3))
+        expired_cap_global = int(qcfg.get("expired_cap_global", 20))
+        min_samples = int(qcfg.get("min_samples_for_rate", 10))
+        min_rate = float(qcfg.get("min_completion_rate", 0.2))
         for tid in sorted(self.content.quests):
             tpl = self.content.quests[tid]
             giver = str(tpl.get("giver", ""))
@@ -29,6 +34,25 @@ class SystemQuestPostAction(Action):
             if not bool(tpl.get("repeatable", True)) and existing:
                 continue
             reward = tpl.get("reward") or {}
+            # 可行性预检：giver 连报酬都拿不出，就不发这张单。
+            if int(reward.get("money", 0)) > state.account_balance(wallet(giver)):
+                continue
+            giver_item = str(tpl.get("giver_item") or "")
+            if giver_item:
+                need = int(tpl.get("giver_item_qty", 1))
+                if state.entities[giver].inventory.get(giver_item, 0) < need:
+                    continue
+            # 历史完成率过低（样本足够时）不再发单，避免模板空转占满委托列表。
+            stats = state.quest_stats.get(tid) or {}
+            created = int(stats.get("created", 0))
+            completed = int(stats.get("completed", 0))
+            if created >= min_samples and completed / created < min_rate:
+                continue
+            retained_expired = sum(1 for q in existing if q.status == "expired")
+            if retained_expired >= expired_cap:
+                continue
+            if sum(1 for q in state.quests.values() if q.status == "expired") >= expired_cap_global:
+                continue
             settlement = tpl.get("settlement") or {}
             qid = f"quest:{tid}:{intent.tick}"
             if qid in state.quests:
@@ -193,4 +217,15 @@ class SystemQuestFailAction(Action):
                 # 无人接单且已过期：关闭模板占位，让后续 system_quest_post 能重发。
                 # 不写 NPC 记忆（没有接单人就没人需要解释）。
                 effects.append(Effect("quest_fail", {"id": qid, "tick": intent.tick}))
+        # 过期/失败记录保留 7 天后清理；quest_stats 保留历史，不受清理影响。
+        retention = int((self.content.economy.get("quests") or {}).get("expired_retention_days", 7))
+        stale = [
+            qid
+            for qid, q in sorted(state.quests.items())
+            if q.status in ("expired", "failed")
+            and q.completed_tick >= 0
+            and intent.tick - q.completed_tick > retention * TICKS_PER_DAY
+        ]
+        if stale:
+            effects.append(Effect("quest_prune", {"ids": stale}))
         return effects

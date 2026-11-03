@@ -1,0 +1,101 @@
+"""任务板健康度：可行性预检、完成率门槛、过期上限与清理。"""
+from __future__ import annotations
+
+from wsim.actions.common import wallet
+from wsim.actions.quests import SystemQuestFailAction, SystemQuestPostAction
+from wsim.core.clock import TICKS_PER_DAY
+from wsim.core.models import Effect, Intent
+from wsim.world.effects import apply_effects
+from wsim.world.state import Quest
+
+
+def _post(state, content, tick: int = 0) -> list[Effect]:
+    action = SystemQuestPostAction(content)
+    return action.apply(
+        state,
+        Intent(actor="system", verb="system_quest_post", args={}, tick=tick, source="system"),
+        None,
+    )
+
+
+def _expired_quest(tid: str, qid: str, tick: int = 0) -> Quest:
+    return Quest(
+        id=qid,
+        template_id=tid,
+        giver="liu_sanniang",
+        acceptor=None,
+        target_npc="su_hexiang",
+        target_location="pharmacy",
+        verb="move",
+        args={"to": "pharmacy"},
+        reward_money=6,
+        reward_relation=2.0,
+        deadline_tick=tick,
+        status="expired",
+        completed_tick=tick,
+    )
+
+
+def test_post_skips_when_giver_cannot_pay(real_content, real_state):
+    giver = real_content.quests["errand_silk_sample"]["giver"]
+    balance = real_state.account_balance(wallet(giver))
+    apply_effects(
+        real_state,
+        [Effect("burn", {"account": wallet(giver), "amount": balance, "reason": "test_drain"})],
+    )
+    effects = _post(real_state, real_content)
+    created = [e.data["template_id"] for e in effects if e.op == "quest_create"]
+    assert "errand_silk_sample" not in created
+
+
+def test_post_skips_low_completion_rate(real_content, real_state):
+    real_state.quest_stats["errand_silk_sample"] = {
+        "created": 10,
+        "completed": 1,
+        "failed": 0,
+        "expired": 9,
+    }
+    effects = _post(real_state, real_content)
+    created = [e.data["template_id"] for e in effects if e.op == "quest_create"]
+    assert "errand_silk_sample" not in created
+
+
+def test_post_skips_when_template_expired_cap_reached(real_content, real_state):
+    for i in range(3):
+        real_state.quests[f"expired:errand:{i}"] = _expired_quest(
+            "errand_silk_sample", f"expired:errand:{i}"
+        )
+    effects = _post(real_state, real_content)
+    created = [e.data["template_id"] for e in effects if e.op == "quest_create"]
+    assert "errand_silk_sample" not in created
+
+
+def test_post_skips_when_global_expired_cap_reached(real_content, real_state):
+    template_ids = sorted(real_content.quests)
+    for i in range(20):
+        tid = template_ids[i % len(template_ids)]
+        real_state.quests[f"expired:global:{i}"] = _expired_quest(tid, f"expired:global:{i}")
+    effects = _post(real_state, real_content)
+    assert not [e for e in effects if e.op == "quest_create"]
+
+
+def test_fail_action_prunes_stale_expired_and_keeps_stats(real_content, real_state):
+    qid = "quest:prune:0"
+    real_state.quests[qid] = _expired_quest("errand_silk_sample", qid, tick=0)
+    real_state.quest_stats["errand_silk_sample"] = {
+        "created": 1,
+        "completed": 0,
+        "failed": 0,
+        "expired": 1,
+    }
+    action = SystemQuestFailAction(real_content)
+    tick = (int((real_content.economy.get("quests") or {}).get("expired_retention_days", 7)) + 1) * TICKS_PER_DAY
+    effects = action.apply(
+        real_state,
+        Intent(actor="system", verb="system_quest_fail", args={}, tick=tick, source="system"),
+        None,
+    )
+    assert any(e.op == "quest_prune" and qid in e.data["ids"] for e in effects)
+    apply_effects(real_state, effects)
+    assert qid not in real_state.quests
+    assert real_state.quest_stats["errand_silk_sample"]["expired"] == 1

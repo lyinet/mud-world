@@ -28,7 +28,9 @@ from ..actions.common import (
     role_allowed,
     sell_price,
     skill_for,
+    treasury_balance,
     treasury_guard_active,
+    treasury_open_shop_buffer,
     wallet,
 )
 from ..core.clock import TICKS_PER_DAY, day_of
@@ -336,6 +338,8 @@ class Planner:
         self._stamina = 100.0
         # quest_id -> 上次尝试 tick（避免同一任务反复被拒）
         self._quest_attempt: dict[str, int] = {}
+        # 因金库缓冲不足而延后的开店次数（由 MockReasoner 汇总到 summary）。
+        self.postponed_open_shop = 0
 
     def _cost(self, verb: str, args: dict) -> float:
         econ = self.content.economy
@@ -899,6 +903,10 @@ class Planner:
                 return loc, cursor, cash
             kind = "stall"
             cost = int((self.content.economy.get("shop_opening") or {}).get(kind, 300))
+            # 金库不够「保底线 + 开店成本 + 7 日工资」时延后，不生成 intent（不是拒绝）。
+            if treasury_balance(state) < treasury_open_shop_buffer(state, self.content, cost):
+                self.postponed_open_shop += 1
+                return loc, cursor, cash
             if cash >= cost:
                 cursor = self._add(
                     intents, npc, "open_shop",
@@ -1265,6 +1273,7 @@ class MockReasoner(Reasoner):
         self._last_reject: dict[str, str] = {}
         self.decisions: list[dict[str, Any]] = []
         self.replan_count = 0
+        self.postponed_open_shop = 0
 
     def decide(self, npc_state: dict[str, Any], world_view: dict[str, Any]) -> list[Intent]:
         npc = str(npc_state.get("id", ""))
@@ -1303,6 +1312,8 @@ class MockReasoner(Reasoner):
             )
 
         plan = self.planner.plan(state, npc, choice, start, interval, tier, self._variant.get(npc, 0))
+        self.postponed_open_shop += self.planner.postponed_open_shop
+        self.planner.postponed_open_shop = 0
         intents.extend(plan)
         self._planned_through[npc] = start + max(1, interval)
         self.decisions.append(

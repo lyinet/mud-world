@@ -445,6 +445,7 @@ def run_headless(
         "reason_coverage": reason_coverage,
         "reasoned_events": len(reason_events),
         "by_source": dict(sorted(source_counts.items())),
+        "postponed_open_shop": mock_reasoner.postponed_open_shop,
         "logs": ["decisions.jsonl", "goal_changes.jsonl", "lod_tiers.jsonl", "cost.jsonl"],
     }
     cost_summary = telemetry.summary()
@@ -483,6 +484,16 @@ def run_headless(
         for e in events
         if e.verb == "found_sect" and e.outcome == "ok"
     ]
+    health_by_template: dict[str, dict[str, Any]] = {}
+    for tid, stats in sorted(state.quest_stats.items()):
+        created = int(stats.get("created", 0))
+        health_by_template[tid] = {
+            "created": created,
+            "completed": int(stats.get("completed", 0)),
+            "failed": int(stats.get("failed", 0)),
+            "expired": int(stats.get("expired", 0)),
+            "completion_rate": round(int(stats.get("completed", 0)) / created, 4) if created else 0.0,
+        }
     quest_summary = {
         "status": dict(sorted(quest_status.items())),
         "completed": quest_status.get("completed", 0),
@@ -492,6 +503,12 @@ def run_headless(
         "open": quest_status.get("open", 0),
         "by_template": dict(sorted(quest_by_template.items())),
         "post_events": sum(1 for e in events if e.verb == "system_quest_post" and e.outcome == "ok"),
+        "health": {
+            "active": quest_status.get("open", 0) + quest_status.get("accepted", 0),
+            "expired_on_board": sum(1 for q in state.quests.values() if q.status == "expired"),
+            "expired_total": state.quests_expired_total,
+            "by_template": health_by_template,
+        },
     }
     escort_summary = {
         "status": dict(sorted(escort_status.items())),
@@ -500,12 +517,26 @@ def run_headless(
         "arrived_events": sum(1 for e in events if e.verb == "system_escort_arrive" and e.outcome == "ok"),
     }
     work_cfg = content.economy.get("work") or {}
+    tax_to_treasury = 0
+    tax_burned = 0
+    for e in events:
+        for eff in e.effects:
+            if not isinstance(eff, dict):
+                continue
+            data = eff.get("data") or {}
+            if eff.get("op") == "transfer" and data.get("reason") == "transaction_tax_treasury":
+                tax_to_treasury += int(data.get("amount", 0))
+            elif eff.get("op") == "burn" and data.get("reason") == "transaction_tax":
+                tax_burned += int(data.get("amount", 0))
     treasury_summary = {
         "account": "treasury:region",
         "reserve": int(work_cfg.get("employer_reserve", 2000)),
         "multiplier": float(work_cfg.get("treasury_guard_multiplier", 1.2)),
         "threshold": guard_threshold,
         "balance_final": state.account_balance("treasury:region"),
+        "tax_to_treasury": tax_to_treasury,
+        "tax_burned": tax_burned,
+        "open_shop_postponed": mock_reasoner.postponed_open_shop,
         "guard": {
             "enters": sum(1 for g in guard_events if g["active"]),
             "exits": sum(1 for g in guard_events if not g["active"]),

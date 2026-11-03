@@ -62,6 +62,8 @@ price_baseline:
 taxes:
   income: 0.10
   transaction: 0.03
+  # 交易税回流比例：转到 treasury:region（账户间转移，不是增发），其余 burn。
+  transaction_treasury_share: 0.5
   shop_monthly_tax: 60
   savings_rate: 0.01
   savings_threshold: 500
@@ -131,6 +133,12 @@ quests:
   # 避免短程镖单被 2 日采购单长期挤掉。
   max_concurrent_escort: 1
   accept_max_hops: 3
+  # 发单健康度（复核 P2.1）：过期单上限 + 历史完成率门槛 + 过期记录保留期。
+  expired_cap_per_template: 3
+  expired_cap_global: 20
+  min_samples_for_rate: 10
+  min_completion_rate: 0.2
+  expired_retention_days: 7
 
 # 日工连续上工的最低雇主现金保留（B6）：雇主现金 >= 当日工资 + reserve 才上工，
 # 避免把商业体现金抽干后只能打欠条。
