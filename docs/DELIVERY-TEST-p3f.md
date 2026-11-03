@@ -1,5 +1,7 @@
 # p3f 交付实测记录（2026-11-04）
 
+> **过渡版本说明**：`delivery-p3f`（`943645f`）含他人在途的 `headless.py` 改动，仅作内部里程碑，**不作对外最终版**；对外以后续 `delivery-p3g` 为准。
+
 环境：macOS，Python 3.12.7；仓库 `f100693` 之上的交付改动；干净临时目录
 `/tmp/xkx-delivery-clean/world-sim`，**不使用**原仓库的 `.venv` / `runs`。
 
