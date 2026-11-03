@@ -8,7 +8,7 @@ from wsim.actions.registry import build_registry
 from wsim.actions.social import TalkAction
 from wsim.agent.dialogue import PLAYER_ID, compose_talk, extract_persona_voice
 from wsim.audit.conservation import conservation
-from wsim.core.models import Intent, Reject
+from wsim.core.models import Effect, Intent, Reject
 from wsim.mcp.audit import AuditLog
 from wsim.mcp.gateway import MCPGateway, PERMISSION_ADMIN, PERMISSION_PROPOSE
 from wsim.world.effects import apply_effects
@@ -25,6 +25,24 @@ def _talk(message: str, tick: int, *, actor: str = PLAYER_ID, extra: dict | None
 
 def _server(content, message: str, tick: int) -> dict:
     return compose_talk(content.personas.get("n1", ""), "n1", "甲", "worker", message, tick)
+
+
+def _register_player(state, pid: str, name: str, location: str = "a") -> None:
+    """P3-E：talk 不再为新玩家懒创建，测试先模拟 player_enter 的落地效果。"""
+    apply_effects(
+        state,
+        [
+            Effect("create_entity", {
+                "id": pid, "name": name, "role": "镖师", "location": location,
+                "home": location, "stamina": 100.0, "max_stamina": 100.0,
+            }),
+            Effect("create_account", {"account": wallet(pid), "balance": 0}),
+            Effect("player_upsert", {
+                "id": pid, "name": name, "archetype": "游侠", "role": "镖师", "created_tick": 0,
+            }),
+            Effect("player_presence", {"id": pid, "presence": "online", "tick": 0}),
+        ],
+    )
 
 
 def test_compose_talk_uses_persona_line(real_content):
@@ -126,6 +144,7 @@ def test_player_id_arg_overrides_actor(content, state):
     """缺陷 1：args.player_id 优先，实体/关系/记忆都落到新玩家身上。"""
     action = TalkAction(content)
     pid = "player:u_1001"
+    _register_player(state, pid, "阿青")
     intent = _talk("多谢", 0, extra={"player_id": pid, "name": "阿青"})
     apply_effects(state, action.apply(state, intent, None))
 
@@ -144,6 +163,7 @@ def test_actor_session_identity_is_used(content, state):
     """缺陷 1：没有 args.player_id 时，player:* 的 actor 就是服务端会话身份。"""
     action = TalkAction(content)
     pid = "player:u_2002"
+    _register_player(state, pid, "阿夏")
     apply_effects(state, action.apply(state, _talk("多谢", 0, actor=pid), None))
     assert pid in state.entities
     assert state.relation(pid, "n1", "acquaintance") is not None

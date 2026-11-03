@@ -1,0 +1,4376 @@
+{
+  "budget": {
+    "day_cost": {
+      "0": 0.010223,
+      "1": 0.007228
+    },
+    "day_tokens": {
+      "0": 8879,
+      "1": 5489
+    },
+    "degraded": 0,
+    "degraded_by_day": {},
+    "dialogue_calls": {},
+    "dialogue_mocked": 0,
+    "dialogue_mocked_by_day": {},
+    "intent_calls": {
+      "0": 12,
+      "1": 7
+    },
+    "intent_mocked": 0,
+    "intent_mocked_by_day": {},
+    "limits": {
+      "daily_cost": 5.0,
+      "decision_daily_tokens": 200000,
+      "dialogue_daily_calls": 50,
+      "intent_daily_calls": 2000,
+      "monthly_cost": 50.0,
+      "monthly_tokens": 5000000,
+      "soft_ratio": 0.8
+    },
+    "mocked": 0,
+    "mocked_by_day": {},
+    "month_cost": 0.017451,
+    "month_tokens": 14368
+  },
+  "content_audit": {
+    "content_hash": "ced9cd63fe96177015b9be56259a9dbdd8745362cb8b9509f7a6ffb98b266fdd",
+    "content_verbs": [
+      "apprentice",
+      "borrow_money",
+      "buy",
+      "consume",
+      "cultivate",
+      "debt_settle",
+      "escort",
+      "found_sect",
+      "join_sect",
+      "marry",
+      "move",
+      "open_shop",
+      "quest_accept",
+      "quest_deliver",
+      "recruit",
+      "sell",
+      "talk",
+      "trade",
+      "work"
+    ],
+    "cooldown_field_present": false,
+    "debt_relations": 24,
+    "debt_relations_long_term": 0,
+    "debt_relations_with_amount": 24,
+    "defaults_used": {
+      "goal_targets": {
+        "declared_kinds": [
+          "bond",
+          "faction",
+          "mastery",
+          "shop",
+          "wealth"
+        ],
+        "defaulted_goals": 0,
+        "defaulted_kinds": [],
+        "fallback": "goal_kind 对应的内置默认 target",
+        "used_kinds": [
+          "bond",
+          "faction",
+          "mastery",
+          "shop",
+          "wealth"
+        ]
+      },
+      "home": {
+        "content_declared": 31,
+        "content_total": 31,
+        "defaulted": 0,
+        "fallback": "工作地点相邻地点 + id 哈希（确定性）"
+      }
+    },
+    "engine_npc_verbs": [
+      "apprentice",
+      "borrow_money",
+      "buy",
+      "consume",
+      "cultivate",
+      "debt_settle",
+      "escort",
+      "found_sect",
+      "join_sect",
+      "marry",
+      "move",
+      "open_shop",
+      "player_enter",
+      "player_leave",
+      "player_presence",
+      "quest_accept",
+      "quest_deliver",
+      "recruit",
+      "sell",
+      "talk",
+      "trade",
+      "work"
+    ],
+    "goal_types": [
+      "advance_skill",
+      "build_relation",
+      "build_shop",
+      "earn_money",
+      "found_sect",
+      "gain_status",
+      "join_sect"
+    ],
+    "issues": [
+      "relation_target_missing:shen_yanzhou->shi_gandang",
+      "relation_target_missing:shen_yanzhou->ruan_qingfu",
+      "relation_target_missing:liu_sanniang->luo_qingxu",
+      "relation_target_missing:liu_sanniang->meng_jiuniang",
+      "relation_target_missing:lu_jiujin->song_henian",
+      "relation_target_missing:lu_jiujin->qin_wangchuan",
+      "relation_target_missing:su_hexiang->chang_banxia",
+      "relation_target_missing:gu_qingya->chang_banxia",
+      "relation_target_missing:gu_qingya->jiang_tingyu",
+      "relation_target_missing:pei_wujiu->zhuo_bufan",
+      "relation_target_missing:pei_wujiu->shi_gandang",
+      "relation_target_missing:wen_xiaoman->song_henian",
+      "relation_target_missing:cui_tieyi->xing_pojun",
+      "relation_target_missing:cui_tieyi->wei_changgeng",
+      "relation_target_missing:cui_tieyi->duan_wudou",
+      "relation_target_missing:hua_jieyu->luo_qingxu",
+      "relation_target_missing:hua_jieyu->cao_banxian",
+      "relation_target_missing:xie_tingyun->jin_mancang",
+      "relation_target_missing:bai_lusheng->fang_cunxin",
+      "relation_target_missing:bai_lusheng->yan_shouyi",
+      "relation_target_missing:bai_lusheng->cao_banxian",
+      "relation_target_missing:han_xinglin->chang_banxia",
+      "relation_target_missing:han_xinglin->lu_xinghua",
+      "money_supply_npc_total:35650!=14700"
+    ],
+    "npc_roles": [
+      "媒婆",
+      "学究",
+      "屠户",
+      "师爷",
+      "庙祝",
+      "抄经人",
+      "捕快",
+      "掌柜",
+      "更夫",
+      "渔娘",
+      "游医",
+      "石匠",
+      "算命先生",
+      "绣娘",
+      "脚夫",
+      "船夫",
+      "茶博士",
+      "药童",
+      "菜农",
+      "说书人",
+      "货郎",
+      "酒保",
+      "铁匠",
+      "镖师",
+      "香客"
+    ],
+    "sources": []
+  },
+  "content_hash": "ced9cd63fe96177015b9be56259a9dbdd8745362cb8b9509f7a6ffb98b266fdd",
+  "content_sources": {
+    "economy": "content/economy.yaml",
+    "escort_routes": "content/escort_routes.yaml",
+    "items": "content/items.yaml+content/additions/items.yaml",
+    "locations": "content/locations.yaml+content/additions/locations.yaml",
+    "npcs": "content/npcs.yaml+content/additions/npcs.yaml",
+    "personas": "content/personas/*.md",
+    "quests": "content/quests.yaml",
+    "roles": "content/additions/roles.yaml",
+    "sects": "content/sects.yaml",
+    "verbs": "content/verbs.yaml+content/additions/verbs.yaml"
+  },
+  "cost": {
+    "by_slot": {
+      "decision": {
+        "calls": 19,
+        "estimated_cost": 0.017451,
+        "input_tokens": 14368,
+        "models": [
+          "group/all"
+        ],
+        "output_tokens": 278,
+        "per_1k_input_tokens": 0.0015,
+        "per_1k_output_tokens": 0.006,
+        "schema_rejects": 0,
+        "token_missing_calls": 0,
+        "usage_sources": [
+          "reported"
+        ]
+      },
+      "intent": {
+        "calls": 19,
+        "estimated_cost": 0.028836375,
+        "input_tokens": 23066,
+        "models": [
+          "openrouter/xingchen-agi/xing4.0-29b-a4b:free"
+        ],
+        "output_tokens": 363,
+        "per_1k_input_tokens": 0.0015,
+        "per_1k_output_tokens": 0.006,
+        "schema_rejects": 0,
+        "token_missing_calls": 1,
+        "usage_sources": [
+          "reported",
+          "missing"
+        ]
+      }
+    },
+    "by_tier": {
+      "active": {
+        "calls": 22,
+        "estimated_cost": 0.0363225,
+        "input_tokens": 22655,
+        "output_tokens": 390,
+        "persona_tokens": 804,
+        "schema_rejects": 0,
+        "token_missing_calls": 0
+      },
+      "background": {
+        "calls": 10,
+        "estimated_cost": 0.0080925,
+        "input_tokens": 10062,
+        "output_tokens": 182,
+        "persona_tokens": 373,
+        "schema_rejects": 0,
+        "token_missing_calls": 0
+      },
+      "silent": {
+        "calls": 6,
+        "estimated_cost": 0.001872375,
+        "input_tokens": 4717,
+        "output_tokens": 69,
+        "persona_tokens": 228,
+        "schema_rejects": 0,
+        "token_missing_calls": 1
+      }
+    },
+    "calls": 38,
+    "currency": "USD",
+    "estimated_cost": 0.046287375,
+    "fallbacks": 0,
+    "input_tokens": 37434,
+    "output_tokens": 641,
+    "persona_tokens": 1405,
+    "rates": {
+      "per_1k_input_tokens": 0.0015,
+      "per_1k_output_tokens": 0.006,
+      "tier_multiplier": {
+        "active": 1.0,
+        "background": 0.5,
+        "silent": 0.25,
+        "spotlight": 2.0
+      }
+    },
+    "schema_reject_total": 0,
+    "schema_rejects": {},
+    "token_missing_calls": 1
+  },
+  "days": 2,
+  "decisions": {
+    "night_batch": {
+      "accept_rate": 0.0,
+      "accepted": 0,
+      "actions": 0,
+      "applied": 0,
+      "apply_rate": 0.0,
+      "avg_actions": 0.0,
+      "decisions": 0,
+      "invocations": 24,
+      "model_calls": 14,
+      "submitted": 0
+    },
+    "realtime": {
+      "accept_rate": 0.9942,
+      "accepted": 171,
+      "actions": 274,
+      "applied": 171,
+      "apply_rate": 0.9942,
+      "avg_actions": 17.125,
+      "decisions": 16,
+      "invocations": 16,
+      "model_calls": 5,
+      "submitted": 172
+    },
+    "replan": {
+      "accept_rate": 1.0,
+      "accepted": 1,
+      "actions": 1,
+      "applied": 1,
+      "apply_rate": 1.0,
+      "avg_actions": 1.0,
+      "decisions": 1,
+      "invocations": 1,
+      "model_calls": 0,
+      "submitted": 1
+    }
+  },
+  "economy": {
+    "burned_total": 54,
+    "business_book_value": 300,
+    "business_cash_now": 11539,
+    "capital_out_per_day": 12.5,
+    "cash_delta_breakdown": {
+      "burned_total": 54,
+      "business_cash_change": 39,
+      "business_cash_now": 11539,
+      "capital_out": 300,
+      "capital_out_by_reason": {
+        "shop_rent": 300
+      },
+      "inflow_by_reason": {
+        "escort_fee": 98,
+        "quest_reward": 12,
+        "sell": 30,
+        "trade": 20,
+        "wage": 611
+      },
+      "minted_total": 26200,
+      "npc_net_change": -185,
+      "operating_minus_capital": -185,
+      "operating_net": 115,
+      "other_accounts_cash": 92,
+      "outflow_by_reason": {
+        "buy": 270,
+        "consume": 95,
+        "income_tax": 51,
+        "living_dues": 32,
+        "living_housing": 86,
+        "living_upkeep": 26,
+        "quest_reward": 12,
+        "sect_dues": 60,
+        "trade": 20,
+        "transaction_tax": 3,
+        "transaction_tax_treasury": 1
+      },
+      "reconciles_npc_cash": true
+    },
+    "cashflow": {
+      "capital_out_by_reason": {
+        "shop_rent": 300
+      },
+      "capital_out_total": 300,
+      "inflow_by_reason": {
+        "escort_fee": 98,
+        "quest_reward": 12,
+        "sell": 30,
+        "trade": 20,
+        "wage": 611
+      },
+      "inflow_total": 771,
+      "operating_net": 115,
+      "operating_net_per_npc_day": 4.791666666666667,
+      "outflow_by_reason": {
+        "buy": 270,
+        "consume": 95,
+        "income_tax": 51,
+        "living_dues": 32,
+        "living_housing": 86,
+        "living_upkeep": 26,
+        "quest_reward": 12,
+        "sect_dues": 60,
+        "trade": 20,
+        "transaction_tax": 3,
+        "transaction_tax_treasury": 1
+      },
+      "outflow_total": 656,
+      "total_net": -185
+    },
+    "declared_total_supply": 47150,
+    "ideal_net_per_npc_day": 6.375,
+    "ideal_net_range": [
+      0.5,
+      11.0
+    ],
+    "initial_debts_count": 0,
+    "initial_debts_total": 0,
+    "initial_location_float": 11500,
+    "initial_npc_money": 14700,
+    "ious_count": 0,
+    "ious_total": 0,
+    "living_debts_count": 0,
+    "living_debts_total": 0,
+    "minted_total": 26200,
+    "npc_money_now": 14515,
+    "npc_net_change": -185,
+    "npc_net_per_day": -7.708333333333333,
+    "npc_net_worth_change": 115,
+    "npc_net_worth_per_day": 4.791666666666667,
+    "npc_wallets": {
+      "bai_lusheng": 1628,
+      "cui_tieyi": 1073,
+      "gu_qingya": 1389,
+      "han_xinglin": 427,
+      "hua_jieyu": 702,
+      "liu_sanniang": 895,
+      "lu_jiujin": 448,
+      "pei_wujiu": 1516,
+      "shen_yanzhou": 997,
+      "su_hexiang": 3080,
+      "wen_xiaoman": 447,
+      "xie_tingyun": 1913
+    },
+    "operating_net_per_day": 4.791666666666667,
+    "supply_now": 26146
+  },
+  "escorts": {
+    "arrived_events": 1,
+    "created_events": 1,
+    "done": 1,
+    "status": {
+      "done": 1
+    }
+  },
+  "events": {
+    "by_reason": {
+      "rejected:not_together": 1
+    },
+    "by_verb": {
+      "trade": 1
+    },
+    "illegal_rate": 0.004807692307692308,
+    "rejected": 1,
+    "total": 208
+  },
+  "hashes": {
+    "event_final": "4f06496edb064919c8cfc558915d0b2cd957b7bcf07da31d91c7f7c52575bee8",
+    "state_day10": null,
+    "state_final": "c788434f32faa6f6d8afd7430d1878d606d16d44f25b76cce3c813e68e5fb471"
+  },
+  "intent": {
+    "by_source": {
+      "llm": 12,
+      "planner": 162,
+      "system": 34
+    },
+    "decisions": 17,
+    "goal_changes": 0,
+    "logs": [
+      "decisions.jsonl",
+      "goal_changes.jsonl",
+      "lod_tiers.jsonl",
+      "cost.jsonl"
+    ],
+    "planned_overrides": 0,
+    "postponed_open_shop": 0,
+    "preemptions": 0,
+    "reason_coverage": 1.0,
+    "reasoned_events": 161,
+    "replans": 1
+  },
+  "k1": {
+    "by_content_type": {
+      "advance_skill": {
+        "created": 4,
+        "progressed": 0,
+        "rate": 0.0,
+        "total": 16
+      },
+      "build_relation": {
+        "created": 2,
+        "progressed": 1,
+        "rate": 0.05555555555555555,
+        "total": 18
+      },
+      "build_shop": {
+        "created": 2,
+        "progressed": 1,
+        "rate": 0.08333333333333333,
+        "total": 12
+      },
+      "earn_money": {
+        "created": 2,
+        "progressed": 2,
+        "rate": 0.07692307692307693,
+        "total": 26
+      },
+      "found_sect": {
+        "created": 1,
+        "progressed": 0,
+        "rate": 0.0,
+        "total": 3
+      },
+      "gain_status": {
+        "created": 4,
+        "progressed": 3,
+        "rate": 0.2,
+        "total": 15
+      },
+      "join_sect": {
+        "created": 0,
+        "progressed": 0,
+        "rate": 0.0,
+        "total": 1
+      }
+    },
+    "by_kind": {
+      "bond": {
+        "completed": 0,
+        "created": 2,
+        "progressed": 1,
+        "rate": 0.05555555555555555,
+        "total": 18
+      },
+      "faction": {
+        "completed": 3,
+        "created": 5,
+        "progressed": 3,
+        "rate": 0.15789473684210525,
+        "total": 19
+      },
+      "mastery": {
+        "completed": 0,
+        "created": 4,
+        "progressed": 0,
+        "rate": 0.0,
+        "total": 16
+      },
+      "shop": {
+        "completed": 1,
+        "created": 2,
+        "progressed": 1,
+        "rate": 0.08333333333333333,
+        "total": 12
+      },
+      "wealth": {
+        "completed": 0,
+        "created": 2,
+        "progressed": 2,
+        "rate": 0.07692307692307693,
+        "total": 26
+      }
+    },
+    "comparison_basis": {
+      "basis": "same_snapshot_only",
+      "content_hash": "ced9cd63fe96177015b9be56259a9dbdd8745362cb8b9509f7a6ffb98b266fdd",
+      "cross_version_comparable": false,
+      "goals_total": 91
+    },
+    "goals_completed": 4,
+    "goals_created": 15,
+    "goals_monotonic_violations": 0,
+    "goals_progressed": 7,
+    "goals_total": 91,
+    "k1_rate": 0.07692307692307693,
+    "k1_rate_created_only": 0.4666666666666667,
+    "k1_rate_excluding_one_shot": 0.034482758620689655,
+    "k1_scope": "all_content_goals",
+    "not_created": [
+      {
+        "blocked_by": "shen_yanzhou:goal_shen_yanzhou_1",
+        "content_goal_id": "goal_shen_yanzhou_2",
+        "content_type": "gain_status",
+        "kind": "faction",
+        "npc": "shen_yanzhou"
+      },
+      {
+        "blocked_by": "shen_yanzhou:goal_shen_yanzhou_1",
+        "content_goal_id": "goal_shen_yanzhou_3",
+        "content_type": "earn_money",
+        "kind": "wealth",
+        "npc": "shen_yanzhou"
+      },
+      {
+        "blocked_by": "liu_sanniang:goal_liu_sanniang_2",
+        "content_goal_id": "goal_liu_sanniang_3",
+        "content_type": "advance_skill",
+        "kind": "mastery",
+        "npc": "liu_sanniang"
+      },
+      {
+        "blocked_by": "lu_jiujin:goal_lu_jiujin_1",
+        "content_goal_id": "goal_lu_jiujin_3",
+        "content_type": "build_relation",
+        "kind": "bond",
+        "npc": "lu_jiujin"
+      },
+      {
+        "blocked_by": "su_hexiang:goal_su_hexiang_1",
+        "content_goal_id": "goal_su_hexiang_2",
+        "content_type": "advance_skill",
+        "kind": "mastery",
+        "npc": "su_hexiang"
+      },
+      {
+        "blocked_by": "su_hexiang:goal_su_hexiang_1",
+        "content_goal_id": "goal_su_hexiang_3",
+        "content_type": "gain_status",
+        "kind": "faction",
+        "npc": "su_hexiang"
+      },
+      {
+        "blocked_by": "not_created:gu_qingya:goal_gu_qingya_2",
+        "content_goal_id": "goal_gu_qingya_2",
+        "content_type": "build_relation",
+        "kind": "bond",
+        "npc": "gu_qingya"
+      },
+      {
+        "blocked_by": "not_created:gu_qingya:goal_gu_qingya_2",
+        "content_goal_id": "goal_gu_qingya_3",
+        "content_type": "earn_money",
+        "kind": "wealth",
+        "npc": "gu_qingya"
+      },
+      {
+        "blocked_by": "pei_wujiu:goal_pei_wujiu_1",
+        "content_goal_id": "goal_pei_wujiu_2",
+        "content_type": "build_relation",
+        "kind": "bond",
+        "npc": "pei_wujiu"
+      },
+      {
+        "blocked_by": "pei_wujiu:goal_pei_wujiu_1",
+        "content_goal_id": "goal_pei_wujiu_3",
+        "content_type": "earn_money",
+        "kind": "wealth",
+        "npc": "pei_wujiu"
+      },
+      {
+        "blocked_by": "wen_xiaoman:goal_wen_xiaoman_1",
+        "content_goal_id": "goal_wen_xiaoman_2",
+        "content_type": "advance_skill",
+        "kind": "mastery",
+        "npc": "wen_xiaoman"
+      },
+      {
+        "blocked_by": "wen_xiaoman:goal_wen_xiaoman_1",
+        "content_goal_id": "goal_wen_xiaoman_3",
+        "content_type": "build_relation",
+        "kind": "bond",
+        "npc": "wen_xiaoman"
+      },
+      {
+        "blocked_by": "cui_tieyi:goal_cui_tieyi_2",
+        "content_goal_id": "goal_cui_tieyi_3",
+        "content_type": "earn_money",
+        "kind": "wealth",
+        "npc": "cui_tieyi"
+      },
+      {
+        "blocked_by": "not_created:hua_jieyu:goal_hua_jieyu_2",
+        "content_goal_id": "goal_hua_jieyu_2",
+        "content_type": "earn_money",
+        "kind": "wealth",
+        "npc": "hua_jieyu"
+      },
+      {
+        "blocked_by": "not_created:hua_jieyu:goal_hua_jieyu_2",
+        "content_goal_id": "goal_hua_jieyu_3",
+        "content_type": "advance_skill",
+        "kind": "mastery",
+        "npc": "hua_jieyu"
+      },
+      {
+        "blocked_by": "xie_tingyun:goal_xie_tingyun_1",
+        "content_goal_id": "goal_xie_tingyun_2",
+        "content_type": "found_sect",
+        "kind": "faction",
+        "npc": "xie_tingyun"
+      },
+      {
+        "blocked_by": "xie_tingyun:goal_xie_tingyun_1",
+        "content_goal_id": "goal_xie_tingyun_3",
+        "content_type": "earn_money",
+        "kind": "wealth",
+        "npc": "xie_tingyun"
+      },
+      {
+        "blocked_by": "bai_lusheng:goal_bai_lusheng_1",
+        "content_goal_id": "goal_bai_lusheng_2",
+        "content_type": "advance_skill",
+        "kind": "mastery",
+        "npc": "bai_lusheng"
+      },
+      {
+        "blocked_by": "bai_lusheng:goal_bai_lusheng_1",
+        "content_goal_id": "goal_bai_lusheng_3",
+        "content_type": "build_relation",
+        "kind": "bond",
+        "npc": "bai_lusheng"
+      },
+      {
+        "blocked_by": "han_xinglin:goal_han_xinglin_1",
+        "content_goal_id": "goal_han_xinglin_2",
+        "content_type": "build_relation",
+        "kind": "bond",
+        "npc": "han_xinglin"
+      },
+      {
+        "blocked_by": "han_xinglin:goal_han_xinglin_1",
+        "content_goal_id": "goal_han_xinglin_3",
+        "content_type": "earn_money",
+        "kind": "wealth",
+        "npc": "han_xinglin"
+      },
+      {
+        "blocked_by": "not_created:duan_wudou:goal_duan_wudou_1",
+        "content_goal_id": "goal_duan_wudou_1",
+        "content_type": "earn_money",
+        "kind": "wealth",
+        "npc": "duan_wudou"
+      },
+      {
+        "blocked_by": "not_created:duan_wudou:goal_duan_wudou_1",
+        "content_goal_id": "goal_duan_wudou_2",
+        "content_type": "build_shop",
+        "kind": "shop",
+        "npc": "duan_wudou"
+      },
+      {
+        "blocked_by": "not_created:duan_wudou:goal_duan_wudou_1",
+        "content_goal_id": "goal_duan_wudou_3",
+        "content_type": "gain_status",
+        "kind": "faction",
+        "npc": "duan_wudou"
+      },
+      {
+        "blocked_by": "not_created:luo_qingxu:goal_luo_qingxu_1",
+        "content_goal_id": "goal_luo_qingxu_1",
+        "content_type": "earn_money",
+        "kind": "wealth",
+        "npc": "luo_qingxu"
+      },
+      {
+        "blocked_by": "not_created:luo_qingxu:goal_luo_qingxu_1",
+        "content_goal_id": "goal_luo_qingxu_2",
+        "content_type": "advance_skill",
+        "kind": "mastery",
+        "npc": "luo_qingxu"
+      },
+      {
+        "blocked_by": "not_created:luo_qingxu:goal_luo_qingxu_1",
+        "content_goal_id": "goal_luo_qingxu_3",
+        "content_type": "build_shop",
+        "kind": "shop",
+        "npc": "luo_qingxu"
+      },
+      {
+        "blocked_by": "not_created:chang_banxia:goal_chang_banxia_1",
+        "content_goal_id": "goal_chang_banxia_1",
+        "content_type": "earn_money",
+        "kind": "wealth",
+        "npc": "chang_banxia"
+      },
+      {
+        "blocked_by": "not_created:chang_banxia:goal_chang_banxia_1",
+        "content_goal_id": "goal_chang_banxia_2",
+        "content_type": "gain_status",
+        "kind": "faction",
+        "npc": "chang_banxia"
+      },
+      {
+        "blocked_by": "not_created:chang_banxia:goal_chang_banxia_1",
+        "content_goal_id": "goal_chang_banxia_3",
+        "content_type": "advance_skill",
+        "kind": "mastery",
+        "npc": "chang_banxia"
+      },
+      {
+        "blocked_by": "not_created:qin_wangchuan:goal_qin_wangchuan_1",
+        "content_goal_id": "goal_qin_wangchuan_1",
+        "content_type": "earn_money",
+        "kind": "wealth",
+        "npc": "qin_wangchuan"
+      },
+      {
+        "blocked_by": "not_created:qin_wangchuan:goal_qin_wangchuan_1",
+        "content_goal_id": "goal_qin_wangchuan_2",
+        "content_type": "build_shop",
+        "kind": "shop",
+        "npc": "qin_wangchuan"
+      },
+      {
+        "blocked_by": "not_created:qin_wangchuan:goal_qin_wangchuan_1",
+        "content_goal_id": "goal_qin_wangchuan_3",
+        "content_type": "build_relation",
+        "kind": "bond",
+        "npc": "qin_wangchuan"
+      },
+      {
+        "blocked_by": "not_created:wei_changgeng:goal_wei_changgeng_1",
+        "content_goal_id": "goal_wei_changgeng_1",
+        "content_type": "earn_money",
+        "kind": "wealth",
+        "npc": "wei_changgeng"
+      },
+      {
+        "blocked_by": "not_created:wei_changgeng:goal_wei_changgeng_1",
+        "content_goal_id": "goal_wei_changgeng_2",
+        "content_type": "gain_status",
+        "kind": "faction",
+        "npc": "wei_changgeng"
+      },
+      {
+        "blocked_by": "not_created:wei_changgeng:goal_wei_changgeng_1",
+        "content_goal_id": "goal_wei_changgeng_3",
+        "content_type": "build_relation",
+        "kind": "bond",
+        "npc": "wei_changgeng"
+      },
+      {
+        "blocked_by": "not_created:meng_jiuniang:goal_meng_jiuniang_1",
+        "content_goal_id": "goal_meng_jiuniang_1",
+        "content_type": "build_relation",
+        "kind": "bond",
+        "npc": "meng_jiuniang"
+      },
+      {
+        "blocked_by": "not_created:meng_jiuniang:goal_meng_jiuniang_1",
+        "content_goal_id": "goal_meng_jiuniang_2",
+        "content_type": "earn_money",
+        "kind": "wealth",
+        "npc": "meng_jiuniang"
+      },
+      {
+        "blocked_by": "not_created:meng_jiuniang:goal_meng_jiuniang_1",
+        "content_goal_id": "goal_meng_jiuniang_3",
+        "content_type": "gain_status",
+        "kind": "faction",
+        "npc": "meng_jiuniang"
+      },
+      {
+        "blocked_by": "not_created:shi_gandang:goal_shi_gandang_1",
+        "content_goal_id": "goal_shi_gandang_1",
+        "content_type": "earn_money",
+        "kind": "wealth",
+        "npc": "shi_gandang"
+      },
+      {
+        "blocked_by": "not_created:shi_gandang:goal_shi_gandang_1",
+        "content_goal_id": "goal_shi_gandang_2",
+        "content_type": "advance_skill",
+        "kind": "mastery",
+        "npc": "shi_gandang"
+      },
+      {
+        "blocked_by": "not_created:shi_gandang:goal_shi_gandang_1",
+        "content_goal_id": "goal_shi_gandang_3",
+        "content_type": "build_shop",
+        "kind": "shop",
+        "npc": "shi_gandang"
+      },
+      {
+        "blocked_by": "not_created:jiang_tingyu:goal_jiang_tingyu_1",
+        "content_goal_id": "goal_jiang_tingyu_1",
+        "content_type": "earn_money",
+        "kind": "wealth",
+        "npc": "jiang_tingyu"
+      },
+      {
+        "blocked_by": "not_created:jiang_tingyu:goal_jiang_tingyu_1",
+        "content_goal_id": "goal_jiang_tingyu_2",
+        "content_type": "advance_skill",
+        "kind": "mastery",
+        "npc": "jiang_tingyu"
+      },
+      {
+        "blocked_by": "not_created:jiang_tingyu:goal_jiang_tingyu_1",
+        "content_goal_id": "goal_jiang_tingyu_3",
+        "content_type": "build_relation",
+        "kind": "bond",
+        "npc": "jiang_tingyu"
+      },
+      {
+        "blocked_by": "not_created:song_henian:goal_song_henian_1",
+        "content_goal_id": "goal_song_henian_1",
+        "content_type": "build_shop",
+        "kind": "shop",
+        "npc": "song_henian"
+      },
+      {
+        "blocked_by": "not_created:song_henian:goal_song_henian_1",
+        "content_goal_id": "goal_song_henian_2",
+        "content_type": "earn_money",
+        "kind": "wealth",
+        "npc": "song_henian"
+      },
+      {
+        "blocked_by": "not_created:song_henian:goal_song_henian_1",
+        "content_goal_id": "goal_song_henian_3",
+        "content_type": "gain_status",
+        "kind": "faction",
+        "npc": "song_henian"
+      },
+      {
+        "blocked_by": "not_created:ruan_qingfu:goal_ruan_qingfu_1",
+        "content_goal_id": "goal_ruan_qingfu_1",
+        "content_type": "earn_money",
+        "kind": "wealth",
+        "npc": "ruan_qingfu"
+      },
+      {
+        "blocked_by": "not_created:ruan_qingfu:goal_ruan_qingfu_1",
+        "content_goal_id": "goal_ruan_qingfu_2",
+        "content_type": "build_shop",
+        "kind": "shop",
+        "npc": "ruan_qingfu"
+      },
+      {
+        "blocked_by": "not_created:ruan_qingfu:goal_ruan_qingfu_1",
+        "content_goal_id": "goal_ruan_qingfu_3",
+        "content_type": "build_relation",
+        "kind": "bond",
+        "npc": "ruan_qingfu"
+      },
+      {
+        "blocked_by": "not_created:cao_banxian:goal_cao_banxian_1",
+        "content_goal_id": "goal_cao_banxian_1",
+        "content_type": "gain_status",
+        "kind": "faction",
+        "npc": "cao_banxian"
+      },
+      {
+        "blocked_by": "not_created:cao_banxian:goal_cao_banxian_1",
+        "content_goal_id": "goal_cao_banxian_2",
+        "content_type": "earn_money",
+        "kind": "wealth",
+        "npc": "cao_banxian"
+      },
+      {
+        "blocked_by": "not_created:cao_banxian:goal_cao_banxian_1",
+        "content_goal_id": "goal_cao_banxian_3",
+        "content_type": "build_relation",
+        "kind": "bond",
+        "npc": "cao_banxian"
+      },
+      {
+        "blocked_by": "not_created:jin_mancang:goal_jin_mancang_1",
+        "content_goal_id": "goal_jin_mancang_1",
+        "content_type": "earn_money",
+        "kind": "wealth",
+        "npc": "jin_mancang"
+      },
+      {
+        "blocked_by": "not_created:jin_mancang:goal_jin_mancang_1",
+        "content_goal_id": "goal_jin_mancang_2",
+        "content_type": "gain_status",
+        "kind": "faction",
+        "npc": "jin_mancang"
+      },
+      {
+        "blocked_by": "not_created:jin_mancang:goal_jin_mancang_1",
+        "content_goal_id": "goal_jin_mancang_3",
+        "content_type": "build_shop",
+        "kind": "shop",
+        "npc": "jin_mancang"
+      },
+      {
+        "blocked_by": "not_created:zhuo_bufan:goal_zhuo_bufan_1",
+        "content_goal_id": "goal_zhuo_bufan_1",
+        "content_type": "build_shop",
+        "kind": "shop",
+        "npc": "zhuo_bufan"
+      },
+      {
+        "blocked_by": "not_created:zhuo_bufan:goal_zhuo_bufan_1",
+        "content_goal_id": "goal_zhuo_bufan_2",
+        "content_type": "advance_skill",
+        "kind": "mastery",
+        "npc": "zhuo_bufan"
+      },
+      {
+        "blocked_by": "not_created:zhuo_bufan:goal_zhuo_bufan_1",
+        "content_goal_id": "goal_zhuo_bufan_3",
+        "content_type": "build_relation",
+        "kind": "bond",
+        "npc": "zhuo_bufan"
+      },
+      {
+        "blocked_by": "not_created:ruan_xiaoluo:goal_ruan_xiaoluo_1",
+        "content_goal_id": "goal_ruan_xiaoluo_1",
+        "content_type": "earn_money",
+        "kind": "wealth",
+        "npc": "ruan_xiaoluo"
+      },
+      {
+        "blocked_by": "not_created:ruan_xiaoluo:goal_ruan_xiaoluo_1",
+        "content_goal_id": "goal_ruan_xiaoluo_2",
+        "content_type": "build_shop",
+        "kind": "shop",
+        "npc": "ruan_xiaoluo"
+      },
+      {
+        "blocked_by": "not_created:ruan_xiaoluo:goal_ruan_xiaoluo_1",
+        "content_goal_id": "goal_ruan_xiaoluo_3",
+        "content_type": "build_relation",
+        "kind": "bond",
+        "npc": "ruan_xiaoluo"
+      },
+      {
+        "blocked_by": "not_created:xing_pojun:goal_xing_pojun_1",
+        "content_goal_id": "goal_xing_pojun_1",
+        "content_type": "gain_status",
+        "kind": "faction",
+        "npc": "xing_pojun"
+      },
+      {
+        "blocked_by": "not_created:xing_pojun:goal_xing_pojun_1",
+        "content_goal_id": "goal_xing_pojun_2",
+        "content_type": "earn_money",
+        "kind": "wealth",
+        "npc": "xing_pojun"
+      },
+      {
+        "blocked_by": "not_created:xing_pojun:goal_xing_pojun_1",
+        "content_goal_id": "goal_xing_pojun_3",
+        "content_type": "build_relation",
+        "kind": "bond",
+        "npc": "xing_pojun"
+      },
+      {
+        "blocked_by": "not_created:lu_xinghua:goal_lu_xinghua_1",
+        "content_goal_id": "goal_lu_xinghua_1",
+        "content_type": "earn_money",
+        "kind": "wealth",
+        "npc": "lu_xinghua"
+      },
+      {
+        "blocked_by": "not_created:lu_xinghua:goal_lu_xinghua_1",
+        "content_goal_id": "goal_lu_xinghua_2",
+        "content_type": "build_shop",
+        "kind": "shop",
+        "npc": "lu_xinghua"
+      },
+      {
+        "blocked_by": "not_created:lu_xinghua:goal_lu_xinghua_1",
+        "content_goal_id": "goal_lu_xinghua_3",
+        "content_type": "advance_skill",
+        "kind": "mastery",
+        "npc": "lu_xinghua"
+      },
+      {
+        "blocked_by": "not_created:fang_cunxin:goal_fang_cunxin_1",
+        "content_goal_id": "goal_fang_cunxin_1",
+        "content_type": "advance_skill",
+        "kind": "mastery",
+        "npc": "fang_cunxin"
+      },
+      {
+        "blocked_by": "not_created:fang_cunxin:goal_fang_cunxin_1",
+        "content_goal_id": "goal_fang_cunxin_2",
+        "content_type": "build_relation",
+        "kind": "bond",
+        "npc": "fang_cunxin"
+      },
+      {
+        "blocked_by": "not_created:fang_cunxin:goal_fang_cunxin_1",
+        "content_goal_id": "goal_fang_cunxin_3",
+        "content_type": "join_sect",
+        "kind": "faction",
+        "npc": "fang_cunxin"
+      },
+      {
+        "blocked_by": "not_created:yan_shouyi:goal_yan_shouyi_1",
+        "content_goal_id": "goal_yan_shouyi_1",
+        "content_type": "found_sect",
+        "kind": "faction",
+        "npc": "yan_shouyi"
+      },
+      {
+        "blocked_by": "not_created:yan_shouyi:goal_yan_shouyi_1",
+        "content_goal_id": "goal_yan_shouyi_2",
+        "content_type": "gain_status",
+        "kind": "faction",
+        "npc": "yan_shouyi"
+      },
+      {
+        "blocked_by": "not_created:yan_shouyi:goal_yan_shouyi_1",
+        "content_goal_id": "goal_yan_shouyi_3",
+        "content_type": "earn_money",
+        "kind": "wealth",
+        "npc": "yan_shouyi"
+      },
+      {
+        "blocked_by": "not_created:ming_chabo:goal_ming_chabo_1",
+        "content_goal_id": "goal_ming_chabo_1",
+        "content_type": "earn_money",
+        "kind": "wealth",
+        "npc": "ming_chabo"
+      }
+    ],
+    "npc_progress_rate": 0.1935483870967742,
+    "npcs_progressed": 6,
+    "npcs_with_goals": 31,
+    "one_shot_by_type": {
+      "build_shop": 1,
+      "gain_status": 3
+    },
+    "one_shot_created": 4,
+    "one_shot_progressed": 4,
+    "one_shot_share_of_progressed": 0.5714285714285714,
+    "rows": [
+      {
+        "blocked_by": null,
+        "completed": false,
+        "content_type": "advance_skill",
+        "created": true,
+        "created_tick": 0,
+        "id": "shen_yanzhou:goal_shen_yanzhou_1",
+        "kind": "mastery",
+        "monotonic": true,
+        "npc": "shen_yanzhou",
+        "one_shot": false,
+        "progress": 0.016666,
+        "progressed": false,
+        "status": "active"
+      },
+      {
+        "blocked_by": "shen_yanzhou:goal_shen_yanzhou_1",
+        "completed": false,
+        "content_type": "gain_status",
+        "created": false,
+        "created_tick": null,
+        "id": "shen_yanzhou:goal_shen_yanzhou_2",
+        "kind": "faction",
+        "monotonic": true,
+        "npc": "shen_yanzhou",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "shen_yanzhou:goal_shen_yanzhou_1",
+        "completed": false,
+        "content_type": "earn_money",
+        "created": false,
+        "created_tick": null,
+        "id": "shen_yanzhou:goal_shen_yanzhou_3",
+        "kind": "wealth",
+        "monotonic": true,
+        "npc": "shen_yanzhou",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": null,
+        "completed": true,
+        "content_type": "build_shop",
+        "created": true,
+        "created_tick": 0,
+        "id": "liu_sanniang:goal_liu_sanniang_1",
+        "kind": "shop",
+        "monotonic": true,
+        "npc": "liu_sanniang",
+        "one_shot": true,
+        "progress": 1.0,
+        "progressed": true,
+        "status": "completed"
+      },
+      {
+        "blocked_by": null,
+        "completed": false,
+        "content_type": "build_relation",
+        "created": true,
+        "created_tick": 210,
+        "id": "liu_sanniang:goal_liu_sanniang_2",
+        "kind": "bond",
+        "monotonic": true,
+        "npc": "liu_sanniang",
+        "one_shot": false,
+        "progress": 0.2,
+        "progressed": true,
+        "status": "active"
+      },
+      {
+        "blocked_by": "liu_sanniang:goal_liu_sanniang_2",
+        "completed": false,
+        "content_type": "advance_skill",
+        "created": false,
+        "created_tick": null,
+        "id": "liu_sanniang:goal_liu_sanniang_3",
+        "kind": "mastery",
+        "monotonic": true,
+        "npc": "liu_sanniang",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": null,
+        "completed": false,
+        "content_type": "earn_money",
+        "created": true,
+        "created_tick": 0,
+        "id": "lu_jiujin:goal_lu_jiujin_1",
+        "kind": "wealth",
+        "monotonic": true,
+        "npc": "lu_jiujin",
+        "one_shot": false,
+        "progress": 0.11333200000000002,
+        "progressed": true,
+        "status": "active"
+      },
+      {
+        "blocked_by": null,
+        "completed": false,
+        "content_type": "advance_skill",
+        "created": true,
+        "created_tick": 171,
+        "id": "lu_jiujin:goal_lu_jiujin_2",
+        "kind": "mastery",
+        "monotonic": true,
+        "npc": "lu_jiujin",
+        "one_shot": false,
+        "progress": 0.016666,
+        "progressed": false,
+        "status": "active"
+      },
+      {
+        "blocked_by": "lu_jiujin:goal_lu_jiujin_1",
+        "completed": false,
+        "content_type": "build_relation",
+        "created": false,
+        "created_tick": null,
+        "id": "lu_jiujin:goal_lu_jiujin_3",
+        "kind": "bond",
+        "monotonic": true,
+        "npc": "lu_jiujin",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": null,
+        "completed": false,
+        "content_type": "build_shop",
+        "created": true,
+        "created_tick": 0,
+        "id": "su_hexiang:goal_su_hexiang_1",
+        "kind": "shop",
+        "monotonic": true,
+        "npc": "su_hexiang",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "active"
+      },
+      {
+        "blocked_by": "su_hexiang:goal_su_hexiang_1",
+        "completed": false,
+        "content_type": "advance_skill",
+        "created": false,
+        "created_tick": null,
+        "id": "su_hexiang:goal_su_hexiang_2",
+        "kind": "mastery",
+        "monotonic": true,
+        "npc": "su_hexiang",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "su_hexiang:goal_su_hexiang_1",
+        "completed": false,
+        "content_type": "gain_status",
+        "created": false,
+        "created_tick": null,
+        "id": "su_hexiang:goal_su_hexiang_3",
+        "kind": "faction",
+        "monotonic": true,
+        "npc": "su_hexiang",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": null,
+        "completed": true,
+        "content_type": "gain_status",
+        "created": true,
+        "created_tick": 0,
+        "id": "gu_qingya:goal_gu_qingya_1",
+        "kind": "faction",
+        "monotonic": true,
+        "npc": "gu_qingya",
+        "one_shot": true,
+        "progress": 1.0,
+        "progressed": true,
+        "status": "completed"
+      },
+      {
+        "blocked_by": "not_created:gu_qingya:goal_gu_qingya_2",
+        "completed": false,
+        "content_type": "build_relation",
+        "created": false,
+        "created_tick": null,
+        "id": "gu_qingya:goal_gu_qingya_2",
+        "kind": "bond",
+        "monotonic": true,
+        "npc": "gu_qingya",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:gu_qingya:goal_gu_qingya_2",
+        "completed": false,
+        "content_type": "earn_money",
+        "created": false,
+        "created_tick": null,
+        "id": "gu_qingya:goal_gu_qingya_3",
+        "kind": "wealth",
+        "monotonic": true,
+        "npc": "gu_qingya",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": null,
+        "completed": false,
+        "content_type": "advance_skill",
+        "created": true,
+        "created_tick": 0,
+        "id": "pei_wujiu:goal_pei_wujiu_1",
+        "kind": "mastery",
+        "monotonic": true,
+        "npc": "pei_wujiu",
+        "one_shot": false,
+        "progress": 0.016666,
+        "progressed": false,
+        "status": "active"
+      },
+      {
+        "blocked_by": "pei_wujiu:goal_pei_wujiu_1",
+        "completed": false,
+        "content_type": "build_relation",
+        "created": false,
+        "created_tick": null,
+        "id": "pei_wujiu:goal_pei_wujiu_2",
+        "kind": "bond",
+        "monotonic": true,
+        "npc": "pei_wujiu",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "pei_wujiu:goal_pei_wujiu_1",
+        "completed": false,
+        "content_type": "earn_money",
+        "created": false,
+        "created_tick": null,
+        "id": "pei_wujiu:goal_pei_wujiu_3",
+        "kind": "wealth",
+        "monotonic": true,
+        "npc": "pei_wujiu",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": null,
+        "completed": false,
+        "content_type": "earn_money",
+        "created": true,
+        "created_tick": 0,
+        "id": "wen_xiaoman:goal_wen_xiaoman_1",
+        "kind": "wealth",
+        "monotonic": true,
+        "npc": "wen_xiaoman",
+        "one_shot": false,
+        "progress": 0.11666599999999999,
+        "progressed": true,
+        "status": "active"
+      },
+      {
+        "blocked_by": "wen_xiaoman:goal_wen_xiaoman_1",
+        "completed": false,
+        "content_type": "advance_skill",
+        "created": false,
+        "created_tick": null,
+        "id": "wen_xiaoman:goal_wen_xiaoman_2",
+        "kind": "mastery",
+        "monotonic": true,
+        "npc": "wen_xiaoman",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "wen_xiaoman:goal_wen_xiaoman_1",
+        "completed": false,
+        "content_type": "build_relation",
+        "created": false,
+        "created_tick": null,
+        "id": "wen_xiaoman:goal_wen_xiaoman_3",
+        "kind": "bond",
+        "monotonic": true,
+        "npc": "wen_xiaoman",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": null,
+        "completed": true,
+        "content_type": "gain_status",
+        "created": true,
+        "created_tick": 0,
+        "id": "cui_tieyi:goal_cui_tieyi_1",
+        "kind": "faction",
+        "monotonic": true,
+        "npc": "cui_tieyi",
+        "one_shot": true,
+        "progress": 1.0,
+        "progressed": true,
+        "status": "completed"
+      },
+      {
+        "blocked_by": null,
+        "completed": false,
+        "content_type": "build_relation",
+        "created": true,
+        "created_tick": 229,
+        "id": "cui_tieyi:goal_cui_tieyi_2",
+        "kind": "bond",
+        "monotonic": true,
+        "npc": "cui_tieyi",
+        "one_shot": false,
+        "progress": 0.075,
+        "progressed": false,
+        "status": "active"
+      },
+      {
+        "blocked_by": "cui_tieyi:goal_cui_tieyi_2",
+        "completed": false,
+        "content_type": "earn_money",
+        "created": false,
+        "created_tick": null,
+        "id": "cui_tieyi:goal_cui_tieyi_3",
+        "kind": "wealth",
+        "monotonic": true,
+        "npc": "cui_tieyi",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": null,
+        "completed": true,
+        "content_type": "gain_status",
+        "created": true,
+        "created_tick": 0,
+        "id": "hua_jieyu:goal_hua_jieyu_1",
+        "kind": "faction",
+        "monotonic": true,
+        "npc": "hua_jieyu",
+        "one_shot": true,
+        "progress": 1.0,
+        "progressed": true,
+        "status": "completed"
+      },
+      {
+        "blocked_by": "not_created:hua_jieyu:goal_hua_jieyu_2",
+        "completed": false,
+        "content_type": "earn_money",
+        "created": false,
+        "created_tick": null,
+        "id": "hua_jieyu:goal_hua_jieyu_2",
+        "kind": "wealth",
+        "monotonic": true,
+        "npc": "hua_jieyu",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:hua_jieyu:goal_hua_jieyu_2",
+        "completed": false,
+        "content_type": "advance_skill",
+        "created": false,
+        "created_tick": null,
+        "id": "hua_jieyu:goal_hua_jieyu_3",
+        "kind": "mastery",
+        "monotonic": true,
+        "npc": "hua_jieyu",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": null,
+        "completed": false,
+        "content_type": "gain_status",
+        "created": true,
+        "created_tick": 0,
+        "id": "xie_tingyun:goal_xie_tingyun_1",
+        "kind": "faction",
+        "monotonic": true,
+        "npc": "xie_tingyun",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "active"
+      },
+      {
+        "blocked_by": "xie_tingyun:goal_xie_tingyun_1",
+        "completed": false,
+        "content_type": "found_sect",
+        "created": false,
+        "created_tick": null,
+        "id": "xie_tingyun:goal_xie_tingyun_2",
+        "kind": "faction",
+        "monotonic": true,
+        "npc": "xie_tingyun",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "xie_tingyun:goal_xie_tingyun_1",
+        "completed": false,
+        "content_type": "earn_money",
+        "created": false,
+        "created_tick": null,
+        "id": "xie_tingyun:goal_xie_tingyun_3",
+        "kind": "wealth",
+        "monotonic": true,
+        "npc": "xie_tingyun",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": null,
+        "completed": false,
+        "content_type": "found_sect",
+        "created": true,
+        "created_tick": 0,
+        "id": "bai_lusheng:goal_bai_lusheng_1",
+        "kind": "faction",
+        "monotonic": true,
+        "npc": "bai_lusheng",
+        "one_shot": false,
+        "progress": 0.1,
+        "progressed": false,
+        "status": "active"
+      },
+      {
+        "blocked_by": "bai_lusheng:goal_bai_lusheng_1",
+        "completed": false,
+        "content_type": "advance_skill",
+        "created": false,
+        "created_tick": null,
+        "id": "bai_lusheng:goal_bai_lusheng_2",
+        "kind": "mastery",
+        "monotonic": true,
+        "npc": "bai_lusheng",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "bai_lusheng:goal_bai_lusheng_1",
+        "completed": false,
+        "content_type": "build_relation",
+        "created": false,
+        "created_tick": null,
+        "id": "bai_lusheng:goal_bai_lusheng_3",
+        "kind": "bond",
+        "monotonic": true,
+        "npc": "bai_lusheng",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": null,
+        "completed": false,
+        "content_type": "advance_skill",
+        "created": true,
+        "created_tick": 0,
+        "id": "han_xinglin:goal_han_xinglin_1",
+        "kind": "mastery",
+        "monotonic": true,
+        "npc": "han_xinglin",
+        "one_shot": false,
+        "progress": 0.049998,
+        "progressed": false,
+        "status": "active"
+      },
+      {
+        "blocked_by": "han_xinglin:goal_han_xinglin_1",
+        "completed": false,
+        "content_type": "build_relation",
+        "created": false,
+        "created_tick": null,
+        "id": "han_xinglin:goal_han_xinglin_2",
+        "kind": "bond",
+        "monotonic": true,
+        "npc": "han_xinglin",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "han_xinglin:goal_han_xinglin_1",
+        "completed": false,
+        "content_type": "earn_money",
+        "created": false,
+        "created_tick": null,
+        "id": "han_xinglin:goal_han_xinglin_3",
+        "kind": "wealth",
+        "monotonic": true,
+        "npc": "han_xinglin",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:duan_wudou:goal_duan_wudou_1",
+        "completed": false,
+        "content_type": "earn_money",
+        "created": false,
+        "created_tick": null,
+        "id": "duan_wudou:goal_duan_wudou_1",
+        "kind": "wealth",
+        "monotonic": true,
+        "npc": "duan_wudou",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:duan_wudou:goal_duan_wudou_1",
+        "completed": false,
+        "content_type": "build_shop",
+        "created": false,
+        "created_tick": null,
+        "id": "duan_wudou:goal_duan_wudou_2",
+        "kind": "shop",
+        "monotonic": true,
+        "npc": "duan_wudou",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:duan_wudou:goal_duan_wudou_1",
+        "completed": false,
+        "content_type": "gain_status",
+        "created": false,
+        "created_tick": null,
+        "id": "duan_wudou:goal_duan_wudou_3",
+        "kind": "faction",
+        "monotonic": true,
+        "npc": "duan_wudou",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:luo_qingxu:goal_luo_qingxu_1",
+        "completed": false,
+        "content_type": "earn_money",
+        "created": false,
+        "created_tick": null,
+        "id": "luo_qingxu:goal_luo_qingxu_1",
+        "kind": "wealth",
+        "monotonic": true,
+        "npc": "luo_qingxu",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:luo_qingxu:goal_luo_qingxu_1",
+        "completed": false,
+        "content_type": "advance_skill",
+        "created": false,
+        "created_tick": null,
+        "id": "luo_qingxu:goal_luo_qingxu_2",
+        "kind": "mastery",
+        "monotonic": true,
+        "npc": "luo_qingxu",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:luo_qingxu:goal_luo_qingxu_1",
+        "completed": false,
+        "content_type": "build_shop",
+        "created": false,
+        "created_tick": null,
+        "id": "luo_qingxu:goal_luo_qingxu_3",
+        "kind": "shop",
+        "monotonic": true,
+        "npc": "luo_qingxu",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:chang_banxia:goal_chang_banxia_1",
+        "completed": false,
+        "content_type": "earn_money",
+        "created": false,
+        "created_tick": null,
+        "id": "chang_banxia:goal_chang_banxia_1",
+        "kind": "wealth",
+        "monotonic": true,
+        "npc": "chang_banxia",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:chang_banxia:goal_chang_banxia_1",
+        "completed": false,
+        "content_type": "gain_status",
+        "created": false,
+        "created_tick": null,
+        "id": "chang_banxia:goal_chang_banxia_2",
+        "kind": "faction",
+        "monotonic": true,
+        "npc": "chang_banxia",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:chang_banxia:goal_chang_banxia_1",
+        "completed": false,
+        "content_type": "advance_skill",
+        "created": false,
+        "created_tick": null,
+        "id": "chang_banxia:goal_chang_banxia_3",
+        "kind": "mastery",
+        "monotonic": true,
+        "npc": "chang_banxia",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:qin_wangchuan:goal_qin_wangchuan_1",
+        "completed": false,
+        "content_type": "earn_money",
+        "created": false,
+        "created_tick": null,
+        "id": "qin_wangchuan:goal_qin_wangchuan_1",
+        "kind": "wealth",
+        "monotonic": true,
+        "npc": "qin_wangchuan",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:qin_wangchuan:goal_qin_wangchuan_1",
+        "completed": false,
+        "content_type": "build_shop",
+        "created": false,
+        "created_tick": null,
+        "id": "qin_wangchuan:goal_qin_wangchuan_2",
+        "kind": "shop",
+        "monotonic": true,
+        "npc": "qin_wangchuan",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:qin_wangchuan:goal_qin_wangchuan_1",
+        "completed": false,
+        "content_type": "build_relation",
+        "created": false,
+        "created_tick": null,
+        "id": "qin_wangchuan:goal_qin_wangchuan_3",
+        "kind": "bond",
+        "monotonic": true,
+        "npc": "qin_wangchuan",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:wei_changgeng:goal_wei_changgeng_1",
+        "completed": false,
+        "content_type": "earn_money",
+        "created": false,
+        "created_tick": null,
+        "id": "wei_changgeng:goal_wei_changgeng_1",
+        "kind": "wealth",
+        "monotonic": true,
+        "npc": "wei_changgeng",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:wei_changgeng:goal_wei_changgeng_1",
+        "completed": false,
+        "content_type": "gain_status",
+        "created": false,
+        "created_tick": null,
+        "id": "wei_changgeng:goal_wei_changgeng_2",
+        "kind": "faction",
+        "monotonic": true,
+        "npc": "wei_changgeng",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:wei_changgeng:goal_wei_changgeng_1",
+        "completed": false,
+        "content_type": "build_relation",
+        "created": false,
+        "created_tick": null,
+        "id": "wei_changgeng:goal_wei_changgeng_3",
+        "kind": "bond",
+        "monotonic": true,
+        "npc": "wei_changgeng",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:meng_jiuniang:goal_meng_jiuniang_1",
+        "completed": false,
+        "content_type": "build_relation",
+        "created": false,
+        "created_tick": null,
+        "id": "meng_jiuniang:goal_meng_jiuniang_1",
+        "kind": "bond",
+        "monotonic": true,
+        "npc": "meng_jiuniang",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:meng_jiuniang:goal_meng_jiuniang_1",
+        "completed": false,
+        "content_type": "earn_money",
+        "created": false,
+        "created_tick": null,
+        "id": "meng_jiuniang:goal_meng_jiuniang_2",
+        "kind": "wealth",
+        "monotonic": true,
+        "npc": "meng_jiuniang",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:meng_jiuniang:goal_meng_jiuniang_1",
+        "completed": false,
+        "content_type": "gain_status",
+        "created": false,
+        "created_tick": null,
+        "id": "meng_jiuniang:goal_meng_jiuniang_3",
+        "kind": "faction",
+        "monotonic": true,
+        "npc": "meng_jiuniang",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:shi_gandang:goal_shi_gandang_1",
+        "completed": false,
+        "content_type": "earn_money",
+        "created": false,
+        "created_tick": null,
+        "id": "shi_gandang:goal_shi_gandang_1",
+        "kind": "wealth",
+        "monotonic": true,
+        "npc": "shi_gandang",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:shi_gandang:goal_shi_gandang_1",
+        "completed": false,
+        "content_type": "advance_skill",
+        "created": false,
+        "created_tick": null,
+        "id": "shi_gandang:goal_shi_gandang_2",
+        "kind": "mastery",
+        "monotonic": true,
+        "npc": "shi_gandang",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:shi_gandang:goal_shi_gandang_1",
+        "completed": false,
+        "content_type": "build_shop",
+        "created": false,
+        "created_tick": null,
+        "id": "shi_gandang:goal_shi_gandang_3",
+        "kind": "shop",
+        "monotonic": true,
+        "npc": "shi_gandang",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:jiang_tingyu:goal_jiang_tingyu_1",
+        "completed": false,
+        "content_type": "earn_money",
+        "created": false,
+        "created_tick": null,
+        "id": "jiang_tingyu:goal_jiang_tingyu_1",
+        "kind": "wealth",
+        "monotonic": true,
+        "npc": "jiang_tingyu",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:jiang_tingyu:goal_jiang_tingyu_1",
+        "completed": false,
+        "content_type": "advance_skill",
+        "created": false,
+        "created_tick": null,
+        "id": "jiang_tingyu:goal_jiang_tingyu_2",
+        "kind": "mastery",
+        "monotonic": true,
+        "npc": "jiang_tingyu",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:jiang_tingyu:goal_jiang_tingyu_1",
+        "completed": false,
+        "content_type": "build_relation",
+        "created": false,
+        "created_tick": null,
+        "id": "jiang_tingyu:goal_jiang_tingyu_3",
+        "kind": "bond",
+        "monotonic": true,
+        "npc": "jiang_tingyu",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:song_henian:goal_song_henian_1",
+        "completed": false,
+        "content_type": "build_shop",
+        "created": false,
+        "created_tick": null,
+        "id": "song_henian:goal_song_henian_1",
+        "kind": "shop",
+        "monotonic": true,
+        "npc": "song_henian",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:song_henian:goal_song_henian_1",
+        "completed": false,
+        "content_type": "earn_money",
+        "created": false,
+        "created_tick": null,
+        "id": "song_henian:goal_song_henian_2",
+        "kind": "wealth",
+        "monotonic": true,
+        "npc": "song_henian",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:song_henian:goal_song_henian_1",
+        "completed": false,
+        "content_type": "gain_status",
+        "created": false,
+        "created_tick": null,
+        "id": "song_henian:goal_song_henian_3",
+        "kind": "faction",
+        "monotonic": true,
+        "npc": "song_henian",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:ruan_qingfu:goal_ruan_qingfu_1",
+        "completed": false,
+        "content_type": "earn_money",
+        "created": false,
+        "created_tick": null,
+        "id": "ruan_qingfu:goal_ruan_qingfu_1",
+        "kind": "wealth",
+        "monotonic": true,
+        "npc": "ruan_qingfu",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:ruan_qingfu:goal_ruan_qingfu_1",
+        "completed": false,
+        "content_type": "build_shop",
+        "created": false,
+        "created_tick": null,
+        "id": "ruan_qingfu:goal_ruan_qingfu_2",
+        "kind": "shop",
+        "monotonic": true,
+        "npc": "ruan_qingfu",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:ruan_qingfu:goal_ruan_qingfu_1",
+        "completed": false,
+        "content_type": "build_relation",
+        "created": false,
+        "created_tick": null,
+        "id": "ruan_qingfu:goal_ruan_qingfu_3",
+        "kind": "bond",
+        "monotonic": true,
+        "npc": "ruan_qingfu",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:cao_banxian:goal_cao_banxian_1",
+        "completed": false,
+        "content_type": "gain_status",
+        "created": false,
+        "created_tick": null,
+        "id": "cao_banxian:goal_cao_banxian_1",
+        "kind": "faction",
+        "monotonic": true,
+        "npc": "cao_banxian",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:cao_banxian:goal_cao_banxian_1",
+        "completed": false,
+        "content_type": "earn_money",
+        "created": false,
+        "created_tick": null,
+        "id": "cao_banxian:goal_cao_banxian_2",
+        "kind": "wealth",
+        "monotonic": true,
+        "npc": "cao_banxian",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:cao_banxian:goal_cao_banxian_1",
+        "completed": false,
+        "content_type": "build_relation",
+        "created": false,
+        "created_tick": null,
+        "id": "cao_banxian:goal_cao_banxian_3",
+        "kind": "bond",
+        "monotonic": true,
+        "npc": "cao_banxian",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:jin_mancang:goal_jin_mancang_1",
+        "completed": false,
+        "content_type": "earn_money",
+        "created": false,
+        "created_tick": null,
+        "id": "jin_mancang:goal_jin_mancang_1",
+        "kind": "wealth",
+        "monotonic": true,
+        "npc": "jin_mancang",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:jin_mancang:goal_jin_mancang_1",
+        "completed": false,
+        "content_type": "gain_status",
+        "created": false,
+        "created_tick": null,
+        "id": "jin_mancang:goal_jin_mancang_2",
+        "kind": "faction",
+        "monotonic": true,
+        "npc": "jin_mancang",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:jin_mancang:goal_jin_mancang_1",
+        "completed": false,
+        "content_type": "build_shop",
+        "created": false,
+        "created_tick": null,
+        "id": "jin_mancang:goal_jin_mancang_3",
+        "kind": "shop",
+        "monotonic": true,
+        "npc": "jin_mancang",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:zhuo_bufan:goal_zhuo_bufan_1",
+        "completed": false,
+        "content_type": "build_shop",
+        "created": false,
+        "created_tick": null,
+        "id": "zhuo_bufan:goal_zhuo_bufan_1",
+        "kind": "shop",
+        "monotonic": true,
+        "npc": "zhuo_bufan",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:zhuo_bufan:goal_zhuo_bufan_1",
+        "completed": false,
+        "content_type": "advance_skill",
+        "created": false,
+        "created_tick": null,
+        "id": "zhuo_bufan:goal_zhuo_bufan_2",
+        "kind": "mastery",
+        "monotonic": true,
+        "npc": "zhuo_bufan",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:zhuo_bufan:goal_zhuo_bufan_1",
+        "completed": false,
+        "content_type": "build_relation",
+        "created": false,
+        "created_tick": null,
+        "id": "zhuo_bufan:goal_zhuo_bufan_3",
+        "kind": "bond",
+        "monotonic": true,
+        "npc": "zhuo_bufan",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:ruan_xiaoluo:goal_ruan_xiaoluo_1",
+        "completed": false,
+        "content_type": "earn_money",
+        "created": false,
+        "created_tick": null,
+        "id": "ruan_xiaoluo:goal_ruan_xiaoluo_1",
+        "kind": "wealth",
+        "monotonic": true,
+        "npc": "ruan_xiaoluo",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:ruan_xiaoluo:goal_ruan_xiaoluo_1",
+        "completed": false,
+        "content_type": "build_shop",
+        "created": false,
+        "created_tick": null,
+        "id": "ruan_xiaoluo:goal_ruan_xiaoluo_2",
+        "kind": "shop",
+        "monotonic": true,
+        "npc": "ruan_xiaoluo",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:ruan_xiaoluo:goal_ruan_xiaoluo_1",
+        "completed": false,
+        "content_type": "build_relation",
+        "created": false,
+        "created_tick": null,
+        "id": "ruan_xiaoluo:goal_ruan_xiaoluo_3",
+        "kind": "bond",
+        "monotonic": true,
+        "npc": "ruan_xiaoluo",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:xing_pojun:goal_xing_pojun_1",
+        "completed": false,
+        "content_type": "gain_status",
+        "created": false,
+        "created_tick": null,
+        "id": "xing_pojun:goal_xing_pojun_1",
+        "kind": "faction",
+        "monotonic": true,
+        "npc": "xing_pojun",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:xing_pojun:goal_xing_pojun_1",
+        "completed": false,
+        "content_type": "earn_money",
+        "created": false,
+        "created_tick": null,
+        "id": "xing_pojun:goal_xing_pojun_2",
+        "kind": "wealth",
+        "monotonic": true,
+        "npc": "xing_pojun",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:xing_pojun:goal_xing_pojun_1",
+        "completed": false,
+        "content_type": "build_relation",
+        "created": false,
+        "created_tick": null,
+        "id": "xing_pojun:goal_xing_pojun_3",
+        "kind": "bond",
+        "monotonic": true,
+        "npc": "xing_pojun",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:lu_xinghua:goal_lu_xinghua_1",
+        "completed": false,
+        "content_type": "earn_money",
+        "created": false,
+        "created_tick": null,
+        "id": "lu_xinghua:goal_lu_xinghua_1",
+        "kind": "wealth",
+        "monotonic": true,
+        "npc": "lu_xinghua",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:lu_xinghua:goal_lu_xinghua_1",
+        "completed": false,
+        "content_type": "build_shop",
+        "created": false,
+        "created_tick": null,
+        "id": "lu_xinghua:goal_lu_xinghua_2",
+        "kind": "shop",
+        "monotonic": true,
+        "npc": "lu_xinghua",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:lu_xinghua:goal_lu_xinghua_1",
+        "completed": false,
+        "content_type": "advance_skill",
+        "created": false,
+        "created_tick": null,
+        "id": "lu_xinghua:goal_lu_xinghua_3",
+        "kind": "mastery",
+        "monotonic": true,
+        "npc": "lu_xinghua",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:fang_cunxin:goal_fang_cunxin_1",
+        "completed": false,
+        "content_type": "advance_skill",
+        "created": false,
+        "created_tick": null,
+        "id": "fang_cunxin:goal_fang_cunxin_1",
+        "kind": "mastery",
+        "monotonic": true,
+        "npc": "fang_cunxin",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:fang_cunxin:goal_fang_cunxin_1",
+        "completed": false,
+        "content_type": "build_relation",
+        "created": false,
+        "created_tick": null,
+        "id": "fang_cunxin:goal_fang_cunxin_2",
+        "kind": "bond",
+        "monotonic": true,
+        "npc": "fang_cunxin",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:fang_cunxin:goal_fang_cunxin_1",
+        "completed": false,
+        "content_type": "join_sect",
+        "created": false,
+        "created_tick": null,
+        "id": "fang_cunxin:goal_fang_cunxin_3",
+        "kind": "faction",
+        "monotonic": true,
+        "npc": "fang_cunxin",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:yan_shouyi:goal_yan_shouyi_1",
+        "completed": false,
+        "content_type": "found_sect",
+        "created": false,
+        "created_tick": null,
+        "id": "yan_shouyi:goal_yan_shouyi_1",
+        "kind": "faction",
+        "monotonic": true,
+        "npc": "yan_shouyi",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:yan_shouyi:goal_yan_shouyi_1",
+        "completed": false,
+        "content_type": "gain_status",
+        "created": false,
+        "created_tick": null,
+        "id": "yan_shouyi:goal_yan_shouyi_2",
+        "kind": "faction",
+        "monotonic": true,
+        "npc": "yan_shouyi",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:yan_shouyi:goal_yan_shouyi_1",
+        "completed": false,
+        "content_type": "earn_money",
+        "created": false,
+        "created_tick": null,
+        "id": "yan_shouyi:goal_yan_shouyi_3",
+        "kind": "wealth",
+        "monotonic": true,
+        "npc": "yan_shouyi",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      },
+      {
+        "blocked_by": "not_created:ming_chabo:goal_ming_chabo_1",
+        "completed": false,
+        "content_type": "earn_money",
+        "created": false,
+        "created_tick": null,
+        "id": "ming_chabo:goal_ming_chabo_1",
+        "kind": "wealth",
+        "monotonic": true,
+        "npc": "ming_chabo",
+        "one_shot": false,
+        "progress": 0.0,
+        "progressed": false,
+        "status": "not_created"
+      }
+    ]
+  },
+  "k3": {
+    "action_signatures": 37,
+    "distinct_verbs_per_npc": {
+      "bai_lusheng": {
+        "actions": 11,
+        "distinct": 6,
+        "normalized_entropy": 0.9162695888
+      },
+      "cui_tieyi": {
+        "actions": 18,
+        "distinct": 7,
+        "normalized_entropy": 0.9110810175
+      },
+      "gu_qingya": {
+        "actions": 13,
+        "distinct": 6,
+        "normalized_entropy": 0.8509553984
+      },
+      "han_xinglin": {
+        "actions": 20,
+        "distinct": 6,
+        "normalized_entropy": 0.9247594772
+      },
+      "hua_jieyu": {
+        "actions": 10,
+        "distinct": 5,
+        "normalized_entropy": 0.9138646884
+      },
+      "liu_sanniang": {
+        "actions": 13,
+        "distinct": 8,
+        "normalized_entropy": 0.93835747
+      },
+      "lu_jiujin": {
+        "actions": 37,
+        "distinct": 11,
+        "normalized_entropy": 0.767047966
+      },
+      "pei_wujiu": {
+        "actions": 12,
+        "distinct": 4,
+        "normalized_entropy": 0.8962406252
+      },
+      "shen_yanzhou": {
+        "actions": 10,
+        "distinct": 5,
+        "normalized_entropy": 0.9674887649
+      },
+      "su_hexiang": {
+        "actions": 0,
+        "distinct": 0,
+        "normalized_entropy": 0.0
+      },
+      "wen_xiaoman": {
+        "actions": 23,
+        "distinct": 7,
+        "normalized_entropy": 0.8866142076
+      },
+      "xie_tingyun": {
+        "actions": 3,
+        "distinct": 3,
+        "normalized_entropy": 1.0
+      }
+    },
+    "effective_date": "2026-11-03",
+    "folds": {
+      "move_collapsed": {
+        "effective_categories": 12.8814,
+        "entropy_bits": 3.6872199273,
+        "pairwise_js_mean": 0.4160446868,
+        "per_npc_distinct_min": 3,
+        "per_npc_normalized_entropy_mean": 0.9039900215,
+        "per_npc_normalized_entropy_min": 0.7552670467,
+        "top10_share": 0.7941176471
+      },
+      "verb_only": {
+        "effective_categories": 7.1594,
+        "entropy_bits": 2.8398342043,
+        "pairwise_js_mean": 0.1888667046,
+        "per_npc_distinct_min": 3,
+        "per_npc_normalized_entropy_mean": 0.9066072004,
+        "per_npc_normalized_entropy_min": 0.767047966,
+        "top10_share": 0.9705882353
+      }
+    },
+    "js_vs_global_mean": 0.4718578367,
+    "legacy_verb_entropy_bits": 2.8398342043,
+    "legacy_verb_top10_share": 0.9705882353,
+    "metric": "k3_dual_layer",
+    "min_distinct_verbs": 3,
+    "new_verb_action_share": 0.0176470588,
+    "new_verb_signatures": {
+      "quest_accept:escort": 1,
+      "quest_deliver:escort": 1,
+      "recruit:npc": 1
+    },
+    "npc_normalized_entropy_mean": 0.9586440739,
+    "npc_normalized_entropy_min": 0.9022439863,
+    "null_js_mean": 0.5367057441,
+    "object_layer": {
+      "actions_total": 170,
+      "categories": 37,
+      "counts": {
+        "apprentice:npc": 1,
+        "buy:coarse_cloth": 8,
+        "buy:leather": 2,
+        "consume:flatbread": 15,
+        "consume:noodle": 10,
+        "cultivate:学究": 1,
+        "cultivate:脚夫": 2,
+        "cultivate:药童": 6,
+        "cultivate:酒保": 1,
+        "cultivate:铁匠": 2,
+        "cultivate:镖师": 2,
+        "escort:escort_agency->market": 1,
+        "join_sect:org": 3,
+        "move:academy": 6,
+        "move:escort_agency": 6,
+        "move:ferry": 12,
+        "move:inn": 11,
+        "move:market": 21,
+        "move:pharmacy": 4,
+        "move:smithy": 3,
+        "open_shop:stall": 1,
+        "quest_accept:escort": 1,
+        "quest_deliver:escort": 1,
+        "recruit:npc": 1,
+        "sell:charcoal": 1,
+        "sell:coarse_cloth": 1,
+        "sell:noodle": 2,
+        "talk:?": 12,
+        "trade:-|-|even": 1,
+        "trade:-|-|recv": 4,
+        "trade:coarse_cloth|-|even": 2,
+        "work:academy": 3,
+        "work:escort_agency": 5,
+        "work:inn": 5,
+        "work:market": 6,
+        "work:pharmacy": 5,
+        "work:smithy": 2
+      },
+      "effective_categories": 24.6814,
+      "entropy_bits": 4.6253507154,
+      "js_vs_global_mean": 0.4718578367,
+      "normalized_entropy": 0.8878764029,
+      "null_js_mean": 0.5367057441,
+      "pairwise_js_max": 1.0,
+      "pairwise_js_mean": 0.5682300222,
+      "pairwise_js_min": 0.0,
+      "pairwise_js_pairs": 66,
+      "per_npc": {
+        "bai_lusheng": {
+          "actions": 11,
+          "distinct": 7,
+          "normalized_entropy": 0.9732146334
+        },
+        "cui_tieyi": {
+          "actions": 18,
+          "distinct": 9,
+          "normalized_entropy": 0.9603099179
+        },
+        "gu_qingya": {
+          "actions": 13,
+          "distinct": 8,
+          "normalized_entropy": 0.9577135598
+        },
+        "han_xinglin": {
+          "actions": 20,
+          "distinct": 7,
+          "normalized_entropy": 0.9379669805
+        },
+        "hua_jieyu": {
+          "actions": 10,
+          "distinct": 7,
+          "normalized_entropy": 0.9695703502
+        },
+        "liu_sanniang": {
+          "actions": 13,
+          "distinct": 8,
+          "normalized_entropy": 0.93835747
+        },
+        "lu_jiujin": {
+          "actions": 37,
+          "distinct": 14,
+          "normalized_entropy": 0.9022439863
+        },
+        "pei_wujiu": {
+          "actions": 12,
+          "distinct": 6,
+          "normalized_entropy": 0.9756641376
+        },
+        "shen_yanzhou": {
+          "actions": 10,
+          "distinct": 6,
+          "normalized_entropy": 0.9756149632
+        },
+        "su_hexiang": {
+          "actions": 0,
+          "distinct": 0,
+          "normalized_entropy": 0.0
+        },
+        "wen_xiaoman": {
+          "actions": 23,
+          "distinct": 10,
+          "normalized_entropy": 0.954428814
+        },
+        "xie_tingyun": {
+          "actions": 3,
+          "distinct": 3,
+          "normalized_entropy": 1.0
+        }
+      },
+      "per_npc_distinct_mean": 7.7273,
+      "per_npc_distinct_min": 3,
+      "per_npc_normalized_entropy_mean": 0.9586440739,
+      "per_npc_normalized_entropy_min": 0.9022439863,
+      "signal_to_noise": 1.0587,
+      "top10_share": 0.6294117647
+    },
+    "p1_note": "P1 为日程驱动，verb 层集中是预期现象；K3 只做诊断，不设 pass/fail。多样性门槛推迟到 P3 引入意图层后判定。",
+    "pairwise_js_max": 1.0,
+    "pairwise_js_mean": 0.5682300222,
+    "pairwise_js_min": 0.0,
+    "reference_v2_thresholds": {
+      "npc_min_distinct_verbs": 3,
+      "npc_normalized_entropy_mean": 0.7,
+      "npc_normalized_entropy_min": 0.5,
+      "pairwise_js_mean": 0.3,
+      "reason": "post-hoc thresholds; not pre-registered; see move_collapsed for collapse sensitivity",
+      "signature_entropy_bits": 4.0,
+      "signature_top10_share": 0.8,
+      "status": "revoked"
+    },
+    "sensitivity_excluding_new_verbs": {
+      "excluded_verbs": [
+        "debt_settle",
+        "quest_accept",
+        "quest_deliver",
+        "recruit"
+      ],
+      "object_layer": {
+        "actions_total": 167,
+        "categories": 34,
+        "counts": {
+          "apprentice:npc": 1,
+          "buy:coarse_cloth": 8,
+          "buy:leather": 2,
+          "consume:flatbread": 15,
+          "consume:noodle": 10,
+          "cultivate:学究": 1,
+          "cultivate:脚夫": 2,
+          "cultivate:药童": 6,
+          "cultivate:酒保": 1,
+          "cultivate:铁匠": 2,
+          "cultivate:镖师": 2,
+          "escort:escort_agency->market": 1,
+          "join_sect:org": 3,
+          "move:academy": 6,
+          "move:escort_agency": 6,
+          "move:ferry": 12,
+          "move:inn": 11,
+          "move:market": 21,
+          "move:pharmacy": 4,
+          "move:smithy": 3,
+          "open_shop:stall": 1,
+          "sell:charcoal": 1,
+          "sell:coarse_cloth": 1,
+          "sell:noodle": 2,
+          "talk:?": 12,
+          "trade:-|-|even": 1,
+          "trade:-|-|recv": 4,
+          "trade:coarse_cloth|-|even": 2,
+          "work:academy": 3,
+          "work:escort_agency": 5,
+          "work:inn": 5,
+          "work:market": 6,
+          "work:pharmacy": 5,
+          "work:smithy": 2
+        },
+        "effective_categories": 23.4197,
+        "entropy_bits": 4.5496513731,
+        "normalized_entropy": 0.8942869,
+        "pairwise_js_mean": 0.564629596,
+        "per_npc_distinct_mean": 7.4545,
+        "per_npc_normalized_entropy_mean": 0.9593464764,
+        "per_npc_normalized_entropy_min": 0.9075700838,
+        "top10_share": 0.6407185629
+      }
+    },
+    "signal_to_noise": 1.0587,
+    "signature_counts": {
+      "apprentice:npc": 1,
+      "buy:coarse_cloth": 8,
+      "buy:leather": 2,
+      "consume:flatbread": 15,
+      "consume:noodle": 10,
+      "cultivate:学究": 1,
+      "cultivate:脚夫": 2,
+      "cultivate:药童": 6,
+      "cultivate:酒保": 1,
+      "cultivate:铁匠": 2,
+      "cultivate:镖师": 2,
+      "escort:escort_agency->market": 1,
+      "join_sect:org": 3,
+      "move:academy": 6,
+      "move:escort_agency": 6,
+      "move:ferry": 12,
+      "move:inn": 11,
+      "move:market": 21,
+      "move:pharmacy": 4,
+      "move:smithy": 3,
+      "open_shop:stall": 1,
+      "quest_accept:escort": 1,
+      "quest_deliver:escort": 1,
+      "recruit:npc": 1,
+      "sell:charcoal": 1,
+      "sell:coarse_cloth": 1,
+      "sell:noodle": 2,
+      "talk:?": 12,
+      "trade:-|-|even": 1,
+      "trade:-|-|recv": 4,
+      "trade:coarse_cloth|-|even": 2,
+      "work:academy": 3,
+      "work:escort_agency": 5,
+      "work:inn": 5,
+      "work:market": 6,
+      "work:pharmacy": 5,
+      "work:smithy": 2
+    },
+    "signature_entropy_bits": 4.6253507154,
+    "signature_top10_share": 0.6294117647,
+    "spec_version": "1.1.0",
+    "status": "diagnostic_only",
+    "top10_share": 0.6294117647,
+    "v10_compat": {
+      "object_layer": {
+        "actions_total": 170,
+        "categories": 37,
+        "counts": {
+          "apprentice:npc": 1,
+          "buy:coarse_cloth": 8,
+          "buy:leather": 2,
+          "consume:flatbread": 15,
+          "consume:noodle": 10,
+          "cultivate:学究": 1,
+          "cultivate:脚夫": 2,
+          "cultivate:药童": 6,
+          "cultivate:酒保": 1,
+          "cultivate:铁匠": 2,
+          "cultivate:镖师": 2,
+          "escort:escort_agency->market": 1,
+          "join_sect:org": 3,
+          "move:academy": 6,
+          "move:escort_agency": 6,
+          "move:ferry": 12,
+          "move:inn": 11,
+          "move:market": 21,
+          "move:pharmacy": 4,
+          "move:smithy": 3,
+          "open_shop:stall": 1,
+          "quest_accept:?": 1,
+          "quest_deliver:?": 1,
+          "recruit:?": 1,
+          "sell:charcoal": 1,
+          "sell:coarse_cloth": 1,
+          "sell:noodle": 2,
+          "talk:?": 12,
+          "trade:-|-|even": 1,
+          "trade:-|-|recv": 4,
+          "trade:coarse_cloth|-|even": 2,
+          "work:academy": 3,
+          "work:escort_agency": 5,
+          "work:inn": 5,
+          "work:market": 6,
+          "work:pharmacy": 5,
+          "work:smithy": 2
+        },
+        "effective_categories": 24.6814,
+        "entropy_bits": 4.6253507154,
+        "normalized_entropy": 0.8878764029,
+        "pairwise_js_mean": 0.5682300222,
+        "per_npc_distinct_mean": 7.7273,
+        "per_npc_normalized_entropy_mean": 0.9586440739,
+        "per_npc_normalized_entropy_min": 0.9022439863,
+        "top10_share": 0.6294117647
+      },
+      "spec_version": "1.0.0"
+    },
+    "verb_counts": {
+      "apprentice": 1,
+      "buy": 10,
+      "consume": 25,
+      "cultivate": 14,
+      "escort": 1,
+      "join_sect": 3,
+      "move": 63,
+      "open_shop": 1,
+      "quest_accept": 1,
+      "quest_deliver": 1,
+      "recruit": 1,
+      "sell": 4,
+      "talk": 12,
+      "trade": 7,
+      "work": 26
+    },
+    "verb_layer": {
+      "actions_total": 170,
+      "categories": 15,
+      "counts": {
+        "apprentice": 1,
+        "buy": 10,
+        "consume": 25,
+        "cultivate": 14,
+        "escort": 1,
+        "join_sect": 3,
+        "move": 63,
+        "open_shop": 1,
+        "quest_accept": 1,
+        "quest_deliver": 1,
+        "recruit": 1,
+        "sell": 4,
+        "talk": 12,
+        "trade": 7,
+        "work": 26
+      },
+      "effective_categories": 7.1594,
+      "entropy_bits": 2.8398342043,
+      "js_vs_global_mean": 0.1402291027,
+      "normalized_entropy": 0.7268783537,
+      "null_js_mean": null,
+      "pairwise_js_max": 0.4466386775,
+      "pairwise_js_mean": 0.1888667046,
+      "pairwise_js_min": 0.0,
+      "pairwise_js_pairs": 66,
+      "per_npc": {
+        "bai_lusheng": {
+          "actions": 11,
+          "distinct": 6,
+          "normalized_entropy": 0.9162695888
+        },
+        "cui_tieyi": {
+          "actions": 18,
+          "distinct": 7,
+          "normalized_entropy": 0.9110810175
+        },
+        "gu_qingya": {
+          "actions": 13,
+          "distinct": 6,
+          "normalized_entropy": 0.8509553984
+        },
+        "han_xinglin": {
+          "actions": 20,
+          "distinct": 6,
+          "normalized_entropy": 0.9247594772
+        },
+        "hua_jieyu": {
+          "actions": 10,
+          "distinct": 5,
+          "normalized_entropy": 0.9138646884
+        },
+        "liu_sanniang": {
+          "actions": 13,
+          "distinct": 8,
+          "normalized_entropy": 0.93835747
+        },
+        "lu_jiujin": {
+          "actions": 37,
+          "distinct": 11,
+          "normalized_entropy": 0.767047966
+        },
+        "pei_wujiu": {
+          "actions": 12,
+          "distinct": 4,
+          "normalized_entropy": 0.8962406252
+        },
+        "shen_yanzhou": {
+          "actions": 10,
+          "distinct": 5,
+          "normalized_entropy": 0.9674887649
+        },
+        "su_hexiang": {
+          "actions": 0,
+          "distinct": 0,
+          "normalized_entropy": 0.0
+        },
+        "wen_xiaoman": {
+          "actions": 23,
+          "distinct": 7,
+          "normalized_entropy": 0.8866142076
+        },
+        "xie_tingyun": {
+          "actions": 3,
+          "distinct": 3,
+          "normalized_entropy": 1.0
+        }
+      },
+      "per_npc_distinct_mean": 6.1818,
+      "per_npc_distinct_min": 3,
+      "per_npc_normalized_entropy_mean": 0.9066072004,
+      "per_npc_normalized_entropy_min": 0.767047966,
+      "signal_to_noise": null,
+      "top10_share": 0.9705882353
+    }
+  },
+  "k6": {
+    "conservation": {
+      "accounts_count": 23,
+      "accounts_sum": 26146,
+      "burned_total": 54,
+      "conservation_error": 0,
+      "minted_total": 26200,
+      "negative_accounts": [],
+      "net_issued": 26146
+    },
+    "debt_audit": {
+      "active_total": 0,
+      "by_note": {},
+      "checks": {
+        "debt_amount_matches_origin": {
+          "checked": 0,
+          "expected_total": 0,
+          "mismatches": [],
+          "ok": true
+        },
+        "debt_settle_credit_equals_debit": {
+          "mismatches": [],
+          "ok": true
+        },
+        "declared_equals_remaining": {
+          "mismatches": [],
+          "ok": true
+        },
+        "declared_total_equals_origin_total": {
+          "declared": 0,
+          "ok": true,
+          "origin_expected": 0
+        },
+        "event_double_entry": {
+          "ok": true,
+          "violations": []
+        },
+        "no_mint_outside_genesis": {
+          "ok": true,
+          "violations": []
+        },
+        "no_negative_balances": {
+          "ok": true,
+          "violations": []
+        },
+        "reconstruction_matches_state": {
+          "mismatches": [],
+          "ok": true
+        },
+        "wallet_credit_without_payer_debit": {
+          "ok": true,
+          "violations": []
+        }
+      },
+      "debts_declared": 0,
+      "declared_total": 0,
+      "rebuilt_accounts_sum": 26146,
+      "settled_events": 0,
+      "settled_total": 0,
+      "state_accounts_sum": 26146,
+      "status": "pass",
+      "unresolved": [],
+      "unvalidated_notes": {}
+    },
+    "debt_ledger": {
+      "active_debts": 0,
+      "debts": [],
+      "entries": [],
+      "long_term_debts": 0,
+      "payable_total": 0,
+      "projection_note": "receivable/payable 只作投影；债务平衡以 debt_audit 为准",
+      "receivable_total": 0
+    },
+    "illegal": {
+      "by_reason": {
+        "rejected:not_together": 1
+      },
+      "by_verb": {
+        "trade": 1
+      },
+      "events_total": 208,
+      "illegal_rate": 0.004807692307692308,
+      "rejected": 1
+    },
+    "relations_all_kinds": {
+      "bigamy": [],
+      "conflict_rate": 0.0,
+      "conflicts": 0,
+      "kinds": [
+        "ally",
+        "creditor",
+        "debtor",
+        "disciple",
+        "family",
+        "friend",
+        "marriage",
+        "master",
+        "rival"
+      ],
+      "leader_not_member": [],
+      "one_way_strong": [],
+      "relation_checks": 19
+    },
+    "relations_strong_ties": {
+      "bigamy": [],
+      "conflict_rate": 0.0,
+      "conflicts": 0,
+      "kinds": [
+        "ally",
+        "creditor",
+        "debtor",
+        "disciple",
+        "family",
+        "marriage",
+        "master"
+      ],
+      "leader_not_member": [],
+      "one_way_strong": [],
+      "relation_checks": 6
+    }
+  },
+  "llm": {
+    "by_slot": {
+      "decision": {
+        "calls": 19,
+        "estimated_cost": 0.017451,
+        "input_tokens": 14368,
+        "models": [
+          "group/all"
+        ],
+        "output_tokens": 278,
+        "per_1k_input_tokens": 0.0015,
+        "per_1k_output_tokens": 0.006,
+        "schema_rejects": 0,
+        "token_missing_calls": 0,
+        "usage_sources": [
+          "reported"
+        ]
+      },
+      "intent": {
+        "calls": 19,
+        "estimated_cost": 0.028836375,
+        "input_tokens": 23066,
+        "models": [
+          "openrouter/xingchen-agi/xing4.0-29b-a4b:free"
+        ],
+        "output_tokens": 363,
+        "per_1k_input_tokens": 0.0015,
+        "per_1k_output_tokens": 0.006,
+        "schema_rejects": 0,
+        "token_missing_calls": 1,
+        "usage_sources": [
+          "reported",
+          "missing"
+        ]
+      }
+    },
+    "calls_by_tier": {
+      "active": 11,
+      "background": 5,
+      "silent": 3
+    },
+    "calls_by_timing": {
+      "night_batch": 14,
+      "realtime": 5
+    },
+    "dialogue_async": {
+      "closed": false,
+      "fallback_budget": "今日对话额度用尽，请明天再来。",
+      "fallback_error": "（对方似乎没听清，稍后再试。）",
+      "pending": 0
+    },
+    "dialogue_error": "",
+    "enabled": true,
+    "extract_adapter": "fence/unwrap+zh-en-key-normalize+utterance-grounding+unknown_key",
+    "fallbacks": 0,
+    "fingerprint": {
+      "base_url": "http://127.0.0.1:3427/v1",
+      "json_mode": true,
+      "max_retries": 2,
+      "max_tokens": 1024,
+      "model": "group/all",
+      "offline": false,
+      "slot": "decision",
+      "temperature": 0.2,
+      "timeout_s": 30.0
+    },
+    "intent_error": "",
+    "latency": {
+      "max": 45.264,
+      "mean": 9.821,
+      "min": 0.001,
+      "n": 37,
+      "p50": 0.113,
+      "p95": 43.147
+    },
+    "latency_by_slot": {
+      "decision": {
+        "n": 19,
+        "p50": 0.002,
+        "p95": 0.111
+      },
+      "intent": {
+        "n": 18,
+        "p50": 17.124,
+        "p95": 45.046
+      }
+    },
+    "mock_by_timing": {},
+    "model": "group/all",
+    "reasoner": {
+      "action_ratio": {
+        "model": 0.0443,
+        "rule": 0.9557
+      },
+      "calls_by_timing": {
+        "night_batch": 14,
+        "realtime": 5
+      },
+      "dropped_actions": 4,
+      "dropped_by_reason": {
+        "rule_owned_survival": 4
+      },
+      "final_fail": 0,
+      "final_fail_rate": 0.0,
+      "first_fail": 0,
+      "first_pass": 19,
+      "first_pass_rate": 1.0,
+      "goal_from_model": 13,
+      "goal_from_rule": 3,
+      "goal_ignored": 1,
+      "intent_calls": 19,
+      "intent_clarification": 0,
+      "intent_client_stats": {
+        "attempts": 23,
+        "calls": 19,
+        "errors_by_kind": {
+          "http_429": 4,
+          "http_5xx": 1
+        },
+        "http_429": 4,
+        "latency": {
+          "max": 47.231,
+          "mean": 25.182,
+          "min": 2.022,
+          "n": 23,
+          "p50": 19.806,
+          "p90": 45.046
+        },
+        "retries": 4,
+        "success": 18
+      },
+      "intent_grounding_blocked": 0,
+      "intent_grounding_by_field": {},
+      "intent_grounding_cases": [],
+      "intent_latency": {
+        "max": 45.264,
+        "mean": 19.1,
+        "min": 0.0,
+        "n": 19,
+        "p50": 17.124,
+        "p90": 43.147
+      },
+      "intent_missing": {},
+      "intent_normalizations": {},
+      "intent_ok": 18,
+      "intent_reject": 1,
+      "intent_reject_by_reason": {
+        "transport:http_429": 1
+      },
+      "intent_unknown_keys": {},
+      "intent_usage": {
+        "completion_tokens": 363,
+        "missing_usage_calls": 1,
+        "prompt_tokens": 23066
+      },
+      "mock_by_timing": {},
+      "model_actions": 12,
+      "post_repair_pass_rate": 1.0,
+      "repair_attempted": 0,
+      "repair_calls": 0,
+      "repair_succeeded": 0,
+      "rule_actions": 259,
+      "wall_time_s": 283.64
+    },
+    "reasoner_calls": 19,
+    "reasoner_fallbacks": 0,
+    "reasoner_ok_calls": 19,
+    "schema_reject_total": 0,
+    "schema_rejects": {},
+    "slots": {
+      "decision": {
+        "base_url": "http://127.0.0.1:3427/v1",
+        "json_mode": true,
+        "max_retries": 2,
+        "max_tokens": 1024,
+        "model": "group/all",
+        "offline": false,
+        "slot": "decision",
+        "temperature": 0.2,
+        "timeout_s": 30.0
+      },
+      "dialogue": {
+        "base_url": "http://127.0.0.1:3425/v1",
+        "json_mode": true,
+        "max_retries": 2,
+        "max_tokens": 4096,
+        "model": "group/all",
+        "offline": false,
+        "slot": "dialogue",
+        "temperature": 0.8,
+        "timeout_s": 60.0
+      },
+      "intent": {
+        "base_url": "http://127.0.0.1:3425/v1",
+        "json_mode": true,
+        "max_retries": 2,
+        "max_tokens": 1500,
+        "model": "openrouter/xingchen-agi/xing4.0-29b-a4b:free",
+        "offline": false,
+        "slot": "intent",
+        "temperature": 0.0,
+        "timeout_s": 60.0
+      }
+    },
+    "success_rate": 1.0,
+    "usage_source": {
+      "missing": 1,
+      "reported": 37
+    }
+  },
+  "lod": {
+    "by_tier": {
+      "active": 6,
+      "background": 4,
+      "silent": 2,
+      "spotlight": 0
+    },
+    "changes": [],
+    "decide_by_tier": {
+      "active": 11,
+      "background": 4,
+      "silent": 1,
+      "spotlight": 0
+    },
+    "decide_calls": 16,
+    "now": 287,
+    "npc_count": 12,
+    "processed_wakes": 16,
+    "state_provider_calls": 16,
+    "stats": {
+      "bai_lusheng": {
+        "cost_weight": 0.25,
+        "interval": 288,
+        "lod": "background",
+        "wakes": 1
+      },
+      "cui_tieyi": {
+        "cost_weight": 1.0,
+        "interval": 144,
+        "lod": "active",
+        "wakes": 2
+      },
+      "gu_qingya": {
+        "cost_weight": 1.0,
+        "interval": 144,
+        "lod": "active",
+        "wakes": 1
+      },
+      "han_xinglin": {
+        "cost_weight": 1.0,
+        "interval": 144,
+        "lod": "active",
+        "wakes": 2
+      },
+      "hua_jieyu": {
+        "cost_weight": 0.25,
+        "interval": 288,
+        "lod": "background",
+        "wakes": 1
+      },
+      "liu_sanniang": {
+        "cost_weight": 1.0,
+        "interval": 144,
+        "lod": "active",
+        "wakes": 2
+      },
+      "lu_jiujin": {
+        "cost_weight": 1.0,
+        "interval": 144,
+        "lod": "active",
+        "wakes": 2
+      },
+      "pei_wujiu": {
+        "cost_weight": 0.25,
+        "interval": 288,
+        "lod": "background",
+        "wakes": 1
+      },
+      "shen_yanzhou": {
+        "cost_weight": 0.05,
+        "interval": 1440,
+        "lod": "silent",
+        "wakes": 1
+      },
+      "su_hexiang": {
+        "cost_weight": 0.05,
+        "interval": 1440,
+        "lod": "silent",
+        "wakes": 0
+      },
+      "wen_xiaoman": {
+        "cost_weight": 1.0,
+        "interval": 144,
+        "lod": "active",
+        "wakes": 2
+      },
+      "xie_tingyun": {
+        "cost_weight": 0.25,
+        "interval": 288,
+        "lod": "background",
+        "wakes": 1
+      }
+    },
+    "tier_changes": 0,
+    "version": "1.0.0"
+  },
+  "npc_count": 12,
+  "quests": {
+    "accepted": 0,
+    "by_template": {
+      "commission_herb_sorting": {
+        "completed": 0,
+        "failed": 0,
+        "total": 1
+      },
+      "errand_silk_sample": {
+        "completed": 0,
+        "failed": 0,
+        "total": 1
+      },
+      "escort_iron_short": {
+        "completed": 1,
+        "failed": 0,
+        "total": 1
+      },
+      "procure_ginseng": {
+        "completed": 0,
+        "failed": 0,
+        "total": 1
+      }
+    },
+    "completed": 1,
+    "expired": 3,
+    "failed": 0,
+    "health": {
+      "active": 0,
+      "by_template": {
+        "commission_herb_sorting": {
+          "completed": 0,
+          "completion_rate": 0.0,
+          "created": 1,
+          "expired": 1,
+          "failed": 0
+        },
+        "errand_silk_sample": {
+          "completed": 0,
+          "completion_rate": 0.0,
+          "created": 1,
+          "expired": 1,
+          "failed": 0
+        },
+        "escort_iron_short": {
+          "completed": 1,
+          "completion_rate": 1.0,
+          "created": 1,
+          "expired": 0,
+          "failed": 0
+        },
+        "procure_ginseng": {
+          "completed": 0,
+          "completion_rate": 0.0,
+          "created": 1,
+          "expired": 1,
+          "failed": 0
+        }
+      },
+      "expired_on_board": 3,
+      "expired_total": 3
+    },
+    "open": 0,
+    "post_events": 2,
+    "status": {
+      "completed": 1,
+      "expired": 3
+    }
+  },
+  "run_id": "p3d-real-2d-12npc",
+  "sects": {
+    "founded": [],
+    "founded_count": 0
+  },
+  "seed": 42,
+  "treasury": {
+    "account": "treasury:region",
+    "balance_final": 11539,
+    "guard": {
+      "active_at_end": false,
+      "days_active": 0,
+      "days_total": 2,
+      "entered_day": null,
+      "enters": 0,
+      "exits": 0,
+      "suspended_actions": [
+        "open_shop",
+        "propensity_buy",
+        "system_shop_dividend"
+      ],
+      "transitions": []
+    },
+    "multiplier": 1.2,
+    "open_shop_postponed": 0,
+    "reserve": 2000,
+    "tax_burned": 3,
+    "tax_to_treasury": 1,
+    "threshold": 2400
+  },
+  "verdict": {
+    "intent_reason_pass": true,
+    "k1_pass": false,
+    "k3_note": "K3 双层诊断（verb 层 + 对象层），P2 起意图驱动后仅作对照，不设 pass/fail；同一 run 同时输出 v1.0.0 兼容口径与 v1.1.0 主口径，见 docs/metrics.md v1.1.0。",
+    "k3_status": "diagnostic_only",
+    "k6_conservation_pass": true,
+    "k6_illegal_pass": true,
+    "k6_relations_pass": true,
+    "wage_chain_pass": true
+  },
+  "wages": {
+    "all_rows": [
+      {
+        "balanced": true,
+        "day": 0,
+        "gross": 18,
+        "hours": 8,
+        "npc": "lu_jiujin",
+        "paid": 18,
+        "payee_account": "wallet:lu_jiujin",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:escort_agency:service_escort",
+        "role": "脚夫",
+        "seq": 19,
+        "tick": 23,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 0,
+        "gross": 24,
+        "hours": 8,
+        "npc": "liu_sanniang",
+        "paid": 24,
+        "payee_account": "wallet:liu_sanniang",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:market:noodle",
+        "role": "绣娘",
+        "seq": 28,
+        "tick": 31,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 0,
+        "gross": 22,
+        "hours": 8,
+        "npc": "hua_jieyu",
+        "paid": 22,
+        "payee_account": "wallet:hua_jieyu",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:inn:service_storytelling",
+        "role": "说书人",
+        "seq": 36,
+        "tick": 40,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 0,
+        "gross": 15,
+        "hours": 8,
+        "npc": "han_xinglin",
+        "paid": 15,
+        "payee_account": "wallet:han_xinglin",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:pharmacy:plaster",
+        "role": "药童",
+        "seq": 42,
+        "tick": 57,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 0,
+        "gross": 20,
+        "hours": 8,
+        "npc": "wen_xiaoman",
+        "paid": 20,
+        "payee_account": "wallet:wen_xiaoman",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:inn:wine",
+        "role": "酒保",
+        "seq": 47,
+        "tick": 61,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 0,
+        "gross": 26,
+        "hours": 8,
+        "npc": "cui_tieyi",
+        "paid": 26,
+        "payee_account": "wallet:cui_tieyi",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:market:rice",
+        "role": "捕快",
+        "seq": 57,
+        "tick": 69,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 0,
+        "gross": 24,
+        "hours": 8,
+        "npc": "bai_lusheng",
+        "paid": 24,
+        "payee_account": "wallet:bai_lusheng",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:academy:service_copying",
+        "role": "学究",
+        "seq": 62,
+        "tick": 81,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 0,
+        "gross": 30,
+        "hours": 8,
+        "npc": "pei_wujiu",
+        "paid": 30,
+        "payee_account": "wallet:pei_wujiu",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:escort_agency:service_escort",
+        "role": "镖师",
+        "seq": 68,
+        "tick": 86,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 0,
+        "gross": 32,
+        "hours": 8,
+        "npc": "shen_yanzhou",
+        "paid": 32,
+        "payee_account": "wallet:shen_yanzhou",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:smithy:iron_ingot",
+        "role": "铁匠",
+        "seq": 73,
+        "tick": 126,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 0,
+        "gross": 28,
+        "hours": 8,
+        "npc": "gu_qingya",
+        "paid": 28,
+        "payee_account": "wallet:gu_qingya",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:pharmacy:wound_powder",
+        "role": "游医",
+        "seq": 78,
+        "tick": 132,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 1,
+        "gross": 24,
+        "hours": 8,
+        "npc": "liu_sanniang",
+        "paid": 24,
+        "payee_account": "wallet:liu_sanniang",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:market:noodle",
+        "role": "绣娘",
+        "seq": 102,
+        "tick": 144,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 1,
+        "gross": 24,
+        "hours": 8,
+        "npc": "bai_lusheng",
+        "paid": 24,
+        "payee_account": "wallet:bai_lusheng",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:academy:service_copying",
+        "role": "学究",
+        "seq": 107,
+        "tick": 144,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 1,
+        "gross": 15,
+        "hours": 8,
+        "npc": "han_xinglin",
+        "paid": 15,
+        "payee_account": "wallet:han_xinglin",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:pharmacy:plaster",
+        "role": "药童",
+        "seq": 114,
+        "tick": 145,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 1,
+        "gross": 26,
+        "hours": 8,
+        "npc": "cui_tieyi",
+        "paid": 26,
+        "payee_account": "wallet:cui_tieyi",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:market:rice",
+        "role": "捕快",
+        "seq": 116,
+        "tick": 145,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 1,
+        "gross": 32,
+        "hours": 8,
+        "npc": "shen_yanzhou",
+        "paid": 32,
+        "payee_account": "wallet:shen_yanzhou",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:smithy:iron_ingot",
+        "role": "铁匠",
+        "seq": 119,
+        "tick": 145,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 1,
+        "gross": 18,
+        "hours": 8,
+        "npc": "lu_jiujin",
+        "paid": 18,
+        "payee_account": "wallet:lu_jiujin",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:escort_agency:service_escort",
+        "role": "脚夫",
+        "seq": 121,
+        "tick": 146,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 1,
+        "gross": 22,
+        "hours": 8,
+        "npc": "hua_jieyu",
+        "paid": 22,
+        "payee_account": "wallet:hua_jieyu",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:inn:service_storytelling",
+        "role": "说书人",
+        "seq": 122,
+        "tick": 146,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 1,
+        "gross": 20,
+        "hours": 8,
+        "npc": "wen_xiaoman",
+        "paid": 20,
+        "payee_account": "wallet:wen_xiaoman",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:inn:wine",
+        "role": "酒保",
+        "seq": 124,
+        "tick": 146,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 1,
+        "gross": 30,
+        "hours": 8,
+        "npc": "pei_wujiu",
+        "paid": 30,
+        "payee_account": "wallet:pei_wujiu",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:escort_agency:service_escort",
+        "role": "镖师",
+        "seq": 127,
+        "tick": 146,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 1,
+        "gross": 28,
+        "hours": 8,
+        "npc": "gu_qingya",
+        "paid": 28,
+        "payee_account": "wallet:gu_qingya",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:pharmacy:wound_powder",
+        "role": "游医",
+        "seq": 129,
+        "tick": 146,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 1,
+        "gross": 18,
+        "hours": 8,
+        "npc": "lu_jiujin",
+        "paid": 18,
+        "payee_account": "wallet:lu_jiujin",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:escort_agency:service_escort",
+        "role": "脚夫",
+        "seq": 164,
+        "tick": 173,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 1,
+        "gross": 24,
+        "hours": 8,
+        "npc": "liu_sanniang",
+        "paid": 24,
+        "payee_account": "wallet:liu_sanniang",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:market:noodle",
+        "role": "绣娘",
+        "seq": 176,
+        "tick": 210,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 1,
+        "gross": 15,
+        "hours": 8,
+        "npc": "han_xinglin",
+        "paid": 15,
+        "payee_account": "wallet:han_xinglin",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:pharmacy:plaster",
+        "role": "药童",
+        "seq": 183,
+        "tick": 220,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 1,
+        "gross": 20,
+        "hours": 8,
+        "npc": "wen_xiaoman",
+        "paid": 20,
+        "payee_account": "wallet:wen_xiaoman",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:inn:wine",
+        "role": "酒保",
+        "seq": 189,
+        "tick": 224,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 1,
+        "gross": 26,
+        "hours": 8,
+        "npc": "cui_tieyi",
+        "paid": 26,
+        "payee_account": "wallet:cui_tieyi",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:market:rice",
+        "role": "捕快",
+        "seq": 199,
+        "tick": 230,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 1,
+        "gross": 30,
+        "hours": 8,
+        "npc": "xie_tingyun",
+        "paid": 30,
+        "payee_account": "wallet:xie_tingyun",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:academy:service_copying",
+        "role": "师爷",
+        "seq": 204,
+        "tick": 286,
+        "unpaid": 0
+      }
+    ],
+    "by_location": {
+      "academy": {
+        "paid": 78,
+        "payments": 3,
+        "unpaid": 0
+      },
+      "escort_agency": {
+        "paid": 114,
+        "payments": 5,
+        "unpaid": 0
+      },
+      "inn": {
+        "paid": 104,
+        "payments": 5,
+        "unpaid": 0
+      },
+      "market": {
+        "paid": 150,
+        "payments": 6,
+        "unpaid": 0
+      },
+      "pharmacy": {
+        "paid": 101,
+        "payments": 5,
+        "unpaid": 0
+      },
+      "smithy": {
+        "paid": 64,
+        "payments": 2,
+        "unpaid": 0
+      }
+    },
+    "by_npc": {
+      "bai_lusheng": {
+        "paid": 48,
+        "unpaid": 0,
+        "work": 2
+      },
+      "cui_tieyi": {
+        "paid": 78,
+        "unpaid": 0,
+        "work": 3
+      },
+      "gu_qingya": {
+        "paid": 56,
+        "unpaid": 0,
+        "work": 2
+      },
+      "han_xinglin": {
+        "paid": 45,
+        "unpaid": 0,
+        "work": 3
+      },
+      "hua_jieyu": {
+        "paid": 44,
+        "unpaid": 0,
+        "work": 2
+      },
+      "liu_sanniang": {
+        "paid": 72,
+        "unpaid": 0,
+        "work": 3
+      },
+      "lu_jiujin": {
+        "paid": 54,
+        "unpaid": 0,
+        "work": 3
+      },
+      "pei_wujiu": {
+        "paid": 60,
+        "unpaid": 0,
+        "work": 2
+      },
+      "shen_yanzhou": {
+        "paid": 64,
+        "unpaid": 0,
+        "work": 2
+      },
+      "wen_xiaoman": {
+        "paid": 60,
+        "unpaid": 0,
+        "work": 3
+      },
+      "xie_tingyun": {
+        "paid": 30,
+        "unpaid": 0,
+        "work": 1
+      }
+    },
+    "by_payer": {
+      "biz:academy:service_copying": {
+        "paid": 78,
+        "payments": 3,
+        "unpaid": 0
+      },
+      "biz:escort_agency:service_escort": {
+        "paid": 114,
+        "payments": 5,
+        "unpaid": 0
+      },
+      "biz:inn:service_storytelling": {
+        "paid": 44,
+        "payments": 2,
+        "unpaid": 0
+      },
+      "biz:inn:wine": {
+        "paid": 60,
+        "payments": 3,
+        "unpaid": 0
+      },
+      "biz:market:noodle": {
+        "paid": 72,
+        "payments": 3,
+        "unpaid": 0
+      },
+      "biz:market:rice": {
+        "paid": 78,
+        "payments": 3,
+        "unpaid": 0
+      },
+      "biz:pharmacy:plaster": {
+        "paid": 45,
+        "payments": 3,
+        "unpaid": 0
+      },
+      "biz:pharmacy:wound_powder": {
+        "paid": 56,
+        "payments": 2,
+        "unpaid": 0
+      },
+      "biz:smithy:iron_ingot": {
+        "paid": 64,
+        "payments": 2,
+        "unpaid": 0
+      }
+    },
+    "definition": {
+      "gross": "content.wages_daily[role] * hours / 8 (round)",
+      "invariant": "gross == paid + unpaid",
+      "paid": "transfer.op with reason='wage'",
+      "unpaid": "debt_create.op with note='unpaid_wage'"
+    },
+    "reconciliation": {
+      "active_equals_created_minus_settled": true,
+      "all_rows_balanced": true,
+      "cashflow_wage_equals_paid": true,
+      "debt_ledger_active_equals_active": true,
+      "gross_equals_paid_plus_unpaid": true
+    },
+    "samples": [
+      {
+        "balanced": true,
+        "day": 0,
+        "gross": 18,
+        "hours": 8,
+        "npc": "lu_jiujin",
+        "paid": 18,
+        "payee_account": "wallet:lu_jiujin",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:escort_agency:service_escort",
+        "role": "脚夫",
+        "seq": 19,
+        "tick": 23,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 0,
+        "gross": 24,
+        "hours": 8,
+        "npc": "liu_sanniang",
+        "paid": 24,
+        "payee_account": "wallet:liu_sanniang",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:market:noodle",
+        "role": "绣娘",
+        "seq": 28,
+        "tick": 31,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 0,
+        "gross": 22,
+        "hours": 8,
+        "npc": "hua_jieyu",
+        "paid": 22,
+        "payee_account": "wallet:hua_jieyu",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:inn:service_storytelling",
+        "role": "说书人",
+        "seq": 36,
+        "tick": 40,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 0,
+        "gross": 15,
+        "hours": 8,
+        "npc": "han_xinglin",
+        "paid": 15,
+        "payee_account": "wallet:han_xinglin",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:pharmacy:plaster",
+        "role": "药童",
+        "seq": 42,
+        "tick": 57,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 0,
+        "gross": 20,
+        "hours": 8,
+        "npc": "wen_xiaoman",
+        "paid": 20,
+        "payee_account": "wallet:wen_xiaoman",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:inn:wine",
+        "role": "酒保",
+        "seq": 47,
+        "tick": 61,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 0,
+        "gross": 26,
+        "hours": 8,
+        "npc": "cui_tieyi",
+        "paid": 26,
+        "payee_account": "wallet:cui_tieyi",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:market:rice",
+        "role": "捕快",
+        "seq": 57,
+        "tick": 69,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 0,
+        "gross": 24,
+        "hours": 8,
+        "npc": "bai_lusheng",
+        "paid": 24,
+        "payee_account": "wallet:bai_lusheng",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:academy:service_copying",
+        "role": "学究",
+        "seq": 62,
+        "tick": 81,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 0,
+        "gross": 30,
+        "hours": 8,
+        "npc": "pei_wujiu",
+        "paid": 30,
+        "payee_account": "wallet:pei_wujiu",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:escort_agency:service_escort",
+        "role": "镖师",
+        "seq": 68,
+        "tick": 86,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 0,
+        "gross": 32,
+        "hours": 8,
+        "npc": "shen_yanzhou",
+        "paid": 32,
+        "payee_account": "wallet:shen_yanzhou",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:smithy:iron_ingot",
+        "role": "铁匠",
+        "seq": 73,
+        "tick": 126,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 0,
+        "gross": 28,
+        "hours": 8,
+        "npc": "gu_qingya",
+        "paid": 28,
+        "payee_account": "wallet:gu_qingya",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:pharmacy:wound_powder",
+        "role": "游医",
+        "seq": 78,
+        "tick": 132,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 1,
+        "gross": 24,
+        "hours": 8,
+        "npc": "liu_sanniang",
+        "paid": 24,
+        "payee_account": "wallet:liu_sanniang",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:market:noodle",
+        "role": "绣娘",
+        "seq": 102,
+        "tick": 144,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 1,
+        "gross": 24,
+        "hours": 8,
+        "npc": "bai_lusheng",
+        "paid": 24,
+        "payee_account": "wallet:bai_lusheng",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:academy:service_copying",
+        "role": "学究",
+        "seq": 107,
+        "tick": 144,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 1,
+        "gross": 15,
+        "hours": 8,
+        "npc": "han_xinglin",
+        "paid": 15,
+        "payee_account": "wallet:han_xinglin",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:pharmacy:plaster",
+        "role": "药童",
+        "seq": 114,
+        "tick": 145,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 1,
+        "gross": 26,
+        "hours": 8,
+        "npc": "cui_tieyi",
+        "paid": 26,
+        "payee_account": "wallet:cui_tieyi",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:market:rice",
+        "role": "捕快",
+        "seq": 116,
+        "tick": 145,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 1,
+        "gross": 32,
+        "hours": 8,
+        "npc": "shen_yanzhou",
+        "paid": 32,
+        "payee_account": "wallet:shen_yanzhou",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:smithy:iron_ingot",
+        "role": "铁匠",
+        "seq": 119,
+        "tick": 145,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 1,
+        "gross": 18,
+        "hours": 8,
+        "npc": "lu_jiujin",
+        "paid": 18,
+        "payee_account": "wallet:lu_jiujin",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:escort_agency:service_escort",
+        "role": "脚夫",
+        "seq": 121,
+        "tick": 146,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 1,
+        "gross": 22,
+        "hours": 8,
+        "npc": "hua_jieyu",
+        "paid": 22,
+        "payee_account": "wallet:hua_jieyu",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:inn:service_storytelling",
+        "role": "说书人",
+        "seq": 122,
+        "tick": 146,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 1,
+        "gross": 20,
+        "hours": 8,
+        "npc": "wen_xiaoman",
+        "paid": 20,
+        "payee_account": "wallet:wen_xiaoman",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:inn:wine",
+        "role": "酒保",
+        "seq": 124,
+        "tick": 146,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 1,
+        "gross": 30,
+        "hours": 8,
+        "npc": "pei_wujiu",
+        "paid": 30,
+        "payee_account": "wallet:pei_wujiu",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:escort_agency:service_escort",
+        "role": "镖师",
+        "seq": 127,
+        "tick": 146,
+        "unpaid": 0
+      },
+      {
+        "balanced": true,
+        "day": 1,
+        "gross": 28,
+        "hours": 8,
+        "npc": "gu_qingya",
+        "paid": 28,
+        "payee_account": "wallet:gu_qingya",
+        "payer_account": "treasury:region",
+        "payer_party": "biz:pharmacy:wound_powder",
+        "role": "游医",
+        "seq": 129,
+        "tick": 146,
+        "unpaid": 0
+      }
+    ],
+    "totals": {
+      "cashflow_wage_paid": 611,
+      "debt_ledger_active": 0,
+      "gross": 611,
+      "paid": 611,
+      "unpaid_active": 0,
+      "unpaid_active_count": 0,
+      "unpaid_created": 0,
+      "unpaid_settled": 0,
+      "work_events": 26
+    }
+  },
+  "wall_time_s": 283.97
+}

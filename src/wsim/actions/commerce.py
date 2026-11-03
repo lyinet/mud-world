@@ -139,6 +139,10 @@ class TradeAction(Action):
         target = alive(state, target_id)
         if target.id == ent.id:
             return ["self_trade"]
+        if ent.id.startswith("player:") and ent.presence != "online":
+            return ["player_offline"]
+        if target.id.startswith("player:") and target.presence != "online":
+            return ["target_offline"]
         if target.location != ent.location:
             return ["not_together"]
         offer = _item_list(intent, "offer")
@@ -158,6 +162,18 @@ class TradeAction(Action):
             return ["insufficient_money"]
         if state.affection_between(ent.id, target.id) < -20:
             return ["hostile"]
+        # 玩家 -> NPC 的公平闸门：防止 1 个烧饼换走名剑。
+        if ent.id.startswith("player:") and not target.id.startswith("player:"):
+            for item, _ in offer + want:
+                if item.startswith("service_"):
+                    return ["service_item"]
+            offer_value = sum(self.content.item_price(item) * qty for item, qty in offer)
+            want_value = sum(self.content.item_price(item) * qty for item, qty in want)
+            received = offer_value + max(0, -delta)
+            given = want_value + max(0, delta)
+            ratio = 0.50 if state.affection_between(ent.id, target.id) >= 60 else 0.70
+            if received < ratio * given:
+                return ["trade_unfair"]
         return []
 
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:

@@ -1,5 +1,7 @@
 # world-sim — P1 无头世界审计器
 
+> **安全提示（2026-11-04）**：历史报告 [reports/p3d-report.md](reports/p3d-report.md) 曾以明文出现测试 key（现已替换为 `<REDACTED>`）。该 key 如为真实凭证，必须立即轮换；本仓库不再保存任何明文 key，所有 key 只从环境变量读取。
+
 独立 Python 项目，位于 `world-sim/` 子目录，**不修改仓库现有文件**。模拟是事件溯源架构：
 SQLite `events` append-only 日志是唯一事实源，内存 `WorldState` 只是可重建的投影。
 

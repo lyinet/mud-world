@@ -10,12 +10,17 @@ quests:
     giver: liu_sanniang
     target_npc: su_hexiang
     target_location: pharmacy
-    target_item: silk
-    verb: move
-    intent_args: {to: pharmacy}
-    deadline_days: 1
-    reward: {money: 6, relation: 2}
-    notes: "柳三娘让学徒把新染的绸样送到药铺，给苏合香做药囊衬里。"
+    # 跑腿交付改为零金额交易：到药铺与苏合香当面交接。
+    # 不用 move 作为任务动词：引擎会在到达后再执行一次同点 move，必然触发 not_adjacent。
+    verb: trade
+    intent_args:
+      target: su_hexiang
+      offer: []
+      want: []
+      money_delta: 0
+    deadline_days: 2
+    reward: {money: 8, relation: 2}
+    notes: "柳三娘已把新染的绸样包好，跑腿的只需送到药铺交给苏合香做药囊衬里。"
   - id: errand_academy_notice
     name: 送书院口信
     category: errand
@@ -23,11 +28,55 @@ quests:
     giver: yan_shouyi
     target_npc: bai_lusheng
     target_location: academy
-    verb: move
-    intent_args: {to: academy}
-    deadline_days: 2
-    reward: {money: 5, relation: 3}
+    # 口信交付同样走零金额交易，与白露生当面把话带到。
+    verb: trade
+    intent_args:
+      target: bai_lusheng
+      offer: []
+      want: []
+      money_delta: 0
+    deadline_days: 3
+    reward: {money: 8, relation: 3}
     notes: "庙里要把下月的香会日子捎给书院，白露生好提前知会学生。"
+
+  # 新手起步单：发布人在出生点 market，目标 1 跳，零垫付，报酬 8-15 文，时限 >=2 日。
+  # 这两张单同时保证 market 白天至少有 3 个可接任务的发布人模板（柳三娘、孟九娘、金满仓）。
+  - id: errand_market_ledger
+    name: 捎账本到客栈
+    category: errand
+    repeatable: true
+    starter: true
+    entry_cost: 0
+    giver: jin_mancang
+    target_npc: song_henian
+    target_location: inn
+    verb: trade
+    intent_args:
+      target: song_henian
+      offer: []
+      want: []
+      money_delta: 0
+    deadline_days: 2
+    reward: {money: 10, relation: 2}
+    notes: "金满仓把本月米账誊好，让跑腿的送到客栈宋鹤年手里；market 到 inn 只隔一条街，不用垫钱。"
+  - id: errand_market_sweet
+    name: 捎一包喜糖到书院
+    category: errand
+    repeatable: true
+    starter: true
+    entry_cost: 0
+    giver: meng_jiuniang
+    target_npc: bai_lusheng
+    target_location: academy
+    verb: trade
+    intent_args:
+      target: bai_lusheng
+      offer: []
+      want: []
+      money_delta: 0
+    deadline_days: 2
+    reward: {money: 9, relation: 2}
+    notes: "孟九娘给书院白露生捎一包喜糖，顺带问一句讲期；market 到 academy 1 跳，不用垫钱。"
 
   - id: escort_iron_short
     name: 短镖送铁器
@@ -54,27 +103,31 @@ quests:
       route: [escort_agency, ferry, inn, temple]
       cargo_value: 260
       fee: 190
-    deadline_days: 3
-    reward: {money: 18, relation: 2}
+    deadline_days: 4
+    reward: {money: 22, relation: 2}
     notes: "卓不凡押一箱药材去城隍庙施药，路上要过河渡与客栈。"
 
-  - id: procure_ginseng
-    name: 采购参片
+  # 采购单必须写 entry_cost（= 基准价 × qty），任务板靠 name 里的“垫付N文”提示新手。
+  # 人参 120 文不设任务模板：它是药铺里的可选商品，不上海任务板，避免新手点单后才发现买不起。
+  - id: procure_mugwort
+    name: 采购艾草（垫付18文）
     category: procurement
     repeatable: true
-    giver: su_hexiang
-    target_npc: su_hexiang
+    entry_cost: 18
+    giver: yan_shouyi
+    target_npc: yan_shouyi
     target_location: pharmacy
-    target_item: ginseng
+    target_item: mugwort
     verb: buy
-    intent_args: {item: ginseng, qty: 1, from: pharmacy}
-    deadline_days: 1
-    reward: {money: 8, relation: 2}
-    notes: "苏合香要补一味参片，采购价按 items.yaml 的 ginseng 基准价另算。"
+    intent_args: {item: mugwort, qty: 3, from: pharmacy}
+    deadline_days: 2
+    reward: {money: 28, relation: 2}
+    notes: "城隍庙要给香客熏艾，庙祝让跑腿的去药铺买三捆艾草；一捆六文，共垫 18 文，报酬 28 文。"
   - id: procure_charcoal
-    name: 采购木炭
+    name: 采购木炭（垫付30文）
     category: procurement
     repeatable: true
+    entry_cost: 30
     giver: song_henian
     target_npc: song_henian
     target_location: ferry
@@ -82,8 +135,8 @@ quests:
     verb: buy
     intent_args: {item: charcoal, qty: 2, from: ferry}
     deadline_days: 2
-    reward: {money: 10, relation: 2}
-    notes: "客栈灶上缺炭，宋鹤年让人去河渡买两担。"
+    reward: {money: 36, relation: 2}
+    notes: "客栈灶上缺炭，宋鹤年让人去河渡买两担；一担十五文，共垫 30 文，报酬 36 文。"
 
   - id: inquiry_luo_marriage
     name: 打听罗家婚事
@@ -98,8 +151,8 @@ quests:
       offer: []
       want: []
       money_delta: 0
-    deadline_days: 1
-    reward: {money: 6, relation: 2}
+    deadline_days: 2
+    reward: {money: 8, relation: 2}
     notes: "孟九娘想探罗轻絮的口风，用零钱换消息，不涉及货物。"
   - id: inquiry_academy_lecture
     name: 打听书院讲期
@@ -127,7 +180,7 @@ quests:
     target_location: smithy
     verb: work
     intent_args: {at: smithy, hours: 4}
-    deadline_days: 1
+    deadline_days: 2
     reward: {money: 12, relation: 2}
     notes: "石敢当接了一批石活，让短工在铁匠铺后院凿四小时；工钱另按工资结算。"
   - id: commission_herb_sorting
@@ -139,7 +192,7 @@ quests:
     target_location: pharmacy
     verb: work
     intent_args: {at: pharmacy, hours: 6}
-    deadline_days: 1
+    deadline_days: 2
     reward: {money: 14, relation: 2}
     notes: "韩杏林要人帮忙分拣药材，六小时短工，药铺另付工钱。"
 

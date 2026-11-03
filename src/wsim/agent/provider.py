@@ -90,6 +90,9 @@ class ProviderConfig:
     temperature: float = 0.0
     json_mode: bool = True
     slot: str = "decision"
+    # 关闭思维链的候选请求体，按顺序尝试；第一组被上游接受即停止。
+    extra_body: tuple[dict[str, Any], ...] = ()
+    backoff_429_s: float = 25.0
 
     def validate(self) -> None:
         errors: list[str] = []
@@ -107,6 +110,12 @@ class ProviderConfig:
             errors.append("backoff_base_s 不能为负")
         if self.max_tokens <= 0:
             errors.append("max_tokens 必须 > 0")
+        if self.backoff_429_s < 0:
+            errors.append("backoff_429_s 不能为负")
+        if not isinstance(self.extra_body, tuple) or any(
+            not isinstance(item, dict) for item in self.extra_body
+        ):
+            errors.append("extra_body 必须是对象列表")
         if errors:
             raise ProviderConfigError("; ".join(errors))
 
@@ -115,7 +124,8 @@ class ProviderConfig:
         return {"base_url": self.base_url, "model": self.model, "timeout_s": self.timeout_s,
                 "max_retries": self.max_retries, "offline": self.offline,
                 "max_tokens": self.max_tokens, "temperature": self.temperature,
-                "json_mode": self.json_mode, "slot": self.slot}
+                "json_mode": self.json_mode, "slot": self.slot,
+                "extra_body": list(self.extra_body), "backoff_429_s": self.backoff_429_s}
 
     @classmethod
     def from_env(
@@ -133,6 +143,8 @@ class ProviderConfig:
         json_mode: bool = True,
         slot: str = "decision",
         model_env: str = "",
+        extra_body: list[dict[str, Any]] | tuple[dict[str, Any], ...] = (),
+        backoff_429_s: float = 25.0,
     ) -> "ProviderConfig | None":
         """`enabled=False` 返回 None（不联网）；环境变量缺失也返回 None 并抛错。
 
@@ -163,6 +175,8 @@ class ProviderConfig:
             temperature=temperature,
             json_mode=json_mode,
             slot=slot,
+            extra_body=tuple(extra_body or ()),
+            backoff_429_s=backoff_429_s,
         )
 
 
@@ -172,6 +186,9 @@ class Completion:
 
     text: str
     usage: dict[str, int] | None = None
+    # 真正被上游接受的关闭思考参数；未生效时为空，ignored=True。
+    thinking_disabled_by: str = ""
+    thinking_param_ignored: bool = False
 
 
 Transport = Callable[[ProviderConfig, str, str], "str | Completion"]
@@ -245,14 +262,36 @@ def _chat_url(base_url: str) -> str:
     return base + "/v1/chat/completions"
 
 
+def describe_extra_body(extra: dict[str, Any]) -> str:
+    if not extra:
+        return "none"
+    if extra.get("reasoning_effort") == "none":
+        return "reasoning_effort=none"
+    if extra.get("enable_thinking") is False:
+        return "enable_thinking=false"
+    thinking = extra.get("thinking")
+    if isinstance(thinking, dict) and thinking.get("type") == "disabled":
+        return "thinking.type=disabled"
+    return json.dumps(extra, ensure_ascii=False, sort_keys=True)
+
+
+def _unknown_param_text(text: str) -> bool:
+    """4xx 且上游明确说字段不认识时，才尝试下一组 extra_body。"""
+    low = str(text or "").lower()
+    markers = ("unknown", "unsupported", "unrecognized", "invalid parameter",
+               "extra fields", "unexpected keyword", "not permitted")
+    return any(m in low for m in markers)
+
+
 def _http_transport(cfg: ProviderConfig, system: str, user: str) -> Completion:
     """OpenAI 兼容协议的真实 HTTP 实现（默认只有在启用时才会被调用）。
 
-    `urllib.request.urlopen(timeout=...)` 对连接、发送与读取都生效；
+    `extra_body` 逐组尝试：上游 400/422 明确拒绝未知字段时换下一组；
+    全部被拒后回退到不带 extra_body 的原始请求，并标记 ignored=True。
     超时/网络/5xx 由 ProviderClient 指数退避重试，4xx 与 parse 不重试。
     """
     url = _chat_url(cfg.base_url)
-    payload: dict[str, Any] = {
+    base: dict[str, Any] = {
         "model": cfg.model,
         "messages": [
             {"role": "system", "content": system},
@@ -264,54 +303,77 @@ def _http_transport(cfg: ProviderConfig, system: str, user: str) -> Completion:
     if cfg.json_mode:
         # 实测本地聚合网关接受该字段；不支持的网关应把 config 里的 json_mode 设为 false，
         # Prompt 本身仍有严格 JSON 指令，不影响可用性。
-        payload["response_format"] = {"type": "json_object"}
-    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-    req = urllib.request.Request(
-        url,
-        data=body,
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {cfg.key}",
-        },
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=cfg.timeout_s) as resp:
-            raw = resp.read().decode("utf-8")
-    except urllib.error.HTTPError as exc:
-        code = int(exc.code)
-        if code == 429:
-            kind = "http_429"
-        elif 400 <= code < 500:
-            kind = "http_4xx"
-        else:
-            kind = "http_5xx"
-        raise ProviderError(kind, str(code)) from exc
-    except (socket.timeout, TimeoutError) as exc:
-        raise ProviderError("timeout", str(exc)[:80]) from exc
-    except urllib.error.URLError as exc:
-        reason = getattr(exc, "reason", exc)
-        if isinstance(reason, (socket.timeout, TimeoutError)):
-            raise ProviderError("timeout", str(reason)[:80]) from exc
-        raise ProviderError("network", str(reason)[:80]) from exc
-    except OSError as exc:
-        raise ProviderError("network", str(exc)[:80]) from exc
-    try:
-        payload = json.loads(raw)
-        content = payload["choices"][0]["message"]["content"]
-    except (ValueError, KeyError, IndexError, TypeError) as exc:
-        raise ProviderError("parse", str(exc)[:80]) from exc
-    usage_raw = payload.get("usage") if isinstance(payload, dict) else None
-    usage: dict[str, int] = {}
-    if isinstance(usage_raw, dict):
-        for key in ("prompt_tokens", "completion_tokens", "total_tokens"):
-            value = usage_raw.get(key)
-            if isinstance(value, (int, float)):
-                usage[key] = int(value)
-    if not isinstance(content, str) or not content.strip():
-        # 典型场景：max_tokens 被 reasoning 吃光，finish_reason=length，content=null。
-        raise ProviderError("parse", "empty_content", usage=usage)
-    return Completion(text=content, usage=usage)
+        base["response_format"] = {"type": "json_object"}
+
+    def send(payload: dict[str, Any], *, thinking_by: str, ignored: bool) -> Completion:
+        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        req = urllib.request.Request(
+            url,
+            data=body,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {cfg.key}",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=cfg.timeout_s) as resp:
+                raw = resp.read().decode("utf-8")
+        except urllib.error.HTTPError as exc:
+            code = int(exc.code)
+            if code == 429:
+                kind = "http_429"
+            elif 400 <= code < 500:
+                kind = "http_4xx"
+            else:
+                kind = "http_5xx"
+            try:
+                detail = exc.read().decode("utf-8", errors="ignore")[:200]
+            except Exception:
+                detail = ""
+            raise ProviderError(kind, f"{code}:{detail}") from exc
+        except (socket.timeout, TimeoutError) as exc:
+            raise ProviderError("timeout", str(exc)[:80]) from exc
+        except urllib.error.URLError as exc:
+            reason = getattr(exc, "reason", exc)
+            if isinstance(reason, (socket.timeout, TimeoutError)):
+                raise ProviderError("timeout", str(reason)[:80]) from exc
+            raise ProviderError("network", str(reason)[:80]) from exc
+        except OSError as exc:
+            raise ProviderError("network", str(exc)[:80]) from exc
+        try:
+            data = json.loads(raw)
+            content = data["choices"][0]["message"]["content"]
+        except (ValueError, KeyError, IndexError, TypeError) as exc:
+            raise ProviderError("parse", str(exc)[:80]) from exc
+        usage_raw = data.get("usage") if isinstance(data, dict) else None
+        usage: dict[str, int] = {}
+        if isinstance(usage_raw, dict):
+            for key in ("prompt_tokens", "completion_tokens", "total_tokens"):
+                value = usage_raw.get(key)
+                if isinstance(value, (int, float)):
+                    usage[key] = int(value)
+        if not isinstance(content, str) or not content.strip():
+            # 典型场景：max_tokens 被 reasoning 吃光，finish_reason=length，content=null。
+            raise ProviderError("parse", "empty_content", usage=usage)
+        return Completion(text=content, usage=usage, thinking_disabled_by=thinking_by,
+                          thinking_param_ignored=ignored)
+
+    candidates = list(cfg.extra_body)
+    if not candidates:
+        return send(base, thinking_by="none", ignored=False)
+
+    for extra in candidates:
+        payload = dict(base)
+        payload.update(extra)
+        try:
+            return send(payload, thinking_by=describe_extra_body(extra), ignored=False)
+        except ProviderError as exc:
+            if exc.kind == "http_4xx" and _unknown_param_text(str(exc)):
+                continue
+            raise
+    # 全部候选都被上游以“未知字段”拒绝：退回不含 extra_body 的请求，并如实标记未生效。
+    return send(base, thinking_by="none", ignored=True)
 
 
 class ProviderClient:
@@ -327,13 +389,18 @@ class ProviderClient:
         self.last_error_kind = ""
         self.last_usage: dict[str, int] = {}
         self.last_latency_s = 0.0
+        self.last_attempt_latency_s = 0.0
+        self.last_thinking_disabled_by = ""
+        self.last_thinking_param_ignored = False
         self._transport = transport or _http_transport
-        self._sleep = sleep_fn or (lambda _s: None)
-        # P3-D：线程安全的调用/延迟/429 统计（complete_many 会并发）。
+        # P0-1：生产默认必须真的等待；旧的 no-op 会让 429 退避变成空操作。
+        self._sleep: Callable[[float], None] = sleep_fn or time.sleep
+        # 线程安全的调用/延迟/429 统计（complete_many 会并发）。
         self._stats_lock = threading.Lock()
         self.stats: dict[str, Any] = {
             "calls": 0, "attempts": 0, "retries": 0, "http_429": 0,
-            "errors_by_kind": Counter(), "success": 0, "latency_s": [],
+            "errors_by_kind": Counter(), "success": 0,
+            "latency_s": [], "attempt_latency_s": [],
         }
 
     def _stat(self, **kwargs: Any) -> None:
@@ -341,21 +408,34 @@ class ProviderClient:
             for key, value in kwargs.items():
                 if key == "errors_by_kind":
                     self.stats["errors_by_kind"][str(value)] += 1
-                elif key == "latency_s":
-                    self.stats["latency_s"].append(float(value))
+                elif key in ("latency_s", "attempt_latency_s"):
+                    self.stats[key].append(float(value))
                 else:
                     self.stats[key] = int(self.stats.get(key, 0)) + int(value)
 
     def stats_snapshot(self) -> dict[str, Any]:
         with self._stats_lock:
-            latencies = sorted(float(x) for x in self.stats["latency_s"])
-            count = len(latencies)
+            call_latencies = sorted(float(x) for x in self.stats["latency_s"])
+            attempt_latencies = sorted(float(x) for x in self.stats["attempt_latency_s"])
 
-            def quantile(q: float) -> float:
-                if not latencies:
-                    return 0.0
-                idx = min(count - 1, max(0, int(round(q * (count - 1)))))
-                return round(latencies[idx], 3)
+            def group(values: list[float]) -> dict[str, Any]:
+                count = len(values)
+
+                def quantile(q: float) -> float:
+                    if not values:
+                        return 0.0
+                    idx = min(count - 1, max(0, int(round(q * (count - 1)))))
+                    return round(values[idx], 3)
+
+                return {
+                    "n": count,
+                    "mean": round(sum(values) / count, 3) if count else 0.0,
+                    "min": round(values[0], 3) if count else 0.0,
+                    "p50": quantile(0.50),
+                    "p90": quantile(0.90),
+                    "p95": quantile(0.95),
+                    "max": round(values[-1], 3) if count else 0.0,
+                }
 
             return {
                 "calls": int(self.stats["calls"]),
@@ -364,14 +444,10 @@ class ProviderClient:
                 "http_429": int(self.stats["http_429"]),
                 "success": int(self.stats["success"]),
                 "errors_by_kind": dict(sorted(self.stats["errors_by_kind"].items())),
-                "latency": {
-                    "n": count,
-                    "mean": round(sum(latencies) / count, 3) if count else 0.0,
-                    "min": round(latencies[0], 3) if count else 0.0,
-                    "p50": quantile(0.50),
-                    "p90": quantile(0.90),
-                    "max": round(latencies[-1], 3) if count else 0.0,
-                },
+                # call_latency 含每次尝试 + 全部退避等待；attempt_latency 只含单次 HTTP。
+                "call_latency": group(call_latencies),
+                "attempt_latency": group(attempt_latencies),
+                "latency": group(call_latencies),
             }
 
     def complete(self, system: str, user: str) -> str:
@@ -381,6 +457,9 @@ class ProviderClient:
         self.last_error_kind = result["error_kind"]
         self.last_usage = dict(result["usage"] or {})
         self.last_latency_s = result["latency_s"]
+        self.last_attempt_latency_s = float(result.get("attempt_latency_s") or 0.0)
+        self.last_thinking_disabled_by = result.get("thinking_disabled_by", "")
+        self.last_thinking_param_ignored = bool(result.get("thinking_param_ignored", False))
         if result["error"] is not None:
             raise result["error"]
         return result["text"]
@@ -401,10 +480,14 @@ class ProviderClient:
                 return [{
                     "text": "", "usage": dict(self.last_usage), "latency_s": self.last_latency_s,
                     "attempts": self.last_attempts, "error_kind": self.last_error_kind, "error": exc,
+                    "thinking_disabled_by": self.last_thinking_disabled_by,
+                    "thinking_param_ignored": self.last_thinking_param_ignored,
                 }]
             return [{
                 "text": text, "usage": dict(self.last_usage), "latency_s": self.last_latency_s,
                 "attempts": self.last_attempts, "error_kind": "", "error": None,
+                "thinking_disabled_by": self.last_thinking_disabled_by,
+                "thinking_param_ignored": self.last_thinking_param_ignored,
             }]
         if concurrency <= 1:
             return [self._run(system, user) for system, user in requests]
@@ -417,48 +500,71 @@ class ProviderClient:
         """单次调用（含重试）的无状态实现，供 complete/complete_many 共用。"""
         if self.config.offline:
             return {
-                "text": "", "usage": {}, "latency_s": 0.0, "attempts": 1,
+                "text": "", "usage": {}, "latency_s": 0.0, "attempt_latency_s": 0.0,
+                "attempts": 1,
                 "error_kind": "offline", "error": ProviderUnavailable("offline_mode"),
+                "thinking_disabled_by": "none", "thinking_param_ignored": False,
             }
         last: ProviderError | None = None
         attempts = 0
+        call_started = time.perf_counter()
         self._stat(calls=1)
         for attempt in range(self.config.max_retries + 1):
             attempts = attempt + 1
             started = time.perf_counter()
             try:
                 result = self._transport(self.config, system, user)
-                latency = time.perf_counter() - started
-                self._stat(attempts=1, success=1, latency_s=latency)
+                attempt_latency = time.perf_counter() - started
+                call_latency = time.perf_counter() - call_started
+                self._stat(attempts=1, success=1, latency_s=call_latency,
+                           attempt_latency_s=attempt_latency)
                 if isinstance(result, Completion):
                     return {"text": result.text, "usage": dict(result.usage or {}),
-                            "latency_s": latency, "attempts": attempts,
-                            "error_kind": "", "error": None}
-                return {"text": str(result), "usage": {}, "latency_s": latency,
-                        "attempts": attempts, "error_kind": "", "error": None}
+                            "latency_s": call_latency, "attempt_latency_s": attempt_latency,
+                            "attempts": attempts, "error_kind": "", "error": None,
+                            "thinking_disabled_by": result.thinking_disabled_by,
+                            "thinking_param_ignored": result.thinking_param_ignored}
+                return {"text": str(result), "usage": {}, "latency_s": call_latency,
+                        "attempt_latency_s": attempt_latency,
+                        "attempts": attempts, "error_kind": "", "error": None,
+                        "thinking_disabled_by": "none", "thinking_param_ignored": False}
             except ProviderError as exc:
-                latency = time.perf_counter() - started
+                attempt_latency = time.perf_counter() - started
+                call_latency = time.perf_counter() - call_started
                 last = exc
-                self._stat(attempts=1, errors_by_kind=exc.kind, latency_s=latency)
+                self._stat(attempts=1, errors_by_kind=exc.kind, latency_s=call_latency,
+                           attempt_latency_s=attempt_latency)
                 if exc.kind == "http_429":
                     self._stat(http_429=1)
                 if not exc.retryable:
-                    return {"text": "", "usage": dict(exc.usage or {}), "latency_s": latency,
-                            "attempts": attempts, "error_kind": exc.kind, "error": exc}
+                    return {"text": "", "usage": dict(exc.usage or {}), "latency_s": call_latency,
+                            "attempt_latency_s": attempt_latency,
+                            "attempts": attempts, "error_kind": exc.kind, "error": exc,
+                            "thinking_disabled_by": "", "thinking_param_ignored": False}
                 if attempt < self.config.max_retries:
                     self._stat(retries=1)
-                    # P3-D：429 按实测要求固定 25s 退避；其余错误仍用指数退避。
-                    delay = 25.0 if exc.kind == "http_429" else self.config.backoff_base_s * (2 ** attempt)
+                    # 429 用配置的固定退避（默认 25s）；其余错误指数退避。
+                    delay = (
+                        self.config.backoff_429_s
+                        if exc.kind == "http_429"
+                        else self.config.backoff_base_s * (2 ** attempt)
+                    )
                     self._sleep(delay)
             except ProviderUnavailable as exc:
-                self._stat(attempts=1, errors_by_kind="offline",
-                           latency_s=time.perf_counter() - started)
-                return {"text": "", "usage": {}, "latency_s": time.perf_counter() - started,
-                        "attempts": attempts, "error_kind": "offline", "error": exc}
+                call_latency = time.perf_counter() - call_started
+                self._stat(attempts=1, errors_by_kind="offline", latency_s=call_latency,
+                           attempt_latency_s=call_latency)
+                return {"text": "", "usage": {}, "latency_s": call_latency,
+                        "attempt_latency_s": call_latency,
+                        "attempts": attempts, "error_kind": "offline", "error": exc,
+                        "thinking_disabled_by": "none", "thinking_param_ignored": False}
+        call_latency = time.perf_counter() - call_started
         err = ProviderError(last.kind if last else "unknown", f"failed_after_attempts:{attempts}",
                             usage=dict(last.usage or {}) if last else None)
-        return {"text": "", "usage": dict(last.usage or {}) if last else {}, "latency_s": 0.0,
-                "attempts": attempts, "error_kind": err.kind, "error": err}
+        return {"text": "", "usage": dict(last.usage or {}) if last else {}, "latency_s": call_latency,
+                "attempt_latency_s": call_latency,
+                "attempts": attempts, "error_kind": err.kind, "error": err,
+                "thinking_disabled_by": "", "thinking_param_ignored": False}
 
     # 兼容 P2 的 Reasoner 契约桩（真实接入走 LLMReasoner）。
     def decide(self, npc_state: dict[str, Any], world_view: dict[str, Any]) -> list[Intent]:
@@ -554,6 +660,9 @@ class LLMReasoner(Reasoner):
         self.intent_grounding_cases: list[dict[str, Any]] = []
         self.intent_latencies: list[float] = []
         self.intent_normalizations: Counter[str] = Counter()
+        self.intent_dropped_fields: Counter[str] = Counter()
+        self.intent_unknown_category = 0
+        self.intent_unknown_category_cases: list[dict[str, Any]] = []
         self.intent_usage_prompt = 0
         self.intent_usage_completion = 0
         self.intent_usage_missing = 0
@@ -885,6 +994,9 @@ class LLMReasoner(Reasoner):
                 tick=p["tick"], npc=p["npc"], tier=p["tier"], prompt=intent_prompt,
                 output=out_text[:800], error=f"{res.get('error_kind')}:{res.get('error')}",
                 day=p["day"], usage=usage, latency_s=latency, calls=1,
+                thinking_disabled_by=str(res.get("thinking_disabled_by") or ""),
+                thinking_param_ignored=bool(res.get("thinking_param_ignored")),
+                attempt_latency_s=res.get("attempt_latency_s"),
                 client=self.intent_client, charge_budget=False,
             )
             return []
@@ -906,6 +1018,16 @@ class LLMReasoner(Reasoner):
                     "model_output": out_text[:400],
                     "blocked": list(resolution.blocked),
                 })
+        for name in resolution.dropped_fields:
+            self.intent_dropped_fields[name] += 1
+        if resolution.reason == "unknown_category":
+            self.intent_unknown_category += 1
+            if len(self.intent_unknown_category_cases) < 20:
+                self.intent_unknown_category_cases.append({
+                    "tick": int(p["tick"]), "npc": str(p["npc"]),
+                    "utterance": str(p.get("intent_text") or ""),
+                    "model_output": out_text[:400],
+                })
         for name, row in resolution.normalizations.items():
             self.intent_normalizations[f"{name}:{row.get('value')}{row.get('unit') or ''}"] += 1
         if self.record_path is not None:
@@ -922,6 +1044,9 @@ class LLMReasoner(Reasoner):
         self._record(
             tick=p["tick"], npc=p["npc"], tier=p["tier"], prompt=intent_prompt,
             output=out_text, day=p["day"], usage=usage, latency_s=latency, calls=1,
+            thinking_disabled_by=str(res.get("thinking_disabled_by") or ""),
+            thinking_param_ignored=bool(res.get("thinking_param_ignored")),
+            attempt_latency_s=res.get("attempt_latency_s"),
             client=self.intent_client, charge_budget=False,
         )
         if resolution.status == "ok":
@@ -1077,13 +1202,23 @@ class LLMReasoner(Reasoner):
         day: int | None = None,
         usage: dict[str, int] | None = None,
         latency_s: float = 0.0,
+        attempt_latency_s: float | None = None,
+        thinking_disabled_by: str | None = None,
+        thinking_param_ignored: bool | None = None,
         client: ProviderClient | None = None,
         charge_budget: bool = True,
     ) -> dict[str, Any] | None:
         if self.telemetry is None:
             return None
         usage = usage or {}
-        cfg = (client or self.provider).config
+        active = client or self.provider
+        cfg = active.config
+        if attempt_latency_s is None:
+            attempt_latency_s = float(getattr(active, "last_attempt_latency_s", 0.0) or 0.0)
+        if thinking_disabled_by is None:
+            thinking_disabled_by = str(getattr(active, "last_thinking_disabled_by", "") or "")
+        if thinking_param_ignored is None:
+            thinking_param_ignored = bool(getattr(active, "last_thinking_param_ignored", False))
         reported = bool(usage)
         # intent 槽上游可能不返回 usage：按要求记 null，不做字符估算。
         missing_intent_usage = cfg.slot == "intent" and not reported
@@ -1103,6 +1238,9 @@ class LLMReasoner(Reasoner):
             input_tokens=usage.get("prompt_tokens"),
             output_tokens=usage.get("completion_tokens"),
             latency_s=latency_s,
+            attempt_latency_s=attempt_latency_s,
+            thinking_disabled_by=thinking_disabled_by,
+            thinking_param_ignored=thinking_param_ignored,
             usage_source="reported" if reported else ("missing" if missing_intent_usage else "estimated"),
             estimate_missing=not missing_intent_usage,
         )
@@ -1157,12 +1295,16 @@ class LLMReasoner(Reasoner):
             "intent_grounding_by_field": dict(sorted(self.intent_grounding_by_field.items())),
             "intent_grounding_cases": list(self.intent_grounding_cases),
             "intent_normalizations": dict(sorted(self.intent_normalizations.items())),
+            "intent_dropped_fields": dict(sorted(self.intent_dropped_fields.items())),
+            "intent_unknown_category": self.intent_unknown_category,
+            "intent_unknown_category_cases": list(self.intent_unknown_category_cases),
             "intent_latency": {
                 "n": n_lat,
                 "mean": round(sum(latencies) / n_lat, 3) if n_lat else 0.0,
                 "min": round(latencies[0], 3) if n_lat else 0.0,
                 "p50": quantile(0.50),
                 "p90": quantile(0.90),
+                "p95": quantile(0.95),
                 "max": round(latencies[-1], 3) if n_lat else 0.0,
             },
             "intent_usage": {

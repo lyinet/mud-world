@@ -14,8 +14,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from ..actions.registry import build_registry
+from ..actions.registry import ActionRegistry, build_registry
 from ..actions.common import treasury_balance, treasury_guard_threshold
+from ..actions.social import PLAYER_SOURCES
 from ..agent.budget import BudgetGuard, BudgetLimits
 from ..agent.cost import CostTelemetry, load_cost_rates
 from ..agent.dialogue_async import AsyncDialogueQueue
@@ -48,6 +49,21 @@ from ..world.writer import Writer
 from .genesis import build_genesis
 from .intent import MockReasoner
 from .lod import LODScheduler, load_lod_config
+
+
+def intent_block_reason(registry: ActionRegistry, state: WorldState, intent: Intent) -> str:
+    """提案前的前置校验：自主意图不满足前置条件时返回原因，玩家/系统不拦。
+
+    玩家意图必须走正常 Reject 事件，才能让 API 返回可解释的拒绝；系统意图
+    由各自 action 保证可用。这里只拦 LLM/planner/mock 等自主来源。
+    """
+    if intent.source in PLAYER_SOURCES or intent.verb.startswith("system_"):
+        return ""
+    action = registry.get(intent.verb)
+    if action is None:
+        return ""
+    reasons = action.preconditions(state, intent)
+    return str(reasons[0]) if reasons else ""
 
 
 @dataclass
@@ -149,7 +165,27 @@ def run_headless(
         f"[{stamp(0)}] registry_npc_verbs={sorted(v for v in registry.verbs() if not v.startswith('system_'))}"
     )
 
+    blocked: Counter[tuple[str, str]] = Counter()
+    blocked_examples: list[dict[str, Any]] = []
+
     def emit(intent: Intent):
+        # 自主意图（LLM/planner）在提案前做前置校验：不满足就不进事件日志，
+        # 只记 precondition_blocked，并让 NPC 下一 tick 重新规划（选项 b）。
+        reason = intent_block_reason(registry, writer.state, intent)
+        if reason:
+            blocked[(intent.verb, reason)] += 1
+            if len(blocked_examples) < 20:
+                blocked_examples.append(
+                    {
+                        "source": intent.source,
+                        "actor": intent.actor,
+                        "verb": intent.verb,
+                        "reason": reason,
+                        "tick": intent.tick,
+                        "args": dict(intent.args or {}),
+                    }
+                )
+            return None
         ev = writer.submit(intent)
         if ev.seq > events[-1].seq:
             events.append(ev)
@@ -187,6 +223,8 @@ def run_headless(
                     json_mode=bool(s.get("json_mode", True)),
                     slot=slot,
                     model_env=str(s.get("model_env", "")),
+                    extra_body=list(s.get("extra_body") or []),
+                    backoff_429_s=float(s.get("backoff_429_s", 25.0)),
                 ),
                 transport=transport,
             )
@@ -416,6 +454,12 @@ def run_headless(
                 _, _prio, _seq, kind, payload = heapq.heappop(queue)
                 if kind == "intent":
                     ev = emit(payload)
+                    if ev is None:
+                        # 前置条件不满足：没进事件日志，也没消耗世界动作；让 NPC 下一 tick 重新规划。
+                        if payload.source in ("planner", "llm") and replan_today[payload.actor] < 6:
+                            replan_today[payload.actor] += 1
+                            push(tick + 1, 3, "replan", payload.actor)
+                        continue
                     day_events.append(ev)
                     track_landing(payload, ev)
                     reasoner.observe(ev)
@@ -845,6 +889,14 @@ def run_headless(
             "illegal_rate": k6_ill["illegal_rate"],
             "by_reason": k6_ill["by_reason"],
             "by_verb": k6_ill["by_verb"],
+        },
+        "precondition_blocked": {
+            "total": sum(blocked.values()),
+            "by_verb": {
+                verb: dict(sorted(Counter({reason: n for (v, reason), n in blocked.items() if v == verb}).items()))
+                for verb in sorted({v for v, _ in blocked})
+            },
+            "examples": blocked_examples,
         },
         "k6": {
             "conservation": k6_cons,

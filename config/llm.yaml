@@ -32,37 +32,59 @@ provider:
   json_mode: true
 
 # 三槽位：决策 / 对话 / 意图理解分离，成本按 slot 记账。
+# P3-E 选型（2026-11-04）：关闭思考链 + 最低档模型。
+# - intent / decision：deepseek/deepseek-flash + reasoning_effort=none
+# - dialogue：auto/deepseek-v4.1-flash + enable_thinking=false
+# - Xing 实测 p50 25s / p95 68s、约 20% 输出思维链、偶发编造参数且免费额度耗尽，保留 enabled:false。
 models:
   decision:
     # 夜间批处理、目标选择、replan；只输出自然语言意图，不给 JSON 动作。
     type: openai_chat
-    model: "group/all"
+    base_url: "http://127.0.0.1:3425/v1"
+    api_key_env: "LLM_API_KEY"
+    model: "deepseek/deepseek-flash"
     model_env: "LLM_DECISION_MODEL"
+    extra_body:
+      - reasoning_effort: "none"
     max_tokens: 1024
     temperature: 0.2
     timeout_s: 30
+    max_retries: 2
   dialogue:
     # 玩家在场对话、聚光档 NPC 发言、角色扮演输出。
     type: openai_chat
-    model: "group/all"
+    base_url: "http://127.0.0.1:3425/v1"
+    api_key_env: "LLM_API_KEY"
+    model: "auto/deepseek-v4.1-flash"
     model_env: "LLM_DIALOGUE_MODEL"
+    extra_body:
+      - enable_thinking: false
     max_tokens: 4096
     temperature: 0.8
     timeout_s: 60
-  intent:
-    # 意图分类 + 参数抽取（Xing4.0-29B-Intent 兼容）。
-    # 默认 xing_intent；若只想用普通 OpenAI 兼容模型，把 type 改成 openai_chat 即可。
-    type: xing_intent
-    base_url: "http://127.0.0.1:3425/v1"   # P3-D 实测端点；换环境时改这里
-    api_key_env: "XING_API_KEY"
-    model: "openrouter/xingchen-agi/xing4.0-29b-a4b:free"
-    model_env: "XING_INTENT_MODEL"
-    # 实测 reasoning 会吃掉 token：64/800 都会返回空 content，结构化任务至少 1500。
-    timeout_s: 60
     max_retries: 2
+  intent:
+    # 意图分类 + 参数抽取。P3-E 切到 deepseek-flash 并关闭思考链。
+    # api_key_env 沿用历史变量名 XING_API_KEY，避免现有部署/隔离测试换变量；
+    # 它只是 key 的来源名，与模型无关。
+    type: openai_chat
+    base_url: "http://127.0.0.1:3425/v1"
+    api_key_env: "XING_API_KEY"
+    model: "deepseek/deepseek-flash"
+    model_env: "XING_INTENT_MODEL"
+    extra_body:
+      - reasoning_effort: "none"
     max_tokens: 1500
     temperature: 0.0
+    timeout_s: 60
+    max_retries: 2
     json_mode: true
+  # 历史选型，保留回溯但不参与调度（loader 不读取此块）。
+  xing:
+    enabled: false
+    type: xing_intent
+    model: "openrouter/xingchen-agi/xing4.0-29b-a4b:free"
+    note: "p50 25s / p95 68s；约 20% 输出思维链；偶发编造参数；免费额度耗尽。"
 
 # 预算护栏（分槽）：决策槽按日 token 上限；对话槽按日调用次数上限。
 # 任一槽超限只降级该槽：决策槽回退规则调度；对话槽返回固定兜底话术。

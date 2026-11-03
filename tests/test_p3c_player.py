@@ -22,13 +22,14 @@ def test_player_enter_registers_entity_wallet_presence(content, state, tmp_path)
     writer = Writer(state.clone(), store, build_registry(content, 42), 42)
     event = writer.submit(Intent(
         actor=PLAYER, verb="player_enter",
-        args={"player_id": PLAYER, "name": "阿青", "at": "a"},
+        args={"player_id": PLAYER, "account_id": "u_9001", "name": "阿青",
+              "display_name": "阿青", "archetype": "游侠", "at": "a"},
         tick=0, source="player",
     ))
     assert event.outcome == "ok", event.reason
     ent = writer.state.entities[PLAYER]
     assert ent.name == "阿青"
-    assert ent.role == "visitor"
+    assert ent.role == "镖师"
     assert ent.location == "a"
     assert ent.presence == "online"
     assert ent.last_seen_tick == 0
@@ -41,7 +42,7 @@ def test_player_enter_registers_entity_wallet_presence(content, state, tmp_path)
 def test_player_enter_twice_is_rejected(content, state, tmp_path):
     store = EventStore(tmp_path / "events.sqlite")
     writer = Writer(state.clone(), store, build_registry(content, 42), 42)
-    args = {"player_id": PLAYER, "at": "a"}
+    args = {"player_id": PLAYER, "account_id": "u_9001", "archetype": "游侠", "at": "a"}
     first = writer.submit(Intent(actor=PLAYER, verb="player_enter", args=args, tick=0, source="player"))
     assert first.outcome == "ok"
     # 同参同 tick 的重复 intent 会被 Writer 幂等去重；换参数才会走到 already_online。
@@ -59,7 +60,8 @@ def test_player_presence_updates_location(content, state, tmp_path):
     writer = Writer(state.clone(), store, build_registry(content, 42), 42)
     writer.submit(Intent(
         actor=PLAYER, verb="player_enter",
-        args={"player_id": PLAYER, "at": "a"}, tick=0, source="player",
+        args={"player_id": PLAYER, "account_id": "u_9001", "archetype": "游侠", "at": "a"},
+        tick=0, source="player",
     ))
     event = writer.submit(Intent(
         actor=PLAYER, verb="player_presence",
@@ -77,7 +79,8 @@ def test_player_leave_sets_offline(content, state, tmp_path):
     writer = Writer(state.clone(), store, build_registry(content, 42), 42)
     writer.submit(Intent(
         actor=PLAYER, verb="player_enter",
-        args={"player_id": PLAYER, "at": "a"}, tick=0, source="player",
+        args={"player_id": PLAYER, "account_id": "u_9001", "archetype": "游侠", "at": "a"},
+        tick=0, source="player",
     ))
     event = writer.submit(Intent(
         actor=PLAYER, verb="player_leave", args={"player_id": PLAYER},
@@ -115,7 +118,8 @@ def test_player_minimal_chain_replay_match(real_content, tmp_path):
     events = [
         writer.submit(Intent(
             actor=PLAYER, verb="player_enter",
-            args={"player_id": PLAYER, "name": "阿青", "at": at},
+            args={"player_id": PLAYER, "account_id": "u_9001", "name": "阿青",
+                  "display_name": "阿青", "archetype": "游侠", "at": at},
             tick=0, source="player",
         )),
         writer.submit(Intent(
@@ -161,5 +165,5 @@ def test_player_minimal_chain_replay_match(real_content, tmp_path):
 
     # 终端/UI 的 status 依赖同一实体：离线后仍在，不再“未登记”。
     assert PLAYER in writer.state.entities
-    assert writer.state.entities[PLAYER].role == "visitor"
+    assert writer.state.entities[PLAYER].role == "镖师"
     assert writer.state.account_balance(wallet(PLAYER)) == 0

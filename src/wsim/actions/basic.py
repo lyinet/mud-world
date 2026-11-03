@@ -39,6 +39,8 @@ class MoveAction(Action):
         loc = state.locations.get(ent.location)
         if loc is None:
             return ["unknown_location"]
+        if to not in state.locations:
+            return ["unknown_location"]
         if to not in loc.get("exits", []):
             return ["not_adjacent"]
         cost = float(self.content.economy.get("stamina_move", 5))

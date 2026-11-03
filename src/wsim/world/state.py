@@ -72,6 +72,51 @@ class Entity:
 
 
 @dataclass
+class PlayerProfile:
+    """玩家账号档案（P3-E）。
+
+    钱包/物品/技能/关系仍存在 Entity / accounts / relations 里，本类只保存
+    账号级身份与在线生命周期。`players` 为空时 `to_dict()` 不输出该键，
+    保证 P3-D 及更早的无玩家 run 哈希不变。
+    """
+
+    id: str
+    name: str
+    archetype: str
+    role: str
+    online: bool = False
+    presence: str = "offline"  # online / offline / custody / dormant
+    created_tick: int = 0
+    last_intent_tick: int = 0
+    offline_since_tick: int = 0
+    custody_since_tick: int = 0
+    dormant_since_tick: int = 0
+    # 首次进入的一次性初始资产（P3-E P0）。按 account_id 幂等：
+    # endowed=True 后无论 enter/leave/重进都不再发放。
+    endowed: bool = False
+    endowed_tick: int = 0
+    endowed_source: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "archetype": self.archetype,
+            "role": self.role,
+            "online": self.online,
+            "presence": self.presence,
+            "created_tick": self.created_tick,
+            "last_intent_tick": self.last_intent_tick,
+            "offline_since_tick": self.offline_since_tick,
+            "custody_since_tick": self.custody_since_tick,
+            "dormant_since_tick": self.dormant_since_tick,
+            "endowed": self.endowed,
+            "endowed_tick": self.endowed_tick,
+            "endowed_source": self.endowed_source,
+        }
+
+
+@dataclass
 class Business:
     id: str
     name: str
@@ -284,6 +329,7 @@ class WorldState:
     locations: dict[str, dict[str, Any]] = field(default_factory=dict)
     tick: int = 0
     entities: dict[str, Entity] = field(default_factory=dict)
+    players: dict[str, PlayerProfile] = field(default_factory=dict)
     businesses: dict[str, Business] = field(default_factory=dict)
     factions: dict[str, Faction] = field(default_factory=dict)
     relations: dict[str, Relation] = field(default_factory=dict)
@@ -302,6 +348,9 @@ class WorldState:
     quests_expired_total: int = 0
     minted_total: int = 0
     burned_total: int = 0
+    # 玩家初始资产累计发放额（含创世预置与运行中首次进入）。它是 minted_total
+    # 的子集，只用于审计“钱从哪来”；为 0 时不写入哈希，旧 run 不受影响。
+    endowment_total: int = 0
     items_created: dict[str, int] = field(default_factory=dict)
     items_burned: dict[str, int] = field(default_factory=dict)
     # 服务端审计（如 spoofed_arg）。空列表不写入哈希，保证旧 run 可回放。
@@ -312,6 +361,7 @@ class WorldState:
             locations=self.locations,
             tick=self.tick,
             entities=copy.deepcopy(self.entities),
+            players=copy.deepcopy(self.players),
             businesses=copy.deepcopy(self.businesses),
             factions=copy.deepcopy(self.factions),
             relations=copy.deepcopy(self.relations),
@@ -327,6 +377,7 @@ class WorldState:
             quests_expired_total=self.quests_expired_total,
             minted_total=self.minted_total,
             burned_total=self.burned_total,
+            endowment_total=self.endowment_total,
             items_created=dict(self.items_created),
             items_burned=dict(self.items_burned),
             audit_log=copy.deepcopy(self.audit_log),
@@ -355,6 +406,10 @@ class WorldState:
             "items_created": dict(sorted(self.items_created.items())),
             "items_burned": dict(sorted(self.items_burned.items())),
         }
+        if self.players:
+            data["players"] = {k: v.to_dict() for k, v in sorted(self.players.items())}
+        if self.endowment_total:
+            data["endowment_total"] = self.endowment_total
         if self.audit_log:
             data["audit_log"] = list(self.audit_log)
         return data

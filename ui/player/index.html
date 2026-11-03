@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1" />
+<title>入世 · 世界门面</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="seal" aria-hidden="true">入</span>
+      <div class="brand-text">
+        <h1>入世</h1>
+        <p>先知道自己在哪，再决定往哪走。</p>
+      </div>
+    </div>
+    <div class="statusbar" id="statusbar" aria-label="状态栏">
+      <span class="chip"><i>钱</i><b id="stMoney">—</b></span>
+      <span class="chip"><i>体力</i><b id="stStamina">—</b></span>
+      <span class="chip"><i>物品</i><b id="stItems">—</b></span>
+      <span class="chip"><i>目标</i><b id="stGoals">—</b></span>
+      <span class="chip clock"><i>世界时间</i><b id="stClock">—</b></span>
+      <span class="chip"><i>在线玩家</i><b id="stOnline">—</b></span>
+    </div>
+    <div class="top-actions">
+      <span class="run-tag" id="runTag">载入中</span>
+      <button class="ghost small" id="switchBtn" type="button" title="换一个玩家身份/账号">换人</button>
+    </div>
+  </header>
+
+  <div id="noticeBar" class="notice-bar hidden"></div>
+
+  <main class="layout" id="layout">
+    <!-- 左：位置 / 出口 / 在场 NPC -->
+    <aside class="panel side">
+      <section class="block">
+        <div class="block-head">
+          <h2>当前位置</h2>
+          <span class="loc-pill" id="locId">—</span>
+        </div>
+        <div class="place-card">
+          <div class="place-name" id="placeName">—</div>
+          <div class="place-me" id="placeMe">—</div>
+          <div class="exits" id="exits" aria-label="出口"></div>
+          <div class="hint" id="exitHint">点击出口真实移动；位置以服务端 /state 为准。</div>
+        </div>
+      </section>
+
+      <section class="block grow">
+        <div class="block-head">
+          <h2>在场 NPC</h2>
+          <span class="count" id="npcCount">0</span>
+        </div>
+        <div class="npc-list" id="npcList"></div>
+        <div class="search-box">
+          <label for="npcSearch">在当前地点找人</label>
+          <input id="npcSearch" type="search" placeholder="输入姓名 / 职业 / NPC id" autocomplete="off" />
+          <div class="search-results hidden" id="searchResults"></div>
+        </div>
+      </section>
+    </aside>
+
+    <!-- 中：叙事日志 + 对话 -->
+    <section class="panel center">
+      <div class="block grow">
+        <div class="block-head">
+          <h2>本次操作记录</h2>
+          <span class="hint">页面本地记录；契约未提供世界日志接口</span>
+        </div>
+        <div class="log" id="log" aria-live="polite"></div>
+      </div>
+
+      <div class="block talk-panel" id="talkPanel">
+        <div class="block-head">
+          <h2>对话</h2>
+          <span class="hint">回应由世界产生；页面按 since_tick 轮询取回，不伪造台词</span>
+        </div>
+        <div class="talk-target" id="talkTarget">
+          <div class="empty">点左侧在场 NPC，或搜索当前地点的人。</div>
+        </div>
+        <div class="talk-form">
+          <input id="talkInput" type="text" maxlength="200" placeholder="说一句话（≤200 字）" autocomplete="off" />
+          <button class="primary" id="talkSend" type="button">说出</button>
+        </div>
+        <div class="result hidden" id="talkResult"></div>
+        <div class="replies hidden" id="talkReplies"></div>
+      </div>
+    </section>
+
+    <!-- 右：任务板 -->
+    <aside class="panel side right">
+      <div class="block grow">
+        <div class="block-head">
+          <h2>任务板</h2>
+          <span class="count" id="questCount">0</span>
+        </div>
+        <div class="quest-summary" id="questSummary">—</div>
+        <div class="quest-list" id="questList"></div>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="footnote">
+    默认反向代理真 API（<code>127.0.0.1:8020</code>），写操作真实落地。
+    可写 run 只在 <code>runs/player-demo*</code>；<code>runs/p3c-players-1d</code> 等既有 run 只读。
+    <code>--readonly</code> 降级为只读回放，写操作只提交提案、不落地，页面顶部会显示“只读模式”。
+  </footer>
+</div>
+
+<!-- 进入弹层 -->
+<div class="overlay" id="entryOverlay">
+  <div class="entry-card" role="dialog" aria-modal="true" aria-labelledby="entryTitle">
+    <div class="entry-head">
+      <span class="seal big" aria-hidden="true">入</span>
+      <div>
+        <h2 id="entryTitle">进入世界</h2>
+        <p id="entrySub">选择身份，世界会把你当作一个有位置、有钱物、会被看见的人。创世预置账号（如 <code>u_demo</code>）带 300 文、炊饼×3、粗布×1；运行中新建账号按契约不铸币，钱包从 0 开始。</p>
+      </div>
+    </div>
+
+    <div class="entry-grid">
+      <div class="field">
+        <label for="accountId">玩家 id（账号）</label>
+        <div class="row">
+          <input id="accountId" type="text" maxlength="32" placeholder="3-32 位小写字母/数字/-/_" autocomplete="off" />
+          <button class="ghost" id="genId" type="button">随机</button>
+        </div>
+        <p class="tiny">服务端会映射为实体 <code>player:&lt;账号&gt;</code>；客户端不自带实体 id。</p>
+      </div>
+      <div class="field">
+        <label for="displayName">角色名</label>
+        <input id="displayName" type="text" maxlength="12" placeholder="2-12 个字符" autocomplete="off" />
+        <p class="tiny">只用于显示和记忆文本，不参与规则。</p>
+      </div>
+    </div>
+
+    <div class="field">
+      <span class="label">身份（进入后不可改）</span>
+      <div class="archetypes" id="archetypes">
+        <label class="archetype selected" data-value="游侠">
+          <input type="radio" name="archetype" value="游侠" checked />
+          <span class="arc-name">游侠</span>
+          <span class="arc-role">镖师 · 日薪 30 文</span>
+          <span class="arc-note">可押镖；不可立派</span>
+        </label>
+        <label class="archetype" data-value="商人">
+          <input type="radio" name="archetype" value="商人" />
+          <span class="arc-name">商人</span>
+          <span class="arc-role">掌柜 · 日薪 36 文</span>
+          <span class="arc-note">可立派；不可押镖</span>
+        </label>
+        <label class="archetype" data-value="捕快">
+          <input type="radio" name="archetype" value="捕快" />
+          <span class="arc-name">捕快</span>
+          <span class="arc-role">捕快 · 日薪 26 文</span>
+          <span class="arc-note">可押镖；不可立派</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="entry-note" id="entryNote">
+      <b>当前模式：</b>
+      默认连接真 API（<code>127.0.0.1:8020</code>）：进入、移动、说话、接任务都会真实落库，
+      刷新或重启 UI 代理后按 <code>account_id</code> 恢复；重启 <code>wsim.api</code> 是新 genesis，不是恢复。
+      可写 run 只用 <code>runs/player-demo*</code>；启动脚本发现旧 <code>events.sqlite</code> 会自动换名。
+      用 <code>--readonly</code> 启动时降级为“提案不落地”，页面顶部会显示“只读模式”。
+    </div>
+
+    <div class="entry-actions">
+      <button class="primary" id="enterBtn" type="button">进入世界</button>
+    </div>
+    <div class="entry-result hidden" id="entryResult"></div>
+    <div class="entry-error hidden" id="entryError"></div>
+  </div>
+</div>
+
+<!-- NPC 详情 -->
+<div class="modal hidden" id="npcModal" role="dialog" aria-modal="true" aria-labelledby="npcModalName">
+  <div class="modal-card">
+    <button class="modal-close" id="npcClose" type="button" aria-label="关闭">×</button>
+    <div class="modal-head">
+      <div class="avatar big" id="npcAvatar">?</div>
+      <div>
+        <h2 id="npcModalName">—</h2>
+        <p id="npcModalMeta">—</p>
+      </div>
+    </div>
+    <div class="modal-body" id="npcModalBody"></div>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast" role="status"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

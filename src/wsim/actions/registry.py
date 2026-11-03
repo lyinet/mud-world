@@ -44,7 +44,15 @@ def build_registry(content, seed: int, plugin_dir: Path | None = None) -> Action
     from .business import FoundSectAction, OpenShopAction
     from .commerce import BuyAction, SellAction, TradeAction
     from .escort import EscortAction, SystemEscortArriveAction
-    from .player import PlayerEnterAction, PlayerLeaveAction, PlayerPresenceAction
+    from .player import (
+        PlayerEndowmentAction,
+        PlayerEnterAction,
+        PlayerHeartbeatAction,
+        PlayerLeaveAction,
+        PlayerPresenceAction,
+        SystemPlayerPresenceAction,
+        SystemTickAction,
+    )
     from .social import ApprenticeAction, JoinSectAction, MarryAction, RecruitAction, TalkAction
     from .system import (
         SystemBudgetAction,
@@ -95,8 +103,12 @@ def build_registry(content, seed: int, plugin_dir: Path | None = None) -> Action
     reg.register(SystemBudgetAction(content))
     reg.register(SystemEscortArriveAction(content))
     reg.register(PlayerEnterAction())
+    reg.register(PlayerEndowmentAction())
+    reg.register(PlayerHeartbeatAction())
     reg.register(PlayerPresenceAction())
     reg.register(PlayerLeaveAction())
+    reg.register(SystemPlayerPresenceAction())
+    reg.register(SystemTickAction())
 
     # 规则层：扫描插件目录。插件 verb 不得覆盖内核内置 verb。
     root = Path(__file__).resolve().parents[3]

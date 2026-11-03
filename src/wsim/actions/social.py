@@ -22,6 +22,18 @@ from .registry import Action
 PLAYER_SOURCES = frozenset({"player", "proposal", "test"})
 
 
+def _offline_player_target(state: WorldState, eid: str) -> bool:
+    """目标为离线玩家时，NPC 不得主动影响（P3-E）。"""
+    if not eid.startswith("player:"):
+        return False
+    ent = state.entities.get(eid)
+    return ent is not None and ent.presence != "online"
+
+
+def _npc_towards_player(ent, target) -> bool:
+    return not str(ent.id).startswith("player:") and str(target.id).startswith("player:")
+
+
 def _clamp_delta(requested: float, tick_used: float, day_used: float) -> float:
     """同时受「单 tick ±2」与「单日 ±8」余量约束。"""
     lower = max(-2.0 - tick_used, -8.0 - day_used)
@@ -66,9 +78,18 @@ class TalkAction(Action):
         self.content = content
 
     def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
-        if not _speaker_id(state, intent):
+        pid = _speaker_id(state, intent)
+        if not pid:
             return ["missing_player_id"]
-        alive(state, arg_str(intent, "target"))
+        target = alive(state, arg_str(intent, "target"))
+        # 新玩家必须先 player_enter；只有旧 run 的 player:visitor 保留懒创建兼容。
+        if pid != "player:visitor" and pid not in state.entities:
+            return ["player_not_entered"]
+        speaker = state.entities.get(pid)
+        if speaker is not None and speaker.presence != "online":
+            return ["player_offline"]
+        if speaker is not None and speaker.location != target.location:
+            return ["not_together"]
         message = intent.args.get("message")
         if not isinstance(message, str) or not message.strip():
             return ["bad_message"]
@@ -127,6 +148,8 @@ class TalkAction(Action):
             )
 
         if pid not in state.entities:
+            if pid != "player:visitor":
+                raise Reject("player_not_entered")
             raw_name = intent.args.get("player_name") or intent.args.get("name")
             player_name = str(raw_name or PLAYER_NAME).strip() or PLAYER_NAME
             effects.append(
@@ -204,7 +227,7 @@ class TalkAction(Action):
         )
         effects.append(Effect("set_field", {"entity": target.id, "field": "last_action_tick", "value": tick}))
         effects.append(Effect("set_field", {"entity": pid, "field": "last_action_tick", "value": tick}))
-        effects.append(Effect("set_field", {"entity": pid, "field": "presence", "value": "online"}))
+        # 在线状态由 player_enter / heartbeat 维护，talk 不再副作用式上线。
         effects.append(Effect("set_field", {"entity": pid, "field": "last_seen_tick", "value": tick}))
         return effects
 
@@ -219,6 +242,8 @@ class ApprenticeAction(Action):
         ent = require_entity(state, intent.actor)
         target = alive(state, arg_str(intent, "target"))
         arg_int(intent, "duration_days", 7, minimum=7, maximum=365)
+        if _offline_player_target(state, target.id):
+            return ["target_offline"]
         if target.id == ent.id:
             return ["self_apprentice"]
         if target.location != ent.location:
@@ -351,6 +376,10 @@ class RecruitAction(Action):
     def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
         ent = require_entity(state, intent.actor)
         target = alive(state, arg_str(intent, "target"))
+        if _offline_player_target(state, target.id):
+            return ["target_offline"]
+        if _npc_towards_player(ent, target):
+            return ["player_consent_required"]
         if target.id == ent.id:
             return ["self_recruit"]
         if target.location != ent.location:
@@ -401,6 +430,10 @@ class MarryAction(Action):
     def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
         ent = require_entity(state, intent.actor)
         target = alive(state, arg_str(intent, "target"))
+        if _offline_player_target(state, target.id):
+            return ["target_offline"]
+        if _npc_towards_player(ent, target):
+            return ["player_consent_required"]
         if target.id == ent.id:
             return ["self_marriage"]
         if target.location != ent.location:

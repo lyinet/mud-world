@@ -100,6 +100,13 @@ class QuestAcceptAction(Action):
             return ["not_at_giver"]
         if ent.escort_id is not None:
             return ["busy_on_escort"]
+        if ent.id.startswith("player:"):
+            active = sum(
+                1 for q in state.quests.values()
+                if q.status == "accepted" and q.acceptor == ent.id
+            )
+            if active >= 2:
+                return ["too_many_quests"]
         return []
 
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:

@@ -87,6 +87,9 @@ class CostTelemetry:
         input_tokens: int | None = None,
         output_tokens: int | None = None,
         latency_s: float = 0.0,
+        attempt_latency_s: float | None = None,
+        thinking_disabled_by: str = "",
+        thinking_param_ignored: bool = False,
         usage_source: str = "reported",
         estimate_missing: bool = True,
     ) -> dict[str, Any]:
@@ -119,7 +122,14 @@ class CostTelemetry:
             "persona_tokens": int(persona_tokens),
             # 原始输出保留（截断）用于审计与适配器回放；密钥不在其中。
             "output_text": str(output_text)[:2000],
+            # call_latency 含重试与退避；attempt_latency 只含一次 HTTP。
             "latency_s": round(float(latency_s), 4),
+            "call_latency_s": round(float(latency_s), 4),
+            "attempt_latency_s": (
+                round(float(attempt_latency_s), 4) if attempt_latency_s is not None else None
+            ),
+            "thinking_disabled_by": str(thinking_disabled_by or ""),
+            "thinking_param_ignored": bool(thinking_param_ignored),
             "estimated_cost": cost,
             "currency": self.rates.currency,
             "schema_reject": bool(schema_reject),
@@ -181,7 +191,8 @@ class CostTelemetry:
                     "per_1k_input_tokens": self.rates.per_1k_input_tokens,
                     "per_1k_output_tokens": self.rates.per_1k_output_tokens,
                     "models": [], "token_missing_calls": 0,
-                    "usage_sources": [],
+                    "usage_sources": [], "thinking_disabled_by": {},
+                    "thinking_param_ignored": 0,
                 },
             )
             sbucket["calls"] += rec["calls"]
@@ -198,6 +209,19 @@ class CostTelemetry:
                 sbucket["models"].append(rec["model"])
             if rec["usage_source"] not in sbucket["usage_sources"]:
                 sbucket["usage_sources"].append(rec["usage_source"])
+            mode = str(rec.get("thinking_disabled_by") or "")
+            if mode:
+                sbucket["thinking_disabled_by"][mode] = sbucket["thinking_disabled_by"].get(mode, 0) + 1
+            if rec.get("thinking_param_ignored"):
+                sbucket["thinking_param_ignored"] += 1
+        all_modes: dict[str, int] = {}
+        ignored_total = 0
+        for rec in self.records:
+            mode = str(rec.get("thinking_disabled_by") or "")
+            if mode:
+                all_modes[mode] = all_modes.get(mode, 0) + 1
+            if rec.get("thinking_param_ignored"):
+                ignored_total += 1
         return {
             "currency": self.rates.currency,
             "calls": sum(r["calls"] for r in self.records),
@@ -210,6 +234,8 @@ class CostTelemetry:
             "by_tier": by_tier,
             "schema_rejects": dict(sorted(self.schema_rejects.items())),
             "schema_reject_total": sum(self.schema_rejects.values()),
+            "thinking_disabled_by": all_modes,
+            "thinking_param_ignored": ignored_total,
             "fallbacks": self.fallbacks,
             "rates": {
                 "per_1k_input_tokens": self.rates.per_1k_input_tokens,

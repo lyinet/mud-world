@@ -52,6 +52,14 @@ class Writer:
         self.state = trial
         return event
 
+    def reject(self, intent: Intent, reason: str) -> Event:
+        """拒绝也是事件：供 API 层在校验阶段记录原因，仍然只由 Writer 追加。"""
+        iid = intent.intent_id or intent_id_for(intent.actor, intent.tick, intent.verb, intent.args, intent.reason)
+        if iid in self._seen:
+            return self._seen[iid]
+        code = reason if reason.startswith("rejected:") else f"rejected:{reason}"
+        return self._record_reject(intent, iid, self.store.count() + 1, code)
+
     def submit(self, intent: Intent) -> Event:
         iid = intent.intent_id or intent_id_for(intent.actor, intent.tick, intent.verb, intent.args, intent.reason)
         if iid in self._seen:
@@ -75,6 +83,19 @@ class Writer:
                 return self._record_reject(intent, iid, seq, f"rejected:{reasons[0]}")
             rng = PRNG(self.seed, seq, f"action:{intent.verb}")
             effects = list(action.apply(self.state, intent, rng))
+            # 玩家成功动作刷新 last_intent_tick，离线状态机才按“无玩家意图”计时。
+            # enter 自己写 presence，leave 必须保持 offline；旧 run 的 visitor 无档案时跳过。
+            if (
+                self._is_player_intent(intent)
+                and intent.verb not in ("player_enter", "player_leave")
+                and intent.actor in self.state.players
+            ):
+                effects.append(
+                    Effect(
+                        "player_presence",
+                        {"id": intent.actor, "presence": "online", "tick": intent.tick},
+                    )
+                )
             if intent.schedule_id:
                 effects.append(Effect("schedule_remove", {"id": intent.schedule_id}))
             trial = self.state.clone()

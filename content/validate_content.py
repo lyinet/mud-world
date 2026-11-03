@@ -48,7 +48,9 @@ GOAL_KIND_MAP = {
 }
 GOAL_KINDS = {"wealth", "mastery", "bond", "shop", "faction"}
 QUEST_CATEGORY_VERBS = {
-    "errand": "move",
+    # 跑腿/送信以“与目标 NPC 当面交接”为准，用零金额 trade；
+    # 引擎任务执行器对 move 任务会重复下发同点 move，产生必然拒绝。
+    "errand": "trade",
     "escort": "escort",
     "procurement": "buy",
     "inquiry": "trade",
@@ -66,6 +68,14 @@ PERSONA_HEADINGS = [
 RELATION_TYPES = {"family", "friend", "rival", "creditor", "debtor", "master", "disciple"}
 ITEM_CATEGORIES = {"food", "material", "tool", "medicine", "luxury", "service"}
 REQUIRED_VERBS = {
+    "move", "cultivate", "work", "consume", "buy", "sell",
+    "trade", "apprentice", "join_sect", "marry", "open_shop", "escort", "found_sect",
+    # P3：talk 供对话层，recruit/quest_accept/quest_deliver/debt_settle 供计划器内部调用。
+    "talk", "recruit", "quest_accept", "quest_deliver", "debt_settle",
+    # P3-E 玩家在线心跳：引擎已注册，内容包补齐元数据。
+    "player_heartbeat",
+}
+PLAYER_VERBS = {
     "move", "cultivate", "work", "consume", "buy", "sell",
     "trade", "apprentice", "join_sect", "marry", "open_shop", "escort", "found_sect",
 }
@@ -819,7 +829,7 @@ def check_verbs(verbs, role_set, report):
     names = [v.get("name") for v in verbs if isinstance(v, dict)]
     dup = sorted({n for n in names if names.count(n) > 1})
     report.check(not dup, "动词名唯一", f"重复: {dup}")
-    report.check(len(verbs) == 13, "动词数量", f"期望 13，实际 {len(verbs)}")
+    report.check(len(verbs) == 19, "动词数量", f"期望 19（13 玩家动词 + 5 内部动词 + 1 心跳），实际 {len(verbs)}")
     missing = sorted(REQUIRED_VERBS - set(names))
     extra = sorted(set(names) - REQUIRED_VERBS)
     report.check(not missing, "必需动词齐全", f"缺少: {missing}")
@@ -1440,13 +1450,35 @@ def _check_quest_items(entries, items_by_id, label, report):
             report.errors.append(f"{label}[{idx}].qty 必须是正整数")
 
 
-def check_quests(quests, npc_map, loc_ids, items_by_id, verb_names, economy, report):
+def _path_len(adj, start, end):
+    """地点图最短跳数；不可达返回 None。"""
+    if start not in adj or end not in adj:
+        return None
+    if start == end:
+        return 0
+    seen = {start}
+    queue = [(start, 0)]
+    while queue:
+        node, dist = queue.pop(0)
+        for nxt in adj.get(node, ()):
+            if nxt in seen:
+                continue
+            if nxt == end:
+                return dist + 1
+            seen.add(nxt)
+            queue.append((nxt, dist + 1))
+    return None
+
+
+def check_quests(quests, npc_map, loc_ids, locations, items_by_id, verb_names, economy, report):
     if not report.check(isinstance(quests, list), "quests.yaml 结构", "quests 必须是列表"):
         return
-    report.check(len(quests) == 12, "任务模板数量", f"期望 12，实际 {len(quests)}")
-    adj = {loc: set() for loc in loc_ids}
-    # quest 的 route 邻接校验需要 locations，由调用方通过 adjacency 传入更合适；
-    # 这里用 route 中每个地点存在性 + 首尾不做强约束，escort 模板本身已单独校验。
+    report.check(len(quests) == 14, "任务模板数量", f"期望 14（12 基础 + 2 新手起步），实际 {len(quests)}")
+    adj = _adjacency(locations)
+    loc_services = {
+        l.get("id"): set(l.get("services") or [])
+        for l in locations or [] if isinstance(l, dict)
+    }
     wages = economy.get("wages_daily") or {}
     max_wage = max((v for v in wages.values() if isinstance(v, int) and not isinstance(v, bool)), default=0)
     escort = economy.get("escort") or {}
@@ -1462,7 +1494,8 @@ def check_quests(quests, npc_map, loc_ids, items_by_id, verb_names, economy, rep
             "id", "name", "category", "repeatable", "giver", "verb",
             "intent_args", "deadline_days", "reward", "notes",
         ], label, report.errors,
-            optional=("target_npc", "target_location", "target_item", "settlement"))
+            optional=("target_npc", "target_location", "target_item", "settlement",
+                      "entry_cost", "starter", "optional"))
         qid = quest.get("id")
         name = quest.get("name", label)
         if not isinstance(qid, str) or not NPC_ID_RE.match(qid):
@@ -1560,6 +1593,90 @@ def check_quests(quests, npc_map, loc_ids, items_by_id, verb_names, economy, rep
             fee = args.get("fee")
             if not isinstance(fee, int) or isinstance(fee, bool) or fee <= 0:
                 report.errors.append(f"{name}.intent_args.fee 必须是正整数")
+        # P2 静态可完成性：引擎接单要求“至少还剩 1 整天”，1 日单在当天计划时必然被跳过。
+        if deadline is not None and deadline < 2:
+            report.errors.append(
+                f"{name}.deadline_days={deadline} 小于 2；引擎接单要求剩余至少 1 整天，1 日单会被直接跳过"
+            )
+        target_loc = quest.get("target_location")
+        if not isinstance(target_loc, str) or target_loc not in loc_ids:
+            report.errors.append(f"{name}.target_location 必填且必须指向有效地点")
+        elif isinstance(giver, str) and giver in npc_map:
+            home = (npc_map.get(giver) or {}).get("home")
+            hops = _path_len(adj, home, target_loc)
+            if hops is None:
+                report.errors.append(f"{name}: 发布人 {giver} 的 home={home} 到 {target_loc} 不可达")
+        if verb == "move":
+            if target_loc and args.get("to") != target_loc:
+                report.errors.append(f"{name}.intent_args.to 应等于 target_location={target_loc}")
+        elif verb == "buy":
+            item = quest.get("target_item")
+            if target_loc and args.get("from") != target_loc:
+                report.errors.append(f"{name}.intent_args.from 应等于 target_location={target_loc}")
+            if item and args.get("item") != item:
+                report.errors.append(f"{name}.intent_args.item 应等于 target_item={item}")
+            if target_loc and item and item not in loc_services.get(target_loc, set()):
+                report.errors.append(f"{name}: {target_loc} 的 services 不提供 {item}，采购无法完成")
+        elif verb == "trade":
+            if quest.get("target_npc") and args.get("target") != quest.get("target_npc"):
+                report.errors.append(f"{name}.intent_args.target 应等于 target_npc={quest.get('target_npc')}")
+        elif verb == "work":
+            if target_loc and args.get("at") != target_loc:
+                report.errors.append(f"{name}.intent_args.at 应等于 target_location={target_loc}")
+            if target_loc and not loc_services.get(target_loc):
+                report.errors.append(f"{name}: {target_loc} 没有可代工的店铺/服务")
+        elif verb == "escort":
+            route = args.get("route")
+            if isinstance(route, list) and route:
+                if isinstance(giver, str) and giver in npc_map and route[0] != (npc_map.get(giver) or {}).get("home"):
+                    report.errors.append(f"{name}: 镖路起点 {route[0]} 应等于发布人 {giver} 的 home")
+                if target_loc and route[-1] != target_loc:
+                    report.errors.append(f"{name}: 镖路终点 {route[-1]} 应等于 target_location={target_loc}")
+                ok, why = _route_adjacent(route, adj)
+                if not ok:
+                    report.errors.append(f"{name}: 镖路不合法：{why}")
+        # 采购垫付与任务板门槛：entry_cost 必须等于基准价 × qty，
+        # 且必须写进 name，任务板直接显示 name，新手点单前就能看到要垫多少钱。
+        entry_cost = quest.get("entry_cost")
+        if entry_cost is not None:
+            if not isinstance(entry_cost, int) or isinstance(entry_cost, bool) or entry_cost < 0:
+                report.errors.append(f"{name}.entry_cost 必须是 >=0 的整数")
+            elif category == "procurement":
+                item = args.get("item") if isinstance(args, dict) else None
+                qty = args.get("qty") if isinstance(args, dict) else None
+                base = (items_by_id.get(item) or {}).get("base_price")
+                if isinstance(base, int) and isinstance(qty, int):
+                    expected = base * qty
+                    if entry_cost != expected:
+                        report.errors.append(
+                            f"{name}.entry_cost={entry_cost} 与基准价×数量 {base}×{qty}={expected} 不一致"
+                        )
+                if entry_cost > 0 and f"垫付{entry_cost}文" not in str(name):
+                    report.errors.append(
+                        f"{name}.name 必须包含“垫付{entry_cost}文”，任务板才能显示垫付门槛"
+                    )
+                if entry_cost > 50 and quest.get("optional") is not True:
+                    report.errors.append(
+                        f"{name}.entry_cost={entry_cost} > 50，高价采购必须标记 optional: true"
+                    )
+        if quest.get("starter") is True:
+            if category != "errand":
+                report.errors.append(f"{name}.starter 起步任务必须是 errand")
+            if entry_cost != 0:
+                report.errors.append(f"{name}.starter 起步任务 entry_cost 必须为 0")
+            if quest.get("target_item"):
+                report.errors.append(f"{name}.starter 起步任务不得要求 target_item")
+            if isinstance(giver, str) and giver in npc_map:
+                if (npc_map.get(giver) or {}).get("home") != "market":
+                    report.errors.append(f"{name}.starter 发布人必须在出生点 market")
+                hops = _path_len(adj, "market", target_loc) if isinstance(target_loc, str) else None
+                if hops is None or hops > 1:
+                    report.errors.append(f"{name}.starter 目标地点距 market 必须 <=1 跳，实际 {hops}")
+            money = (reward or {}).get("money") if isinstance(reward, dict) else None
+            if not isinstance(money, int) or isinstance(money, bool) or not 8 <= money <= 15:
+                report.errors.append(f"{name}.starter 报酬必须在 8-15 文，实际 {money!r}")
+            if deadline is not None and deadline < 2:
+                report.errors.append(f"{name}.starter 时限必须 >=2 日")
         if category == "debt_collection":
             if quest.get("repeatable") is not False:
                 report.errors.append(f"{name}.repeatable 讨债任务应为 false")
@@ -1586,9 +1703,40 @@ def check_quests(quests, npc_map, loc_ids, items_by_id, verb_names, economy, rep
                     report.errors.append(f"{name}: {creditor} 没有指向 {debtor} 的 creditor 关系")
     report.check(len(categories) == 6, "任务覆盖 6 类", f"实际 {sorted(categories)}")
     for cat in sorted(QUEST_CATEGORY_VERBS):
-        report.check(categories.get(cat) == 2, f"任务类别 {cat} 恰好 2 个",
+        report.check(categories.get(cat, 0) >= 2, f"任务类别 {cat} 至少 2 个",
                       f"实际 {categories.get(cat, 0)}")
     report.check(len(set(quest_ids)) == len(quest_ids), "任务 id 唯一", f"重复: {quest_ids}")
+    # 出生点集市：至少 3 个不同发布人常驻 market、各自至少 1 张可重复模板，
+    # 这样即使其中一人按日程短暂离开，白天仍有其余发布人的单可接。
+    market_templates = [
+        q.get("id") for q in quests or []
+        if isinstance(q, dict) and q.get("repeatable") is True
+        and isinstance(q.get("giver"), str)
+        and (npc_map.get(q.get("giver")) or {}).get("home") == "market"
+    ]
+    market_givers = sorted({
+        q.get("giver") for q in quests or []
+        if isinstance(q, dict) and q.get("repeatable") is True
+        and isinstance(q.get("giver"), str)
+        and (npc_map.get(q.get("giver")) or {}).get("home") == "market"
+    })
+    report.check(len(market_templates) >= 3, "集市至少 3 个常驻可接任务模板",
+                  f"实际 {len(market_templates)}: {market_templates}")
+    report.check(len(market_givers) >= 3, "集市至少 3 个常驻任务发布人（按去重 giver 计）",
+                  f"实际 {len(market_givers)}: {market_givers}")
+    starters = [q.get("id") for q in quests or [] if isinstance(q, dict) and q.get("starter") is True]
+    report.check(bool(starters), "存在零成本新手起步任务", f"starter: {starters}")
+    if market_templates:
+        report.note(f"集市常驻可接任务模板（发布人 home=market，repeatable）: {market_templates}")
+    if starters:
+        report.note(f"零成本起步任务: {starters}（报酬 8-15 文、目标 <=1 跳、deadline >=2 日）")
+    high_price = [
+        q.get("id") for q in quests or []
+        if isinstance(q, dict) and isinstance(q.get("entry_cost"), int) and q.get("entry_cost") > 50
+    ]
+    report.note(
+        "高价采购模板: " + (", ".join(high_price) if high_price else "无")
+        + "；人参 120 文不在任务板，仅作为药铺可选商品")
     if reward_values:
         report.note(
             f"任务现金报酬区间: {min(reward_values)}-{max(reward_values)} 文；"
@@ -1621,27 +1769,36 @@ def check_personas(npc_ids, report):
     bad = []
     quote_owner = {}
     trait_owner = {}
+    token_sizes = []
     for nid in sorted(npc_ids & set(files)):
         text = files[nid].read_text(encoding="utf-8")
+        tokens = max(1, -(-len(text) // 4))
+        token_sizes.append(tokens)
         missing_head = [h for h in PERSONA_HEADINGS if h not in text]
         quotes = [line.strip()[1:].strip() for line in text.splitlines() if line.strip().startswith(">")]
         traits = _persona_section(text, "## 一句话性格")
-        if missing_head or len(quotes) < 2 or len(text) < 250:
-            bad.append(f"{nid}(缺标题={missing_head}, 台词={len(quotes)}, 字数={len(text)})")
-            continue
+        if missing_head or len(quotes) < 2 or not 300 <= tokens <= 500:
+            bad.append(f"{nid}(缺标题={missing_head}, 台词={len(quotes)}, tokens={tokens})")
         if not traits:
             bad.append(f"{nid}(一句话性格为空)")
-            continue
         # 口吻可区分：台词与一句话性格不得在两张卡中逐字重复。
         for q in quotes:
             if q in quote_owner and quote_owner[q] != nid:
                 bad.append(f"{nid} 与 {quote_owner[q]} 台词重复: {q}")
             quote_owner.setdefault(q, nid)
-        if traits in trait_owner and trait_owner[traits] != nid:
-            bad.append(f"{nid} 与 {trait_owner[traits]} 一句话性格重复")
-        trait_owner.setdefault(traits, nid)
-    report.check(not bad, "persona 卡结构、台词与口吻区分度", "; ".join(bad))
-    report.note(f"persona 卡: {len(files)} 张；台词 {len(quote_owner)} 句，无跨卡重复")
+        if traits:
+            if traits in trait_owner and trait_owner[traits] != nid:
+                bad.append(f"{nid} 与 {trait_owner[traits]} 一句话性格重复")
+            trait_owner.setdefault(traits, nid)
+    report.check(not bad, "persona 卡结构、token 区间、台词与口吻区分度", "; ".join(bad))
+    token_sizes.sort()
+    if token_sizes:
+        mid = len(token_sizes) // 2
+        median = token_sizes[mid] if len(token_sizes) % 2 else (token_sizes[mid - 1] + token_sizes[mid]) / 2
+        report.note(
+            f"persona 卡: {len(files)} 张；token(min/median/max)="
+            f"{token_sizes[0]}/{median}/{token_sizes[-1]}；台词 {len(quote_owner)} 句，无跨卡重复"
+        )
 
 
 def main() -> int:
@@ -1711,7 +1868,7 @@ def main() -> int:
     npc_map = _npc_map(npcs)
     check_sects(sects, loc_ids, npc_map, economy, report)
     check_escort_routes(routes, locations, economy, report)
-    check_quests(quests, npc_map, loc_ids, items_by_id, verb_names, economy, report)
+    check_quests(quests, npc_map, loc_ids, locations, items_by_id, verb_names, economy, report)
     check_personas(set(npc_map), report)
 
     print_report(report, npc_info)

@@ -1,278 +1,44 @@
-# Tasks · delivery-p3b（P3-A / P2.2 / P2.1 任务保留）
+# Tasks · delivery-p3e
 
-## P3-B 混合决策、三槽位与意图理解
+## E1 玩家实体与动作
+- [x] `src/wsim/world/state.py`：`PlayerProfile`、`WorldState.players`、clone/to_dict（空不写哈希）
+- [x] `src/wsim/world/effects.py`：`player_upsert` / `player_presence`
+- [x] `src/wsim/actions/player.py`：enter/heartbeat/leave/system_player_presence/system_tick/genesis helper/status
+- [x] `src/wsim/actions/registry.py` 注册新动作，保留 `player_presence`
+- [x] `src/wsim/actions/social.py` TalkAction：同地点、在线、去懒创建、spoofed 保留
+- [x] `src/wsim/actions/social.py` apprentice/marry/recruit：离线守卫 + NPC→玩家关闭
+- [x] `src/wsim/actions/commerce.py` TradeAction：离线守卫 + 公平闸门 + service_item
+- [x] `src/wsim/actions/quests.py`：玩家并发任务上限 2
+- [x] `player_endowment`：运行中新账号首次进入一次性发放（显式 mint + 独立事件 + `endowed` 幂等 + `endowment_total` + 200 席位/60000 文上限）
 
-### B1 混合决策
-- [x] `prompt.py`：17 动词白名单、`ACTION_SPECS`、世界状态注入、`build_decision_prompt` / `parse_decision_payload`。
-- [x] `provider.py`：规则底稿 + 模型增量社交；`_filter_model_actions` 逐条预检，命中生存动词记 `rule_owned_survival` 丢弃。
-- [x] `intent.py`：模型目标只在和规则 `GoalSelector` 一致时采纳，保留 `create` 与目标进度。
-- [x] `lod.py`：`advance_to_batched` 批量唤醒，不改变 jitter/事件顺序。
-- 验证：`tests/test_p3b_hybrid.py::test_model_cannot_replace_rule_actions`。
+## E2 HTTP API
+- [x] `src/wsim/api/session.py`：WorldSession + MCP 三段审批 + request_id 幂等 + system_tick
+- [x] `src/wsim/api/server.py` + `__init__.py`：10 个端点，JSON 响应
+- [x] `docs/player-api.md`：字段、示例、错误码表（字段冻结 v1，真实 JSON 已贴）
+- [x] 契约 v1.1：首次进入发放、`details.endowment` 真实返回、`granted_at_genesis` 语义修正、`event_seq +2/+3` 说明
 
-### B2 Prompt 与修复重试
-- [x] Prompt 注入地点/相邻地点、钱与物品、可执行动作与前置条件、时间与剩余工时。
-- [x] schema 失败 1 次修复重试，回喂错误原因；仍失败才回退 Mock，记 `repair_attempted` / `repair_succeeded`。
-- 验证：`test_schema_repair_succeeds_once`；72d 首次通过率 100%，修复 0 次。
+## E3 十分钟走查
+- [x] `tools/playthrough.py`：HTTP 全流程 + BFS + 叙事 + 独立 replay
+- [x] `runs/p3e-playthrough/{narrative.txt,report.json,events.sqlite}`
 
-### B3 延迟
-- [x] `dialogue_async.py`：玩家发话入队立即返回，NPC 回应异步写回，不阻塞 tick。
-- [x] `ProviderClient.complete_many` 线程池批处理（默认并发 4）。
-- [x] 12 NPC 1 日墙钟 0.364s；decision p50 0.061s / p95 0.133s。
-- 验证：`test_async_dialogue_does_not_block_tick`、`test_complete_many_runs_concurrently`。
+## LLM 追加项
+- [x] `config/llm.yaml`：三槽 extra_body 候选 + decision/intent 最低档模型（deepseek-flash / v4.1-flash）
+- [x] `src/wsim/agent/provider.py`：候选回退 + `thinking_disabled_by` + 生产默认真实 sleep
+- [x] `src/wsim/agent/cost.py`：cost.jsonl 字段 + 槽汇总
+- [x] 参数验证由 `tests/test_p3d_xing_adapter.py::test_reasoning_switches_are_per_slot` + `tests/test_provider.py` 覆盖
+  （独立 `tools/thinking_probe.py` 未做，改用真实 2 天跑的 `thinking_disabled_by` 统计替代）
 
-### B4 三槽位与分槽成本
-- [x] `config/llm.yaml`：`models.decision` / `models.dialogue` / `models.intent`；用户只改 base_url 与两个模型名。
-- [x] `cost.jsonl` 每条带 `slot` / `model` / `usage_source`；summary 与报告按槽汇总，不给混合总价。
-- [x] intent 上游不返回 usage → token 记 null（`usage_source=missing`）。
-- [x] `budget.py`：决策槽日 token、对话槽日调用数、意图槽日调用数；任一槽超限只降级该槽。
-- [x] P3-A 72d 6,812 次全部归 decision、dialogue 0；旧 $12.05 混合口径作废。
-- 验证：`test_cost_summary_splits_slots`、`test_intent_slot_records_null_tokens_when_upstream_has_no_usage`、`test_budget_slots_are_independent`。
+## P0 关闭项
+- [x] P0-1 `tests/test_provider.py`：不注入 `sleep_fn` 的 429 测试（真实等待，默认 25s、测试 0.05s）
+- [x] P0-2 `tests/test_p3e_grounding.py`：跨分句 / 人数 / 量词 / 俩 / 半 / 丢弃留痕 六用例
+- [x] P0-4 `reports/evidence/` + `docs/evidence.md`；p3d 复现命令文件名修正；key 脱敏；README 轮换提示
+- [x] P0-5 `tools/intent_coverage.py`：17 模板 × 2 条真实录制，按模板成功率 73.53%
+- [x] 换模型 2 天真实跑：12 NPC / seed 42，与 Xing 并列（不可比），证据在 `reports/evidence/`
 
-### B5 意图理解层
-- [x] `config/intents.yaml`：17 个意图模板，required/optional/source/destructive 齐全。
-- [x] `intent_model.py`：中文键映射、中文数量词、缺字段 `needs_clarification`、未知 category/verb 拒绝、破坏性二次确认。
-- [x] `tools/fake_intent_server.py`：参数缺失/中文数量词/否定句/改口四类用例。
-- [x] 功能表与 `verbs.yaml` 双向对齐测试；故意改 verbs 会失败。
-- 验证：`tests/test_p3b_intent_model.py`（10 项）。
-
-### B6 验收
-- [x] 假端点 72d：K1 **71/91 = 78.02%**（≥60%）、拒绝率 1.46%（≤2%）、守恒 0、replay MATCH。
-- [x] 10d 对照：K1 45/91 = 49.45%，与 Mock 同值；P3-A 10d 1/91。
-- [x] 与 P3-A 72d 3/91 并列，标注差异来自分工而非模型能力；content_hash 变化与 `non_comparable` 口径写明。
-- [x] `reports/p3b-report.md`。
-- [ ] 真实端点 ≤10 次抽样：本轮 0 次（无 key）。
-- [ ] 真实 Xing API：本轮 0 次（等 key）。
-
-### B7 冻结
-- [x] commit → `git tag -a delivery-p3b`（指向 `222a2b9`，content_hash `83521723…`）。
-- [x] 从 tag 干净重跑 pytest（124 passed）/ framework（6/6）/ 假端点 10d / 72d，哈希与主工作区一致，replay MATCH；已回填报告第 10 节。
-
----
-
-## P3-A 真实模型接线
-
-### A1 Provider 真实现
-- [x] `src/wsim/agent/provider.py`：标准库 `urllib` POST `/v1/chat/completions`，body 含 model/messages/temperature/max_tokens。
-- [x] 真实 socket 超时 + 指数退避（`max_retries` / `backoff_base_s` 可配）。
-- [x] 错误分类 `timeout / network / http_4xx / http_5xx / parse`；前 3 类重试，后 2 类不重试。
-- [x] `Completion(text, usage)`：实测 token 计入成本；失败响应也保留 usage。
-- [x] 密钥只从 `api_key_env` 读；`fingerprint()` 不含 key。
-- 验证：`python3 -m pytest -q tests/test_provider.py`。
-
-### A2 本地假端点
-- [x] `tools/fake_llm_server.py`：标准库、OpenAI 兼容、seed 稳定；可配延迟/失败率/畸形 JSON/超长输出。
-- [x] `tools/framework_check.py` 第 6 项：127.0.0.1 启动→2 天推理→Intent 落地→关闭。
-- 验证：`python3 tools/framework_check.py` → 6/6 PASS。
-
-### A3 接进主循环
-- [x] `src/wsim/sim/headless.py`：`night_batch` / `realtime` / `replan` 三种时机独立计数。
-- [x] LOD 档位决定谁被调用；无底稿的唤醒跳过模型。
-- [x] summary 输出 `decisions.*`（invocations/model_calls/actions/avg_actions/submitted/accepted/applied/accept_rate/apply_rate）。
-- 验证：10d/72d 假端点，三计数器对账，见 `reports/p3a-report.md` 第 3 节。
-
-### A4 预算护栏
-- [x] `src/wsim/agent/budget.py`：日/月 token 与金额上限、soft_ratio、降档 spotlight→active→background→silent→mock。
-- [x] 超限回退 Mock，日终写 `system_budget` 审计事件（每天最多一条）。
-- [x] `SystemBudgetAction` 注册（verb `system_budget`）。
-- [x] `tests/test_p3a_wiring.py`：极小上限实测降级且不停摆（拒绝率 0%）。
-- 验证：`python3 -m pytest -q tests/test_p3a_wiring.py`。
-
-### A5 提取适配器（不放宽 schema）
-- [x] `prompt.py` `extract_intent_payload`：剥围栏、解一层包装、参数别名（destination→to / location→at）。
-- [x] 未知动词（如 `go`）、缺失参数仍拒绝；原始输出保留在 `cost.jsonl.output_text`。
-- [x] 测试证明原始输出可回放、半截输出不入世界。
-
-### A6 真实端点实测
-- [x] 5 次探测（≤5）：HTTP 200 ×5；`response_format` 可用；`max_tokens` 需 4096。
-- [x] 真实 2 日小跑（12 NPC，18 次调用，$0.1511，replay MATCH，守恒 0）。
-- [x] `config/llm.yaml`：用户侧只改 base_url/model；key 走 `api_key_env`，无明文。
-- [ ] 真实 72 日跑：待用户确认预算（预估见报告 6.6）。
-
-### A7 端到端对比与冻结
-- [x] 假端点 10d/72d（seed 42）：调用数/token/成本/schema_reject/fallback/落地率/拒绝率/K1/K3/守恒。
-- [x] 与 `delivery-p2.2` 基线并列并标 `non_comparable`。
-- [x] commit → `git tag -a delivery-p3a`（附注 commit + content_hash）。
-- [x] 从 tag 干净重跑 10d/72d + pytest + framework，回填 `reports/p3a-report.md` 第 10 节。
-
----
-
-## P2.2 整改
-
-### P1 对话持久化
-- [x] `ui/adapter.py`：直接把 run 的 `events.sqlite` 交给 `Writer`，对话 effect 追加到持久 store。
-- [x] 对话写入后同步 `world_hash.txt` / `event_hash.txt` / `summary.json`，刷新与 replay 可重建。
-- [x] `src/wsim/agent/dialogue.py`：按 `turn` + `last_reply` 轮换台词与引导句，连续 3 轮不重复。
-- [x] `tests/test_talk_action.py`：3 轮不重复、跨 3 日累积（affection 24 / trust 64）、关库重开仍在。
-- 验证：`python3 -m pytest -q tests/test_talk_action.py`；`tools/replay.py --run /tmp/p22v-ui` → MATCH。
-
-### P2 `open_shop` 门槛
-- [x] `content/economy.yaml`：`shop_opening.expected_wage_days: 3` + `expected_staff`。
-- [x] `src/wsim/actions/common.py`：`treasury_open_shop_buffer` 只按店铺岗位工资计算。
-- [x] `business.py` / `intent.py` 同步新缓冲；`tests/test_treasury_revenue.py` 更新断言。
-- 验证：72d `open_shop_postponed=0`，开店 11 次。
-
-### P3 UI 任务指引
-- [x] `/api/quests` + 任务板：发布人地点 / 同行 / 可接 / 提示。
-- [x] `_event_hint`：拒绝事件输出可执行一句话。
-- [x] NPC 详情显示当前地点与最近动作。
-
-### P4 文档
-- [x] `reports/delivery-p2.2.md`：四项改动、前后数字、K1 `non_comparable`、税差舍入、失败数口径。
-- [x] `reports/delivery-p2.1.md` 顶部加 P2.2 更正指针；旧两份报告保留。
-
-### P5 冻结
-- [x] commit 代码 → `git tag -a delivery-p2.2`（附注 commit + content_hash）。
-- [x] 从 tag 干净重跑 10d / 72d，replay MATCH，framework 5/5，pytest 89 passed。
-- [x] 回填 `reports/delivery-p2.2.md` 并提交文档。
-
----
-
-## P2.1 任务（历史）
-
-## T1 状态与 Effect 底座
-- [x] `src/wsim/world/state.py`：加 `talk_ledger`、`quest_stats`、`quests_expired_total`；
-      同步 `clone()`、`to_dict()`。
-- [x] `src/wsim/world/effects.py`：
-      - `EFFECT_OPS` 加 `talk_ledger`、`quest_prune`；
-      - `memory_add` 支持可选 `source`；
-      - `talk_ledger` 覆盖写入；
-      - `quest_prune` 只删 terminal 状态，保留 stats；
-      - `quest_create/complete/fail` 维护 `quest_stats` 与 `quests_expired_total`。
-- 验证：`python3 -m pytest -q tests/test_replay.py tests/test_effects.py`（如文件名存在）。
-
-## T2 `talk` 执行器
-- [x] 新建 `src/wsim/agent/dialogue.py`：`PLAYER_ID`、`extract_persona_voice`、`compose_talk`。
-- [x] `src/wsim/actions/social.py`：新增 `TalkAction`（preconditions + apply + 上限 clamp）。
-- [x] `src/wsim/actions/registry.py`：注册 `TalkAction`。
-- [x] 新建 `tests/test_talk_action.py`（台词消费、记忆、±2/±8 上限、守恒 0、审批链）。
-- 验证：`python3 -m pytest -q tests/test_talk_action.py`。
-
-## T3 任务板健康度
-- [x] `content/economy.yaml`：`quests` 增加 5 个新阈值。
-- [x] `src/wsim/actions/quests.py`：
-      - `SystemQuestPostAction` 加资金/物品/完成率/单模板过期/全局过期五道预检；
-      - `SystemQuestFailAction` 追加 `quest_prune`。
-- [x] `src/wsim/sim/headless.py`：`quests.health`（active/expired_on_board/expired_total/
-      by_template + completion_rate）。
-- [x] 新建 `tests/test_quest_health.py`（5 条规则）。
-- 验证：`python3 -m pytest -q tests/test_quest_health.py`。
-
-## T4 金库收入侧杠杆
-- [x] `src/wsim/actions/common.py`：`tax_split_effects`、`daily_wage_bill`、
-      `treasury_open_shop_buffer`。
-- [x] `content/economy.yaml`：`taxes.transaction_treasury_share: 0.5`。
-- [x] `src/wsim/actions/commerce.py`：Buy/Sell/Trade 三处税改分流。
-- [x] `src/wsim/actions/business.py`：`OpenShopAction.preconditions` 加 `treasury_buffer`。
-- [x] `src/wsim/sim/intent.py`：Planner `postponed_open_shop` + build_shop 延后；
-      MockReasoner 汇总计数。
-- [x] `src/wsim/sim/headless.py`：treasury `tax_to_treasury`/`tax_burned`/
-      `open_shop_postponed`，intent_audit 同步。
-- [x] 新建 `tests/test_treasury_revenue.py`。
-- 验证：`python3 -m pytest -q tests/test_treasury_revenue.py`。
-
-## T5 UI 落地
-- [x] `ui/adapter.py`：session writer（复制 events.sqlite）+ 三身份 gateway；
-      `dialogue()` 走 propose → request → approve → apply，返回 landed/seq/memory/relation。
-- [x] `ui/index.html`：文案改「已落地」，展示 seq/outcome/记忆/关系变化。
-- [x] 手工验证：`python3 ui/server.py --run runs/delivery-72d --port 8000`，
-      一次对话后返回 `landed=true` 且 `seq` 非空。
-- 验证：`python3 -m pytest -q` 后启动 UI 抽查。
-
-## T6 文档纠错
-- [x] 复制 `reports/delivery-p2.md` → `reports/delivery-p2.1.md`。
-- [x] 修正 180 章节、931/754/177 拆分、护栏归因。
-- [x] 新增 talk / 任务板 / 金库三节改法与前后数字。
-
-## T7 重新冻结
-- [x] commit 全部改动。
-- [x] 计算新 `content_hash`，`git tag -a delivery-p2.1`（附注 commit + hash）。
-- [x] `git worktree add /tmp/wsim-p21b delivery-p2.1`，跑 10d/72d、replay、framework_check、
-      pytest。
-- [x] 回填 `reports/delivery-p2.1.md`：tag/commit/content_hash、10d/72d 哈希、
-      对话落地数、记忆条数、关系变化、过期单数、拒绝率、金库期末、税回流、
-      开店延后次数、未达标项。
-- [x] 清理临时 worktree；确认 `git status --short` 干净。
-
-# P3-C · delivery-p3c
-
-## C1 对话身份（缺陷 1）
-- [x] `src/wsim/actions/social.py`：`_speaker_id(state, intent)` 解析
-      `args.player_id` → `actor=player:*` → 已注册 NPC actor → 否则空；
-      `TalkAction` 全链路改用解析身份；空身份 `missing_player_id`。
-- [x] `src/wsim/core/models.py`：`Event.legacy` + `to_canonical_dict()`。
-- [x] `src/wsim/world/store.py`：新库带 `legacy` 列；旧库不 ALTER，
-      `_infer_legacy` 标记 `player:visitor` 的 talk/presence 事件。
-- [x] `src/wsim/world/hash.py`：`event_hash` / `combined_hash` 用 canonical dict。
-- [x] 测试：`args.player_id` 优先、会话身份回退、缺身份拒绝、旧库 legacy &
-      哈希不变。
-
-## C2 服务端计算关系（缺陷 2）
-- [x] `TalkAction.apply`：`compose_talk` 重算 reply/affection/trust；
-      调用方字段丢弃。
-- [x] `src/wsim/world/effects.py`：`audit_log` 原语（kind 非空、上限 500）。
-- [x] `src/wsim/world/state.py`：`audit_log` 仅在非空时进入哈希。
-- [x] 测试：`spoofed_arg` 审计、服务端回复覆盖、与不传时关系一致。
-
-## C3 玩家 tick 单调（缺陷 3）
-- [x] `src/wsim/world/writer.py`：`_is_player_intent` + `_player_ticks`；
-      回退/未来 tick → `rejected:stale_tick`；NPC 不受影响。
-- [x] 测试：回退 tick、未来 tick、NPC 通过。
-
-## C4 found_sect 角色拦截（缺陷 4）
-- [x] `src/wsim/actions/business.py`：`role_allowed(content,"found_sect",role)`；
-      越权 `role_not_allowed`。
-- [x] 测试：越权拒绝理由明确，授权角色不受影响。
-
-## C5 缺 location 追问
-- [x] `src/wsim/agent/prompt.py`：`reachable_locations`（id+name）与
-      `previous_location`。
-- [x] `src/wsim/agent/intent_model.py`：prompt 显式段落 + system 约束。
-- [x] `src/wsim/agent/provider.py`：`_last_locations` 传入 previous_location。
-- [x] `tools/fake_llm_server.py`：decision 用 `reachable_locations.name`。
-- [x] `tools/fake_intent_server.py`：去尾缀、优先相邻地点。
-- [x] 测试：prompt 字段/段落；假端点解析；无地点仍 clarify。
-- [x] 72d 对比：clarification 9.45% → 0%（≤3%），按 missing 字段分类列出。
-
-## C6 玩家最小切片
-- [x] 新建 `src/wsim/actions/player.py`：`player_enter` / `player_presence` /
-      `player_leave`。
-- [x] `src/wsim/actions/registry.py` 注册。
-- [x] `src/wsim/sim/headless.py`：`with_players` 时 tick 0 提交 `player_enter`。
-- [x] 测试：实体/钱包/位置/presence；enter→talk→presence→leave→replay MATCH，
-      记录 seq 与哈希。
-
-## C7 验收与冻结
-- [x] `pytest -q` 全过；`tools/framework_check.py` 全过。
-- [x] 假端点 10d / 72d：K1、拒绝率、守恒、replay、state/event hash。
-- [x] 写 `reports/p3c-report.md`；更新 tasks.md 勾选。
-- [x] commit → `git tag -a delivery-p3c`（commit `a54d439`）。
-- [x] `git worktree add /tmp/wsim-p3c delivery-p3c` 干净重跑并回填，清理 worktree。
-- [x] 真实 Xing / 真实端点调用 0 次，报告列为未验证。
-
-# P3-D 真实 Xing 意图槽（2 个游戏日）
-
-## D1 适配层：剥围栏 + 键名归一
-- [x] `_strip_payload` 三级回退（围栏/原文/首末花括号）。
-- [x] 顶层与字段的中英文键归一；`unknown_keys` 白名单外丢弃。
-- [x] `IntentResolution` 增 `unknown_keys` / `blocked` / `normalizations` / `grounding`。
-
-## D2 原文 grounding
-- [x] 字符串回指「原话 + 上下文实体名」；数字只回指原话。
-- [x] 数字/单位归一（“两斗”→ qty=2、unit=斗、source=两斗）。
-- [x] 缺依据按缺失处理；必填缺失 → `needs_clarification`，可选被拦只丢弃。
-- [x] 旧调用（不传 utterance）grounding 关闭，P3-B 语义不变。
-
-## D3 限额、重试与观测
-- [x] `config/llm.yaml` intent 槽：3425、正式模型 id、1500 tokens、60s、2 retries。
-- [x] 429 → `http_429` 可重试，固定 25s，最多 2 次。
-- [x] `summary()` 增 unknown/grounding/延迟/usage/客户端统计。
-- [x] `WSIM_INTENT_RECORD` / `WSIM_INTENT_REPLAY` 录制回放。
-
-## D4 测试
-- [x] `tests/test_p3d_xing_adapter.py`：16 条，全部离线。
-- [x] `tests/test_provider.py` 429 分类更新为 `http_429`。
-
-## D5 真实 2 天与冻结
-- [x] 真实 Xing 意图槽 2 天（seed 42 / 12 NPC），采集完整数字。
-- [x] 写 `reports/p3d-report.md`，与 P3-C 并列且标注不可比。
-- [x] commit → `git tag -a delivery-p3d`；干净 worktree 重跑并回填。
+## 测试与冻结
+- [x] `tests/test_p3e_player.py`、`tests/test_p3e_api.py`、`tests/test_p3e_preconditions.py`
+- [x] `tests/test_p3e_endowment.py`：首次 300 / 二次不重发 / 双账号 / minted==总额 / replay 一致
+- [x] 修订 `tests/test_talk_action.py` 的 enter 前置
+- [x] 全量 pytest（182 passed）+ framework 6/6 + playthrough + replay MATCH
+- [x] `reports/p3e-report.md`（真实叙事 + P0 关闭证据 + 换模型对照 + 未验证项）
+- [x] commit → `git tag -a delivery-p3e` → 干净 worktree 重跑 MATCH → 回填

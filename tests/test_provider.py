@@ -1,6 +1,8 @@
 """Provider 桩：单配置、超时/重试参数、离线降级到 MockReasoner。"""
 from __future__ import annotations
 
+import time
+
 import pytest
 
 from wsim.agent.provider import (
@@ -99,6 +101,30 @@ def test_error_classification_and_retry_policy(kind, retryable):
     if retryable:
         # 指数退避：0.5, 1.0
         assert sleeps == [0.5, 1.0]
+
+
+def test_429_backoff_waits_on_production_path_without_injected_sleep():
+    """P0-1：不注入 sleep_fn 时必须走 time.sleep；缩短配置只为测试。"""
+    from wsim.agent.provider import ProviderError
+
+    def transport(_cfg, _system, _user):
+        raise ProviderError("http_429", "429")
+
+    cfg = ProviderConfig(
+        base_url="https://example.invalid", key="secret", model="m",
+        offline=False, max_retries=1, backoff_429_s=0.05,
+    )
+    client = ProviderClient(cfg, transport=transport)
+
+    started = time.perf_counter()
+    with pytest.raises(ProviderUnavailable):
+        client.complete("sys", "user")
+    elapsed = time.perf_counter() - started
+
+    assert elapsed >= 0.04, f"429 退避没有真的等待: {elapsed}"
+    assert client.stats["http_429"] == 2
+    assert client.stats["retries"] == 1
+    assert ProviderConfig(base_url="x", key="k", model="m").backoff_429_s == 25.0
 
 
 def test_http_transport_maps_real_exceptions_without_network(monkeypatch):

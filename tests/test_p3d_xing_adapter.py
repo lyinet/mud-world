@@ -235,10 +235,22 @@ def test_intent_slot_limits_from_config():
     slots = load_model_slots(ROOT)
     intent = slots["intent"]
     assert intent["base_url"] == "http://127.0.0.1:3425/v1"
-    assert intent["model"] == "openrouter/xingchen-agi/xing4.0-29b-a4b:free"
+    assert intent["model"] == "deepseek/deepseek-flash"
     assert int(intent["max_tokens"]) == 1500
     assert float(intent["timeout_s"]) == 60.0
     assert int(intent["max_retries"]) == 2
+    assert intent["extra_body"] == [{"reasoning_effort": "none"}]
+
+
+def test_reasoning_switches_are_per_slot():
+    slots = load_model_slots(ROOT)
+    assert slots["decision"]["model"] == "deepseek/deepseek-flash"
+    assert slots["decision"]["extra_body"] == [{"reasoning_effort": "none"}]
+    assert slots["dialogue"]["model"] == "auto/deepseek-v4.1-flash"
+    assert slots["dialogue"]["extra_body"] == [{"enable_thinking": False}]
+    import yaml
+    raw = yaml.safe_load((ROOT / "config" / "llm.yaml").read_text(encoding="utf-8"))
+    assert raw["models"]["xing"]["enabled"] is False
 
 
 # ---- 5. 录制回放 -----------------------------------------------------------

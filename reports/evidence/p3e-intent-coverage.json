@@ -1,0 +1,206 @@
+{
+  "generated_at": "2026-11-04T03:03:25+0800",
+  "elapsed_s": 22.68,
+  "speaker": "luo_qingxu",
+  "tick": 12,
+  "intent_slot": {
+    "base_url": "http://127.0.0.1:3425/v1",
+    "model": "deepseek/deepseek-flash",
+    "timeout_s": 60.0,
+    "max_retries": 2,
+    "offline": false,
+    "max_tokens": 1500,
+    "temperature": 0.0,
+    "json_mode": true,
+    "slot": "intent",
+    "extra_body": [
+      {
+        "reasoning_effort": "none"
+      }
+    ],
+    "backoff_429_s": 25.0
+  },
+  "total": 34,
+  "success": 25,
+  "success_rate": 0.7353,
+  "templates_covered": 17,
+  "templates_with_ge2": 17,
+  "by_template": {
+    "去某地": {
+      "samples": 2,
+      "success": 2,
+      "success_rate": 1.0,
+      "statuses": {
+        "ok": 2
+      }
+    },
+    "上工": {
+      "samples": 2,
+      "success": 2,
+      "success_rate": 1.0,
+      "statuses": {
+        "ok": 2
+      }
+    },
+    "吃饭": {
+      "samples": 2,
+      "success": 1,
+      "success_rate": 0.5,
+      "statuses": {
+        "ok": 1,
+        "reject": 1
+      }
+    },
+    "修炼": {
+      "samples": 2,
+      "success": 0,
+      "success_rate": 0.0,
+      "statuses": {
+        "reject": 2
+      }
+    },
+    "交易": {
+      "samples": 2,
+      "success": 2,
+      "success_rate": 1.0,
+      "statuses": {
+        "ok": 2
+      }
+    },
+    "购买": {
+      "samples": 2,
+      "success": 2,
+      "success_rate": 1.0,
+      "statuses": {
+        "ok": 2
+      }
+    },
+    "出售": {
+      "samples": 2,
+      "success": 2,
+      "success_rate": 1.0,
+      "statuses": {
+        "needs_confirmation": 2
+      }
+    },
+    "拜师": {
+      "samples": 2,
+      "success": 2,
+      "success_rate": 1.0,
+      "statuses": {
+        "ok": 2
+      }
+    },
+    "婚配": {
+      "samples": 2,
+      "success": 2,
+      "success_rate": 1.0,
+      "statuses": {
+        "needs_confirmation": 2
+      }
+    },
+    "入门派": {
+      "samples": 2,
+      "success": 1,
+      "success_rate": 0.5,
+      "statuses": {
+        "ok": 1,
+        "reject": 1
+      }
+    },
+    "开宗立派": {
+      "samples": 2,
+      "success": 2,
+      "success_rate": 1.0,
+      "statuses": {
+        "needs_confirmation": 2
+      }
+    },
+    "开店": {
+      "samples": 2,
+      "success": 0,
+      "success_rate": 0.0,
+      "statuses": {
+        "needs_clarification": 2
+      }
+    },
+    "护送": {
+      "samples": 2,
+      "success": 2,
+      "success_rate": 1.0,
+      "statuses": {
+        "ok": 2
+      }
+    },
+    "接任务": {
+      "samples": 2,
+      "success": 1,
+      "success_rate": 0.5,
+      "statuses": {
+        "ok": 1,
+        "reject": 1
+      }
+    },
+    "交任务": {
+      "samples": 2,
+      "success": 1,
+      "success_rate": 0.5,
+      "statuses": {
+        "ok": 1,
+        "reject": 1
+      }
+    },
+    "对话": {
+      "samples": 2,
+      "success": 1,
+      "success_rate": 0.5,
+      "statuses": {
+        "ok": 2
+      }
+    },
+    "还债": {
+      "samples": 2,
+      "success": 2,
+      "success_rate": 1.0,
+      "statuses": {
+        "needs_confirmation": 2
+      }
+    }
+  },
+  "latency": {
+    "calls": 34,
+    "attempts": 34,
+    "retries": 0,
+    "http_429": 0,
+    "success": 34,
+    "errors_by_kind": {},
+    "call_latency": {
+      "n": 34,
+      "mean": 0.666,
+      "min": 0.413,
+      "p50": 0.64,
+      "p90": 0.847,
+      "p95": 0.856,
+      "max": 0.925
+    },
+    "attempt_latency": {
+      "n": 34,
+      "mean": 0.666,
+      "min": 0.413,
+      "p50": 0.64,
+      "p90": 0.847,
+      "p95": 0.856,
+      "max": 0.925
+    },
+    "latency": {
+      "n": 34,
+      "mean": 0.666,
+      "min": 0.413,
+      "p50": 0.64,
+      "p90": 0.847,
+      "p95": 0.856,
+      "max": 0.925
+    }
+  },
+  "records_path": "reports/evidence/p3e-deepseek-intent-coverage.jsonl"
+}

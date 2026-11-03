@@ -26,7 +26,7 @@ NPC_VERBS = {
 ENGINE_ONLY_ALLOWED = {
     "quest_accept", "quest_deliver", "recruit", "debt_settle",
     # P3-C 玩家最小切片：由 UI/会话层直接 propose，不属于 NPC 决策动词。
-    "player_enter", "player_presence", "player_leave",
+    "player_enter", "player_presence", "player_leave", "player_endowment",
 }
 
 

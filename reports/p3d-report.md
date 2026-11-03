@@ -62,7 +62,7 @@
 
 ## 2. 真实 2 天数字表
 
-运行目录：`runs/p3d-real-2d-12npc`；记录：`runs/p3d/intent-recordings-2d-final.jsonl`；
+运行目录：`runs/p3d-real-2d-12npc`；记录：`reports/evidence/p3d-xing-intent-recordings-2d-final.jsonl`（固定证据副本，原始路径 `runs/p3d/intent-recordings-2d-final.jsonl`）；
 对照桩：`runs/p3d-stub-2d-12npc`（相同 seed / NPC / 2 天 / 同一适配层，只把意图槽换回假端点）。
 
 | 指标 | 真实 Xing（intent 槽） | 桩（intent 槽） | 说明 |
@@ -156,7 +156,7 @@ P3-D 的 2 天桩对照（上表）才是同窗口、同适配层的对照。
     usage、延迟与解析状态；
   - `WSIM_INTENT_REPLAY=<jsonl>`：intent 槽改用回放 transport，不联网；
     缺记录报 `replay_miss`，不伪造返回。
-- 本次验证：用 `runs/p3d/intent-recordings-2d-final.jsonl` 回放同一 2 天配置，
+- 本次验证：用 `reports/evidence/p3d-xing-intent-recordings-2d-final.jsonl` 回放同一 2 天配置，
   state/event 哈希与真实跑**逐位一致**：
   - `state_final = c788434f32faa6f6d8afd7430d1878d606d16d44f25b76cce3c813e68e5fb471`
   - `event_final = 4f06496edb064919c8cfc558915d0b2cd957b7bcf07da31d91c7f7c52575bee8`
@@ -212,14 +212,16 @@ P3-D 的 2 天桩对照（上表）才是同窗口、同适配层的对照。
 
 ```bash
 # 真实 2 天（决策槽用假端点 3427，意图槽用真实 Xing 3425）
+# 注意：XING_API_KEY 只从环境变量读取，不要写进命令历史或提交。
 LLM_API_KEY=fake LLM_DECISION_BASE_URL=http://127.0.0.1:3427/v1 \
-XING_API_KEY=magpie WSIM_INTENT_RECORD=runs/p3d/intent-recordings-2d.jsonl \
+XING_API_KEY=<REDACTED> WSIM_INTENT_RECORD=runs/p3d/intent-recordings-2d-final.jsonl \
 .venv/bin/python sim/run_headless.py --days 2 --seed 42 --npc 12 --enable-llm \
   --out runs --run-id p3d-real-2d-12npc
 
-# 确定性回放（不联网）
+# 确定性回放（不联网；使用仓库固定证据副本）
 LLM_API_KEY=fake LLM_DECISION_BASE_URL=http://127.0.0.1:3427/v1 \
-XING_API_KEY=fake WSIM_INTENT_REPLAY=runs/p3d/intent-recordings-2d.jsonl \
+XING_API_KEY=fake \
+WSIM_INTENT_REPLAY=reports/evidence/p3d-xing-intent-recordings-2d-final.jsonl \
 .venv/bin/python sim/run_headless.py --days 2 --seed 42 --npc 12 --enable-llm \
   --out runs --run-id p3d-replay-2d-12npc
 

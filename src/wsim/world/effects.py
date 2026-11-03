@@ -9,7 +9,18 @@ from typing import Any
 
 from ..core.canonical import normalize
 from ..core.models import Effect, EffectError, ScheduleItem
-from .state import Business, Debt, Entity, EscortOrder, Faction, Goal, Quest, Relation, WorldState
+from .state import (
+    Business,
+    Debt,
+    Entity,
+    EscortOrder,
+    Faction,
+    Goal,
+    PlayerProfile,
+    Quest,
+    Relation,
+    WorldState,
+)
 
 _ENTITY_FIELDS = {
     "location",
@@ -70,8 +81,13 @@ EFFECT_OPS = frozenset(
         "talk_ledger",
         "quest_prune",
         "audit_log",
+        "player_upsert",
+        "player_presence",
+        "player_endow",
     }
 )
+
+PLAYER_PRESENCE_STATES = frozenset({"online", "offline", "custody", "dormant"})
 
 # 插件禁止使用的原语：增发货币必须由内核 genesis/system 控制。
 PLUGIN_FORBIDDEN_OPS = frozenset({"mint"})
@@ -688,6 +704,85 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             "tick_affection": _as_num(d.get("tick_affection", 0.0), "tick_affection"),
             "tick_trust": _as_num(d.get("tick_trust", 0.0), "tick_trust"),
         }
+        return
+
+    if op == "player_upsert":
+        pid = str(d["id"])
+        if not pid.startswith("player:"):
+            raise EffectError(f"玩家 id 必须以 player: 开头: {pid}")
+        name = str(d.get("name", pid))
+        archetype = str(d.get("archetype", ""))
+        role = str(d.get("role", "visitor"))
+        created = _as_int(d.get("created_tick", 0), "created_tick")
+        prof = state.players.get(pid)
+        if prof is None:
+            state.players[pid] = PlayerProfile(
+                id=pid,
+                name=name,
+                archetype=archetype,
+                role=role,
+                created_tick=created,
+            )
+        else:
+            # 身份不可中途切换；只允许从创世占位（空/visitor）升级一次。
+            if archetype and prof.archetype and archetype != prof.archetype:
+                raise EffectError(f"玩家身份已锁定: {prof.archetype} != {archetype}")
+            if role and prof.role not in ("", "visitor") and role != prof.role:
+                raise EffectError(f"玩家职业已锁定: {prof.role} != {role}")
+            if archetype:
+                prof.archetype = archetype
+            if role:
+                prof.role = role
+            if name:
+                prof.name = name
+        return
+
+    if op == "player_endow":
+        pid = str(d["id"])
+        prof = state.players.get(pid)
+        if prof is None:
+            raise EffectError(f"玩家档案不存在: {pid}")
+        if prof.endowed:
+            raise EffectError(f"玩家已发放初始资产: {pid}")
+        amount = _as_int(d["amount"], "amount")
+        if amount <= 0:
+            raise EffectError("初始资产金额必须为正")
+        source = str(d.get("source", "")).strip()
+        if not source:
+            raise EffectError("初始资产必须写明来源")
+        tick = _as_int(d.get("tick", 0), "tick")
+        prof.endowed = True
+        prof.endowed_tick = tick
+        prof.endowed_source = source
+        # 只记账不铸币：货币由同事件的显式 mint 产生，这里只累计可审计总额。
+        state.endowment_total += amount
+        return
+
+    if op == "player_presence":
+        pid = str(d["id"])
+        prof = state.players.get(pid)
+        if prof is None:
+            raise EffectError(f"玩家档案不存在: {pid}")
+        presence = str(d["presence"])
+        if presence not in PLAYER_PRESENCE_STATES:
+            raise EffectError(f"非法在线状态: {presence}")
+        tick = _as_int(d.get("tick", 0), "tick")
+        prof.presence = presence
+        prof.online = presence == "online"
+        # 只有在线/心跳才刷新意图 tick；离线降级不能重置计时，否则永远停留 offline。
+        if presence == "online":
+            prof.last_intent_tick = max(prof.last_intent_tick, tick)
+        if presence == "offline":
+            prof.offline_since_tick = tick
+        elif presence == "custody":
+            prof.custody_since_tick = tick
+        elif presence == "dormant":
+            prof.dormant_since_tick = tick
+        ent = state.entities.get(pid)
+        if ent is None:
+            raise EffectError(f"玩家实体不存在: {pid}")
+        ent.presence = presence
+        ent.last_seen_tick = tick
         return
 
     raise EffectError(f"未知 Effect: {op}")

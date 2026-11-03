@@ -99,10 +99,20 @@ GENERATIVE_FIELDS = {"reply"}
 CN_UNITS = (
     "斗", "升", "石", "斤", "文", "贯", "个", "只", "头", "匹", "袋", "包",
     "瓶", "坛", "串", "块", "张", "本", "份", "枚", "担", "碗", "壶", "盘",
-    "件", "套", "车", "船",
+    "件", "套", "车", "船", "人", "名", "位", "打",
 )
-NUMBER_RE = re.compile(r"[0-9]+|[零一二两三四五六七八九十百千万]+")
+NUMBER_RE = re.compile(r"[0-9]+(?:\.[0-9]+)?|[零一二两三四五六七八九十百千万]+")
 _UNIT_ALT = "|".join(sorted((re.escape(u) for u in CN_UNITS), key=len, reverse=True))
+
+# 中文口语数量词：模型/用户都可能只说这些，不带阿拉伯数字。
+SPECIAL_QTY = {"俩": 2, "半": 1, "一打": 12, "若干": 1, "一些": 1, "几": 1}
+# 同义量词组：个/块/枚/只 可在同一语境互换；斗与斤绝不互换。
+UNIT_GROUPS: dict[str, set[str]] = {
+    "个": {"个", "块", "枚", "只"}, "块": {"个", "块", "枚", "只"},
+    "枚": {"个", "块", "枚", "只"}, "只": {"个", "块", "枚", "只"},
+    "人": {"人", "名", "位"}, "名": {"人", "名", "位"}, "位": {"人", "名", "位"},
+}
+CLAUSE_SPLIT_RE = re.compile(r"[，,。；;！!？?\n]+")
 
 
 def _field_name(raw: str) -> str:
@@ -334,19 +344,31 @@ def _cn_number(token: str) -> int | None:
 
 
 def parse_quantity_unit(value: Any) -> tuple[int | None, str]:
-    """数量词归一：返回 (数值, 量词)。"两斗" -> (2, "斗")，"2瓶" -> (2, "瓶")。"""
+    """数量词归一：返回 (数值, 量词)。"两斗" -> (2, "斗")，"2瓶" -> (2, "瓶")。
+
+    P0-2：补 俩/半/一打/若干/一些/几；"半斤" 在整数库存里向上取 1 份。
+    """
     if isinstance(value, bool):
         return None, ""
     if isinstance(value, (int, float)):
         return int(value), ""
     text = str(value).strip()
-    match = NUMBER_RE.search(text)
-    if not match:
-        return None, ""
-    number = _cn_number(match.group(0))
-    rest = text[match.end():].lstrip()
+    special = re.match(r"(一打|俩|半|若干|一些|几)", text)
+    if special:
+        number = SPECIAL_QTY[special.group(1)]
+        rest = text[special.end():].lstrip()
+    else:
+        match = NUMBER_RE.search(text)
+        if not match:
+            return None, ""
+        number = _cn_number(match.group(0))
+        if number is None:
+            return None, ""
+        rest = text[match.end():].lstrip()
     unit_match = re.match(rf"(?:{_UNIT_ALT})", rest)
     unit = unit_match.group(0) if unit_match else ""
+    if unit == "打":
+        number *= 12
     return number, unit
 
 
@@ -422,9 +444,15 @@ def _resolve_sect(value: Any, content) -> str:
     return ""
 
 
-def _resolve_skill(value: Any, content) -> str:
+def _resolve_skill(value: Any, content, state=None) -> str:
     raw = _norm(value)
-    skills = sorted({s for row in content.npcs for s in (row.get("skills") or {})})
+    skills: set[str] = {s for row in content.npcs for s in (row.get("skills") or {})}
+    # 内容包的人设把技能写在实体上（genesis 后 state.entities[npc].skills），
+    # content.npcs 本身通常没有 skills 字段；两处都收，避免 cultivate 永远解析失败。
+    if state is not None:
+        for ent in state.entities.values():
+            skills.update((getattr(ent, "skills", None) or {}).keys())
+    skills = sorted(skills)
     if raw in skills:
         return raw
     for s in skills:
@@ -441,7 +469,7 @@ def _resolve_by_field(field: str, value: Any, content, state, npc: str) -> Any:
     if field == "item":
         return _resolve_item(value, content)
     if field == "skill":
-        return _resolve_skill(value, content)
+        return _resolve_skill(value, content, state)
     if field == "route":
         rows = value if isinstance(value, list) else [x for x in re.split(r"[、,，>→-]", str(value)) if x.strip()]
         out = [_resolve_location(x, content) for x in rows]
@@ -537,13 +565,101 @@ def _ground_number(value: Any, corpus: str) -> bool:
     return number in tokens
 
 
-def _ground_value(field: str, value: Any, corpus: str, number_corpus: str = "") -> bool:
+def _clauses(text: str) -> list[str]:
+    return [c.strip() for c in CLAUSE_SPLIT_RE.split(str(text or "")) if c.strip()]
+
+
+def _quantity_tokens(text: str) -> list[tuple[int, str, str]]:
+    """抽取一段文本中的数量词：(数值, 量词, 原文片段)。"""
+    pattern = re.compile(
+        rf"(一打|俩|半|若干|一些|几|[0-9]+(?:\.[0-9]+)?|[零一二两三四五六七八九十百千万]+)"
+        rf"({_UNIT_ALT})?"
+    )
+    out: list[tuple[int, str, str]] = []
+    for match in pattern.finditer(text):
+        token = match.group(1)
+        unit = match.group(2) or ""
+        raw = match.group(0)
+        # “三个人”会被切成 (三, 个)，但这里计的是人；把紧随其后的
+        # 人/名/位 归为人数单位，避免给物品数量背书（P0-2）。
+        tail = text[match.end():match.end() + 1]
+        if tail in ("人", "名", "位"):
+            unit = tail
+            raw += tail
+        if token in SPECIAL_QTY:
+            number = SPECIAL_QTY[token]
+        else:
+            number = _cn_number(token)
+        if number is None:
+            continue
+        if unit == "打":
+            number *= 12
+        out.append((number, unit, raw))
+    return out
+
+
+PEOPLE_UNITS = {"人", "名", "位"}
+
+
+def _units_compatible(a: str, b: str) -> bool:
+    # P0-2：人数单位不能给物品数量背书（“三个人买米”不能推出 qty=3）。
+    if a in PEOPLE_UNITS or b in PEOPLE_UNITS:
+        return a in PEOPLE_UNITS and b in PEOPLE_UNITS
+    if not a or not b:
+        return True
+    return b in UNIT_GROUPS.get(a, {a})
+
+
+def _item_aliases(item_raw: Any, content) -> set[str]:
+    raw = _norm(item_raw)
+    if not raw:
+        return set()
+    aliases = {raw}
+    resolved = _resolve_item(raw, content) if content is not None else ""
+    if resolved:
+        aliases.add(resolved)
+        row = content.items.get(resolved) or {}
+        name = str(row.get("name") or "")
+        if name:
+            aliases.add(name)
+    return aliases
+
+
+def _ground_quantity(value: Any, utterance: str, item_raw: Any, content) -> bool:
+    """P0-2：数量必须与目标物品同分句、且量词兼容；不允许跨分句借数字。"""
+    number, unit = parse_quantity_unit(value)
+    if number is None:
+        return False
+    clauses = _clauses(utterance)
+    aliases = _item_aliases(item_raw, content)
+    if aliases:
+        targets = [c for c in clauses if any(a in c for a in aliases)]
+    else:
+        targets = clauses
+    if not targets:
+        return False
+    for clause in targets:
+        for token_number, token_unit, _raw in _quantity_tokens(clause):
+            if token_number == number and _units_compatible(unit, token_unit):
+                return True
+    return False
+
+
+def _ground_value(
+    field: str,
+    value: Any,
+    corpus: str,
+    number_corpus: str = "",
+    raw_args: dict[str, Any] | None = None,
+    content=None,
+) -> bool:
     """参数值是否能在原文/本轮上下文里找到字符串或数字依据。
 
-    字符串可回指「本轮上下文」（如相邻地点名）；数字必须回指用户原文片段，
-    避免上下文里的无关整数（库存、tick）给编造的数量背书。
+    字符串可回指「本轮上下文」（如相邻地点名）；数量必须回指用户原文中
+    与目标物品同分句的数量词，避免跨分句/人数给编造的数量背书。
     """
     numbers = number_corpus or corpus
+    raw_args = raw_args or {}
     if field in GENERATIVE_FIELDS:
         return bool(_norm(value))
     if field in ("offer", "want"):
@@ -557,12 +673,14 @@ def _ground_value(field: str, value: Any, corpus: str, number_corpus: str = "") 
                 item, qty = row, None
             if not _ground_string(item, corpus):
                 return False
-            if qty is not None and not _ground_number(qty, numbers):
+            if qty is not None and not _ground_quantity(qty, numbers, item, content):
                 return False
         return True
     if field == "route":
         rows = value if isinstance(value, list) else [value]
         return bool(rows) and all(_ground_string(x, corpus) for x in rows)
+    if field == "qty":
+        return _ground_quantity(value, numbers, raw_args.get("item"), content)
     if field in NUMERIC_FIELDS:
         return _ground_number(value, numbers)
     if isinstance(value, (int, float)) and not isinstance(value, bool):
@@ -583,6 +701,7 @@ class IntentResolution:
     destructive: bool = False
     unknown_keys: list[str] = field(default_factory=list)
     blocked: list[dict[str, Any]] = field(default_factory=list)
+    dropped_fields: list[str] = field(default_factory=list)
     normalizations: dict[str, dict[str, Any]] = field(default_factory=dict)
     grounding: bool = False
 
@@ -596,7 +715,8 @@ class IntentResolution:
             "status": self.status, "category": self.category, "verb": self.verb,
             "args": self.args, "missing": self.missing, "reason": self.reason,
             "destructive": self.destructive, "unknown_keys": self.unknown_keys,
-            "blocked": self.blocked, "normalizations": self.normalizations,
+            "blocked": self.blocked, "dropped_fields": self.dropped_fields,
+            "normalizations": self.normalizations,
             "grounding": self.grounding,
         }
 
@@ -658,6 +778,7 @@ def parse_intent_response(
     args: dict[str, Any] = {}
     missing: list[str] = []
     blocked: list[dict[str, Any]] = []
+    dropped: list[str] = []
     normalizations: dict[str, dict[str, Any]] = {}
     for name in template.required + template.optional:
         if name not in raw_args:
@@ -665,17 +786,23 @@ def parse_intent_response(
                 missing.append(name)
             continue
         raw_value = raw_args.get(name)
-        if grounding and not _ground_value(name, raw_value, corpus, number_corpus):
+        if grounding and not _ground_value(
+            name, raw_value, corpus, number_corpus, raw_args, content
+        ):
             # 实测模型会在缺字段时自行编造（"去买点米" → 数量=1、卖家="买家"）。
-            # 找不到原文依据一律按缺失处理，绝不填充。
+            # 找不到原文依据一律按缺失处理，绝不填充；可选字段记入 dropped_fields。
             blocked.append({"field": name, "raw": raw_value})
             if name in template.required:
                 missing.append(name)
+            else:
+                dropped.append(name)
             continue
         value = _resolve_by_field(name, raw_value, content, state, npc)
         if value == "" or value is None or value == []:
             if name in template.required:
                 missing.append(name)
+            else:
+                dropped.append(name)
             continue
         if name in NUMERIC_FIELDS:
             number, unit = parse_quantity_unit(raw_value)
@@ -691,15 +818,16 @@ def parse_intent_response(
         return IntentResolution(status="needs_clarification", category=category, verb=template.verb,
                                 args=args, missing=missing, reason=reason,
                                 destructive=template.destructive, unknown_keys=unknown_keys,
-                                blocked=blocked, normalizations=normalizations,
-                                grounding=grounding)
+                                blocked=blocked, dropped_fields=dropped,
+                                normalizations=normalizations, grounding=grounding)
     args = _map_engine_fields(template.verb, args)
     if template.destructive and not confirm:
         return IntentResolution(status="needs_confirmation", category=category, verb=template.verb,
                                 args=args, reason="destructive_requires_confirmation",
                                 destructive=True, unknown_keys=unknown_keys, blocked=blocked,
-                                normalizations=normalizations, grounding=grounding)
+                                dropped_fields=dropped, normalizations=normalizations,
+                                grounding=grounding)
     return IntentResolution(status="ok", category=category, verb=template.verb, args=args,
                             destructive=template.destructive, unknown_keys=unknown_keys,
-                            blocked=blocked, normalizations=normalizations,
-                            grounding=grounding)
+                            blocked=blocked, dropped_fields=dropped,
+                            normalizations=normalizations, grounding=grounding)
