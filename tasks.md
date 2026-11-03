@@ -17,7 +17,7 @@
 ### B3 延迟
 - [x] `dialogue_async.py`：玩家发话入队立即返回，NPC 回应异步写回，不阻塞 tick。
 - [x] `ProviderClient.complete_many` 线程池批处理（默认并发 4）。
-- [x] 12 NPC 1 日墙钟 0.361s；decision p50 0.059s / p95 0.137s。
+- [x] 12 NPC 1 日墙钟 0.364s；decision p50 0.061s / p95 0.133s。
 - 验证：`test_async_dialogue_does_not_block_tick`、`test_complete_many_runs_concurrently`。
 
 ### B4 三槽位与分槽成本
@@ -44,8 +44,8 @@
 - [ ] 真实 Xing API：本轮 0 次（等 key）。
 
 ### B7 冻结
-- [ ] commit → `git tag -a delivery-p3b`（附注 commit + content_hash）。
-- [ ] 从 tag 干净重跑 pytest / framework / 假端点 10d / 72d，回填报告第 10 节。
+- [x] commit → `git tag -a delivery-p3b`（指向 `222a2b9`，content_hash `83521723…`）。
+- [x] 从 tag 干净重跑 pytest（124 passed）/ framework（6/6）/ 假端点 10d / 72d，哈希与主工作区一致，replay MATCH；已回填报告第 10 节。
 
 ---
 

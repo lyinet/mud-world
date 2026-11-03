@@ -13,7 +13,7 @@
 2. **与 Mock 基线同值**：P3-B 假端点 72d K1 = `delivery-p2.2` Mock 72d 的 71/91；10d 都是 45/91。说明分工修复保住了原有生存节奏，模型层没有额外提升 K1——本轮目标是“恢复过日子”，不是用模型刷 K1。
 3. **模型动作全部过预检**：72d 模型动作 1,086 条、规则动作 9,839 条；预检丢弃 97 条，全部是 `rule_owned_survival`（模型试图替换生存动作），**0 条因 adjacency/物品/钱/时间窗被丢弃**。
 4. **三槽位分开记账**：`decision` 2,064 次、`intent` 2,064 次、`dialogue` 0 次。`intent` 上游桩不返回 usage，token 按要求记 `null`（`usage_source=missing`），不再把字符估算当账单；**不提供混合总价**。
-5. **延迟**：实时对话改为异步队列，提交不阻塞 tick；非对话决策按批并发（默认 4）。12 NPC 一个游戏日墙钟 **0.361s**（假端点 50ms 固定延迟）。
+5. **延迟**：实时对话改为异步队列，提交不阻塞 tick；非对话决策按批并发（默认 4）。12 NPC 一个游戏日墙钟 **0.364s**（假端点 50ms 固定延迟）。
 6. **本轮未做真实端点抽样**：无 key。接入前需要用户提供三样信息，见第 8 节；真实 72 天跑等预算批准。
 
 ## 1. 混合决策（核心改动）
@@ -98,13 +98,13 @@
 
 | 指标 | 值 |
 | --- | ---: |
-| 墙钟总耗时 | **0.361s** |
+| 墙钟总耗时 | **0.364s** |
 | decision 调用 | 12 |
 | intent 调用 | 12 |
-| decision 延迟 p50 / p95 | **0.059s / 0.137s** |
-| intent 延迟 p50 / p95 | 0.002s / 0.003s |
+| decision 延迟 p50 / p95 | **0.061s / 0.133s** |
+| intent 延迟 p50 / p95 | 0.002s / 0.004s |
 
-72d、31 NPC：墙钟 174.6s，4,128 次调用，约 **23.6 calls/s**（含假端点每请求 50ms 的人为延迟；真实延迟另计）。
+72d、31 NPC：墙钟 172.1s，4,128 次调用，约 **24.0 calls/s**（含假端点每请求 50ms 的人为延迟；真实延迟另计）。
 
 > P3-A 实测的真实端点 p50 11s / p95 22s 仍不能用于同步实时路径；P3-B 用异步对话 + 批处理把等待移出 tick，而不是假装延迟消失。
 
@@ -359,13 +359,15 @@ python3 tools/replay.py --run runs/p3b-fake-72d   # MATCH
 ## 10. 冻结与干净重跑
 
 - tag：`delivery-p3b`
-- tag 指向 commit：待回填
+- tag 指向 commit：`222a2b96d6ffa963c84c4a5b1cc2a4d9e11b9cf1`
 - content_hash：`835217231c0e595221ac1d91bf7892d77aa812850d6f875b37cf2a2d92e73986`
-- 干净 worktree：待回填
-- pytest：待回填
-- framework：待回填
-- 10d / 72d 假端点哈希：待回填
-- replay：待回填
+- 干净 worktree：`/tmp/xkx-p3b-clean`（`git worktree add --detach … delivery-p3b`）
+- pytest：**124 passed**
+- framework：**6/6 PASS**
+- 10d 假端点哈希：`event 0874e50a…` / `state ef0adb91…`；K1 45/91，拒绝 34/3,153 = 1.08%，replay **MATCH**
+- 72d 假端点哈希：`event 9c11fb3f…` / `state 96a869a4…`；K1 71/91，拒绝 206/14,111 = 1.46%，replay **MATCH**
+- 与主工作区预冻结 run 哈希逐位一致（说明 tag 代码可复现，不依赖未提交文件）
+- 12 NPC 1 日墙钟：**0.364s**，decision 12 / intent 12 次，p50 0.061s / p95 0.133s
 
 ## 11. 仍未验证 / 未达标
 
