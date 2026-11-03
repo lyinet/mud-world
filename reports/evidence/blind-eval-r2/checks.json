@@ -14,9 +14,18 @@
   },
   "fingerprints": {
     "answer_key_sha256": "802f2ded24f9f356b9ab9676d24758987a346fa790f56ba08cad17d587e66789",
-    "pairs_sha256": "3a653725641a53046d48c9b19f4b15ba8e6a5bc2c5acf8c1a12b79ced11804aa"
+    "pairs_sha256": "5a41f623f754bdc4c2d7f6ba6f738e5f13e5951d99e86567ace9fa04e72d8d6d"
   },
+  "intent_categories": [
+    "chitchat",
+    "credit",
+    "directions",
+    "gossip",
+    "help",
+    "price"
+  ],
   "markdown_hits": [],
+  "max_cross_intent_similarity": 0.3385,
   "missing_first_person": [],
   "position_balance": {
     "model_as_A": 15,
@@ -24,12 +33,95 @@
   },
   "samples": 30,
   "seed": 20261104,
+  "similarity_matrix": {
+    "chitchat": {
+      "chitchat": 1.0,
+      "credit": 0.1935,
+      "directions": 0.1579,
+      "gossip": 0.2432,
+      "help": 0.254,
+      "price": 0.1739
+    },
+    "credit": {
+      "chitchat": 0.2121,
+      "credit": 1.0,
+      "directions": 0.1846,
+      "gossip": 0.2623,
+      "help": 0.3385,
+      "price": 0.2188
+    },
+    "directions": {
+      "chitchat": 0.169,
+      "credit": 0.1846,
+      "directions": 1.0,
+      "gossip": 0.1714,
+      "help": 0.1622,
+      "price": 0.1644
+    },
+    "gossip": {
+      "chitchat": 0.2667,
+      "credit": 0.2188,
+      "directions": 0.1714,
+      "gossip": 1.0,
+      "help": 0.2424,
+      "price": 0.2609
+    },
+    "help": {
+      "chitchat": 0.25,
+      "credit": 0.3385,
+      "directions": 0.1143,
+      "gossip": 0.2121,
+      "help": 1.0,
+      "price": 0.1918
+    },
+    "price": {
+      "chitchat": 0.1867,
+      "credit": 0.2188,
+      "directions": 0.1644,
+      "gossip": 0.25,
+      "help": 0.2466,
+      "price": 1.0
+    }
+  },
+  "similarity_threshold": 0.6,
+  "skeletons_by_intent": {
+    "chitchat": [
+      "chitchat.craft.a",
+      "chitchat.daily.a",
+      "chitchat.fate.a",
+      "chitchat.future.a",
+      "chitchat.opinion.a",
+      "chitchat.safety.a"
+    ],
+    "credit": [
+      "credit.a"
+    ],
+    "directions": [
+      "directions.a"
+    ],
+    "gossip": [
+      "gossip.event.a",
+      "gossip.person.a",
+      "gossip.who"
+    ],
+    "help": [
+      "help.a",
+      "help.invite"
+    ],
+    "price": [
+      "price.a"
+    ]
+  },
   "source": "runs/a2-dialogue-30/eval_raw.jsonl",
   "template_length": {
-    "avg": 34.33,
+    "avg": 36.13,
     "in_20_60": 30,
-    "max": 46,
-    "min": 26
+    "max": 41,
+    "min": 28
   },
-  "third_person_hits": []
+  "third_person_hits": [],
+  "worst_similarity_pair": [
+    "credit",
+    "help"
+  ]
 }

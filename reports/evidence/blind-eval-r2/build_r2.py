@@ -15,6 +15,7 @@ import json
 import random
 import re
 import sys
+from difflib import SequenceMatcher
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -51,6 +52,7 @@ def main() -> int:
     markdown_hits: list[dict] = []
     third_person_hits: list[dict] = []
     missing_first_person: list[dict] = []
+    by_intent: dict[str, list[dict]] = {}
     for row in rows:
         message = str(row["message"])
         tick = int(row["tick"])
@@ -65,6 +67,13 @@ def main() -> int:
             third_person_hits.append(record)
         if FIRST_PERSON not in template_reply:
             missing_first_person.append(record)
+        by_intent.setdefault(str(out["intent"]), []).append(
+            {
+                "id": int(row["round"]),
+                "skeleton": str(out["skeleton"]),
+                "reply": template_reply,
+            }
+        )
         enriched.append(
             {
                 "id": int(row["round"]),
@@ -102,6 +111,24 @@ def main() -> int:
     )
 
     in_range = sum(1 for n in lengths if 20 <= n <= 60)
+    categories = sorted(by_intent)
+    similarity_matrix: dict[str, dict[str, float]] = {}
+    worst_similarity = 0.0
+    worst_pair: list[str] | None = None
+    for left in categories:
+        similarity_matrix[left] = {}
+        for right in categories:
+            if left == right:
+                similarity_matrix[left][right] = 1.0
+                continue
+            pair_max = max(
+                SequenceMatcher(None, a["reply"], b["reply"]).ratio()
+                for a in by_intent[left]
+                for b in by_intent[right]
+            )
+            similarity_matrix[left][right] = round(pair_max, 4)
+            if pair_max > worst_similarity:
+                worst_similarity, worst_pair = pair_max, [left, right]
     checks = {
         "samples": len(pairs),
         "source": str(SOURCE.relative_to(ROOT)),
@@ -112,6 +139,15 @@ def main() -> int:
             "avg": round(sum(lengths) / len(lengths), 2),
             "in_20_60": in_range,
         },
+        "intent_categories": categories,
+        "skeletons_by_intent": {
+            category: sorted({item["skeleton"] for item in by_intent[category]})
+            for category in categories
+        },
+        "max_cross_intent_similarity": round(worst_similarity, 4),
+        "worst_similarity_pair": worst_pair,
+        "similarity_threshold": 0.60,
+        "similarity_matrix": similarity_matrix,
         "markdown_hits": markdown_hits,
         "third_person_hits": third_person_hits,
         "missing_first_person": missing_first_person,
