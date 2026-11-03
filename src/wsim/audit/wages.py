@@ -36,11 +36,16 @@ def _wage_transfer(e: Event) -> list[dict[str, Any]]:
 
 
 def _wage_debt(e: Event) -> list[dict[str, Any]]:
-    return [
-        x.get("data") or {}
-        for x in e.effects
-        if x.get("op") == "debt_create" and (x.get("data") or {}).get("note") == "unpaid_wage"
-    ]
+    """未付工资：首次欠薪 debt_create，以及后续合并的 debt_increase。"""
+    rows: list[dict[str, Any]] = []
+    for x in e.effects:
+        op = x.get("op")
+        d = x.get("data") or {}
+        if op == "debt_create" and d.get("note") == "unpaid_wage":
+            rows.append(d)
+        elif op == "debt_increase" and str(d.get("id", "")).startswith("debt:wage:"):
+            rows.append(d)
+    return rows
 
 
 def wage_trace(events: list[Event], state: WorldState, content: Content, npc_ids: set[str]) -> dict:

@@ -42,18 +42,39 @@ def test_offline_provider_does_not_network_and_falls_back():
 
 
 def test_retry_count_and_failure_degrades():
+    """测试禁止联网：用注入的 transport 模拟网络失败，不实际发请求。"""
+    from wsim.agent.provider import ProviderError
+
+    def failing_transport(_cfg, _system, _user):
+        raise ProviderError("network", "stub")
+
     cfg = ProviderConfig(
         base_url="https://example.invalid", key="secret", model="m",
         offline=False, max_retries=2,
     )
-    provider = ProviderClient(cfg)
+    provider = ProviderClient(cfg, transport=failing_transport, sleep_fn=lambda _s: None)
     fallback = FallbackReasoner(provider, MockReasoner(seed=42))
     assert fallback.decide(N1, VIEW) == MockReasoner(seed=42).decide(N1, VIEW)
     assert provider.last_attempts == 3
     assert fallback.last_attempts == 3
+    assert provider.last_error_kind == "network"
+
 
 
 def test_fingerprint_does_not_leak_key():
     cfg = ProviderConfig(base_url="https://example.invalid", key="secret", model="m")
     assert "secret" not in str(cfg.fingerprint())
     assert cfg.fingerprint()["model"] == "m"
+
+
+def test_provider_disabled_by_default_and_env_required():
+    from wsim.agent.provider import ProviderConfig, ProviderConfigError
+
+    assert ProviderConfig.from_env(False) is None
+    with pytest.raises(ProviderConfigError):
+        ProviderConfig.from_env(True, env={})
+    cfg = ProviderConfig.from_env(
+        True,
+        env={"LLM_BASE_URL": "https://example.invalid/v1", "LLM_API_KEY": "k", "LLM_MODEL": "m"},
+    )
+    assert cfg is not None and cfg.offline is False and "k" not in str(cfg.fingerprint())

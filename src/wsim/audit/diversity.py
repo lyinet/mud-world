@@ -1,6 +1,6 @@
 """K3 行为多样性：双层诊断（verb 层 + 对象层）。
 
-口径见 docs/metrics.md v1.0.0：
+口径见 docs/metrics.md v1.1.0：
 - 只统计成功执行的 NPC 动作；
 - 对象层签名 = verb + 参数语义 + target 类型，不含 NPC id / 数量 / 时间 / 金额；
 - 同时输出 move_collapsed 折叠视图，用于检验“通过是否来自拆桶”；
@@ -15,8 +15,13 @@ from typing import Any, Callable
 from ..core.models import Event
 from ..core.rng import PRNG
 
-SIGNATURE_SPEC_VERSION = "1.0.0"
+SIGNATURE_SPEC_VERSION = "1.1.0"
 SIGNATURE_SPEC_EFFECTIVE = "2026-11-03"
+LEGACY_SPEC_VERSION = "1.0.0"
+
+# P2-B 新增的引擎动词；v1.0.0 只定义 13 个动词，这 4 个在旧口径里都落到 `verb:?`。
+NEW_ENGINE_VERBS = ("debt_settle", "quest_accept", "quest_deliver", "recruit")
+DEBT_CLASSES = ("initial", "wage", "living", "escort")
 
 # 历史阈值（v2）。已废止：设定时已看到实跑数值，且多数项会随 move 拆桶显著变化。
 # 仅作对照输出，不参与任何结论；具体失败项数随 run 变化，以 folds.move_collapsed 实测为准。
@@ -47,17 +52,33 @@ def _trade_bundle(raw: Any) -> str:
     return "+".join(items) if items else "-"
 
 
-def action_signature(e: Event, fold: str = "none") -> str:
-    """spec v1.0.0：verb + 参数语义 + target 类型。
+def _debt_class(raw: Any) -> str:
+    """债务来源分类：只看 debt id 的内容语义前缀，不看金额/当事人。"""
+    text = str(raw or "")
+    for cls in DEBT_CLASSES:
+        if text.startswith(f"debt:{cls}:"):
+            return cls
+    if text.startswith("debt:init:"):
+        return "initial"
+    return "other"
+
+
+def action_signature(e: Event, fold: str = "none", spec: str = SIGNATURE_SPEC_VERSION) -> str:
+    """spec v1.1.0：verb + 参数语义 + target 类型。
 
     fold="none"           对象层签名
     fold="move_collapsed" 把 move:<地点> 折叠为 move:any，其余不变
     fold="verb_only"      纯动词（等同 verb 层）
+    spec="1.0.0"          兼容口径：4 个新动词落到 `verb:?`
     """
     verb = e.verb
     if fold == "verb_only":
         return verb
     args = e.args or {}
+    if spec == LEGACY_SPEC_VERSION:
+        if verb in NEW_ENGINE_VERBS:
+            return f"{verb}:?"
+        return action_signature(e, fold=fold, spec=SIGNATURE_SPEC_VERSION)
 
     if verb == "move":
         return "move:any" if fold == "move_collapsed" else f"move:{_movement_target(args)}"
@@ -94,6 +115,14 @@ def action_signature(e: Event, fold: str = "none") -> str:
         return "escort:?->?"
     if verb == "found_sect":
         return "found_sect:settlement"
+    # ---- spec v1.1.0 新增 ----
+    if verb == "debt_settle":
+        return f"debt_settle:{_debt_class(args.get('debt'))}"
+    if verb in ("quest_accept", "quest_deliver"):
+        qverb = str(args.get("quest_verb") or "?")
+        return f"{verb}:{qverb}"
+    if verb == "recruit":
+        return "recruit:npc"
     return f"{verb}:?"
 
 
@@ -237,6 +266,22 @@ def _layer_stats(
     }
 
 
+def _object_summary(layer: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "actions_total": layer["actions_total"],
+        "categories": layer["categories"],
+        "top10_share": layer["top10_share"],
+        "entropy_bits": layer["entropy_bits"],
+        "effective_categories": layer["effective_categories"],
+        "normalized_entropy": layer["normalized_entropy"],
+        "per_npc_normalized_entropy_mean": layer["per_npc_normalized_entropy_mean"],
+        "per_npc_normalized_entropy_min": layer["per_npc_normalized_entropy_min"],
+        "per_npc_distinct_mean": layer["per_npc_distinct_mean"],
+        "pairwise_js_mean": layer["pairwise_js_mean"],
+        "counts": layer["counts"],
+    }
+
+
 def diversity_stats(events: list[Event], npc_ids: set[str], seed: int = 42) -> dict[str, Any]:
     verb_layer = _layer_stats(events, npc_ids, lambda e: e.verb, seed, null_resample=False)
     object_layer = _layer_stats(events, npc_ids, lambda e: action_signature(e), seed, null_resample=True)
@@ -244,6 +289,22 @@ def diversity_stats(events: list[Event], npc_ids: set[str], seed: int = 42) -> d
         events, npc_ids, lambda e: action_signature(e, "move_collapsed"), seed, null_resample=False
     )
     verb_only_layer = _layer_stats(events, npc_ids, lambda e: action_signature(e, "verb_only"), seed, null_resample=False)
+    # spec v1.0.0 兼容口径：4 个新动词落 `verb:?`。同一 run 必须同时报告两版。
+    v10_layer = _layer_stats(
+        events, npc_ids, lambda e: action_signature(e, spec=LEGACY_SPEC_VERSION), seed, null_resample=False
+    )
+    # 固定敏感性对照：整体剔除 4 个新动词，检验改善是否由旧 13 个动词贡献。
+    legacy_only_events = [e for e in events if e.verb not in NEW_ENGINE_VERBS]
+    sensitivity_layer = _layer_stats(
+        legacy_only_events, npc_ids, lambda e: action_signature(e), seed, null_resample=False
+    )
+    new_verb_sigs = {
+        sig: count
+        for sig, count in object_layer["counts"].items()
+        if sig.split(":", 1)[0] in NEW_ENGINE_VERBS
+    }
+    new_verb_actions = sum(new_verb_sigs.values())
+    new_verb_share = new_verb_actions / object_layer["actions_total"] if object_layer["actions_total"] else 0.0
 
     if object_layer["null_js_mean"]:
         object_layer["signal_to_noise"] = round(object_layer["pairwise_js_mean"] / object_layer["null_js_mean"], 4)
@@ -270,6 +331,16 @@ def diversity_stats(events: list[Event], npc_ids: set[str], seed: int = 42) -> d
         ),
         "verb_layer": verb_layer,
         "object_layer": object_layer,
+        "v10_compat": {
+            "spec_version": LEGACY_SPEC_VERSION,
+            "object_layer": _object_summary(v10_layer),
+        },
+        "sensitivity_excluding_new_verbs": {
+            "excluded_verbs": sorted(NEW_ENGINE_VERBS),
+            "object_layer": _object_summary(sensitivity_layer),
+        },
+        "new_verb_signatures": dict(sorted(new_verb_sigs.items())),
+        "new_verb_action_share": round(new_verb_share, 10),
         "folds": {
             "move_collapsed": _subset(move_layer),
             "verb_only": _subset(verb_only_layer),

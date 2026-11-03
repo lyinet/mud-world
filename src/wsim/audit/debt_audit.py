@@ -138,7 +138,11 @@ def debt_audit(
                 if debt is None:
                     settle_mismatches.append({"seq": e.seq, "debt": did, "reason": "increase_unknown_debt"})
                 else:
-                    debt["amount"] += int(d["amount"])
+                    amount = int(d["amount"])
+                    debt["amount"] += amount
+                    # 续欠也是债务来源事件，必须计入 origin 期望总额，否则
+                    # declared_total 会大于 origin_total（复核发现的口径缺口）。
+                    origin_expected_sum += amount
             elif op == "debt_settle":
                 did = str(d["id"])
                 settled_here.append({"id": did, "amount": int(d["amount"]), "seq": e.seq})

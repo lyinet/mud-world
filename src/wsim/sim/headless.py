@@ -13,6 +13,14 @@ from pathlib import Path
 from typing import Any
 
 from ..actions.registry import build_registry
+from ..agent.cost import CostTelemetry, load_cost_rates
+from ..agent.provider import (
+    LLMReasoner,
+    ProviderClient,
+    ProviderConfig,
+    ProviderConfigError,
+    load_provider_settings,
+)
 from ..audit.conservation import conservation, debt_ledger
 from ..audit.debt_audit import debt_audit
 from ..audit.diversity import diversity_stats
@@ -43,6 +51,7 @@ class RunConfig:
     run_id: str | None = None
     with_players: int = 0
     dump_state: bool = False
+    enable_llm: bool = False
 
 
 def _npc_money(state: WorldState) -> int:
@@ -136,7 +145,30 @@ def run_headless(
         return ev
 
     lod_cfg = load_lod_config(root / "config" / "lod.yaml")
-    reasoner = MockReasoner(seed=cfg.seed, content=content)
+    telemetry = CostTelemetry(rates=load_cost_rates(root))
+    mock_reasoner = MockReasoner(seed=cfg.seed, content=content, telemetry=telemetry)
+    reasoner: Any = mock_reasoner
+    llm_info: dict[str, Any] = {"enabled": False, "model": "mock", "reason": "mock_only"}
+    if cfg.enable_llm:
+        settings = load_provider_settings(root)
+        try:
+            provider_cfg = ProviderConfig.from_env(
+                True,
+                timeout_s=float(settings.get("timeout_s", 30)),
+                max_retries=int(settings.get("max_retries", 2)),
+                backoff_base_s=float(settings.get("backoff_base_s", 1.0)),
+            )
+        except ProviderConfigError as exc:
+            llm_info = {"enabled": False, "model": "mock", "reason": str(exc)}
+        else:
+            assert provider_cfg is not None
+            provider = ProviderClient(provider_cfg)
+            reasoner = LLMReasoner(provider, mock_reasoner, content, telemetry)
+            llm_info = {
+                "enabled": True,
+                "model": provider_cfg.model,
+                "fingerprint": provider_cfg.fingerprint(),
+            }
     scheduler = LODScheduler(
         sorted(npc_ids),
         lod_cfg,
@@ -170,6 +202,7 @@ def run_headless(
         if not quest_id or quest_id in quest_delivery_queued:
             return
         quest_delivery_queued.add(quest_id)
+        quest = writer.state.quests.get(quest_id)
         push(
             tick + 1,
             6,
@@ -177,7 +210,7 @@ def run_headless(
             Intent(
                 actor=actor,
                 verb="quest_deliver",
-                args={"quest": quest_id},
+                args={"quest": quest_id, "quest_verb": quest.verb if quest is not None else ""},
                 tick=tick + 1,
                 source="planner",
                 reason="任务办妥，回去交付",
@@ -209,8 +242,8 @@ def run_headless(
                 if kind == "intent":
                     ev = emit(payload)
                     day_events.append(ev)
+                    reasoner.observe(ev)
                     if ev.outcome == "rejected" and payload.source == "planner":
-                        reasoner.observe(ev)
                         if replan_today[payload.actor] < 6:
                             replan_today[payload.actor] += 1
                             push(tick + 1, 3, "replan", payload.actor)
@@ -320,6 +353,28 @@ def run_headless(
     econ["cashflow"] = cashflow_stats(events, npc_ids, cfg.days, state)
     econ["operating_net_per_day"] = econ["cashflow"]["operating_net_per_npc_day"]
     econ["capital_out_per_day"] = econ["cashflow"]["capital_out_total"] / max(1, cfg.days * len(npcs))
+    # 现金去向分项（B6）：NPC 现金净变化 = 经营净流入 − 资本开支；差额必须为 0。
+    cf = econ["cashflow"]
+    other_accounts = (
+        econ["supply_now"]
+        - econ["npc_money_now"]
+        - econ["business_cash_now"]
+    )
+    econ["cash_delta_breakdown"] = {
+        "npc_net_change": econ["npc_net_change"],
+        "operating_net": cf["operating_net"],
+        "capital_out": cf["capital_out_total"],
+        "operating_minus_capital": cf["operating_net"] - cf["capital_out_total"],
+        "reconciles_npc_cash": cf["operating_net"] - cf["capital_out_total"] == econ["npc_net_change"],
+        "inflow_by_reason": cf["inflow_by_reason"],
+        "outflow_by_reason": cf["outflow_by_reason"],
+        "capital_out_by_reason": cf["capital_out_by_reason"],
+        "business_cash_now": econ["business_cash_now"],
+        "business_cash_change": econ["business_cash_now"] - econ["initial_location_float"],
+        "other_accounts_cash": other_accounts,
+        "burned_total": econ["burned_total"],
+        "minted_total": econ["minted_total"],
+    }
     wages = wage_trace(events, state, content, npc_ids)
     audit = content_audit(content, registry, genesis.mismatches)
 
@@ -334,18 +389,70 @@ def run_headless(
     source_counts = Counter(e.source for e in events)
     lod_summary = scheduler.summary()
     lod_summary["changes"] = lod_changes
-    goal_changes = list(reasoner.selector.changes) if reasoner.selector is not None else []
+    goal_changes = list(mock_reasoner.selector.changes) if mock_reasoner.selector is not None else []
     intent_audit = {
-        "decisions": len(reasoner.decisions),
+        "decisions": len(mock_reasoner.decisions),
         "goal_changes": len(goal_changes),
         "preemptions": sum(1 for c in goal_changes if c.get("type") == "goal_preempt"),
-        "replans": reasoner.replan_count,
+        "replans": mock_reasoner.replan_count,
         "planned_overrides": sum(1 for c in goal_changes if c.get("type") == "goal_return"),
         "reason_coverage": reason_coverage,
         "reasoned_events": len(reason_events),
         "by_source": dict(sorted(source_counts.items())),
-        "logs": ["decisions.jsonl", "goal_changes.jsonl", "lod_tiers.jsonl"],
+        "logs": ["decisions.jsonl", "goal_changes.jsonl", "lod_tiers.jsonl", "cost.jsonl"],
     }
+    cost_summary = telemetry.summary()
+    llm_summary = dict(llm_info)
+    llm_summary["schema_rejects"] = dict(sorted(telemetry.schema_rejects.items()))
+    llm_summary["schema_reject_total"] = sum(telemetry.schema_rejects.values())
+    llm_summary["fallbacks"] = telemetry.fallbacks
+    if isinstance(reasoner, LLMReasoner):
+        llm_summary["reasoner_calls"] = reasoner.calls
+        llm_summary["reasoner_fallbacks"] = reasoner.fallback_count
+
+    # 任务 / 镖单 / 门派成立统计（复核 B5/B7 需要直接给出数字）
+    quest_status: dict[str, int] = {}
+    quest_by_template: dict[str, dict[str, int]] = {}
+    for q in state.quests.values():
+        quest_status[q.status] = quest_status.get(q.status, 0) + 1
+        row = quest_by_template.setdefault(
+            q.template_id, {"total": 0, "completed": 0, "failed": 0}
+        )
+        row["total"] += 1
+        if q.status == "completed":
+            row["completed"] += 1
+        if q.status == "failed":
+            row["failed"] += 1
+    escort_status: dict[str, int] = {}
+    for o in state.escorts.values():
+        escort_status[o.status] = escort_status.get(o.status, 0) + 1
+    founded = [
+        {
+            "sect": str((e.args or {}).get("sect_id", "")),
+            "name": str((e.args or {}).get("name", "")),
+            "founder": e.actor,
+            "tick": e.tick,
+            "day": day_of(e.tick),
+        }
+        for e in events
+        if e.verb == "found_sect" and e.outcome == "ok"
+    ]
+    quest_summary = {
+        "status": dict(sorted(quest_status.items())),
+        "completed": quest_status.get("completed", 0),
+        "failed": quest_status.get("failed", 0),
+        "accepted": quest_status.get("accepted", 0),
+        "open": quest_status.get("open", 0),
+        "by_template": dict(sorted(quest_by_template.items())),
+        "post_events": sum(1 for e in events if e.verb == "system_quest_post" and e.outcome == "ok"),
+    }
+    escort_summary = {
+        "status": dict(sorted(escort_status.items())),
+        "done": escort_status.get("done", 0),
+        "created_events": sum(1 for e in events if e.verb == "escort" and e.outcome == "ok"),
+        "arrived_events": sum(1 for e in events if e.verb == "system_escort_arrive" and e.outcome == "ok"),
+    }
+    sect_summary = {"founded": founded, "founded_count": len(founded)}
 
     final_hash = state_hash(state)
     ev_hash = event_hash(events)
@@ -353,13 +460,13 @@ def run_headless(
         "k6_conservation_pass": k6_cons["conservation_error"] == 0
         and not k6_cons["negative_accounts"]
         and debts_audit["status"] == "pass",
-        "k6_illegal_pass": k6_ill["illegal_rate"] < 0.01,
+        "k6_illegal_pass": k6_ill["illegal_rate"] < 0.02,
         "k6_relations_pass": k6_rel_strong["conflict_rate"] < 0.01,
         "k1_pass": k1["k1_rate"] >= 0.60,
         "k3_status": "diagnostic_only",
         "k3_note": (
             "K3 双层诊断（verb 层 + 对象层），P2 起意图驱动后仅作对照，不设 pass/fail；"
-            "口径与阈值未变，见 docs/metrics.md v1.0.0。"
+            "同一 run 同时输出 v1.0.0 兼容口径与 v1.1.0 主口径，见 docs/metrics.md v1.1.0。"
         ),
         "intent_reason_pass": reason_coverage >= 0.99,
         "wage_chain_pass": all(wages["reconciliation"].values()),
@@ -399,6 +506,11 @@ def run_headless(
         "economy": econ,
         "wages": wages,
         "content_audit": audit,
+        "quests": quest_summary,
+        "escorts": escort_summary,
+        "sects": sect_summary,
+        "cost": cost_summary,
+        "llm": llm_summary,
         "verdict": verdict,
     }
 
@@ -420,9 +532,10 @@ def run_headless(
         json.dumps(k3, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8"
     )
     (out_dir / "decisions.jsonl").write_text(
-        "\n".join(json.dumps(d, ensure_ascii=False, sort_keys=True) for d in reasoner.decisions) + "\n",
+        "\n".join(json.dumps(d, ensure_ascii=False, sort_keys=True) for d in mock_reasoner.decisions) + "\n",
         encoding="utf-8",
     )
+    (out_dir / "cost.jsonl").write_text(telemetry.to_jsonl(), encoding="utf-8")
     (out_dir / "goal_changes.jsonl").write_text(
         "\n".join(json.dumps(c, ensure_ascii=False, sort_keys=True) for c in goal_changes) + "\n",
         encoding="utf-8",

@@ -57,6 +57,12 @@ def goal_stats(
         one_shot = [r for r in rows if r["one_shot"] and r["monotonic"] and r["progressed"]]
         return {
             "k1_scope": "created_only",
+            "comparison_basis": {
+                "basis": "same_snapshot_only",
+                "content_hash": None,
+                "goals_total": total,
+                "cross_version_comparable": False,
+            },
             "goals_total": total,
             "goals_created": total,
             "goals_progressed": passed,
@@ -204,6 +210,12 @@ def goal_stats(
 
     return {
         "k1_scope": "all_content_goals",
+        "comparison_basis": {
+            "basis": "same_snapshot_only",
+            "content_hash": content.content_hash,
+            "goals_total": total,
+            "cross_version_comparable": False,
+        },
         "goals_total": total,
         "goals_created": created,
         "goals_progressed": passed,

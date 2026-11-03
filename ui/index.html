@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>世界审计器 · 最小可玩界面</title>
+<style>
+:root{
+  --bg:#f3f4f6; --panel:#ffffff; --ink:#20242a; --muted:#68707c;
+  --line:#dfe3e8; --line-strong:#c9ced6; --accent:#35536e; --accent-soft:#eef2f6;
+  --gold:#7a6039; --ok:#2f6b4e; --bad:#9b3a3a; --tag:#f0f2f5;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font:13px/1.55 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+}
+h1,h2,h3,h4{margin:0;font-weight:600}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent);text-decoration:none}
+.hidden{display:none !important}
+.mono{font-family:"SF Mono",Menlo,Consolas,monospace}
+
+/* 顶栏 */
+.topbar{background:#20242a;color:#f7f8fa;border-bottom:1px solid #15181c}
+.topbar-inner{max-width:1440px;margin:0 auto;padding:14px 20px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.brand h1{font-size:19px;letter-spacing:.5px}
+.brand .sub{font-size:12px;color:#b9c0c8}
+.brand .tag{border:1px solid #4b525b;color:#d8dde3;padding:1px 8px;border-radius:3px;font-size:11px}
+.run-meta{text-align:right;font-size:11.5px;color:#b9c0c8;line-height:1.7}
+.run-meta .hash{color:#e6e9ed;font-family:"SF Mono",Menlo,Consolas,monospace}
+.pill{display:inline-block;border:1px solid #4b525b;border-radius:3px;padding:0 7px;margin-left:6px;color:#dfe4ea}
+.pill.ok{border-color:#3f6b55;color:#a9d0bc}
+.pill.bad{border-color:#7a4141;color:#e1aaaa}
+
+/* 主栅格 */
+.layout{max-width:1440px;margin:0 auto;padding:16px 20px 48px;display:grid;grid-template-columns:344px minmax(0,1fr);gap:16px;align-items:start}
+.sidebar{position:sticky;top:16px;display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 32px);overflow:auto;padding-right:2px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:4px}
+.panel-head{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--line)}
+.panel-head h2{font-size:13px;letter-spacing:.4px}
+.count{color:var(--muted);font-size:11.5px}
+
+.clock{padding:12px 14px}
+.clock .label{font-size:11px;color:var(--muted);letter-spacing:1px}
+.clock .value{font-size:20px;font-weight:600;letter-spacing:.4px;margin:2px 0 2px}
+.clock .sub{font-size:11.5px;color:var(--muted)}
+
+.loc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px}
+.loc{border:1px solid var(--line);border-radius:3px;padding:8px 9px;background:#fbfbfc}
+.loc .name{font-weight:600;font-size:12.5px;display:flex;justify-content:space-between;gap:6px}
+.loc .num{font-weight:400;color:var(--muted);font-size:11px;white-space:nowrap}
+.loc .exits{color:var(--muted);font-size:10.5px;margin-top:3px;line-height:1.45}
+
+.searchbox{padding:10px 10px 6px}
+.searchbox input{width:100%;border:1px solid var(--line-strong);border-radius:3px;padding:6px 8px;background:#fff;outline:none}
+.searchbox input:focus{border-color:var(--accent)}
+.npc-list{padding:2px 8px 10px;max-height:44vh;overflow:auto}
+.npc-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 8px;padding:7px 6px;border-bottom:1px solid #eef0f2;cursor:pointer;border-radius:3px}
+.npc-item:last-child{border-bottom:0}
+.npc-item:hover{background:var(--accent-soft)}
+.npc-item.selected{background:#e6edf4;border-left:3px solid var(--accent);padding-left:3px}
+.npc-item .n{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.npc-item .r{color:var(--muted);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.npc-item .goal{grid-column:1 / -1;color:var(--muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini-bar{height:3px;background:#e8eaee;border-radius:2px;overflow:hidden;margin-top:2px}
+.mini-bar > span{display:block;height:100%;background:var(--accent);width:0}
+
+/* 内容区 */
+.content{min-width:0}
+.tabs{display:flex;gap:4px;margin-bottom:10px}
+.tab{border:1px solid var(--line);background:var(--panel);border-radius:3px 3px 0 0;padding:8px 14px;cursor:pointer;color:var(--muted)}
+.tab.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.notice{background:#fbf8ef;border:1px solid #e7dcc2;color:#5f5336;border-radius:3px;padding:8px 11px;margin-bottom:12px;font-size:11.8px;line-height:1.6}
+.tab-panel{background:var(--panel);border:1px solid var(--line);border-radius:0 4px 4px 4px;padding:14px}
+.section{border:1px solid var(--line);border-radius:4px;padding:12px 13px;background:#fff}
+.section h3{font-size:12.5px;letter-spacing:.4px;margin-bottom:9px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.section h3 .hint{font-weight:400;font-size:11px;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.stat-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.stat{border:1px solid var(--line);border-radius:4px;padding:11px 13px;background:#fbfbfc}
+.stat .k{font-size:11px;color:var(--muted)}
+.stat .v{font-size:22px;font-weight:600;margin-top:2px}
+.stat .s{font-size:11px;color:var(--muted);margin-top:1px}
+
+/* 详情 */
+.detail-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding-bottom:12px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.detail-head .who h2{font-size:22px;letter-spacing:.5px}
+.detail-head .who .meta{color:var(--muted);font-size:12px;margin-top:3px}
+.detail-head .facts{display:flex;gap:18px;text-align:right;flex-wrap:wrap;justify-content:flex-end}
+.detail-head .fact .k{font-size:10.5px;color:var(--muted)}
+.detail-head .fact .v{font-size:15px;font-weight:600}
+.badge{display:inline-block;border:1px solid var(--line-strong);border-radius:10px;padding:1px 8px;font-size:10.5px;color:var(--muted);background:#fafbfc}
+.badge.ok{border-color:#b9d3c4;color:var(--ok);background:#f3f8f5}
+.badge.bad{border-color:#d9bcbc;color:var(--bad);background:#fbf4f4}
+.badge.lod{border-color:#c9d3de;color:var(--accent);background:#f2f6fa}
+.badge.gold{border-color:#dfd1b6;color:var(--gold);background:#fbf8f0}
+
+.goal{padding:8px 0;border-bottom:1px dashed #eceef1}
+.goal:last-child{border-bottom:0;padding-bottom:0}
+.goal-top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.goal-top .t{font-weight:600}
+.goal-top .p{font-size:11.5px;color:var(--muted);white-space:nowrap}
+.bar{height:8px;background:#e9ecef;border-radius:4px;overflow:hidden;margin-top:5px}
+.bar > span{display:block;height:100%;background:var(--accent)}
+.bar.done > span{background:var(--ok)}
+.goal-sub{font-size:11px;color:var(--muted);margin-top:4px}
+
+table{width:100%;border-collapse:collapse}
+.table-wrap{overflow-x:auto}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #eef0f2;vertical-align:top;font-size:11.8px}
+th{color:var(--muted);font-weight:500;background:#fafbfc;white-space:nowrap;font-size:11px}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;white-space:nowrap}
+.plus{color:var(--ok);font-weight:600}
+.minus{color:var(--bad);font-weight:600}
+.zero{color:var(--muted)}
+.ellip{max-width:430px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.muted{color:var(--muted)}
+.small{font-size:11px}
+.empty{color:var(--muted);padding:10px 0;font-size:12px}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;font-size:11.8px}
+.kv .k{color:var(--muted);white-space:nowrap}
+.quote{border-left:3px solid #d8c9a8;padding:3px 0 3px 10px;margin:6px 0;color:#4c4434;font-size:12.5px;background:#fdfbf6}
+.persona pre{white-space:pre-wrap;word-break:break-word;background:#fafbfc;border:1px solid #eceef1;border-radius:3px;padding:9px;font-size:11.5px;line-height:1.65;color:#3c424a;max-height:320px;overflow:auto}
+.schedule{list-style:none;margin:0;padding:0;max-height:300px;overflow:auto}
+.schedule li{display:grid;grid-template-columns:76px 78px minmax(0,1fr);gap:8px;padding:5px 0;border-bottom:1px dashed #eff1f3;font-size:11.5px}
+.schedule li:last-child{border-bottom:0}
+.schedule .time{color:var(--muted);white-space:nowrap}
+.schedule .verb{font-weight:600;white-space:nowrap}
+.schedule .why{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* 对话 */
+.proposal-note{background:#f2f6fa;border:1px solid #ccd9e5;color:#324a61;border-radius:3px;padding:7px 9px;font-size:11.5px;margin-bottom:9px}
+.dialogue-form{display:flex;gap:8px;margin:6px 0 10px}
+.dialogue-form input{flex:1;min-width:0;border:1px solid var(--line-strong);border-radius:3px;padding:8px 10px;outline:none}
+.dialogue-form input:focus{border-color:var(--accent)}
+.btn{border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:3px;padding:8px 14px;cursor:pointer;white-space:nowrap}
+.btn:disabled{opacity:.55;cursor:default}
+.btn.ghost{background:#fff;color:var(--accent)}
+.dialogue-result{border:1px solid var(--line);border-radius:4px;background:#fbfbfc;padding:11px;margin-top:8px}
+.result-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.reply{white-space:pre-wrap;background:#fff;border:1px solid #e5e8ec;border-left:3px solid var(--accent);border-radius:3px;padding:9px 11px;margin:7px 0;font-size:12.5px;line-height:1.7}
+.audit{margin-top:8px}
+details summary{cursor:pointer;color:var(--muted);font-size:11.5px}
+pre.code{white-space:pre-wrap;word-break:break-all;background:#f7f8fa;border:1px solid #e8eaee;border-radius:3px;padding:8px;font-size:11px;max-height:260px;overflow:auto}
+
+/* 时间轴 */
+.timeline-controls{display:grid;grid-template-columns:110px 200px 190px auto;gap:8px;align-items:end;margin-bottom:10px}
+.field{display:flex;flex-direction:column;gap:3px}
+.field label{font-size:10.5px;color:var(--muted);letter-spacing:.4px}
+.field select,.field input{border:1px solid var(--line-strong);border-radius:3px;padding:6px 8px;background:#fff;outline:none}
+.timeline-summary{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:11.5px;margin-bottom:8px}
+.timeline-table td{font-size:11.5px}
+.verb-badge{display:inline-block;border-radius:2px;padding:0 5px;border:1px solid #d8dde3;background:#f6f7f9;white-space:nowrap;font-size:10.8px}
+.out-ok{color:var(--ok)}
+.out-rejected{color:var(--bad);font-weight:600}
+
+/* 错误页 */
+.error-box{max-width:900px;margin:28px auto;background:#fff;border:1px solid #d9bcbc;border-left:4px solid var(--bad);border-radius:4px;padding:20px 22px}
+.error-box h2{color:var(--bad);font-size:16px}
+.error-box p{color:var(--muted);font-size:12.5px;margin:8px 0}
+.error-box .path{background:#faf5f5;border:1px solid #eadcdc;border-radius:3px;padding:7px 9px;font-family:"SF Mono",Menlo,Consolas,monospace;font-size:11.5px;word-break:break-all}
+.error-box .actions{margin-top:14px}
+
+@media (max-width:1120px){
+  .layout{grid-template-columns:300px minmax(0,1fr);padding:14px}
+  .loc-grid{grid-template-columns:1fr}
+  .stat-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .timeline-controls{grid-template-columns:1fr 1fr;align-items:stretch}
+}
+@media (max-width:860px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{position:static;max-height:none}
+  .npc-list{max-height:300px}
+  .grid2{grid-template-columns:1fr}
+  .topbar-inner{align-items:flex-start;flex-direction:column}
+  .run-meta{text-align:left}
+  .ellip{max-width:240px}
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <h1>世界审计器</h1>
+      <span class="sub">最小可玩界面 · Python 标准库 · 无 CDN</span>
+      <span class="tag">离线 run 快照</span>
+    </div>
+    <div class="run-meta" id="runMeta">正在读取 run…</div>
+  </div>
+</header>
+
+<div id="errorBox" class="error-box hidden">
+  <h2>run 目录不可用</h2>
+  <p id="errorMsg"></p>
+  <div class="path" id="errorPath"></div>
+  <p id="errorHint" class="small"></p>
+  <div class="actions"><button class="btn ghost" onclick="boot()">重新尝试</button></div>
+</div>
+
+<main id="app" class="layout hidden">
+  <aside class="sidebar">
+    <section class="panel clock">
+      <div class="label">虚拟时间</div>
+      <div class="value" id="clockValue">—</div>
+      <div class="sub" id="clockSub">—</div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>地点</h2><span class="count" id="locCount">—</span></div>
+      <div class="loc-grid" id="locGrid"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>NPC</h2><span class="count" id="npcCount">—</span></div>
+      <div class="searchbox"><input id="npcSearch" placeholder="搜索姓名 / 职业 / 地点" autocomplete="off"></div>
+      <div class="npc-list" id="npcList"></div>
+    </section>
+  </aside>
+
+  <section class="content">
+    <div class="tabs">
+      <button class="tab active" data-tab="overview" onclick="setTab('overview')">世界总览</button>
+      <button class="tab" data-tab="detail" onclick="setTab('detail')">NPC 详情</button>
+      <button class="tab" data-tab="timeline" onclick="setTab('timeline')">事件时间轴</button>
+    </div>
+
+    <div class="notice" id="globalNotice">正在加载…</div>
+
+    <div id="panelOverview" class="tab-panel">
+      <div class="stat-row" id="statRow"></div>
+      <div class="grid2">
+        <div class="section">
+          <h3>地点一览 <span class="hint">只读快照</span></h3>
+          <div class="table-wrap"><table id="locTable"></table></div>
+        </div>
+        <div class="section">
+          <h3>LOD 档位分布 <span class="hint">调度层摘要</span></h3>
+          <div class="table-wrap"><table id="lodTable"></table></div>
+        </div>
+      </div>
+      <div class="section" style="margin-top:12px">
+        <h3>数据来源与校验</h3>
+        <div class="kv" id="sourceKv"></div>
+      </div>
+    </div>
+
+    <div id="panelDetail" class="tab-panel hidden">
+      <div id="detailBody" class="empty">从左侧 NPC 列表选择一个人，查看目标、关系、事件与人设卡。</div>
+    </div>
+
+    <div id="panelTimeline" class="tab-panel hidden">
+      <div class="timeline-controls">
+        <div class="field"><label for="daySelect">日期</label><select id="daySelect"></select></div>
+        <div class="field"><label for="npcFilter">NPC</label><select id="npcFilter"></select></div>
+        <div class="field"><label for="locFilter">地点</label><select id="locFilter"></select></div>
+        <div class="field"><label>&nbsp;</label><button class="btn ghost" onclick="loadTimeline()">加载时间轴</button></div>
+      </div>
+      <div class="timeline-summary" id="timelineSummary"></div>
+      <div class="table-wrap"><table class="timeline-table" id="timelineTable"></table></div>
+    </div>
+  </section>
+</main>
+
+<script>
+let OVERVIEW = null;
+let CURRENT_NPC = null;
+let TIMELINE_READY = false;
+
+const VERB_EXTRA = {
+  talk: "发言（提案）", system_goal:"系统·目标", system_living:"系统·生活",
+  system_recover:"系统·恢复", system_quest_post:"系统·发任务",
+  system_quest_fail:"系统·任务失败", system_debts:"系统·债务",
+  system_escort_arrive:"系统·镖到", system_savings_tax:"系统·利息税",
+  system_shop_dividend:"系统·分红", system_shop_tax:"系统·营业税"
+};
+
+function esc(v){
+  return String(v === null || v === undefined ? "" : v)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+function money(v){
+  const n = Number(v || 0);
+  if (!n) return '<span class="zero">—</span>';
+  const cls = n > 0 ? "plus" : "minus";
+  return '<span class="'+cls+'">'+(n>0?"+":"")+n+' 文</span>';
+}
+function badge(text, cls){
+  return '<span class="badge '+(cls||"")+'">'+esc(text)+'</span>';
+}
+function lodBadge(tier){
+  const map={spotlight:"聚光",active:"活跃",background:"背景",silent:"静默"};
+  return badge((map[tier]||tier)+" · "+tier,"lod");
+}
+function verbName(v){
+  return VERB_EXTRA[v] || v;
+}
+async function api(path, opts){
+  let res;
+  try{
+    res = await fetch(path, opts);
+  }catch(err){
+    throw {error:"无法连接服务端："+err.message, hint:"请确认 ui/server.py 仍在运行。"};
+  }
+  let data;
+  try{ data = await res.json(); }
+  catch(err){ throw {error:"服务端返回了非 JSON 内容（HTTP "+res.status+"）"}; }
+  if(!res.ok) throw data;
+  return data;
+}
+function showError(err){
+  const box = document.getElementById("errorBox");
+  document.getElementById("app").classList.add("hidden");
+  box.classList.remove("hidden");
+  document.getElementById("errorMsg").textContent = err.error || "未知错误";
+  document.getElementById("errorPath").textContent = err.run || "";
+  document.getElementById("errorHint").textContent = err.hint || "请检查 --run 参数。";
+}
+function setTab(name){
+  document.querySelectorAll(".tab").forEach(b=>{
+    b.classList.toggle("active", b.dataset.tab === name);
+  });
+  ["overview","detail","timeline"].forEach(k=>{
+    document.getElementById("panel"+k.charAt(0).toUpperCase()+k.slice(1)).classList.toggle("hidden", k!==name);
+  });
+  if(name==="timeline" && !TIMELINE_READY) loadTimeline();
+}
+
+/* ------------------------------------------------------------------ boot */
+async function boot(){
+  document.getElementById("errorBox").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
+  document.getElementById("globalNotice").textContent = "正在读取离线 run 快照…";
+  try{
+    OVERVIEW = await api("/api/overview");
+    renderMeta();
+    renderOverview();
+    renderNpcList();
+    renderFilters();
+    document.getElementById("globalNotice").textContent = OVERVIEW.notice;
+    document.getElementById("app").classList.remove("hidden");
+  }catch(err){
+    showError(err);
+  }
+}
+
+function renderMeta(){
+  const r = OVERVIEW.run;
+  const hashOk = r.state_hash_match
+    ? '<span class="pill ok">哈希校验通过</span>'
+    : '<span class="pill bad">哈希不一致</span>';
+  document.getElementById("runMeta").innerHTML =
+    esc(r.run_id)+' · seed '+esc(r.seed)+' · '+esc(r.days)+' 天 · '+esc(r.npc_count)+' NPC'+hashOk+
+    '<br><span class="hash">'+esc((r.state_hash_recomputed||"").slice(0,16))+'…</span>'+
+    '<br>'+esc(r.path);
+  document.getElementById("clockValue").textContent = OVERVIEW.clock.day;
+  document.getElementById("clockSub").textContent =
+    "tick "+OVERVIEW.clock.tick+" · 共 "+OVERVIEW.clock.final_day+" 天 · 1 tick = 10 分钟";
+  document.getElementById("locCount").textContent = OVERVIEW.locations.length+" 处";
+  document.getElementById("npcCount").textContent = OVERVIEW.npcs.length+" 人";
+}
+
+function renderOverview(){
+  const c = OVERVIEW.counts;
+  const tiers = OVERVIEW.lod_by_tier || {};
+  const tierText = Object.keys(tiers).sort().map(k=>k+" "+tiers[k]).join(" · ") || "—";
+  document.getElementById("statRow").innerHTML = [
+    ['NPC', c.npcs+' 人', '来自只读快照'],
+    ['地点', c.locations+' 处', '含内容包扩展地点'],
+    ['事件', c.events.toLocaleString(), '回放自 events.jsonl'],
+    ['模拟跨度', c.days+' 天', '离线 run 快照']
+  ].map(([k,v,s])=>'<div class="stat"><div class="k">'+esc(k)+'</div><div class="v">'+esc(v)+
+      '</div><div class="s">'+esc(s)+'</div></div>').join("");
+
+  document.getElementById("locTable").innerHTML =
+    '<thead><tr><th>地点</th><th class="num">NPC</th><th class="num">商铺</th><th>出口</th></tr></thead><tbody>'+
+    OVERVIEW.locations.map(l=>{
+      return '<tr><td><strong>'+esc(l.name)+'</strong><span class="muted small"> · '+esc(l.id)+'</span></td>'+
+        '<td class="num">'+l.npc_count+'</td><td class="num">'+l.business_count+'</td>'+
+        '<td class="muted">'+esc(l.exits.join(" / "))+'</td></tr>';
+    }).join("")+'</tbody>';
+
+  const order = ["spotlight","active","background","silent"];
+  const total = Object.values(tiers).reduce((a,b)=>a+Number(b||0),0);
+  document.getElementById("lodTable").innerHTML =
+    '<thead><tr><th>档位</th><th class="num">NPC 数</th><th class="num">占比</th></tr></thead><tbody>'+
+    order.map(t=>{
+      const n = Number(tiers[t]||0);
+      const pct = total ? (n/total*100).toFixed(1)+"%" : "—";
+      return '<tr><td>'+lodBadge(t)+'</td><td class="num">'+n+'</td><td class="num">'+pct+'</td></tr>';
+    }).join("")+
+    '<tr><td colspan="3" class="muted small">'+esc(tierText)+'</td></tr></tbody>';
+
+  const r = OVERVIEW.run;
+  document.getElementById("sourceKv").innerHTML =
+    '<div class="k">run 目录</div><div>'+esc(r.path)+'</div>'+
+    '<div class="k">数据口径</div><div>events.jsonl 事件回放 + MCPGateway 只读快照；不读 SQLite，不写世界</div>'+
+    '<div class="k">重建哈希</div><div class="mono">'+esc(r.state_hash_recomputed||"—")+'</div>'+
+    '<div class="k">原始哈希</div><div class="mono">'+esc((r.hashes||{}).state_final||"—")+'</div>'+
+    '<div class="k">校验结果</div><div>'+(r.state_hash_match?'<span class="plus">一致</span>':'<span class="minus">不一致</span>')+
+      ' <span class="muted small">（不一致时界面仍可只读浏览，但请先核对 run）</span></div>';
+}
+
+function renderNpcList(){
+  const q = (document.getElementById("npcSearch").value||"").trim().toLowerCase();
+  const list = OVERVIEW.npcs.filter(n=>{
+    if(!q) return true;
+    return [n.name,n.role,n.location_name,n.id].some(v=>String(v||"").toLowerCase().includes(q));
+  });
+  document.getElementById("npcList").innerHTML = list.length ? list.map(n=>{
+    const g = n.goal;
+    const pct = g ? g.progress_pct : 0;
+    const goalText = g ? (g.label+" · "+pct+"% · "+g.status) : "无进行中目标";
+    return '<div class="npc-item'+(n.id===CURRENT_NPC?" selected":"")+'" onclick="openNpc(\''+esc(n.id)+'\')">'+
+      '<div class="n">'+esc(n.name)+'</div>'+
+      '<div class="r">'+esc(n.role)+' · '+esc(n.location_name)+'</div>'+
+      '<div class="goal">'+esc(goalText)+'</div>'+
+      '<div class="mini-bar" style="grid-column:1 / -1"><span style="width:'+Math.min(100,pct)+'%"></span></div>'+
+      '</div>';
+  }).join("") : '<div class="empty">没有匹配的 NPC。</div>';
+}
+
+document.getElementById("npcSearch").addEventListener("input", renderNpcList);
+
+/* ------------------------------------------------------------------ NPC 详情 */
+async function openNpc(id){
+  CURRENT_NPC = id;
+  renderNpcList();
+  setTab("detail");
+  document.getElementById("detailBody").innerHTML = '<div class="empty">正在读取 '+esc(id)+' 的快照…</div>';
+  try{
+    const d = await api("/api/npc/"+encodeURIComponent(id));
+    renderDetail(d);
+  }catch(err){
+    document.getElementById("detailBody").innerHTML =
+      '<div class="empty">读取失败：'+esc(err.error||"未知错误")+'<br>'+esc(err.hint||"")+'</div>';
+  }
+}
+
+function renderDetail(d){
+  const n = d.npc;
+  const p = d.persona || {};
+  const lod = d.lod || {};
+  const last = d.last_plan;
+  const goals = d.goals || [];
+  const relations = d.relations || [];
+  const debts = d.debts || [];
+  const today = d.today_schedule || [];
+  const recent = d.recent_events || [];
+  const voice = (p.voice_lines||[]);
+
+  const head = '<div class="detail-head">'+
+    '<div class="who"><h2>'+esc(n.name)+'</h2>'+
+      '<div class="meta">'+esc(n.role)+' · 所在 '+esc(n.location_name)+' · 家 '+esc(n.home_name||"—")+
+      ' · '+(n.status==="alive"?'<span class="plus">在世</span>':'<span class="badge bad">'+esc(n.status)+'</span>')+'</div>'+
+      '<div class="meta">'+esc(n.faction_name||"无组织")+' · '+(n.business_name?'受雇于 '+esc(n.business_name):'无雇主')+
+      (n.spouse_name?' · 配偶 '+esc(n.spouse_name):'')+(n.master_name?' · 师父 '+esc(n.master_name):'')+'</div></div>'+
+    '<div class="facts">'+
+      '<div class="fact"><div class="k">现钱</div><div class="v">'+Number(n.cash||0).toLocaleString()+' 文</div></div>'+
+      '<div class="fact"><div class="k">体力</div><div class="v">'+esc(n.stamina)+' / '+esc(n.max_stamina)+'</div></div>'+
+      '<div class="fact"><div class="k">LOD</div><div class="v">'+lodBadge(lod.tier||"未记录")+'</div></div>'+
+    '</div></div>';
+
+  const goalHtml = goals.length ? goals.map(g=>{
+    const pct = Math.min(100, Number(g.progress_pct||0));
+    const done = g.status==="completed";
+    return '<div class="goal"><div class="goal-top"><span class="t">'+esc(g.label)+'</span>'+
+      '<span class="p">'+pct+'% · '+esc(g.status)+'</span></div>'+
+      '<div class="bar'+(done?" done":"")+'"><span style="width:'+pct+'%"></span></div>'+
+      '<div class="goal-sub">目标 '+esc(g.id)+' · 类型 '+esc(g.content_type||g.kind)+' · 创建于 tick '+esc(g.created_tick)+'</div></div>';
+  }).join("") : '<div class="empty">没有目标记录。</div>';
+
+  const relHtml = relations.length ? '<div class="table-wrap"><table><thead><tr><th>方向</th><th>对象</th><th>类型</th><th class="num">好感</th><th class="num">信任</th><th class="num">关系债</th></tr></thead><tbody>'+
+    relations.map(r=>'<tr><td class="muted">'+esc(r.direction)+'</td>'+
+      '<td><a href="#" onclick="openNpc(\''+esc(r.target)+'\');return false;">'+esc(r.target_name)+'</a>'+
+      '<span class="muted small"> '+esc(r.target)+'</span></td>'+
+      '<td>'+esc(r.kind)+'</td><td class="num">'+esc(r.affection)+'</td><td class="num">'+esc(r.trust)+'</td>'+
+      '<td class="num">'+esc(r.debt||0)+'</td></tr>').join("")+'</tbody></table></div>' : '<div class="empty">暂无关系记录。</div>';
+
+  const debtHtml = debts.length ? '<div class="table-wrap"><table><thead><tr><th>身份</th><th>对方</th><th class="num">金额</th><th>状态</th><th>备注</th></tr></thead><tbody>'+
+    debts.map(x=>'<tr><td>'+esc(x.role)+'</td><td><a href="#" onclick="openNpc(\''+esc(x.counterparty)+'\');return false;">'+esc(x.counterparty_name)+'</a></td>'+
+      '<td class="num">'+Number(x.amount||0).toLocaleString()+' 文</td>'+
+      '<td>'+(x.status==="active"?'<span class="badge gold">未结清</span>':'<span class="badge ok">已结清</span>')+
+      (x.long_term?'<span class="badge">长期</span>':'')+'</td>'+
+      '<td class="muted">'+esc(x.note||"—")+'</td></tr>').join("")+'</tbody></table></div>' : '<div class="empty">没有债务记录。</div>';
+
+  const voiceHtml = voice.length ? voice.map(v=>'<div class="quote">「'+esc(v)+'」</div>').join("") : '<div class="empty">人设卡没有台词行。</div>';
+  const personaHtml = '<div class="persona">'+voiceHtml+
+    (p.raw?'<details style="margin-top:8px"><summary>展开人设卡全文（'+esc(p.path)+'）</summary><pre>'+esc(p.raw)+'</pre></details>':'')+'</div>';
+
+  const scheduleHtml = today.length ? '<ul class="schedule">'+today.map(e=>
+      '<li><span class="time">'+esc(e.time.replace("第 "+d.clock.final_day+" 天 ",""))+'</span>'+
+      '<span class="verb">'+esc(e.verb_label)+'</span>'+
+      '<span class="why" title="'+esc(e.reason)+'">'+esc(e.reason||"—")+'</span></li>').join("")+'</ul>'
+    : '<div class="empty">当天没有该 NPC 的事件记录（可能处于 silent 档，未唤醒）。</div>';
+  const planHtml = last ? '<div class="small muted" style="margin-top:8px">最近计划：tick '+esc(last.tick)+' · 档位 '+esc(last.tier)+
+      ' · 目标 '+esc(last.goal)+'<br>动作：'+esc((last.actions||[]).join(" → "))+'</div>' : "";
+
+  const recentHtml = recent.length ? '<div class="table-wrap"><table><thead><tr><th>时间</th><th>动作</th><th class="num">金额</th><th>结果</th><th>动机</th></tr></thead><tbody>'+
+    recent.map(e=>'<tr><td class="muted">'+esc(e.time)+'</td><td>'+esc(e.verb_label)+'</td><td class="num">'+money(e.money_delta)+
+      '</td><td class="'+(e.outcome==="ok"?"out-ok":"out-rejected")+'">'+esc(e.outcome)+'</td>'+
+      '<td class="ellip" title="'+esc(e.reason)+'">'+esc(e.reason||"—")+'</td></tr>').join("")+'</tbody></table></div>' : '<div class="empty">没有事件。</div>';
+
+  const lodChanges = (lod.changes||[]).length ? '<div class="small muted" style="margin-top:6px">最近档位变化：'+
+    (lod.changes||[]).map(c=>'D'+c.day+' '+esc(c.from)+'→'+esc(c.to)+'（'+esc(c.reason||"")+'）').join("；")+'</div>' : "";
+
+  document.getElementById("detailBody").innerHTML = head+
+    '<div class="stack">'+
+      '<div class="grid2">'+
+        '<div class="section"><h3>目标与进度 <span class="hint">content goals + 紧急目标</span></h3>'+goalHtml+'</div>'+
+        '<div class="section"><h3>LOD 当前档位 <span class="hint">来自 lod.json</span></h3>'+
+          '<div class="kv"><div class="k">档位</div><div>'+lodBadge(lod.tier||"未记录")+'</div>'+
+          '<div class="k">唤醒次数</div><div>'+esc(lod.wakes)+' 次</div>'+
+          '<div class="k">唤醒间隔</div><div>'+esc(lod.interval)+' ticks</div>'+
+          '<div class="k">成本权重</div><div>'+esc(lod.cost_weight)+'</div></div>'+lodChanges+
+        '</div>'+
+      '</div>'+
+      '<div class="grid2">'+
+        '<div class="section"><h3>关系 <span class="hint">有向关系</span></h3>'+relHtml+'</div>'+
+        '<div class="section"><h3>债务 <span class="hint">state.debts</span></h3>'+debtHtml+'</div>'+
+      '</div>'+
+      '<div class="section"><h3>人设卡台词 <span class="hint">'+esc(p.path)+' · 它说话的样子</span></h3>'+personaHtml+'</div>'+
+      '<div class="grid2">'+
+        '<div class="section"><h3>当天日程 <span class="hint">'+esc(d.today_label)+' · 事件回放</span></h3>'+scheduleHtml+planHtml+'</div>'+
+        '<div class="section"><h3>最近 10 条事件 <span class="hint">按 seq 倒序</span></h3>'+recentHtml+'</div>'+
+      '</div>'+
+      '<div class="section" id="dialogueSection"><h3>对话 <span class="hint">MockReasoner 回应 · 提案不落地</span></h3>'+
+        '<div class="proposal-note"><strong>这是提案，不是直接改世界。</strong> 消息会经 MCPGateway 的 <code>world.propose_intent</code> 进入 outbox，等待 Writer；本版不接真实模型。</div>'+
+        '<form class="dialogue-form" onsubmit="submitDialogue(event, \''+esc(n.id)+'\')">'+
+          '<input id="dialogueInput" maxlength="200" placeholder="对'+esc(n.name)+'说一句话…" autocomplete="off">'+
+          '<button class="btn" id="dialogueBtn" type="submit">提交提案</button>'+
+        '</form>'+
+        '<div id="dialogueResult"></div>'+
+      '</div>'+
+    '</div>';
+}
+
+/* ------------------------------------------------------------------ 对话 */
+async function submitDialogue(ev, npcId){
+  ev.preventDefault();
+  const input = document.getElementById("dialogueInput");
+  const btn = document.getElementById("dialogueBtn");
+  const box = document.getElementById("dialogueResult");
+  const message = (input.value||"").trim();
+  if(!message){ box.innerHTML = '<div class="empty">先说一句话再提交。</div>'; return; }
+  btn.disabled = true; btn.textContent = "提交中…";
+  box.innerHTML = '<div class="empty">正在走 propose_intent…</div>';
+  try{
+    const d = await api("/api/dialogue", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({npc:npcId, message:message})
+    });
+    renderDialogue(d);
+    input.value = "";
+  }catch(err){
+    box.innerHTML = '<div class="dialogue-result"><div class="result-line"><span class="badge bad">请求失败</span>'+
+      '<span>'+esc(err.error||"未知错误")+'</span></div><div class="small muted">'+esc(err.hint||"")+'</div></div>';
+  }finally{
+    btn.disabled = false; btn.textContent = "提交提案";
+  }
+}
+
+function renderDialogue(d){
+  const p = d.proposal || {};
+  const a = d.audit || {};
+  const mr = d.mock_reasoner || {};
+  const statusBadge = p.ok
+    ? '<span class="badge ok">已提交意图</span>'
+    : '<span class="badge bad">被拒</span>';
+  const proposalDetail = p.ok
+    ? '<span class="small">intent_id <span class="mono">'+esc(p.intent_id)+'</span> · tick '+esc(p.tick)+
+      ' · <span class="plus">state_unchanged=true</span></span>'
+    : '<span class="small minus">'+esc(p.error||"未知原因")+'</span>';
+  const wouldDo = (mr.would_do||[]).map(x=>esc(x.verb)+"("+esc(JSON.stringify(x.args||{}))+")").join(" · ") || "无动作";
+  const auditHtml =
+    '<div class="table-wrap"><table><thead><tr><th class="num">seq</th><th class="num">tick</th><th>调用者</th><th>权限</th><th>方法</th><th>结果</th><th>错误</th><th>参数摘要</th></tr></thead><tbody>'+
+    '<tr><td class="num">'+esc(a.seq)+'</td><td class="num">'+esc(a.tick)+'</td><td>'+esc(a.caller)+'</td>'+
+    '<td>'+esc(a.permission)+'</td><td>'+esc(a.method)+'</td><td class="'+(a.ok?"out-ok":"out-rejected")+'">'+esc(a.ok)+'</td>'+
+    '<td class="mono small">'+esc(a.error||"—")+'</td><td class="mono small">'+esc((a.params_digest||"").slice(0,18))+'…</td></tr>'+
+    '</tbody></table></div>';
+
+  document.getElementById("dialogueResult").innerHTML =
+    '<div class="dialogue-result">'+
+      '<div class="notice" style="margin:0 0 9px">这是提案，不是直接改世界。</div>'+
+      '<div class="result-line">'+statusBadge+proposalDetail+'</div>'+
+      '<div class="reply">'+esc(d.reply)+'</div>'+
+      '<div class="small muted">你的话：'+esc(d.message)+'</div>'+
+      '<div class="small muted" style="margin-top:5px">回应来源：'+esc(mr.kind)+' · 虚拟 tick '+esc(mr.virtual_tick)+
+        ' · 推理耗时 '+esc(mr.reasoning_ms)+' ms（要求 &lt; 1 秒）<br>本轮打算：'+wouldDo+'</div>'+
+      '<div class="audit"><h4 class="small" style="margin:9px 0 5px">审计条目（MCP gateway）</h4>'+auditHtml+'</div>'+
+      '<details style="margin-top:7px"><summary>查看完整审计 JSON</summary><pre class="code">'+esc(JSON.stringify(a,null,2))+'</pre></details>'+
+    '</div>';
+}
+
+/* ------------------------------------------------------------------ 时间轴 */
+function renderFilters(){
+  const daySel = document.getElementById("daySelect");
+  daySel.innerHTML = OVERVIEW.clock.final_day ? Array.from({length:OVERVIEW.clock.final_day},(_,i)=>{
+    const d = OVERVIEW.clock.final_day - i;
+    return '<option value="'+d+'"'+(i===0?" selected":"")+'>第 '+d+' 天</option>';
+  }).join("") : "";
+  const npcSel = document.getElementById("npcFilter");
+  npcSel.innerHTML = '<option value="">全部 NPC</option>'+OVERVIEW.npcs.map(n=>
+    '<option value="'+esc(n.id)+'">'+esc(n.name)+' · '+esc(n.role)+'</option>').join("");
+  const locSel = document.getElementById("locFilter");
+  locSel.innerHTML = '<option value="">全部地点</option>'+OVERVIEW.locations.map(l=>
+    '<option value="'+esc(l.id)+'">'+esc(l.name)+'</option>').join("");
+}
+
+async function loadTimeline(){
+  if(!OVERVIEW) return;
+  TIMELINE_READY = true;
+  const day = document.getElementById("daySelect").value;
+  const npc = document.getElementById("npcFilter").value;
+  const loc = document.getElementById("locFilter").value;
+  const summary = document.getElementById("timelineSummary");
+  const table = document.getElementById("timelineTable");
+  summary.textContent = "正在读取事件日志…";
+  table.innerHTML = "";
+  const qs = new URLSearchParams({day:day, limit:"500"});
+  if(npc) qs.set("npc",npc);
+  if(loc) qs.set("location",loc);
+  try{
+    const d = await api("/api/timeline?"+qs.toString());
+    summary.innerHTML = '第 '+esc(d.day)+' 天 · 共 <strong>'+esc(d.total)+'</strong> 条事件 · 显示 '+esc(d.returned)+' 条'+
+      (d.truncated?' <span class="badge">已截断，最多 500 条</span>':'')+
+      '<span>'+esc(d.filters.npc?("NPC="+d.filters.npc+" "):"")+esc(d.filters.location?("地点="+d.filters.location):"")+'</span>';
+    table.innerHTML =
+      '<thead><tr><th class="num">seq</th><th>时间</th><th>NPC</th><th>动作</th><th>地点</th><th class="num">金额变化</th><th>结果</th><th>动机</th></tr></thead><tbody>'+
+      (d.events.length ? d.events.map(e=>{
+        const locText = e.location + (e.dest ? " → "+e.dest : "");
+        return '<tr><td class="num muted">'+esc(e.seq)+'</td><td class="muted" style="white-space:nowrap">'+esc(e.time)+'</td>'+
+          '<td>'+esc(e.actor_name||e.actor)+'</td><td>'+esc(e.verb_label)+'</td>'+
+          '<td class="muted">'+esc(locText)+'</td><td class="num">'+money(e.money_delta)+'</td>'+
+          '<td class="'+(e.outcome==="ok"?"out-ok":"out-rejected")+'">'+esc(e.outcome)+'</td>'+
+          '<td class="ellip" title="'+esc(e.reason)+'">'+esc(e.reason||"—")+'</td></tr>';
+      }).join("") : '<tr><td colspan="8" class="empty">该筛选条件下当天没有事件。换一天或清空筛选试试。</td></tr>')+
+      '</tbody>';
+  }catch(err){
+    summary.innerHTML = '<span class="minus">'+esc(err.error||"读取失败")+'</span> <span class="muted">'+esc(err.hint||"")+'</span>';
+  }
+}
+
+boot();
+</script>
+</body>
+</html>

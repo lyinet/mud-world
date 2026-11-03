@@ -8,6 +8,7 @@
 """
 from __future__ import annotations
 
+import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any
@@ -423,22 +424,26 @@ class Planner:
             if day > day_of(start_tick):
                 self._stamina = min(100.0, self._stamina + recover)
 
-            work_loc = self._work_location(state, ent)
-            sect_cost = int((self.content.economy.get("sect") or {}).get("founding_cost", 2500))
-            active_goal = state.goals.get(ent.goal_id) if ent.goal_id else None
-            raising = (
-                active_goal is not None
-                and str(getattr(active_goal, "content_type", "")) == "found_sect"
-                and cash < sect_cost
+            employer = self._employer(state, ent)
+            work_loc = employer.location if employer is not None else ""
+            gross = self._gross_wage(ent)
+            reserve = int((self.content.economy.get("work") or {}).get("employer_reserve", 300))
+            # 日工可连续上工（P2-B 复核 B6）：不再隔日。但只有在雇主现金足够
+            # 支付当日全额工资且留有余量时才上工，避免把商业体现金抽干后只能打欠条。
+            can_work = (
+                employer is not None
+                and state.account_balance(employer.cash_account) >= gross + reserve
             )
-            if work_loc and (day % 2 == 0 or raising):
-                # 正在攒注册费的门派发起人每天上工，其余人隔日上工。
+            if work_loc and can_work:
                 loc, cursor = self._move(state, intents, npc, loc, work_loc, cursor, seg_end, reason("去上工"))
                 if loc == work_loc and cursor < seg_end:
+                    before = cursor
                     cursor = self._add(intents, npc, "work", {"at": loc, "hours": 8}, cursor, seg_end, reason("上工糊口"))
-                    cash += self._net_wage(ent)
+                    if cursor != before:
+                        cash += self._net_wage(ent)
             else:
-                # 隔日上工 / 无雇主：留在原地练手艺，减少通勤与工资外流。
+                # 无雇主或雇主现金不足：留在原地练手艺；攒门派注册费的人优先去挣现钱。
+                note = "雇主现金不足，先练手艺" if work_loc else "没有雇主，练手艺"
                 cursor = self._add(
                     intents,
                     npc,
@@ -446,7 +451,7 @@ class Planner:
                     {"skill": skill_for(self.content, ent.role), "hours": 4},
                     cursor,
                     seg_end,
-                    reason("没有雇主，练手艺"),
+                    reason(note),
                 )
 
             # 午饭（一天一顿，减少无效往返；晚饭取消）
@@ -481,8 +486,16 @@ class Planner:
             return state.businesses[ent.employed_at].location
         return ""
 
+    def _employer(self, state: WorldState, ent):
+        if ent.employed_at and ent.employed_at in state.businesses:
+            return state.businesses[ent.employed_at]
+        return None
+
+    def _gross_wage(self, ent) -> int:
+        return max(1, int(round(self.content.wage_for(ent.role))))
+
     def _net_wage(self, ent) -> int:
-        gross = max(1, int(round(self.content.wage_for(ent.role))))
+        gross = self._gross_wage(ent)
         tax = int(gross * float((self.content.economy.get("taxes") or {}).get("income", 0.0)))
         return gross - tax
 
@@ -539,9 +552,12 @@ class Planner:
         cash: int,
         memo: dict[str, Any],
     ) -> tuple[str, int, int]:
-        if memo.get("quest_done") or cursor >= end:
+        if memo.get("quest_executed") or cursor >= end:
             return loc, cursor, cash
         ent = state.entities[npc]
+        quest_cfg = self.content.economy.get("quests") or {}
+        limit = max(1, int(quest_cfg.get("max_concurrent", 2)))
+        max_hops = max(1, int(quest_cfg.get("accept_max_hops", 3)))
         accepted = sorted(
             (q for q in state.quests.values()
              if q.status == "accepted" and q.acceptor == npc
@@ -551,16 +567,15 @@ class Planner:
         if accepted:
             q = accepted[0]
             last = self._quest_attempt.get(q.id, -TICKS_PER_DAY * 2)
-            if cursor - last < TICKS_PER_DAY:
-                return loc, cursor, cash
-            self._quest_attempt[q.id] = cursor
-            memo["quest_done"] = q.id
-            return self._quest_execute(state, intents, npc, loc, cursor, end, cash, q)
+            if cursor - last >= TICKS_PER_DAY:
+                self._quest_attempt[q.id] = cursor
+                memo["quest_executed"] = q.id
+                return self._quest_execute(state, intents, npc, loc, cursor, end, cash, q)
         open_quests = [
             q for q in sorted(state.quests.values(), key=lambda q: q.id)
             if q.status == "open"
         ]
-        if open_quests and memo.get("quest_look"):
+        if len(accepted) >= limit or memo.get("quest_look"):
             return loc, cursor, cash
         memo["quest_look"] = True
         for q in open_quests:
@@ -575,9 +590,8 @@ class Planner:
             if giver.location != loc:
                 # 前置条件不满足（不在发起人处）：换路径——走近一点再谈，
                 # 避免全城 NPC 为了接任务每天长途奔袭，把 move 占比重新推高。
-                # 押镖是职业行为，允许走两步到镖局。
+                # 接单距离由内容包 economy.quests.accept_max_hops 给出（当前 3 跳）。
                 path = path_between(state, loc, giver.location)
-                max_hops = 2 if q.verb == "escort" else 1
                 if len(path) > max_hops:
                     continue
                 loc, cursor = self._move(
@@ -593,10 +607,10 @@ class Planner:
                 continue
             self._quest_attempt[q.id] = cursor
             cursor = self._add(
-                intents, npc, "quest_accept", {"quest": q.id}, cursor, end,
+                intents, npc, "quest_accept", {"quest": q.id, "quest_verb": q.verb}, cursor, end,
                 f"在{giver.name}处接下任务「{q.template_id}」",
             )
-            memo["quest_done"] = q.id
+            memo["quest_executed"] = q.id
             return self._quest_execute(state, intents, npc, loc, cursor, end, cash, q)
         return loc, cursor, cash
 
@@ -684,7 +698,8 @@ class Planner:
                 )
                 if loc == giver.location and cursor < end:
                     cursor = self._add(
-                        intents, npc, "quest_deliver", {"quest": quest.id}, cursor, end, "交付任务"
+                        intents, npc, "quest_deliver", {"quest": quest.id, "quest_verb": quest.verb},
+                        cursor, end, "交付任务"
                     )
         return loc, cursor, cash
 
@@ -1186,9 +1201,10 @@ class MockReasoner(Reasoner):
     无 world_view.state/content 时退化为旧的规则桩（单测/Provider 桩会用这条路径）。
     """
 
-    def __init__(self, seed: int = 42, content=None):
+    def __init__(self, seed: int = 42, content=None, telemetry=None):
         self.seed = seed
         self.content = content
+        self.telemetry = telemetry
         self.selector = GoalSelector(content) if content is not None else None
         self.planner = Planner(content, seed) if content is not None else None
         self._planned_through: dict[str, int] = {}
@@ -1251,6 +1267,25 @@ class MockReasoner(Reasoner):
                 "actions": [i.verb for i in intents],
             }
         )
+        if self.telemetry is not None:
+            # Mock 也产生成本遥测（确定性估算），便于以后与真实 Provider 对账。
+            from ..agent.prompt import build_prompt  # 局部导入，避免包级循环依赖
+
+            prompt = build_prompt(content, state, npc, tick, tier, ())
+            output = json.dumps(
+                {"actions": [{"verb": i.verb, "args": i.args, "reason": i.reason} for i in intents]},
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+            self.telemetry.record(
+                tick=tick,
+                npc=npc,
+                tier=tier,
+                prompt_text=prompt.text(),
+                output_text=output,
+                model="mock",
+                calls=1,
+            )
         return intents
 
     def _legacy(self, npc: str, npc_state: dict[str, Any], tick: int) -> list[Intent]:

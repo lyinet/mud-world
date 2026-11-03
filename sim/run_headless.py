@@ -27,6 +27,11 @@ def main() -> int:
     p.add_argument("--run-id", default="")
     p.add_argument("--with-players", type=int, default=0, choices=[0, 1])
     p.add_argument("--dump-state", action="store_true", help="额外写出 state_final.json（大文件）")
+    p.add_argument(
+        "--enable-llm",
+        action="store_true",
+        help="启用真实 LLM（还需 LLM_BASE_URL/LLM_API_KEY/LLM_MODEL；默认关闭，测试禁止联网）",
+    )
     args = p.parse_args()
 
     cfg = RunConfig(
@@ -37,6 +42,7 @@ def main() -> int:
         run_id=args.run_id or None,
         with_players=args.with_players,
         dump_state=args.dump_state,
+        enable_llm=args.enable_llm,
     )
     s = run_headless(ROOT, cfg)
     out = {
@@ -54,6 +60,7 @@ def main() -> int:
         "k6_illegal_rate": s["k6"]["illegal"]["illegal_rate"],
         "k6_relation_conflict_rate": s["k6"]["relations_strong_ties"]["conflict_rate"],
         "k1_rate": s["k1"]["k1_rate"],
+        "k1_comparison_basis": s["k1"]["comparison_basis"],
         "k1_rate_created_only": s["k1"]["k1_rate_created_only"],
         "k1_rate_excluding_one_shot": s["k1"]["k1_rate_excluding_one_shot"],
         "k1_goals": f"{s['k1']['goals_progressed']}/{s['k1']['goals_total']}",
@@ -67,8 +74,11 @@ def main() -> int:
         "k1_not_created": s["k1"]["not_created"],
         "k3_status": s["k3"]["status"],
         "k3_metric": s["k3"]["metric"],
+        "k3_spec_version": s["k3"]["spec_version"],
         "k3_verb_layer": s["k3"]["verb_layer"],
         "k3_object_layer": s["k3"]["object_layer"],
+        "k3_v10_compat": s["k3"]["v10_compat"],
+        "k3_sensitivity_excluding_new_verbs": s["k3"]["sensitivity_excluding_new_verbs"],
         "k3_folds": s["k3"]["folds"],
         "k3_reference_v2_thresholds": s["k3"]["reference_v2_thresholds"],
         "verb_counts": s["k3"]["verb_counts"],
@@ -84,6 +94,8 @@ def main() -> int:
             "burned_total": s["economy"]["burned_total"],
             "ious_count": s["economy"]["ious_count"],
             "ious_total": s["economy"]["ious_total"],
+            "business_cash_now": s["economy"]["business_cash_now"],
+            "cash_delta_breakdown": s["economy"]["cash_delta_breakdown"],
         },
         "wage_chain": {
             "totals": s["wages"]["totals"],
@@ -99,6 +111,8 @@ def main() -> int:
                 for key, value in s["k6"]["debt_audit"]["checks"].items()
             },
         },
+        "cost": s["cost"],
+        "llm": s["llm"],
         "verdict": s["verdict"],
         "content_audit": {
             "issues": s["content_audit"]["issues"],

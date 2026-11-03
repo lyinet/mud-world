@@ -1,0 +1,22 @@
+# LLM Provider / 成本遥测配置（P3 预备，默认关闭）
+version: "1"
+
+provider:
+  # 只有 run_headless --enable-llm 且环境变量齐全时才启用真实 HTTP。
+  enabled: false
+  timeout_s: 30
+  max_retries: 2
+  # 失败后重试的指数退避基数（秒）；测试可注入 sleep_fn。
+  backoff_base_s: 1.0
+
+# 成本为估算值，单位：每 1k token 的计价货币金额。
+cost:
+  currency: "USD"
+  per_1k_input_tokens: 0.0015
+  per_1k_output_tokens: 0.0060
+  # 按 LOD 档位乘以单价倍数（档位越高，上下文越长/越贵）。
+  tier_multiplier:
+    silent: 0.25
+    background: 0.5
+    active: 1.0
+    spotlight: 2.0

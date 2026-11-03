@@ -124,6 +124,18 @@ sect:
   min_relation_value: 30
   registration_fee: 500
 
+# 任务系统上限（P2-B 复核项 B5）：一个 NPC 同时最多挂 2 单，接单距离 3 跳。
+quests:
+  max_concurrent: 2
+  accept_max_hops: 3
+
+# 日工连续上工的最低雇主现金保留（B6）：雇主现金 >= 当日工资 + reserve 才上工，
+# 避免把商业体现金抽干后只能打欠条。
+# 注意：创世时所有商业体共用 treasury:region 作为 cash_account（见 genesis.py），
+# 因此该 reserve 实际保护的是区域公共现金池，而不是单店余额。
+work:
+  employer_reserve: 2000
+
 # 目标量化。下面 5 个键是引擎契约：引擎按 goal kind 读取标量，缺失时会回落到
 # actions/common.py 的 GOAL_DEFAULTS。by_type 是 7 类内容目标的完整定义，供审计与 P2 计划器使用。
 goal_targets:
