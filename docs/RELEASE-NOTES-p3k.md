@@ -1,6 +1,7 @@
 # Release Notes — delivery-p3k（最终首发包）
 
-- 代码基线：`9c76cde`（W5 收口）；打包脚本：`11099d9`、`53de927`、`e317223`
+- 代码基线：`0ff9dc2`（W1 读路径鉴权 `133333e`/`c4eee95`、W4 代理 `e807cfc`/`0ff9dc2`；
+  含 W5 `9c76cde`）；打包脚本：`11099d9`、`53de927`、`e317223`、`cf5407e`
 - 文档提交：本文件与 `docs/DELIVERY-TEST-p3k.md` 随包提交，提交哈希以交付回报为准
 - 前序：`delivery-p3j`（`c999fb6`）；`delivery-p3f`–`p3j` 的 tag 均不改写
 - 内容冻结（关闭态，默认）：
@@ -9,7 +10,7 @@
 - 内容冻结（开启扩展包 `scaleup_w3`）：
   `content_hash = 3fd99946b44a7dac4c3ea041d114e28d84ef07e67aa90e40e209970c2c43534c`
   （60 NPC / 70 物品 / 20 地点 / 60 委托 / 59 张人物卡）；**默认关闭**
-- 包内测试：**414 passed, 10 skipped**（见 `docs/DELIVERY-TEST-p3k.md`）
+- 包内测试：**423 passed, 10 skipped**（见 `docs/DELIVERY-TEST-p3k.md`）
 
 ## 1. 相对 p3j 的变化（逐条）
 
@@ -23,6 +24,16 @@
      （互见、0 串档、同 NPC 关系不脏写）（`5cefd47`、`8a365b8`）。
    - 写路径与在线态：写路径去掉 `read_all`，新增 `src/wsim/api/event_tail.py`；
      在线三态按玩家 wall-clock 判定（active ≤30s / idle ≤60s / offline >60s）（`500369e`）。
+   - 只读别名：新增 `GET /api/state`，与 `GET /api/player/state` 共用同一 handler，
+     鉴权行为一致（`7250141`）。
+   - **读路径鉴权（安全修复，`133333e` + `c4eee95`）**：
+     - 服务模式带令牌：只能读本人完整状态；`account_id` 不一致返回 403
+       `auth_account_mismatch`。
+     - 服务模式匿名：`/api/state`、`/api/player/state` 返回 200，但只给公共摘要白名单
+       （`ok/name/place/activity/idle_seconds/online/sect_name/shop_name/server_tick`），
+       **不含** `wallet/items/skills/relations/active_quests/growth/today`。
+     - `/api/player/intents` 必须带令牌，匿名 401 `auth_missing_token`。
+     - legacy 模式（`auth_required=false`，`./start.sh` 默认）行为**完全不变**。
 2. **W2 世界自走调度器（独立于 HTTP，默认纯规则、零 LLM）**
    - `src/wsim/sim/scheduler.py`、`tools/ambient_run.py`、`tools/ambient_accept.py`、`docs/AMBIENT.md`
      （随 `466c807` 入库）。
@@ -39,6 +50,11 @@
    - 新玩家 4 步引导、失败可诊断的原因码中文映射、移动端单列（≤768px，重点 375×812）、
      键盘可达、登录/注册与令牌单飞轮换（`a274a9f`、`cc12453`）。
    - 鉴权接口按 W1 真实 `/api/auth/*` 对齐；legacy 匿名模式仍可玩。
+   - **服务模式代理修复**：`ui/player/server.py` 正向转发 `Authorization`（GET/POST 均透传），
+     401/403 原样保留；前端登录态带令牌取数、403 自动重取、启动先载令牌（`e807cfc`）。
+   - **探活修复**：`probe_upstream` 改走 `/api/service/info`，服务模式下不再因匿名公共摘要
+     缺 `profile_version` 而误降级 readonly（`0ff9dc2`）；`start.sh` 就绪探针同步调整。
+     结论：**`--auth on` 必须配合带令牌的前端**；W4 已修好代理，浏览器登录后可正常读写。
 5. **W5 压测与容器化部署**
    - 见第 2 节；`deploy/**`、`docs/OPS-RUNBOOK.md`、`reports/w5/**`、`tools/load_test.py`
      随 `9c76cde` 入库，p3k 包按需纳入 `deploy/` 资产。
@@ -52,7 +68,7 @@
 ## 2. 压测与部署（W5 同口径数字）
 
 口径：**50 并发 × 600s、think=2s、ramp=10s、全端点、全新空日志**。
-下表 `/api/state` 是压测工具的输出标签，实测端点为 `GET /api/player/state`。
+下表 `/api/state` 为只读别名，等价于 `/api/player/state`（同一 handler、鉴权行为一致）。
 
 | 指标 | 改前 | 改后 |
 | --- | --- | --- |
@@ -98,7 +114,7 @@ Docker 说明：本机验证使用**独立版 `docker-compose`**（legacy builde
 
 ```bash
 python3 content/validate_content.py          # PASS，content_hash=7ec670c1…
-python3 -m pytest                            # 414 passed, 10 skipped
+python3 -m pytest                            # 423 passed, 10 skipped
 ./scripts/selfcheck.sh                       # 4/4 PASS
 XKX_CONTENT_PACKS=scaleup_w3 \
   python3 content/validate_content.py        # PASS，content_hash=3fd99946…
@@ -109,15 +125,13 @@ XKX_CONTENT_PACKS=scaleup_w3 \
 
 ## 5. 未覆盖项与风险
 
-- **`/api/state` 字面路径不存在**：服务只注册 `GET /api/player/state`；字面 `/api/state`
-  返回 404 `unknown_action`。压测报告里的 `/api/state` 是工具输出标签。对客文档统一用
-  `GET /api/player/state`。
-- **包根 README 仍标 p3j**：`README.md` 由 `deploy/README.md` 生成，`deploy/**` 属 W5
-  在途所有权，本轮按约束未修改；包内行为与本节为准。
-- **W4 浏览器证据目录未入库**：`reports/w4-ui/` 当前仍是未跟踪文件，p3k 包内不含；
-  UI 行为以 `docs/PLAYER-GUIDE.md` 与代码为准。
-- **Docker 未在本次干净解包中重复起容器**：本轮只验证 `./start.sh` 本机路径；容器证据沿用
-  W5 `9c76cde` 的 `docs/OPS-RUNBOOK.md` 与 `reports/w5/**`。
+- **`/api/state` 为只读别名，等价于 `/api/player/state`**：两者共用同一 handler，
+  鉴权行为一致；压测报告中的 `/api/state` 即此别名。
+- **W4 浏览器证据目录不在包内**：p3k 包只纳入运行所需文件；`reports/w4-ui/` 的证据以仓库为准，
+  UI 行为以 `docs/PLAYER-GUIDE.md`、本文件与代码为准。
+- **Docker 已在本轮从解包后的 `deploy/` 实际起容器**（服务模式）：容器 healthy、
+  `/api/health` 200 `mode=live`、`/api/state` 200（匿名公共摘要）；时间线与命令见
+  `docs/DELIVERY-TEST-p3k.md` §6。
 - **容量**：见 §2 的 150 席边界；200 席不是达标口径。
 - **模型结论不变（保留，不美化）**：K1 维度模型零增益；战略层实验 FAIL；
   对话默认模板，第三方盲评与好模板持平（非平手 55.9%，Wilson CI 44.1%–67.1%）。
