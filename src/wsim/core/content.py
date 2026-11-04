@@ -42,6 +42,17 @@ DEFAULT_ECONOMY = {
 }
 
 
+def _day_value(values: Any, day: int) -> float:
+    """按天取供需值；超出区间时沿用最后一天，避免 2 日内容被跑长 run 时归零。"""
+    if not isinstance(values, (list, tuple)) or not values:
+        return 1.0
+    idx = min(max(0, int(day)), len(values) - 1)
+    try:
+        return float(values[idx])
+    except (TypeError, ValueError):
+        return 1.0
+
+
 @dataclass
 class Content:
     npcs: list[dict[str, Any]] = field(default_factory=list)
@@ -82,10 +93,62 @@ class Content:
                 return sect
         return None
 
-    def item_price(self, item_id: str) -> int:
+    def item_price(self, item_id: str, state: Any | None = None) -> int:
+        """物品价格；传 state 时叠加供需/库存乘数（确定性，无随机）。
+
+        不传 state 的调用（创世、只读展示、测试兜底）保持旧的静态定价，
+        因此旧内容包在拿不到世界状态时行为不变。
+        """
         item = self.items.get(item_id, {})
         base = int(item.get("base_price", 10))
-        return max(1, int(round(base * float(self.economy.get("price_markup", 1.0)))))
+        price = base * float(self.economy.get("price_markup", 1.0))
+        if state is not None:
+            price *= self.price_multiplier(item_id, state)
+        return max(1, int(round(price)))
+
+    def price_multiplier(self, item_id: str, state: Any) -> float:
+        """供需乘数：日供需曲线（content price_model）+ 全城库存压力。
+
+        - 日曲线：`(demand - supply) / (demand + supply)`，按 state.tick 换算天数取数组下标。
+        - 库存压力：`(target - stock) / target`，stock 是该物品在所有商业体里的总库存，
+          缺货抬价、压货降价；再做 ±1 截断，避免单个店铺把乘数拉爆。
+        - 两者按 `stock_weight` 加权后乘以品类弹性，最后用 `max_change` 硬截断
+          （默认 ±20%），这是防止价格失控的护栏。
+        只读 state.tick / state.businesses[*].stock，不引入 random、墙钟或外部数据。
+        """
+        model = self.economy.get("price_model")
+        if not isinstance(model, dict):
+            return 1.0
+        category = self._price_category(model, item_id)
+        if category is None:
+            return 1.0
+        elasticity = float(category.get("elasticity", 0.0) or 0.0)
+        day_span = max(1, int(model.get("ticks_per_day", 144)))
+        day = max(0, int(getattr(state, "tick", 0)) // day_span)
+        supply = _day_value(category.get("supply_by_day"), day)
+        demand = _day_value(category.get("demand_by_day"), day)
+        total = supply + demand
+        day_curve = (demand - supply) / total if total > 0 else 0.0
+        target_stock = float(self.economy.get("business_stock", 2000) or 0)
+        stock = 0.0
+        for biz in getattr(state, "businesses", {}).values():
+            stock += float((biz.stock or {}).get(item_id, 0))
+        stock_curve = (target_stock - stock) / target_stock if target_stock > 0 else 0.0
+        stock_curve = max(-1.0, min(1.0, stock_curve))
+        stock_weight = float(model.get("stock_weight", 0.5))
+        raw = elasticity * (day_curve + stock_weight * stock_curve)
+        cap = float(model.get("max_change", 0.20))
+        return max(1.0 - cap, min(1.0 + cap, 1.0 + raw))
+
+    def _price_category(self, model: dict[str, Any], item_id: str) -> dict[str, Any] | None:
+        categories = model.get("categories")
+        if not isinstance(categories, dict):
+            return None
+        for name in sorted(categories):
+            cfg = categories[name]
+            if isinstance(cfg, dict) and item_id in (cfg.get("items") or []):
+                return cfg
+        return None
 
     def wage_for(self, role: str) -> int:
         table = self.economy.get("wages_daily") or {}

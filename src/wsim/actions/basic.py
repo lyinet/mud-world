@@ -207,7 +207,7 @@ class ConsumeAction(Action):
         seller = self._seller(state, ent, item)
         if seller is None:
             return ["item_not_available"]
-        price = self.content.item_price(item) * qty
+        price = self.content.item_price(item, state) * qty
         tax = transaction_tax(self.content, price)
         if state.account_balance(wallet(ent.id)) < price + tax:
             return ["insufficient_money"]
@@ -222,7 +222,7 @@ class ConsumeAction(Action):
         seller = self._seller(state, ent, item)
         if seller is None:
             raise Reject("item_not_available")
-        price = self.content.item_price(item) * qty
+        price = self.content.item_price(item, state) * qty
         tax = transaction_tax(self.content, price)
         category = self.content.items[item].get("category", "misc")
         boost = float(self.content.economy.get("food_stamina", 25)) if category in ("food", "drink") else 5.0

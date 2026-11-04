@@ -558,7 +558,7 @@ class Planner:
             item = cheapest_food(self.content, loc, state, min_stock=1)
         if item is None:
             return loc, cursor, cash
-        price = self.content.item_price(item)
+        price = self.content.item_price(item, state)
         tax = int(price * float((self.content.economy.get("taxes") or {}).get("transaction", 0.0)))
         if cash < price + tax:
             return loc, cursor, cash
@@ -773,7 +773,7 @@ class Planner:
                     continue
                 if str(self.content.items[iid].get("category", "")) in ("food", "drink", "service", "meal"):
                     continue
-                price = self.content.item_price(iid)
+                price = self.content.item_price(iid, state)
                 if price <= 0 or price * 3 > cash:
                     continue
                 if best is None or price < best[0]:
@@ -880,7 +880,7 @@ class Planner:
                             cursor, end, reason(f"卖{item}换现钱"),
                         )
                         self._mark_used(memo, item)
-                        cash += sell_price(self.content, item)
+                        cash += sell_price(self.content, item, state)
                         return loc, cursor, cash
             if step == 1:
                 peer = self._peer(state, ent, money_delta=5)
@@ -909,8 +909,8 @@ class Planner:
                 if food_loc:
                     loc, cursor = self._move(state, intents, npc, loc, food_loc, cursor, end, reason("找吃的恢复体力"))
                 item = cheapest_food(self.content, loc, state, min_stock=1)
-                price = self.content.item_price(item) + int(
-                    self.content.item_price(item) * float((self.content.economy.get("taxes") or {}).get("transaction", 0.0))
+                price = self.content.item_price(item, state) + int(
+                    self.content.item_price(item, state) * float((self.content.economy.get("taxes") or {}).get("transaction", 0.0))
                 ) if item else 10 ** 9
                 if item and cash >= price and cursor < end:
                     cursor = self._add(
@@ -945,7 +945,7 @@ class Planner:
                     cursor, end, reason("先攒开店本钱"),
                 )
                 self._mark_used(memo, item)
-                cash += sell_price(self.content, item)
+                cash += sell_price(self.content, item, state)
             return loc, cursor, cash
 
         if ct in ("gain_status", "join_sect"):
@@ -1020,8 +1020,8 @@ class Planner:
                 # 人已齐、钱不够：先用能一笔补上缺口的贵重余物变现，再考虑白天的
                 # 4 小时晚班（兼职）。两条都不靠发钱、不降门槛。
                 gap = cost - cash
-                item = self._best_sellable(ent, memo)
-                if item is not None and sell_price(self.content, item) >= gap:
+                item = self._best_sellable(ent, memo, state)
+                if item is not None and sell_price(self.content, item, state) >= gap:
                     dest = self._sell_location(state, item, loc)
                     if dest:
                         loc, cursor = self._move(state, intents, npc, loc, dest, cursor, end,
@@ -1032,7 +1032,7 @@ class Planner:
                             cursor, end, reason(f"卖{item}凑{cost}文注册费"),
                         )
                         self._mark_used(memo, item)
-                        cash += sell_price(self.content, item)
+                        cash += sell_price(self.content, item, state)
                         return loc, cursor, cash
                 employer = self._employer(state, ent)
                 reserve = int((self.content.economy.get("work") or {}).get("employer_reserve", 300))
@@ -1140,7 +1140,7 @@ class Planner:
                 return item
         return None
 
-    def _best_sellable(self, ent, memo: dict[str, Any] | None = None) -> str | None:
+    def _best_sellable(self, ent, memo: dict[str, Any] | None = None, state: WorldState | None = None) -> str | None:
         """变现时优先卖最值钱的余物，避免先卖便宜货、越卖越穷。"""
         cands = [
             iid
@@ -1149,10 +1149,10 @@ class Planner:
         ]
         if not cands:
             return None
-        return max(cands, key=lambda iid: (sell_price(self.content, iid), iid))
+        return max(cands, key=lambda iid: (sell_price(self.content, iid, state), iid))
 
     def _sell_location(self, state: WorldState, item: str, loc: str) -> str | None:
-        revenue = sell_price(self.content, item)
+        revenue = sell_price(self.content, item, state)
         cands = {
             lid
             for lid in sorted(state.locations)
@@ -1235,7 +1235,7 @@ class Planner:
         # 0) 手上有货且当地有买家 → 卖
         item = self._sellable(ent)
         if item is not None and variant % 3 == 0:
-            if any(state.account_balance(b.cash_account) >= sell_price(self.content, item) for b in state.business_at(loc)):
+            if any(state.account_balance(b.cash_account) >= sell_price(self.content, item, state) for b in state.business_at(loc)):
                 return Intent(actor=npc, verb="sell", args={"item": item, "qty": 1, "to": loc}, tick=tick, source="planner", reason=reason)
         # 1) 当地有可交易对象 → 交易
         if variant % 3 == 1:

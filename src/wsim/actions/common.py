@@ -221,7 +221,7 @@ def cheapest_food(content, location: str, state: WorldState, min_stock: int = 5)
                 continue
             it = content.items.get(iid)
             if it and it.get("category") in ("food", "drink"):
-                candidates.append((content.item_price(iid), iid))
+                candidates.append((content.item_price(iid, state), iid))
     if not candidates:
         # 库存很浅时退回任意 >0，保证不因阈值直接饿死
         for biz in state.business_at(location):
@@ -230,13 +230,13 @@ def cheapest_food(content, location: str, state: WorldState, min_stock: int = 5)
                     continue
                 it = content.items.get(iid)
                 if it and it.get("category") in ("food", "drink"):
-                    candidates.append((content.item_price(iid), iid))
+                    candidates.append((content.item_price(iid, state), iid))
     return sorted(candidates)[0][1] if candidates else None
 
 
-def sell_price(content, item: str) -> int:
+def sell_price(content, item: str, state: WorldState | None = None) -> int:
     ratio = float(content.economy.get("sell_ratio", 0.6))
-    return max(1, int(round(content.item_price(item) * ratio)))
+    return max(1, int(round(content.item_price(item, state) * ratio)))
 
 
 def sellable_items(content, ent: Entity) -> list[str]:

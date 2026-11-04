@@ -253,7 +253,7 @@ class SystemPlanAction(Action):
         lunch = cheapest_food(self.content, loc, state)
         lunch_cost = 0
         if lunch:
-            lunch_cost = self.content.item_price(lunch) + int(self.content.item_price(lunch) * float((self.content.economy.get("taxes") or {}).get("transaction", 0)))
+            lunch_cost = self.content.item_price(lunch, state) + int(self.content.item_price(lunch, state) * float((self.content.economy.get("taxes") or {}).get("transaction", 0)))
         if lunch and available >= lunch_cost:
             idx = self._sched(effects, base + 72, ent.id, "consume", {"item": lunch, "qty": 1}, idx, intent.tick)
             available -= lunch_cost
@@ -267,7 +267,7 @@ class SystemPlanAction(Action):
             items = [i for i in sellable_items(self.content, ent) if ent.inventory.get(i, 0) >= 2]
             if items:
                 item = items[0]
-                price = sell_price(self.content, item)
+                price = sell_price(self.content, item, state)
                 if any(state.account_balance(b.cash_account) >= price for b in state.business_at(loc)):
                     idx = self._sched(effects, base + 93, ent.id, "sell", {"item": item, "qty": 1, "to": loc}, idx, intent.tick)
                     acted = True
@@ -359,7 +359,7 @@ class SystemPlanAction(Action):
         dinner = cheapest_food(self.content, loc, state)
         dinner_cost = 0
         if dinner:
-            dinner_cost = self.content.item_price(dinner) + int(self.content.item_price(dinner) * float((self.content.economy.get("taxes") or {}).get("transaction", 0)))
+            dinner_cost = self.content.item_price(dinner, state) + int(self.content.item_price(dinner, state) * float((self.content.economy.get("taxes") or {}).get("transaction", 0)))
         if dinner and available >= dinner_cost:
             idx = self._sched(effects, base + 108, ent.id, "consume", {"item": dinner, "qty": 1}, idx, intent.tick)
             available -= dinner_cost
@@ -400,7 +400,7 @@ class SystemPlanAction(Action):
             extra = [i for i in ("wine", "service_storytelling") if i in self.content.items]
             for item in extra:
                 if any(b.stock.get(item, 0) >= 5 for b in state.business_at(loc)):
-                    price = self.content.item_price(item) + int(self.content.item_price(item) * float((self.content.economy.get("taxes") or {}).get("transaction", 0)))
+                    price = self.content.item_price(item, state) + int(self.content.item_price(item, state) * float((self.content.economy.get("taxes") or {}).get("transaction", 0)))
                     if available >= price:
                         idx = self._sched(effects, base + 110, ent.id, "consume", {"item": item, "qty": 1}, idx, intent.tick)
                         available -= price
@@ -415,7 +415,7 @@ class SystemPlanAction(Action):
             ]
             if candidates:
                 item = candidates[sum(ord(c) for c in ent.id) % len(candidates)]
-                price = self.content.item_price(item) + int(self.content.item_price(item) * float((self.content.economy.get("taxes") or {}).get("transaction", 0)))
+                price = self.content.item_price(item, state) + int(self.content.item_price(item, state) * float((self.content.economy.get("taxes") or {}).get("transaction", 0)))
                 if available >= price:
                     idx = self._sched(effects, base + 109, ent.id, "buy", {"item": item, "qty": 1, "from": loc}, idx, intent.tick)
 

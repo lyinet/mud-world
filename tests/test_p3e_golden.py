@@ -11,6 +11,9 @@ P3I 基线说明（2026-11-04，非静默改旧基线）：
   在当前内容下不可复现，因此**保留旧基线 GOLDEN / DIALOGUE_GOLDEN 不删不改值**，
   两个旧测试显式标记 skip 并指向 P3I 新基线；新基线见 GOLDEN_P3I / DIALOGUE_GOLDEN_P3I。
 - 复核方式见 docs/CONTENT-GUIDE-p3i.md。
+- P3I 价格基线（2026-11-04）：把 content 里的供需模型接进 `Content.item_price()` 后，
+  成交金额随日供需与库存变化，事件数仍为 791；旧 P3I 基线保留并 skip，新基线见
+  GOLDEN_P3I_PRICE / DIALOGUE_GOLDEN_P3I_PRICE。
 """
 from __future__ import annotations
 
@@ -83,6 +86,32 @@ DIALOGUE_GOLDEN_P3I = {
     "events_total": 791,
     "state_final": "9554ac3f2522da3dd31ed665266bfe2807dab2ab1283967a3bd7421ce4ee6f3d",
     "event_final": "cdc7a07c937751ff2df04810630f7b7d7472f93fd44626df57cde39d91d84406",
+    "dialogue_calls": 63,
+}
+
+# P3I 价格基线（2026-11-04）：把供需模型接进 `Content.item_price()` 后，成交金额随
+# 日供需曲线与库存压力变化，但事件数仍为 791（调度与前置未被打破）。
+# 旧 P3I 基线（791 events / sell 1133 / buy 852）保留不删不改值，两个旧测试显式 skip；
+# 本组为“价格接入”后的显式迁移基线。
+P3I_PRICE_BASELINE_REASON = (
+    "P3I 物价接线（item_price 叠加日供需 + 库存压力，±20% 护栏）后成交金额变化；"
+    "事件数仍为 791，state/event 哈希与经济流量显式漂移；旧 P3I 基线原样保留。"
+)
+GOLDEN_P3I_PRICE = {
+    "events_total": 791,
+    "state_final": "86871fafdf16f72d8b9ad045d00b07ceb17358367f500f51080f94c0deb86974",
+    "event_final": "ee7d0a90b5bdb6598f66d974f763e12764e506e5336f17b5f5cb43ad46df3e69",
+    "sell_in": 1145,
+    "buy_out": 842,
+    "burned": 110,
+    "business_cash": 11285,
+    "precondition_blocked": 9,
+    "precondition_pruned": 2,
+}
+DIALOGUE_GOLDEN_P3I_PRICE = {
+    "events_total": 791,
+    "state_final": "177904390adb8571ab6bb851872346cc17ab624bea6e9d80abd6d3e75bc006bf",
+    "event_final": "a82c516a44932e918fab98045014833bd578f955aa8e45d313e68f35f3e9640c",
     "dialogue_calls": 63,
 }
 
@@ -159,6 +188,7 @@ def test_dialogue_enabled_fake_run_is_golden(tmp_path):
     )
 
 
+@pytest.mark.skip(reason="P3I 物价接线后成交金额漂移；迁移到 GOLDEN_P3I_PRICE，见文件头说明")
 def test_p3i_deterministic_2d_fake_run_is_golden(tmp_path):
     """P3I 新基线：内容包扩容后的确定性 2 天世界。"""
     summary = _run_two_day(tmp_path, "golden", dialogue=False)
@@ -188,6 +218,7 @@ def test_p3i_deterministic_2d_fake_run_is_golden(tmp_path):
     assert len(blocked_file.read_text(encoding="utf-8").splitlines()) == GOLDEN_P3I["precondition_blocked"]
 
 
+@pytest.mark.skip(reason="P3I 物价接线后哈希漂移；迁移到 DIALOGUE_GOLDEN_P3I_PRICE，见文件头说明")
 def test_p3i_dialogue_enabled_fake_run_is_golden(tmp_path):
     """P3I 新基线（dialogue 开启路径）。"""
     summary = _run_two_day(tmp_path, "golden-dialogue", dialogue=True)
@@ -203,4 +234,52 @@ def test_p3i_dialogue_enabled_fake_run_is_golden(tmp_path):
         "P3I dialogue 基线漂移（golden_p3i, actual）："
         + json.dumps(drift, ensure_ascii=False)
         + "；原因: " + P3I_BASELINE_REASON
+    )
+
+
+def test_p3i_price_deterministic_2d_fake_run_is_golden(tmp_path):
+    """P3I 物价接线后的新基线：事件流不变（791），金额与哈希显式迁移。"""
+    summary = _run_two_day(tmp_path, "golden-price", dialogue=False)
+    cf = summary["economy"]["cashflow"]
+    got = {
+        "events_total": summary["events"]["total"],
+        "state_final": summary["hashes"]["state_final"],
+        "event_final": summary["hashes"]["event_final"],
+        "sell_in": cf["inflow_by_reason"].get("sell", 0),
+        "buy_out": cf["outflow_by_reason"].get("buy", 0),
+        "burned": summary["economy"]["burned_total"],
+        "business_cash": summary["economy"]["business_cash_now"],
+        "precondition_blocked": summary["precondition_blocked"]["total"],
+        "precondition_pruned": summary["precondition_pruned"]["total"],
+    }
+    drift = {k: (GOLDEN_P3I_PRICE[k], got[k])
+             for k in GOLDEN_P3I_PRICE if got[k] != GOLDEN_P3I_PRICE[k]}
+    assert not drift, (
+        "P3I 价格基线漂移（golden_p3i_price, actual）："
+        + json.dumps(drift, ensure_ascii=False)
+        + "；原因: " + P3I_PRICE_BASELINE_REASON
+    )
+
+    pruned_file = tmp_path / "golden-price" / "pruned.jsonl"
+    blocked_file = tmp_path / "golden-price" / "blocked.jsonl"
+    assert pruned_file.exists() and blocked_file.exists(), "缺少全量拦截记录导出"
+    assert len(pruned_file.read_text(encoding="utf-8").splitlines()) == GOLDEN_P3I_PRICE["precondition_pruned"]
+    assert len(blocked_file.read_text(encoding="utf-8").splitlines()) == GOLDEN_P3I_PRICE["precondition_blocked"]
+
+
+def test_p3i_price_dialogue_enabled_fake_run_is_golden(tmp_path):
+    """P3I 物价接线后的新基线（dialogue 开启路径）。"""
+    summary = _run_two_day(tmp_path, "golden-price-dialogue", dialogue=True)
+    got = {
+        "events_total": summary["events"]["total"],
+        "state_final": summary["hashes"]["state_final"],
+        "event_final": summary["hashes"]["event_final"],
+        "dialogue_calls": summary["llm"]["dialogue_async"]["calls"],
+    }
+    drift = {k: (DIALOGUE_GOLDEN_P3I_PRICE[k], got[k])
+             for k in DIALOGUE_GOLDEN_P3I_PRICE if got[k] != DIALOGUE_GOLDEN_P3I_PRICE[k]}
+    assert not drift, (
+        "P3I 价格 dialogue 基线漂移（golden_p3i_price, actual）："
+        + json.dumps(drift, ensure_ascii=False)
+        + "；原因: " + P3I_PRICE_BASELINE_REASON
     )

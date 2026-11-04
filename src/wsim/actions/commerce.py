@@ -56,7 +56,7 @@ class BuyAction(Action):
         seller = business_selling(state, ent.location, item)
         if seller is None:
             return ["item_not_available"]
-        price = self.content.item_price(item) * qty
+        price = self.content.item_price(item, state) * qty
         tax = transaction_tax(self.content, price)
         if state.account_balance(wallet(ent.id)) < price + tax:
             return ["insufficient_money"]
@@ -69,7 +69,7 @@ class BuyAction(Action):
         seller = business_selling(state, ent.location, item)
         if seller is None:
             raise Reject("item_not_available")
-        price = self.content.item_price(item) * qty
+        price = self.content.item_price(item, state) * qty
         tax = transaction_tax(self.content, price)
         effects: list[Effect] = [
             Effect("transfer", {"src": wallet(ent.id), "dst": seller.cash_account, "amount": price, "reason": "buy"}),
@@ -99,7 +99,7 @@ class SellAction(Action):
             return ["unknown_item"]
         if ent.inventory.get(item, 0) < qty:
             return ["item_not_held"]
-        revenue = sell_price(self.content, item) * qty
+        revenue = sell_price(self.content, item, state) * qty
         buyer = business_with_cash(state, ent.location, revenue)
         if buyer is None:
             return ["no_buyer_cash"]
@@ -109,7 +109,7 @@ class SellAction(Action):
         ent = require_entity(state, intent.actor)
         item = arg_str(intent, "item")
         qty = arg_int(intent, "qty", 1, minimum=1, maximum=20)
-        revenue = sell_price(self.content, item) * qty
+        revenue = sell_price(self.content, item, state) * qty
         buyer = business_with_cash(state, ent.location, revenue)
         if buyer is None:
             raise Reject("no_buyer_cash")
@@ -167,8 +167,8 @@ class TradeAction(Action):
             for item, _ in offer + want:
                 if item.startswith("service_"):
                     return ["service_item"]
-            offer_value = sum(self.content.item_price(item) * qty for item, qty in offer)
-            want_value = sum(self.content.item_price(item) * qty for item, qty in want)
+            offer_value = sum(self.content.item_price(item, state) * qty for item, qty in offer)
+            want_value = sum(self.content.item_price(item, state) * qty for item, qty in want)
             received = offer_value + max(0, -delta)
             given = want_value + max(0, delta)
             ratio = 0.50 if state.affection_between(ent.id, target.id) >= 60 else 0.70
