@@ -1,0 +1,12 @@
+# W1 服务模式标记。
+# 存在本文件时，`python -m wsim.api --auth auto` 会强制所有写端点使用
+# `Authorization: Bearer <token>`；删除本文件即回到 legacy 匿名模式（仅本地试玩）。
+#
+# 下列数值是部署默认值的文档记录；实际运行参数以 deploy/run_service.sh
+# 传出的 CLI 参数为准（--token-ttl / --reconnect-grace 等）。
+service:
+  name: xkx-world
+  auth_required: true
+  max_region_players: 200
+  reconnect_grace_seconds: 60
+  token_ttl_seconds: 86400

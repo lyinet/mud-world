@@ -1,8 +1,10 @@
 """W1 账号存储：口令摘要、令牌过期/轮换、断线宽限、僵尸清理。"""
 from __future__ import annotations
 
+import json
 import sqlite3
 
+from wsim.api.admin import main as admin_main
 from wsim.api.auth import AccountStore, DEFAULT_RECONNECT_GRACE, normalize_username
 
 
@@ -160,3 +162,35 @@ def test_purge_zombies_only_touches_service_sessions(tmp_path):
 def test_username_normalization():
     assert normalize_username("  U_Alice ") == "u_alice"
     assert DEFAULT_RECONNECT_GRACE == 60
+
+
+def test_admin_purge_zombies_cli(tmp_path, capsys):
+    clock = Clock(1_000)
+    store = AccountStore(
+        tmp_path / "service.sqlite", iterations=1_000, reconnect_grace=60, now_fn=clock
+    )
+    store.register("u_zombie", "secret123")
+    login = store.login("u_zombie", "secret123")
+    store.disconnect(login["session_id"], tick=1)
+    store.close()
+
+    # 断线时间是 1970 年附近的假时钟，相对真实 now 早已超过宽限。
+    rc = admin_main(
+        [
+            "purge-zombies",
+            "--run-dir", str(tmp_path),
+            "--session-db", str(tmp_path / "service.sqlite"),
+            "--reconnect-grace", "60",
+        ]
+    )
+    assert rc == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["ok"] is True and payload["purged"] >= 1
+    store = AccountStore(tmp_path / "service.sqlite", iterations=1_000)
+    assert store.session_info(login["session_id"])["status"] == "expired"
+    store.close()
+
+    rc = admin_main(["purge-zombies", "--run-dir", str(tmp_path / "missing")])
+    assert rc == 2
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["error"] == "session_db_missing"

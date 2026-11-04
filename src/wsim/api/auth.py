@@ -252,6 +252,25 @@ class AccountStore:
                 "rotated": True,
             }
 
+    def logout(self, token: Any, now: float | None = None) -> dict[str, Any]:
+        """注销令牌：会话立即 expired，不允许再走 60 秒重连。"""
+        now_f = self._now(now)
+        raw = str(token or "").strip()
+        if not raw:
+            return {"ok": False, "code": "auth_missing_token"}
+        with self.lock:
+            row = self.conn.execute(
+                "SELECT * FROM sessions WHERE token_hash=?", (self._hash_token(raw),)
+            ).fetchone()
+            if row is None:
+                return {"ok": False, "code": "auth_invalid_token"}
+            self.conn.execute(
+                "UPDATE sessions SET status='expired', last_seen_at=? WHERE id=?",
+                (now_f, str(row["id"])),
+            )
+            self.conn.commit()
+            return {"ok": True, "logged_out": True, "session_id": str(row["id"])}
+
     def disconnect(self, session_id: str, tick: int, now: float | None = None) -> bool:
         """标记断线；记录断线 tick，供 60 秒重连恢复。"""
         now_f = self._now(now)
