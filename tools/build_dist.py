@@ -49,6 +49,10 @@ TOP_DIRS = [
 ]
 SKIP_DIRS = {"__pycache__", ".pytest_cache", ".venv", ".git", "dist", ".DS_Store"}
 SKIP_SUFFIXES = {".pyc", ".pyo", ".sqlite", ".sqlite-wal", ".sqlite-shm"}
+# deploy/service.yaml 是 W1 的“强制 Bearer”模式标记：只要存在，`--auth auto`
+# 就会把本地一键试玩变成必须登录。容器由 entrypoint.sh 显式 `--auth on`，不依赖它；
+# 因此试玩包内不放入该文件，保留 start.sh 的匿名试玩路径。
+SKIP_REL_PATHS = {"deploy/service.yaml"}
 
 
 def iter_files(path: Path):
@@ -71,7 +75,14 @@ def collect() -> list[Path]:
         if not base.exists():
             continue
         files.extend(iter_files(base))
-    return sorted({p for p in files if p.exists()}, key=lambda p: str(p.relative_to(ROOT)))
+    return sorted(
+        {
+            p
+            for p in files
+            if p.exists() and p.relative_to(ROOT).as_posix() not in SKIP_REL_PATHS
+        },
+        key=lambda p: str(p.relative_to(ROOT)),
+    )
 
 
 def arcname(rel: Path, top: str) -> str:
