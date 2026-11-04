@@ -285,8 +285,16 @@ python -m pytest -q tests/test_w3b_personas.py::test_open_mode_places_follow_loa
 - 函数默认值仍为 `False`，W3 旧测试的 30 张基线数字不动；
   新断言见 `tests/test_w3b_personas.py::test_materialize_can_include_pack_personas`。
 
+### UI 与人物卡
+
+- `ui/adapter.py` 不再自己解析 `locations.yaml` / `personas/*.md`，改为直接调用
+  `load_content(..., use_content=True)`，与后端共用 `enabled.yaml` /
+  `XKX_CONTENT_PACKS` 判定；关闭态仍是 30 张卡，开启态 59 张。
+- `npc_detail` 的 `persona.source`：有卡为 `persona_card`，无卡为 `missing`。
+- 测试：`tests/test_w3b_ui_personas.py` 逐个断言 29 个扩展 NPC 的卡非空且
+  `source == "persona_card"`，关闭态断言恰好 30 张并与 base 卡逐字一致。
+- `tools/ui_check.py`：**66 checks, 0 failed**。
+
 ### 未覆盖项
 
-- `ui/adapter.py` 的 `self.personas` 仍只加载 `content/personas/` 基础目录；
-  UI 进程若未设 `XKX_CONTENT_PACKS`，开启态新 NPC 的对话仍会走空 persona。
-  本轮只把地点名修到动态来源，未改 UI 的卡加载路径。
+- 本轮无新增未覆盖项。

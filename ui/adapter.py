@@ -9,8 +9,7 @@
 
 数据来源（默认 runs/p2b-72d）：
 summary.json / events.jsonl / lod.json / decisions.jsonl / events.sqlite /
-content/locations.yaml + content/additions/locations.yaml /
-content/personas/<id>.md。
+content via load_content（含 packs/enabled.yaml 与 XKX_CONTENT_PACKS 的启用判定）。
 
 注意：这是离线 run 快照，不是实时世界。事件回放重建只读投影；
 对话写入会真实追加到该 run 的 events.sqlite，原 run 的事件数随之增加。
@@ -126,62 +125,6 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
     return rows
 
 
-def _parse_locations(path: Path) -> dict[str, dict[str, Any]]:
-    """极简只读 YAML 解析：只取 locations 的 id / name / exits / services。
-
-    不引入 PyYAML，避免 UI 变成第三方依赖。内容包格式固定且简单，
-    解析失败时返回空表，由更上层的“地点”展示降级为 id。
-    """
-    out: dict[str, dict[str, Any]] = {}
-    if not path.exists():
-        return out
-    current: dict[str, Any] | None = None
-    in_exits = False
-    for raw in path.read_text(encoding="utf-8").splitlines():
-        line = raw.split("#", 1)[0].rstrip()
-        m = re.match(r"\s*-\s*id:\s*(.+)$", line)
-        if m:
-            lid = m.group(1).strip().strip("'\"")
-            current = {"id": lid, "name": lid, "exits": [], "services": []}
-            out[lid] = current
-            in_exits = False
-            continue
-        if current is None:
-            continue
-        m = re.match(r"\s*name:\s*(.+)$", line)
-        if m:
-            current["name"] = m.group(1).strip().strip("'\"")
-            continue
-        m = re.match(r"\s*exits:\s*\[(.+)\]\s*$", line)
-        if m:
-            current["exits"] = [x.strip().strip("'\"") for x in m.group(1).split(",") if x.strip()]
-            continue
-        m = re.match(r"\s*services:\s*\[(.+)\]\s*$", line)
-        if m:
-            current["services"] = [x.strip().strip("'\"") for x in m.group(1).split(",") if x.strip()]
-            continue
-    return out
-
-
-def _merge_locations(base: dict[str, dict[str, Any]], extra: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    merged = dict(base)
-    for lid, row in extra.items():
-        if lid not in merged:
-            merged[lid] = row
-        else:
-            merged[lid].setdefault("exits", [])
-            merged[lid]["exits"] = sorted(set(merged[lid]["exits"]) | set(row.get("exits") or []))
-    # additions 只有单向 exit：补齐反向边，便于 UI 展示连通关系。
-    for lid, row in merged.items():
-        for other in row.get("exits") or []:
-            if other in merged:
-                merged[other].setdefault("exits", [])
-                if lid not in merged[other]["exits"]:
-                    merged[other]["exits"].append(lid)
-        row["exits"] = sorted(set(row.get("exits") or []))
-    return merged
-
-
 def _no_wall_clock_note() -> str:
     return "tick 为虚拟时间；本界面不读取墙钟做世界推进。"
 
@@ -242,14 +185,10 @@ class WorldUIAdapter:
         if self.days <= 0:
             raise SnapshotError("summary.json 里的 days 无效")
 
-        base = _parse_locations(WORLD_ROOT / "content" / "locations.yaml")
-        extra = _parse_locations(WORLD_ROOT / "content" / "additions" / "locations.yaml")
-        self.locations = _merge_locations(base, extra)
-
-        persona_dir = WORLD_ROOT / "content" / "personas"
-        if persona_dir.is_dir():
-            for p in sorted(persona_dir.glob("*.md")):
-                self.personas[p.stem] = p.read_text(encoding="utf-8")
+        content = load_content(WORLD_ROOT, min_npcs=0, allow_fixture=False, use_content=True)
+        self.content = content
+        self.locations = {str(k): dict(v) for k, v in content.locations.items()}
+        self.personas = dict(content.personas)
 
         decisions_path = self.run_path / "decisions.jsonl"
         if decisions_path.exists():
@@ -296,8 +235,10 @@ class WorldUIAdapter:
         src = self.run_path / "events.sqlite"
         if not src.exists() or self.state is None:
             return
-        content = load_content(WORLD_ROOT, min_npcs=0, allow_fixture=False, use_content=True)
-        self.content = content
+        content = self.content
+        if content is None:
+            content = load_content(WORLD_ROOT, min_npcs=0, allow_fixture=False, use_content=True)
+            self.content = content
         seed = int(self.summary.get("seed") or 42)
         store = EventStore(src)
         registry = build_registry(content, seed)
@@ -856,6 +797,7 @@ class WorldUIAdapter:
             "lod": self._lod_view(npc_id),
             "persona": {
                 "path": f"content/personas/{npc_id}.md",
+                "source": "persona_card" if persona_raw.strip() else "missing",
                 "voice_lines": voice_lines,
                 "raw": persona_raw[:4000],
             },
