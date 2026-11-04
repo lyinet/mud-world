@@ -1,0 +1,1023 @@
+{
+  "action_signatures": 96,
+  "distinct_verbs_per_npc": {
+    "bai_lusheng": {
+      "actions": 83,
+      "distinct": 8,
+      "normalized_entropy": 0.6859184494
+    },
+    "cao_banxian": {
+      "actions": 162,
+      "distinct": 11,
+      "normalized_entropy": 0.7404645464
+    },
+    "chang_banxia": {
+      "actions": 23,
+      "distinct": 5,
+      "normalized_entropy": 0.8008504793
+    },
+    "cui_tieyi": {
+      "actions": 147,
+      "distinct": 11,
+      "normalized_entropy": 0.7532829112
+    },
+    "duan_wudou": {
+      "actions": 41,
+      "distinct": 10,
+      "normalized_entropy": 0.8342241051
+    },
+    "fang_cunxin": {
+      "actions": 100,
+      "distinct": 10,
+      "normalized_entropy": 0.6437312581
+    },
+    "gu_qingya": {
+      "actions": 113,
+      "distinct": 11,
+      "normalized_entropy": 0.7308637185
+    },
+    "han_xinglin": {
+      "actions": 128,
+      "distinct": 8,
+      "normalized_entropy": 0.8066897412
+    },
+    "hua_jieyu": {
+      "actions": 75,
+      "distinct": 12,
+      "normalized_entropy": 0.799390512
+    },
+    "jiang_tingyu": {
+      "actions": 81,
+      "distinct": 9,
+      "normalized_entropy": 0.7505005807
+    },
+    "jin_mancang": {
+      "actions": 141,
+      "distinct": 12,
+      "normalized_entropy": 0.749658668
+    },
+    "liu_sanniang": {
+      "actions": 186,
+      "distinct": 12,
+      "normalized_entropy": 0.79825972
+    },
+    "lu_jiujin": {
+      "actions": 190,
+      "distinct": 13,
+      "normalized_entropy": 0.7127490546
+    },
+    "lu_xinghua": {
+      "actions": 77,
+      "distinct": 12,
+      "normalized_entropy": 0.738522417
+    },
+    "luo_qingxu": {
+      "actions": 72,
+      "distinct": 11,
+      "normalized_entropy": 0.7961569237
+    },
+    "meng_jiuniang": {
+      "actions": 165,
+      "distinct": 12,
+      "normalized_entropy": 0.8152605552
+    },
+    "ming_chabo": {
+      "actions": 26,
+      "distinct": 5,
+      "normalized_entropy": 0.9554742919
+    },
+    "pei_wujiu": {
+      "actions": 104,
+      "distinct": 8,
+      "normalized_entropy": 0.6419470468
+    },
+    "qin_wangchuan": {
+      "actions": 78,
+      "distinct": 7,
+      "normalized_entropy": 0.8379330311
+    },
+    "ruan_qingfu": {
+      "actions": 54,
+      "distinct": 8,
+      "normalized_entropy": 0.8366121183
+    },
+    "ruan_xiaoluo": {
+      "actions": 19,
+      "distinct": 4,
+      "normalized_entropy": 0.8287195212
+    },
+    "shen_yanzhou": {
+      "actions": 47,
+      "distinct": 5,
+      "normalized_entropy": 0.7196028856
+    },
+    "shi_gandang": {
+      "actions": 130,
+      "distinct": 10,
+      "normalized_entropy": 0.748629419
+    },
+    "song_henian": {
+      "actions": 68,
+      "distinct": 8,
+      "normalized_entropy": 0.8682484564
+    },
+    "su_hexiang": {
+      "actions": 15,
+      "distinct": 6,
+      "normalized_entropy": 0.8924271029
+    },
+    "wei_changgeng": {
+      "actions": 107,
+      "distinct": 10,
+      "normalized_entropy": 0.6494097984
+    },
+    "wen_xiaoman": {
+      "actions": 120,
+      "distinct": 11,
+      "normalized_entropy": 0.8516267197
+    },
+    "xie_tingyun": {
+      "actions": 50,
+      "distinct": 6,
+      "normalized_entropy": 0.7181796716
+    },
+    "xing_pojun": {
+      "actions": 25,
+      "distinct": 8,
+      "normalized_entropy": 0.8012853966
+    },
+    "yan_shouyi": {
+      "actions": 367,
+      "distinct": 10,
+      "normalized_entropy": 0.6958619646
+    },
+    "zhuo_bufan": {
+      "actions": 174,
+      "distinct": 12,
+      "normalized_entropy": 0.6618224688
+    }
+  },
+  "effective_date": "2026-11-03",
+  "folds": {
+    "move_collapsed": {
+      "effective_categories": 14.6901,
+      "entropy_bits": 3.8767730325,
+      "pairwise_js_mean": 0.425547744,
+      "per_npc_distinct_min": 4,
+      "per_npc_normalized_entropy_mean": 0.7316342653,
+      "per_npc_normalized_entropy_min": 0.5702896616,
+      "top10_share": 0.7676767677
+    },
+    "verb_only": {
+      "effective_categories": 6.603,
+      "entropy_bits": 2.7231278387,
+      "pairwise_js_mean": 0.1448427846,
+      "per_npc_distinct_min": 4,
+      "per_npc_normalized_entropy_mean": 0.769816243,
+      "per_npc_normalized_entropy_min": 0.6419470468,
+      "top10_share": 0.985479798
+    }
+  },
+  "js_vs_global_mean": 0.3762170703,
+  "legacy_verb_entropy_bits": 2.7231278387,
+  "legacy_verb_top10_share": 0.985479798,
+  "metric": "k3_dual_layer",
+  "min_distinct_verbs": 4,
+  "new_verb_action_share": 0.0388257576,
+  "new_verb_signatures": {
+    "debt_settle:initial": 11,
+    "quest_accept:buy": 6,
+    "quest_accept:escort": 7,
+    "quest_accept:trade": 36,
+    "quest_accept:work": 9,
+    "quest_deliver:buy": 5,
+    "quest_deliver:escort": 6,
+    "quest_deliver:trade": 32,
+    "quest_deliver:work": 8,
+    "recruit:npc": 3
+  },
+  "npc_normalized_entropy_mean": 0.8437894732,
+  "npc_normalized_entropy_min": 0.7663231511,
+  "null_js_mean": 0.2738331597,
+  "object_layer": {
+    "actions_total": 3168,
+    "categories": 96,
+    "counts": {
+      "apprentice:npc": 8,
+      "buy:abacus": 2,
+      "buy:charcoal": 10,
+      "buy:coarse_cloth": 128,
+      "buy:iron_ingot": 9,
+      "buy:leather": 19,
+      "buy:mugwort": 21,
+      "consume:flatbread": 218,
+      "consume:noodle": 170,
+      "consume:rice": 2,
+      "consume:tea": 7,
+      "consume:wine": 3,
+      "cultivate:tea_brew": 3,
+      "cultivate:媒婆": 11,
+      "cultivate:庙祝": 1,
+      "cultivate:抄经人": 4,
+      "cultivate:捕快": 1,
+      "cultivate:掌柜": 5,
+      "cultivate:游医": 2,
+      "cultivate:石匠": 30,
+      "cultivate:算命先生": 7,
+      "cultivate:绣娘": 32,
+      "cultivate:脚夫": 6,
+      "cultivate:船夫": 2,
+      "cultivate:药童": 32,
+      "cultivate:菜农": 7,
+      "cultivate:说书人": 10,
+      "cultivate:酒保": 12,
+      "cultivate:镖师": 21,
+      "debt_settle:initial": 11,
+      "escort:escort_agency->market": 4,
+      "escort:escort_agency->temple": 3,
+      "found_sect:settlement": 1,
+      "join_sect:org": 11,
+      "move:academy": 199,
+      "move:escort_agency": 58,
+      "move:ferry": 133,
+      "move:inn": 256,
+      "move:market": 353,
+      "move:pharmacy": 78,
+      "move:smithy": 69,
+      "move:teahouse": 3,
+      "move:temple": 155,
+      "open_shop:stall": 5,
+      "quest_accept:buy": 6,
+      "quest_accept:escort": 7,
+      "quest_accept:trade": 36,
+      "quest_accept:work": 9,
+      "quest_deliver:buy": 5,
+      "quest_deliver:escort": 6,
+      "quest_deliver:trade": 32,
+      "quest_deliver:work": 8,
+      "recruit:npc": 3,
+      "sell:abacus": 3,
+      "sell:charcoal": 8,
+      "sell:coarse_cloth": 67,
+      "sell:cured_meat": 4,
+      "sell:flatbread": 6,
+      "sell:ginseng": 1,
+      "sell:good_blade": 1,
+      "sell:iron_ingot": 2,
+      "sell:jade_pendant": 1,
+      "sell:leather": 10,
+      "sell:mugwort": 9,
+      "sell:noodle": 3,
+      "sell:rice": 17,
+      "sell:silk": 2,
+      "sell:tea": 3,
+      "sell:wine": 3,
+      "talk:?": 41,
+      "trade:-|-|even": 266,
+      "trade:-|-|recv": 21,
+      "trade:charcoal|-|even": 6,
+      "trade:coarse_cloth|-|even": 20,
+      "trade:cured_meat|-|even": 1,
+      "trade:flatbread|-|even": 6,
+      "trade:good_blade|-|even": 1,
+      "trade:iron_ingot|-|even": 1,
+      "trade:jade_pendant|-|even": 2,
+      "trade:leather|-|even": 1,
+      "trade:medicine_mill|-|even": 1,
+      "trade:mugwort|-|even": 7,
+      "trade:needle|-|even": 1,
+      "trade:noodle|-|even": 2,
+      "trade:raw_silk|-|even": 1,
+      "trade:silk|-|even": 1,
+      "trade:silver_hairpin|-|even": 2,
+      "work:academy": 41,
+      "work:escort_agency": 47,
+      "work:ferry": 15,
+      "work:inn": 53,
+      "work:market": 113,
+      "work:pharmacy": 37,
+      "work:smithy": 35,
+      "work:teahouse": 6,
+      "work:temple": 66
+    },
+    "effective_categories": 32.4131,
+    "entropy_bits": 5.018505961,
+    "js_vs_global_mean": 0.3762170703,
+    "normalized_entropy": 0.7621161032,
+    "null_js_mean": 0.2738331597,
+    "pairwise_js_max": 0.9543074066,
+    "pairwise_js_mean": 0.5447178047,
+    "pairwise_js_min": 0.089189934,
+    "pairwise_js_pairs": 465,
+    "per_npc": {
+      "bai_lusheng": {
+        "actions": 83,
+        "distinct": 13,
+        "normalized_entropy": 0.8197793494
+      },
+      "cao_banxian": {
+        "actions": 162,
+        "distinct": 35,
+        "normalized_entropy": 0.8149979228
+      },
+      "chang_banxia": {
+        "actions": 23,
+        "distinct": 7,
+        "normalized_entropy": 0.8876198202
+      },
+      "cui_tieyi": {
+        "actions": 147,
+        "distinct": 29,
+        "normalized_entropy": 0.8234286234
+      },
+      "duan_wudou": {
+        "actions": 41,
+        "distinct": 14,
+        "normalized_entropy": 0.8961166181
+      },
+      "fang_cunxin": {
+        "actions": 100,
+        "distinct": 16,
+        "normalized_entropy": 0.7935883065
+      },
+      "gu_qingya": {
+        "actions": 113,
+        "distinct": 24,
+        "normalized_entropy": 0.8114422509
+      },
+      "han_xinglin": {
+        "actions": 128,
+        "distinct": 19,
+        "normalized_entropy": 0.7839259602
+      },
+      "hua_jieyu": {
+        "actions": 75,
+        "distinct": 17,
+        "normalized_entropy": 0.876537675
+      },
+      "jiang_tingyu": {
+        "actions": 81,
+        "distinct": 21,
+        "normalized_entropy": 0.8249402229
+      },
+      "jin_mancang": {
+        "actions": 141,
+        "distinct": 21,
+        "normalized_entropy": 0.8856242974
+      },
+      "liu_sanniang": {
+        "actions": 186,
+        "distinct": 26,
+        "normalized_entropy": 0.8305438393
+      },
+      "lu_jiujin": {
+        "actions": 190,
+        "distinct": 31,
+        "normalized_entropy": 0.8392835262
+      },
+      "lu_xinghua": {
+        "actions": 77,
+        "distinct": 16,
+        "normalized_entropy": 0.8775195406
+      },
+      "luo_qingxu": {
+        "actions": 72,
+        "distinct": 19,
+        "normalized_entropy": 0.8725365314
+      },
+      "meng_jiuniang": {
+        "actions": 165,
+        "distinct": 30,
+        "normalized_entropy": 0.8569529331
+      },
+      "ming_chabo": {
+        "actions": 26,
+        "distinct": 9,
+        "normalized_entropy": 0.9091117798
+      },
+      "pei_wujiu": {
+        "actions": 104,
+        "distinct": 16,
+        "normalized_entropy": 0.7978255633
+      },
+      "qin_wangchuan": {
+        "actions": 78,
+        "distinct": 22,
+        "normalized_entropy": 0.8724387125
+      },
+      "ruan_qingfu": {
+        "actions": 54,
+        "distinct": 16,
+        "normalized_entropy": 0.8665392873
+      },
+      "ruan_xiaoluo": {
+        "actions": 19,
+        "distinct": 6,
+        "normalized_entropy": 0.9182864002
+      },
+      "shen_yanzhou": {
+        "actions": 47,
+        "distinct": 8,
+        "normalized_entropy": 0.8602067646
+      },
+      "shi_gandang": {
+        "actions": 130,
+        "distinct": 17,
+        "normalized_entropy": 0.8008466855
+      },
+      "song_henian": {
+        "actions": 68,
+        "distinct": 23,
+        "normalized_entropy": 0.8556723729
+      },
+      "su_hexiang": {
+        "actions": 15,
+        "distinct": 8,
+        "normalized_entropy": 0.9022968652
+      },
+      "wei_changgeng": {
+        "actions": 107,
+        "distinct": 22,
+        "normalized_entropy": 0.7859568546
+      },
+      "wen_xiaoman": {
+        "actions": 120,
+        "distinct": 23,
+        "normalized_entropy": 0.860512421
+      },
+      "xie_tingyun": {
+        "actions": 50,
+        "distinct": 9,
+        "normalized_entropy": 0.8050334528
+      },
+      "xing_pojun": {
+        "actions": 25,
+        "distinct": 10,
+        "normalized_entropy": 0.7958800173
+      },
+      "yan_shouyi": {
+        "actions": 367,
+        "distinct": 32,
+        "normalized_entropy": 0.7663231511
+      },
+      "zhuo_bufan": {
+        "actions": 174,
+        "distinct": 27,
+        "normalized_entropy": 0.8657059233
+      }
+    },
+    "per_npc_distinct_mean": 18.9032,
+    "per_npc_distinct_min": 6,
+    "per_npc_normalized_entropy_mean": 0.8437894732,
+    "per_npc_normalized_entropy_min": 0.7663231511,
+    "signal_to_noise": 1.9892,
+    "top10_share": 0.6284722222
+  },
+  "p1_note": "P1 为日程驱动，verb 层集中是预期现象；K3 只做诊断，不设 pass/fail。多样性门槛推迟到 P3 引入意图层后判定。",
+  "pairwise_js_max": 0.9543074066,
+  "pairwise_js_mean": 0.5447178047,
+  "pairwise_js_min": 0.089189934,
+  "reference_v2_thresholds": {
+    "npc_min_distinct_verbs": 3,
+    "npc_normalized_entropy_mean": 0.7,
+    "npc_normalized_entropy_min": 0.5,
+    "pairwise_js_mean": 0.3,
+    "reason": "post-hoc thresholds; not pre-registered; see move_collapsed for collapse sensitivity",
+    "signature_entropy_bits": 4.0,
+    "signature_top10_share": 0.8,
+    "status": "revoked"
+  },
+  "sensitivity_excluding_new_verbs": {
+    "excluded_verbs": [
+      "debt_settle",
+      "quest_accept",
+      "quest_deliver",
+      "recruit"
+    ],
+    "object_layer": {
+      "actions_total": 3045,
+      "categories": 86,
+      "counts": {
+        "apprentice:npc": 8,
+        "buy:abacus": 2,
+        "buy:charcoal": 10,
+        "buy:coarse_cloth": 128,
+        "buy:iron_ingot": 9,
+        "buy:leather": 19,
+        "buy:mugwort": 21,
+        "consume:flatbread": 218,
+        "consume:noodle": 170,
+        "consume:rice": 2,
+        "consume:tea": 7,
+        "consume:wine": 3,
+        "cultivate:tea_brew": 3,
+        "cultivate:媒婆": 11,
+        "cultivate:庙祝": 1,
+        "cultivate:抄经人": 4,
+        "cultivate:捕快": 1,
+        "cultivate:掌柜": 5,
+        "cultivate:游医": 2,
+        "cultivate:石匠": 30,
+        "cultivate:算命先生": 7,
+        "cultivate:绣娘": 32,
+        "cultivate:脚夫": 6,
+        "cultivate:船夫": 2,
+        "cultivate:药童": 32,
+        "cultivate:菜农": 7,
+        "cultivate:说书人": 10,
+        "cultivate:酒保": 12,
+        "cultivate:镖师": 21,
+        "escort:escort_agency->market": 4,
+        "escort:escort_agency->temple": 3,
+        "found_sect:settlement": 1,
+        "join_sect:org": 11,
+        "move:academy": 199,
+        "move:escort_agency": 58,
+        "move:ferry": 133,
+        "move:inn": 256,
+        "move:market": 353,
+        "move:pharmacy": 78,
+        "move:smithy": 69,
+        "move:teahouse": 3,
+        "move:temple": 155,
+        "open_shop:stall": 5,
+        "sell:abacus": 3,
+        "sell:charcoal": 8,
+        "sell:coarse_cloth": 67,
+        "sell:cured_meat": 4,
+        "sell:flatbread": 6,
+        "sell:ginseng": 1,
+        "sell:good_blade": 1,
+        "sell:iron_ingot": 2,
+        "sell:jade_pendant": 1,
+        "sell:leather": 10,
+        "sell:mugwort": 9,
+        "sell:noodle": 3,
+        "sell:rice": 17,
+        "sell:silk": 2,
+        "sell:tea": 3,
+        "sell:wine": 3,
+        "talk:?": 41,
+        "trade:-|-|even": 266,
+        "trade:-|-|recv": 21,
+        "trade:charcoal|-|even": 6,
+        "trade:coarse_cloth|-|even": 20,
+        "trade:cured_meat|-|even": 1,
+        "trade:flatbread|-|even": 6,
+        "trade:good_blade|-|even": 1,
+        "trade:iron_ingot|-|even": 1,
+        "trade:jade_pendant|-|even": 2,
+        "trade:leather|-|even": 1,
+        "trade:medicine_mill|-|even": 1,
+        "trade:mugwort|-|even": 7,
+        "trade:needle|-|even": 1,
+        "trade:noodle|-|even": 2,
+        "trade:raw_silk|-|even": 1,
+        "trade:silk|-|even": 1,
+        "trade:silver_hairpin|-|even": 2,
+        "work:academy": 41,
+        "work:escort_agency": 47,
+        "work:ferry": 15,
+        "work:inn": 53,
+        "work:market": 113,
+        "work:pharmacy": 37,
+        "work:smithy": 35,
+        "work:teahouse": 6,
+        "work:temple": 66
+      },
+      "effective_categories": 29.0359,
+      "entropy_bits": 4.8597670866,
+      "normalized_entropy": 0.7562351182,
+      "pairwise_js_mean": 0.5405873685,
+      "per_npc_distinct_mean": 16.2258,
+      "per_npc_normalized_entropy_mean": 0.8512551955,
+      "per_npc_normalized_entropy_min": 0.7762425504,
+      "top10_share": 0.6538587849
+    }
+  },
+  "signal_to_noise": 1.9892,
+  "signature_counts": {
+    "apprentice:npc": 8,
+    "buy:abacus": 2,
+    "buy:charcoal": 10,
+    "buy:coarse_cloth": 128,
+    "buy:iron_ingot": 9,
+    "buy:leather": 19,
+    "buy:mugwort": 21,
+    "consume:flatbread": 218,
+    "consume:noodle": 170,
+    "consume:rice": 2,
+    "consume:tea": 7,
+    "consume:wine": 3,
+    "cultivate:tea_brew": 3,
+    "cultivate:媒婆": 11,
+    "cultivate:庙祝": 1,
+    "cultivate:抄经人": 4,
+    "cultivate:捕快": 1,
+    "cultivate:掌柜": 5,
+    "cultivate:游医": 2,
+    "cultivate:石匠": 30,
+    "cultivate:算命先生": 7,
+    "cultivate:绣娘": 32,
+    "cultivate:脚夫": 6,
+    "cultivate:船夫": 2,
+    "cultivate:药童": 32,
+    "cultivate:菜农": 7,
+    "cultivate:说书人": 10,
+    "cultivate:酒保": 12,
+    "cultivate:镖师": 21,
+    "debt_settle:initial": 11,
+    "escort:escort_agency->market": 4,
+    "escort:escort_agency->temple": 3,
+    "found_sect:settlement": 1,
+    "join_sect:org": 11,
+    "move:academy": 199,
+    "move:escort_agency": 58,
+    "move:ferry": 133,
+    "move:inn": 256,
+    "move:market": 353,
+    "move:pharmacy": 78,
+    "move:smithy": 69,
+    "move:teahouse": 3,
+    "move:temple": 155,
+    "open_shop:stall": 5,
+    "quest_accept:buy": 6,
+    "quest_accept:escort": 7,
+    "quest_accept:trade": 36,
+    "quest_accept:work": 9,
+    "quest_deliver:buy": 5,
+    "quest_deliver:escort": 6,
+    "quest_deliver:trade": 32,
+    "quest_deliver:work": 8,
+    "recruit:npc": 3,
+    "sell:abacus": 3,
+    "sell:charcoal": 8,
+    "sell:coarse_cloth": 67,
+    "sell:cured_meat": 4,
+    "sell:flatbread": 6,
+    "sell:ginseng": 1,
+    "sell:good_blade": 1,
+    "sell:iron_ingot": 2,
+    "sell:jade_pendant": 1,
+    "sell:leather": 10,
+    "sell:mugwort": 9,
+    "sell:noodle": 3,
+    "sell:rice": 17,
+    "sell:silk": 2,
+    "sell:tea": 3,
+    "sell:wine": 3,
+    "talk:?": 41,
+    "trade:-|-|even": 266,
+    "trade:-|-|recv": 21,
+    "trade:charcoal|-|even": 6,
+    "trade:coarse_cloth|-|even": 20,
+    "trade:cured_meat|-|even": 1,
+    "trade:flatbread|-|even": 6,
+    "trade:good_blade|-|even": 1,
+    "trade:iron_ingot|-|even": 1,
+    "trade:jade_pendant|-|even": 2,
+    "trade:leather|-|even": 1,
+    "trade:medicine_mill|-|even": 1,
+    "trade:mugwort|-|even": 7,
+    "trade:needle|-|even": 1,
+    "trade:noodle|-|even": 2,
+    "trade:raw_silk|-|even": 1,
+    "trade:silk|-|even": 1,
+    "trade:silver_hairpin|-|even": 2,
+    "work:academy": 41,
+    "work:escort_agency": 47,
+    "work:ferry": 15,
+    "work:inn": 53,
+    "work:market": 113,
+    "work:pharmacy": 37,
+    "work:smithy": 35,
+    "work:teahouse": 6,
+    "work:temple": 66
+  },
+  "signature_entropy_bits": 5.018505961,
+  "signature_top10_share": 0.6284722222,
+  "spec_version": "1.1.0",
+  "status": "diagnostic_only",
+  "top10_share": 0.6284722222,
+  "v10_compat": {
+    "object_layer": {
+      "actions_total": 3168,
+      "categories": 90,
+      "counts": {
+        "apprentice:npc": 8,
+        "buy:abacus": 2,
+        "buy:charcoal": 10,
+        "buy:coarse_cloth": 128,
+        "buy:iron_ingot": 9,
+        "buy:leather": 19,
+        "buy:mugwort": 21,
+        "consume:flatbread": 218,
+        "consume:noodle": 170,
+        "consume:rice": 2,
+        "consume:tea": 7,
+        "consume:wine": 3,
+        "cultivate:tea_brew": 3,
+        "cultivate:媒婆": 11,
+        "cultivate:庙祝": 1,
+        "cultivate:抄经人": 4,
+        "cultivate:捕快": 1,
+        "cultivate:掌柜": 5,
+        "cultivate:游医": 2,
+        "cultivate:石匠": 30,
+        "cultivate:算命先生": 7,
+        "cultivate:绣娘": 32,
+        "cultivate:脚夫": 6,
+        "cultivate:船夫": 2,
+        "cultivate:药童": 32,
+        "cultivate:菜农": 7,
+        "cultivate:说书人": 10,
+        "cultivate:酒保": 12,
+        "cultivate:镖师": 21,
+        "debt_settle:?": 11,
+        "escort:escort_agency->market": 4,
+        "escort:escort_agency->temple": 3,
+        "found_sect:settlement": 1,
+        "join_sect:org": 11,
+        "move:academy": 199,
+        "move:escort_agency": 58,
+        "move:ferry": 133,
+        "move:inn": 256,
+        "move:market": 353,
+        "move:pharmacy": 78,
+        "move:smithy": 69,
+        "move:teahouse": 3,
+        "move:temple": 155,
+        "open_shop:stall": 5,
+        "quest_accept:?": 58,
+        "quest_deliver:?": 51,
+        "recruit:?": 3,
+        "sell:abacus": 3,
+        "sell:charcoal": 8,
+        "sell:coarse_cloth": 67,
+        "sell:cured_meat": 4,
+        "sell:flatbread": 6,
+        "sell:ginseng": 1,
+        "sell:good_blade": 1,
+        "sell:iron_ingot": 2,
+        "sell:jade_pendant": 1,
+        "sell:leather": 10,
+        "sell:mugwort": 9,
+        "sell:noodle": 3,
+        "sell:rice": 17,
+        "sell:silk": 2,
+        "sell:tea": 3,
+        "sell:wine": 3,
+        "talk:?": 41,
+        "trade:-|-|even": 266,
+        "trade:-|-|recv": 21,
+        "trade:charcoal|-|even": 6,
+        "trade:coarse_cloth|-|even": 20,
+        "trade:cured_meat|-|even": 1,
+        "trade:flatbread|-|even": 6,
+        "trade:good_blade|-|even": 1,
+        "trade:iron_ingot|-|even": 1,
+        "trade:jade_pendant|-|even": 2,
+        "trade:leather|-|even": 1,
+        "trade:medicine_mill|-|even": 1,
+        "trade:mugwort|-|even": 7,
+        "trade:needle|-|even": 1,
+        "trade:noodle|-|even": 2,
+        "trade:raw_silk|-|even": 1,
+        "trade:silk|-|even": 1,
+        "trade:silver_hairpin|-|even": 2,
+        "work:academy": 41,
+        "work:escort_agency": 47,
+        "work:ferry": 15,
+        "work:inn": 53,
+        "work:market": 113,
+        "work:pharmacy": 37,
+        "work:smithy": 35,
+        "work:teahouse": 6,
+        "work:temple": 66
+      },
+      "effective_categories": 31.2424,
+      "entropy_bits": 4.9654348466,
+      "normalized_entropy": 0.7648717204,
+      "pairwise_js_mean": 0.5344990263,
+      "per_npc_distinct_mean": 18.1613,
+      "per_npc_normalized_entropy_mean": 0.8483642776,
+      "per_npc_normalized_entropy_min": 0.7859568546,
+      "top10_share": 0.6284722222
+    },
+    "spec_version": "1.0.0"
+  },
+  "verb_counts": {
+    "apprentice": 8,
+    "buy": 189,
+    "consume": 400,
+    "cultivate": 186,
+    "debt_settle": 11,
+    "escort": 7,
+    "found_sect": 1,
+    "join_sect": 11,
+    "move": 1304,
+    "open_shop": 5,
+    "quest_accept": 58,
+    "quest_deliver": 51,
+    "recruit": 3,
+    "sell": 140,
+    "talk": 41,
+    "trade": 340,
+    "work": 413
+  },
+  "verb_layer": {
+    "actions_total": 3168,
+    "categories": 17,
+    "counts": {
+      "apprentice": 8,
+      "buy": 189,
+      "consume": 400,
+      "cultivate": 186,
+      "debt_settle": 11,
+      "escort": 7,
+      "found_sect": 1,
+      "join_sect": 11,
+      "move": 1304,
+      "open_shop": 5,
+      "quest_accept": 58,
+      "quest_deliver": 51,
+      "recruit": 3,
+      "sell": 140,
+      "talk": 41,
+      "trade": 340,
+      "work": 413
+    },
+    "effective_categories": 6.603,
+    "entropy_bits": 2.7231278387,
+    "js_vs_global_mean": 0.0891012485,
+    "normalized_entropy": 0.666214702,
+    "null_js_mean": null,
+    "pairwise_js_max": 0.4085481883,
+    "pairwise_js_mean": 0.1448427846,
+    "pairwise_js_min": 0.0066680687,
+    "pairwise_js_pairs": 465,
+    "per_npc": {
+      "bai_lusheng": {
+        "actions": 83,
+        "distinct": 8,
+        "normalized_entropy": 0.6859184494
+      },
+      "cao_banxian": {
+        "actions": 162,
+        "distinct": 11,
+        "normalized_entropy": 0.7404645464
+      },
+      "chang_banxia": {
+        "actions": 23,
+        "distinct": 5,
+        "normalized_entropy": 0.8008504793
+      },
+      "cui_tieyi": {
+        "actions": 147,
+        "distinct": 11,
+        "normalized_entropy": 0.7532829112
+      },
+      "duan_wudou": {
+        "actions": 41,
+        "distinct": 10,
+        "normalized_entropy": 0.8342241051
+      },
+      "fang_cunxin": {
+        "actions": 100,
+        "distinct": 10,
+        "normalized_entropy": 0.6437312581
+      },
+      "gu_qingya": {
+        "actions": 113,
+        "distinct": 11,
+        "normalized_entropy": 0.7308637185
+      },
+      "han_xinglin": {
+        "actions": 128,
+        "distinct": 8,
+        "normalized_entropy": 0.8066897412
+      },
+      "hua_jieyu": {
+        "actions": 75,
+        "distinct": 12,
+        "normalized_entropy": 0.799390512
+      },
+      "jiang_tingyu": {
+        "actions": 81,
+        "distinct": 9,
+        "normalized_entropy": 0.7505005807
+      },
+      "jin_mancang": {
+        "actions": 141,
+        "distinct": 12,
+        "normalized_entropy": 0.749658668
+      },
+      "liu_sanniang": {
+        "actions": 186,
+        "distinct": 12,
+        "normalized_entropy": 0.79825972
+      },
+      "lu_jiujin": {
+        "actions": 190,
+        "distinct": 13,
+        "normalized_entropy": 0.7127490546
+      },
+      "lu_xinghua": {
+        "actions": 77,
+        "distinct": 12,
+        "normalized_entropy": 0.738522417
+      },
+      "luo_qingxu": {
+        "actions": 72,
+        "distinct": 11,
+        "normalized_entropy": 0.7961569237
+      },
+      "meng_jiuniang": {
+        "actions": 165,
+        "distinct": 12,
+        "normalized_entropy": 0.8152605552
+      },
+      "ming_chabo": {
+        "actions": 26,
+        "distinct": 5,
+        "normalized_entropy": 0.9554742919
+      },
+      "pei_wujiu": {
+        "actions": 104,
+        "distinct": 8,
+        "normalized_entropy": 0.6419470468
+      },
+      "qin_wangchuan": {
+        "actions": 78,
+        "distinct": 7,
+        "normalized_entropy": 0.8379330311
+      },
+      "ruan_qingfu": {
+        "actions": 54,
+        "distinct": 8,
+        "normalized_entropy": 0.8366121183
+      },
+      "ruan_xiaoluo": {
+        "actions": 19,
+        "distinct": 4,
+        "normalized_entropy": 0.8287195212
+      },
+      "shen_yanzhou": {
+        "actions": 47,
+        "distinct": 5,
+        "normalized_entropy": 0.7196028856
+      },
+      "shi_gandang": {
+        "actions": 130,
+        "distinct": 10,
+        "normalized_entropy": 0.748629419
+      },
+      "song_henian": {
+        "actions": 68,
+        "distinct": 8,
+        "normalized_entropy": 0.8682484564
+      },
+      "su_hexiang": {
+        "actions": 15,
+        "distinct": 6,
+        "normalized_entropy": 0.8924271029
+      },
+      "wei_changgeng": {
+        "actions": 107,
+        "distinct": 10,
+        "normalized_entropy": 0.6494097984
+      },
+      "wen_xiaoman": {
+        "actions": 120,
+        "distinct": 11,
+        "normalized_entropy": 0.8516267197
+      },
+      "xie_tingyun": {
+        "actions": 50,
+        "distinct": 6,
+        "normalized_entropy": 0.7181796716
+      },
+      "xing_pojun": {
+        "actions": 25,
+        "distinct": 8,
+        "normalized_entropy": 0.8012853966
+      },
+      "yan_shouyi": {
+        "actions": 367,
+        "distinct": 10,
+        "normalized_entropy": 0.6958619646
+      },
+      "zhuo_bufan": {
+        "actions": 174,
+        "distinct": 12,
+        "normalized_entropy": 0.6618224688
+      }
+    },
+    "per_npc_distinct_mean": 9.1935,
+    "per_npc_distinct_min": 4,
+    "per_npc_normalized_entropy_mean": 0.769816243,
+    "per_npc_normalized_entropy_min": 0.6419470468,
+    "signal_to_noise": null,
+    "top10_share": 0.985479798
+  }
+}

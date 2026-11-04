@@ -1,0 +1,40 @@
+{"actor": "yan_shouyi", "args": {"quest": "quest:errand_market_ledger:0", "quest_verb": "trade"}, "reason": "not_at_giver", "source": "planner", "tick": 29, "verb": "quest_accept"}
+{"actor": "jin_mancang", "args": {"quest": "quest:errand_academy_notice:0", "quest_verb": "trade"}, "reason": "not_at_giver", "source": "planner", "tick": 29, "verb": "quest_accept"}
+{"actor": "zhuo_bufan", "args": {"quest": "quest:errand_silk_sample:0", "quest_verb": "trade"}, "reason": "not_at_giver", "source": "planner", "tick": 44, "verb": "quest_accept"}
+{"actor": "cao_banxian", "args": {"quest": "quest:procure_charcoal:0", "quest_verb": "buy"}, "reason": "not_at_giver", "source": "planner", "tick": 53, "verb": "quest_accept"}
+{"actor": "bai_lusheng", "args": {"money_delta": 0, "offer": [], "target": "liu_sanniang", "want": []}, "reason": "not_together", "source": "planner", "tick": 149, "verb": "trade"}
+{"actor": "yan_shouyi", "args": {"quest": "quest:commission_herb_sorting:144", "quest_verb": "work"}, "reason": "not_at_giver", "source": "planner", "tick": 153, "verb": "quest_accept"}
+{"actor": "shi_gandang", "args": {"quest": "quest:inquiry_academy_lecture:144", "quest_verb": "trade"}, "reason": "not_at_giver", "source": "planner", "tick": 179, "verb": "quest_accept"}
+{"actor": "fang_cunxin", "args": {"money_delta": 0, "offer": [{"item": "coarse_cloth", "qty": 1}], "target": "yan_shouyi", "want": []}, "reason": "not_together", "source": "planner", "tick": 192, "verb": "trade"}
+{"actor": "liu_sanniang", "args": {"quest": "quest:procure_mugwort:144", "quest_verb": "buy"}, "reason": "not_at_giver", "source": "planner", "tick": 201, "verb": "quest_accept"}
+{"actor": "bai_lusheng", "args": {"money_delta": 0, "offer": [], "target": "liu_sanniang", "want": []}, "reason": "not_together", "source": "planner", "tick": 292, "verb": "trade"}
+{"actor": "lu_jiujin", "args": {"money_delta": 0, "offer": [{"item": "flatbread", "qty": 1}], "target": "pei_wujiu", "want": []}, "reason": "not_together", "source": "planner", "tick": 295, "verb": "trade"}
+{"actor": "qin_wangchuan", "args": {"money_delta": 0, "offer": [{"item": "cured_meat", "qty": 1}], "target": "wei_changgeng", "want": []}, "reason": "not_together", "source": "planner", "tick": 436, "verb": "trade"}
+{"actor": "jin_mancang", "args": {"money_delta": 5, "offer": [], "target": "cao_banxian", "want": []}, "reason": "not_together", "source": "planner", "tick": 437, "verb": "trade"}
+{"actor": "fang_cunxin", "args": {"money_delta": 0, "offer": [{"item": "plaster", "qty": 1}], "target": "yan_shouyi", "want": []}, "reason": "not_together", "source": "planner", "tick": 438, "verb": "trade"}
+{"actor": "cao_banxian", "args": {"quest": "quest:errand_market_ledger:432", "quest_verb": "trade"}, "reason": "not_at_giver", "source": "planner", "tick": 455, "verb": "quest_accept"}
+{"actor": "jin_mancang", "args": {"money_delta": 5, "offer": [], "target": "cao_banxian", "want": []}, "reason": "not_together", "source": "planner", "tick": 462, "verb": "trade"}
+{"actor": "cui_tieyi", "args": {"money_delta": 0, "offer": [], "target": "yan_shouyi", "want": []}, "reason": "not_together", "source": "planner", "tick": 479, "verb": "trade"}
+{"actor": "qin_wangchuan", "args": {"money_delta": 0, "offer": [{"item": "flatbread", "qty": 1}], "target": "wei_changgeng", "want": []}, "reason": "not_together", "source": "planner", "tick": 580, "verb": "trade"}
+{"actor": "luo_qingxu", "args": {"quest": "quest:errand_academy_notice:576", "quest_verb": "trade"}, "reason": "not_at_target", "source": "planner", "tick": 602, "verb": "quest_deliver"}
+{"actor": "yan_shouyi", "args": {"quest": "quest:errand_silk_sample:576", "quest_verb": "trade"}, "reason": "not_at_target", "source": "planner", "tick": 611, "verb": "quest_deliver"}
+{"actor": "qin_wangchuan", "args": {"money_delta": 0, "offer": [{"item": "flatbread", "qty": 1}], "target": "wei_changgeng", "want": []}, "reason": "not_together", "source": "planner", "tick": 724, "verb": "trade"}
+{"actor": "meng_jiuniang", "args": {"quest": "quest:commission_stonework:720", "quest_verb": "work"}, "reason": "not_at_target", "source": "planner", "tick": 727, "verb": "quest_deliver"}
+{"actor": "meng_jiuniang", "args": {"money_delta": 5, "offer": [], "target": "shi_gandang", "want": []}, "reason": "not_together", "source": "planner", "tick": 730, "verb": "trade"}
+{"actor": "lu_xinghua", "args": {"duration_days": 30, "target": "wei_changgeng"}, "reason": "not_together", "source": "llm", "tick": 720, "verb": "apprentice"}
+{"actor": "yan_shouyi", "args": {"quest": "quest:errand_silk_sample:576", "quest_verb": "trade"}, "reason": "not_at_target", "source": "planner", "tick": 756, "verb": "quest_deliver"}
+{"actor": "lu_jiujin", "args": {"quest": "quest:procure_charcoal:720", "quest_verb": "buy"}, "reason": "not_at_giver", "source": "planner", "tick": 758, "verb": "quest_accept"}
+{"actor": "lu_jiujin", "args": {"from": "ferry", "item": "charcoal", "qty": 2, "quest": "quest:procure_charcoal:720"}, "reason": "wrong_location", "source": "planner", "tick": 760, "verb": "buy"}
+{"actor": "wei_changgeng", "args": {"money_delta": 0, "offer": [{"item": "coarse_cloth", "qty": 1}], "target": "qin_wangchuan", "want": []}, "reason": "not_together", "source": "planner", "tick": 870, "verb": "trade"}
+{"actor": "meng_jiuniang", "args": {"quest": "quest:commission_stonework:720", "quest_verb": "work"}, "reason": "not_at_target", "source": "planner", "tick": 871, "verb": "quest_deliver"}
+{"actor": "meng_jiuniang", "args": {"money_delta": 5, "offer": [], "target": "shi_gandang", "want": []}, "reason": "not_together", "source": "planner", "tick": 873, "verb": "trade"}
+{"actor": "zhuo_bufan", "args": {"quest": "quest:errand_market_sweet:864", "quest_verb": "trade"}, "reason": "not_at_giver", "source": "planner", "tick": 879, "verb": "quest_accept"}
+{"actor": "luo_qingxu", "args": {"quest": "quest:errand_academy_notice:576", "quest_verb": "trade"}, "reason": "not_at_target", "source": "planner", "tick": 910, "verb": "quest_deliver"}
+{"actor": "hua_jieyu", "args": {"quest": "quest:procure_mugwort:1008", "quest_verb": "buy"}, "reason": "not_at_giver", "source": "planner", "tick": 1034, "verb": "quest_accept"}
+{"actor": "jiang_tingyu", "args": {"money_delta": 0, "offer": [{"item": "mugwort", "qty": 1}], "target": "fang_cunxin", "want": []}, "reason": "not_together", "source": "planner", "tick": 1156, "verb": "trade"}
+{"actor": "yan_shouyi", "args": {"quest": "quest:commission_herb_sorting:1152", "quest_verb": "work"}, "reason": "not_at_giver", "source": "planner", "tick": 1185, "verb": "quest_accept"}
+{"actor": "qin_wangchuan", "args": {"quest": "quest:errand_academy_notice:1152", "quest_verb": "trade"}, "reason": "not_at_giver", "source": "planner", "tick": 1194, "verb": "quest_accept"}
+{"actor": "jiang_tingyu", "args": {"money_delta": 0, "offer": [{"item": "silver_hairpin", "qty": 1}], "target": "fang_cunxin", "want": []}, "reason": "not_together", "source": "planner", "tick": 1300, "verb": "trade"}
+{"actor": "song_henian", "args": {"quest": "quest:commission_stonework:1296", "quest_verb": "work"}, "reason": "not_at_giver", "source": "planner", "tick": 1301, "verb": "quest_accept"}
+{"actor": "shi_gandang", "args": {"money_delta": 0, "offer": [], "quest": "quest:errand_market_ledger:1296", "target": "song_henian", "want": []}, "reason": "not_together", "source": "planner", "tick": 1303, "verb": "trade"}
+{"actor": "hua_jieyu", "args": {"money_delta": 0, "offer": [], "quest": "quest:errand_academy_notice:1152", "target": "bai_lusheng", "want": []}, "reason": "not_together", "source": "planner", "tick": 1340, "verb": "trade"}
