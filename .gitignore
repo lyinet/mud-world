@@ -5,7 +5,16 @@ __pycache__/
 *.pyc
 *.pyo
 *.sqlite
-*.sqlite-journal
+*.sqlite-*
+# 交付产物不入库（历史已入库的 p3f 产物按 git rm --cached 处理）
+dist/
+# 本地环境变量与私钥
+.env
+.env.local
+*.pem
+*.key
+# 本地自动推送日志
+.git/push.log
 # 交付证据里的 run 目录需要入库，供干净 clone 直接事件回放。
 !reports/evidence/runs/
 !reports/evidence/runs/**
