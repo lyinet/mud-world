@@ -259,6 +259,9 @@ class _Handler(BaseHTTPRequestHandler):
         else:
             result = session.perform(account, route, body, request_id)
         status = 429 if str(result.get("reject_reason") or "") in _CAPACITY_CODES else 200
+        if status == 429:
+            # 原因码双写：老客户端读 reject_reason，新客户端读 code。
+            result.setdefault("code", str(result.get("reject_reason") or ""))
         # leave 成功即记录断线 tick，60 秒重连据此判断同一会话/新会话。
         if route == "leave" and row is not None and bool(result.get("ok")):
             accounts = self._accounts()
