@@ -196,8 +196,14 @@ class AccountStore:
             "expires_in": int(self.token_ttl),
         }
 
-    def resolve_token(self, token: Any, now: float | None = None) -> tuple[dict[str, Any] | None, str | None]:
-        """解析 Bearer 令牌。返回 (session_row, error_code)。"""
+    def resolve_token(
+        self, token: Any, now: float | None = None, touch: bool = True
+    ) -> tuple[dict[str, Any] | None, str | None]:
+        """解析 Bearer 令牌。返回 (session_row, error_code)。
+
+        `touch=False` 用于 reconnect：保留原始 last_seen_at，才能识别“静默断线”
+        （客户端没调 leave，但已超过 60 秒没有请求）。
+        """
         raw = str(token or "").strip()
         if not raw:
             return None, "auth_missing_token"
@@ -210,10 +216,11 @@ class AccountStore:
                 return None, "auth_invalid_token"
             if str(row["status"]) == "expired" or float(row["expires_at"]) <= now_f:
                 return None, "auth_expired_token"
-            self.conn.execute(
-                "UPDATE sessions SET last_seen_at=? WHERE id=?", (now_f, str(row["id"]))
-            )
-            self.conn.commit()
+            if touch:
+                self.conn.execute(
+                    "UPDATE sessions SET last_seen_at=? WHERE id=?", (now_f, str(row["id"]))
+                )
+                self.conn.commit()
             return self._row(row), None
 
     def session_info(self, session_id: str) -> dict[str, Any] | None:
@@ -296,6 +303,22 @@ class AccountStore:
             if str(row["status"]) == "expired" or float(row["expires_at"]) <= now_f:
                 return {"ok": False, "code": "auth_expired_token"}
             if row["disconnected_at"] is None:
+                idle = now_f - float(row["last_seen_at"])
+                if idle > float(self.reconnect_grace):
+                    # 静默断线（没调 leave，但超过宽限无请求）：按新会话处理。
+                    self.conn.execute(
+                        "UPDATE sessions SET status='expired' WHERE id=?", (str(session_id),)
+                    )
+                    created = self._create_session(str(row["account_id"]), now_f)
+                    created.update(
+                        {
+                            "resumed": True,
+                            "new_session": True,
+                            "tick_at_disconnect": None,
+                        }
+                    )
+                    self.conn.commit()
+                    return created
                 self.conn.execute(
                     "UPDATE sessions SET last_seen_at=? WHERE id=?", (now_f, str(session_id))
                 )

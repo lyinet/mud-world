@@ -175,7 +175,6 @@ def test_reconnect_after_process_restart_keeps_save(tmp_path):
         _play(base, token)
         status, left = _request(base, "/api/player/leave", body={}, token=token)
         assert status == 200 and left["ok"] is True
-        tick_at_disconnect = session.state.tick
         before = _snapshot(_request(base, "/api/player/state?account_id=u_demo", method="GET")[1])
     finally:
         _stop(server, thread, session, accounts)
@@ -193,3 +192,47 @@ def test_reconnect_after_process_restart_keeps_save(tmp_path):
         assert _snapshot(res["state"]) == before
     finally:
         _stop(server2, thread2, session2, accounts2)
+
+
+def test_silent_disconnect_within_60s_keeps_session(tmp_path):
+    """没有调用 leave（崩溃/断网）：靠 last_seen 判断，59 秒内同会话。"""
+    clock = Clock()
+    session, accounts, server, thread, base = _start(tmp_path, clock)
+    try:
+        assert _request(base, "/api/auth/register", body={"username": "u_demo", "password": "secret123"})[0] in (200, 409)
+        status, login = _request(base, "/api/auth/login", body={"username": "u_demo", "password": "secret123"})
+        assert status == 200
+        token, sid = login["token"], login["session_id"]
+        _play(base, token)
+        before = _snapshot(_request(base, "/api/player/state?account_id=u_demo", method="GET")[1])
+
+        clock.t += 59
+        status, res = _request(base, "/api/player/reconnect", body={}, token=token)
+        assert status == 200 and res["ok"] is True
+        assert res["new_session"] is False and res["session_id"] == sid
+        assert _snapshot(res["state"]) == before
+    finally:
+        _stop(server, thread, session, accounts)
+
+
+def test_silent_disconnect_after_60s_creates_new_session(tmp_path):
+    """没有调用 leave：61 秒无请求，按新会话处理，存档仍在。"""
+    clock = Clock()
+    session, accounts, server, thread, base = _start(tmp_path, clock)
+    try:
+        assert _request(base, "/api/auth/register", body={"username": "u_demo", "password": "secret123"})[0] in (200, 409)
+        status, login = _request(base, "/api/auth/login", body={"username": "u_demo", "password": "secret123"})
+        assert status == 200
+        token, sid = login["token"], login["session_id"]
+        _play(base, token)
+        before = _snapshot(_request(base, "/api/player/state?account_id=u_demo", method="GET")[1])
+
+        clock.t += 61
+        status, res = _request(base, "/api/player/reconnect", body={}, token=token)
+        assert status == 200 and res["ok"] is True
+        assert res["new_session"] is True and res["session_id"] != sid
+        assert _snapshot(res["state"]) == before
+        status, old = _request(base, "/api/auth/me", method="GET", token=token)
+        assert status == 401 and old["code"] == "auth_expired_token"
+    finally:
+        _stop(server, thread, session, accounts)

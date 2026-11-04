@@ -111,6 +111,8 @@ PYTHONPATH=src python3 -m wsim.api --root . --run service --auth auto --port 802
 ## 7. 清理僵尸会话
 
 - 客户端正常离开（`POST /api/player/leave`）会记录断线时刻与 tick。
+- 客户端崩溃/断网（未调用 leave）时，按最后一次成功请求的 `last_seen_at` 判断：
+  60 秒内重连沿用原会话，超过 60 秒按新会话处理；两种情况下存档都不受影响。
 - 断线 60 秒内 `POST /api/player/reconnect` 沿用原会话；超过 60 秒自动作废旧会话并新建，
   事件存档不受影响。
 - 令牌默认 24 小时过期。运维可批量把“断线超宽限 / 令牌过期”的会话置为 `expired`：

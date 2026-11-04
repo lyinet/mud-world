@@ -322,7 +322,8 @@ class _Handler(BaseHTTPRequestHandler):
         if accounts is None:
             self._send_auth_error("auth_disabled", 503)
             return
-        row, err = accounts.resolve_token(self._bearer())
+        # 不 touch last_seen_at：要用原始空闲时长判断“静默断线”是否超过宽限。
+        row, err = accounts.resolve_token(self._bearer(), touch=False)
         if err or row is None:
             self._send_auth_error(err or "auth_invalid_token")
             return

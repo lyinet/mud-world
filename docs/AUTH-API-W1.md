@@ -79,6 +79,8 @@ curl -s -X POST http://127.0.0.1:8020/api/player/reconnect \
 - 断线 ≤ 60 秒：`new_session=false`，同一 `session_id` / token，tick 不推进。
 - 断线 > 60 秒：`new_session=true`，返回新 `session_id` 与新 `token`；旧会话/旧令牌失效，
   但事件存档（位置/钱包/任务/成长线/NPC 关系）原样保留。
+- 客户端未调用 `leave`（崩溃/断网）时，以服务端记录的 `last_seen_at` 判断：
+  60 秒内重连沿用原会话，超过 60 秒按新会话处理；存档同样不受影响。
 
 ## 2. 错误码枚举（冻结）
 
