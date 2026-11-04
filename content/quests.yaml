@@ -135,6 +135,7 @@ quests:
     verb: buy
     intent_args: {item: charcoal, qty: 2, from: ferry}
     deadline_days: 2
+    require_reputation: 3   # 声望门槛：至少完成 1 单后才在委托板出现
     reward: {money: 36, relation: 2}
     notes: "客栈灶上缺炭，宋鹤年让人去河渡买两担；一担十五文，共垫 30 文，报酬 36 文。"
 

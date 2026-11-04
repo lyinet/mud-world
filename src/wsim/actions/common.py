@@ -265,6 +265,25 @@ def max_skill(ent: Entity) -> float:
     return max(ent.skills.values()) if ent.skills else 0.0
 
 
+def reputation_points(state: WorldState, pid: str) -> float:
+    """声望点：完成委托 + 关系好感 + 门派/产业身份。
+
+    放在动作层，供接单前置校验与玩家成长线视图共用，避免两处公式漂移。
+    """
+    done = sum(
+        1 for q in state.quests.values() if q.acceptor == pid and q.status == "completed"
+    )
+    relation = sum(
+        max(0.0, float(rel.affection))
+        for rel in state.relations.values()
+        if rel.status == "active" and pid in (rel.a, rel.b)
+    )
+    ent = state.entities.get(pid)
+    faction = 10.0 if ent is not None and ent.faction else 0.0
+    business = 10.0 if ent is not None and ent.business else 0.0
+    return 3.0 * done + 0.5 * relation + faction + business
+
+
 def path_between(state: WorldState, start: str, goal: str) -> list[str]:
     """BFS 最短路径（不含起点，含终点）。出口排序保证确定性。"""
     if start == goal:

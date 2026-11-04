@@ -152,12 +152,12 @@ def test_growth_view_three_lines_have_next_level():
     ])
     view = growth_view(state, content, PID)
     assert view["reputation"]["level"] == 1 and view["reputation"]["next_at"] == 3.0
-    assert view["skill"]["level"] == 1 and view["skill"]["next_at"] == 0.36
-    assert view["assets"]["level"] == 1 and view["assets"]["next_at"] == 400.0
+    assert view["skill"]["level"] == 1 and view["skill"]["next_at"] == 0.42
+    assert view["assets"]["level"] == 1 and view["assets"]["next_at"] == 600.0
     assert view["assets"]["next_unlock"].startswith("可开摊")
 
-    state.entities[PID].skills["worker"] = 0.36
-    state.accounts[wallet(PID)] = 432
+    state.entities[PID].skills["worker"] = 0.42
+    state.accounts[wallet(PID)] = 600
     view = growth_view(state, content, PID)
     assert view["skill"]["level"] == 2 and view["skill"]["name"] == "手熟"
     assert view["assets"]["level"] == 2 and view["assets"]["name"] == "小有积蓄"
@@ -198,7 +198,7 @@ def test_today_view_lists_four_action_groups():
         nearby=[{"id": "n1", "name": "甲", "role": "worker"}],
     )
     assert view["quests"][0]["id"] == "q1"
-    assert view["skills"][0]["hours_to_next"] == 4
+    assert view["skills"][0]["hours_to_next"] == 28
     assert view["npcs"][0]["id"] == "n1"
     assert [b["shop_type"] for b in view["business"]] == ["stall", "storefront", "branch"]
     assert view["business"][0]["affordable"] is True

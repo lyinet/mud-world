@@ -4,7 +4,7 @@ from __future__ import annotations
 from ..core.clock import TICKS_PER_DAY
 from ..core.models import Effect, Intent, Reject
 from ..world.state import WorldState
-from .common import memory, require_entity, wallet
+from .common import memory, reputation_points, require_entity, wallet
 from .registry import Action
 
 
@@ -48,6 +48,8 @@ class SystemQuestPostAction(Action):
             completed = int(stats.get("completed", 0))
             if created >= min_samples and completed / created < min_rate:
                 continue
+            # 过期 open 单已在日界“先下架再补发”中被 prune，这里统计的是仍在
+            # 世界的过期记录（保留期内），不会再永久累计、封停模板。
             retained_expired = sum(1 for q in existing if q.status == "expired")
             if retained_expired >= expired_cap:
                 continue
@@ -93,6 +95,8 @@ class QuestAcceptAction(Action):
             return ["quest_not_found"]
         if quest.status != "open":
             return ["quest_not_open"]
+        if quest.deadline_tick and intent.tick > quest.deadline_tick:
+            return ["quest_expired"]
         giver = state.entities.get(quest.giver)
         if giver is None or giver.status != "alive":
             return ["giver_missing"]
@@ -101,6 +105,10 @@ class QuestAcceptAction(Action):
         if ent.escort_id is not None:
             return ["busy_on_escort"]
         if ent.id.startswith("player:"):
+            tpl = self.content.quests.get(quest.template_id) or {}
+            need = float(tpl.get("require_reputation", 0) or 0)
+            if need > 0 and reputation_points(state, ent.id) < need:
+                return ["reputation_too_low"]
             active = sum(
                 1 for q in state.quests.values()
                 if q.status == "accepted" and q.acceptor == ent.id
@@ -221,9 +229,12 @@ class SystemQuestFailAction(Action):
                         memory(state, q.acceptor, intent.tick, f"任务「{q.template_id}」超时未交付", 0.4)
                     )
             elif q.status == "open" and intent.tick > q.deadline_tick:
-                # 无人接单且已过期：关闭模板占位，让后续 system_quest_post 能重发。
-                # 不写 NPC 记忆（没有接单人就没人需要解释）。
+                # 无人接单且已过期：标记 expired；在线玩家世界按日界补发前先下架，
+                # 避免过期单留在板上、也避免它累积占满补发配额。
+                # 不写 NPC 记忆（没有接单人就没人需要解释）；历史仍留在 quest_stats。
                 effects.append(Effect("quest_fail", {"id": qid, "tick": intent.tick}))
+                if bool(intent.args.get("prune_expired", False)):
+                    effects.append(Effect("quest_prune", {"ids": [qid]}))
         # 过期/失败记录保留 7 天后清理；quest_stats 保留历史，不受清理影响。
         retention = int((self.content.economy.get("quests") or {}).get("expired_retention_days", 7))
         stale = [

@@ -33,6 +33,7 @@ from ..world.state import WorldState
 from ..world.store import EventStore
 from ..world.writer import Writer
 from ..actions.registry import build_registry
+from ..actions.common import reputation_points
 from .growth import growth_view, today_view
 
 # 契约冻结版本：字段名/结构变更必须同步 docs/player-api.md 的 CHANGELOG。
@@ -113,6 +114,7 @@ REASON_TEXT: dict[str, str] = {
     "too_many_quests": "最多同时进行 2 个任务；请先交付其中一个。",
     "quest_not_accepted_by_actor": "这个任务不是由你接下的。",
     "quest_expired": "任务已超过截止时间。",
+    "reputation_too_low": "声望不足；先完成委托或经营人情，达到这一单的门槛后再接。",
     "not_at_target": "你尚未到达任务目标地点或发布人处。",
     "quest_item_missing": "采购类任务需要你持有目标物品。",
     "trade_unfair": "交易价值明显不对等；对方拒绝了这笔买卖。",
@@ -565,24 +567,29 @@ class WorldSession:
         )
         player = self.state.entities.get(pid)
         tick = int(self.state.tick)
+        player_rep = reputation_points(self.state, pid) if player is not None else 0.0
         for quest in sorted(self.state.quests.values(), key=lambda q: q.id):
             if quest.status == "open":
+                # 已过期残单（日界清理前的窗口）与发布人已不在的单，一律不下架展示。
+                if quest.deadline_tick and tick > quest.deadline_tick:
+                    continue
                 row = self._quest_row(quest)
                 giver = self.state.entities.get(quest.giver)
-                expired = bool(quest.deadline_tick) and tick > quest.deadline_tick
+                if giver is None or giver.status != "alive":
+                    continue
+                tpl = self.content.quests.get(quest.template_id) or {}
+                if float(tpl.get("require_reputation", 0) or 0) > player_rep:
+                    continue
                 can_accept = bool(
-                    giver
-                    and giver.status == "alive"
-                    and giver.location == loc_id
+                    giver.location == loc_id
                     and active_count < 2
                     and player is not None
                     and not player.escort_id
-                    and not expired
                 )
                 row["acceptable"] = can_accept
                 row["can_accept_here"] = can_accept
                 row["accepted_by_me"] = False
-                row["expired"] = expired
+                row["expired"] = False
                 open_rows.append(row)
             elif quest.status == "accepted" and quest.acceptor == pid:
                 row = self._quest_row(quest)
@@ -820,6 +827,16 @@ class WorldSession:
             # 与 headless 日界一致：每日回复体力，否则玩家一次 8 小时工后永久卡住。
             self.writer.submit(
                 Intent(actor="system", verb="system_recover", args={},
+                       tick=tick, source="system")
+            )
+            # 日界先下架过期委托，再按模板补发，保证玩家每天有一批可接新单。
+            self.writer.submit(
+                Intent(actor="system", verb="system_quest_fail",
+                       args={"prune_expired": True},
+                       tick=tick, source="system")
+            )
+            self.writer.submit(
+                Intent(actor="system", verb="system_quest_post", args={"day": day_of(tick)},
                        tick=tick, source="system")
             )
         self.writer.submit(

@@ -10,7 +10,13 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..actions.common import first_business_at, skill_for, treasury_guard_active, wallet
+from ..actions.common import (
+    first_business_at,
+    reputation_points,
+    skill_for,
+    treasury_guard_active,
+    wallet,
+)
 from ..world.state import WorldState
 
 REPUTATION_LEVELS = [
@@ -23,7 +29,7 @@ REPUTATION_LEVELS = [
 
 SKILL_LEVELS = [
     {"level": 1, "name": "生手", "at": 0.0, "unlock": "跟着师傅打下手"},
-    {"level": 2, "name": "手熟", "at": 0.36, "unlock": "可独立开摊（手艺够撑起门面）"},
+    {"level": 2, "name": "手熟", "at": 0.42, "unlock": "可独立开摊（手艺够撑起门面）"},
     {"level": 3, "name": "熟练", "at": 0.45, "unlock": "可带徒；高级委托愿意找你"},
     {"level": 4, "name": "精通", "at": 0.55, "unlock": "可接高级活，工钱上浮"},
     {"level": 5, "name": "宗师", "at": 0.70, "unlock": "开馆授业：可自设招牌与收徒"},
@@ -31,7 +37,7 @@ SKILL_LEVELS = [
 
 ASSET_LEVELS = [
     {"level": 1, "name": "囊中羞涩", "at": 0.0, "unlock": "先做工攒本钱"},
-    {"level": 2, "name": "小有积蓄", "at": 400.0, "unlock": "可开摊（本钱 300 文）"},
+    {"level": 2, "name": "小有积蓄", "at": 600.0, "unlock": "可开摊（本钱 300 文）"},
     {"level": 3, "name": "有产者", "at": 900.0, "unlock": "可买铺面（本钱 1200 文）"},
     {"level": 4, "name": "富户", "at": 1500.0, "unlock": "可雇伙计、扩摊"},
     {"level": 5, "name": "产业主", "at": 3000.0, "unlock": "可开分号、置产"},
@@ -59,21 +65,6 @@ def _level(levels: list[dict], value: float) -> dict[str, Any]:
         if nxt and float(nxt["at"]) > float(cur["at"])
         else 1.0,
     }
-
-
-def reputation_points(state: WorldState, pid: str) -> float:
-    done = sum(
-        1 for q in state.quests.values() if q.acceptor == pid and q.status == "completed"
-    )
-    relation = sum(
-        max(0.0, float(rel.affection))
-        for rel in state.relations.values()
-        if rel.status == "active" and pid in (rel.a, rel.b)
-    )
-    ent = state.entities.get(pid)
-    faction = 10.0 if ent is not None and ent.faction else 0.0
-    business = 10.0 if ent is not None and ent.business else 0.0
-    return 3.0 * done + 0.5 * relation + faction + business
 
 
 def asset_value(state: WorldState, pid: str, content) -> float:

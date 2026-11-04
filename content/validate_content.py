@@ -1487,7 +1487,7 @@ def check_quests(quests, npc_map, loc_ids, locations, items_by_id, verb_names, e
             "intent_args", "deadline_days", "reward", "notes",
         ], label, report.errors,
             optional=("target_npc", "target_location", "target_item", "settlement",
-                      "entry_cost", "starter", "optional"))
+                      "entry_cost", "starter", "optional", "require_reputation"))
         qid = quest.get("id")
         name = quest.get("name", label)
         if not isinstance(qid, str) or not NPC_ID_RE.match(qid):
