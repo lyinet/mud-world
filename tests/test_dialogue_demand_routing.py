@@ -12,7 +12,10 @@ from wsim.agent.dialogue import compose_talk
 
 ROOT = Path(__file__).resolve().parents[1]
 R3_INPUTS = ROOT / "reports" / "evidence" / "blind-eval-r3" / "inputs-40.jsonl"
-R2_RAW = ROOT / "runs" / "a2-dialogue-30" / "eval_raw.jsonl"
+R2_RUN = ROOT / "runs" / "a2-dialogue-30" / "eval_raw.jsonl"
+R2_EVIDENCE = ROOT / "reports" / "evidence" / "a2-dialogue-30" / "eval_raw.jsonl"
+R2_RAW = R2_RUN if R2_RUN.exists() else R2_EVIDENCE
+NO_R2_INPUTS = pytest.mark.skipif(not R2_RAW.exists(), reason="缺 a2-dialogue-30 评测输入")
 
 # 40 条新增输入在收细路由后应落到的骨架族。
 EXPECTED_FAMILIES = {
@@ -105,6 +108,7 @@ def test_r3_input_routes_to_specific_demand(real_content, rid, family):
     assert _family(out["skeleton"]) == family, out["skeleton"]
 
 
+@NO_R2_INPUTS
 def test_merged_70_skeleton_reuse_at_most_two(real_content):
     skeletons = [
         _reply(real_content, str(row["message"]), int(row["tick"]))["skeleton"]
@@ -118,6 +122,7 @@ def test_merged_70_skeleton_reuse_at_most_two(real_content):
     assert max(counts.values()) <= 2, counts
 
 
+@NO_R2_INPUTS
 def test_merged_70_has_no_duplicate_or_over_60_reply(real_content):
     replies = _merged_replies(real_content)
     assert len(replies) == 70

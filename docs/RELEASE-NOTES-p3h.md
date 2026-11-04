@@ -58,6 +58,8 @@
 9. **包内容**：p3h 首次把 `specs/` 打入包；新增 `docs/RELEASE-NOTES-p3h.md`。
 10. **测试数**：p3g 194 passed → p3h 287 passed（golden 基线 v3 归类修正）。
 11. **tag**：新增 `delivery-p3h`，不改写 `delivery-p3f` / `delivery-p3g`。
+12. **包内可跑**：5 个依赖 `runs/a2-dialogue-30` 的对话回归测试改为 `runs/` 优先、
+    `reports/evidence/a2-dialogue-30/` 回退；包内不含 `runs/` 时仍能跑满 287 项。
 
 ## 3. 包里有什么
 

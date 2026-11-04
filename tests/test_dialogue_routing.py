@@ -11,7 +11,10 @@ import pytest
 from wsim.agent.dialogue import TEMPLATES, compose_talk
 
 ROOT = Path(__file__).resolve().parents[1]
-R2_INPUTS = ROOT / "runs" / "a2-dialogue-30" / "eval_raw.jsonl"
+R2_RUN = ROOT / "runs" / "a2-dialogue-30" / "eval_raw.jsonl"
+R2_EVIDENCE = ROOT / "reports" / "evidence" / "a2-dialogue-30" / "eval_raw.jsonl"
+R2_INPUTS = R2_RUN if R2_RUN.exists() else R2_EVIDENCE
+NO_R2_INPUTS = pytest.mark.skipif(not R2_INPUTS.exists(), reason="缺 a2-dialogue-30 评测输入")
 
 # 评审点名的 7 条错配：原文、旧骨架、应改走的新骨架族。
 MISMATCH_CASES = (
@@ -89,6 +92,7 @@ def test_named_person_stays_on_person_skeleton(real_content):
     )
 
 
+@NO_R2_INPUTS
 def test_r2_sample_skeleton_reuse_at_most_three(real_content):
     skeletons = [
         _reply(real_content, json.loads(line)["message"], tick=int(json.loads(line)["tick"]))[
@@ -107,11 +111,13 @@ def test_templates_and_replies_have_no_topic_brackets():
     assert bad == [], bad
 
 
+@NO_R2_INPUTS
 def test_r2_replies_contain_no_topic_brackets(real_content):
     replies = _r2_replies(real_content)
     assert all("「" not in reply and "」" not in reply for reply in replies)
 
 
+@NO_R2_INPUTS
 def test_r2_no_reply_pair_above_60_percent(real_content):
     replies = _r2_replies(real_content)
     worst = 0.0
