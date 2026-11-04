@@ -9,6 +9,22 @@
 
 ---
 
+## [未发布] 2026-11-04 — W1 引擎变更（账号 / 存档 / 内容 hash 闸门）
+
+- **改了什么**
+  - `88fdbfb` 账号与令牌存储：PBKDF2 口令哈希 + sqlite，口令不落明文（`src/wsim/api/auth.py`、
+    `tests/test_w1_auth.py`）。
+  - `ac40a9c` 事件日志回放恢复玩家存档，重启不丢档（`src/wsim/api/persistence.py`、
+    `src/wsim/api/session.py`、`tests/test_w1_persistence.py`）。
+  - `23e1d05` 内容 hash 不匹配时拒绝启动：退出码 3 + 契约日志（`src/wsim/api/__main__.py`、
+    `tests/test_w1_hash_mismatch.py`）。
+- **为什么改**：玩家账号与存档在重启后丢失；口令需要不可逆存储；内容包与代码版本不一致时静默启动会污染世界。
+- **验证方式**：三个提交均附新增测试文件，但提交信息**未记录**实跑结果 → **未记录**。
+- **commit**：`88fdbfb`、`ac40a9c`、`23e1d05`。
+- **备注**：以上提交由并行工作流完成，本条目按仓库制度补记，未改动其代码。
+
+---
+
 ## 2026-11-04 — chore(git): 建立 GitHub 推送链路与变更记录制度
 
 - **改了什么**
