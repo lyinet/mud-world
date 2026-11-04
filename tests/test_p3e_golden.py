@@ -14,6 +14,13 @@ P3I 基线说明（2026-11-04，非静默改旧基线）：
 - P3I 价格基线（2026-11-04）：把 content 里的供需模型接进 `Content.item_price()` 后，
   成交金额随日供需与库存变化，事件数仍为 791；旧 P3I 基线保留并 skip，新基线见
   GOLDEN_P3I_PRICE / DIALOGUE_GOLDEN_P3I_PRICE。
+
+P4 里程碑基线 v2（2026-11-04，self-goal 改造后）：
+- `goal_create` 的 effect payload 新增 `secondary: bool`（urgent/npc 目标都带该字段），
+  只写进事件日志，不改变投影状态：事件数仍为 800、state hash 不变、经济流量与
+  前置拦截计数逐项相同；仅 events.jsonl 的 event hash 漂移。
+- 旧 GOLDEN_MILESTONE / DIALOGUE_GOLDEN_MILESTONE 原样保留并显式 skip；
+  新基线见 GOLDEN_MILESTONE_V2 / DIALOGUE_GOLDEN_MILESTONE_V2。
 """
 from __future__ import annotations
 
@@ -169,6 +176,35 @@ DIALOGUE_GOLDEN_MILESTONE = {
     "events_total": 800,
     "state_final": "ec1b2d5a1564b2d30a751d7e91bbd55a9b1df36be47c9183709bd5aa291de88f",
     "event_final": "741f98f3ce37f1457ee6d95b519081167eb01c253fa09148a4cdd77b92ccec95",
+    "dialogue_calls": 63,
+}
+
+# P4 里程碑基线 v2（2026-11-04，self-goal 改造后，非静默改旧基线）：
+# `goal_create` effect 新增 `secondary` 字段（self-goal 改造引入），仅事件 payload 变化；
+# 实跑两次一致：800 events、state hash 与旧基线相同、经济流量（sell 971 / buy 820 /
+# burned 127 / business_cash 12184）与拦截计数（blocked 11 / pruned 2）逐项不变，
+# 只有 event hash 漂移。旧 GOLDEN_MILESTONE 原样保留并显式 skip，本组为显式迁移基线。
+SECONDARY_BASELINE_REASON = (
+    "goal_create 的 effect payload 新增 secondary 字段（self-goal 改造），"
+    "只影响事件日志序列化；事件数仍为 800、state hash 不变、"
+    "经济流量与前置拦截计数逐项相同，仅 event hash 显式漂移。"
+    "旧 GOLDEN_MILESTONE 基线原样保留。"
+)
+GOLDEN_MILESTONE_V2 = {
+    "events_total": 800,
+    "state_final": "a155665368313c1703ebcb5b1e4cdf5110a5890928918b23a4a6e725030428a0",
+    "event_final": "72dd62c2923ebec867398bfba2f4cb304af8c59d66570bd3539b0991e93a24ce",
+    "sell_in": 971,
+    "buy_out": 820,
+    "burned": 127,
+    "business_cash": 12184,
+    "precondition_blocked": 11,
+    "precondition_pruned": 2,
+}
+DIALOGUE_GOLDEN_MILESTONE_V2 = {
+    "events_total": 800,
+    "state_final": "ec1b2d5a1564b2d30a751d7e91bbd55a9b1df36be47c9183709bd5aa291de88f",
+    "event_final": "fa22d38584f600eec958cf2e65527e56fa51f8b47056112ec1597f710634a8d3",
     "dialogue_calls": 63,
 }
 
@@ -393,8 +429,9 @@ def test_goal_calib_dialogue_enabled_fake_run_is_golden(tmp_path):
     )
 
 
+@pytest.mark.skip(reason="self-goal 改造给 goal_create 加 secondary 字段后 event hash 漂移；迁移到 GOLDEN_MILESTONE_V2，见文件头说明")
 def test_p4_milestone_deterministic_2d_fake_run_is_golden(tmp_path):
-    """P4 新基线：日界新增 system_milestone / system_maintenance（796→800 events）。"""
+    """P4 旧基线（800 events 里程碑）：仅事件 payload 因 secondary 字段变化。"""
     summary = _run_two_day(tmp_path, "golden-milestone", dialogue=False)
     cf = summary["economy"]["cashflow"]
     got = {
@@ -423,8 +460,9 @@ def test_p4_milestone_deterministic_2d_fake_run_is_golden(tmp_path):
     assert len(blocked_file.read_text(encoding="utf-8").splitlines()) == GOLDEN_MILESTONE["precondition_blocked"]
 
 
+@pytest.mark.skip(reason="self-goal 改造给 goal_create 加 secondary 字段后 event hash 漂移；迁移到 DIALOGUE_GOLDEN_MILESTONE_V2，见文件头说明")
 def test_p4_milestone_dialogue_enabled_fake_run_is_golden(tmp_path):
-    """P4 新基线（dialogue 开启路径）。"""
+    """P4 旧基线（dialogue 开启路径）：仅事件 payload 因 secondary 字段变化。"""
     summary = _run_two_day(tmp_path, "golden-milestone-dialogue", dialogue=True)
     got = {
         "events_total": summary["events"]["total"],
@@ -438,4 +476,52 @@ def test_p4_milestone_dialogue_enabled_fake_run_is_golden(tmp_path):
         "P4 里程碑 dialogue 基线漂移（golden_milestone_dialogue, actual）："
         + json.dumps(drift, ensure_ascii=False)
         + "；原因: " + MILESTONE_BASELINE_REASON
+    )
+
+
+def test_p4_milestone_v2_deterministic_2d_fake_run_is_golden(tmp_path):
+    """P4 v2 基线：goal_create 带 secondary 字段（800 events，其余逐项不变）。"""
+    summary = _run_two_day(tmp_path, "golden-milestone-v2", dialogue=False)
+    cf = summary["economy"]["cashflow"]
+    got = {
+        "events_total": summary["events"]["total"],
+        "state_final": summary["hashes"]["state_final"],
+        "event_final": summary["hashes"]["event_final"],
+        "sell_in": cf["inflow_by_reason"].get("sell", 0),
+        "buy_out": cf["outflow_by_reason"].get("buy", 0),
+        "burned": summary["economy"]["burned_total"],
+        "business_cash": summary["economy"]["business_cash_now"],
+        "precondition_blocked": summary["precondition_blocked"]["total"],
+        "precondition_pruned": summary["precondition_pruned"]["total"],
+    }
+    drift = {k: (GOLDEN_MILESTONE_V2[k], got[k])
+             for k in GOLDEN_MILESTONE_V2 if got[k] != GOLDEN_MILESTONE_V2[k]}
+    assert not drift, (
+        "P4 里程碑 v2 基线漂移（golden_milestone_v2, actual）："
+        + json.dumps(drift, ensure_ascii=False)
+        + "；原因: " + SECONDARY_BASELINE_REASON
+    )
+
+    pruned_file = tmp_path / "golden-milestone-v2" / "pruned.jsonl"
+    blocked_file = tmp_path / "golden-milestone-v2" / "blocked.jsonl"
+    assert pruned_file.exists() and blocked_file.exists(), "缺少全量拦截记录导出"
+    assert len(pruned_file.read_text(encoding="utf-8").splitlines()) == GOLDEN_MILESTONE_V2["precondition_pruned"]
+    assert len(blocked_file.read_text(encoding="utf-8").splitlines()) == GOLDEN_MILESTONE_V2["precondition_blocked"]
+
+
+def test_p4_milestone_v2_dialogue_enabled_fake_run_is_golden(tmp_path):
+    """P4 v2 基线（dialogue 开启路径）：state 不变，仅 event hash 漂移。"""
+    summary = _run_two_day(tmp_path, "golden-milestone-dialogue-v2", dialogue=True)
+    got = {
+        "events_total": summary["events"]["total"],
+        "state_final": summary["hashes"]["state_final"],
+        "event_final": summary["hashes"]["event_final"],
+        "dialogue_calls": summary["llm"]["dialogue_async"]["calls"],
+    }
+    drift = {k: (DIALOGUE_GOLDEN_MILESTONE_V2[k], got[k])
+             for k in DIALOGUE_GOLDEN_MILESTONE_V2 if got[k] != DIALOGUE_GOLDEN_MILESTONE_V2[k]}
+    assert not drift, (
+        "P4 里程碑 v2 dialogue 基线漂移（golden_milestone_dialogue_v2, actual）："
+        + json.dumps(drift, ensure_ascii=False)
+        + "；原因: " + SECONDARY_BASELINE_REASON
     )
