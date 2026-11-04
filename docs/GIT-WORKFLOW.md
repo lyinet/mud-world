@@ -110,3 +110,19 @@ git rev-parse HEAD             # 本地 HEAD
 git rev-parse origin/master    # 本地记录的远程 HEAD
 git tag -l --format='%(refname:short)|%(creatordate:short)|%(subject)'
 ```
+
+## 8. 凭证纪律
+
+- **真实 key 只允许出现在未追踪的 `.env`**（已被 `.gitignore` 忽略）。任何会被 git 跟踪的文件
+  （文档、报告、测试、示例、`config/*.yaml`）一律使用占位符，例如 `sk-your-key-here`、
+  `<你的 key>`、`<REDACTED>`、`fake`。
+- **提交前自查**：`git diff --cached` 通读一遍，确认不含 `key=`、`token=`、`password=` 的真实值，
+  也不含 `Bearer ` 后跟长串。必要时可用：
+  `git diff --cached | grep -nE 'sk-|ghp_|github_pat_|AKIA|Bearer [A-Za-z0-9._-]{20,}|(key|token|password)=.+'`
+- **测试用的假 key** 要在命名上自证（如 `sk-test-*`、`sk-very-secret-key`），不得使用真实格式与真实值。
+- **发现泄漏的处理顺序**：
+  1. **先吊销/轮换**该 key（联系持有方，立即失效）；
+  2. **再清理引用**：删除当前文件中的原文，改为占位符；
+  3. **最后才考虑历史改写**：仅当仓库需要转为公开时执行，因为改写会移动全部 tag、破坏交付里程碑追溯；
+     处置与决策记录见 [SECURITY.md](../SECURITY.md)，文档中同样不得写入 key 原文。
+- 仓库可见性：含未吊销凭证历史时保持 **private**；转 public 前必须先完成吊销与历史清理。
