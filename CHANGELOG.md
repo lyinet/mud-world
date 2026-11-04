@@ -9,6 +9,23 @@
 
 ---
 
+## [安全] 2026-11-04 — W5 崩溃演练明文令牌清理
+
+- **事件**：`deploy/crash_drill.sh` 曾把用 `drill-secret` 登录得到的完整 Bearer token
+  写入 `reports/w5/crash-drill/token.txt`（43 字节，**未入库、未推送**）。
+- **处置**：删除该文件；源脚本改为只在进程内存/局部变量持有令牌，落盘仅
+  `token-digest.txt`（sha256 + 末 4 位）；`/api/auth/me` 证据改为
+  `status/ok/expires_at`（不再写 session_id）；演练结束执行
+  `DELETE FROM sessions`，令牌即时失效，不依赖 TTL。
+- **防复发**：`.gitignore` 增加 `**/token.txt`、`**/*.token`、`reports/**/token*`。
+- **验证**：吊销前旧令牌 `/api/auth/me` HTTP 200；`DELETE FROM sessions` 后同一令牌
+  HTTP 401 `auth_invalid_token`；`bash -n deploy/crash_drill.sh` 通过；新产物无完整令牌。
+- **TTL 说明**：该令牌 `expires_at=1793885305`（2026-11-05 13:28 UTC，约 24h），
+  与 60 秒断线重连宽限期无关——宽限期只影响 `disconnected` 判定，不延长令牌寿命。
+- **commit**：`41ae2b1`（本次安全提交）。
+
+---
+
 ## [记账] 2026-11-04 — `466c807` 混装提交审计（W2 + W3/W3b + content）
 
 - **commit**：`466c807`（`feat(content): 扩展包改为引擎原生加载`，提交时间 2026-11-04 20:53）。
