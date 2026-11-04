@@ -40,41 +40,57 @@
 - `:focus-visible` 为 3px 金色描边 + 2px offset；入口身份卡使用 `:focus-within`。
 - 实测 28 次 Tab 完成接单→移动→交付；焦点序列写入 `reports/w4-ui/keyboard.txt`。
 
-## 5. 登录 / 注册与令牌（W1 契约，待确认）
+## 5. 登录 / 注册与令牌（W1 已对齐）
 
-> **契约状态：待 W1 确认。** 前端按以下约定实现；若 W1 最终响应不同，以 W1 实际样例为准，并更新本节。
+> **契约状态：已按 W1 实际实现对齐。** 路径是 `/api/auth/*`（不是 `/auth/*`）；以下样例与 `src/wsim/api/auth.py` 一致。
 
-### 5.1 端点
+### 5.1 端点与真实样例
 
-| 用途 | 请求 | 说明 |
+| 用途 | 请求 | 成功响应 |
 | --- | --- | --- |
-| 注册 | `POST /auth/register` `{username, password}` | 成功后直接返回令牌 |
-| 登录 | `POST /auth/login` `{username, password}` | 口令不写入 localStorage |
-| 续期 | `POST /auth/refresh` `{refresh_token}` | 成功返回新的 access（可同时轮换 refresh） |
-| 写操作 | `Authorization: Bearer <access_token>` | 进入世界、移动、接单、交付、对话、成长动作 |
+| 注册 | `POST /api/auth/register` `{username, password}` | `{"ok":true,"account_id":"u_alice","username":"u_alice","created":true}`（**不返回令牌**） |
+| 登录 | `POST /api/auth/login` `{username, password}` | `{"ok":true,"account_id":"…","username":"…","session_id":"s:…","token":"…","token_type":"Bearer","expires_at":1790000000,"expires_in":86400}` |
+| 续期 | `POST /api/auth/refresh`，头 `Authorization: Bearer <当前 token>`，无请求体 | `{"ok":true,"account_id":"…","session_id":"s:…","token":"<新>","token_type":"Bearer","expires_at":…,"expires_in":86400,"rotated":true}` |
+| 注销 | `POST /api/auth/logout`，Bearer | `{"ok":true,"logged_out":true,"session_id":"s:…"}` |
+| 当前身份 | `GET /api/auth/me`，Bearer | `{"ok":true,"account_id":"…","username":"…","session_id":"s:…","status":"active"}` |
+| 写操作 | `POST /api/player/enter`、`POST /api/player/action`，Bearer | 进入世界、移动、接单、交付、对话、成长动作 |
 
-响应字段兼容：`access_token` / `accessToken` / `token`，`refresh_token` / `refreshToken`，`expires_in` 或 `expires_at`，`user.username`；也接受包在 `data` 下。非 200 或 `ok:false` 显示中文原因。
+统一错误体：`{"ok":false,"code":"…","reject_reason":"…","reason_text":"…","tick":n}`，其中 `code` 与 `reject_reason` 同值。前端优先读 `code`，再回退 `reject_reason`/`reason_text`。
 
-### 5.2 令牌存储与续期
+注册成功体没有令牌，因此前端在注册 200 后**自动用同一组用户名/口令调用登录**换令牌；不会把注册响应当作登录态。
 
-- key：`ws_auth_v1`，内容仅 `{access_token, refresh_token, expires_at, username}`；**不存口令**。
-- 启动时若已有令牌：先带 Bearer 试探 `GET /api/player/state`；401 时先尝试 `POST /auth/refresh`，续期失败才清掉令牌并回到登录态。
-- 写操作遇到 401：先自动 refresh 一次并重放请求；仍失败则清令牌、显示「需要重新登录」横幅/顶部按钮/错误历史，**保留当前世界状态与已渲染面板**。
-- 过期时间临近（`expires_at`）不主动拦截读；写前由服务端 401 驱动续期。
+### 5.2 令牌存储、轮换与单飞
+
+- localStorage key：`ws_auth_v1`，仅 `{access_token, expires_at, username, session_id}`；**不存口令**，也不存 refresh token（真实契约没有独立 refresh token）。
+- 启动时若已有令牌：带 Bearer 请求读端点确认可用性，再以 `POST /api/auth/refresh` 探针判定模式并完成一次轮换；401/失效（`auth_missing_token`/`auth_invalid_token`/`auth_expired_token`）→ 清掉本地令牌，回到「登录/注册」态，不保留假登录。
+- **refresh 是轮换式**：服务端返回新 token 后旧 token 立即失效。前端在刷新成功后**原子替换** `state.auth.access` 并立即 `persistAuth()`，刷新期间和刷新后都不再使用旧 token。
+- **单飞刷新**：`state.auth.refreshing` 保存同一个 refresh Promise。多个并发写请求同时 401 时，只有第一个发起 refresh，其余等待同一结果；refresh 成功后统一用新 token 各重放一次。若 401 返回时本地令牌已被别的请求换新，则直接重放，不再发第二次 refresh。重放只允许一次，仍 401 则进入重新登录流程。
+- 写操作 401：自动单飞 refresh + 重放一次；仍失败则清令牌、显示「需要重新登录」横幅/顶部按钮/错误历史，**保留当前世界状态与已渲染面板**；并发失败只提示一次。
 
 ### 5.3 legacy 匿名模式
 
-不读 `deploy/service.yaml`、不硬编码。启动时探测 `POST /auth/refresh`：
+不读 `deploy/service.yaml`、不硬编码。启动时探测 `POST /api/auth/refresh`：
 
 - `404/405/501` → legacy，无需登录；顶部显示「匿名模式」，进入/写操作照常。
-- `400/401/200` → 鉴权模式，显示「登录/注册」。
-- 网络不可达时保守按 legacy 放行，写操作若返回 401 再走上面的重新登录流程；不能强行拦住旧匿名玩法。
+- `503` 且 `code=auth_disabled`（真实 legacy 服务没有账号库）→ 同样视为 legacy，匿名可玩。
+- `200` / `401`（`auth_missing_token` 等）→ 鉴权模式，显示「登录/注册」。
+- 网络不可达时保守放行：有令牌按鉴权模式、无令牌按匿名模式；写操作若返回 401 再走上面的重新登录流程，不能强行拦住旧匿名玩法。
 
 ## 6. 原因码 → 中文文案（完整映射）
 
 | 原因码 | 中文文案 |
 | --- | --- |
 | `auth_required` | 需要登录后才能执行写操作；请先登录/注册。 |
+| `auth_bad_username` | 用户名需为 3-32 位小写字母、数字、下划线或连字符。 |
+| `auth_bad_password` | 口令长度需为 6-128 位。 |
+| `auth_username_taken` | 该用户名已被注册；换一个用户名再试。 |
+| `auth_invalid_credentials` | 用户名或口令不正确；请检查后重试。 |
+| `auth_missing_token` | 缺少登录令牌；请重新登录。 |
+| `auth_invalid_token` | 登录令牌无效或已注销；请重新登录。 |
+| `auth_expired_token` | 登录已过期；请重新登录。 |
+| `auth_account_mismatch` | 请求账号与令牌账号不一致；请用令牌对应的账号操作。 |
+| `auth_disabled` | 当前为 legacy 匿名模式，鉴权接口不可用；可匿名游玩。 |
+| `bad_json` | 请求体不是合法 JSON；请刷新页面后重试。 |
 | `invalid_token` | 登录凭证无效；请重新登录。 |
 | `token_expired` | 登录已过期；请重新登录。 |
 | `bad_credentials` | 用户名或口令不正确；请检查后重试。 |
@@ -150,7 +166,7 @@ python3 tools/ui_check.py --serve         # 起 mock 页面，手动看；--auth
 
 ## 8. 未覆盖 / 已知限制
 
-- W1 的 `/auth/*` 实际字段与错误码尚未拿到样例；当前按本文约定兼容多种字段，契约待确认。
+- W1 契约已对齐；`/api/auth/*` 的真实响应样例来自 W1 收口说明与 `src/wsim/api/auth.py`，未在真实服务上做端到端联调（本轮仍用 mock 服务验收）。
 - 不做第三方登录；不做口令找回。
 - 引导③不做路径规划：若委托人不在相邻地点，只高亮当前可用出口之一，需玩家继续逐段移动；到达后自动进入④。
 - 只读模式（`--readonly`）下交付会返回提案，不会真正产生资金变化，引导④进度会停在交付前，可用「跳过」结束。

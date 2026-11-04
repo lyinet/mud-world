@@ -26,6 +26,15 @@
      未知码仍会显示服务端 reason_text；两者都没有时走通用兜底。 */
   const REASON_TEXT = {
     auth_required: '需要登录后才能执行写操作；请先登录/注册。',
+    auth_bad_username: '用户名需为 3-32 位小写字母、数字、下划线或连字符。',
+    auth_bad_password: '口令长度需为 6-128 位。',
+    auth_username_taken: '该用户名已被注册；换一个用户名再试。',
+    auth_invalid_credentials: '用户名或口令不正确；请检查后重试。',
+    auth_missing_token: '缺少登录令牌；请重新登录。',
+    auth_invalid_token: '登录令牌无效或已注销；请重新登录。',
+    auth_expired_token: '登录已过期；请重新登录。',
+    auth_account_mismatch: '请求账号与令牌账号不一致；请用令牌对应的账号操作。',
+    auth_disabled: '当前为 legacy 匿名模式，鉴权接口不可用；可匿名游玩。',
     invalid_token: '登录凭证无效；请重新登录。',
     token_expired: '登录已过期；请重新登录。',
     bad_credentials: '用户名或口令不正确；请检查后重试。',
@@ -33,6 +42,7 @@
     weak_password: '口令太短或格式不合要求；请换一个更稳妥的口令。',
     bad_username: '用户名格式不合法；请用 3-32 位字母、数字、下划线或连字符。',
     auth_unavailable: '登录服务暂时不可用；可先匿名浏览，稍后再试。',
+    bad_json: '请求体不是合法 JSON；请刷新页面后重试。',
     missing_account: '缺少账号；请先创建账号再进入世界。',
     bad_account: '账号格式不合法（3-32 位小写字母、数字、下划线或连字符）。',
     unknown_action: '未知操作；请刷新页面后重试。',
@@ -90,6 +100,13 @@
   const AUTH_KEY = 'ws_auth_v1';
   const GUIDE_KEY = 'ws_player_guide_v1';
   const CHECK_MODE = /(?:^|[?&])ui_check=1(?:&|$)/.test(window.location.search);
+  /* W1 实际契约：鉴权端点统一在 /api/auth/*；refresh/logout 用 Bearer，不用 refresh_token。 */
+  const AUTH_API = {
+    register: '/api/auth/register',
+    login: '/api/auth/login',
+    refresh: '/api/auth/refresh',
+    logout: '/api/auth/logout'
+  };
 
   const state = {
     health: null,
@@ -104,11 +121,12 @@
     auth: {
       mode: 'unknown',   // unknown | auth | legacy
       access: '',
-      refresh: '',
       expiresAt: 0,
       username: '',
+      sessionId: '',
       required: false,
-      probeDone: false
+      probeDone: false,
+      refreshing: null   // 单飞刷新：同一时刻只允许一个 refresh in flight
     },
     guide: {
       active: false,
@@ -154,25 +172,67 @@
     return data;
   }
 
-  async function postJSON(url, body, retried) {
+  function isAuthEndpoint(url) {
+    return /^\/api\/auth\//.test(String(url || ''));
+  }
+
+  /* 单飞刷新：同一时刻只允许一个 refresh in flight。
+     令牌已被别的请求换新时，直接用新令牌重放，不再发第二次 refresh。 */
+  function ensureFreshToken(failedToken) {
+    if (state.auth.access && failedToken && state.auth.access !== failedToken) {
+      return Promise.resolve(true);
+    }
+    if (!state.auth.access) return Promise.resolve(false);
+    if (state.auth.refreshing) return state.auth.refreshing;
+    const p = refreshAuth().then(function (ok) { return !!ok; }, function () { return false; });
+    state.auth.refreshing = p;
+    p.then(function () {
+      if (state.auth.refreshing === p) state.auth.refreshing = null;
+    });
+    return p;
+  }
+
+  async function postJSON(url, body, opts) {
+    opts = opts || {};
+    const authEndpoint = isAuthEndpoint(url);
+    // refresh/logout 需要 Bearer；register/login 不带令牌；业务写操作带令牌。
+    const withToken = authEndpoint
+      ? (url === AUTH_API.refresh || url === AUTH_API.logout)
+      : true;
+    const sentToken = state.auth.access;
     const headers = Object.assign(
       { 'Content-Type': 'application/json', Accept: 'application/json' },
-      /^\/auth\//.test(url) ? {} : authHeader()
+      withToken && sentToken ? { Authorization: 'Bearer ' + sentToken } : {}
     );
     const res = await fetch(url, {
       method: 'POST',
       headers: headers,
-      body: JSON.stringify(body),
+      body: JSON.stringify(body == null ? {} : body),
       cache: 'no-store'
     });
     const data = await res.json().catch(() => ({}));
-    if (res.status === 401 && !retried && !/^\/auth\//.test(url)) {
-      const refreshed = await refreshAuth();
-      if (refreshed) return postJSON(url, body, true);
-      clearAuth('expired');
-      notifyAuthRequired('登录已失效，需要重新登录。');
+    if (res.status === 401 && !authEndpoint) {
+      if (!opts.retried) {
+        const renewed = await ensureFreshToken(sentToken);
+        if (renewed) return postJSON(url, body, { retried: true });
+      }
+      // 服务端已判定为 legacy（refresh 返回 503 auth_disabled）：不按登录失效处理。
+      if (state.auth.mode === 'legacy') {
+        return { httpOk: res.ok, status: res.status, data: data, authRequired: false, authDisabled: true };
+      }
+      // 并发 401 只让第一个请求负责清令牌/提示，避免重复弹窗。
+      if (state.auth.access === sentToken) {
+        clearAuth('expired');
+        notifyAuthRequired('登录已失效，需要重新登录；世界状态保持不变。');
+      }
     }
-    return { httpOk: res.ok, status: res.status, data: data, authRequired: res.status === 401 };
+    return {
+      httpOk: res.ok,
+      status: res.status,
+      data: data,
+      authRequired: res.status === 401,
+      authDisabled: !!(data && data.code === 'auth_disabled')
+    };
   }
 
   function sleep(ms) { return new Promise(function (resolve) { setTimeout(resolve, ms); }); }
@@ -198,12 +258,14 @@
 
   function reasonOf(data, status) {
     const d = data || {};
-    const code = String(d.reason || d.reject_reason || d.error || '').trim();
+    const code = String(d.code || d.reject_reason || d.reason || d.error || '').trim();
     const serverText = d.reason_text || d.message || '';
+    const authCodes = ['auth_required', 'auth_missing_token', 'auth_invalid_token',
+      'auth_expired_token', 'invalid_token', 'token_expired'];
     return {
       code: code,
       text: reasonText(code, serverText),
-      isAuth: status === 401 || ['auth_required', 'invalid_token', 'token_expired'].indexOf(code) >= 0
+      isAuth: status === 401 || authCodes.indexOf(code) >= 0
     };
   }
 
@@ -253,24 +315,24 @@
     let saved = null;
     try { saved = JSON.parse(localStorage.getItem(AUTH_KEY) || 'null'); } catch (e) { saved = null; }
     if (!saved || typeof saved !== 'object') return false;
-    state.auth.access = String(saved.access_token || '');
-    state.auth.refresh = String(saved.refresh_token || '');
-    state.auth.expiresAt = Number(saved.expires_at || 0) || 0;
+    state.auth.access = String(saved.access_token || saved.token || '');
+    state.auth.expiresAt = normalizeExpires(saved.expires_at, 0);
     state.auth.username = String(saved.username || '');
+    state.auth.sessionId = String(saved.session_id || '');
     return !!state.auth.access;
   }
 
   function persistAuth() {
     try {
-      if (!state.auth.access && !state.auth.refresh) {
+      if (!state.auth.access) {
         localStorage.removeItem(AUTH_KEY);
         return;
       }
       localStorage.setItem(AUTH_KEY, JSON.stringify({
         access_token: state.auth.access,
-        refresh_token: state.auth.refresh,
         expires_at: state.auth.expiresAt,
-        username: state.auth.username
+        username: state.auth.username,
+        session_id: state.auth.sessionId
         // 口令不落盘：只在登录请求体里出现。
       }));
     } catch (e) { /* localStorage 不可用时保留内存态 */ }
@@ -278,9 +340,21 @@
 
   function clearAuth(reason) {
     state.auth.access = '';
-    state.auth.refresh = '';
     state.auth.expiresAt = 0;
+    state.auth.sessionId = '';
     state.auth.required = reason === 'expired';
+    try { localStorage.removeItem(AUTH_KEY); } catch (e) { /* ignore */ }
+    renderAuthUI();
+  }
+
+  function markLegacy() {
+    state.auth.mode = 'legacy';
+    state.auth.access = '';
+    state.auth.expiresAt = 0;
+    state.auth.username = '';
+    state.auth.sessionId = '';
+    state.auth.required = false;
+    state.auth.probeDone = true;
     try { localStorage.removeItem(AUTH_KEY); } catch (e) { /* ignore */ }
     renderAuthUI();
   }
@@ -290,11 +364,11 @@
     const inner = d.data && typeof d.data === 'object' ? d.data : {};
     const merged = Object.assign({}, d, inner);
     return {
-      access: String(merged.access_token || merged.accessToken || merged.token || ''),
-      refresh: String(merged.refresh_token || merged.refreshToken || ''),
+      access: String(merged.token || merged.access_token || merged.accessToken || ''),
       expiresAt: merged.expires_at || merged.expiresAt || merged.expires || '',
       expiresIn: merged.expires_in || merged.expiresIn || 0,
-      username: String((merged.user && (merged.user.username || merged.user.name)) || merged.username || '')
+      username: String((merged.user && (merged.user.username || merged.user.name)) || merged.username || ''),
+      sessionId: String(merged.session_id || '')
     };
   }
 
@@ -312,10 +386,11 @@
   function applyAuthPayload(payload, username) {
     const t = tokenFields(payload);
     if (!t.access) return false;
+    // 轮换语义：新令牌立即替换旧令牌，绝不在刷新后再用旧值。
     state.auth.access = t.access;
-    state.auth.refresh = t.refresh || state.auth.refresh;
     state.auth.expiresAt = normalizeExpires(t.expiresAt, t.expiresIn);
     state.auth.username = t.username || username || state.auth.username || '';
+    state.auth.sessionId = t.sessionId || state.auth.sessionId || '';
     state.auth.mode = 'auth';
     state.auth.required = false;
     persistAuth();
@@ -323,31 +398,45 @@
     return true;
   }
 
+  /* refresh 需要 Bearer；一次成功后旧令牌立刻失效。
+     失败时区分 legacy（503 auth_disabled / 404 / 405 / 501）与真失效（401）。 */
   async function refreshAuth() {
-    if (!state.auth.refresh) return false;
+    const token = state.auth.access;
+    if (!token) return false;
+    let res = null;
     try {
-      const res = await fetch('/auth/refresh', {
+      res = await fetch(AUTH_API.refresh, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ refresh_token: state.auth.refresh }),
+        headers: { Accept: 'application/json', Authorization: 'Bearer ' + token },
         cache: 'no-store'
       });
-      if (res.status === 404 || res.status === 405) return false;
-      const body = await res.json().catch(function () { return {}; });
-      if (!res.ok) {
-        if (res.status === 400 || res.status === 401) clearAuth('expired');
-        return false;
-      }
-      return applyAuthPayload(body, state.auth.username);
     } catch (e) {
       return false;
     }
+    if (res.status === 404 || res.status === 405 || res.status === 501) {
+      markLegacy();
+      return false;
+    }
+    const body = await res.json().catch(function () { return {}; });
+    if (!res.ok) {
+      if (res.status === 503 || (body && body.code === 'auth_disabled')) {
+        markLegacy();
+        return false;
+      }
+      if (res.status === 401) {
+        // 刷新失败只在单飞链里提示一次，避免并发 401 造成弹窗风暴。
+        clearAuth('expired');
+        notifyAuthRequired('登录已失效，需要重新登录；世界状态保持不变。');
+      }
+      return false;
+    }
+    return applyAuthPayload(body, state.auth.username);
   }
 
   async function probeAuth() {
     const hadToken = loadStoredAuth();
     if (hadToken) {
-      // 启动时先拿已有令牌试探读端点；401/过期就当未登录，清掉本地令牌。
+      // 读端点匿名可用；这里只确认带令牌的诊断结果，令牌真伪由 refresh 探针判定。
       const savedAccount = (function () {
         try {
           const raw = JSON.parse(localStorage.getItem('ws_player_account') || 'null');
@@ -355,32 +444,25 @@
         } catch (e) { return 'u_demo'; }
       })();
       try {
-        const res = await fetch('/api/player/state?account_id=' + encodeURIComponent(savedAccount), {
+        await fetch('/api/player/state?account_id=' + encodeURIComponent(savedAccount), {
           headers: Object.assign({ Accept: 'application/json' }, authHeader()),
           cache: 'no-store'
         });
-        if (res.status === 401) {
-          if (state.auth.refresh) {
-            const renewed = await refreshAuth();
-            if (!renewed) clearAuth('expired');
-          } else {
-            clearAuth('expired');
-          }
-        }
       } catch (e) { /* 上游暂时不可达时保留令牌，交给写操作再判 */ }
     }
+
     let probe = null;
     try {
-      probe = await fetch('/auth/refresh', {
+      probe = await fetch(AUTH_API.refresh, {
         method: 'POST',
         headers: Object.assign(
-          { 'Content-Type': 'application/json', Accept: 'application/json' },
-          {} // 刷新只用 refresh_token，不附过期 access
+          { Accept: 'application/json' },
+          state.auth.access ? { Authorization: 'Bearer ' + state.auth.access } : {}
         ),
-        body: JSON.stringify({ refresh_token: state.auth.refresh || '' }),
         cache: 'no-store'
       });
     } catch (e) {
+      // 网络不可达时保守放行：已有令牌按鉴权模式，没令牌按匿名模式。
       state.auth.mode = state.auth.access ? 'auth' : 'legacy';
       state.auth.probeDone = true;
       renderAuthUI();
@@ -388,20 +470,25 @@
     }
     if (probe.status === 404 || probe.status === 405 || probe.status === 501) {
       // 服务端没有鉴权端点：legacy 匿名模式，不强行要求登录。
-      state.auth.mode = 'legacy';
-      state.auth.required = false;
+      markLegacy();
+      return;
+    }
+    const body = await probe.json().catch(function () { return {}; });
+    if (!probe.ok) {
+      if (probe.status === 503 || (body && body.code === 'auth_disabled')) {
+        markLegacy();
+        return;
+      }
+      state.auth.mode = 'auth';
       state.auth.probeDone = true;
+      if (hadToken) clearAuth('expired');
       renderAuthUI();
       return;
     }
+    // 200：鉴权模式；探针本身完成一次轮换，立即原子替换本地令牌。
     state.auth.mode = 'auth';
     state.auth.probeDone = true;
-    if (probe.ok) {
-      const body = await probe.json().catch(function () { return {}; });
-      applyAuthPayload(body, state.auth.username);
-    } else if (probe.status === 401 && state.auth.refresh) {
-      clearAuth('expired');
-    }
+    applyAuthPayload(body, state.auth.username);
     renderAuthUI();
   }
 
@@ -482,18 +569,22 @@
     el('authModal').classList.add('hidden');
   }
 
+  function showAuthError(text) {
+    const error = el('authError');
+    error.textContent = text;
+    error.classList.remove('hidden');
+  }
+
   async function submitAuth(ev) {
     if (ev) ev.preventDefault();
     const mode = state.auth.uiMode === 'register' ? 'register' : 'login';
     const username = el('authUsername').value.trim();
     const password = el('authPassword').value;
-    const error = el('authError');
-    error.classList.add('hidden');
-    if (!username) { error.textContent = '请填写用户名。'; error.classList.remove('hidden'); return; }
-    if (!password) { error.textContent = '请填写口令。'; error.classList.remove('hidden'); return; }
-    if (mode === 'register' && password.length < 6) {
-      error.textContent = '注册口令至少 6 位。';
-      error.classList.remove('hidden');
+    el('authError').classList.add('hidden');
+    if (!username) { showAuthError('请填写用户名。'); return; }
+    if (!password) { showAuthError('请填写口令。'); return; }
+    if (mode === 'register' && (password.length < 6 || password.length > 128)) {
+      showAuthError('口令长度需为 6-128 位。');
       return;
     }
     const btn = el('authSubmit');
@@ -501,35 +592,39 @@
     const old = btn.textContent;
     btn.textContent = '提交中…';
     try {
-      const res = await fetch('/auth/' + mode, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ username: username, password: password }),
-        cache: 'no-store'
-      });
-      const body = await res.json().catch(function () { return {}; });
-      if (res.status === 404 || res.status === 405) {
-        state.auth.mode = 'legacy';
-        renderAuthUI();
+      let res = await postJSON(mode === 'register' ? AUTH_API.register : AUTH_API.login,
+        { username: username, password: password });
+      if (res.authDisabled || res.status === 404 || res.status === 405 || res.status === 501) {
+        markLegacy();
         closeAuthModal();
         toast('服务端未启用鉴权：可直接匿名游玩。');
         return;
       }
-      if (!res.ok || body.ok === false || !tokenFields(body).access) {
-        const r = reasonOf(body, res.status);
-        error.textContent = r.text;
-        error.classList.remove('hidden');
+      if (!res.httpOk || (res.data && res.data.ok === false)) {
+        showAuthError(reasonOf(res.data, res.status).text);
         return;
       }
-      applyAuthPayload(body, username);
+      let payload = res.data;
+      if (mode === 'register') {
+        // 真实契约：register 只返回 account_id/username/created，不返回令牌；
+        // 注册成功后立刻用同一组凭据登录换令牌。
+        const loginRes = await postJSON(AUTH_API.login, { username: username, password: password });
+        if (!loginRes.httpOk || (loginRes.data && loginRes.data.ok === false)) {
+          showAuthError('注册成功但登录失败：' + reasonOf(loginRes.data, loginRes.status).text);
+          return;
+        }
+        payload = loginRes.data;
+      }
+      if (!applyAuthPayload(payload, username)) {
+        showAuthError('登录响应缺少令牌；请重试。');
+        return;
+      }
       state.auth.username = state.auth.username || username;
-      persistAuth();
       closeAuthModal();
       toast('登录成功：' + (state.auth.username || username));
       if (state.st) render(state.st);
     } catch (e) {
-      error.textContent = '登录请求失败：' + (e.message || e);
-      error.classList.remove('hidden');
+      showAuthError('登录请求失败：' + (e.message || e));
     } finally {
       btn.disabled = false;
       btn.textContent = old;
@@ -537,12 +632,24 @@
     }
   }
 
-  function logoutAuth() {
+  async function logoutAuth() {
+    const token = state.auth.access;
+    if (token) {
+      try {
+        // 注销失败不影响本地退出；令牌到期后自然失效。
+        await fetch(AUTH_API.logout, {
+          method: 'POST',
+          headers: { Accept: 'application/json', Authorization: 'Bearer ' + token },
+          cache: 'no-store'
+        });
+      } catch (e) { /* ignore */ }
+    }
     clearAuth('logout');
     state.auth.required = false;
     closeAuthModal();
     toast('已退出登录；匿名仍可浏览世界。');
   }
+
 
   function requireAuthForWrite() {
     if (state.auth.mode === 'auth' && !state.auth.access) {
@@ -1786,6 +1893,10 @@
       reasons: Object.keys(REASON_TEXT),
       showError: function (code, serverText) {
         return notifyError('测试错误', { reason: code, reason_text: serverText || '' }, 409);
+      },
+      apiAction: function (verb, args) {
+        const acct = state.session && state.session.accountId;
+        return API.action(acct, verb, args || {}, state.st ? state.st.tick : null);
       },
       authState: function () {
         return {

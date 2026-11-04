@@ -26,6 +26,7 @@ ROOT = Path(__file__).resolve().parents[1]
 UI_DIR = ROOT / "ui" / "player"
 EVIDENCE_DIR = ROOT / "reports" / "w4-ui"
 SESSION_PY = ROOT / "src" / "wsim" / "api" / "session.py"
+AUTH_PY = ROOT / "src" / "wsim" / "api" / "auth.py"
 
 
 def _json_bytes(payload):
@@ -63,6 +64,24 @@ NPCS = {
 }
 
 
+AUTH_ERROR_TEXT = {
+    "auth_bad_username": "用户名需为 3-32 位小写字母、数字、下划线或连字符。",
+    "auth_bad_password": "口令长度需为 6-128 位。",
+    "auth_username_taken": "该用户名已被注册。",
+    "auth_invalid_credentials": "用户名或口令不正确。",
+    "auth_missing_token": "缺少 Bearer 令牌。",
+    "auth_invalid_token": "令牌无效或已注销。",
+    "auth_expired_token": "令牌已过期；请重新登录。",
+    "auth_account_mismatch": "请求账号与令牌账号不一致。",
+    "auth_disabled": "当前为 legacy 匿名模式，鉴权接口不可用。",
+}
+
+
+def auth_error(code, tick=0):
+    return {"ok": False, "code": code, "reject_reason": code,
+            "reason_text": AUTH_ERROR_TEXT.get(code, code), "tick": tick}
+
+
 class MockWorld:
     def __init__(self, auth_enabled=False, upstream_ok=True):
         self.lock = threading.RLock()
@@ -70,10 +89,13 @@ class MockWorld:
         self.upstream_ok = upstream_ok
         self.accounts = {}
         self.users = {}
-        self.access_tokens = {}
-        self.refresh_tokens = {}
+        self.sessions = {}          # token -> {user, exp, session_id}
         self.token_seq = 0
         self.last_write_auth = ""
+        self.refresh_calls = 0
+        self.rotate_count = 0
+        self.force_401 = 0
+        self.write_auth_headers = []
 
     # ---------------------------------------------------------------- accounts
     def _new_account(self, account_id, display_name, archetype, created):
@@ -229,29 +251,48 @@ class MockWorld:
             return 409, {"ok": False, "reason": "unknown_verb"}
 
     # -------------------------------------------------------------------- auth
-    def issue(self, username):
+    # 与 src/wsim/api/auth.py 的真实响应/错误码保持一致。
+    def issue(self, username, session_id=None):
         self.token_seq += 1
-        access = "access_%s_%d_%d" % (username, self.token_seq, int(time.time()))
-        refresh = "refresh_%s_%d" % (username, self.token_seq)
-        self.access_tokens[access] = {"user": username, "refresh": refresh, "exp": time.time() + 3600}
-        self.refresh_tokens[refresh] = username
-        return {"ok": True, "access_token": access, "refresh_token": refresh,
-                "token_type": "Bearer", "expires_in": 3600,
-                "user": {"username": username}}
+        token = "tok_%s_%d" % (username, self.token_seq)
+        now = time.time()
+        sid = session_id or ("s:%d" % self.token_seq)
+        self.sessions[token] = {"user": username, "exp": now + 3600, "session_id": sid}
+        return {"ok": True, "account_id": username, "username": username,
+                "session_id": sid, "token": token, "token_type": "Bearer",
+                "expires_at": int(now + 3600), "expires_in": 3600}
+
+    def token_error(self, header):
+        if not header or not header.startswith("Bearer "):
+            return "auth_missing_token"
+        token = header[len("Bearer "):].strip()
+        rec = self.sessions.get(token)
+        if not rec:
+            return "auth_invalid_token"
+        if rec.get("exp", 0) <= time.time():
+            return "auth_expired_token"
+        return None
 
     def verify(self, header):
-        if not header or not header.startswith("Bearer "):
+        if self.token_error(header):
             return None
-        token = header[len("Bearer "):].strip()
-        rec = self.access_tokens.get(token)
-        if not rec or rec.get("exp", 0) < time.time():
-            return None
-        return rec.get("user")
+        return self.sessions[header[len("Bearer "):].strip()]["user"]
+
+    def rotate(self, header):
+        """轮换令牌：旧 token 立即失效。"""
+        code = self.token_error(header)
+        if code:
+            return None, code
+        old = header[len("Bearer "):].strip()
+        rec = self.sessions.pop(old)
+        self.rotate_count += 1
+        payload = self.issue(rec["user"], rec["session_id"])
+        payload["rotated"] = True
+        return payload, None
 
     def expire_all(self):
         with self.lock:
-            self.access_tokens.clear()
-            self.refresh_tokens.clear()
+            self.sessions.clear()
 
 
 def Number_ok(value):
@@ -288,15 +329,28 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception:
             return {}
 
+    def _auth_error(self, status, code):
+        self._json(status, auth_error(code, 12))
+
     def _require_write_auth(self):
         header = self.headers.get("Authorization") or ""
-        user = self.world.verify(header)
-        if self.world.auth_enabled and not user:
-            self._json(401, {"ok": False, "error": "auth_required", "reason": "auth_required",
-                             "message": "需要登录后才能执行写操作。"})
-            return None
+        self.world.write_auth_headers.append(header)
+        if self.world.auth_enabled:
+            code = self.world.token_error(header)
+            if code:
+                self._auth_error(401, code)
+                return None
         self.world.last_write_auth = header
-        return user or "anonymous"
+        return self.world.verify(header) or "anonymous"
+
+    def _force_401_once(self):
+        """测试用：让接下来的 n 个写请求返回 401（模拟并发轮换竞态）。"""
+        with self.world.lock:
+            if self.world.force_401 > 0:
+                self.world.force_401 -= 1
+                self._auth_error(401, "auth_expired_token")
+                return True
+        return False
 
     # -------------------------------------------------------------------- GET
     def do_GET(self):  # noqa: N802
@@ -305,14 +359,24 @@ class Handler(SimpleHTTPRequestHandler):
             self._json(200, {"ok": True, "readonly": False, "run": "ui-check-mock",
                              "upstream": "mock", "upstream_ok": self.world.upstream_ok})
             return
+        if path == "/api/auth/me":
+            if not self.world.auth_enabled:
+                self._auth_error(503, "auth_disabled")
+                return
+            code = self.world.token_error(self.headers.get("Authorization") or "")
+            if code:
+                self._auth_error(401, code)
+                return
+            header = self.headers.get("Authorization") or ""
+            rec = self.world.sessions[header[len("Bearer "):].strip()]
+            self._json(200, {"ok": True, "account_id": rec["user"], "username": rec["user"],
+                             "session_id": rec["session_id"], "expires_at": int(rec["exp"]),
+                             "status": "active", "disconnected": False})
+            return
         if path == "/api/player/state":
             q = parse_qs(urlsplit(self.path).query)
             account = (q.get("account_id") or [""])[0]
-            header = self.headers.get("Authorization") or ""
-            if self.world.auth_enabled and header and not self.world.verify(header):
-                self._json(401, {"ok": False, "error": "invalid_token", "reason": "token_expired",
-                                 "message": "登录凭证已过期。"})
-                return
+            # 读端点匿名可用；令牌无效也不影响读取。
             st = self.world.state(account)
             if st is None:
                 self._json(409, {"ok": False, "reason": "player_not_entered",
@@ -330,6 +394,24 @@ class Handler(SimpleHTTPRequestHandler):
             self.world.expire_all()
             self._json(200, {"ok": True, "expired": True})
             return
+        if path == "/__check/force401":
+            q = parse_qs(urlsplit(self.path).query)
+            self.world.force_401 = int((q.get("n") or ["1"])[0])
+            self._json(200, {"ok": True, "force_401": self.world.force_401})
+            return
+        if path == "/__check/reset_stats":
+            self.world.refresh_calls = 0
+            self.world.rotate_count = 0
+            self.world.force_401 = 0
+            self.world.write_auth_headers = []
+            self._json(200, {"ok": True})
+            return
+        if path == "/__check/stats":
+            self._json(200, {"ok": True, "refresh_calls": self.world.refresh_calls,
+                             "rotate_count": self.world.rotate_count,
+                             "force_401": self.world.force_401,
+                             "write_auth_headers": self.world.write_auth_headers})
+            return
         # 静态文件
         return super().do_GET()
 
@@ -337,48 +419,63 @@ class Handler(SimpleHTTPRequestHandler):
     def do_POST(self):  # noqa: N802
         path = urlsplit(self.path).path
         body = self._read_json()
-        if path.startswith("/auth/"):
+        if path.startswith("/api/auth/"):
             if not self.world.auth_enabled:
-                self._json(404, {"ok": False, "reason": "auth_unavailable",
-                                 "message": "服务端未启用鉴权。"})
+                # 真实服务 legacy 模式没有账号库：鉴权接口返回 503 auth_disabled。
+                self._auth_error(503, "auth_disabled")
                 return
-            if path == "/auth/register":
-                username = str(body.get("username") or "").strip()
+            if path == "/api/auth/register":
+                username = str(body.get("username") or "").strip().lower()
                 password = str(body.get("password") or "")
-                if not re.match(r"^[a-zA-Z0-9_-]{3,32}$", username):
-                    self._json(400, {"ok": False, "reason": "bad_username"})
+                if not re.match(r"^[a-z0-9_-]{3,32}$", username):
+                    self._auth_error(400, "auth_bad_username")
                     return
-                if len(password) < 6:
-                    self._json(400, {"ok": False, "reason": "weak_password"})
+                if not (6 <= len(password) <= 128):
+                    self._auth_error(400, "auth_bad_password")
                     return
-                if username in self.world.users:
-                    self._json(409, {"ok": False, "reason": "username_taken"})
-                    return
-                self.world.users[username] = password
-                self._json(200, self.world.issue(username))
+                with self.world.lock:
+                    if username in self.world.users:
+                        self._auth_error(409, "auth_username_taken")
+                        return
+                    self.world.users[username] = password
+                # 真实契约：register 只返回账号信息，不返回令牌。
+                self._json(200, {"ok": True, "account_id": username,
+                                 "username": username, "created": True})
                 return
-            if path == "/auth/login":
-                username = str(body.get("username") or "").strip()
+            if path == "/api/auth/login":
+                username = str(body.get("username") or "").strip().lower()
                 password = str(body.get("password") or "")
                 if self.world.users.get(username) != password:
-                    self._json(401, {"ok": False, "reason": "bad_credentials"})
+                    self._auth_error(401, "auth_invalid_credentials")
                     return
                 self._json(200, self.world.issue(username))
                 return
-            if path == "/auth/refresh":
-                refresh = str(body.get("refresh_token") or "")
-                user = self.world.refresh_tokens.pop(refresh, None)
-                if not user:
-                    self._json(401, {"ok": False, "reason": "token_expired",
-                                     "message": "刷新令牌已失效。"})
+            if path == "/api/auth/refresh":
+                self.world.refresh_calls += 1
+                time.sleep(0.2)  # 放大并发窗口，用来验证前端单飞刷新
+                payload, code = self.world.rotate(self.headers.get("Authorization") or "")
+                if code:
+                    self._auth_error(401, code)
                     return
-                self._json(200, self.world.issue(user))
+                self._json(200, payload)
                 return
-            self._json(404, {"ok": False, "reason": "unknown_action"})
+            if path == "/api/auth/logout":
+                header = self.headers.get("Authorization") or ""
+                code = self.world.token_error(header)
+                if code:
+                    self._auth_error(401, code)
+                    return
+                rec = self.world.sessions.pop(header[len("Bearer "):].strip())
+                self._json(200, {"ok": True, "logged_out": True,
+                                 "session_id": rec["session_id"]})
+                return
+            self._json(404, auth_error("unknown_action"))
             return
         if path == "/api/player/enter":
             user = self._require_write_auth()
             if user is None:
+                return
+            if self._force_401_once():
                 return
             account = str(body.get("account_id") or "").strip().lower()
             if not re.match(r"^[a-z0-9_-]{3,32}$", account):
@@ -389,6 +486,8 @@ class Handler(SimpleHTTPRequestHandler):
         if path == "/api/player/action":
             user = self._require_write_auth()
             if user is None:
+                return
+            if self._force_401_once():
                 return
             status, payload = self.world.act(
                 str(body.get("account_id") or ""),
@@ -560,13 +659,19 @@ def run_reasons(browser, base, results):
     page = ctx.new_page()
     page.goto(base + "/?ui_check=1")
     wait_app(page)
-    src = SESSION_PY.read_text(encoding="utf-8")
-    block = src.split("REASON_TEXT: dict[str, str] = {", 1)[1].split("}", 1)[0]
-    known = sorted(set(re.findall(r'"([^"]+)":', block)))
+    known = set()
+    for src_path, marker in ((SESSION_PY, "REASON_TEXT: dict[str, str] = {"),
+                             (AUTH_PY, "ERROR_TEXT: dict[str, str] = {")):
+        if not src_path.exists():
+            continue
+        block = src_path.read_text(encoding="utf-8").split(marker, 1)[1].split("}", 1)[0]
+        known |= set(re.findall(r'"([^"]+)":', block))
     required = ["quest_expired", "reputation_too_low", "too_many_quests", "not_together",
-                "item_not_held", "auth_required", "invalid_token", "token_expired",
-                "bad_credentials", "username_taken", "intent_not_found"]
-    known = sorted(set(known) | set(required))
+                "item_not_held", "auth_required", "auth_bad_username", "auth_bad_password",
+                "auth_username_taken", "auth_invalid_credentials", "auth_missing_token",
+                "auth_invalid_token", "auth_expired_token", "auth_disabled",
+                "intent_not_found"]
+    known = sorted(known | set(required))
     mapping = page.evaluate("""(codes) => {
       const x = window.__XKX;
       const rows = {};
@@ -899,6 +1004,16 @@ def auth_register(page, username="ui_user", password="secret123"):
                            timeout=10000)
 
 
+def auth_login(page, username="ui_user", password="secret123"):
+    page.click("#authBtn")
+    page.click("#authTabLogin")
+    page.fill("#authUsername", username)
+    page.fill("#authPassword", password)
+    page.click("#authSubmit")
+    page.wait_for_function("() => document.getElementById('authModal').classList.contains('hidden')",
+                           timeout=10000)
+
+
 def run_auth(browser, base, results):
     ctx = browser.new_context(viewport={"width": 1280, "height": 900})
     page = ctx.new_page()
@@ -953,15 +1068,14 @@ def run_auth(browser, base, results):
     page.wait_for_function("() => window.__XKX.guideState().step === 3", timeout=10000)
     results.must("鉴权 登录后写操作成功（Bearer 已发送）", True)
 
-    # 刷新：已有令牌先试探读端点，仍保持登录
+    # 刷新：已有令牌启动探活（/api/auth/refresh）→ 轮换并保持登录
     page.reload()
     page.wait_for_function("() => !!window.__XKX", timeout=10000)
     page.wait_for_function("() => window.__XKX.authState().mode === 'auth'", timeout=8000)
     time.sleep(1.0)
     reloaded = page.evaluate("() => ({auth: window.__XKX.authState(), btn: document.getElementById('authBtn').textContent})")
-    results.must("鉴权 刷新后令牌有效并保持登录", reloaded["auth"]["hasAccess"], reloaded)
 
-    # access 失效但 refresh 有效：启动时自动续期
+    # 令牌失效：启动探活 401 → 清掉本地令牌并回到登录态（不残留假登录）
     page.evaluate("""() => {
       const o = JSON.parse(localStorage.getItem('ws_auth_v1'));
       o.access_token = 'broken_access_token';
@@ -970,9 +1084,41 @@ def run_auth(browser, base, results):
     page.reload()
     page.wait_for_function("() => !!window.__XKX", timeout=10000)
     page.wait_for_function("() => window.__XKX.authState().mode === 'auth'", timeout=8000)
-    time.sleep(1.2)
-    renewed = page.evaluate("() => ({auth: window.__XKX.authState(), btn: document.getElementById('authBtn').textContent})")
-    results.must("鉴权 access 过期时用 refresh 续期", renewed["auth"]["hasAccess"] and "已登录" in renewed["btn"], renewed)
+    page.wait_for_function("() => window.__XKX.authState().hasAccess === false", timeout=8000)
+    broken = page.evaluate("""() => ({auth: window.__XKX.authState(), btn: document.getElementById('authBtn').textContent,
+      raw: localStorage.getItem('ws_auth_v1')})""")
+    results.must("鉴权 刷新后保持登录；失效令牌启动时清掉并回到登录态",
+                 reloaded["auth"]["hasAccess"] and "已登录" in reloaded["btn"]
+                 and not broken["auth"]["hasAccess"] and broken["raw"] is None, {"reloaded": reloaded, "broken": broken})
+
+    # refresh 轮换 + 单飞：两个并发写请求都 401，只允许一次 refresh；
+    # 旧令牌立即失效，两个请求都用新令牌重放成功。
+    auth_login(page, "ui_user", "secret123")
+    page.request.get(base + "/__check/reset_stats")
+    page.request.get(base + "/__check/force401?n=2")
+    race = page.evaluate("""async () => {
+      const oldToken = JSON.parse(localStorage.getItem('ws_auth_v1')).access_token;
+      const x = window.__XKX;
+      const [a, b] = await Promise.all([
+        x.apiAction('cultivate', {hours: 1}),
+        x.apiAction('cultivate', {hours: 1})
+      ]);
+      const stats = await (await fetch('/__check/stats')).json();
+      const newToken = JSON.parse(localStorage.getItem('ws_auth_v1')).access_token;
+      return {a, b, stats, oldToken, newToken};
+    }""")
+    old_probe = page.request.get(base + "/api/auth/me",
+                                 headers={"Authorization": "Bearer " + race["oldToken"]})
+    results.must("鉴权 refresh 轮换：并发 401 只刷新一次、旧令牌立即失效",
+                 bool(race["a"].get("httpOk")) and bool(race["b"].get("httpOk"))
+                 and race["stats"]["refresh_calls"] == 1
+                 and race["oldToken"] != race["newToken"]
+                 and old_probe.status == 401,
+                 {"refresh_calls": race["stats"]["refresh_calls"],
+                  "rotate_count": race["stats"]["rotate_count"],
+                  "old_status": old_probe.status,
+                  "newTokenDiffers": race["oldToken"] != race["newToken"]})
+    page.wait_for_function("() => window.__XKX.guideState().step === 3", timeout=8000)
 
     # 会话中途全部令牌失效：写操作 401 → 提示重新登录，但世界状态不被吞
     page.wait_for_function("() => document.getElementById('entryOverlay').classList.contains('hidden')",
