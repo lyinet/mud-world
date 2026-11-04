@@ -1,0 +1,13 @@
+{
+  "guide": {
+    "active": false,
+    "step": 4,
+    "status": "completed",
+    "accountId": "u_guide_mobile"
+  },
+  "money": "312 文",
+  "groups": 4,
+  "growth": 3,
+  "quests": 1,
+  "scrollWidth": 375
+}

@@ -146,3 +146,31 @@ tar -tzf dist/xkx-world-sim-delivery-p3j.tar.gz | \
 `reports/verify-guard-quota-frozen-2026-11-04.md`、`tests/test_p3e_golden.py`（`GOLDEN_MILESTONE`）、
 `tests/test_p4_quest_supply.py`（`PLAYER_SUPPLY_GOLDEN`）、`reports/evidence/blind-eval-r4/`；
 不含 `.venv`、顶层 `runs/`、`.git`、`.sqlite`、真实 key。
+
+## 6. W4 客户端体验验收证据（`reports/w4-ui/`）
+
+本目录证据由 `python3 tools/ui_check.py` 在 mock 服务上生成（不写世界），
+`reports/w4-ui/checks.json` 是脚本直接写出的 66 条断言结果（**66 checks / 0 failed**），不是手工粘贴。
+复现：
+
+```bash
+python3 tools/ui_check.py          # 生成 screenshots + checks.json + keyboard.txt
+```
+
+| 文件 | 对应验收项 |
+| --- | --- |
+| `checks.json` | 全部 66 条断言的机器可读结果（原因码、桌面、移动、键盘、回归、鉴权） |
+| `desktop-step1.png` … `desktop-step4.png` | 桌面四步引导：① 先做这个 → ② 接委托 → ③ 移动 → ④ 交付，逐步高亮 |
+| `desktop-complete.png` | ④ 交付后资金 300→312 文、引导完成 |
+| `desktop-reload-no-guide.png` | 引导完成/跳过后刷新不再出现（localStorage 持久化） |
+| `mobile-step1.png` … `mobile-step4.png` | 375×812 下四步各自目标在视口内、未被提示遮挡 |
+| `mobile-complete.png` | 移动端主流程完成（资金 312 文，四组面板与三条成长线仍在） |
+| `mobile-summary.json` | 移动端终态摘要（`scrollWidth=375`，无横向滚动） |
+| `keyboard.txt` / `keyboard-complete.png` | Tab 走完主流程、Enter 触发、3px 可见焦点 |
+| `reasons-history.png` | 原因码中文文案与右下角最近 3 条错误历史 |
+| `regression-healthy.png` | 健康模式下断线提示条不显示 |
+| `regression-degraded.png` | 降级模式显示「上游不可达」 |
+| `auth-required.png` | 未登录时登录/注册入口与「需要重新登录」提示 |
+| `auth-401-mid-session.png` | 写操作 401 后重登入口出现、世界状态保留 |
+
+鉴权部分按 W1 真实 `/api/auth/*` 契约用 mock 复验，真实服务端到端联调留到整合波。

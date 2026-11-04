@@ -1,0 +1,711 @@
+[
+  {
+    "name": "原因码：服务端已知码全部有中文文案",
+    "ok": true,
+    "detail": []
+  },
+  {
+    "name": "原因码：前端映射表覆盖已知码",
+    "ok": true
+  },
+  {
+    "name": "原因码：未知码走兜底文案",
+    "ok": true
+  },
+  {
+    "name": "原因码：未知码但有服务端原话时保留原话",
+    "ok": true
+  },
+  {
+    "name": "错误历史：最多保留 3 条",
+    "ok": true,
+    "detail": "3"
+  },
+  {
+    "name": "错误历史：可展开复查",
+    "ok": true,
+    "detail": {
+      "visible": true,
+      "items": [
+        "测试错误21:52:37对方不在你当前所在的地点；先移动到对方所在处。原因码：not_together",
+        "测试错误21:52:37你手上已有 2 个进行中任务；先交付其中一个，再接新单。原因码：too_many_quests",
+        "测试错误21:52:37声望还不够接这一单；先做小委托或经营人情，达到门槛再来。原因码：reputation_too_low"
+      ],
+      "expanded": "true"
+    }
+  },
+  {
+    "name": "错误历史：显示中文原因文案",
+    "ok": true,
+    "detail": [
+      "测试错误21:52:37对方不在你当前所在的地点；先移动到对方所在处。原因码：not_together",
+      "测试错误21:52:37你手上已有 2 个进行中任务；先交付其中一个，再接新单。原因码：too_many_quests",
+      "测试错误21:52:37声望还不够接这一单；先做小委托或经营人情，达到门槛再来。原因码：reputation_too_low"
+    ]
+  },
+  {
+    "name": "错误 toast 自动消失（不长期遮挡）",
+    "ok": true
+  },
+  {
+    "name": "桌面 引导①出现并高亮「先做这个」",
+    "ok": true,
+    "detail": {
+      "step": "1 / 4",
+      "title": "① 先看「先做这个」",
+      "target": {
+        "title": "① 先看「先做这个」",
+        "text": "先做这个接「送一匹粗布到药铺」，发布人刘三娘就在市集（12 文）",
+        "rect": {
+          "left": 935,
+          "top": 140.90625,
+          "width": 310,
+          "height": 51,
+          "right": 1245,
+          "bottom": 191.90625
+        },
+        "tag": "DIV",
+        "id": "todayNext",
+        "quest": "",
+        "deliver": "",
+        "exitId": "",
+        "disabled": false
+      }
+    }
+  },
+  {
+    "name": "桌面 引导①不遮挡高亮目标",
+    "ok": true
+  },
+  {
+    "name": "桌面 引导②出现并高亮「去接」",
+    "ok": true,
+    "detail": {
+      "title": "② 接一条委托",
+      "target": {
+        "title": "② 接一条委托",
+        "text": "去接",
+        "rect": {
+          "left": 1186,
+          "top": 754.59375,
+          "width": 48,
+          "height": 32.59375,
+          "right": 1234,
+          "bottom": 787.1875
+        },
+        "tag": "BUTTON",
+        "id": "",
+        "quest": "quest:silk_sample:0",
+        "deliver": "",
+        "exitId": "",
+        "disabled": false
+      }
+    }
+  },
+  {
+    "name": "桌面 引导②不遮挡高亮目标",
+    "ok": true
+  },
+  {
+    "name": "桌面 引导③出现并指向移动出口",
+    "ok": true,
+    "detail": {
+      "title": "③ 移动到委托人处",
+      "target": {
+        "title": "③ 移动到委托人处",
+        "text": "药铺pharmacy走 →",
+        "rect": {
+          "left": 48,
+          "top": 225.5,
+          "width": 118.5,
+          "height": 56.75,
+          "right": 166.5,
+          "bottom": 282.25
+        },
+        "tag": "BUTTON",
+        "id": "",
+        "quest": "",
+        "deliver": "",
+        "exitId": "pharmacy",
+        "disabled": false
+      }
+    }
+  },
+  {
+    "name": "桌面 引导④出现并高亮「交付」",
+    "ok": true,
+    "detail": {
+      "title": "④ 交付并看到资金变化",
+      "target": {
+        "title": "④ 交付并看到资金变化",
+        "text": "交付",
+        "rect": {
+          "left": 1186,
+          "top": 754.8125,
+          "width": 48,
+          "height": 32.59375,
+          "right": 1234,
+          "bottom": 787.40625
+        },
+        "tag": "BUTTON",
+        "id": "",
+        "quest": "",
+        "deliver": "quest:silk_sample:0",
+        "exitId": "",
+        "disabled": false
+      }
+    }
+  },
+  {
+    "name": "桌面 ④交付后资金 300→312 且引导完成",
+    "ok": true,
+    "detail": {
+      "guide": {
+        "active": false,
+        "step": 4,
+        "status": "completed",
+        "accountId": "u_guide_desktop"
+      },
+      "hidden": true,
+      "money": "312 文",
+      "persisted": {
+        "u_guide_desktop": {
+          "status": "completed",
+          "step": 4,
+          "updated": 1793800365891
+        }
+      },
+      "localKeys": [
+        "ws_player_guide_v1",
+        "ws_player_account"
+      ]
+    }
+  },
+  {
+    "name": "桌面 已完成状态写入 localStorage",
+    "ok": true,
+    "detail": {
+      "u_guide_desktop": {
+        "status": "completed",
+        "step": 4,
+        "updated": 1793800365891
+      }
+    }
+  },
+  {
+    "name": "桌面 刷新后已完成引导不再出现",
+    "ok": true,
+    "detail": {
+      "guideActive": false,
+      "layerHidden": true,
+      "status": "idle"
+    }
+  },
+  {
+    "name": "桌面 跳过前引导可见",
+    "ok": true
+  },
+  {
+    "name": "桌面 可随时跳过并持久化 skipped",
+    "ok": true,
+    "detail": {
+      "state": {
+        "active": false,
+        "step": 1,
+        "status": "skipped",
+        "accountId": "u_skip_desktop"
+      },
+      "persisted": {
+        "u_skip_desktop": {
+          "status": "skipped",
+          "step": 1,
+          "updated": 1793800367760
+        }
+      }
+    }
+  },
+  {
+    "name": "桌面 刷新后已跳过引导不再出现",
+    "ok": true,
+    "detail": {
+      "active": false,
+      "hidden": true
+    }
+  },
+  {
+    "name": "移动 375×812 引导1目标在视口内",
+    "ok": true,
+    "detail": {
+      "title": "① 先看「先做这个」",
+      "text": "先做这个接「送一匹粗布到药铺」，发布人刘三娘就在市集（12 文）",
+      "rect": {
+        "left": 27,
+        "top": 203.421875,
+        "width": 321,
+        "height": 51,
+        "right": 348,
+        "bottom": 254.421875
+      },
+      "tag": "DIV",
+      "id": "todayNext",
+      "quest": "",
+      "deliver": "",
+      "exitId": "",
+      "disabled": false
+    }
+  },
+  {
+    "name": "移动 引导1目标可被点中（未被提示遮挡）",
+    "ok": true,
+    "detail": {
+      "selector": "#todayNext",
+      "same": true,
+      "hitTag": "DIV",
+      "hitId": "todayNext"
+    }
+  },
+  {
+    "name": "移动 引导1触控目标≥44px",
+    "ok": true,
+    "detail": {
+      "tag": "DIV",
+      "height": 51
+    }
+  },
+  {
+    "name": "移动 引导1无横向溢出",
+    "ok": true,
+    "detail": 375
+  },
+  {
+    "name": "移动 引导1可见按钮均≥44px",
+    "ok": true,
+    "detail": []
+  },
+  {
+    "name": "移动 引导1提示卡不遮挡高亮目标",
+    "ok": true
+  },
+  {
+    "name": "移动 375×812 引导2目标在视口内",
+    "ok": true,
+    "detail": {
+      "title": "② 接一条委托",
+      "text": "去接",
+      "rect": {
+        "left": 285,
+        "top": 383.734375,
+        "width": 52,
+        "height": 44,
+        "right": 337,
+        "bottom": 427.734375
+      },
+      "tag": "BUTTON",
+      "id": "",
+      "quest": "quest:silk_sample:0",
+      "deliver": "",
+      "exitId": "",
+      "disabled": false
+    }
+  },
+  {
+    "name": "移动 引导2目标可被点中（未被提示遮挡）",
+    "ok": true,
+    "detail": {
+      "selector": "button[data-quest=\"quest\\:silk_sample\\:0\"]",
+      "same": true,
+      "hitTag": "BUTTON",
+      "hitId": ""
+    }
+  },
+  {
+    "name": "移动 引导2触控目标≥44px",
+    "ok": true,
+    "detail": {
+      "tag": "BUTTON",
+      "height": 44
+    }
+  },
+  {
+    "name": "移动 引导2无横向溢出",
+    "ok": true,
+    "detail": 375
+  },
+  {
+    "name": "移动 引导2可见按钮均≥44px",
+    "ok": true,
+    "detail": []
+  },
+  {
+    "name": "移动 引导2提示卡不遮挡高亮目标",
+    "ok": true
+  },
+  {
+    "name": "移动 375×812 引导3目标在视口内",
+    "ok": true,
+    "detail": {
+      "title": "③ 移动到委托人处",
+      "text": "药铺pharmacy走 →",
+      "rect": {
+        "left": 40,
+        "top": 377.9375,
+        "width": 144,
+        "height": 56.75,
+        "right": 184,
+        "bottom": 434.6875
+      },
+      "tag": "BUTTON",
+      "id": "",
+      "quest": "",
+      "deliver": "",
+      "exitId": "pharmacy",
+      "disabled": false
+    }
+  },
+  {
+    "name": "移动 引导3目标可被点中（未被提示遮挡）",
+    "ok": true,
+    "detail": {
+      "selector": "button[data-exit-id=\"pharmacy\"]",
+      "same": true,
+      "hitTag": "BUTTON",
+      "hitId": ""
+    }
+  },
+  {
+    "name": "移动 引导3触控目标≥44px",
+    "ok": true,
+    "detail": {
+      "tag": "BUTTON",
+      "height": 56.75
+    }
+  },
+  {
+    "name": "移动 引导3无横向溢出",
+    "ok": true,
+    "detail": 375
+  },
+  {
+    "name": "移动 引导3可见按钮均≥44px",
+    "ok": true,
+    "detail": []
+  },
+  {
+    "name": "移动 引导3提示卡不遮挡高亮目标",
+    "ok": true
+  },
+  {
+    "name": "移动 375×812 引导4目标在视口内",
+    "ok": true,
+    "detail": {
+      "title": "④ 交付并看到资金变化",
+      "text": "交付",
+      "rect": {
+        "left": 285,
+        "top": 383.953125,
+        "width": 52,
+        "height": 44,
+        "right": 337,
+        "bottom": 427.953125
+      },
+      "tag": "BUTTON",
+      "id": "",
+      "quest": "",
+      "deliver": "quest:silk_sample:0",
+      "exitId": "",
+      "disabled": false
+    }
+  },
+  {
+    "name": "移动 引导4目标可被点中（未被提示遮挡）",
+    "ok": true,
+    "detail": {
+      "selector": "button[data-deliver=\"quest\\:silk_sample\\:0\"]",
+      "same": true,
+      "hitTag": "BUTTON",
+      "hitId": ""
+    }
+  },
+  {
+    "name": "移动 引导4触控目标≥44px",
+    "ok": true,
+    "detail": {
+      "tag": "BUTTON",
+      "height": 44
+    }
+  },
+  {
+    "name": "移动 引导4无横向溢出",
+    "ok": true,
+    "detail": 375
+  },
+  {
+    "name": "移动 引导4可见按钮均≥44px",
+    "ok": true,
+    "detail": []
+  },
+  {
+    "name": "移动 引导4提示卡不遮挡高亮目标",
+    "ok": true
+  },
+  {
+    "name": "移动 主流程完成：资金 300→312",
+    "ok": true,
+    "detail": {
+      "guide": {
+        "active": false,
+        "step": 4,
+        "status": "completed",
+        "accountId": "u_guide_mobile"
+      },
+      "money": "312 文",
+      "groups": 4,
+      "growth": 3,
+      "quests": 1,
+      "scrollWidth": 375
+    }
+  },
+  {
+    "name": "移动 面板四组与三条成长线仍渲染",
+    "ok": true,
+    "detail": {
+      "guide": {
+        "active": false,
+        "step": 4,
+        "status": "completed",
+        "accountId": "u_guide_mobile"
+      },
+      "money": "312 文",
+      "groups": 4,
+      "growth": 3,
+      "quests": 1,
+      "scrollWidth": 375
+    }
+  },
+  {
+    "name": "移动 无横向滚动",
+    "ok": true,
+    "detail": 375
+  },
+  {
+    "name": "键盘 Tab 到达「去接」并显示焦点样式",
+    "ok": true,
+    "detail": {
+      "tag": "BUTTON",
+      "id": "",
+      "text": "去接",
+      "quest": "quest:silk_sample:0",
+      "exitId": "",
+      "deliver": "",
+      "outlineStyle": "solid",
+      "outlineWidth": "3px",
+      "outlineColor": "rgb(200, 149, 90)"
+    }
+  },
+  {
+    "name": "键盘 Tab 到达移动出口并显示焦点样式",
+    "ok": true,
+    "detail": {
+      "tag": "BUTTON",
+      "id": "",
+      "text": "药铺pharmacy走 →",
+      "quest": "",
+      "exitId": "pharmacy",
+      "deliver": "",
+      "outlineStyle": "solid",
+      "outlineWidth": "3px",
+      "outlineColor": "rgb(200, 149, 90)"
+    }
+  },
+  {
+    "name": "键盘 Tab 到达「交付」并显示焦点样式",
+    "ok": true,
+    "detail": {
+      "tag": "BUTTON",
+      "id": "",
+      "text": "交付",
+      "quest": "",
+      "exitId": "",
+      "deliver": "quest:silk_sample:0",
+      "outlineStyle": "solid",
+      "outlineWidth": "3px",
+      "outlineColor": "rgb(200, 149, 90)"
+    }
+  },
+  {
+    "name": "键盘 Enter 走完接单→移动→交付",
+    "ok": true,
+    "detail": {
+      "tabs": 28,
+      "focusSequence": [
+        "quest:silk_sample:0",
+        "guideSkip",
+        "guideNext",
+        "入\n      \n        入世\n    ",
+        "switchBtn",
+        "pharmacy",
+        "guideSkip",
+        "guideNext",
+        "入\n      \n        入世\n    ",
+        "switchBtn",
+        "market",
+        "药药铺掌柜掌柜核对药柜库存在场",
+        "npcSearch",
+        "talkInput",
+        "talkSend",
+        "练 2 小时",
+        "开摊（120 文）",
+        "quest:silk_sample:0"
+      ]
+    }
+  },
+  {
+    "name": "回归 今日面板四组仍在",
+    "ok": true,
+    "detail": [
+      "可接委托送一匹粗",
+      "可学技能算账 1",
+      "可拜访 NPC刘",
+      "可买产业stal"
+    ]
+  },
+  {
+    "name": "回归 三条成长线仍在",
+    "ok": true,
+    "detail": [
+      "声望Lv1 初出茅庐下一",
+      "技能Lv1 手艺人下一级",
+      "资产Lv1 空手下一级 "
+    ]
+  },
+  {
+    "name": "回归 委托板仍在",
+    "ok": true,
+    "detail": 1
+  },
+  {
+    "name": "回归 健康模式下断线提示条不显示",
+    "ok": true
+  },
+  {
+    "name": "回归 legacy 模式显示匿名且不强制登录",
+    "ok": true,
+    "detail": "匿名模式"
+  },
+  {
+    "name": "回归 断线提示条仍显示「上游不可达」",
+    "ok": true,
+    "detail": "上游不可达真 API 已断开，读请求会失败；请重启 wsim.api。"
+  },
+  {
+    "name": "鉴权 未登录显示登录/注册入口",
+    "ok": true,
+    "detail": {
+      "auth": {
+        "mode": "auth",
+        "hasAccess": false,
+        "required": false,
+        "username": "",
+        "expiresAt": 0
+      },
+      "btn": "登录/注册",
+      "entryLine": true
+    }
+  },
+  {
+    "name": "鉴权 未登录写操作显示「需要重新登录」入口",
+    "ok": true,
+    "detail": {
+      "entryError": "进入世界是写操作，需要登录后才能执行；请先在右上角登录/注册，再点「进入世界」。",
+      "noticeVisible": true,
+      "noticeText": "\n    需要重新登录登录已失效，写操作需要重新登录；世界状态保持不变。\n    登录/注册\n  ",
+      "modalVisible": true
+    }
+  },
+  {
+    "name": "鉴权 注册成功后令牌写入 localStorage 且无口令",
+    "ok": true,
+    "detail": {
+      "auth": {
+        "mode": "auth",
+        "hasAccess": true,
+        "required": false,
+        "username": "ui_user",
+        "expiresAt": 1793803974000
+      },
+      "raw": "{\"access_token\":\"tok_ui_user_1\",\"expires_at\":1793803974000,\"username\":\"ui_user\",\"session_id\":\"s:1\"}",
+      "hasPassword": false,
+      "btn": "已登录 · ui_user"
+    }
+  },
+  {
+    "name": "鉴权 登录态显示在顶部",
+    "ok": true,
+    "detail": "已登录 · ui_user"
+  },
+  {
+    "name": "鉴权 登录后写操作成功（Bearer 已发送）",
+    "ok": true
+  },
+  {
+    "name": "鉴权 刷新后保持登录；失效令牌启动时清掉并回到登录态",
+    "ok": true,
+    "detail": {
+      "reloaded": {
+        "auth": {
+          "mode": "auth",
+          "hasAccess": true,
+          "required": false,
+          "username": "ui_user",
+          "expiresAt": 1793803974000
+        },
+        "btn": "已登录 · ui_user"
+      },
+      "broken": {
+        "auth": {
+          "mode": "auth",
+          "hasAccess": false,
+          "required": true,
+          "username": "ui_user",
+          "expiresAt": 0
+        },
+        "btn": "需要重新登录",
+        "raw": null
+      }
+    }
+  },
+  {
+    "name": "鉴权 refresh 轮换：并发 401 只刷新一次、旧令牌立即失效",
+    "ok": true,
+    "detail": {
+      "refresh_calls": 1,
+      "rotate_count": 1,
+      "old_status": 401,
+      "newTokenDiffers": true
+    }
+  },
+  {
+    "name": "鉴权 写操作 401 显示「需要重新登录」且不吞世界状态",
+    "ok": true,
+    "detail": {
+      "auth": {
+        "mode": "auth",
+        "hasAccess": false,
+        "required": true,
+        "username": "ui_user",
+        "expiresAt": 0
+      },
+      "noticeText": "\n    需要重新登录登录已失效，写操作需要重新登录；世界状态保持不变。\n    登录/注册\n  ",
+      "noticeVisible": true,
+      "btn": "需要重新登录",
+      "quests": 1,
+      "location": "市集",
+      "errorCount": "1"
+    }
+  },
+  {
+    "name": "鉴权 401 进入错误历史可复查",
+    "ok": true,
+    "detail": "1"
+  }
+]
