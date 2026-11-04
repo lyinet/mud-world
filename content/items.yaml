@@ -125,3 +125,46 @@ items:
     name: 抄经（一卷）
     category: service
     base_price: 4
+
+  # P3I 新物品（10 件）：产地见 content/additions/economy_p3i.yaml 的 item_catalog，
+  # 用途同时写进任务/委托与 docs/CONTENT-GUIDE-p3i.md；价格直接并入本表参与引擎买卖。
+  - id: rice_cake
+    name: 米糕（一块）
+    category: food
+    base_price: 2
+  - id: lotus_root
+    name: 莲藕（两节）
+    category: food
+    base_price: 6
+  - id: river_fish
+    name: 鲜鱼（一尾）
+    category: food
+    base_price: 9
+  - id: millet
+    name: 小米（一斗）
+    category: food
+    base_price: 11
+  - id: hemp_rope
+    name: 麻绳（一捆）
+    category: material
+    base_price: 9
+  - id: bamboo_basket
+    name: 竹篮（一只）
+    category: material
+    base_price: 14
+  - id: ink_stick
+    name: 墨锭（一块）
+    category: material
+    base_price: 22
+  - id: sickle
+    name: 镰刀（一把）
+    category: tool
+    base_price: 46
+  - id: moxa_roll
+    name: 艾条（一束）
+    category: medicine
+    base_price: 14
+  - id: pearl_earring
+    name: 珠坠（一对）
+    category: luxury
+    base_price: 320

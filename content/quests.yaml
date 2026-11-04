@@ -230,3 +230,217 @@ quests:
     reward: {money: 8, relation: 2}
     settlement: {kind: remit_to_giver, amount: 80}
     notes: "陆九斤欠宋鹤年 80 文；讨回后交回客栈，讨债人只拿 8 文跑腿钱。"
+
+  # ------------------------------------------------------------------
+  # P3I 新手引导链（4 步）：认识第一位 NPC → 送样 → 首单采购 → 第一笔卖货。
+  # 触发条件（引擎逐项检查）：发布人活着且现金足够、玩家未接同类任务、
+  # 玩家金币 ≥ entry_cost、当前地点为发布人所在地；后一步在收益与垫付上
+  # 自然要求先完成前一步（内容层软引导，非引擎强制前置）。
+  # ------------------------------------------------------------------
+  - id: tutorial_meet_sanniang
+    name: "【引导1/4】到集市绣摊认识柳三娘"
+    category: errand
+    repeatable: true
+    starter: true
+    entry_cost: 0
+    giver: jin_mancang
+    target_npc: liu_sanniang
+    target_location: market
+    verb: trade
+    intent_args:
+      target: liu_sanniang
+      offer: []
+      want: []
+      money_delta: 0
+    deadline_days: 2
+    reward: {money: 10, relation: 3}
+    notes: "金满仓让你先去绣摊跟柳三娘打个照面，报上他的名字即可；这一单不用垫钱。"
+  - id: tutorial_silk_sample
+    name: "【引导2/4】把绣样送到药铺苏掌柜手上"
+    category: errand
+    repeatable: true
+    giver: liu_sanniang
+    target_npc: su_hexiang
+    target_location: pharmacy
+    verb: trade
+    intent_args:
+      target: su_hexiang
+      offer: []
+      want: []
+      money_delta: 0
+    deadline_days: 2
+    reward: {money: 12, relation: 3}
+    notes: "柳三娘把绣样交给你，让你送到药铺给苏合香做药囊衬里，当面交接即可。"
+  - id: tutorial_first_buy
+    name: "【引导3/4】首单采购：垫付28文买两束艾条"
+    category: procurement
+    repeatable: true
+    giver: su_hexiang
+    target_npc: su_hexiang
+    target_location: pharmacy
+    target_item: moxa_roll
+    verb: buy
+    intent_args: {item: moxa_roll, qty: 2, from: pharmacy}
+    entry_cost: 28
+    deadline_days: 2
+    reward: {money: 14, relation: 3}
+    notes: "苏合香让你先垫 28 文买两束艾条回来，交付一束，剩下一束留作下一步卖货用。"
+  - id: tutorial_first_sale
+    name: "【引导4/4】第一笔卖货：把艾条卖给曹半仙"
+    category: errand
+    repeatable: true
+    giver: cao_banxian
+    target_npc: cao_banxian
+    target_location: temple
+    verb: trade
+    intent_args:
+      target: cao_banxian
+      offer:
+        - item: moxa_roll
+          qty: 1
+      want: []
+      money_delta: 8
+    deadline_days: 2
+    reward: {money: 14, relation: 3}
+    notes: "城隍庙的曹半仙常备艾条替人灸治；把采购剩下的那束卖给他，收 8 文，完成第一笔卖货。"
+
+  # ------------------------------------------------------------------
+  # P3I 日常委托（8 条，全部 repeatable=True）：引擎每日开市时统一刷新，
+  # 同一模板同一时刻只保留一张 open/accepted 单；发布人现金不足、历史完成率
+  # < 0.2、或过期单达到上限时自动停发。难度分层由 name 前缀与报酬/时限给出：
+  # 【轻】8-12 文 / 2 日；【中】14-18 文 / 2 日；【重】22 文 / 3 日。
+  # ------------------------------------------------------------------
+  - id: daily_ferry_message
+    name: "【轻】捎口信到客栈"
+    category: errand
+    repeatable: true
+    giver: qin_wangchuan
+    target_npc: lu_jiujin
+    target_location: inn
+    verb: trade
+    intent_args:
+      target: lu_jiujin
+      offer: []
+      want: []
+      money_delta: 0
+    deadline_days: 2
+    reward: {money: 10, relation: 2}
+    notes: "船夫秦望川让你把明日潮汛捎给客栈脚夫陆九斤，好安排早班搬货。"
+  - id: daily_market_inquiry
+    name: "【轻】打听客栈酒价"
+    category: inquiry
+    repeatable: true
+    giver: ruan_qingfu
+    target_npc: wen_xiaoman
+    target_location: inn
+    verb: trade
+    intent_args:
+      target: wen_xiaoman
+      offer: []
+      want: []
+      money_delta: 0
+    deadline_days: 2
+    reward: {money: 9, relation: 2}
+    notes: "货郎阮青蚨想知道客栈新到的酒是什么价，好决定明天挑担的货色。"
+  - id: daily_inn_millet
+    name: "【中】采购小米：垫付22文"
+    category: procurement
+    repeatable: true
+    giver: wen_xiaoman
+    target_npc: wen_xiaoman
+    target_location: market
+    target_item: millet
+    verb: buy
+    intent_args: {item: millet, qty: 2, from: market}
+    entry_cost: 22
+    deadline_days: 2
+    reward: {money: 18, relation: 2}
+    notes: "客栈小米见底，温小满让你去集市先垫 22 文买两斗回来。"
+  - id: daily_ferry_rope
+    name: "【中】采购麻绳：垫付18文"
+    category: procurement
+    repeatable: true
+    giver: ruan_xiaoluo
+    target_npc: ruan_xiaoluo
+    target_location: market
+    target_item: hemp_rope
+    verb: buy
+    intent_args: {item: hemp_rope, qty: 2, from: market}
+    entry_cost: 18
+    deadline_days: 2
+    reward: {money: 16, relation: 2}
+    notes: "渔娘的渔网要换绳，让你去集市垫 18 文买两捆麻绳回来。"
+  - id: daily_smithy_bellows
+    name: "【中】铁匠铺拉风箱"
+    category: commission
+    repeatable: true
+    giver: shen_yanzhou
+    target_npc: shen_yanzhou
+    target_location: smithy
+    verb: work
+    intent_args: {at: smithy, hours: 6}
+    deadline_days: 2
+    reward: {money: 15, relation: 2}
+    notes: "沈砚舟赶一批镰刀，缺个拉风箱的短工，六小时一结。"
+  - id: daily_inn_firewood
+    name: "【轻】客栈搬柴"
+    category: commission
+    repeatable: true
+    giver: lu_jiujin
+    target_npc: lu_jiujin
+    target_location: inn
+    verb: work
+    intent_args: {at: inn, hours: 5}
+    deadline_days: 2
+    reward: {money: 12, relation: 2}
+    notes: "脚夫陆九斤忙不过来，让你替客栈把后院柴垛搬进灶房，五小时短工。"
+  - id: daily_escort_short
+    name: "【重】押短镖到集市"
+    category: escort
+    repeatable: true
+    giver: pei_wujiu
+    target_npc: pei_wujiu
+    target_location: market
+    verb: escort
+    intent_args:
+      route: [escort_agency, smithy, market]
+      cargo_value: 160
+      fee: 140
+    deadline_days: 3
+    reward: {money: 22, relation: 2}
+    notes: "镖局有一箱铁器要送集市，路程一天，货值 160 文，镖银 140 文。"
+  - id: daily_ferry_fish_money
+    name: "【中】替渔娘收鱼钱"
+    category: errand
+    repeatable: true
+    giver: ruan_xiaoluo
+    target_npc: song_henian
+    target_location: inn
+    verb: trade
+    intent_args:
+      target: song_henian
+      offer: []
+      want: []
+      money_delta: 12
+    deadline_days: 2
+    reward: {money: 10, relation: 2}
+    notes: "客栈还欠渔娘十二文鱼钱，你替她跑一趟收回来，货款当面结清。"
+
+  # P3I 关系落地：陆九斤对石敢当的 50 文债权生成一张一次性讨债单。
+  - id: debt_shi_to_lu
+    name: "代陆九斤讨借款"
+    category: debt_collection
+    repeatable: false
+    giver: lu_jiujin
+    target_npc: shi_gandang
+    target_location: smithy
+    verb: trade
+    intent_args:
+      target: shi_gandang
+      offer: []
+      want: []
+      money_delta: 50
+    deadline_days: 2
+    reward: {money: 8, relation: 2}
+    settlement: {kind: remit_to_giver, amount: 50}
+    notes: "石匠向陆九斤借了五十文周转；讨回后交回陆九斤，讨债人只拿 8 文跑腿钱。"

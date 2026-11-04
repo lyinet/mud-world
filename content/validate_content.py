@@ -767,7 +767,8 @@ def check_locations(locations, items_by_id, set_of_location_ids, report):
 def check_items(items, report):
     if not report.check(isinstance(items, list), "items.yaml 结构", "items 必须是列表"):
         return {}
-    report.check(20 <= len(items) <= 30, "物品数量", f"期望 20-30，实际 {len(items)}")
+    # P3I 新增 10 件可用物品（food/material/tool/medicine/luxury），上限放宽到 45。
+    report.check(20 <= len(items) <= 45, "物品数量", f"期望 20-45，实际 {len(items)}")
     items_by_id = {}
     bands = {
         "food": (2, 50), "material": (5, 200), "tool": (20, 1000),
@@ -1473,7 +1474,8 @@ def _path_len(adj, start, end):
 def check_quests(quests, npc_map, loc_ids, locations, items_by_id, verb_names, economy, report):
     if not report.check(isinstance(quests, list), "quests.yaml 结构", "quests 必须是列表"):
         return
-    report.check(len(quests) == 14, "任务模板数量", f"期望 14（12 基础 + 2 新手起步），实际 {len(quests)}")
+    # P3I：14 基础 + 4 步新手引导链 + 8 条日常委托 + 1 条新债权讨债单 = 27。
+    report.check(len(quests) == 27, "任务模板数量", f"期望 27（14 基础 + 4 引导 + 8 日常 + 1 新债），实际 {len(quests)}")
     adj = _adjacency(locations)
     loc_services = {
         l.get("id"): set(l.get("services") or [])
@@ -1869,10 +1871,166 @@ def main() -> int:
     check_sects(sects, loc_ids, npc_map, economy, report)
     check_escort_routes(routes, locations, economy, report)
     check_quests(quests, npc_map, loc_ids, locations, items_by_id, verb_names, economy, report)
+    check_p3i_additions(load_yaml(BASE_DIR / "additions" / "economy_p3i.yaml"),
+                        items_by_id, loc_ids, npc_map, report)
     check_personas(set(npc_map), report)
 
     print_report(report, npc_info)
     return 0 if not report.errors else 1
+
+
+P3I_NEW_ITEMS = [
+    "rice_cake", "lotus_root", "river_fish", "millet", "hemp_rope",
+    "bamboo_basket", "ink_stick", "sickle", "moxa_roll", "pearl_earring",
+]
+P3I_PRICE_FORBIDDEN_KEYS = ("random", "rng", "noise", "jitter", "seed", "variance")
+
+
+def check_p3i_additions(add_data, items_by_id, loc_ids, npc_map, report):
+    """校验 P3I 物品产地/用途目录与确定性供需物价模型。
+
+    引擎当前不读取 price_model（见文件头注释），所以这里只保证：
+    1) 10 件新物品都有产地与用途；2) 模型只含确定性输入、无随机项；
+    3) 同一输入重复计算两次结果完全一致（可复现）；
+    4) 模型在 2 日内确实产生非零价格变化，供文档引用。
+    """
+    label = "additions/economy_p3i.yaml"
+    if not isinstance(add_data, dict):
+        report.errors.append(f"{label} 顶层必须是映射")
+        return
+    catalog = add_data.get("item_catalog")
+    if not isinstance(catalog, dict):
+        report.errors.append(f"{label} 缺少 item_catalog 映射")
+        catalog = {}
+    missing_catalog = [iid for iid in P3I_NEW_ITEMS if iid not in catalog]
+    report.check(not missing_catalog, "P3I 新物品产地/用途齐全", f"缺少: {missing_catalog}")
+    for iid in P3I_NEW_ITEMS:
+        entry = catalog.get(iid)
+        if not isinstance(entry, dict):
+            continue
+        if iid not in items_by_id:
+            report.errors.append(f"{label}.item_catalog.{iid} 对应的物品不在 items.yaml")
+        origin = entry.get("origin")
+        if origin not in loc_ids:
+            report.errors.append(f"{label}.item_catalog.{iid}.origin 指向不存在的地点: {origin!r}")
+        if not isinstance(entry.get("usage"), str) or not entry.get("usage").strip():
+            report.errors.append(f"{label}.item_catalog.{iid}.usage 不能为空")
+
+    arcs = add_data.get("long_term_arcs")
+    report.check(isinstance(arcs, list) and len(arcs) >= 3,
+                  "长线目标 >=3 条", f"实际 {len(arcs) if isinstance(arcs, list) else '非列表'}")
+    seen_arc_goal = set()
+    for ai, arc in enumerate(arcs if isinstance(arcs, list) else []):
+        tag = f"{label}.long_term_arcs[{ai}]"
+        if not isinstance(arc, dict):
+            report.errors.append(f"{tag} 必须是映射")
+            continue
+        npc_id = arc.get("npc")
+        npc = npc_map.get(npc_id)
+        if npc is None:
+            report.errors.append(f"{tag}.npc 不存在: {npc_id!r}")
+            continue
+        gid = arc.get("goal")
+        gtype = arc.get("goal_type")
+        goals = {g.get("id"): g.get("type") for g in npc.get("goals") or [] if isinstance(g, dict)}
+        if gid not in goals:
+            report.errors.append(f"{tag}.goal 不存在于 {npc_id}: {gid!r}")
+        elif goals[gid] != gtype:
+            report.errors.append(f"{tag}.goal_type 与 NPC 目标不一致: {gtype!r} != {goals[gid]!r}")
+        if gid in seen_arc_goal:
+            report.errors.append(f"{tag}.goal 被多条长线目标重复占用: {gid}")
+        seen_arc_goal.add(gid)
+        ms = arc.get("milestones")
+        if not isinstance(ms, list) or not ms:
+            report.errors.append(f"{tag}.milestones 必须非空")
+            continue
+        ats = [m.get("at") for m in ms if isinstance(m, dict)]
+        if any(not isinstance(x, float) and not isinstance(x, int) for x in ats):
+            report.errors.append(f"{tag}.milestones.at 必须是数值")
+        elif ats != sorted(ats) or ats[-1] <= 0:
+            report.errors.append(f"{tag}.milestones.at 必须递增且为正")
+        if arc.get("goal_type") == "build_shop" and len(ats) < 2:
+            report.errors.append(f"{tag} build_shop 至少需要 2 个里程碑")
+
+    model = add_data.get("price_model")
+    if not isinstance(model, dict):
+        report.errors.append(f"{label} 缺少 price_model 映射")
+        return
+    horizon = model.get("horizon_days")
+    report.check(isinstance(horizon, int) and horizon >= 2, "物价模型覆盖 >=2 日",
+                  f"horizon_days={horizon!r}")
+    horizon = horizon if isinstance(horizon, int) and horizon >= 2 else 2
+    if model.get("deterministic") is not True:
+        report.errors.append(f"{label}.price_model.deterministic 必须为 true")
+    flat = json.dumps(model, ensure_ascii=False).lower()
+    hit = [k for k in P3I_PRICE_FORBIDDEN_KEYS if k in flat]
+    report.check(not hit, "物价模型不含随机项", f"出现禁用词: {hit}")
+
+    cats = model.get("categories")
+    if not isinstance(cats, dict):
+        report.errors.append(f"{label}.price_model.categories 必须是映射")
+        return
+    report.check(len(cats) >= 5, "物价模型覆盖 >=5 类商品", f"实际 {len(cats)} 类")
+    quotes = {}
+    for name, cat in sorted(cats.items()):
+        if not isinstance(cat, dict):
+            report.errors.append(f"{label}.price_model.categories.{name} 必须是映射")
+            continue
+        items = cat.get("items")
+        if not isinstance(items, list) or not items:
+            report.errors.append(f"{label}.price_model.categories.{name}.items 必须非空")
+            continue
+        unknown = [i for i in items if i not in items_by_id]
+        report.check(not unknown, f"物价模型 {name} 商品存在", f"未知物品: {unknown}")
+        supply = cat.get("supply_by_day")
+        demand = cat.get("demand_by_day")
+        elastic = cat.get("elasticity")
+        if not isinstance(elastic, (int, float)) or isinstance(elastic, bool) or not 0 < elastic <= 1:
+            report.errors.append(f"{label}.price_model.categories.{name}.elasticity 必须在 (0,1]")
+            continue
+        if (not isinstance(supply, list) or not isinstance(demand, list)
+                or len(supply) != horizon or len(demand) != horizon):
+            report.errors.append(
+                f"{label}.price_model.categories.{name} 的 supply/demand 长度必须等于 {horizon}")
+            continue
+        if any(not isinstance(x, int) or isinstance(x, bool) or x <= 0 for x in supply + demand):
+            report.errors.append(f"{label}.price_model.categories.{name} 的 supply/demand 必须为正整数")
+            continue
+        for day in range(horizon):
+            s, d = supply[day], demand[day]
+            factor = 1 + float(elastic) * (d - s) / (d + s)
+            for iid in items:
+                base = int(items_by_id[iid]["base_price"])
+                quotes[(iid, day)] = int(round(base * factor))
+
+    # 确定性：同一输入算两遍必须完全一致。
+    again = {}
+    for name, cat in sorted(cats.items()):
+        if not isinstance(cat, dict) or not isinstance(cat.get("items"), list):
+            continue
+        elastic = cat.get("elasticity") or 0
+        for day in range(horizon):
+            s, d = cat["supply_by_day"][day], cat["demand_by_day"][day]
+            factor = 1 + float(elastic) * (d - s) / (d + s)
+            for iid in cat["items"]:
+                again[(iid, day)] = int(round(int(items_by_id[iid]["base_price"]) * factor))
+    report.check(quotes == again, "物价模型可复现", "同一输入两次计算结果不一致")
+
+    amps = []
+    for iid in sorted({k[0] for k in quotes}):
+        p0, p1 = quotes.get((iid, 0)), quotes.get((iid, 1))
+        if p0 and p1:
+            amps.append((abs(p1 - p0) / p0, iid, p0, p1))
+    if amps:
+        worst = max(amps)
+        report.check(worst[0] > 0, "物价 2 日内有非零变化",
+                      f"最大变动 {worst[0] * 100:.1f}%（{worst[1]} {worst[2]}→{worst[3]} 文）")
+        report.info.append(
+            "P3I 物价模型（内容层规格，引擎未接入）："
+            + "；".join(f"{iid} {p0}→{p1} 文（{(p1 - p0) / p0 * 100:+.1f}%）"
+                        for _, iid, p0, p1 in sorted(amps, key=lambda x: -x[0])[:5])
+            + f"；共 {len(cats)} 类 {len({k[0] for k in quotes})} 件商品"
+        )
 
 
 def print_report(report: Report, npc_info: dict):

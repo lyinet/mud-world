@@ -50,3 +50,9 @@ packages:
     type: verbs
     path: additions/verbs.yaml
     version: "1.0.0"
+  # P3I：只新增 economy 数据（物品产地/用途目录 + 确定性供需价格模型规格），
+  # 不覆盖 base-economy 的任何引擎已读字段。
+  - id: p3i-add-economy
+    type: economy
+    path: additions/economy_p3i.yaml
+    version: "1.0.0"

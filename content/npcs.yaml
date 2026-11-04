@@ -43,6 +43,10 @@ npcs:
         type: debtor
         value: -15
         amount: 90
+      # P3I 竞争边：沈砚舟与邢破军因一桩旧案结怨，铁匠铺与捕快之间话不投机。
+      - target: xing_pojun
+        type: rival
+        value: -25
 
   - id: liu_sanniang
     name: 柳三娘
@@ -119,6 +123,11 @@ npcs:
       - target: qin_wangchuan
         type: friend
         value: 25
+      # P3I 债主边（石敢当的镜像）：脚夫借给石匠五十文，讨债单由陆九斤发出。
+      - target: shi_gandang
+        type: creditor
+        value: 15
+        amount: 50
 
   - id: su_hexiang
     name: 苏合香
@@ -269,6 +278,10 @@ npcs:
       - target: hua_jieyu
         type: friend
         value: 25
+      # P3I 亲属边：温小满与罗轻絮是表兄妹，酒肆与绣摊因此相互串门。
+      - target: luo_qingxu
+        type: family
+        value: 30
 
   - id: cui_tieyi
     name: 崔铁衣
@@ -456,6 +469,10 @@ npcs:
       - target: lu_xinghua
         type: friend
         value: 10
+      # P3I 亲属边：韩杏林与蒋听雨是姨表亲，药铺与庙里因此有走动。
+      - target: jiang_tingyu
+        type: family
+        value: 20
 
   - id: duan_wudou
     name: 段五斗
@@ -530,6 +547,10 @@ npcs:
       - target: meng_jiuniang
         type: friend
         value: 20
+      # P3I 亲属边（温小满的镜像）：表兄在客栈做酒保，绣摊的活计也经他介绍。
+      - target: wen_xiaoman
+        type: family
+        value: 30
 
   - id: chang_banxia
     name: 常半夏
@@ -596,9 +617,10 @@ npcs:
         - id: rice
           qty: 2
     relations:
+      # P3I 师徒边：秦望川把撑船手艺传给阮小螺（旧友边升级为 master/disciple）。
       - target: ruan_xiaoluo
-        type: friend
-        value: 30
+        type: master
+        value: 45
       - target: lu_jiujin
         type: friend
         value: 25
@@ -713,6 +735,11 @@ npcs:
         type: debtor
         value: -15
         amount: 100
+      # P3I 债主边：石匠向脚夫借了五十文周转（石为 debtor、陆为 creditor）。
+      - target: lu_jiujin
+        type: debtor
+        value: -15
+        amount: 50
 
   - id: jiang_tingyu
     name: 蒋听雨
@@ -750,6 +777,10 @@ npcs:
       - target: fang_cunxin
         type: friend
         value: 25
+      # P3I 亲属边（韩杏林的镜像）：表弟在药铺学徒，香客常替他求药。
+      - target: han_xinglin
+        type: family
+        value: 20
 
   - id: song_henian
     name: 宋鹤年
@@ -985,9 +1016,10 @@ npcs:
       - target: ruan_qingfu
         type: family
         value: 60
+      # P3I 师徒边（秦望川的镜像）：阮小螺跟秦望川学撑船。
       - target: qin_wangchuan
-        type: friend
-        value: 30
+        type: disciple
+        value: 45
       - target: yan_shouyi
         type: friend
         value: 15
@@ -1029,6 +1061,10 @@ npcs:
       - target: zhuo_bufan
         type: friend
         value: 20
+      # P3I 竞争边（沈砚舟的镜像）：捕快与铁匠互不买账。
+      - target: shen_yanzhou
+        type: rival
+        value: -25
 
   - id: lu_xinghua
     name: 卢杏花

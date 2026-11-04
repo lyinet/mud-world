@@ -4,17 +4,17 @@ locations:
   - id: market
     name: 集市
     exits: [smithy, inn, pharmacy, academy]
-    services: [noodle, flatbread, rice, coarse_cloth, raw_silk]
+    services: [noodle, flatbread, rice, coarse_cloth, raw_silk, millet, hemp_rope, bamboo_basket, pearl_earring]
 
   - id: smithy
     name: 铁匠铺
     exits: [market, escort_agency]
-    services: [hammer, cleaver, good_blade, iron_ingot]
+    services: [hammer, cleaver, good_blade, iron_ingot, sickle]
 
   - id: inn
     name: 客栈
     exits: [market, ferry, temple]
-    services: [service_room, wine, cured_meat, noodle, service_storytelling]
+    services: [service_room, wine, cured_meat, noodle, service_storytelling, rice_cake]
 
   - id: escort_agency
     name: 镖局
@@ -24,17 +24,17 @@ locations:
   - id: pharmacy
     name: 药铺
     exits: [market, temple]
-    services: [service_diagnosis, wound_powder, ginseng, mugwort, plaster]
+    services: [service_diagnosis, wound_powder, ginseng, mugwort, plaster, moxa_roll]
 
   - id: academy
     name: 书院
     exits: [market, temple]
-    services: [service_copying, abacus]
+    services: [service_copying, abacus, ink_stick]
 
   - id: ferry
     name: 河渡
     exits: [inn, escort_agency]
-    services: [service_ferry, charcoal]
+    services: [service_ferry, charcoal, lotus_root, river_fish, hemp_rope]
 
   - id: temple
     name: 城隍庙

@@ -17,7 +17,8 @@ from wsim.world.store import EventStore
 def test_real_content_fixture_covers_full_world(real_content):
     assert len(real_content.npcs) == 31
     assert len(real_content.locations) == 9
-    assert len(real_content.items) == 31
+    # P3I 新增 10 件可用物品（详见 docs/CONTENT-GUIDE-p3i.md），31 + 10 = 41。
+    assert len(real_content.items) == 41
     assert len(real_content.verbs) >= 14
 
 
