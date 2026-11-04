@@ -188,3 +188,86 @@ herb_salve 1。
 
 未改 `src/wsim/**`、`ui/player/**`、`docs/QUICKSTART.md`、`docs/known-limitations.md`、
 `docs/RELEASE-NOTES-p3i.md`、`dist/`，未动任何 tag。
+
+## W3b：扩展包原生接入与 29 张人物卡
+
+W3 的开启方式已从“物化合并目录”改为引擎原生加载，`tools/content_scale.py materialize`
+只保留为历史复现路径（物化目录仍只带 base 30 张卡）。
+
+### 开关与加载路径
+
+- `src/wsim/core/content_manifest.py` 新增 `enabled_pack_ids()` / `enabled_content_packs()`：
+  优先读环境变量 `XKX_CONTENT_PACKS`（逗号分隔，可多包），否则读
+  `content/packs/enabled.yaml` 的 `enabled` 列表。
+- `load_content_packages()` 在 manifest 包之后按固定顺序追加
+  `npcs / locations / items / verbs / economy / roles / sects`，
+  复用同一套 `validate_merged()`；任何缺文件、路径越界都在加载期直接失败。
+- `src/wsim/core/content.py` 直接从 `content/packs/<id>/quests.yaml` 合并委托模板，
+  从 `content/packs/<id>/personas/` 合并人物卡；不写任何中间文件。
+- 关闭态开关为空列表，加载顺序与旧路径完全一致。
+
+复现：
+
+```bash
+cd world-sim
+python content/validate_content.py --no-pack
+XKX_CONTENT_PACKS=scaleup_w3 python content/validate_content.py
+XKX_CONTENT_PACKS=scaleup_w3 python tools/content_scale.py run --days 2  --run-id w3b_2d
+XKX_CONTENT_PACKS=scaleup_w3 python tools/content_scale.py run --days 10 --run-id w3b_10d
+python tools/content_scale.py dialogue --pack scaleup_w3 --days 2
+python -m pytest -q tests/test_w3b_native_packs.py tests/test_w3b_personas.py
+```
+
+### 关闭态（逐位不变）
+
+| 项目 | 数值 |
+|---|---|
+| `content_hash` | `7ec670c1c83c7b99e9bee35f84602bd7a68ef22126b29c9003529809b2c3d53f` |
+| NPC / 地点 / 物品 / 委托 / 人物卡 | 31 / 9 / 41 / 27 / 30 |
+| 2 日种子世界事件数 | 800（`GOLDEN_MILESTONE` 断言通过） |
+| `state_final` | `a155665368313c1703ebcb5b1e4cdf5110a5890928918b23a4a6e725030428a0` |
+| `event_final` | `72dd62c2923ebec867398bfba2f4cb304af8c59d66570bd3539b0991e93a24ce` |
+
+### 开启态（原生加载，不物化）
+
+| 项目 | 数值 |
+|---|---|
+| 内容校验 | `PASS`（60 NPC / 20 地点 / 70 物品 / 60 模板 / 198 关系边） |
+| NPC / 地点 / 物品 / 委托 / 人物卡 | 60 / 20 / 70 / 60 / 59 |
+| `content_hash` | `010d8d95ac4e873f5a3d6cb8f306ad1c6ad2977217cce89f5ba26f08db4a07ba` |
+| 2 日事件数 | 1991 |
+| 2 日 `state_final` / `event_final` | `023a9a8a68bd0d077e19a551fc34bdc06a8909db19cb3557bd54394554dcfba0` / `0bcb2d91cddcf84fca66a6d32857449ba46b378a63e37264eb85a5dace5a90f0` |
+| 10 日事件数 | 6014 |
+| 10 日 `state_final` / `event_final` | `d92bf757b56f02aabf6f7cb0a146dcc80961681b5da5df68087d83f109dbd313` / `af47a3c18198447eac20e0e21434075c0129dc29389c4375c8ec00225a9bd530` |
+| 2 日 / 10 日各跑两次 | 事件数、state/event/content hash 完全一致 |
+
+### 29 张人物卡
+
+- 位置：`content/packs/scaleup_w3/personas/<npc_id>.md`，只新增，不改 base 30 张。
+- 格式与 base 卡一致：身份、居住地、常出没、家当、旧账、外貌、手边、
+  一句话性格、说话风格、口头禅、日常锚点、在意的东西、与谁有张力、遇事反应倾向。
+- 字数：349–400 汉字/张（任务要求 200–400）。
+- 87 句台词全部跨卡唯一；每卡 ≥2 句，至少一句独有口头禅。
+- 任意两张卡的最高句级相似度 0.489 < 0.5（全量两两检查，比“抽检任意 5 张”更严格）。
+- 自洽：每卡 `居住地` 与 `npcs.yaml.home` 一致，`身份` 含目标角色名，
+  `与谁有张力` 至少点名 2 个 `npcs.yaml` 关系人。
+
+对话审计口径（`tools/content_scale.py dialogue`）：在 2 日窗口的确定性 tick 上，
+对 29 个新 NPC 各发 2 条探针消息，与空 persona 的回退结果对比；
+卡片命中要求 style/reaction 取自本卡、且若返回台词必须属于本卡。
+
+| 项目 | 数值 |
+|---|---|
+| 覆盖 | 29 / 29 |
+| 探针次数 | 58 |
+| 回退次数 | 0 |
+| 回退率 | **0.0%** |
+| 返回本卡台词 | 29 次（每 NPC 1 次，另一条为常规意图回复） |
+
+### 未覆盖项
+
+- `dialogue.py` 的 `LOCATION_NAMES` 是静态 base 地点表，新地点（炭窑、染坊等）
+  不在其中，因此 `profile.place` 对新 NPC 仍回退为“集市”。本次按纪律未改
+  `dialogue*.py`；卡片的 `居住地` 仍严格写真实 `home`，不回填“集市”掩盖。
+- `tools/content_scale.py materialize` 仍只复制 base 30 张卡（保持 W3 旧测试基线）；
+  原生开启路径不受影响。
