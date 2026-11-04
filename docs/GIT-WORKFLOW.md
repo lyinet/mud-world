@@ -79,7 +79,7 @@ feat(pricing): 供需物价模型接入运行时
 ### 6.2 一行安装
 
 ```bash
-printf '%s\n' '#!/bin/sh' 'cd "$(git rev-parse --show-toplevel)" 2>/dev/null || exit 0' '[ -n "$(git remote)" ] || exit 0' 'GIT_TERMINAL_PROMPT=0 git push origin HEAD >> .git/push.log 2>&1 &' > .git/hooks/post-commit && chmod +x .git/hooks/post-commit
+printf '%s\n' '#!/bin/sh' 'cd "$(git rev-parse --show-toplevel)" 2>/dev/null || exit 0' '[ -n "$(git remote)" ] || exit 0' "nohup sh -c 'GIT_TERMINAL_PROMPT=0 git push origin HEAD >> .git/push.log 2>&1' >/dev/null 2>&1 &" > .git/hooks/post-commit && chmod +x .git/hooks/post-commit
 ```
 
 ### 6.3 验证
