@@ -1,6 +1,6 @@
 # XKX / world-sim 对外试玩包（p3k）
 
-本版基于 `9c76cde`（W5 收口；打包修复 `e317223`），内容冻结
+本版基于 `b23827a`（`delivery-p3k` 冻结基线），内容冻结
 `content_hash = 7ec670c1…`（关闭态）；`delivery-p3f`–`p3j` 为前序交付，tag 均不改写。
 
 这是一个可离线运行的 MUD 世界：Python 引擎 `wsim.api` + 浏览器前端 `ui/player`。
@@ -35,9 +35,11 @@ API_PORT=8120 PORT=8010 ./start.sh
 ## 三个观察点
 
 1. **世界在跑**：顶部时钟每个动作推进 1 小时（6 tick）；`tick` 从 0 → 6 → 12。
-2. **NPC 自主行动**：启动时会生成 2 日种子世界，终端已打印最近 8 条 NPC 行动；完整版：
+2. **NPC 自主行动**：服务模式的世界从 tick 0 开始，NPC 由引擎按日程驱动（没有常驻后台调度器）。
+   想看一段完整的 NPC 行动回放，可另生成一个 jsonl 种子世界（只读，不影响当前存档）：
    ```bash
-   .venv/bin/python scripts/world_feed.py --run runs/quickstart-2d --lines 12
+   .venv/bin/python sim/run_headless.py --days 10 --seed 42 --run-id npc-feed
+   .venv/bin/python scripts/world_feed.py --run runs/npc-feed --lines 12
    ```
    这是只读回放，专门用来看 NPC 的移动/干活/买卖；实时会话是玩家动作驱动的（见已知限制）。
 3. **自己的动作生效**：点“书院”出门 → 地点变化；点 NPC 说话 → 出现回应；
@@ -58,7 +60,7 @@ API_PORT=8120 PORT=8010 ./start.sh
 ./scripts/selfcheck.sh
 ```
 
-本机实测：`pytest 414 passed, 10 skipped`，内容包 / 单元测试 / 框架验收 / 玩家闭环 4 项全 PASS；
+本机实测：`pytest 423 passed, 10 skipped`，内容包 / 单元测试 / 框架验收 / 玩家闭环 4 项全 PASS；
 framework 6/6。10 条 skip 是显式保留的旧基线，不是删测试。
 
 ## 包内范围
