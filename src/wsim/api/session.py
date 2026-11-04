@@ -182,8 +182,13 @@ class WorldSession:
         # 存档优先：已有事件日志时回放，绝不重新创世/重复发放初始资产。
         self.replayed = self.store.count() > 0
         if self.replayed:
-            verify_content_hash(self.store, self.content.content_hash, self.run_dir)
-            state, player_ticks = replay_into(self.store, self.content.locations)
+            try:
+                verify_content_hash(self.store, self.content.content_hash, self.run_dir)
+                state, player_ticks = replay_into(self.store, self.content.locations)
+            except Exception:
+                # 拒绝启动时释放 sqlite，避免部署脚本/测试留下锁文件。
+                self.store.close()
+                raise
             self.writer = Writer(state, self.store, self.registry, seed)
             self.writer._player_ticks.update(player_ticks)
             self.writer.committed_intents = self.store.count()
