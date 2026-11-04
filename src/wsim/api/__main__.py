@@ -10,6 +10,7 @@ from pathlib import Path
 
 from .server import create_server
 from .session import WorldSession
+from .persistence import ContentHashMismatch
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -30,14 +31,19 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     root = Path(args.root).resolve()
-    session = WorldSession(
-        root,
-        run_id=args.run,
-        seed=args.seed,
-        npc_limit=args.npcs,
-        tick_step=args.tick_step,
-        seed_accounts=args.seed_account,
-    )
+    try:
+        session = WorldSession(
+            root,
+            run_id=args.run,
+            seed=args.seed,
+            npc_limit=args.npcs,
+            tick_step=args.tick_step,
+            seed_accounts=args.seed_account,
+        )
+    except ContentHashMismatch as exc:
+        # 固定契约：退出码 3 + 单行 JSON 错误到 stderr；不监听、不写事件。
+        print(exc.log_line(), file=sys.stderr, flush=True)
+        return exc.exit_code
     server = create_server(session, args.host, args.port)
     host, port = server.server_address
     print(
