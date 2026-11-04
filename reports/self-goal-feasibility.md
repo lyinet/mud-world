@@ -89,7 +89,7 @@ capacity_units  = action_capacity × per_action_units
 
 | 类别 | 结果 | 条数 | 算式/原因 |
 |---|---|---:|---|
-| 合法可达 | 放行 | 46 | `capacity=… >= target=…` |
+| 合法可达 | 校验放行 | 46 | `capacity=… >= target=…`；其中 12 条随后被 `self_goal_active` 拒绝 |
 | 超预算 | 拒绝 | 34 | `expected_actions=12 > action_capacity=6` |
 | 窗口内不可达 | 拒绝 | 34 | `capacity=… < target=9999.0` |
 | 初始目标保护 | 激活拒绝 | 14 | `initial_goal_protected` |
