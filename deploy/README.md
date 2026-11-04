@@ -1,6 +1,7 @@
-# XKX / world-sim 对外首发试玩包（p3h）
+# XKX / world-sim 对外试玩包（p3i）
 
-本版基于 `451aed3`；`delivery-p3f` / `delivery-p3g` 仅内部里程碑，不作对外最终版。
+本版基于 `64365f8`，内容冻结 `content_hash = fac4ac31…`；`delivery-p3f` / `p3g` / `p3h`
+仅内部里程碑，不作对外最终版。
 
 这是一个可离线运行的 MUD 世界：Python 引擎 `wsim.api` + 浏览器前端 `ui/player`。
 无需模型 key、数据库或 GPU；首次运行自动建 venv、装固定依赖、生成种子世界。
@@ -39,8 +40,9 @@ API_PORT=8120 PORT=8010 ./start.sh
 ## 文档
 
 - [快速开始（含每一步预期输出、断线验证）](docs/QUICKSTART.md)
-- [已知限制（K1 45.05% vs 规则臂 49.45% FAIL、K3 diagnostic_only、K6 1.142%/1.755%、R5 盲评）](docs/known-limitations.md)
-- [p3h Release Notes（对话护栏、A3 对照、成本与复现）](docs/RELEASE-NOTES-p3h.md)
+- [已知限制（K1 三次未达标、模型零增益、物价只按日/库存、快照 hash 纪律）](docs/known-limitations.md)
+- [p3i Release Notes（内容扩充、物价接线、K1 收工、对话持平）](docs/RELEASE-NOTES-p3i.md)
+- [内容包验证清单（新手链、日常、长线、物价、关系）](docs/CONTENT-GUIDE-p3i.md)
 - [项目说明（仓库原有 README）](README-PROJECT.md)
 
 ## 自动自检
@@ -49,7 +51,7 @@ API_PORT=8120 PORT=8010 ./start.sh
 ./scripts/selfcheck.sh
 ```
 
-本机实测：`pytest 287 passed`，内容包 / 单元测试 / 框架验收 / 玩家闭环 4 项全 PASS；framework 6/6。
+本机实测：`pytest 301 passed, 4 skipped`，内容包 / 单元测试 / 框架验收 / 玩家闭环 4 项全 PASS；framework 6/6。
 
 ## 包内范围
 
@@ -62,5 +64,7 @@ API_PORT=8120 PORT=8010 ./start.sh
 - 不要把 8020/8000 直接暴露公网：没有鉴权，`account_id` 只是字符串；
 - 不要把“实时会话”当成 NPC 会自己持续行动的世界：后台没有 NPC 调度器；
 - 不要把 K3（diagnostic_only）当成目标完成率证据，也不要用 72 天无玩家 run 的 75.56% 替代
-  首发披露的 K1 45.05%（对照规则臂 49.45%，仍为 FAIL）；
-- 不要把 R5 的 55.9% 非平手胜率当作“模型明显更好”：模板已接近模型水平，对话默认仍走模板。
+  本版披露的 K1（冻结快照规则臂与模型臂同为 56.04%，M 臂 hard 中止，仍为 FAIL）；
+- 不要把 R5 的 55.9% 非平手胜率当作“模型明显更好”：与好模板持平，对话默认仍走模板；
+- 物价只按日与库存变化、单日最多 ±20%；比较事件数/金额时必须同时标注 `content_hash`
+  与 `state_final` / `event_final` 哈希。
