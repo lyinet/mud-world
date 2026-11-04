@@ -17,6 +17,7 @@ from .session import WorldSession
 
 _GET_ROUTES = {
     "/api/player/state": "state",
+    "/api/state": "state",  # 只读别名，与主路径共用同一 handler/鉴权
     "/api/player/status": "status",
     "/api/player/quests": "quests",
 }

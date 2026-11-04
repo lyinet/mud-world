@@ -112,8 +112,10 @@ curl -s -X POST http://127.0.0.1:8020/api/player/reconnect \
 `/api/player/move`、`/api/player/talk`、`/api/player/trade`、`/api/player/quest/accept`、
 `/api/player/quest/deliver`、`/api/player/reconnect`。
 
-读端点保持匿名只读：`/api/player/state`、`/api/player/status`、`/api/player/quests`、
+读端点保持匿名只读：`/api/player/state`、`/api/state`、`/api/player/status`、`/api/player/quests`、
 `/api/player/messages`、`/api/player/intents/<id>`、`/api/service/info`。
+
+`/api/state` 是 `/api/player/state` 的只读别名，二者等价（同一 handler、同一鉴权行为、响应体逐字节相同）。
 
 `GET /api/service/info` 返回：
 
