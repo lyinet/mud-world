@@ -31,4 +31,4 @@ files:
   roles: roles.yaml
   economy: economy.yaml
   quests: quests.yaml
-notes: "本包不新增门派、不新增镖路，复用既有 4 条镖路与既有门派；persona 卡不在本轮验收范围内。"
+notes: "本包不新增门派、不新增镖路，复用既有 4 条镖路与既有门派；29 张 persona 卡随包加载，物化时由 --base-personas-only 保留旧 30 张基线。"

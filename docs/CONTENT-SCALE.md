@@ -191,8 +191,9 @@ herb_salve 1。
 
 ## W3b：扩展包原生接入与 29 张人物卡
 
-W3 的开启方式已从“物化合并目录”改为引擎原生加载，`tools/content_scale.py materialize`
-只保留为历史复现路径（物化目录仍只带 base 30 张卡）。
+W3 的开启方式已从“物化合并目录”改为引擎原生加载。`tools/content_scale.py materialize`
+保留为历史复现路径：CLI 默认复制 59 张卡（base 30 + 包内 29），
+`--base-personas-only` 保留 W3 旧物化基线 30 张。
 
 ### 开关与加载路径
 
@@ -234,7 +235,7 @@ python -m pytest -q tests/test_w3b_native_packs.py tests/test_w3b_personas.py
 |---|---|
 | 内容校验 | `PASS`（60 NPC / 20 地点 / 70 物品 / 60 模板 / 198 关系边） |
 | NPC / 地点 / 物品 / 委托 / 人物卡 | 60 / 20 / 70 / 60 / 59 |
-| `content_hash` | `010d8d95ac4e873f5a3d6cb8f306ad1c6ad2977217cce89f5ba26f08db4a07ba` |
+| `content_hash` | `3fd99946b44a7dac4c3ea041d114e28d84ef07e67aa90e40e209970c2c43534c` |
 | 2 日事件数 | 1991 |
 | 2 日 `state_final` / `event_final` | `023a9a8a68bd0d077e19a551fc34bdc06a8909db19cb3557bd54394554dcfba0` / `0bcb2d91cddcf84fca66a6d32857449ba46b378a63e37264eb85a5dace5a90f0` |
 | 10 日事件数 | 6014 |
@@ -247,7 +248,7 @@ python -m pytest -q tests/test_w3b_native_packs.py tests/test_w3b_personas.py
 - 格式与 base 卡一致：身份、居住地、常出没、家当、旧账、外貌、手边、
   一句话性格、说话风格、口头禅、日常锚点、在意的东西、与谁有张力、遇事反应倾向。
 - 字数：349–400 汉字/张（任务要求 200–400）。
-- 87 句台词全部跨卡唯一；每卡 ≥2 句，至少一句独有口头禅。
+- 86 句台词全部跨卡唯一；每卡 ≥2 句，至少一句独有口头禅。
 - 任意两张卡的最高句级相似度 0.489 < 0.5（全量两两检查，比“抽检任意 5 张”更严格）。
 - 自洽：每卡 `居住地` 与 `npcs.yaml.home` 一致，`身份` 含目标角色名，
   `与谁有张力` 至少点名 2 个 `npcs.yaml` 关系人。
@@ -263,11 +264,29 @@ python -m pytest -q tests/test_w3b_native_packs.py tests/test_w3b_personas.py
 | 回退次数 | 0 |
 | 回退率 | **0.0%** |
 | 返回本卡台词 | 29 次（每 NPC 1 次，另一条为常规意图回复） |
+| `place` 与 `home` 不一致 | 0 |
+
+`dialogue.py` 已删除静态 `LOCATION_NAMES`，地点名由
+`place_names(load_content(...))` 从已加载内容动态生成，经 `compose_talk(places=...)`
+传入。29 个新 NPC 的 `profile.place` 全部落在真实地点；抽检炭窑
+（`tan_aji`、`tan_shouyi` → 炭窑）与染坊（`cai_alan`、`yin_qiuniang` → 染坊）均正确。
+
+复现：
+
+```bash
+python tools/content_scale.py dialogue --pack scaleup_w3 --days 2
+python -m pytest -q tests/test_w3b_personas.py::test_open_mode_places_follow_loaded_locations
+```
+
+### 物化与人物卡
+
+- `materialize(pack_id, out, include_pack_personas=True)` 复制 59 张卡；
+  `cmd_materialize` 默认开启，`--base-personas-only` 保留旧 30 张。
+- 函数默认值仍为 `False`，W3 旧测试的 30 张基线数字不动；
+  新断言见 `tests/test_w3b_personas.py::test_materialize_can_include_pack_personas`。
 
 ### 未覆盖项
 
-- `dialogue.py` 的 `LOCATION_NAMES` 是静态 base 地点表，新地点（炭窑、染坊等）
-  不在其中，因此 `profile.place` 对新 NPC 仍回退为“集市”。本次按纪律未改
-  `dialogue*.py`；卡片的 `居住地` 仍严格写真实 `home`，不回填“集市”掩盖。
-- `tools/content_scale.py materialize` 仍只复制 base 30 张卡（保持 W3 旧测试基线）；
-  原生开启路径不受影响。
+- `ui/adapter.py` 的 `self.personas` 仍只加载 `content/personas/` 基础目录；
+  UI 进程若未设 `XKX_CONTENT_PACKS`，开启态新 NPC 的对话仍会走空 persona。
+  本轮只把地点名修到动态来源，未改 UI 的卡加载路径。

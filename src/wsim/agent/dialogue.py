@@ -17,17 +17,14 @@ PLAYER_NAME = "访客"
 POSITIVE_WORDS = ("谢谢", "多谢", "劳烦", "帮忙", "请", "辛苦", "好看", "厉害", "佩服", "夸")
 NEGATIVE_WORDS = ("滚", "骗", "笨", "蠢", "废物", "骂", "偷", "赖账", "滚开")
 
-# 人设卡里的居住地是英文 id，模板里换成可朗读的地点名。
-LOCATION_NAMES = {
-    "market": "集市",
-    "smithy": "铁匠铺",
-    "inn": "客栈",
-    "escort_agency": "镖局",
-    "pharmacy": "药铺",
-    "academy": "书院",
-    "ferry": "河渡",
-    "temple": "城隍庙",
-}
+def place_names(content: Any) -> dict[str, str]:
+    """从已加载内容取地点 id → 可朗读名称，不再维护静态地点表。"""
+    names: dict[str, str] = {}
+    for lid, loc in (getattr(content, "locations", None) or {}).items():
+        name = str((loc or {}).get("name") or "").strip()
+        if name:
+            names[str(lid)] = name
+    return names
 
 # 意图优先按语义类别分化：不同类别使用不同句式骨架，禁止只替换话题名词。
 INTENT_RULES: tuple[tuple[str, tuple[tuple[str, int], ...]], ...] = (
@@ -327,17 +324,24 @@ def extract_persona_voice(text: str) -> dict[str, Any]:
     return {"quotes": quotes, "style": style, "reaction": reaction}
 
 
-def extract_persona_profile(text: str, npc_role: str = "") -> dict[str, str]:
-    """只取模板需要的两件事：身份称谓与常驻地点，不读取整段档案。"""
+def extract_persona_profile(
+    text: str, npc_role: str = "", places: dict[str, str] | None = None
+) -> dict[str, str]:
+    """只取模板需要的两件事：身份称谓与常驻地点，不读取整段档案。
+
+    地点名由调用方从已加载内容传入（`place_names(content)`），避免静态表
+    让扩展包的新地点回退成“集市”。
+    """
     fields: dict[str, str] = {}
     for m in re.finditer(r"^-\s*([^：:]+)[：:]\s*(.+)$", text, re.M):
         fields.setdefault(m.group(1).strip(), m.group(2).strip())
     role = npc_role.strip()
     if not role:
         role = re.split(r"[，,]", fields.get("身份", ""))[0].strip()
-    place = LOCATION_NAMES.get(fields.get("居住地", "").strip(), "")
+    mapping = places or {}
+    place = mapping.get(fields.get("居住地", "").strip(), "")
     if not place:
-        for name in LOCATION_NAMES.values():
+        for name in mapping.values():
             if name in fields.get("常出没", ""):
                 place = name
                 break
@@ -772,6 +776,7 @@ def compose_talk(
     turn: int = 0,
     last_message: str = "",
     last_reply: str = "",
+    places: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """生成回应与情感增量；上限不在这里做，由 TalkAction 统一 clamp。
 
@@ -781,7 +786,7 @@ def compose_talk(
     """
     message = (message or "").strip()
     voice = extract_persona_voice(persona_text)
-    profile = extract_persona_profile(persona_text, npc_role)
+    profile = extract_persona_profile(persona_text, npc_role, places)
     digest = hashlib.sha256(f"{npc_id}|{message}|{tick}|{turn}".encode("utf-8")).hexdigest()
     sent_digest = hashlib.sha256(f"{npc_id}|{message}|{tick}".encode("utf-8")).hexdigest()
 

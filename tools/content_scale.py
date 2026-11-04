@@ -86,8 +86,12 @@ def _pack_file(pack_id: str, meta: dict, key: str) -> Path:
   return PACKS / pack_id / rel
 
 
-def materialize(pack_id: str, out_dir: Path) -> dict[str, int]:
-  """把 base + additions + pack 写成可被 load_content 读取的独立 content 目录。"""
+def materialize(pack_id: str, out_dir: Path, *, include_pack_personas: bool = False) -> dict[str, int]:
+  """把 base + additions + pack 写成可被 load_content 读取的独立 content 目录。
+
+  `include_pack_personas=True` 时同时复制扩展包人物卡（开启态 59 张）；
+  默认 False 保持 W3 旧物化基线（30 张），旧测试数字不变。
+  """
   meta = pack_meta(pack_id)
   files = meta.get("files") or {}
 
@@ -150,6 +154,11 @@ def materialize(pack_id: str, out_dir: Path) -> dict[str, int]:
   persona_dst.mkdir()
   for src in sorted(persona_src.glob("*.md")):
     shutil.copyfile(src, persona_dst / src.name)
+  if include_pack_personas:
+    pack_persona_src = PACKS / pack_id / "personas"
+    if pack_persona_src.is_dir():
+      for src in sorted(pack_persona_src.glob("*.md")):
+        shutil.copyfile(src, persona_dst / src.name)
 
   return {
       "npcs": len(npcs), "locations": len(locations), "items": len(items),
@@ -199,7 +208,9 @@ def load_enabled(pack_id: str):
 
 
 def cmd_materialize(args) -> int:
-  counts = materialize(args.pack, Path(args.out))
+  counts = materialize(
+      args.pack, Path(args.out), include_pack_personas=not getattr(args, "base_personas_only", False)
+  )
   print(json.dumps({"out": str(Path(args.out).resolve()), "counts": counts}, ensure_ascii=False, indent=2))
   return 0
 
@@ -261,9 +272,15 @@ def dialogue_probe(pack_id: str, days: int = 2) -> dict:
   回退判定：没有自己的卡，或卡里提不出说话风格/口头禅，或回应没引用本卡台词。
   """
   sys.path.insert(0, str(ROOT / "src"))
-  from wsim.agent.dialogue import compose_talk, extract_persona_voice
+  from wsim.agent.dialogue import (
+      compose_talk,
+      extract_persona_profile,
+      extract_persona_voice,
+      place_names,
+  )
   from wsim.core.clock import TICKS_PER_DAY
   _, content = load_enabled(pack_id)
+  places = place_names(content)
   meta = pack_meta(pack_id)
   pack_npcs = _entries(_pack_file(pack_id, meta, "npcs"), "npcs")
   pack_personas = PACKS / pack_id / "personas"
@@ -271,10 +288,15 @@ def dialogue_probe(pack_id: str, days: int = 2) -> dict:
   rows = {}
   fallback_total = 0
   probe_total = 0
+  place_mismatches = []
   for npc in pack_npcs:
     nid = npc["id"]
     persona = content.personas.get(nid, "")
     voice = extract_persona_voice(persona)
+    profile = extract_persona_profile(persona, str(npc.get("role") or ""), places)
+    home = str(npc.get("home") or "")
+    if profile["place"] == "集市" and home != "market":
+      place_mismatches.append(nid)
     card_quotes = set(voice["quotes"])
     ticks = [d * TICKS_PER_DAY + TICKS_PER_DAY // 2 for d in range(max(1, days))]
     hits = 0
@@ -283,9 +305,11 @@ def dialogue_probe(pack_id: str, days: int = 2) -> dict:
       message = DIALOGUE_PROBE_MESSAGES[i % len(DIALOGUE_PROBE_MESSAGES)]
       reply = compose_talk(
           persona, nid, npc.get("name", nid), npc.get("role", ""), message, tick,
+          places=places,
       )
       generic = compose_talk(
           "", nid, npc.get("name", nid), npc.get("role", ""), message, tick,
+          places=places,
       )
       own_quote = (not reply.get("quote")) or reply["quote"] in card_quotes
       uses_card = (
@@ -306,6 +330,7 @@ def dialogue_probe(pack_id: str, days: int = 2) -> dict:
     rows[nid] = {
         "name": npc.get("name", nid),
         "home": npc.get("home"),
+        "place": profile["place"],
         "card": card_quotes != set() and bool(voice["style"]) and bool(voice["reaction"]),
         "card_quotes": len(card_quotes),
         "probes": n,
@@ -328,6 +353,7 @@ def dialogue_probe(pack_id: str, days: int = 2) -> dict:
       "probes": probe_total,
       "fallbacks": fallback_total,
       "fallback_rate": round(fallback_total / probe_total, 4) if probe_total else 1.0,
+      "place_mismatches": sorted(place_mismatches),
       "per_npc": {k: rows[k] for k in sorted(rows)},
   }
 
@@ -436,6 +462,11 @@ def main() -> int:
   p_mat = sub.add_parser("materialize", help="物化开启态 content 目录")
   p_mat.add_argument("--pack", default="scaleup_w3")
   p_mat.add_argument("--out", required=True)
+  p_mat.add_argument(
+      "--base-personas-only",
+      action="store_true",
+      help="只复制 base 30 张卡（保留 W3 旧物化基线）",
+  )
   p_mat.set_defaults(func=cmd_materialize)
 
   p_det = sub.add_parser("determinism", help="同输入物化两次并比较字节")

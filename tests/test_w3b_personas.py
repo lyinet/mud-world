@@ -13,7 +13,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "tools"))
 
-from wsim.agent.dialogue import extract_persona_voice  # noqa: E402
+from wsim.agent.dialogue import (  # noqa: E402
+    extract_persona_profile,
+    extract_persona_voice,
+    place_names,
+)
 from wsim.core.content import load_content  # noqa: E402
 import content_scale  # noqa: E402
 
@@ -114,4 +118,31 @@ def test_dialogue_fallback_rate_is_zero():
     assert result["cards_present"] == 29
     assert result["cards_missing"] == []
     assert result["fallback_rate"] == 0.0
+    assert result["place_mismatches"] == []
     assert all(row["fallbacks"] == 0 for row in result["per_npc"].values())
+
+
+def test_open_mode_places_follow_loaded_locations(monkeypatch):
+    """地点名取自 load_content.locations，新地点不得回退成“集市”。"""
+    content = _enabled_content(monkeypatch)
+    names = place_names(content)
+    assert names["charcoal_kiln"] == "炭窑"
+    assert names["dye_works"] == "染坊"
+    seen: set[str] = set()
+    for npc in _pack_npcs().values():
+        profile = extract_persona_profile(content.personas[npc["id"]], npc["role"], names)
+        seen.add(profile["place"])
+        assert profile["place"] == names[npc["home"]], npc["id"]
+        # 要求 3：不存在 place=集市 但 home 不是集市的 NPC。
+        assert not (profile["place"] == "集市" and npc["home"] != "market"), npc["id"]
+    assert {"炭窑", "染坊"}.issubset(seen)
+
+
+def test_materialize_can_include_pack_personas(tmp_path):
+    """开启态物化覆盖 59 张卡；函数默认仍保留 W3 旧基线 30 张。"""
+    out = tmp_path / "content"
+    counts = content_scale.materialize(PACK, out, include_pack_personas=True)
+    assert counts["personas"] == 59
+    enabled = load_content(tmp_path, allow_fixture=False)
+    assert len(enabled.personas) == 59
+    assert set(_pack_npcs()) <= set(enabled.personas)

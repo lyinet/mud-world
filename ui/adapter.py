@@ -32,7 +32,7 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from wsim.actions.registry import build_registry  # noqa: E402
-from wsim.agent.dialogue import PLAYER_ID, compose_talk  # noqa: E402
+from wsim.agent.dialogue import PLAYER_ID, compose_talk, place_names  # noqa: E402
 from wsim.core.content import load_content  # noqa: E402
 from wsim.core.models import Effect  # noqa: E402
 from wsim.mcp.audit import AuditLog  # noqa: E402
@@ -950,6 +950,14 @@ class WorldUIAdapter:
             last_message = (
                 str(player_history[-1].get("text", "")).removeprefix("访客说：") if player_history else ""
             )
+            places = (
+                place_names(self.content)
+                if self.content is not None
+                else {
+                    str(lid): str((loc or {}).get("name") or "")
+                    for lid, loc in self.locations.items()
+                }
+            )
             talk = compose_talk(
                 self.personas.get(npc_id, ""),
                 npc_id,
@@ -960,6 +968,7 @@ class WorldUIAdapter:
                 turn=npc_turn,
                 last_message=last_message,
                 last_reply=last_reply,
+                places=places,
             )
             reply = str(talk["reply"])
             prev_rel = active.relation(PLAYER_ID, npc_id, "acquaintance")

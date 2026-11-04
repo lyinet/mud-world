@@ -1,7 +1,7 @@
 """社交/组织动词：apprentice（仅拜师）、join_sect（入会/入门派）、marry、talk。"""
 from __future__ import annotations
 
-from ..agent.dialogue import PLAYER_NAME, compose_talk
+from ..agent.dialogue import PLAYER_NAME, compose_talk, place_names
 from ..core.clock import TICKS_PER_DAY
 from ..core.models import Effect, Intent, Reject
 from ..world.state import WorldState
@@ -111,7 +111,10 @@ class TalkAction(Action):
 
         # 服务端按人设卡重新生成回复与情感增量；调用方字段全部忽略。
         persona = self.content.personas.get(target.id, "") if self.content is not None else ""
-        server = compose_talk(persona, target.id, target.name, target.role, message, tick)
+        places = place_names(self.content) if self.content is not None else {}
+        server = compose_talk(
+            persona, target.id, target.name, target.role, message, tick, places=places
+        )
         reply = str(server["reply"])
         # 模型回复：成功则替换台词，失败/超时保留上面的模板回复（关系增量不变）。
         if self.dialogue is not None:
