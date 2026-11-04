@@ -1,0 +1,21 @@
+# W3 经济覆盖：只改初始货币/金库声明，不覆盖 base 的工资、税率、物价模型。
+# 关闭态不会加载本文件；开启态由 content_manifest 深合并进 base economy。
+# base 初始 NPC 货币 35650 + 新增 29 人 27900 = 63550。
+# base 金库 11500 + teahouse 200（P2 遗漏的扩展地点）+ 新增 11 地 6750 = 18450。
+economy:
+  money_supply:
+    initial_npc_total: 63550
+    initial_location_float_total: 18450
+    location_float:
+      teahouse: 200
+      charcoal_kiln: 600
+      dye_works: 700
+      leather_yard: 450
+      granary: 800
+      river_market: 900
+      herb_hills: 400
+      night_watch: 350
+      book_shop: 650
+      opera_stage: 550
+      pottery: 600
+      salt_depot: 750

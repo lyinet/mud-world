@@ -1,0 +1,539 @@
+# W3 新增 33 张委托模板，覆盖 8 类：送货 / 打听 / 护送 / 代购 / 清障 / 教习 / 代工 / 讨债。
+# 每条都有前置可满足路径、时限（>=2 日）与报酬；单笔现金 <= 2×最高日薪，折日 <= 最高日薪。
+# 新增类别 clear_path / teaching 都由既有 work 动词承载（清障=清理搬运，教习=代课授艺）。
+quests:
+  # ---------- 送货 errand（5） ----------
+  - id: errand_granary_bean_curd
+    name: 送豆制品账到粮仓
+    category: errand
+    repeatable: true
+    giver: luo_dou
+    target_npc: cang_mishu
+    target_location: granary
+    target_item: bean_curd
+    verb: trade
+    intent_args:
+      target: cang_mishu
+      offer: []
+      want: []
+      money_delta: 0
+    deadline_days: 2
+    reward: {money: 9, relation: 2}
+    notes: "罗斗把豆制品摊的出入账捎回粮仓；豆腐是本单随货清点的凭证。"
+
+  - id: errand_dye_pouch
+    name: 送绣囊样到集市
+    category: errand
+    repeatable: true
+    giver: xiu_xiaoman
+    target_npc: liu_sanniang
+    target_location: market
+    target_item: embroidered_pouch
+    verb: trade
+    intent_args:
+      target: liu_sanniang
+      offer: []
+      want: []
+      money_delta: 0
+    deadline_days: 2
+    reward: {money: 10, relation: 2}
+    notes: "绣小满把新绣的囊样交给柳三娘看样；染坊到集市两跳，不必垫钱。"
+
+  - id: errand_river_shrimp
+    name: 送河虾到河市
+    category: errand
+    repeatable: true
+    giver: yu_ajiao
+    target_npc: ruan_yu
+    target_location: river_market
+    target_item: river_shrimp
+    verb: trade
+    intent_args:
+      target: ruan_yu
+      offer: []
+      want: []
+      money_delta: 0
+    deadline_days: 2
+    reward: {money: 8, relation: 2}
+    notes: "阿娇把当早的河虾分给阮渔代卖，同在市集内交接，工钱按跑腿算。"
+
+  - id: errand_opera_cake
+    name: 送梨膏糖到戏台
+    category: errand
+    repeatable: true
+    giver: ling_yun
+    target_npc: ban_zhu_qin
+    target_location: opera_stage
+    target_item: pear_cake
+    verb: trade
+    intent_args:
+      target: ban_zhu_qin
+      offer: []
+      want: []
+      money_delta: 0
+    deadline_days: 2
+    reward: {money: 9, relation: 3}
+    notes: "凌云让学徒把润嗓的梨膏糖送到班主手里；戏台后台当面交接。"
+
+  - id: errand_night_watch_report
+    name: 递夜巡帖到更楼
+    category: errand
+    repeatable: true
+    giver: geng_laoge
+    target_npc: xing_pojun
+    target_location: market
+    target_item: service_night_watch
+    verb: trade
+    intent_args:
+      target: xing_pojun
+      offer: []
+      want: []
+      money_delta: 0
+    deadline_days: 2
+    reward: {money: 8, relation: 2}
+    notes: "葛更夫把夜巡帖送交捕快邢破军；一帖一夜，更钱另记。"
+
+  # ---------- 打听 inquiry（5） ----------
+  - id: inquiry_herb_box
+    name: 药山打听药匣行情
+    category: inquiry
+    repeatable: true
+    giver: yao_weng
+    target_npc: han_xinglin
+    target_location: pharmacy
+    target_item: rare_herb_box
+    verb: trade
+    intent_args:
+      target: han_xinglin
+      offer: []
+      want: []
+      money_delta: 0
+    deadline_days: 2
+    reward: {money: 9, relation: 2}
+    notes: "药翁想知药铺收不收药匣，托人去问韩杏林；问价不成交，零金额。"
+
+  - id: inquiry_salt_lamp
+    name: 河市打听盐灯
+    category: inquiry
+    repeatable: true
+    giver: yan_liu
+    target_npc: lin_dujiang
+    target_location: river_market
+    target_item: salt_lamp
+    verb: trade
+    intent_args:
+      target: lin_dujiang
+      offer: []
+      want: []
+      money_delta: 0
+    deadline_days: 2
+    reward: {money: 9, relation: 2}
+    notes: "盐六想探河市对盐灯的胃口，托人问林渡江；问清楚再进货。"
+
+  - id: inquiry_clay_figure
+    name: 打听陶俑订主
+    category: inquiry
+    repeatable: true
+    giver: ling_yun
+    target_npc: ban_zhu_qin
+    target_location: opera_stage
+    target_item: clay_figure
+    verb: trade
+    intent_args:
+      target: ban_zhu_qin
+      offer: []
+      want: []
+      money_delta: 0
+    deadline_days: 2
+    reward: {money: 8, relation: 2}
+    notes: "凌云想给戏台添一尊陶俑镇场，先托人问班主肯出多少。"
+
+  - id: inquiry_bone_kit
+    name: 皮场打听接骨木夹
+    category: inquiry
+    repeatable: true
+    giver: niu_asheng
+    target_npc: yao_weng
+    target_location: herb_hills
+    target_item: bone_set_kit
+    verb: trade
+    intent_args:
+      target: yao_weng
+      offer: []
+      want: []
+      money_delta: 0
+    deadline_days: 2
+    reward: {money: 9, relation: 2}
+    notes: "牛阿生做皮活常伤手，托人上药山问接骨木夹的价钱。"
+
+  # ---------- 代购 procurement（10） ----------
+  - id: procure_kiln_yam
+    name: 采购烤芋头（垫付12文）
+    category: procurement
+    repeatable: true
+    entry_cost: 12
+    giver: cang_mishu
+    target_npc: cang_mishu
+    target_location: charcoal_kiln
+    target_item: kiln_yam
+    verb: buy
+    intent_args: {item: kiln_yam, qty: 3, from: charcoal_kiln}
+    deadline_days: 2
+    reward: {money: 18, relation: 2}
+    notes: "粮仓给守窑人备口粮，买三只烤芋头；四文一只，共垫 12 文。"
+
+  - id: procure_salted_fish
+    name: 采购咸鱼（垫付40文）
+    category: procurement
+    repeatable: true
+    entry_cost: 40
+    giver: song_henian
+    target_npc: song_henian
+    target_location: river_market
+    target_item: salted_fish
+    verb: buy
+    intent_args: {item: salted_fish, qty: 2, from: river_market}
+    deadline_days: 2
+    reward: {money: 24, relation: 2}
+    notes: "客栈要给住客添下酒菜，到河市买两尾咸鱼；二十文一尾，共垫 40 文。"
+
+  - id: procure_wheat_flour
+    name: 采购麦面（垫付30文）
+    category: procurement
+    repeatable: true
+    entry_cost: 30
+    giver: song_henian
+    target_npc: song_henian
+    target_location: granary
+    target_item: wheat_flour
+    verb: buy
+    intent_args: {item: wheat_flour, qty: 3, from: granary}
+    deadline_days: 2
+    reward: {money: 22, relation: 2}
+    notes: "客栈蒸馍要用细面，到粮仓买三斗麦面；十文一斗，共垫 30 文。"
+
+  - id: procure_salt_block
+    name: 采购盐砖（垫付36文）
+    category: procurement
+    repeatable: true
+    entry_cost: 36
+    giver: luo_dou
+    target_npc: luo_dou
+    target_location: salt_depot
+    target_item: salt_block
+    verb: buy
+    intent_args: {item: salt_block, qty: 2, from: salt_depot}
+    deadline_days: 2
+    reward: {money: 24, relation: 2}
+    notes: "罗斗的货担要补盐砖，去盐仓买两块；十八文一块，共垫 36 文。"
+
+  - id: procure_raw_hemp
+    name: 采购生麻（垫付24文）
+    category: procurement
+    repeatable: true
+    entry_cost: 24
+    giver: pi_laojiu
+    target_npc: pi_laojiu
+    target_location: granary
+    target_item: raw_hemp
+    verb: buy
+    intent_args: {item: raw_hemp, qty: 3, from: granary}
+    deadline_days: 2
+    reward: {money: 17, relation: 2}
+    notes: "硝皮场缺缝线，去粮仓捎三束生麻；八文一束，共垫 24 文。"
+
+  - id: procure_dried_ginger
+    name: 采购干姜（垫付24文）
+    category: procurement
+    repeatable: true
+    entry_cost: 24
+    giver: yao_weng
+    target_npc: yao_weng
+    target_location: herb_hills
+    target_item: dried_ginger
+    verb: buy
+    intent_args: {item: dried_ginger, qty: 2, from: herb_hills}
+    deadline_days: 2
+    reward: {money: 17, relation: 2}
+    notes: "药翁配驱寒方，补两包干姜；十二文一包，共垫 24 文。"
+
+  - id: procure_herb_salve
+    name: 采购草药膏（垫付40文）
+    category: procurement
+    repeatable: true
+    entry_cost: 40
+    giver: yao_weng
+    target_npc: yao_weng
+    target_location: herb_hills
+    target_item: herb_salve
+    verb: buy
+    intent_args: {item: herb_salve, qty: 2, from: herb_hills}
+    deadline_days: 2
+    reward: {money: 22, relation: 2}
+    notes: "药山自用草药膏告罄，再熬两盒；二十文一盒，共垫 40 文。"
+
+  # ---------- 护送 escort（4） ----------
+  - id: escort_dye_vat
+    name: 护送染缸到染坊
+    category: escort
+    repeatable: true
+    giver: pei_wujiu
+    target_location: dye_works
+    target_item: dye_vat
+    verb: escort
+    intent_args:
+      route: [escort_agency, smithy, market, dye_works]
+      cargo_value: 140
+      fee: 130
+    deadline_days: 3
+    reward: {money: 18, relation: 2}
+    notes: "裴无咎押一口新染缸出镖局，经铁匠铺与集市送到染坊。"
+
+  - id: escort_engrave_chisel
+    name: 护送刻刀到城隍庙
+    category: escort
+    repeatable: true
+    giver: zhuo_bufan
+    target_location: temple
+    target_item: engrave_chisel
+    verb: escort
+    intent_args:
+      route: [escort_agency, ferry, inn, temple]
+      cargo_value: 180
+      fee: 160
+    deadline_days: 3
+    reward: {money: 20, relation: 2}
+    notes: "卓不凡押一套刻刀过河，送城隍庙刻功德碑的匠人。"
+
+  - id: escort_potter_wheel
+    name: 护送陶轮到陶窑
+    category: escort
+    repeatable: true
+    giver: pei_wujiu
+    target_location: pottery
+    target_item: potter_wheel
+    verb: escort
+    intent_args:
+      route: [escort_agency, smithy, market, pottery]
+      cargo_value: 150
+      fee: 140
+    deadline_days: 3
+    reward: {money: 19, relation: 2}
+    notes: "裴无咎押一架陶轮去陶窑，路上怕磕碰，走慢些。"
+
+  - id: escort_fishing_spear
+    name: 护送鱼叉随盐队
+    category: escort
+    repeatable: true
+    giver: zhuo_bufan
+    target_location: salt_depot
+    target_item: fishing_spear
+    verb: escort
+    intent_args:
+      route: [escort_agency, ferry, inn, market, salt_depot]
+      cargo_value: 220
+      fee: 190
+    deadline_days: 4
+    reward: {money: 22, relation: 2}
+    notes: "卓不凡随盐队押一柄鱼叉到盐仓，货主是河市的渔行。"
+
+  # ---------- 讨债 debt_collection（3） ----------
+  - id: debt_xiu_cai
+    name: 代绣小满讨染账
+    category: debt_collection
+    repeatable: false
+    giver: xiu_xiaoman
+    target_npc: cai_alan
+    target_location: dye_works
+    target_item: wood_board
+    verb: trade
+    intent_args:
+      target: cai_alan
+      offer: []
+      want: []
+      money_delta: 60
+    deadline_days: 3
+    reward: {money: 12, relation: 2}
+    settlement: {kind: remit_to_giver, amount: 60}
+    notes: "蔡阿蓝欠绣小满六十文染线钱；讨回后交回绣小满，跑腿人只拿 12 文。"
+
+  - id: debt_cang_luo
+    name: 代仓米叔讨粮账
+    category: debt_collection
+    repeatable: false
+    giver: cang_mishu
+    target_npc: luo_dou
+    target_location: granary
+    target_item: fish_net_rope
+    verb: trade
+    intent_args:
+      target: luo_dou
+      offer: []
+      want: []
+      money_delta: 120
+    deadline_days: 3
+    reward: {money: 16, relation: 2}
+    settlement: {kind: remit_to_giver, amount: 120}
+    notes: "罗斗赊了一百二十文粮款；讨回后交仓米叔，典当网绳是旧账凭证。"
+
+  - id: debt_hu_chen
+    name: 代胡窑户讨工钱
+    category: debt_collection
+    repeatable: false
+    giver: hu_yaohu
+    target_npc: ban_yun_chen
+    target_location: pottery
+    target_item: salt_scale
+    verb: trade
+    intent_args:
+      target: ban_yun_chen
+      offer: []
+      want: []
+      money_delta: 60
+    deadline_days: 3
+    reward: {money: 12, relation: 2}
+    settlement: {kind: remit_to_giver, amount: 60}
+    notes: "陈搬运欠胡窑户六十文工钱；他曾以盐秤作抵，讨回后按 settlement 上交。"
+
+  # ---------- 清障 clear_path（3） ----------
+  - id: clear_kiln_timber
+    name: 清理炭窑柴垛
+    category: clear_path
+    repeatable: true
+    giver: tan_aji
+    target_npc: tan_aji
+    target_location: charcoal_kiln
+    target_item: kiln_timber
+    verb: work
+    intent_args: {at: charcoal_kiln, hours: 4}
+    deadline_days: 2
+    reward: {money: 11, relation: 2}
+    notes: "窑前柴垛塌了半截，清出可用窑柴再码好；四小时清障工。"
+
+  - id: clear_river_net
+    name: 清理河面断网
+    category: clear_path
+    repeatable: true
+    giver: lin_dujiang
+    target_npc: lin_dujiang
+    target_location: river_market
+    target_item: fish_net_rope
+    verb: work
+    intent_args: {at: river_market, hours: 5}
+    deadline_days: 2
+    reward: {money: 12, relation: 2}
+    notes: "涨水把旧网冲断在河市桩边，捞网割绳、清出航道，五小时。"
+
+  - id: clear_book_wood
+    name: 清运书肆旧板
+    category: clear_path
+    repeatable: true
+    giver: shu_bo
+    target_npc: shu_bo
+    target_location: book_shop
+    target_item: wood_board
+    verb: work
+    intent_args: {at: book_shop, hours: 4}
+    deadline_days: 2
+    reward: {money: 10, relation: 2}
+    notes: "书肆后墙拆下的旧木板挡了过道，搬去柴房码齐，四小时。"
+
+  # ---------- 教习 teaching（3） ----------
+  - id: teach_book_copy
+    name: 代书肆教习抄书
+    category: teaching
+    repeatable: true
+    giver: chao_yan
+    target_npc: chao_yan
+    target_location: book_shop
+    target_item: service_copying
+    verb: work
+    intent_args: {at: book_shop, hours: 5}
+    deadline_days: 2
+    reward: {money: 13, relation: 3}
+    notes: "抄砚要赶一批经卷，请人代教两个学徒执笔描红，五小时。"
+
+  - id: teach_dye_cool_tea
+    name: 染坊教习辨色
+    category: teaching
+    repeatable: true
+    giver: yin_qiuniang
+    target_npc: yin_qiuniang
+    target_location: dye_works
+    target_item: cool_tea
+    verb: work
+    intent_args: {at: dye_works, hours: 5}
+    deadline_days: 2
+    reward: {money: 13, relation: 3}
+    notes: "尹秋娘给学徒讲色阶，请人帮忙看着染缸火候；凉茶是给学徒润嗓的。"
+
+  - id: teach_opera_cake
+    name: 戏台教习开嗓
+    category: teaching
+    repeatable: true
+    giver: ling_yun
+    target_npc: ling_yun
+    target_location: opera_stage
+    target_item: pear_cake
+    verb: work
+    intent_args: {at: opera_stage, hours: 4}
+    deadline_days: 2
+    reward: {money: 12, relation: 3}
+    notes: "凌云教少年伶人吊嗓，请人代看场子分糖；四小时。"
+
+  # ---------- 代工 commission（4） ----------
+  - id: commission_dye_stir
+    name: 染坊搅缸
+    category: commission
+    repeatable: true
+    giver: yin_qiuniang
+    target_npc: yin_qiuniang
+    target_location: dye_works
+    target_item: indigo_dye
+    verb: work
+    intent_args: {at: dye_works, hours: 6}
+    deadline_days: 2
+    reward: {money: 14, relation: 2}
+    notes: "靛缸要人不停搅动，六小时出均匀深青。"
+
+  - id: commission_granary_pickle
+    name: 粮仓翻腌菜
+    category: commission
+    repeatable: true
+    giver: cang_mishu
+    target_npc: cang_mishu
+    target_location: granary
+    target_item: pickled_radish
+    verb: work
+    intent_args: {at: granary, hours: 5}
+    deadline_days: 2
+    reward: {money: 12, relation: 2}
+    notes: "新腌的萝卜要翻缸换卤，五小时；腌萝卜是本单清点的货。"
+
+  - id: commission_herb_pick
+    name: 药山采药
+    category: commission
+    repeatable: true
+    giver: yao_weng
+    target_npc: yao_weng
+    target_location: herb_hills
+    target_item: chaihu
+    verb: work
+    intent_args: {at: herb_hills, hours: 6}
+    deadline_days: 2
+    reward: {money: 15, relation: 2}
+    notes: "药翁要备一季柴胡，请人上山帮着采、晾、扎束，六小时。"
+
+  - id: commission_pottery_clay
+    name: 陶窑和泥
+    category: commission
+    repeatable: true
+    giver: qiu_tu
+    target_npc: qiu_tu
+    target_location: pottery
+    target_item: clay
+    verb: work
+    intent_args: {at: pottery, hours: 5}
+    deadline_days: 2
+    reward: {money: 13, relation: 2}
+    notes: "丘土要练一窑细泥，请人和泥踩料五小时。"

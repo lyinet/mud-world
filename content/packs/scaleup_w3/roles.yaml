@@ -1,0 +1,57 @@
+# W3 新增 9 个职业。加载器把 wage/skill/workplace/living_cost 合并进 economy。
+# 日净结余 = wage × 0.9 - 生活成本 四项合计，全部落在 5.0–10.2 文/日。
+roles:
+  - id: 炭工
+    name: 炭工
+    wage: 22
+    skill: charcoal_burn
+    workplace: charcoal_kiln
+    living_cost: {food: 9, housing: 2, upkeep: 1, dues: 1}
+  - id: 染匠
+    name: 染匠
+    wage: 26
+    skill: dyeing
+    workplace: dye_works
+    living_cost: {food: 10, housing: 2, upkeep: 2, dues: 1}
+  - id: 硝皮匠
+    name: 硝皮匠
+    wage: 24
+    skill: tanning
+    workplace: leather_yard
+    living_cost: {food: 9, housing: 2, upkeep: 2, dues: 1}
+  - id: 仓吏
+    name: 仓吏
+    wage: 28
+    skill: granary_keep
+    workplace: granary
+    living_cost: {food: 10, housing: 3, upkeep: 1, dues: 1}
+  - id: 渔贩
+    name: 渔贩
+    wage: 22
+    skill: fish_sell
+    workplace: river_market
+    living_cost: {food: 9, housing: 2, upkeep: 1, dues: 1}
+  - id: 采药人
+    name: 采药人
+    wage: 20
+    skill: herb_gather
+    workplace: herb_hills
+    living_cost: {food: 9, housing: 2, upkeep: 1, dues: 1}
+  - id: 伶人
+    name: 伶人
+    wage: 24
+    skill: stage_play
+    workplace: opera_stage
+    living_cost: {food: 10, housing: 2, upkeep: 1, dues: 1}
+  - id: 陶工
+    name: 陶工
+    wage: 22
+    skill: pottery
+    workplace: pottery
+    living_cost: {food: 9, housing: 2, upkeep: 1, dues: 1}
+  - id: 盐贩
+    name: 盐贩
+    wage: 26
+    skill: salt_sell
+    workplace: salt_depot
+    living_cost: {food: 10, housing: 2, upkeep: 1, dues: 1}

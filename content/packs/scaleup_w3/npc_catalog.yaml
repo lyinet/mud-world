@@ -1,0 +1,120 @@
+# W3 NPC 补充档案：谋生手段与长线目标（npc YAML 本体保持引擎既有字段集）。
+# long_term_goal 必须是该 NPC goals 中类型为 advance_skill / build_shop / gain_status /
+# join_sect / found_sect 的长线目标。
+npc_catalog:
+  tan_aji:
+    livelihood: "在炭窑守火、装窑出炭，按窑次分成；闲时挑炭到集市换粮。"
+    long_term_goal: goal_tan_aji_3
+    note: "想学看火色，摆脱只出苦力的位置。"
+  tan_shouyi:
+    livelihood: "谭家炭窑的掌窑人，负责配柴、封窑与售卖窑柴。"
+    long_term_goal: goal_tan_shouyi_3
+    note: "攒钱另起一座小窑，不再与人合烧。"
+  yin_qiuniang:
+    livelihood: "染坊掌柜兼染匠，接布庄的染色单，兼卖靛蓝与绣囊。"
+    long_term_goal: goal_yin_qiuniang_3
+    note: "想把染坊做成城南独一份的深青染。"
+  cai_alan:
+    livelihood: "染坊学徒，专管配靛与搅缸，按缸计工钱。"
+    long_term_goal: goal_cai_alan_3
+    note: "欠着绣小满的染线钱，想靠一手好色阶翻身。"
+  xiu_xiaoman:
+    livelihood: "绣娘，替染坊做绣囊、衣缘，接散客的针线活。"
+    long_term_goal: goal_xiu_xiaoman_3
+    note: "要开一间只接定制的绣铺。"
+  pi_laojiu:
+    livelihood: "硝皮场作头，硝制生皮、卖熟皮给鞋铺与铁匠铺。"
+    long_term_goal: goal_pi_laojiu_3
+    note: "想把硝皮场扩成皮货行。"
+  niu_asheng:
+    livelihood: "硝皮场伙计，管浸灰、刮皮与晾晒，按张计工。"
+    long_term_goal: goal_niu_asheng_3
+    note: "想熬成能独立接单的皮匠。"
+  cang_mishu:
+    livelihood: "粮仓仓吏，管出入斗升、鼠耗与仓工，抽仓耗钱。"
+    long_term_goal: goal_cang_mishu_3
+    note: "想盘下仓侧小铺，做粮米零售。"
+  tui_cheli:
+    livelihood: "粮仓脚夫，替粮行扛包、推车，按趟计钱。"
+    long_term_goal: goal_tui_cheli_3
+    note: "想学记数，做个不用只靠腿的仓工。"
+  luo_dou:
+    livelihood: "往来粮仓与集市的货郎，倒卖豆制品、麻绳与盐砖。"
+    long_term_goal: goal_luo_dou_3
+    note: "欠仓米叔粮款，想盘一间自己的杂货铺。"
+  lin_dujiang:
+    livelihood: "河市渔贩，收渔船河鲜转卖客栈与集市，兼售鱼叉。"
+    long_term_goal: goal_lin_dujiang_3
+    note: "想开一间带冰窖的鱼行。"
+  yu_ajiao:
+    livelihood: "河市渔贩，管早市河虾与凉茶摊，替兄长看秤。"
+    long_term_goal: goal_yu_ajiao_3
+    note: "想学认账，不再只做零卖。"
+  ruan_yu:
+    livelihood: "河市渔娘，替渔行织补网绳、代卖河鲜。"
+    long_term_goal: goal_ruan_yu_3
+    note: "想在河市立一块自己的渔摊招牌。"
+  yao_weng:
+    livelihood: "药山采药人，采柴胡、熬草药膏，收药匣转给药铺。"
+    long_term_goal: goal_yao_weng_3
+    note: "想在山脚开一间收药小栈。"
+  cao_gen:
+    livelihood: "药山采药人的徒弟，管晾晒、切片与背篓上山。"
+    long_term_goal: goal_cao_gen_1
+    note: "想学辨毒草，成为独当一面的采药人。"
+  geng_laoge:
+    livelihood: "更楼更夫，夜里巡街报更，顺带替商户看门。"
+    long_term_goal: goal_geng_laoge_2
+    note: "想挣个街面认可的「葛更头」名号。"
+  deng_xiaoqi:
+    livelihood: "更楼学徒更夫，替师父跑腿、点灯、记更。"
+    long_term_goal: goal_deng_xiaoqi_3
+    note: "想凭夜巡立功，进捕快房当差。"
+  shu_bo:
+    livelihood: "书肆掌柜兼货郎，卖纸笔、刻刀，代人抄书刻字。"
+    long_term_goal: goal_shu_bo_3
+    note: "想盘下书肆后墙，扩一间刻书坊。"
+  ke_shan:
+    livelihood: "书肆刻工，刻碑、刻版与修砚，按字计钱。"
+    long_term_goal: goal_ke_shan_3
+    note: "想攒一套自己的刻刀，开刻字摊。"
+  chao_yan:
+    livelihood: "书肆抄经人，替庙里与书院抄卷，按页计钱。"
+    long_term_goal: goal_chao_yan_3
+    note: "欠舒伯四十文纸钱，想靠一手好字挣回脸面。"
+  ling_yun:
+    livelihood: "戏台伶人，唱青衣，接堂会与庙会戏。"
+    long_term_goal: goal_ling_yun_1
+    note: "要唱成戏台头牌。"
+  ban_zhu_qin:
+    livelihood: "戏台班主，接堂会、分戏份、管班中吃住。"
+    long_term_goal: goal_ban_zhu_qin_3
+    note: "想置一处自己的戏园。"
+  shuo_shu_zhou:
+    livelihood: "戏台说书人，白天在茶寮说书，夜里替戏班暖场。"
+    long_term_goal: goal_shuo_shu_zhou_2
+    note: "欠班主一百文戏份钱，想编出一部压轴长书。"
+  qiu_tu:
+    livelihood: "陶窑陶工，练泥、拉坯、装窑，卖陶俑与陶轮。"
+    long_term_goal: goal_qiu_tu_3
+    note: "想开一间只烧细器的窑口。"
+  tao_agong:
+    livelihood: "陶窑老陶工，管窑温与釉色，带徒传艺。"
+    long_term_goal: goal_tao_agong_3
+    note: "想在窑口立一块「陶阿公」的款识。"
+  hu_yaohu:
+    livelihood: "陶窑窑户，出钱买土、雇工烧窑，按窑分成。"
+    long_term_goal: goal_hu_yaohu_3
+    note: "想扩两座窑，做城南最大的窑口。"
+  ban_yun_chen:
+    livelihood: "陶窑脚夫，扛土、搬坯、装窑出窑，按趟计钱。"
+    long_term_goal: goal_ban_yun_chen_3
+    note: "欠胡窑户工钱，想学装窑手艺。"
+  yan_liu:
+    livelihood: "盐仓私盐贩，走河市与集市，倒卖盐砖、盐灯。"
+    long_term_goal: goal_yan_liu_3
+    note: "欠盐吏五十文，想盘一间不问来路的盐铺。"
+  yan_li:
+    livelihood: "盐仓盐吏，管盐砖出入、盐秤校准与私盐稽查。"
+    long_term_goal: goal_yan_li_3
+    note: "想升做盐课司的书办。"

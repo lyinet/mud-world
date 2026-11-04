@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -47,7 +48,7 @@ GOAL_KIND_MAP = {
     "found_sect": "faction",
 }
 GOAL_KINDS = {"wealth", "mastery", "bond", "shop", "faction"}
-QUEST_CATEGORY_VERBS = {
+QUEST_CATEGORY_VERBS_BASE = {
     # 跑腿/送信以“与目标 NPC 当面交接”为准，用零金额 trade；
     # 引擎任务执行器对 move 任务会重复下发同点 move，产生必然拒绝。
     "errand": "trade",
@@ -56,6 +57,43 @@ QUEST_CATEGORY_VERBS = {
     "inquiry": "trade",
     "commission": "work",
     "debt_collection": "trade",
+}
+# W3 扩展包新增两类，仍复用既有 work 动词（清障搬运 / 代课授艺）。
+QUEST_CATEGORY_VERBS_PACK = dict(QUEST_CATEGORY_VERBS_BASE, clear_path="work", teaching="work")
+QUEST_CATEGORY_VERBS = dict(QUEST_CATEGORY_VERBS_BASE)
+
+# 校验档位：默认值就是关闭态（base + additions）的既有验收口径，改动必须保持原值。
+PROFILE = {
+    "label": "关闭态",
+    "npc_count": 30,
+    "money_total": (24000, 45000),
+    "money_avg": (800, 1500),
+    "location_count": 8,
+    "item_count": (20, 45),
+    "verb_count": 19,
+    "sect_count": 3,
+    "route_count": 4,
+    "quest_count": 27,
+    "quest_categories": 6,
+    "quest_categories_exact": True,
+    "quest_category_min": 2,
+    "allowed_extra_verbs": frozenset(),
+}
+PACK_PROFILE = {
+    "label": "开启态 scaleup_w3",
+    "npc_count": 60,
+    "money_total": (55000, 75000),
+    "money_avg": (800, 1500),
+    "location_count": 20,
+    "item_count": (70, 70),
+    "verb_count": 20,
+    "sect_count": 3,       # 本包不新增门派，仍校验 base 的 3 个完整门派
+    "route_count": 4,      # 本包不新增镖路
+    "quest_count": 60,
+    "quest_categories": 8,
+    "quest_categories_exact": False,
+    "quest_category_min": 3,
+    "allowed_extra_verbs": frozenset({"borrow_money"}),
 }
 PERSONA_HEADINGS = [
     "## 一句话性格",
@@ -345,10 +383,12 @@ def _check_fields(obj, required, label, errors, optional=()):
     return not missing and not extra
 
 
-def check_npcs(npcs, items_by_id, report, location_ids):
+def check_npcs(npcs, items_by_id, report, location_ids, legacy_ids=frozenset()):
+    """legacy_ids：默认内容里既有的 additions NPC（历史内容，不按本轮 2 目标/2 关系口径回炉）。"""
     if not report.check(isinstance(npcs, list), "npcs.yaml 结构", "npcs 必须是列表"):
         return
-    report.check(len(npcs) == 30, "NPC 数量", f"期望 30，实际 {len(npcs)}")
+    report.check(len(npcs) == PROFILE["npc_count"], "NPC 数量",
+                  f"期望 {PROFILE['npc_count']}，实际 {len(npcs)}")
 
     npc_ids, names, goal_ids = [], [], []
     money_total = 0
@@ -404,8 +444,10 @@ def check_npcs(npcs, items_by_id, report, location_ids):
             report.errors.append(f"{label}.personality.speech_style 必须是非空字符串")
 
         goals = npc.get("goals")
+        is_legacy = npc_id in legacy_ids
         if not isinstance(goals, list) or not 2 <= len(goals) <= 3:
-            report.errors.append(f"{label}.goals 必须是 2-3 条")
+            if not (is_legacy and isinstance(goals, list) and goals):
+                report.errors.append(f"{label}.goals 必须是 2-3 条")
             goals = goals if isinstance(goals, list) else []
         goal_types_here = set()
         for gi, goal in enumerate(goals):
@@ -426,7 +468,7 @@ def check_npcs(npcs, items_by_id, report, location_ids):
             pr = goal.get("priority")
             if not isinstance(pr, int) or not 1 <= pr <= 5:
                 report.errors.append(f"{glabel}.priority 必须是 1-5 的整数")
-        if len(goal_types_here) < 2 and goals:
+        if len(goal_types_here) < 2 and goals and not is_legacy:
             report.errors.append(f"{label} 的 goals 类型过于单一，至少需要两种不同类型")
 
         assets = npc.get("assets")
@@ -463,7 +505,8 @@ def check_npcs(npcs, items_by_id, report, location_ids):
 
         relations = npc.get("relations")
         if not isinstance(relations, list) or not 2 <= len(relations) <= 4:
-            report.errors.append(f"{label}.relations 必须是 2-4 条")
+            if not (is_legacy and isinstance(relations, list) and relations):
+                report.errors.append(f"{label}.relations 必须是 2-4 条")
             relations = relations if isinstance(relations, list) else []
         targets = set()
         npc_debt_total = 0
@@ -537,9 +580,11 @@ def check_npcs(npcs, items_by_id, report, location_ids):
 
     # 货币总量
     avg = money_total / len(npcs) if npcs else 0
-    report.check(24000 <= money_total <= 45000, "30 人初始货币总量",
-                  f"{money_total} 文，不在 24000-45000")
-    report.check(800 <= avg <= 1500, "人均初始货币", f"{avg:.1f} 文，不在 800-1500")
+    lo, hi = PROFILE["money_total"]
+    report.check(lo <= money_total <= hi, f"{len(npcs)} 人初始货币总量",
+                  f"{money_total} 文，不在 {lo}-{hi}")
+    alo, ahi = PROFILE["money_avg"]
+    report.check(alo <= avg <= ahi, "人均初始货币", f"{avg:.1f} 文，不在 {alo}-{ahi}")
 
     # 关系网结构
     if relation_edges:
@@ -563,11 +608,12 @@ def check_npcs(npcs, items_by_id, report, location_ids):
                   f"{cap_violations} 名债务人超额且未标 long_term")
     report.note(f"债务总额合计: {total_debt} 文；债务人数: {len(debtor_ids)}")
 
-    # home 校验：30 人都有 home、指向有效地点、每个地点都住人、单地点不超过 8 人
+    # home 校验：所有 NPC 都有 home、指向有效地点、每个地点都住人、单地点不超过 8 人
     report.check(home_errors == 0, "home 字段完整且指向有效地点",
                   f"{home_errors} 个 NPC 的 home 缺失或非法")
     unoccupied = sorted(set(location_ids) - set(home_counts))
-    report.check(not unoccupied, "8 个地点都有人居住", f"无人居住: {unoccupied}")
+    report.check(not unoccupied, f"{len(location_ids)} 个地点都有人居住",
+                  f"无人居住: {unoccupied}")
     overcrowded = {lid: c for lid, c in home_counts.items() if c > 8}
     report.check(not overcrowded, "单地点 home 不超过 8 人", f"{overcrowded}")
     report.note("home 分布: " + "，".join(f"{lid}={c}" for lid, c in sorted(home_counts.items())))
@@ -703,7 +749,8 @@ def check_relation_structure(edges: dict, npc_ids: set, report):
 def check_locations(locations, items_by_id, set_of_location_ids, report):
     if not report.check(isinstance(locations, list), "locations.yaml 结构", "locations 必须是列表"):
         return
-    report.check(len(locations) == 8, "地点数量", f"期望 8，实际 {len(locations)}")
+    report.check(len(locations) == PROFILE["location_count"], "地点数量",
+                  f"期望 {PROFILE['location_count']}，实际 {len(locations)}")
     loc_ids = []
     exits_map = {}
     for idx, loc in enumerate(locations):
@@ -767,8 +814,9 @@ def check_locations(locations, items_by_id, set_of_location_ids, report):
 def check_items(items, report):
     if not report.check(isinstance(items, list), "items.yaml 结构", "items 必须是列表"):
         return {}
-    # P3I 新增 10 件可用物品（food/material/tool/medicine/luxury），上限放宽到 45。
-    report.check(20 <= len(items) <= 45, "物品数量", f"期望 20-45，实际 {len(items)}")
+    imin, imax = PROFILE["item_count"]
+    report.check(imin <= len(items) <= imax, "物品数量",
+                  f"期望 {imin}-{imax}，实际 {len(items)}")
     items_by_id = {}
     bands = {
         "food": (2, 50), "material": (5, 200), "tool": (20, 1000),
@@ -830,9 +878,10 @@ def check_verbs(verbs, role_set, report):
     names = [v.get("name") for v in verbs if isinstance(v, dict)]
     dup = sorted({n for n in names if names.count(n) > 1})
     report.check(not dup, "动词名唯一", f"重复: {dup}")
-    report.check(len(verbs) == 19, "动词数量", f"期望 19（13 玩家动词 + 5 内部动词 + 1 心跳），实际 {len(verbs)}")
+    report.check(len(verbs) == PROFILE["verb_count"], "动词数量",
+                  f"期望 {PROFILE['verb_count']}（含内容包插件动词），实际 {len(verbs)}")
     missing = sorted(REQUIRED_VERBS - set(names))
-    extra = sorted(set(names) - REQUIRED_VERBS)
+    extra = sorted(set(names) - REQUIRED_VERBS - PROFILE["allowed_extra_verbs"])
     report.check(not missing, "必需动词齐全", f"缺少: {missing}")
     report.check(not extra, "无多余动词", f"多余: {extra}")
     cooldown_declared = sorted(
@@ -846,7 +895,8 @@ def check_verbs(verbs, role_set, report):
             report.errors.append(f"verb[{idx}] 必须是映射")
             continue
         label = verb.get("name", f"verb[{idx}]")
-        _check_fields(verb, ["name", "args", "allowed_roles"], label, report.errors)
+        _check_fields(verb, ["name", "args", "allowed_roles"], label, report.errors,
+                      optional=("description",))
         args = verb.get("args")
         if not isinstance(args, dict) or not args:
             report.errors.append(f"{label}.args 必须是非空映射")
@@ -1205,7 +1255,8 @@ def _founding_members(npc, min_relation_value):
 def check_sects(sects, loc_ids, npc_map, economy, report):
     if not report.check(isinstance(sects, list), "sects.yaml 结构", "sects 必须是列表"):
         return
-    report.check(len(sects) == 3, "门派数量", f"期望 3，实际 {len(sects)}")
+    report.check(len(sects) == PROFILE["sect_count"], "门派数量",
+                  f"期望 {PROFILE['sect_count']}，实际 {len(sects)}")
     sect_ids = []
     sect = economy.get("sect") or {}
     min_relation_value = sect.get("min_relation_value", 30)
@@ -1308,7 +1359,8 @@ def check_sects(sects, loc_ids, npc_map, economy, report):
 def check_escort_routes(routes, locations, economy, report):
     if not report.check(isinstance(routes, list), "escort_routes.yaml 结构", "escort_routes 必须是列表"):
         return
-    report.check(len(routes) == 4, "镖局线路数量", f"期望 4，实际 {len(routes)}")
+    report.check(len(routes) == PROFILE["route_count"], "镖局线路数量",
+                  f"期望 {PROFILE['route_count']}，实际 {len(routes)}")
     adj = _adjacency(locations)
     loc_ids = set(adj)
     escort = economy.get("escort") or {}
@@ -1464,8 +1516,8 @@ def _path_len(adj, start, end):
 def check_quests(quests, npc_map, loc_ids, locations, items_by_id, verb_names, economy, report):
     if not report.check(isinstance(quests, list), "quests.yaml 结构", "quests 必须是列表"):
         return
-    # P3I：14 基础 + 4 步新手引导链 + 8 条日常委托 + 1 条新债权讨债单 = 27。
-    report.check(len(quests) == 27, "任务模板数量", f"期望 27（14 基础 + 4 引导 + 8 日常 + 1 新债），实际 {len(quests)}")
+    report.check(len(quests) == PROFILE["quest_count"], "任务模板数量",
+                  f"期望 {PROFILE['quest_count']}（{PROFILE['label']}），实际 {len(quests)}")
     adj = _adjacency(locations)
     loc_services = {
         l.get("id"): set(l.get("services") or [])
@@ -1693,9 +1745,16 @@ def check_quests(quests, npc_map, loc_ids, locations, items_by_id, verb_names, e
                             )
                 if not mirrored:
                     report.errors.append(f"{name}: {creditor} 没有指向 {debtor} 的 creditor 关系")
-    report.check(len(categories) == 6, "任务覆盖 6 类", f"实际 {sorted(categories)}")
+    expected = PROFILE["quest_categories"]
+    if PROFILE["quest_categories_exact"]:
+        report.check(len(categories) == expected, f"任务覆盖 {expected} 类",
+                      f"实际 {sorted(categories)}")
+    else:
+        report.check(len(categories) >= expected, f"任务覆盖至少 {expected} 类",
+                      f"实际 {len(categories)}: {sorted(categories)}")
     for cat in sorted(QUEST_CATEGORY_VERBS):
-        report.check(categories.get(cat, 0) >= 2, f"任务类别 {cat} 至少 2 个",
+        report.check(categories.get(cat, 0) >= PROFILE["quest_category_min"],
+                      f"任务类别 {cat} 至少 {PROFILE['quest_category_min']} 个",
                       f"实际 {categories.get(cat, 0)}")
     report.check(len(set(quest_ids)) == len(quest_ids), "任务 id 唯一", f"重复: {quest_ids}")
     # 出生点集市：至少 3 个不同发布人常驻 market、各自至少 1 张可重复模板，
@@ -1793,9 +1852,408 @@ def check_personas(npc_ids, report):
         )
 
 
+# ---------------------------------------------------------------------------
+# 可开关内容包（W3 scaleup_w3）
+# ---------------------------------------------------------------------------
+
+def _enabled_packs():
+    """读取开关：--pack 优先，其次 XKX_CONTENT_PACKS，最后 content/packs/enabled.yaml。
+
+    返回 None 表示关闭态；返回列表表示开启态。默认 enabled.yaml 为空。
+    """
+    args = sys.argv[1:]
+    if "--no-pack" in args:
+        return None
+    picked = []
+    i = 0
+    while i < len(args):
+        if args[i] == "--pack" and i + 1 < len(args):
+            picked.append(args[i + 1])
+            i += 2
+            continue
+        if args[i].startswith("--pack="):
+            picked.append(args[i].split("=", 1)[1])
+        i += 1
+    if picked:
+        return picked
+    env = os.environ.get("XKX_CONTENT_PACKS", "").strip()
+    if env:
+        return [p.strip() for p in env.split(",") if p.strip()]
+    switch = BASE_DIR / "packs" / "enabled.yaml"
+    if switch.is_file():
+        try:
+            raw = load_yaml(switch)
+        except YamlError:
+            return []
+        enabled = raw.get("enabled") if isinstance(raw, dict) else None
+        if isinstance(enabled, list):
+            return [str(p) for p in enabled if str(p).strip()]
+    return None
+
+
+def _deep_merge(base, extra):
+    if isinstance(base, dict) and isinstance(extra, dict):
+        out = dict(base)
+        for key, val in extra.items():
+            out[key] = _deep_merge(out[key], val) if key in out else val
+        return out
+    if isinstance(base, list) and isinstance(extra, list):
+        return list(base) + list(extra)
+    return extra
+
+
+def _close_exits(locations):
+    """把新增地点声明的单向出口补成双向，保证从集市 BFS 可达。"""
+    by_id = {l.get("id"): l for l in locations or [] if isinstance(l, dict)}
+    for lid, loc in by_id.items():
+        exits = loc.setdefault("exits", [])
+        for target in list(exits):
+            other = by_id.get(target)
+            if other is None:
+                continue
+            other_exits = other.setdefault("exits", [])
+            if lid not in other_exits:
+                other_exits.append(lid)
+    return locations
+
+
+def _load_pack_dataset(pack_ids, report):
+    data = {}
+    for name in REQUIRED_FILES:
+        data[name] = load_yaml(BASE_DIR / name)
+    base_npc_ids = {
+        n.get("id") for n in data["npcs.yaml"].get("npcs") or [] if isinstance(n, dict)
+    }
+
+    add_npcs = load_yaml(BASE_DIR / "additions" / "npcs.yaml").get("npcs") or []
+    add_locs = load_yaml(BASE_DIR / "additions" / "locations.yaml").get("locations") or []
+    add_items = load_yaml(BASE_DIR / "additions" / "items.yaml").get("items") or []
+    add_verbs = load_yaml(BASE_DIR / "additions" / "verbs.yaml").get("verbs") or []
+    add_roles = load_yaml(BASE_DIR / "additions" / "roles.yaml").get("roles") or []
+
+    npcs = list(data["npcs.yaml"].get("npcs") or []) + list(add_npcs)
+    legacy_npc_ids = {n.get("id") for n in add_npcs if isinstance(n, dict)}
+    pack_npc_ids = set()
+    locations = list(data["locations.yaml"].get("locations") or []) + list(add_locs)
+    items = list(data["items.yaml"].get("items") or []) + list(add_items)
+    verbs = list(data["verbs.yaml"].get("verbs") or []) + list(add_verbs)
+    quests = list(data["quests.yaml"].get("quests") or [])
+    economy = dict(data["economy.yaml"])
+    roles = list(add_roles)
+    npc_catalog = {}
+    item_catalog = {}
+    pack_metas = []
+
+    for pid in pack_ids:
+        pdir = BASE_DIR / "packs" / pid
+        meta_path = pdir / "pack.yaml"
+        if not report.check(meta_path.is_file(), f"内容包 {pid} 存在",
+                            f"缺少 {meta_path}"):
+            continue
+        meta = load_yaml(meta_path)
+        files = meta.get("files") or {}
+        pack_metas.append(meta)
+        pack_npcs = list((load_yaml(pdir / files["npcs"]).get("npcs")) or [])
+        npcs += pack_npcs
+        pack_npc_ids.update(n.get("id") for n in pack_npcs if isinstance(n, dict))
+        locations += list((load_yaml(pdir / files["locations"]).get("locations")) or [])
+        items += list((load_yaml(pdir / files["items"]).get("items")) or [])
+        roles += list((load_yaml(pdir / files["roles"]).get("roles")) or [])
+        quests += list((load_yaml(pdir / files["quests"]).get("quests")) or [])
+        if files.get("economy"):
+            economy = _deep_merge(economy, load_yaml(pdir / files["economy"]).get("economy") or {})
+        npc_catalog.update(load_yaml(pdir / files["npc_catalog"]).get("npc_catalog") or {})
+        item_catalog.update(load_yaml(pdir / files["item_catalog"]).get("item_catalog") or {})
+
+    for role in roles:
+        if not isinstance(role, dict) or not role.get("id"):
+            continue
+        economy.setdefault("wages_daily", {})[role["id"]] = role.get("wage")
+        economy.setdefault("living_costs", {}).setdefault("by_role", {})[role["id"]] = role.get("living_cost")
+
+    _close_exits(locations)
+    return {
+        "npcs": npcs, "locations": locations, "items": items, "verbs": verbs,
+        "sects": data["sects.yaml"].get("sects") or [],
+        "routes": data["escort_routes.yaml"].get("escort_routes") or [],
+        "quests": quests, "economy": economy,
+        "base_npc_ids": base_npc_ids, "legacy_npc_ids": legacy_npc_ids,
+        "pack_npc_ids": pack_npc_ids, "npc_catalog": npc_catalog,
+        "item_catalog": item_catalog, "pack_metas": pack_metas,
+    }
+
+
+def _reachable(adj, start, goal):
+    if start == goal:
+        return True
+    seen = {start}
+    queue = [start]
+    while queue:
+        cur = queue.pop(0)
+        for nxt in adj.get(cur, ()):
+            if nxt == goal:
+                return True
+            if nxt not in seen:
+                seen.add(nxt)
+                queue.append(nxt)
+    return False
+
+
+def _pack_catalog_check(meta, data, report):
+    """四项新校验之三、四之外，额外校验 NPC 谋生与物品价格/引用档案。"""
+    pid = meta.get("id", "?")
+    npcs = [n for n in data["npcs"] if isinstance(n, dict)]
+    npc_map = _npc_map(npcs)
+    new_npcs = [n for n in npcs if n.get("id") in data["pack_npc_ids"]]
+    catalog = data["npc_catalog"]
+    missing = sorted(n.get("id") for n in new_npcs if n.get("id") not in catalog)
+    report.check(not missing, f"{pid} 新增 NPC 都有谋生档案", f"缺少: {missing}")
+    bad = []
+    for npc in new_npcs:
+        entry = catalog.get(npc.get("id")) or {}
+        if not (entry.get("livelihood") or "").strip():
+            bad.append(f"{npc.get('id')} 缺 livelihood")
+        goal_id = entry.get("long_term_goal")
+        goals = {g.get("id"): g.get("type") for g in npc.get("goals") or [] if isinstance(g, dict)}
+        if goal_id not in goals:
+            bad.append(f"{npc.get('id')} 长线目标 {goal_id} 不存在")
+        elif goals[goal_id] not in LONG_TERM_GOAL_TYPES:
+            bad.append(f"{npc.get('id')} 目标 {goal_id} 类型 {goals[goal_id]} 不是长线")
+    report.check(not bad, f"{pid} 新增 NPC 谋生与长线目标", "; ".join(bad))
+
+    new_items = [i for i in data["items"] if i.get("id") not in {
+        x.get("id") for x in (load_yaml(BASE_DIR / "items.yaml").get("items") or []) + (
+            load_yaml(BASE_DIR / "additions" / "items.yaml").get("items") or [])
+    }]
+    items_by_id = {i.get("id"): i for i in data["items"] if isinstance(i, dict)}
+    quests_by_id = {q.get("id"): q for q in data["quests"] if isinstance(q, dict)}
+    item_catalog = data["item_catalog"]
+    bad = []
+    checked = 0
+    for item in new_items:
+        iid = item.get("id")
+        entry = item_catalog.get(iid) or {}
+        if not entry.get("origin") or not entry.get("usage") or not entry.get("price_anchor"):
+            bad.append(f"{iid} 缺 origin/usage/price_anchor")
+            continue
+        anchor = items_by_id.get(entry.get("price_anchor"))
+        if anchor is None:
+            bad.append(f"{iid} 锚点 {entry.get('price_anchor')} 不存在")
+            continue
+        if anchor.get("category") != item.get("category"):
+            bad.append(f"{iid} 与锚点类别不同")
+        ref = item.get("base_price")
+        base = anchor.get("base_price")
+        if not isinstance(ref, (int, float)) or not isinstance(base, (int, float)) or base == 0:
+            bad.append(f"{iid} 价格不可比")
+            continue
+        delta = abs(ref / base - 1.0)
+        checked += 1
+        if delta > 0.2 + 1e-9:
+            bad.append(f"{iid} 价格 {ref} 偏离锚点 {entry.get('price_anchor')}:{base} {delta:.1%} > 20%")
+        refs = entry.get("quest_refs") or []
+        if not refs:
+            bad.append(f"{iid} 未被任何委托模板引用")
+            continue
+        for qid in refs:
+            quest = quests_by_id.get(qid)
+            if quest is None:
+                bad.append(f"{iid} 引用模板 {qid} 不存在")
+                continue
+            args = quest.get("intent_args") or {}
+            mentioned = quest.get("target_item") == iid
+            mentioned = mentioned or (args.get("item") == iid)
+            mentioned = mentioned or any(x.get("item") == iid for x in (args.get("offer") or []) + (args.get("want") or []))
+            if not mentioned:
+                bad.append(f"{iid} 声明引用 {qid}，但模板未提到该物品")
+    report.check(not bad, f"{pid} 物品价格护栏与委托引用", "; ".join(bad))
+    report.note(f"{pid} 价格锚点校验 {checked}/{len(new_items)} 件，偏差均 <= 20%")
+
+
+LONG_TERM_GOAL_TYPES = {"advance_skill", "build_shop", "gain_status", "join_sect", "found_sect"}
+
+
+def _pack_graph_check(meta, data, report, npc_info):
+    pid = meta.get("id", "?")
+    npcs = [n for n in data["npcs"] if isinstance(n, dict)]
+    npc_map = _npc_map(npcs)
+    new_ids = set(data["pack_npc_ids"])
+    adj = {nid: set() for nid in npc_map}
+    edges = 0
+    for npc in npcs:
+        for rel in npc.get("relations") or []:
+            tgt = rel.get("target")
+            if tgt in npc_map:
+                adj[npc.get("id")].add(tgt)
+                adj[tgt].add(npc.get("id"))
+                edges += 1
+    report.check(edges >= 180, "关系网总边数 >= 180", f"实际 {edges}")
+    isolated = sorted(nid for nid, neighbors in adj.items() if not neighbors)
+    report.check(not isolated, "无孤立 NPC", f"孤立: {isolated}")
+    new_isolated = sorted(nid for nid in new_ids if not (adj.get(nid, set()) & new_ids))
+    report.check(not new_isolated, f"{pid} 新增 NPC 之间互相连接",
+                  f"只连老 NPC 的新居民: {new_isolated}")
+    # 全图连通（无向）
+    start = next(iter(npc_map))
+    seen = {start}
+    queue = [start]
+    while queue:
+        cur = queue.pop(0)
+        for nxt in adj.get(cur, ()):
+            if nxt not in seen:
+                seen.add(nxt)
+                queue.append(nxt)
+    report.check(len(seen) == len(npc_map), "关系网全连通", f"未连通 {len(npc_map) - len(seen)} 人")
+    report.note(f"{pid} 关系边 {edges}（base 107 + 新增 {edges - 107}），新增 NPC {len(new_ids)} 人全部有包内连边")
+
+
+def _pack_location_check(meta, data, report):
+    pid = meta.get("id", "?")
+    locs = [l for l in data["locations"] if isinstance(l, dict)]
+    adj = _adjacency(locs)
+    home_counts = {}
+    for npc in data["npcs"]:
+        if isinstance(npc, dict):
+            home_counts[npc.get("home")] = home_counts.get(npc.get("home"), 0) + 1
+    unreachable = sorted(lid for lid in adj if lid != "market" and not _reachable(adj, "market", lid))
+    report.check(not unreachable, f"{pid} 所有地点从集市可达", f"不可达: {unreachable}")
+    bad = []
+    base_loc_ids = {l.get("id") for l in load_yaml(BASE_DIR / "locations.yaml").get("locations") or []}
+    base_loc_ids |= {l.get("id") for l in load_yaml(BASE_DIR / "additions" / "locations.yaml").get("locations") or []}
+    for loc in locs:
+        lid = loc.get("id")
+        if lid in base_loc_ids:
+            continue
+        if not loc.get("services"):
+            bad.append(f"{lid} 无可交易物品")
+        if home_counts.get(lid, 0) < 1:
+            bad.append(f"{lid} 无常驻 NPC")
+    report.check(not bad, f"{pid} 新增地点常驻 NPC 与交易物品", "; ".join(bad))
+
+
+def _pack_quest_check(meta, data, report, npc_info, items_by_id):
+    pid = meta.get("id", "?")
+    base_qids = {q.get("id") for q in load_yaml(BASE_DIR / "quests.yaml").get("quests") or []}
+    npc_map = _npc_map(data["npcs"])
+    locs = [l for l in data["locations"] if isinstance(l, dict)]
+    adj = _adjacency(locs)
+    services = {l.get("id"): set(l.get("services") or []) for l in locs}
+    bad = []
+    for quest in data["quests"]:
+        if not isinstance(quest, dict) or quest.get("id") in base_qids:
+            continue
+        qid = quest.get("id")
+        cat = quest.get("category")
+        giver = npc_map.get(quest.get("giver"))
+        target = quest.get("target_location")
+        if giver is None:
+            bad.append(f"{qid} 发布人不存在")
+            continue
+        if not (_reachable(adj, giver.get("home"), target)):
+            bad.append(f"{qid} 发布人住处到 {target} 不可达")
+        if quest.get("deadline_days", 0) < 2:
+            bad.append(f"{qid} 时限 < 2 日")
+        args = quest.get("intent_args") or {}
+        if cat == "procurement":
+            item = quest.get("target_item")
+            if item not in services.get(target, set()):
+                bad.append(f"{qid} 目标地点 {target} 不售卖 {item}")
+            if quest.get("entry_cost") != items_by_id.get(item, {}).get("base_price", 0) * args.get("qty", 0):
+                bad.append(f"{qid} entry_cost 与 base_price×qty 不一致")
+        if cat in ("commission", "clear_path", "teaching"):
+            if not services.get(target):
+                bad.append(f"{qid} 工作地点 {target} 无服务")
+            if not isinstance(args.get("hours"), int) or args.get("hours") < 2:
+                bad.append(f"{qid} 工时 < 2 小时")
+        if cat == "escort":
+            route = args.get("route") or []
+            if not route or route[0] != giver.get("home") or route[-1] != target:
+                bad.append(f"{qid} 镖路与发布人/目的地不一致")
+            for a, b in zip(route, route[1:]):
+                if b not in adj.get(a, set()):
+                    bad.append(f"{qid} 镖路 {a}->{b} 不相邻")
+        if cat == "debt_collection":
+            debtor = quest.get("target_npc")
+            rel = next((r for r in giver.get("relations") or []
+                        if r.get("target") == debtor and r.get("type") == "creditor"), None)
+            if rel is None or rel.get("amount") != args.get("money_delta"):
+                bad.append(f"{qid} 发布人缺少与债务人等额的 creditor 关系")
+    report.check(not bad, f"{pid} 每张新模板前置可满足", "; ".join(bad))
+
+
+def _main_pack(pack_ids):
+    report = Report()
+    global PROFILE, QUEST_CATEGORY_VERBS
+    PROFILE = dict(PACK_PROFILE)
+    QUEST_CATEGORY_VERBS = dict(QUEST_CATEGORY_VERBS_PACK)
+    try:
+        data = _load_pack_dataset(pack_ids, report)
+    except YamlError as exc:
+        report.errors.append(f"内容包 YAML 解析失败: {exc}")
+        print_report(report, {})
+        return 1
+
+    items_by_id = check_items(data["items"], report)
+    loc_ids = {l.get("id") for l in data["locations"] or [] if isinstance(l, dict)}
+    npc_info = check_npcs(data["npcs"], items_by_id, report, loc_ids,
+                          legacy_ids=data["legacy_npc_ids"]) or {}
+    check_locations(data["locations"], items_by_id, loc_ids, report)
+    check_references(data["npcs"], data["locations"], items_by_id, report)
+
+    role_set = set(npc_info.get("roles", {}))
+    check_verbs(data["verbs"], role_set, report)
+    check_economy(data["economy"], role_set, data["locations"], npc_info.get("money_total", 0), report)
+    check_goal_targets(data["economy"], data["npcs"], npc_info.get("money_total", 0), report)
+
+    goal_types = set()
+    for npc in data["npcs"] or []:
+        if isinstance(npc, dict):
+            for g in npc.get("goals") or []:
+                if isinstance(g, dict) and g.get("type") in GOAL_TYPES:
+                    goal_types.add(g["type"])
+    report.check(not (GOAL_TYPES - goal_types), "7 类目标均有 NPC 使用",
+                  f"缺少: {sorted(GOAL_TYPES - goal_types)}")
+    verb_names = {v.get("name") for v in data["verbs"] or [] if isinstance(v, dict)}
+    if "join_sect" in goal_types:
+        report.check("join_sect" in verb_names, "join_sect 目标与动词对齐", "缺 join_sect 动词")
+
+    npc_map = _npc_map(data["npcs"])
+    check_sects(data["sects"], loc_ids, npc_map, data["economy"], report)
+    check_escort_routes(data["routes"], data["locations"], data["economy"], report)
+    check_quests(data["quests"], npc_map, loc_ids, data["locations"],
+                 items_by_id, verb_names, data["economy"], report)
+    check_p3i_additions(load_yaml(BASE_DIR / "additions" / "economy_p3i.yaml"),
+                        items_by_id, loc_ids, npc_map, report)
+    # 关闭态已经逐一校验过 base 的 30 张 persona；本包不为新增 NPC 造 persona，
+    # 因此这里只复核 base 30 人，避免把本轮未承诺的内容列为硬失败。
+    check_personas(data["base_npc_ids"], report)
+
+    for meta in data["pack_metas"]:
+        _pack_catalog_check(meta, data, report)
+    for meta in data["pack_metas"]:
+        _pack_graph_check(meta, data, report, npc_info)
+        _pack_location_check(meta, data, report)
+        _pack_quest_check(meta, data, report, npc_info, items_by_id)
+        target = meta.get("target_counts") or {}
+        report.check(len(data["npcs"]) == target.get("npcs"),
+                      f"{meta.get('id')} NPC 达到目标数", f"{len(data['npcs'])} vs {target.get('npcs')}")
+        report.check(len(data["items"]) == target.get("items"),
+                      f"{meta.get('id')} 物品达到目标数", f"{len(data['items'])} vs {target.get('items')}")
+        report.check(len(data["locations"]) == target.get("locations"),
+                      f"{meta.get('id')} 地点达到目标数", f"{len(data['locations'])} vs {target.get('locations')}")
+        report.check(len(data["quests"]) == target.get("quests"),
+                      f"{meta.get('id')} 委托达到目标数", f"{len(data['quests'])} vs {target.get('quests')}")
+
+    print_report(report, npc_info)
+    return 0 if not report.errors else 1
+
+
 def main() -> int:
     if hasattr(sys, "set_int_max_str_digits"):
         sys.set_int_max_str_digits(0)
+    packs = _enabled_packs()
+    if packs:
+        return _main_pack(packs)
     report = Report()
     data = {}
     parse_ok = True

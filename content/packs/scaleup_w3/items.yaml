@@ -1,0 +1,118 @@
+# W3 新增 29 件物品。字段与 base items.yaml 一致；产地/用途/价格锚点见 item_catalog.yaml。
+items:
+  - id: kiln_yam
+    name: 烤芋头
+    category: food
+    base_price: 4
+  - id: salted_fish
+    name: 咸鱼（一尾）
+    category: food
+    base_price: 20
+  - id: bean_curd
+    name: 豆腐（一方）
+    category: food
+    base_price: 6
+  - id: pear_cake
+    name: 梨膏糖（一包）
+    category: food
+    base_price: 3
+  - id: wheat_flour
+    name: 麦面（一斗）
+    category: food
+    base_price: 10
+  - id: pickled_radish
+    name: 腌萝卜（一坛）
+    category: food
+    base_price: 5
+  - id: river_shrimp
+    name: 河虾（一篓）
+    category: food
+    base_price: 12
+  - id: kiln_timber
+    name: 窑柴（一捆）
+    category: material
+    base_price: 13
+  - id: indigo_dye
+    name: 靛蓝（一包）
+    category: material
+    base_price: 14
+  - id: raw_hemp
+    name: 生麻（一束）
+    category: material
+    base_price: 8
+  - id: salt_block
+    name: 盐砖（一块）
+    category: material
+    base_price: 18
+  - id: clay
+    name: 陶土（一筐）
+    category: material
+    base_price: 8
+  - id: wood_board
+    name: 木板（一块）
+    category: material
+    base_price: 24
+  - id: fish_net_rope
+    name: 网绳（一捆）
+    category: material
+    base_price: 10
+  - id: fishing_spear
+    name: 鱼叉（一柄）
+    category: tool
+    base_price: 70
+  - id: dye_vat
+    name: 染缸（一口）
+    category: tool
+    base_price: 100
+  - id: potter_wheel
+    name: 陶轮（一架）
+    category: tool
+    base_price: 95
+  - id: engrave_chisel
+    name: 刻刀（一套）
+    category: tool
+    base_price: 66
+  - id: salt_scale
+    name: 盐秤（一杆）
+    category: tool
+    base_price: 58
+  - id: chaihu
+    name: 柴胡（一束）
+    category: medicine
+    base_price: 8
+  - id: dried_ginger
+    name: 干姜（一包）
+    category: medicine
+    base_price: 12
+  - id: herb_salve
+    name: 草药膏（一盒）
+    category: medicine
+    base_price: 20
+  - id: cool_tea
+    name: 凉茶（一碗）
+    category: medicine
+    base_price: 6
+  - id: bone_set_kit
+    name: 接骨木夹（一副）
+    category: medicine
+    base_price: 30
+  - id: embroidered_pouch
+    name: 绣囊（一只）
+    category: luxury
+    base_price: 210
+  - id: clay_figure
+    name: 陶俑（一尊）
+    category: luxury
+    base_price: 370
+  - id: salt_lamp
+    name: 盐灯（一盏）
+    category: luxury
+    base_price: 300
+  - id: rare_herb_box
+    name: 药匣（一只）
+    category: luxury
+    base_price: 540
+  - id: service_night_watch
+    name: 更楼夜巡（一夜）
+    category: service
+    base_price: 3

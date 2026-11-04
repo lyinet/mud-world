@@ -1,0 +1,47 @@
+# W3 新增 11 个地点。只声明单向出口；加载器与物化脚本会补齐反向边。
+# 每个地点至少 1 名常驻 NPC（见 npcs.yaml home）与 1 件可交易/可获取物品（services）。
+locations:
+  - id: charcoal_kiln
+    name: 炭窑
+    exits: [market, smithy, leather_yard]
+    services: [kiln_yam, kiln_timber, wood_board, charcoal]
+  - id: dye_works
+    name: 染坊
+    exits: [market, teahouse, leather_yard]
+    services: [indigo_dye, embroidered_pouch, silk, raw_silk]
+  - id: leather_yard
+    name: 硝皮场
+    exits: [smithy, charcoal_kiln, dye_works]
+    services: [leather, kiln_timber, raw_hemp]
+  - id: granary
+    name: 粮仓
+    exits: [market, ferry, pottery]
+    services: [wheat_flour, raw_hemp, pickled_radish, bean_curd, rice, millet]
+  - id: river_market
+    name: 河市
+    exits: [ferry, temple, salt_depot, herb_hills]
+    services: [salted_fish, river_shrimp, fish_net_rope, fishing_spear, cool_tea, river_fish]
+  - id: herb_hills
+    name: 药山
+    exits: [pharmacy, temple, river_market]
+    services: [chaihu, dried_ginger, herb_salve, bone_set_kit, rare_herb_box, mugwort]
+  - id: night_watch
+    name: 更楼
+    exits: [market, academy, book_shop]
+    services: [service_night_watch]
+  - id: book_shop
+    name: 书肆
+    exits: [academy, market, night_watch]
+    services: [engrave_chisel, ink_stick, service_copying]
+  - id: opera_stage
+    name: 戏台
+    exits: [inn, market]
+    services: [service_storytelling, pear_cake, wine]
+  - id: pottery
+    name: 陶窑
+    exits: [market, granary]
+    services: [clay, potter_wheel, clay_figure, bamboo_basket]
+  - id: salt_depot
+    name: 盐仓
+    exits: [ferry, market, river_market]
+    services: [salt_block, salt_scale, salt_lamp]

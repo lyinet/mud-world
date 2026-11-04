@@ -1,0 +1,1062 @@
+# W3 新增 29 位 NPC。每人：明确职业/谋生、3 个目标（含 1 条长线）、3–4 条初始关系。
+# 对称关系（family/creditor/debtor/master/disciple）只在新包内部成对出现；
+# 与 base NPC 的连接一律用单向 friend/rival，避免改动关闭态种子。
+npcs:
+  - id: tan_aji
+    name: 谭阿吉
+    role: 炭工
+    home: charcoal_kiln
+    personality:
+      traits: [嘴碎, 怕黑, 讲义气]
+      speech_style: "三句话不离炭价，爱用「我哥说」开头"
+    goals:
+      - id: goal_tan_aji_1
+        type: earn_money
+        priority: 1
+      - id: goal_tan_aji_2
+        type: build_relation
+        priority: 2
+      - id: goal_tan_aji_3
+        type: advance_skill
+        priority: 2
+    assets:
+      money: 900
+      items:
+        - id: kiln_yam
+          qty: 6
+        - id: kiln_timber
+          qty: 2
+    relations:
+      - target: tan_shouyi
+        type: family
+        value: 40
+      - target: shi_gandang
+        type: friend
+        value: 15
+      - target: lin_dujiang
+        type: friend
+        value: 20
+      - target: pi_laojiu
+        type: debtor
+        value: -40
+        amount: 80
+        long_term: true
+
+  - id: tan_shouyi
+    name: 谭守义
+    role: 炭工
+    home: charcoal_kiln
+    personality:
+      traits: [沉稳, 守旧, 认死理]
+      speech_style: "先报窑数再说事，常讲「一窑一命」"
+    goals:
+      - id: goal_tan_shouyi_1
+        type: earn_money
+        priority: 1
+      - id: goal_tan_shouyi_2
+        type: advance_skill
+        priority: 1
+      - id: goal_tan_shouyi_3
+        type: build_shop
+        priority: 2
+    assets:
+      money: 1100
+      items:
+        - id: charcoal
+          qty: 8
+        - id: wood_board
+          qty: 2
+    relations:
+      - target: tan_aji
+        type: family
+        value: 40
+      - target: qiu_tu
+        type: master
+        value: 30
+      - target: pei_wujiu
+        type: rival
+        value: -15
+
+  - id: yin_qiuniang
+    name: 尹秋娘
+    role: 染匠
+    home: dye_works
+    personality:
+      traits: [精算, 爱美, 不饶人]
+      speech_style: "张口闭口「色差分毫」，报价从不抹零"
+    goals:
+      - id: goal_yin_qiuniang_1
+        type: earn_money
+        priority: 1
+      - id: goal_yin_qiuniang_2
+        type: advance_skill
+        priority: 1
+      - id: goal_yin_qiuniang_3
+        type: build_shop
+        priority: 2
+    assets:
+      money: 1200
+      items:
+        - id: indigo_dye
+          qty: 6
+        - id: silk
+          qty: 3
+    relations:
+      - target: cai_alan
+        type: master
+        value: 35
+      - target: liu_sanniang
+        type: friend
+        value: 20
+      - target: xiu_xiaoman
+        type: family
+        value: 25
+
+  - id: cai_alan
+    name: 蔡阿蓝
+    role: 染匠
+    home: dye_works
+    personality:
+      traits: [手巧, 自卑, 爱打听]
+      speech_style: "低声细气，习惯先问「师父怎么说」"
+    goals:
+      - id: goal_cai_alan_1
+        type: advance_skill
+        priority: 1
+      - id: goal_cai_alan_2
+        type: earn_money
+        priority: 2
+      - id: goal_cai_alan_3
+        type: gain_status
+        priority: 2
+    assets:
+      money: 800
+      items:
+        - id: indigo_dye
+          qty: 4
+        - id: dye_vat
+          qty: 1
+    relations:
+      - target: yin_qiuniang
+        type: disciple
+        value: 35
+      - target: xiu_xiaoman
+        type: debtor
+        value: -20
+        amount: 60
+      - target: hua_jieyu
+        type: friend
+        value: 15
+
+  - id: xiu_xiaoman
+    name: 绣小满
+    role: 绣娘
+    home: dye_works
+    personality:
+      traits: [细致, 记仇, 好面子]
+      speech_style: "喜欢拿针脚打比方，尾音常带「你懂罢」"
+    goals:
+      - id: goal_xiu_xiaoman_1
+        type: earn_money
+        priority: 1
+      - id: goal_xiu_xiaoman_2
+        type: advance_skill
+        priority: 1
+      - id: goal_xiu_xiaoman_3
+        type: build_shop
+        priority: 2
+    assets:
+      money: 950
+      items:
+        - id: embroidered_pouch
+          qty: 2
+        - id: silk
+          qty: 2
+    relations:
+      - target: yin_qiuniang
+        type: family
+        value: 25
+      - target: cai_alan
+        type: creditor
+        value: 40
+        amount: 60
+      - target: liu_sanniang
+        type: friend
+        value: 25
+
+  - id: pi_laojiu
+    name: 皮老九
+    role: 硝皮匠
+    home: leather_yard
+    personality:
+      traits: [粗豪, 护短, 爱赊账]
+      speech_style: "嗓门大，谈生意先拍胸脯「九爷兜着」"
+    goals:
+      - id: goal_pi_laojiu_1
+        type: earn_money
+        priority: 1
+      - id: goal_pi_laojiu_2
+        type: advance_skill
+        priority: 1
+      - id: goal_pi_laojiu_3
+        type: build_shop
+        priority: 2
+    assets:
+      money: 1300
+      items:
+        - id: leather
+          qty: 8
+        - id: raw_hemp
+          qty: 3
+    relations:
+      - target: niu_asheng
+        type: master
+        value: 30
+      - target: cui_tieyi
+        type: friend
+        value: 15
+      - target: tan_aji
+        type: creditor
+        value: 40
+        amount: 80
+      - target: zhuo_bufan
+        type: rival
+        value: -10
+
+  - id: niu_asheng
+    name: 牛阿生
+    role: 硝皮匠
+    home: leather_yard
+    personality:
+      traits: [闷头干活, 孝顺, 胆小]
+      speech_style: "话少，被追问才说「师父让的」"
+    goals:
+      - id: goal_niu_asheng_1
+        type: advance_skill
+        priority: 1
+      - id: goal_niu_asheng_2
+        type: earn_money
+        priority: 2
+      - id: goal_niu_asheng_3
+        type: gain_status
+        priority: 2
+    assets:
+      money: 700
+      items:
+        - id: leather
+          qty: 4
+        - id: kiln_timber
+          qty: 2
+    relations:
+      - target: pi_laojiu
+        type: disciple
+        value: 30
+      - target: tan_aji
+        type: friend
+        value: 15
+      - target: tui_cheli
+        type: friend
+        value: 10
+
+  - id: cang_mishu
+    name: 仓米叔
+    role: 仓吏
+    home: granary
+    personality:
+      traits: [谨慎, 抠门, 怕担责]
+      speech_style: "开口先对账，爱说「斗升都记着」"
+    goals:
+      - id: goal_cang_mishu_1
+        type: earn_money
+        priority: 1
+      - id: goal_cang_mishu_2
+        type: advance_skill
+        priority: 1
+      - id: goal_cang_mishu_3
+        type: build_shop
+        priority: 2
+    assets:
+      money: 1250
+      items:
+        - id: wheat_flour
+          qty: 6
+        - id: rice
+          qty: 8
+        - id: bean_curd
+          qty: 4
+    relations:
+      - target: luo_dou
+        type: creditor
+        value: 40
+        amount: 120
+      - target: song_henian
+        type: friend
+        value: 20
+      - target: tui_cheli
+        type: friend
+        value: 15
+
+  - id: tui_cheli
+    name: 腿车李
+    role: 脚夫
+    home: granary
+    personality:
+      traits: [勤快, 爱抱怨, 心软]
+      speech_style: "边走边说，爱用「这趟腿」计工作量"
+    goals:
+      - id: goal_tui_cheli_1
+        type: earn_money
+        priority: 1
+      - id: goal_tui_cheli_2
+        type: build_relation
+        priority: 2
+      - id: goal_tui_cheli_3
+        type: advance_skill
+        priority: 2
+    assets:
+      money: 650
+      items:
+        - id: pickled_radish
+          qty: 3
+        - id: raw_hemp
+          qty: 2
+    relations:
+      - target: cang_mishu
+        type: friend
+        value: 20
+      - target: niu_asheng
+        type: friend
+        value: 15
+      - target: luo_dou
+        type: rival
+        value: -8
+
+  - id: luo_dou
+    name: 罗斗
+    role: 货郎
+    home: granary
+    personality:
+      traits: [机灵, 嘴甜, 好赌]
+      speech_style: "报数先报利钱，口头禅「多一斗也是赚」"
+    goals:
+      - id: goal_luo_dou_1
+        type: earn_money
+        priority: 1
+      - id: goal_luo_dou_2
+        type: advance_skill
+        priority: 2
+      - id: goal_luo_dou_3
+        type: build_shop
+        priority: 2
+    assets:
+      money: 900
+      items:
+        - id: raw_hemp
+          qty: 4
+        - id: bean_curd
+          qty: 3
+    relations:
+      - target: cang_mishu
+        type: debtor
+        value: -40
+        amount: 120
+        long_term: true
+      - target: wen_xiaoman
+        type: friend
+        value: 15
+      - target: tui_cheli
+        type: rival
+        value: -10
+
+  - id: lin_dujiang
+    name: 林渡江
+    role: 渔贩
+    home: river_market
+    personality:
+      traits: [爽利, 好吹牛, 重信用]
+      speech_style: "张口「水里的行情」，谈价先笑三声"
+    goals:
+      - id: goal_lin_dujiang_1
+        type: earn_money
+        priority: 1
+      - id: goal_lin_dujiang_2
+        type: advance_skill
+        priority: 1
+      - id: goal_lin_dujiang_3
+        type: build_shop
+        priority: 2
+    assets:
+      money: 1000
+      items:
+        - id: salted_fish
+          qty: 6
+        - id: fishing_spear
+          qty: 1
+    relations:
+      - target: yu_ajiao
+        type: family
+        value: 20
+      - target: tan_aji
+        type: friend
+        value: 15
+      - target: qiu_tu
+        type: friend
+        value: 15
+
+  - id: yu_ajiao
+    name: 鱼阿娇
+    role: 渔贩
+    home: river_market
+    personality:
+      traits: [泼辣, 护家, 记性好]
+      speech_style: "说话像连珠炮，爱说「我哥的船」"
+    goals:
+      - id: goal_yu_ajiao_1
+        type: earn_money
+        priority: 1
+      - id: goal_yu_ajiao_2
+        type: build_relation
+        priority: 2
+      - id: goal_yu_ajiao_3
+        type: advance_skill
+        priority: 2
+    assets:
+      money: 850
+      items:
+        - id: river_shrimp
+          qty: 5
+        - id: cool_tea
+          qty: 3
+    relations:
+      - target: lin_dujiang
+        type: family
+        value: 20
+      - target: ruan_xiaoluo
+        type: friend
+        value: 15
+
+  - id: ruan_yu
+    name: 阮渔
+    role: 渔娘
+    home: river_market
+    personality:
+      traits: [安静, 认死理, 会看水色]
+      speech_style: "轻声慢语，常说「水急了，等一等」"
+    goals:
+      - id: goal_ruan_yu_1
+        type: earn_money
+        priority: 1
+      - id: goal_ruan_yu_2
+        type: advance_skill
+        priority: 1
+      - id: goal_ruan_yu_3
+        type: gain_status
+        priority: 2
+    assets:
+      money: 900
+      items:
+        - id: river_shrimp
+          qty: 4
+        - id: fish_net_rope
+          qty: 2
+    relations:
+      - target: ruan_xiaoluo
+        type: friend
+        value: 20
+      - target: yu_ajiao
+        type: friend
+        value: 15
+      - target: lin_dujiang
+        type: rival
+        value: -10
+
+  - id: yao_weng
+    name: 药翁
+    role: 采药人
+    home: herb_hills
+    personality:
+      traits: [慢性子, 博识, 嘴严]
+      speech_style: "先看天色再开口，爱用「药性如人性」"
+    goals:
+      - id: goal_yao_weng_1
+        type: advance_skill
+        priority: 1
+      - id: goal_yao_weng_2
+        type: earn_money
+        priority: 2
+      - id: goal_yao_weng_3
+        type: build_shop
+        priority: 2
+    assets:
+      money: 1100
+      items:
+        - id: chaihu
+          qty: 8
+        - id: herb_salve
+          qty: 3
+        - id: rare_herb_box
+          qty: 1
+    relations:
+      - target: cao_gen
+        type: master
+        value: 30
+      - target: su_hexiang
+        type: friend
+        value: 20
+      - target: gu_qingya
+        type: friend
+        value: 15
+
+  - id: cao_gen
+    name: 曹根
+    role: 采药人
+    home: herb_hills
+    personality:
+      traits: [老实, 怕蛇, 肯下力]
+      speech_style: "说话直来直去，常用「山上……」开头"
+    goals:
+      - id: goal_cao_gen_1
+        type: advance_skill
+        priority: 1
+      - id: goal_cao_gen_2
+        type: earn_money
+        priority: 2
+      - id: goal_cao_gen_3
+        type: build_relation
+        priority: 2
+    assets:
+      money: 600
+      items:
+        - id: dried_ginger
+          qty: 5
+        - id: bone_set_kit
+          qty: 1
+    relations:
+      - target: yao_weng
+        type: disciple
+        value: 30
+      - target: han_xinglin
+        type: friend
+        value: 15
+      - target: qiu_tu
+        type: friend
+        value: 10
+
+  - id: geng_laoge
+    name: 葛更夫
+    role: 更夫
+    home: night_watch
+    personality:
+      traits: [守时, 多疑, 爱管闲事]
+      speech_style: "敲更腔调说话，爱说「三更天我瞧见了」"
+    goals:
+      - id: goal_geng_laoge_1
+        type: earn_money
+        priority: 1
+      - id: goal_geng_laoge_2
+        type: gain_status
+        priority: 1
+      - id: goal_geng_laoge_3
+        type: build_relation
+        priority: 2
+    assets:
+      money: 750
+      items:
+        - id: service_night_watch
+          qty: 4
+        - id: moxa_roll
+          qty: 1
+    relations:
+      - target: deng_xiaoqi
+        type: master
+        value: 25
+      - target: lu_jiujin
+        type: friend
+        value: 15
+      - target: ruan_yu
+        type: rival
+        value: -10
+      - target: ban_yun_chen
+        type: creditor
+        value: 40
+        amount: 40
+
+  - id: deng_xiaoqi
+    name: 灯小七
+    role: 更夫
+    home: night_watch
+    personality:
+      traits: [胆小, 机警, 想出头]
+      speech_style: "压低嗓子说话，爱问「你听见没有」"
+    goals:
+      - id: goal_deng_xiaoqi_1
+        type: advance_skill
+        priority: 1
+      - id: goal_deng_xiaoqi_2
+        type: earn_money
+        priority: 2
+      - id: goal_deng_xiaoqi_3
+        type: gain_status
+        priority: 2
+    assets:
+      money: 550
+      items:
+        - id: service_night_watch
+          qty: 3
+        - id: cool_tea
+          qty: 2
+    relations:
+      - target: geng_laoge
+        type: disciple
+        value: 25
+      - target: tan_aji
+        type: friend
+        value: 10
+
+  - id: shu_bo
+    name: 舒伯
+    role: 货郎
+    home: book_shop
+    personality:
+      traits: [温吞, 识货, 爱掉书袋]
+      speech_style: "出口半文半白，常说「书上有云」"
+    goals:
+      - id: goal_shu_bo_1
+        type: earn_money
+        priority: 1
+      - id: goal_shu_bo_2
+        type: advance_skill
+        priority: 1
+      - id: goal_shu_bo_3
+        type: build_shop
+        priority: 2
+    assets:
+      money: 1200
+      items:
+        - id: ink_stick
+          qty: 4
+        - id: engrave_chisel
+          qty: 2
+    relations:
+      - target: ke_shan
+        type: master
+        value: 30
+      - target: bai_lusheng
+        type: friend
+        value: 20
+      - target: chao_yan
+        type: creditor
+        value: 40
+        amount: 40
+
+  - id: ke_shan
+    name: 柯山
+    role: 石匠
+    home: book_shop
+    personality:
+      traits: [寡言, 手稳, 认碑不认人]
+      speech_style: "一句一顿，爱说「刻错了磨不掉」"
+    goals:
+      - id: goal_ke_shan_1
+        type: advance_skill
+        priority: 1
+      - id: goal_ke_shan_2
+        type: earn_money
+        priority: 2
+      - id: goal_ke_shan_3
+        type: build_shop
+        priority: 2
+    assets:
+      money: 900
+      items:
+        - id: engrave_chisel
+          qty: 3
+        - id: wood_board
+          qty: 2
+    relations:
+      - target: shu_bo
+        type: disciple
+        value: 30
+      - target: shi_gandang
+        type: friend
+        value: 20
+      - target: qiu_tu
+        type: rival
+        value: -10
+      - target: chao_yan
+        type: friend
+        value: 10
+
+  - id: chao_yan
+    name: 抄砚
+    role: 抄经人
+    home: book_shop
+    personality:
+      traits: [清高, 手快, 怕催]
+      speech_style: "说话轻，提到钱就皱眉「俗了」"
+    goals:
+      - id: goal_chao_yan_1
+        type: advance_skill
+        priority: 1
+      - id: goal_chao_yan_2
+        type: earn_money
+        priority: 2
+      - id: goal_chao_yan_3
+        type: gain_status
+        priority: 2
+    assets:
+      money: 700
+      items:
+        - id: ink_stick
+          qty: 2
+        - id: service_copying
+          qty: 3
+    relations:
+      - target: shu_bo
+        type: debtor
+        value: -40
+        amount: 40
+      - target: yan_shouyi
+        type: friend
+        value: 15
+      - target: ke_shan
+        type: friend
+        value: 10
+
+  - id: ling_yun
+    name: 凌云
+    role: 伶人
+    home: opera_stage
+    personality:
+      traits: [好强, 爱俏, 嘴损]
+      speech_style: "说话带戏腔，爱拿「台上见」压人"
+    goals:
+      - id: goal_ling_yun_1
+        type: gain_status
+        priority: 1
+      - id: goal_ling_yun_2
+        type: advance_skill
+        priority: 1
+      - id: goal_ling_yun_3
+        type: earn_money
+        priority: 2
+    assets:
+      money: 1000
+      items:
+        - id: pear_cake
+          qty: 4
+        - id: embroidered_pouch
+          qty: 1
+    relations:
+      - target: ban_zhu_qin
+        type: master
+        value: 30
+      - target: hua_jieyu
+        type: friend
+        value: 20
+      - target: shuo_shu_zhou
+        type: rival
+        value: -15
+
+  - id: ban_zhu_qin
+    name: 秦班主
+    role: 伶人
+    home: opera_stage
+    personality:
+      traits: [圆滑, 护班, 抠戏份]
+      speech_style: "和气里带算盘，常说「班子也要吃饭」"
+    goals:
+      - id: goal_ban_zhu_qin_1
+        type: earn_money
+        priority: 1
+      - id: goal_ban_zhu_qin_2
+        type: gain_status
+        priority: 1
+      - id: goal_ban_zhu_qin_3
+        type: build_shop
+        priority: 2
+    assets:
+      money: 1400
+      items:
+        - id: wine
+          qty: 4
+        - id: pear_cake
+          qty: 3
+        - id: clay_figure
+          qty: 1
+    relations:
+      - target: ling_yun
+        type: disciple
+        value: 30
+      - target: zhuo_bufan
+        type: friend
+        value: 20
+      - target: shuo_shu_zhou
+        type: creditor
+        value: 40
+        amount: 100
+
+  - id: shuo_shu_zhou
+    name: 周说书
+    role: 说书人
+    home: opera_stage
+    personality:
+      traits: [健谈, 赖账, 记性好]
+      speech_style: "开口就是「上回说到」，能把闲话编成段子"
+    goals:
+      - id: goal_shuo_shu_zhou_1
+        type: earn_money
+        priority: 1
+      - id: goal_shuo_shu_zhou_2
+        type: advance_skill
+        priority: 1
+      - id: goal_shuo_shu_zhou_3
+        type: build_relation
+        priority: 2
+    assets:
+      money: 850
+      items:
+        - id: pear_cake
+          qty: 2
+        - id: cool_tea
+          qty: 2
+    relations:
+      - target: ban_zhu_qin
+        type: debtor
+        value: -40
+        amount: 100
+        long_term: true
+      - target: hua_jieyu
+        type: friend
+        value: 15
+      - target: ling_yun
+        type: rival
+        value: -10
+
+  - id: qiu_tu
+    name: 丘土
+    role: 陶工
+    home: pottery
+    personality:
+      traits: [倔, 恋土, 看不起花活]
+      speech_style: "三句不离「泥性」，恼了就说「烧出来看」"
+    goals:
+      - id: goal_qiu_tu_1
+        type: advance_skill
+        priority: 1
+      - id: goal_qiu_tu_2
+        type: earn_money
+        priority: 2
+      - id: goal_qiu_tu_3
+        type: build_shop
+        priority: 2
+    assets:
+      money: 950
+      items:
+        - id: clay
+          qty: 8
+        - id: clay_figure
+          qty: 2
+        - id: potter_wheel
+          qty: 1
+    relations:
+      - target: tan_shouyi
+        type: disciple
+        value: 30
+      - target: pi_laojiu
+        type: friend
+        value: 15
+      - target: ke_shan
+        type: rival
+        value: -10
+      - target: tao_agong
+        type: family
+        value: 20
+
+  - id: tao_agong
+    name: 陶阿公
+    role: 陶工
+    home: pottery
+    personality:
+      traits: [慈和, 守规矩, 爱惜窑]
+      speech_style: "慢声慢气，常说「窑火不欺人」"
+    goals:
+      - id: goal_tao_agong_1
+        type: advance_skill
+        priority: 1
+      - id: goal_tao_agong_2
+        type: earn_money
+        priority: 2
+      - id: goal_tao_agong_3
+        type: gain_status
+        priority: 2
+    assets:
+      money: 1150
+      items:
+        - id: potter_wheel
+          qty: 2
+        - id: clay_figure
+          qty: 1
+        - id: wood_board
+          qty: 2
+    relations:
+      - target: hu_yaohu
+        type: master
+        value: 30
+      - target: yao_weng
+        type: friend
+        value: 15
+      - target: qiu_tu
+        type: family
+        value: 20
+
+  - id: hu_yaohu
+    name: 胡窑户
+    role: 陶工
+    home: pottery
+    personality:
+      traits: [精明, 好排场, 拖欠工钱]
+      speech_style: "爱说「窑口大小也是脸面」，谈钱先叹穷"
+    goals:
+      - id: goal_hu_yaohu_1
+        type: earn_money
+        priority: 1
+      - id: goal_hu_yaohu_2
+        type: gain_status
+        priority: 1
+      - id: goal_hu_yaohu_3
+        type: build_shop
+        priority: 2
+    assets:
+      money: 1350
+      items:
+        - id: clay
+          qty: 10
+        - id: salt_lamp
+          qty: 1
+        - id: clay_figure
+          qty: 2
+    relations:
+      - target: tao_agong
+        type: disciple
+        value: 30
+      - target: jin_mancang
+        type: friend
+        value: 20
+      - target: ban_yun_chen
+        type: creditor
+        value: 40
+        amount: 60
+
+  - id: ban_yun_chen
+    name: 陈搬运
+    role: 脚夫
+    home: pottery
+    personality:
+      traits: [沉默, 肯扛, 怕欠人情]
+      speech_style: "短句，常把「我扛得动」挂嘴边"
+    goals:
+      - id: goal_ban_yun_chen_1
+        type: earn_money
+        priority: 1
+      - id: goal_ban_yun_chen_2
+        type: build_relation
+        priority: 2
+      - id: goal_ban_yun_chen_3
+        type: advance_skill
+        priority: 2
+    assets:
+      money: 600
+      items:
+        - id: clay
+          qty: 4
+        - id: wood_board
+          qty: 2
+    relations:
+      - target: hu_yaohu
+        type: debtor
+        value: -40
+        amount: 60
+      - target: geng_laoge
+        type: debtor
+        value: -30
+        amount: 40
+        long_term: true
+      - target: lu_jiujin
+        type: friend
+        value: 15
+      - target: tui_cheli
+        type: friend
+        value: 10
+
+  - id: yan_liu
+    name: 盐六
+    role: 盐贩
+    home: salt_depot
+    personality:
+      traits: [油滑, 消息灵, 怕官]
+      speech_style: "压着嗓子报私价，常说「官盐是官盐」"
+    goals:
+      - id: goal_yan_liu_1
+        type: earn_money
+        priority: 1
+      - id: goal_yan_liu_2
+        type: advance_skill
+        priority: 1
+      - id: goal_yan_liu_3
+        type: build_shop
+        priority: 2
+    assets:
+      money: 1050
+      items:
+        - id: salt_block
+          qty: 8
+        - id: salt_lamp
+          qty: 1
+    relations:
+      - target: yan_li
+        type: debtor
+        value: -40
+        amount: 50
+      - target: lin_dujiang
+        type: friend
+        value: 15
+      - target: shu_bo
+        type: friend
+        value: 10
+
+  - id: yan_li
+    name: 盐吏
+    role: 仓吏
+    home: salt_depot
+    personality:
+      traits: [刻板, 爱拿章程, 外冷内软]
+      speech_style: "满口公文腔，常说「按例……」"
+    goals:
+      - id: goal_yan_li_1
+        type: earn_money
+        priority: 1
+      - id: goal_yan_li_2
+        type: advance_skill
+        priority: 1
+      - id: goal_yan_li_3
+        type: gain_status
+        priority: 2
+    assets:
+      money: 1250
+      items:
+        - id: salt_block
+          qty: 6
+        - id: salt_scale
+          qty: 2
+    relations:
+      - target: cang_mishu
+        type: friend
+        value: 20
+      - target: yan_liu
+        type: creditor
+        value: 40
+        amount: 50
+      - target: cai_alan
+        type: friend
+        value: 10

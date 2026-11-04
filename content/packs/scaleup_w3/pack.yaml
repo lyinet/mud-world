@@ -1,0 +1,34 @@
+# W3 内容量产扩展包（可开关，默认关闭）。
+# 关闭态：content/manifest.yaml 不引用本目录，content_hash 必须保持
+# 7ec670c1c83c7b99e9bee35f84602bd7a68ef22126b29c9003529809b2c3d53f。
+# 开启态：由 content/packs/enabled.yaml 或环境变量 XKX_CONTENT_PACKS=scaleup_w3 激活；
+# 加载/物化入口见 tools/content_scale.py，内容校验见 content/validate_content.py --pack scaleup_w3。
+id: scaleup_w3
+name: "W3 市井扩容包"
+version: "1.0.0"
+description: "在既有 9 地点市镇外圈新增 11 个生产/交易地点、29 名居民、29 件货物与 33 张委托，关系网扩到 180+ 条。"
+base_content_hash: "7ec670c1c83c7b99e9bee35f84602bd7a68ef22126b29c9003529809b2c3d53f"
+base_counts:
+  items: 41
+  npcs: 31
+  locations: 9
+  quests: 27
+target_counts:
+  items: 70
+  npcs: 60
+  locations: 20
+  quests: 60
+switch:
+  file: content/packs/enabled.yaml
+  env: XKX_CONTENT_PACKS
+  default: off
+files:
+  npcs: npcs.yaml
+  npc_catalog: npc_catalog.yaml
+  locations: locations.yaml
+  items: items.yaml
+  item_catalog: item_catalog.yaml
+  roles: roles.yaml
+  economy: economy.yaml
+  quests: quests.yaml
+notes: "本包不新增门派、不新增镖路，复用既有 4 条镖路与既有门派；persona 卡不在本轮验收范围内。"

@@ -1,0 +1,4 @@
+# 内容包开关。默认关闭：空列表。
+# 启用 W3 扩容：把 scaleup_w3 加入下列 enabled（或设置 XKX_CONTENT_PACKS=scaleup_w3）。
+# 关闭态下 content_hash 必须仍是 7ec670c1c83c7b99e9bee35f84602bd7a68ef22126b29c9003529809b2c3d53f。
+enabled: []

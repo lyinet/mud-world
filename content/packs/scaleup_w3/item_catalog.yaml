@@ -1,0 +1,149 @@
+# W3 物品档案：产地、用途、价格锚点与委托模板引用。
+# 价格锚点必须是同类品，新价与锚点价偏差 <= 20%（既有人工物价模型的护栏）。
+# quest_refs 必须真实出现在对应模板的 target_item 或 intent_args 货品字段里。
+item_catalog:
+  kiln_yam:
+    origin: charcoal_kiln
+    usage: "窑工口粮，也可在集市热食摊零卖。"
+    price_anchor: noodle
+    quest_refs: [procure_kiln_yam]
+  salted_fish:
+    origin: river_market
+    usage: "客栈下酒菜与渔贩囤货，耐放。"
+    price_anchor: cured_meat
+    quest_refs: [procure_salted_fish]
+  bean_curd:
+    origin: granary
+    usage: "豆制品摊的日常菜，粮仓脚夫常买。"
+    price_anchor: lotus_root
+    quest_refs: [errand_granary_bean_curd]
+  pear_cake:
+    origin: opera_stage
+    usage: "润嗓零嘴，戏班与听客都买。"
+    price_anchor: flatbread
+    quest_refs: [errand_opera_cake, teach_opera_cake]
+  wheat_flour:
+    origin: granary
+    usage: "客栈蒸馍、面摊做细面。"
+    price_anchor: millet
+    quest_refs: [procure_wheat_flour]
+  pickled_radish:
+    origin: granary
+    usage: "下粥腌菜，粮仓与脚夫常备。"
+    price_anchor: noodle
+    quest_refs: [commission_granary_pickle]
+  river_shrimp:
+    origin: river_market
+    usage: "河市鲜货，客栈可做河虾小炒。"
+    price_anchor: rice
+    quest_refs: [errand_river_shrimp]
+  kiln_timber:
+    origin: charcoal_kiln
+    usage: "窑柴，烧炭与陶窑共用。"
+    price_anchor: charcoal
+    quest_refs: [clear_kiln_timber]
+  indigo_dye:
+    origin: dye_works
+    usage: "染深青布的必需染料。"
+    price_anchor: bamboo_basket
+    quest_refs: [commission_dye_stir]
+  raw_hemp:
+    origin: granary
+    usage: "绩麻、搓绳与皮活缝线。"
+    price_anchor: hemp_rope
+    quest_refs: [procure_raw_hemp]
+  salt_block:
+    origin: salt_depot
+    usage: "腌菜、盐灯与日常调味。"
+    price_anchor: ink_stick
+    quest_refs: [procure_salt_block]
+  clay:
+    origin: pottery
+    usage: "制坯烧陶，也用于修补炉膛。"
+    price_anchor: hemp_rope
+    quest_refs: [commission_pottery_clay]
+  wood_board:
+    origin: pottery
+    usage: "窑具垫板、书肆旧板，也可当柴。"
+    price_anchor: coarse_cloth
+    quest_refs: [clear_book_wood]
+  fish_net_rope:
+    origin: river_market
+    usage: "织补渔网、系船与河市清障。"
+    price_anchor: hemp_rope
+    quest_refs: [clear_river_net, debt_cang_luo]
+  fishing_spear:
+    origin: river_market
+    usage: "浅水叉鱼，也可护船。"
+    price_anchor: cleaver
+    quest_refs: [escort_fishing_spear]
+  dye_vat:
+    origin: dye_works
+    usage: "染坊浸染大件布匹。"
+    price_anchor: hammer
+    quest_refs: [escort_dye_vat]
+  potter_wheel:
+    origin: pottery
+    usage: "拉坯成型的陶轮。"
+    price_anchor: medicine_mill
+    quest_refs: [escort_potter_wheel]
+  engrave_chisel:
+    origin: book_shop
+    usage: "刻碑、刻版与修砚。"
+    price_anchor: cleaver
+    quest_refs: [escort_engrave_chisel]
+  salt_scale:
+    origin: salt_depot
+    usage: "称盐验私，盐贩与盐吏都用。"
+    price_anchor: abacus
+    quest_refs: [debt_hu_chen]
+  chaihu:
+    origin: herb_hills
+    usage: "退热疏肝的常用药材。"
+    price_anchor: plaster
+    quest_refs: [commission_herb_pick]
+  dried_ginger:
+    origin: herb_hills
+    usage: "驱寒止呕，配药与煮汤皆可。"
+    price_anchor: plaster
+    quest_refs: [procure_dried_ginger]
+  herb_salve:
+    origin: herb_hills
+    usage: "刀伤、烫伤外敷药膏。"
+    price_anchor: wound_powder
+    quest_refs: [procure_herb_salve]
+  cool_tea:
+    origin: river_market
+    usage: "清热解暑的凉茶，河市与戏台常卖。"
+    price_anchor: mugwort
+    quest_refs: [teach_dye_cool_tea]
+  bone_set_kit:
+    origin: herb_hills
+    usage: "接骨固定用的木夹与药带。"
+    price_anchor: wound_powder
+    quest_refs: [inquiry_bone_kit]
+  embroidered_pouch:
+    origin: dye_works
+    usage: "绣囊可装香药、钱物，是体面礼。"
+    price_anchor: silver_hairpin
+    quest_refs: [errand_dye_pouch]
+  clay_figure:
+    origin: pottery
+    usage: "镇宅陶俑，也可作戏台摆设。"
+    price_anchor: pearl_earring
+    quest_refs: [inquiry_clay_figure]
+  salt_lamp:
+    origin: salt_depot
+    usage: "盐灯耐点，夜巡与盐仓照明。"
+    price_anchor: pearl_earring
+    quest_refs: [inquiry_salt_lamp]
+  rare_herb_box:
+    origin: herb_hills
+    usage: "收存贵重药材的防潮药匣。"
+    price_anchor: jade_pendant
+    quest_refs: [inquiry_herb_box]
+  service_night_watch:
+    origin: night_watch
+    usage: "更楼夜巡服务，按夜计价。"
+    price_anchor: service_incense
+    quest_refs: [errand_night_watch_report]
