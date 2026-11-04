@@ -11,7 +11,9 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import os
+import re
 import stat
 import tarfile
 import zipfile
@@ -93,6 +95,18 @@ def arcname(rel: Path, top: str) -> str:
     return f"{top}/{rel.as_posix()}"
 
 
+README_VERSION_RE = re.compile(r"(对外试玩包（)([^）]+)(）)")
+
+
+def readme_bytes(version: str) -> bytes:
+    """按 --version 注入对外 README 的版本标识，避免每版手改漏掉。"""
+    text = (ROOT / "deploy" / "README.md").read_text(encoding="utf-8")
+    text, count = README_VERSION_RE.subn(rf"\g<1>{version}\g<3>", text, count=1)
+    if count != 1:
+        raise SystemExit("deploy/README.md 缺少版本标记「对外试玩包（…）」")
+    return text.encode("utf-8")
+
+
 def sha256(path: Path) -> str:
     h = hashlib.sha256()
     with path.open("rb") as fh:
@@ -101,7 +115,7 @@ def sha256(path: Path) -> str:
     return h.hexdigest()
 
 
-def write_tar(files: list[Path], target: Path, top: str) -> None:
+def write_tar(files: list[Path], target: Path, top: str, version: str) -> None:
     with tarfile.open(target, "w:gz", format=tarfile.PAX_FORMAT) as tf:
         for src in files:
             rel = src.relative_to(ROOT)
@@ -109,11 +123,13 @@ def write_tar(files: list[Path], target: Path, top: str) -> None:
             info.mtime = 1793721600  # 2026-11-04 00:00 UTC，固定时间戳便于比对
             if rel.as_posix() == "deploy/README.md":
                 info.name = f"{top}/README.md"
+                tf.addfile(info, io.BytesIO(readme_bytes(version)))
+                continue
             with src.open("rb") as fh:
                 tf.addfile(info, fh)
 
 
-def write_zip(files: list[Path], target: Path, top: str) -> None:
+def write_zip(files: list[Path], target: Path, top: str, version: str) -> None:
     with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
         for src in files:
             rel = src.relative_to(ROOT)
@@ -122,7 +138,8 @@ def write_zip(files: list[Path], target: Path, top: str) -> None:
             info = zipfile.ZipInfo(name, date_time=(2026, 11, 4, 0, 0, 0))
             info.external_attr = (stat.S_IFREG | (mode & 0o777)) << 16
             info.compress_type = zipfile.ZIP_DEFLATED
-            zf.writestr(info, src.read_bytes())
+            data = readme_bytes(version) if rel.as_posix() == "deploy/README.md" else src.read_bytes()
+            zf.writestr(info, data)
 
 
 def main() -> int:
@@ -146,13 +163,17 @@ def main() -> int:
     line_items = []
     for src in files:
         rel = arcname(src.relative_to(ROOT), top)
-        line_items.append(f"{sha256(src)}  {rel}")
+        if src.relative_to(ROOT).as_posix() == "deploy/README.md":
+            digest = hashlib.sha256(readme_bytes(args.version)).hexdigest()
+        else:
+            digest = sha256(src)
+        line_items.append(f"{digest}  {rel}")
     manifest.write_text("\n".join(line_items) + "\n", encoding="utf-8")
 
     tar_path = out_dir / f"xkx-world-sim-{tag}.tar.gz"
     zip_path = out_dir / f"xkx-world-sim-{tag}.zip"
-    write_tar(files, tar_path, top)
-    write_zip(files, zip_path, top)
+    write_tar(files, tar_path, top, args.version)
+    write_zip(files, zip_path, top, args.version)
 
     print(f"files: {len(files)}")
     print(f"tar.gz: {tar_path} ({tar_path.stat().st_size / 1024 / 1024:.2f} MiB)")
