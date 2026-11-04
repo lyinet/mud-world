@@ -465,6 +465,7 @@ STRATEGY_SYSTEM_PROMPT = (
     "(1) 目标只能从 goal_candidates 里选，最多 3 个；primary_goal_id 一个，secondary_goal_ids 至多两个。"
     "(2) 只要 active_goal 未关闭且仍在 goal_candidates 里，就优先把它放进计划（除非你明确决定改道）；"
     "若当前 active_goal 的 progress>=0.1，还必须把它放进 primary/secondary/preserve_goal_ids，否则计划作废。"
+    "urgent_* 目标不是计划目标，绝不允许出现在任何 id 字段里。"
     "(3) 若 goal_candidates 里仍有未完成的 build_shop/earn_money/advance_skill，"
     "type_quota 至少包含其中一类。"
     "(4) relation_targets 只能是 known_npcs 里的 id；不得引用已完成或已放弃的目标。"
@@ -530,6 +531,10 @@ def build_strategy_prompt(
     row = next((n for n in content.npcs if str(n.get("id")) == npc), {})
     cash = state.account_balance(wallet(npc)) if ent is not None else 0
     active = _brief_goal(state, npc)
+    # 紧急目标（urgent_*）不在 goal_candidates 内，若作为 active_goal 暴露会被
+    # 模型放进 preserve，导致整份计划因 unknown_goal 作废；这里直接不下发。
+    if str((active or {}).get("content_type") or "").startswith("urgent_"):
+        active = {}
     summary = {
         "npc": npc,
         "name": str(row.get("name") or npc),

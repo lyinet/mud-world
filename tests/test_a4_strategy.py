@@ -148,6 +148,28 @@ def test_urgent_does_not_abandon_planned_goal():
         assert book.counts["paused"] == 1
 
 
+def test_strategy_prompt_hides_urgent_active_goal():
+    """urgent 目标不得作为 active_goal 下发，避免模型把它放进 preserve 导致计划作废。"""
+    import json
+
+    from wsim.agent.prompt import build_strategy_prompt
+
+    content = _content()
+    state = _state()
+    urgent_id = f"urgent:{NPC}:urgent_money:0"
+    state.goals[urgent_id] = Goal(
+        id=urgent_id, npc=NPC, kind="wealth", target=40.0, progress=0.3,
+        status="active", content_goal_id="", content_type="urgent_money",
+    )
+    state.entities[NPC].goal_id = urgent_id
+
+    prompt = build_strategy_prompt(content, state, NPC, 0, 3)
+    summary = json.loads(prompt.user.split("当前状态：\n", 1)[1])
+    assert summary["active_goal"] == {}
+    assert urgent_id not in prompt.user
+    assert all(urgent_id != str(c.get("goal_id")) for c in summary["goal_candidates"])
+
+
 def test_fake_plan_is_deterministic_and_consumable():
     from wsim.agent.strategy_client import make_fake_strategy_transport
 
