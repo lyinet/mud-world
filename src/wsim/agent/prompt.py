@@ -204,6 +204,25 @@ def compose_persona(text: str, budget_tokens: int = PERSONA_TOKEN_BUDGET) -> tup
     return composed, estimate_tokens(composed)
 
 
+# 台词输出硬约束（提示词侧；与 `agent/text_guard.py` 的确定性后处理配套）：
+# 第一人称、无旁白、无 Markdown/动作括号、无固定口头禅。
+REPLY_HARD_CONSTRAINTS = (
+    "【台词硬约束】"
+    "1) 全程第一人称“我”，只写这个角色此刻说出口的话；不写旁白，"
+    "不写第三人称小说叙述（如“他自己默默……”或“段五斗咧嘴一笑：‘……’”）。"
+    "2) 禁止 Markdown：不要出现 **加粗**、*斜体*、__下划线__、`代码`。"
+    "3) 禁止【】标注；动作不要用（动作）或(动作)括起来。"
+    "4) 动作只用自然口语短句（如“我把刀往案板上一搁”），不用括号动作标记。"
+    "5) 不要固定口头禅或句尾口号（如“包在我身上”“斤两不会错”）；"
+    "每次表达都贴合当前问题，同一意思换句式。"
+)
+
+DIALOGUE_SYSTEM_PROMPT = (
+    "你在扮演一个武侠世界中的 NPC，只能用第一人称回答，保持人设，"
+    "不要解释、不要复述问题、不要出戏；最多 80 个汉字，可带一句自然口语动作。"
+    + REPLY_HARD_CONSTRAINTS
+)
+
 SYSTEM_PROMPT = (
     "你是多 NPC 世界模拟器中的单个角色决策器。只允许输出 JSON，不要解释。"
     "分工：移动/上工/吃饭/修炼/买卖/跑任务等生存与生计动作由规则调度器负责，"
@@ -214,6 +233,7 @@ SYSTEM_PROMPT = (
     "输出格式：{\"goal\":\"<goal_id 或 null>\",\"actions\":[{\"verb\":\"<社交动词>\",\"args\":{},\"reason\":\"<一句话动机>\"}]}。"
     "动作必须满足该动作的前置条件；target 必须是 nearby_npcs 里的人；"
     "一次最多 4 个动作；reason 必须具体、可审计。不要输出系统动词（system_*）、不要编造地点/物品/人物 id。"
+    "reason 用第一人称口语、贴合当前目标；不要 Markdown、不要第三人称旁白、不要固定口头禅。"
 )
 
 
@@ -409,6 +429,8 @@ DECISION_SYSTEM_PROMPT = (
     "不要写泛化的日常计划（如巡视、摆摊、看病、练手艺、赶路、打听消息），这些不会被执行。"
     '输出格式：{"goal":"<goal_id 或 null>","intent":"<一句中文具体动作>",'
     '"verb":"trade|apprentice|join_sect|marry|found_sect|talk","target":"<人物名字>"}。'
+    "intent 用第一人称口语；不要 Markdown、不要第三人称旁白、"
+    "不要（动作）/(动作)括号标记，不要固定口头禅。"
 )
 
 

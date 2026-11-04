@@ -40,8 +40,8 @@ GOLDEN = {
 # 但 event/state hash 必然漂移。此基线锁定该开启路径的确定性（FakeLLMServer seed=7）。
 DIALOGUE_GOLDEN = {
     "events_total": 824,
-    "state_final": "a52d5a482f5708298fb3be5c863df8a777428716e67cd811644b674d16565b96",
-    "event_final": "86946e7c66012dcd2c51ed65f1004752eae165742d050431e2d5fb3b80e1a6a0",
+    "state_final": "b980558ee70f752127185a93fc52eece0593f0daa23598ba6a2bcf625253987c",
+    "event_final": "c04895352f525d7ecaf6aa4175f987aacea7e0d600fd3a7fd03d31513f7dbb8c",
     "dialogue_calls": 65,
 }
 
