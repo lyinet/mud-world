@@ -1,145 +1,163 @@
-# 自提案目标：独立额度 + 活指标（stub，零模型调用）
+# 自提案路径最后一轮：阈值 0.85 + 机器 rubric（stub，零模型调用）
 
-**判断一：独立额度把 K1 拉回护栏内。** 纯规则臂 62/91=68.13%，自提案臂 62/91=68.13%，**差 0.00pp**（护栏要求 ≥63.13%，PASS）；自提案动作**占用既有额度 0 次**。
+**判断：这条线不值得继续投钱，可以冻结。** 三条数字支撑：
 
-**判断二：NPC 有了“自己的打算”的雏形，但还谈不上稳定。** 自提案完成率 SGR 39.29%（56 个激活里完成 22 个），进入后 5 天明显衰减（前 5 天 48.15% → 后 5 天 31.03%，到期 8 个）；类型只覆盖 2/6，且 68% 集中在最容易的 `advance_skill`。SGC 86.4% 看着高，但它主要是“固定 3 天发一条提案”的节奏产物，不能当“主动延续意图”的证据。
+1. **护栏仍成立**：规则臂 K1 62/91=68.13%，自提案臂 62/91=68.13%，差 **0.00pp**；自额度动作记到内容目标 **0 次**。
+2. **收紧阈值没有把 SGR 拉起来**：target/capacity 上限从 0.90 降到 0.85 后，基线难度均值 0.8228→0.7753、中位 0.90→0.84，但成熟 SGR 只从 52.38% 到 **53.33%**（+0.95pp），raw SGR 反而 39.29%→38.71%（−0.58pp）。归因是执行，不是目标难度：9 个到期目标平均排了 **6.33** 次自额度动作（够用），但只有 **4.0** 次真记到目标，平均兑现 0.52——动作排上了却没记到账。
+3. **类型覆盖仍只有 2/6**，且另外 4 类不是校验器误拒：探针用创世状态直接构造 6 类提案，**6 类在 0.8 capacity 下全部放行**；零提案的原因是 stub 只写了两条分支。受 stub 覆盖面限制，STC 结论不能推广到真实模型。
 
-## 1. 配额分开（修 bug，不改架构）
+因此：机制层（独立额度、可行性校验）已经证明可用；剩下的问题（提案类型多样性、拟人性、执行与目标匹配）都需要真实模型输出，而当前 stub 证据不足以申请预算。**本轮后冻结，不再提交新机制、不再申请真实模型预算，除非项目负责人明确解除。**
 
-### 改动
-
-自目标从“主目标”降为**次级目标**：
-
-| 位置 | 改动 | 原因 |
-|---|---|---|
-| `world/effects.py` `goal_create` | 新增 `secondary` 分支：建目标但**不写** `entity.goal_id` | 原来 `goal_create` 无条件接管行动目标，这是 K1 全崩的真正根因（不是动作额度） |
-| `actions/system.py` `system_goal` | 透传 `secondary`；已存在目标时不发 `set_field` | 保证次级目标永远不顶掉内容主线 |
-| `sim/intent.py` `Planner.plan` | 在内容目标的 `depth` 个动作**之后**，每天额外排 1 个自目标动作；该动作的 intent 带 `_goal_id` | 自目标有独立额度；额度用满只是“不做”，不会回流挤占内容目标 |
-| `sim/intent.py` `Planner` | 自额度动作使用**独立的 memo** | `_goal_step` 会在 memo 里记 opened/joined/apprentice/married；共享 memo 会压掉次日的**内容**动作 |
-| `actions/common.py` `goal_progress` | 新增 `goal_id` 参数：显式指定时**只认该目标**，类型不匹配直接返回空，绝不回落到活跃目标 | 结构上保证自目标进度不会记账到内容目标 |
-| `actions/{basic,commerce,business,social,escort}.py` | 13 个 `goal_progress` 调用点透传 `explicit_goal_id(intent)` | 让上行保障真正生效 |
-| `sim/self_goal.py` | `SELF_GOAL_ACTIONS_PER_DAY=1`；校验器 `action_capacity = days × 1`；`mastery per_action=0.0025×2`、`wealth per_action=max(单件净售价, 5)` | 额度模型与独立额度动作的真实产出对齐，否则“基线难度”是假的 |
-| `sim/self_goal.py` `can_activate` | 只保留“同 NPC 同时只有一个活跃自目标” | 自目标不再接管主目标，旧豁免条件不再需要 |
-
-### 三条数字
+## 1. 护栏：K1 仍在范围内
 
 | 指标 | 数值 |
 |---|---|
 | 纯规则臂 K1（in_scope） | **62/91 = 68.13%** |
-| 自提案臂 K1（in_scope） | **62/91 = 68.13%**（created_only 62/78 = 79.49%，规则臂 70/88 = 79.49%） |
-| 自提案占用既有额度的次数 | **0** |
+| 自提案臂 K1（in_scope） | **62/91 = 68.13%** |
+| 差 | **0.00pp**（护栏线 63.13%，PASS） |
+| 自提案动作占用既有额度 | **0 次** |
 
-“占用 0 次”的复算口径（两条独立证据）：
+占用口径（两条独立证据）：
 
-- 140 个带 `_goal_id` 的自额度动作里，`goal_progress` 落到内容目标的次数 = **0**（`reports/self-goal-metrics.json` → `quota.self_actions_credited_to_content`）。
-- 内容目标进度事件数没有下降：规则臂 374 条、自提案臂 417 条；每 NPC·天 1.17 → 1.30。
+- 147 个自额度动作，`goal_progress` 记到内容目标 **0** 次、记到自目标 **110** 次（`reports/self-goal-metrics.json` → `quota`）。
+- 内容目标进度事件没有下降：规则臂 374 条、自提案臂 **425** 条；每 NPC·天 1.1687 → 1.3281。
 
-自额度动作构成：`cultivate` 103 次（其中 62 次真记到自目标）、`sell` 37 次（35 次记到自目标）；41 次 `cultivate` 是“自目标要钱但没货、动作回落到练手艺”造成的空转，记不到 wealth，属于动作选择问题，不影响配额隔离。
+本报告不把“K1 提升”当卖点；K1 在这里只回答“自提案有没有拖累既有目标”。
 
-## 2. 换度量：量“活的”
+## 2. SGR：没有回升，归因是执行
 
-全部可从 `events.jsonl` + `self_goal_proposals.jsonl` 复算（`tools/self_goal_metrics.py`）。
+### 2.1 两种分母一起报
 
-### SGR 自主完成率
+10 天跑完后 3 天内的新目标截止日还没到，raw SGR 会把它们算成“未完成”。所以同时给 raw 与 mature（只算截止日已过的激活）：
 
-| 口径 | 数值 |
-|---|---|
-| 激活 56 / 完成 22 | **SGR = 39.29%** |
-| 到期未完成 | 8 |
-| 校验器预筛后的基线难度 `target/capacity`（n=56） | 均值 **0.823**，中位 **0.90**，区间 0.154~0.928 |
+| 口径 | 上一轮 | 本轮 | 变化 |
+|---|---|---|---|
+| 激活 / 完成 / 到期 | 56 / 22 / 8 | 62 / 24 / 9 | — |
+| raw SGR（分母=全部激活） | 39.29% | **38.71%** | −0.58pp |
+| mature SGR（分母=截止日已过） | 52.38%（22/42） | **53.33%**（24/45） | **+0.95pp** |
 
-基线难度说明：多数提案把目标定在“独立额度的 90%”，属于**贴着额度上限**的难度；所以 SGR 不是“目标太松白送”，而是“定了要用满额度的活，实际只有 4 成兑现”。
+mature 分母里仍有 12 个“截止日已过但日志未记 expired/completed”的悬置目标（两轮都是 12 个，口径一致）。所以 mature SGR 也只能说明“大致五成兑现”，不是精确值。
 
-**SGR 高只证明提案与执行一致，不证明提案质量。** 这里是反过来的证据：SGR 只有 39%，说明执行端（动作类型选错、窗口到期）没跟上提案。
+### 2.2 基线难度：目标确实变容易了
 
-分段稳定性（10 天）：
+| 分布 | 上一轮（n=56） | 本轮（n=62） |
+|---|---|---|
+| 均值 | 0.8228 | **0.7753** |
+| 中位 | 0.90 | **0.84** |
+| 区间 | 0.1544~0.9278 | 0.1544~0.84 |
+| p10 / p90 | 0.428 / 0.90 | 0.428 / 0.84 |
+| ratio > 0.85 的激活数 | 49 | **0** |
+| 所需动作数中位 | 3 | 3 |
 
-| 区段 | 激活 | 完成 | 到期 | SGR | 类型分布 |
-|---|---|---|---|---|---|
-| 前 5 天 | 27 | 13 | 0 | 48.15% | advance_skill 18 / earn_money 9 |
-| 后 5 天 | 29 | 9 | 8 | 31.03% | advance_skill 20 / earn_money 9 |
+阈值 `target/capacity ≤ 0.85` 生效：上一轮 49/56 个激活在 0.9 附近，本轮全部压到 0.84 以下；但**所需动作数中位仍是 3**，说明“目标变容易”并没有把任务从 3 次动作降到 2 次。
 
-后段衰减主要来自“到期 8 个”：3 天窗口内没排够动作就过期，不是被放弃。
+### 2.3 归因：动作排上了，但没记到目标
 
-### STC 类型覆盖
+mature 目标拆成“完成”和“到期”两组：
+
+| 组 | n | 平均排班动作 | 平均记到目标动作 | 平均兑现进度 |
+|---|---|---|---|---|
+| 完成 | 24 | 3.96 | 3.46 | 1.00 |
+| 到期 | 9 | **6.33** | **4.0** | **0.52** |
+
+到期目标在 3 天窗口里平均排了 6.33 次自额度动作（比需要的 3 次还多），但只有 4.0 次真正产生 `goal_progress`，平均只兑现 52%。**这不是“目标定得太高”**，而是动作选错/记不到账：典型是 wealth 目标在 NPC 没有可卖库存时回落到 `cultivate`，而 `cultivate` 只记 mastery，不会记 wealth（显式 `goal_id` + 类型守卫把它正确地挡掉了，于是这一格就是空转）。
+
+结论：**SGR 没回升，不能归因于阈值；阈值只改变了难度分布，没有改变执行结果。** 真正的瓶颈是 stub 提案与可执行动作不匹配（尤其 wealth 无库存），下一版要修的是“提案前检查可执行路径”，不是继续压 ratio。
+
+## 3. STC：仍是 2/6，限制在 stub 覆盖面
 
 | 类型 | 激活数 | 占比 |
 |---|---|---|
-| `advance_skill` | 38 | 67.9% |
-| `earn_money` | 18 | 32.1% |
+| `advance_skill` | 38 | 61.29% |
+| `earn_money` | 24 | 38.71% |
 
-**覆盖 2/6**（`build_relation / build_shop / join_sect / escort` 一条没提）。stub 的选题规则就是“没雇主练手艺、有雇主攒钱”，所以这不是模型偏好，而是 stub 写死的分布；只能说明指标能区分类型，不能说明模型只会挑软柿子——要那结论得等真实模型。
+**覆盖 2/6**：`build_relation / build_shop / join_sect / escort` 零提案。提案分布同样是 `advance_skill` 50 条、`earn_money` 33 条。
 
-### SGC 目标链
+“是不是校验器把 4 类误拒了？”——不是。用创世状态直接构造 6 类提案（target = min(内容目标值, 0.8×capacity)）：
+
+| 类型 | per_action | capacity | 探针 target | ratio | 结果 |
+|---|---|---|---|---|---|
+| advance_skill | 0.005 | 0.015 | 0.012 | 0.80 | accepted |
+| earn_money | 306.52 | 919.56 | 142.0 | 0.154 | accepted |
+| build_relation | 3.0 | 9.0 | 7.2 | 0.80 | accepted |
+| build_shop | 1.0 | 3.0 | 1.0 | 0.333 | accepted |
+| join_sect | 1.0 | 3.0 | 1.0 | 0.333 | accepted |
+| escort | 1.0 | 3.0 | 2.4 | 0.80 | accepted |
+
+**结论：4 类从未被提出是 stub 侧没覆盖**（`_stub_proposal` 只有 advance_skill / earn_money 两条分支），不是校验器误拒。**该结论受 stub 覆盖面限制，不能推广**：不能据此说“模型只会挑容易的”，也不能说“引擎不支持这 4 类”。
+
+顺带修了一个真实误拒：押镖动词会自建镖单，旧校验器却要求“已存在开放镖单”，属于把可达提案误拒；现在改为校验“角色允许 + 镖局资金 ≥ base_fee”，探针里的 escort 因此放行。bond 的 3/次是保守下界（实际 trade=3、apprentice=5、marry=10），会把 (9,11] 的可达目标误拒，但 stub 不提 bond，本轮无影响；未放宽，因为放宽会引入不可保证的容量。
+
+## 4. SGC：不许再拿 stub 节奏当证据
 
 | 指标 | 数值 |
 |---|---|
-| 完成 22 个后 3 天内又提一个 | 19 → **86.4%** |
-| 其中“相关”（同类型或顺承类型） | 19 → **86.4%** |
-| 没接上的 | 3 |
+| 完成 24 个后 3 天内又提一个 | 22 → **91.67%** |
+| 其中相关（同类型/顺承） | 22 → 91.67% |
 
-**这条不能当“它有自己的打算”的证据。** stub 固定每 3 天发一条提案，而窗口也是 3 天，所以“完成后 3 天内又有一条”几乎必然成立；19 条全部同类型，是因为 stub 一直选 `advance_skill`。这个 86.4% 是**发言节奏**，不是**意图延续**。要让它有意义，下一版得把“提案触发”改成“完成后才触发”，并允许模型自己选类型。
+这个 91.67% 比上一轮的 86.36% 更高，但**仍然不能当“它有自己的打算”的证据**：stub 每 3 天固定发一条提案，SGC 窗口也是 3 天，比例高只是发言节奏。上一轮已经明确这一点，本轮继续不引用它作意图证据。要让 SGC 有意义，必须改成“完成后才触发下一条”，这属于新机制，不在本轮。
 
-## 3. 提案理由 rubric（先验 rubric，不做盲评）
+## 5. Rubric：机器可判定，分歧 0/60
 
-4 维、各 1~5 分：**处境贴合 / 目标具体可执行 / 与目标的因果链 / 是否像本人会说**。
-从 87 条提案里分层抽 20 条（14 条通过 + 6 条被拒），两个独立打分者用同一 rubric 打分：
+4 维、各 1~5 分；其中 3 维改成机器规则，第 4 维只留“待评”：
 
-- 打分者 A：严格复算（用 `capacity_units`、`preconditions`、`purpose` 里的数字对账）；
-- 打分者 B：读者直觉（只看文本是否成立，不复算额度）。
-
-| 维度 | A 均值 | B 均值 | 分歧条数 | 最大分差 |
+| 维度 | 机器规则 | A 均值 | B 均值 | 分歧 |
 |---|---|---|---|---|
-| 处境贴合 | 4.20 | 5.00 | 8/20 | 2 |
-| 目标具体可执行 | 3.70 | 5.00 | 7/20 | 4 |
-| 与目标的因果链 | 2.80 | 4.40 | 20/20 | 2 |
-| 是否像本人会说 | 3.00 | 5.00 | 20/20 | 2 |
+| 处境贴合 | 5=objects 非空；4=无 objects 但有 preconditions；1=两者都空 | 5.00 | 5.00 | 0/20 |
+| 目标具体可执行 | 1=校验器拒绝（任何原因）；5=放行且 ratio≤0.85；3=放行且 ratio∈(0.85,1.0]（仅历史样本） | 3.80 | 3.80 | 0/20 |
+| 与目标的因果链 | 5=purpose 含「现状数值 → 目标数值」且差值等于 target（容差 max(5e-4, 0.5%)）；否则 2 | 4.70 | 4.70 | 0/20 |
+| 是否像本人会说 | **待评**：无真实模型输出前不评分 | — | — | 不参与 |
 
-### 分歧项与修订
+- 样本：83 条提案中分层抽 20 条（14 通过 + 6 拒绝；本轮 competent 臂 0 拒绝，拒绝样例取自 scenarios 臂）。
+- **总体分歧 0/60 = 0.0%**，低于 15% 目标。
+- 两个打分者是同一条规格的两套独立实现：A 直接读 `capacity_units`，B 从 `equation` 字符串解析 capacity；因果链 A 用单条正则，B 先切箭头再取两侧数字。
+- 0 分歧只能证明 **rubric 可被不同实现一致执行**，不是两次主观判断的一致性证据；`处境贴合` 在 stub 语料上饱和（20/20 都是 5），只能证明规则可执行，不能证明区分力。
+- 历史分歧项的处理：`攒142文件盘缠`（无箭头）两边都 2；`把0.440的手艺再精进到0.014`（无箭头）两边都 2，且 ratio 0.90 在旧阈值下放行记 3；新格式 `手艺 0.4400 → 0.4526` 两边都 5；被拒的“超预算”样例两边都 1。
+- **拟人性结论：不做。** 20/20 条 `是否像本人会说` 都是“待评”；stub 文本是模板，对该维无判别力。
 
-1. **`与目标的因果链` 20/20 全分歧。** A 给 2 分（`攒142文盘缠` 只有一个数，没有“现状”），B 给 4 分（文本非空即算讲通）。
-   - 修订：这一维必须写成“**现状数值 → 结果数值，且差值等于 target**”，明确“只有一个数值记 2 分、没有数值记 1 分”，并附一条正例（`把0.440的手艺再精进到0.4535`）和一条反例（`攒142文盘缠`）。
-2. **`目标具体可执行` 最大分差 4。** 6 条被拒提案（如 `target=142 / capacity=43.65`）A 给 1 分，B 给 5 分——B 没有额度概念。
-   - 修订：该维**强制引用校验器算式**（`target/capacity`），不允许凭感觉；并且被拒提案也必须能被评分（现在 B 的规则对拒案完全失效）。
-3. **`处境贴合` 8/20 分歧。** `advance_skill` 的 `preconditions` 本来就合法为空，A 却因此扣到 3 分。
-   - 修订：增加“该类型本身不需要前置条件时，空 preconditions 不扣分”，把“无依据”和“不需要依据”分开。
-4. **`是否像本人会说` 20/20 全分歧且 B 全部满分。** 20 条 purpose 都是 9~13 字的同一模板，B 的“短句=像话”规则直接饱和。
-   - 修订：这一维必须先给**人物锚点**（该 NPC 的语气词/称呼/忌讳），否则不可评；同时注明**模板文本对该维无判别力**。
+## 6. 验收
 
-**不做拟人性结论。** 以上只验证“rubric 可被两个打分者独立执行、且能定位规则漏洞”；真实模型的拟人性盲评等预算批准后再做。
-
-## 4. 验收与纪律
-
-- **确定性**：同一配置两次重跑，`state_final / event_final / events.jsonl sha256 / trace sha256` 全部一致。
-  - state_final `ce14b58a…`
-  - event_final `3de0710d…`
-  - events.jsonl `bc8ec623…`
-  - trace `9d266e36…`
-- **全量 pytest**：收集 382，通过 380，失败 2。
-  - `tests/test_p3e_golden.py::test_p4_milestone_deterministic_2d_fake_run_is_golden`
-  - `tests/test_p3e_golden.py::test_p4_milestone_dialogue_enabled_fake_run_is_golden`
-  - 两条都是 P4 会话新增 `system_milestone/system_maintenance` 日界动作导致的 golden 基线漂移（失败信息自身写明 796→800 事件），**不是本次改动引入**，按纪律不修别人的文件。
-  - `test_w1_reconnect` 本轮已绿（W1 会话已修）。
-- **K1 只作护栏**：本报告不把“K1 提升”当卖点；K1 的结论是“没被自提案拖累”。
+- **确定性**：competent_a / competent_b 两次重跑一致。
+  - state_final `ba7813c6…`
+  - event_final `189ebc86…`
+  - events.jsonl `76de2348…`
+  - trace `b6d69a6d…`
+- **全量 pytest**：收集 **411**。
+  - 本轮中途的稳定测量：**400 passed / 10 skipped / 1 collection error**。
+  - 收尾时并行 W1/API 会话改动导致 13 个模块无法收集（统一是 `wsim.actions.player.PRESENCE_ACTIVE_SECONDS` 缺失）；用 `--continue-on-collection-errors` 复跑：**350 passed / 10 skipped / 1 failed / 13 errors**，14 个问题全部是同一个并行导入错误，**不是本轮改动**。
+  - `tests/test_p3e_golden.py` 本轮已绿（P4 基线由另一会话修好）。
+  - 本轮自有 `tests/test_self_goal.py` **12/12 通过**。
 - **零模型调用**：全部 stub，无 API 调用、无费用。
-- 未改动 `api/**`、`ui/player/**`、`content/**`、`sim/scheduler.py`、`sim/headless.py`。
+- 未改动 `api/**`、`ui/player/**`、`content/**`、`sim/scheduler.py`、`sim/headless.py`，也未动 `tests/test_p3e_golden.py`。
 
-## 5. 阶段 0/1 复核（本次重跑）
+## 7. 本轮改动
 
-| 项 | 数值 |
-|---|---|
-| 提案数 / 放行 / 通过率 | 87 / 75 / **86.21%** |
-| 提案级拒绝 | 12，全部 `target_exceeds_capacity`，均带可复算 `equation` |
-| 激活 / 完成 / 到期 | 56 / 22 / 8 |
-| 激活硬门拒绝 | 35，全部 `initial_goal_protected` |
-| 复核缺算式的拒绝 | 0（`feasibility_rejects_without_equation=0`） |
-| 场景臂（覆盖非法/超预算/不可达/初始保护/活跃自目标） | 通过，见 `reports/self-goal-stage0.json` `scenarios` |
+| 文件 | 改了什么 | 为什么 |
+|---|---|---|
+| `src/wsim/sim/self_goal.py` | 新增 `TARGET_CAPACITY_RATIO=0.85` 与 `target_exceeds_ratio` 拒绝（含算式）；stub 按 `STUB_TARGET_RATIO=0.84` 生成；stub 的 wealth per 改用校验器同口径“单件净售价/ trade 兜底”；purpose 改为 `现状 → 目标`；escort 改为校验“角色+镖局资金” | 阈值收紧；修 stub 用库存件数乘单价导致超额度提案；让因果链可机器判定；修押镖误拒 |
+| `tests/test_self_goal.py` | 新增阈值拒绝、purpose 机器可校验、无开放镖单仍可押镖 3 项 | 锁住本轮行为 |
+| `tools/self_goal_metrics.py` | 新增 mature SGR、难度分布、执行归因、6 类探针、`--prev-self` 对照 | 支撑“回升归因”与“误拒 vs 未覆盖” |
+| `tools/self_goal_rubric.py` | 重写为机器 rubric；拟人维只留“待评”；双实现打分 + 分歧率 | rubric 可操作化 |
+| `reports/self-goal-{stage0,metrics,rubric}.json` | 本轮重跑产物 | 复算数据源 |
 
-## 6. 复算入口
+## 8. 复算入口
 
 ```bash
 PYTHONPATH=src .venv/bin/python tools/self_goal_feasibility.py --out reports/self-goal-stage0.json
-PYTHONPATH=src .venv/bin/python tools/self_goal_metrics.py --out reports/self-goal-metrics.json
-PYTHONPATH=src .venv/bin/python tools/self_goal_rubric.py --out reports/self-goal-rubric.json
-PYTHONPATH=src .venv/bin/python -m pytest -q
+PYTHONPATH=src .venv/bin/python tools/self_goal_metrics.py \
+  --rule runs/sg-rule-10d-s42 --self runs/sg-competent-10d-s42-a \
+  --prev-self <上一轮 run 目录> --probe-types --out reports/self-goal-metrics.json
+PYTHONPATH=src .venv/bin/python tools/self_goal_rubric.py \
+  --trace runs/sg-competent-10d-s42-a/self_goal_proposals.jsonl \
+  --extra-trace runs/sg-scenarios-10d-s42/self_goal_proposals.jsonl \
+  --out reports/self-goal-rubric.json
+PYTHONPATH=src .venv/bin/pytest -o addopts="" -q
 ```
+
+## 9. 冻结说明
+
+本轮是这条路径的最后一轮调优。之后：
+
+- 不提交新机制；
+- 不申请真实模型预算；
+- 除非项目负责人明确解除，SGR/STC/SGC 与 rubric 的结果保持为“stub 可行性证据”，不作拟人性/意图结论。

@@ -16,10 +16,12 @@ from typing import Any
 
 from ..actions.common import (
     employer_of,
+    escort_business,
     goal_kind,
     goal_target,
     max_skill,
     organization_at,
+    role_allowed,
     sell_price,
     sellable_items,
     treasury_guard_active,
@@ -48,6 +50,10 @@ SHOP_STALL_COST = 300
 # DEPTH_GOAL_ACTIONS 名额。校验器的 action_capacity 必须按这个额度算。
 SELF_GOAL_ACTIONS_PER_DAY = 1
 TRADE_MONEY_PER_ACTION = 5.0  # `_goal_step` 的 trade 兜底：money_delta=5
+# 可行性阈值：target/capacity 超过这个比例直接拒绝，给执行留 15% 余量。
+TARGET_CAPACITY_RATIO = 0.85
+# stub 按阈值上限生成目标；0.84 是给 4 位小数舍入留出的安全带。
+STUB_TARGET_RATIO = 0.84
 
 
 def _is_int(v: Any) -> bool:
@@ -422,17 +428,40 @@ class FeasibilityValidator:
             per = 1.0
             capacity = float(action_capacity)
         elif kind == "escort":
-            routes = [
-                q
-                for q in state.quests.values()
-                if str(getattr(q, "verb", "")) == "escort"
-                and str(getattr(q, "status", "")) in ("open", "accepted")
-            ]
+            # 押镖动词会自己创建镖单；这里不该要求“已存在开放镖单”，
+            # 否则会把可达提案误拒。改为校验 agent 能走通的真实前置条件：
+            # 角色允许、所在/可达镖局有足够现钱付 base_fee。
+            agency = escort_business(state, ent.location)
+            fee = int((self.content.economy.get("escort") or {}).get("base_fee", 180))
+            allowed = role_allowed(self.content, "escort", ent.role)
+            funded = agency is not None and state.account_balance(agency.cash_account) >= fee
             checks.append(
-                _check("escort_route", bool(routes), len(routes), ">0", f"open_escort_quests={len(routes)}")
+                _check(
+                    "escort_role",
+                    allowed,
+                    ent.role,
+                    "escort_role",
+                    f"role={ent.role} allowed={allowed}",
+                )
             )
-            if not routes:
-                return reject("escort_route_absent", "no open escort quest")
+            checks.append(
+                _check(
+                    "escort_agency",
+                    funded,
+                    getattr(agency, "id", ""),
+                    f">= fee {fee}",
+                    f"agency={getattr(agency, 'id', 'none')}, balance="
+                    f"{state.account_balance(agency.cash_account) if agency else 0}, fee={fee}",
+                )
+            )
+            if not allowed:
+                return reject("escort_role_not_allowed", f"role={ent.role}")
+            if not funded:
+                return reject(
+                    "escort_agency_unavailable",
+                    f"agency={getattr(agency, 'id', 'none')} balance="
+                    f"{state.account_balance(agency.cash_account) if agency else 0} < fee={fee}",
+                )
             per = 1.0
             capacity = float(action_capacity)
         else:
@@ -451,6 +480,24 @@ class FeasibilityValidator:
             return reject(
                 "target_exceeds_capacity",
                 f"capacity={action_capacity}×{per:.4f}={capacity:.4f} < target={proposal.target:.4f}",
+                per,
+                capacity,
+            )
+        ratio = (proposal.target / capacity) if capacity > 0 else 0.0
+        checks.append(
+            _check(
+                "target_ratio",
+                ratio <= TARGET_CAPACITY_RATIO + 1e-9,
+                round(ratio, 4),
+                TARGET_CAPACITY_RATIO,
+                f"target/capacity={proposal.target:.4f}/{capacity:.4f}={ratio:.4f} <= {TARGET_CAPACITY_RATIO:.2f}",
+            )
+        )
+        if ratio > TARGET_CAPACITY_RATIO + 1e-9:
+            return reject(
+                "target_exceeds_ratio",
+                f"target={proposal.target:.4f} > {TARGET_CAPACITY_RATIO:.2f}×capacity="
+                f"{TARGET_CAPACITY_RATIO * capacity:.4f}",
                 per,
                 capacity,
             )
@@ -569,13 +616,8 @@ class SelfGoalLedger:
         return float(wage) * (1.0 - float(taxes.get("income", 0.0)))
 
     def _best_sell(self, state: WorldState, npc: str) -> float:
-        ent = state.entities[npc]
-        best = 0.0
-        for item in sellable_items(self.content, ent):
-            qty = int(ent.inventory.get(item, 0))
-            if qty > 0:
-                best = max(best, float(sell_price(self.content, item, state) * qty))
-        return best
+        """与校验器同口径：一次 sell 只卖 1 件，且扣交易税。"""
+        return self.validator._best_sell_revenue(state, npc)
 
     def _stub_proposal(
         self, state: WorldState, npc: str, tick: int, tier: str, index: int, cycle: int
@@ -588,20 +630,21 @@ class SelfGoalLedger:
         if use_mastery:
             ctype = "advance_skill"
             per = MASTERY_PER_ACTION
-            target = min(float(goal_target(self.content, "mastery")), 0.9 * actions * per)
+            target = min(float(goal_target(self.content, "mastery")), STUB_TARGET_RATIO * actions * per)
             pre = []
+            cur = round(float(max_skill(ent)), 4)
+            # 机器可判定的因果链：现状数值 → 目标数值，差值必须等于 target。
+            purpose = f"手艺 {cur:.4f} → {round(cur + float(target), 4):.4f}"
         else:
             ctype = "earn_money"
+            # 与校验器同口径：单件净售价 / trade 兜底，不能用库存件数乘单价。
             per = max(TRADE_MONEY_PER_ACTION, self._best_sell(state, npc))
-            target = min(float(goal_target(self.content, "wealth")), 0.9 * actions * per)
+            target = min(float(goal_target(self.content, "wealth")), STUB_TARGET_RATIO * actions * per)
             pre = ["has_employer"] if has_employer else []
+            cur_money = float(state.account_balance(wallet(ent.id)))
+            purpose = f"盘缠 {cur_money:.2f} → {round(cur_money + float(target), 2):.2f}"
         expected_actions = actions
         expected_money = 0
-        purpose = (
-            f"把{max_skill(ent):.3f}的手艺再精进到{target:.3f}"
-            if use_mastery
-            else f"攒{target:.0f}文件盘缠"
-        )
 
         if self.mode == "scenarios":
             cls = (index + cycle) % 3

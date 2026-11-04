@@ -16,16 +16,16 @@
   "deterministic": true,
   "hashes": {
     "competent_a": {
-      "event_final": "3de0710d3da7fafb8554bf1de175d99a92e434cc239604e4907d762d09aa1153",
-      "events_jsonl_sha256": "bc8ec6231959c549d42412894ad14b10d4dc4ce9eb5b59f6438650637f5b84bd",
-      "state_final": "ce14b58a5885d0452a464f57c4fcaf846d2b93888d1c7a0737f54a85104fe223",
-      "trace_sha256": "9d266e365d225ce62cb2e76aab7bc8fdee0f37a258881f74ecfc1e4a1cddb42f"
+      "event_final": "189ebc867a2ed0c052eb70154b8ba03f53c8a07822a56af1b7d21de48a4a476a",
+      "events_jsonl_sha256": "76de23489406023cae1acdb9ab72330435350ba49d46ff814d814ef3267587d8",
+      "state_final": "ba7813c6d8f22422feee6397713496ffa6707d359ac596cc8a22073ef10bd871",
+      "trace_sha256": "b6d69a6df2c78e686c22d1733cba698bb063094a415a6e36859f9e67f8559995"
     },
     "competent_b": {
-      "event_final": "3de0710d3da7fafb8554bf1de175d99a92e434cc239604e4907d762d09aa1153",
-      "events_jsonl_sha256": "bc8ec6231959c549d42412894ad14b10d4dc4ce9eb5b59f6438650637f5b84bd",
-      "state_final": "ce14b58a5885d0452a464f57c4fcaf846d2b93888d1c7a0737f54a85104fe223",
-      "trace_sha256": "9d266e365d225ce62cb2e76aab7bc8fdee0f37a258881f74ecfc1e4a1cddb42f"
+      "event_final": "189ebc867a2ed0c052eb70154b8ba03f53c8a07822a56af1b7d21de48a4a476a",
+      "events_jsonl_sha256": "76de23489406023cae1acdb9ab72330435350ba49d46ff814d814ef3267587d8",
+      "state_final": "ba7813c6d8f22422feee6397713496ffa6707d359ac596cc8a22073ef10bd871",
+      "trace_sha256": "b6d69a6df2c78e686c22d1733cba698bb063094a415a6e36859f9e67f8559995"
     },
     "rule": {
       "event_final": "11830acc8d667accece7424834151f1c926cd41dcb2b61cba1f19f0727cc2e96",
@@ -34,10 +34,10 @@
       "trace_sha256": ""
     },
     "scenarios": {
-      "event_final": "ef665933b132e166733435241e889216a9e04a5a987d8b38b65848f8104edc20",
-      "events_jsonl_sha256": "9c295d0dd69a6926d80424436d86115dad745d211e18136776c6d2f5d5194c06",
-      "state_final": "a39ea6e9a556a44dce646f18a594320e4a0b3a4d44e4a85fdbd422ac3dbe64c3",
-      "trace_sha256": "76c028494c21d314bc7bdcb2de43d97504c005abe25362491a10a93926b0c802"
+      "event_final": "12fe9d5da0b37f2dcdbd328b32465c2eb7daa72f2f2e1839d7fb81e4383d2474",
+      "events_jsonl_sha256": "ca04b812fe9e7133d15e9611d37a88f2bc888de8aa6965a1a09e4b04b4b20f14",
+      "state_final": "468a52813bab7da4e155798b2648a3a3715afbf0c6fcc48979b6ced5d56f08b7",
+      "trace_sha256": "b8076adc04ec79fe179eadeb318da166881e81e10f5463ba9bc974862e3cccec"
     }
   },
   "k1": {
@@ -64,39 +64,39 @@
     "scenarios": "/Users/lyinet/projects/XKX/world-sim/runs/sg-scenarios-10d-s42"
   },
   "stage0": {
-    "accepted": 75,
+    "accepted": 83,
     "activation_reasons": {
-      "initial_goal_protected": 35
+      "initial_goal_protected": 38,
+      "target_exceeds_capacity": 1
     },
-    "activations": 56,
-    "completions": 22,
+    "activations": 62,
+    "completions": 24,
     "feasibility_rejects_without_equation": 0,
-    "goal_expired": 8,
-    "pass_rate": 0.8620689655172413,
+    "goal_expired": 9,
+    "pass_rate": 1.0,
     "pending_expired": 0,
-    "proposal_reasons": {
-      "target_exceeds_capacity": 12
-    },
-    "proposals": 87,
-    "rejected": 12
+    "proposal_reasons": {},
+    "proposals": 83,
+    "rejected": 0
   },
   "stage1": {
-    "accepted": 34,
+    "accepted": 41,
     "activation_reasons": {
-      "initial_goal_protected": 12,
-      "self_goal_active": 6
+      "initial_goal_protected": 14,
+      "self_goal_active": 8,
+      "target_exceeds_capacity": 1
     },
-    "activations": 23,
-    "completions": 8,
+    "activations": 27,
+    "completions": 10,
     "feasibility_rejects_without_equation": 0,
-    "goal_expired": 3,
-    "pass_rate": 0.3269230769230769,
+    "goal_expired": 5,
+    "pass_rate": 0.39805825242718446,
     "pending_expired": 1,
     "proposal_reasons": {
-      "budget_actions_exceeded": 27,
-      "target_exceeds_capacity": 43
+      "budget_actions_exceeded": 30,
+      "target_exceeds_capacity": 32
     },
-    "proposals": 104,
-    "rejected": 70
+    "proposals": 103,
+    "rejected": 62
   }
 }

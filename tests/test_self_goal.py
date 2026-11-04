@@ -113,6 +113,56 @@ def test_secondary_progress_never_credits_active_content_goal(real_content, real
     assert [e.data["id"] for e in legacy] == [content_goal.id]
 
 
+def test_validator_rejects_target_above_ratio(real_content, real_state):
+    """target/capacity > 0.85 直接拒绝，并给出可复算算式。"""
+    npc = str(real_content.npcs[0]["id"])
+    proposal, errs = parse_proposal(_raw(npc, target=0.0135), npc, 0)
+    assert errs == []
+    verdict = FeasibilityValidator(real_content).validate(real_state, proposal, 0, "active")
+    assert not verdict.accepted
+    assert verdict.reason == "target_exceeds_ratio"
+    assert "0.85×capacity=" in verdict.equation
+
+
+def test_stub_purpose_is_machine_checkable(real_content, real_state):
+    """stub 的 purpose 必须是「现状数值 → 目标数值」，且差值等于 target。"""
+    import re
+
+    npc = str(real_content.npcs[0]["id"])
+    ledger = SelfGoalLedger(real_content, mode="competent")
+    raw = ledger._stub_proposal(real_state, npc, 0, "active", 0, 0)
+    assert raw is not None
+    nums = re.findall(r"\d+(?:\.\d+)?", raw["purpose"])
+    assert "→" in raw["purpose"]
+    assert len(nums) == 2
+    diff = float(nums[1]) - float(nums[0])
+    target = float(raw["target"])
+    assert abs(diff - target) <= max(5e-4, 0.005 * abs(target))
+    proposal, errs = parse_proposal(raw, npc, 0)
+    assert errs == []
+    assert FeasibilityValidator(real_content).validate(real_state, proposal, 0, "active").accepted
+
+
+def test_validator_accepts_escort_without_open_quest(real_content, real_state):
+    """押镖动词会自建镖单：没有开放镖单也不得误拒，只看镖局与角色。"""
+    from wsim.actions.common import escort_business, role_allowed
+
+    assert all(getattr(q, "verb", "") != "escort" for q in real_state.quests.values())
+    agency = escort_business(real_state)
+    assert agency is not None
+    npc = next(
+        e.id for e in sorted(real_state.entities.values(), key=lambda x: x.id)
+        if e.status == "alive" and role_allowed(real_content, "escort", e.role)
+    )
+    real_state.entities[npc].location = agency.location
+    raw = _raw(npc, goal_type="escort", target=2.4, objects=[agency.location])
+    proposal, errs = parse_proposal(raw, npc, 0)
+    assert errs == []
+    verdict = FeasibilityValidator(real_content).validate(real_state, proposal, 0, "active")
+    assert verdict.accepted
+    assert verdict.reason == "accepted"
+
+
 def test_lifecycle_initial_goal_protected(real_content, real_state):
     npc = str(real_content.npcs[0]["id"])
     ent = real_state.entities[npc]

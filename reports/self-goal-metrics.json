@@ -1,57 +1,237 @@
 {
-  "quota": {
-    "content_progress_rule": 374,
-    "content_progress_self": 417,
-    "self_actions_credited_to_content": 0,
-    "self_actions_credited_to_self": 97,
-    "self_actions_total": 140
-  },
-  "rule_arm": {
-    "events": {
-      "content_goal_progress_events": 374,
-      "content_goal_progress_without_self_slot": 374,
-      "content_progress_per_npc_day": 1.1687,
-      "days": 10,
-      "leak_examples": [],
-      "npc_count": 32,
-      "self_goal_progress_events": 0,
-      "self_slot_events": 0,
-      "self_slot_moves": 0,
-      "self_slot_progress_on_content": 0,
-      "self_slot_progress_on_self": 0
-    }
-  },
-  "self_arm": {
-    "events": {
-      "content_goal_progress_events": 417,
-      "content_goal_progress_without_self_slot": 417,
-      "content_progress_per_npc_day": 1.3031,
-      "days": 10,
-      "leak_examples": [],
-      "npc_count": 32,
-      "self_goal_progress_events": 97,
-      "self_slot_events": 140,
-      "self_slot_moves": 0,
-      "self_slot_progress_on_content": 0,
-      "self_slot_progress_on_self": 97
+  "comparison": {
+    "attribution": {
+      "actions_needed_median_new": 3.0,
+      "actions_needed_median_prev": 3.0,
+      "available": true,
+      "delta_difficulty_mean": -0.0475,
+      "delta_sgr_mature": 0.0095,
+      "delta_sgr_raw": -0.0058,
+      "verdict": "未回升：目标更容易或执行改善都不足以提高成熟完成率"
     },
-    "trace": {
+    "new": {
+      "actions_needed": {
+        "distribution": {
+          "1": 5,
+          "2": 2,
+          "3": 55
+        },
+        "mean": 2.8065,
+        "median": 3.0
+      },
+      "activations": 62,
+      "baseline_difficulty": {
+        "max": 0.84,
+        "mean": 0.7753,
+        "median": 0.84,
+        "min": 0.1544,
+        "n": 62,
+        "n_above_085": 0,
+        "p10": 0.428,
+        "p90": 0.84
+      },
+      "completions": 24,
+      "execution": {
+        "completed": {
+          "credited_mean": 3.46,
+          "n": 24,
+          "realized_mean": 1.0,
+          "scheduled_mean": 3.96
+        },
+        "expired": {
+          "credited_mean": 4.0,
+          "n": 9,
+          "realized_mean": 0.5238,
+          "scheduled_mean": 6.33
+        },
+        "expired_credited_shortfall": 1,
+        "expired_scheduled_shortfall": 0
+      },
+      "expired": 9,
+      "mature": {
+        "activations": 45,
+        "completions": 24,
+        "expired": 9,
+        "unresolved": 12
+      },
+      "segments": {
+        "first_5d": {
+          "activations": 30,
+          "completions": 13,
+          "expired": 0,
+          "mature_activations": 30,
+          "mature_completions": 20,
+          "sgr_mature": 0.6667,
+          "sgr_raw": 0.4333,
+          "types": {
+            "advance_skill": 18,
+            "earn_money": 12
+          }
+        },
+        "last_5d": {
+          "activations": 32,
+          "completions": 11,
+          "expired": 9,
+          "mature_activations": 15,
+          "mature_completions": 4,
+          "sgr_mature": 0.2667,
+          "sgr_raw": 0.3438,
+          "types": {
+            "advance_skill": 20,
+            "earn_money": 12
+          }
+        }
+      },
+      "sgc": {
+        "completed": 24,
+        "examples": [
+          {
+            "done": "self:cao_banxian:1:advance_skill",
+            "done_type": "advance_skill",
+            "gap_ticks": 317,
+            "next": "self:cao_banxian:452:advance_skill",
+            "next_type": "advance_skill",
+            "npc": "cao_banxian"
+          },
+          {
+            "done": "self:yan_shouyi:23:earn_money",
+            "done_type": "earn_money",
+            "gap_ticks": 227,
+            "next": "self:yan_shouyi:433:earn_money",
+            "next_type": "earn_money",
+            "npc": "yan_shouyi"
+          },
+          {
+            "done": "self:shi_gandang:1:advance_skill",
+            "done_type": "advance_skill",
+            "gap_ticks": 160,
+            "next": "self:shi_gandang:514:advance_skill",
+            "next_type": "advance_skill",
+            "npc": "shi_gandang"
+          },
+          {
+            "done": "self:duan_wudou:54:advance_skill",
+            "done_type": "advance_skill",
+            "gap_ticks": 150,
+            "next": "self:duan_wudou:537:advance_skill",
+            "next_type": "advance_skill",
+            "npc": "duan_wudou"
+          },
+          {
+            "done": "self:wen_xiaoman:61:advance_skill",
+            "done_type": "advance_skill",
+            "gap_ticks": 150,
+            "next": "self:wen_xiaoman:559:advance_skill",
+            "next_type": "advance_skill",
+            "npc": "wen_xiaoman"
+          },
+          {
+            "done": "self:zhuo_bufan:35:advance_skill",
+            "done_type": "advance_skill",
+            "gap_ticks": 81,
+            "next": "self:zhuo_bufan:532:advance_skill",
+            "next_type": "advance_skill",
+            "npc": "zhuo_bufan"
+          },
+          {
+            "done": "self:gu_qingya:132:advance_skill",
+            "done_type": "advance_skill",
+            "gap_ticks": 385,
+            "next": "self:gu_qingya:876:advance_skill",
+            "next_type": "advance_skill",
+            "npc": "gu_qingya"
+          },
+          {
+            "done": "self:cao_banxian:452:advance_skill",
+            "done_type": "advance_skill",
+            "gap_ticks": 345,
+            "next": "self:cao_banxian:901:advance_skill",
+            "next_type": "advance_skill",
+            "npc": "cao_banxian"
+          }
+        ],
+        "next_within_3d": 22,
+        "next_within_3d_related": 22,
+        "note": "stub 每 3 天固定发一条提案，而窗口也是 3 天；这个比例是发言节奏，不是意图延续证据。",
+        "rate_any": 0.9167,
+        "rate_related": 0.9167
+      },
+      "sgr": 0.3871,
+      "sgr_mature": 0.5333,
+      "sgr_raw": 0.3871,
+      "stc": {
+        "activation_distribution": {
+          "advance_skill": 38,
+          "earn_money": 24
+        },
+        "distinct_types": 2,
+        "proposal_distribution": {
+          "advance_skill": 50,
+          "earn_money": 33
+        },
+        "share_of_earn_money": 0.3871,
+        "uncovered_types": [
+          "build_relation",
+          "build_shop",
+          "escort",
+          "join_sect"
+        ]
+      }
+    },
+    "prev": {
+      "actions_needed": {
+        "distribution": {
+          "1": 5,
+          "2": 2,
+          "3": 49
+        },
+        "mean": 2.7857,
+        "median": 3.0
+      },
       "activations": 56,
       "baseline_difficulty": {
         "max": 0.9278,
         "mean": 0.8228,
         "median": 0.9,
         "min": 0.1544,
-        "n": 56
+        "n": 56,
+        "n_above_085": 49,
+        "p10": 0.428,
+        "p90": 0.9
       },
       "completions": 22,
+      "execution": {
+        "completed": {
+          "credited_mean": 3.05,
+          "n": 22,
+          "realized_mean": 1.0,
+          "scheduled_mean": 3.55
+        },
+        "expired": {
+          "credited_mean": 3.5,
+          "n": 8,
+          "realized_mean": 0.4643,
+          "scheduled_mean": 7.12
+        },
+        "expired_credited_shortfall": 2,
+        "expired_scheduled_shortfall": 0
+      },
       "expired": 8,
+      "mature": {
+        "activations": 42,
+        "completions": 22,
+        "expired": 8,
+        "unresolved": 12
+      },
       "segments": {
         "first_5d": {
           "activations": 27,
           "completions": 13,
           "expired": 0,
-          "sgr": 0.4815,
+          "mature_activations": 27,
+          "mature_completions": 18,
+          "sgr_mature": 0.6667,
+          "sgr_raw": 0.4815,
           "types": {
             "advance_skill": 18,
             "earn_money": 9
@@ -61,7 +241,10 @@
           "activations": 29,
           "completions": 9,
           "expired": 8,
-          "sgr": 0.3103,
+          "mature_activations": 15,
+          "mature_completions": 4,
+          "sgr_mature": 0.2667,
+          "sgr_raw": 0.3103,
           "types": {
             "advance_skill": 20,
             "earn_money": 9
@@ -138,18 +321,305 @@
         ],
         "next_within_3d": 19,
         "next_within_3d_related": 19,
+        "note": "stub 每 3 天固定发一条提案，而窗口也是 3 天；这个比例是发言节奏，不是意图延续证据。",
         "rate_any": 0.8636,
         "rate_related": 0.8636
       },
       "sgr": 0.3929,
+      "sgr_mature": 0.5238,
+      "sgr_raw": 0.3929,
       "stc": {
-        "distinct_types": 2,
-        "distribution": {
+        "activation_distribution": {
           "advance_skill": 38,
           "earn_money": 18
         },
-        "share_of_earn_money": 0.3214
+        "distinct_types": 2,
+        "proposal_distribution": {
+          "advance_skill": 50,
+          "earn_money": 37
+        },
+        "share_of_earn_money": 0.3214,
+        "uncovered_types": [
+          "build_relation",
+          "build_shop",
+          "escort",
+          "join_sect"
+        ]
       }
+    }
+  },
+  "quota": {
+    "content_progress_rule": 374,
+    "content_progress_self": 425,
+    "self_actions_credited_to_content": 0,
+    "self_actions_credited_to_self": 110,
+    "self_actions_total": 147
+  },
+  "rule_arm": {
+    "events": {
+      "content_goal_progress_events": 374,
+      "content_goal_progress_without_self_slot": 374,
+      "content_progress_per_npc_day": 1.1687,
+      "days": 10,
+      "leak_examples": [],
+      "npc_count": 32,
+      "self_goal_progress_events": 0,
+      "self_slot_events": 0,
+      "self_slot_moves": 0,
+      "self_slot_progress_on_content": 0,
+      "self_slot_progress_on_self": 0
+    }
+  },
+  "self_arm": {
+    "events": {
+      "content_goal_progress_events": 425,
+      "content_goal_progress_without_self_slot": 425,
+      "content_progress_per_npc_day": 1.3281,
+      "days": 10,
+      "leak_examples": [],
+      "npc_count": 32,
+      "self_goal_progress_events": 110,
+      "self_slot_events": 147,
+      "self_slot_moves": 0,
+      "self_slot_progress_on_content": 0,
+      "self_slot_progress_on_self": 110
+    },
+    "trace": {
+      "actions_needed": {
+        "distribution": {
+          "1": 5,
+          "2": 2,
+          "3": 55
+        },
+        "mean": 2.8065,
+        "median": 3.0
+      },
+      "activations": 62,
+      "baseline_difficulty": {
+        "max": 0.84,
+        "mean": 0.7753,
+        "median": 0.84,
+        "min": 0.1544,
+        "n": 62,
+        "n_above_085": 0,
+        "p10": 0.428,
+        "p90": 0.84
+      },
+      "completions": 24,
+      "execution": {
+        "completed": {
+          "credited_mean": 3.46,
+          "n": 24,
+          "realized_mean": 1.0,
+          "scheduled_mean": 3.96
+        },
+        "expired": {
+          "credited_mean": 4.0,
+          "n": 9,
+          "realized_mean": 0.5238,
+          "scheduled_mean": 6.33
+        },
+        "expired_credited_shortfall": 1,
+        "expired_scheduled_shortfall": 0
+      },
+      "expired": 9,
+      "mature": {
+        "activations": 45,
+        "completions": 24,
+        "expired": 9,
+        "unresolved": 12
+      },
+      "segments": {
+        "first_5d": {
+          "activations": 30,
+          "completions": 13,
+          "expired": 0,
+          "mature_activations": 30,
+          "mature_completions": 20,
+          "sgr_mature": 0.6667,
+          "sgr_raw": 0.4333,
+          "types": {
+            "advance_skill": 18,
+            "earn_money": 12
+          }
+        },
+        "last_5d": {
+          "activations": 32,
+          "completions": 11,
+          "expired": 9,
+          "mature_activations": 15,
+          "mature_completions": 4,
+          "sgr_mature": 0.2667,
+          "sgr_raw": 0.3438,
+          "types": {
+            "advance_skill": 20,
+            "earn_money": 12
+          }
+        }
+      },
+      "sgc": {
+        "completed": 24,
+        "examples": [
+          {
+            "done": "self:cao_banxian:1:advance_skill",
+            "done_type": "advance_skill",
+            "gap_ticks": 317,
+            "next": "self:cao_banxian:452:advance_skill",
+            "next_type": "advance_skill",
+            "npc": "cao_banxian"
+          },
+          {
+            "done": "self:yan_shouyi:23:earn_money",
+            "done_type": "earn_money",
+            "gap_ticks": 227,
+            "next": "self:yan_shouyi:433:earn_money",
+            "next_type": "earn_money",
+            "npc": "yan_shouyi"
+          },
+          {
+            "done": "self:shi_gandang:1:advance_skill",
+            "done_type": "advance_skill",
+            "gap_ticks": 160,
+            "next": "self:shi_gandang:514:advance_skill",
+            "next_type": "advance_skill",
+            "npc": "shi_gandang"
+          },
+          {
+            "done": "self:duan_wudou:54:advance_skill",
+            "done_type": "advance_skill",
+            "gap_ticks": 150,
+            "next": "self:duan_wudou:537:advance_skill",
+            "next_type": "advance_skill",
+            "npc": "duan_wudou"
+          },
+          {
+            "done": "self:wen_xiaoman:61:advance_skill",
+            "done_type": "advance_skill",
+            "gap_ticks": 150,
+            "next": "self:wen_xiaoman:559:advance_skill",
+            "next_type": "advance_skill",
+            "npc": "wen_xiaoman"
+          },
+          {
+            "done": "self:zhuo_bufan:35:advance_skill",
+            "done_type": "advance_skill",
+            "gap_ticks": 81,
+            "next": "self:zhuo_bufan:532:advance_skill",
+            "next_type": "advance_skill",
+            "npc": "zhuo_bufan"
+          },
+          {
+            "done": "self:gu_qingya:132:advance_skill",
+            "done_type": "advance_skill",
+            "gap_ticks": 385,
+            "next": "self:gu_qingya:876:advance_skill",
+            "next_type": "advance_skill",
+            "npc": "gu_qingya"
+          },
+          {
+            "done": "self:cao_banxian:452:advance_skill",
+            "done_type": "advance_skill",
+            "gap_ticks": 345,
+            "next": "self:cao_banxian:901:advance_skill",
+            "next_type": "advance_skill",
+            "npc": "cao_banxian"
+          }
+        ],
+        "next_within_3d": 22,
+        "next_within_3d_related": 22,
+        "note": "stub 每 3 天固定发一条提案，而窗口也是 3 天；这个比例是发言节奏，不是意图延续证据。",
+        "rate_any": 0.9167,
+        "rate_related": 0.9167
+      },
+      "sgr": 0.3871,
+      "sgr_mature": 0.5333,
+      "sgr_raw": 0.3871,
+      "stc": {
+        "activation_distribution": {
+          "advance_skill": 38,
+          "earn_money": 24
+        },
+        "distinct_types": 2,
+        "proposal_distribution": {
+          "advance_skill": 50,
+          "earn_money": 33
+        },
+        "share_of_earn_money": 0.3871,
+        "uncovered_types": [
+          "build_relation",
+          "build_shop",
+          "escort",
+          "join_sect"
+        ]
+      }
+    }
+  },
+  "type_probe": {
+    "advance_skill": {
+      "accepted": true,
+      "capacity_units": 0.015,
+      "content_target": 0.033,
+      "equation": "capacity=3×0.0050=0.0150 >= target=0.0120;actions=3<=3;money=0<=1600",
+      "npc": "bai_lusheng",
+      "per_action_units": 0.005,
+      "probe_target": 0.012,
+      "reason": "accepted",
+      "target_ratio": 0.8
+    },
+    "build_relation": {
+      "accepted": true,
+      "capacity_units": 9.0,
+      "content_target": 12.0,
+      "equation": "capacity=3×3.0000=9.0000 >= target=7.2000;actions=3<=3;money=0<=1600",
+      "npc": "bai_lusheng",
+      "per_action_units": 3.0,
+      "probe_target": 7.2,
+      "reason": "accepted",
+      "target_ratio": 0.8
+    },
+    "build_shop": {
+      "accepted": true,
+      "capacity_units": 3.0,
+      "content_target": 1.0,
+      "equation": "capacity=3×1.0000=3.0000 >= target=1.0000;actions=3<=3;money=300<=1600",
+      "npc": "bai_lusheng",
+      "per_action_units": 1.0,
+      "probe_target": 1.0,
+      "reason": "accepted",
+      "target_ratio": 0.3333
+    },
+    "earn_money": {
+      "accepted": true,
+      "capacity_units": 919.56,
+      "content_target": 142.0,
+      "equation": "capacity=3×306.5200=919.5600 >= target=142.0000;actions=3<=3;money=0<=1600",
+      "npc": "bai_lusheng",
+      "per_action_units": 306.52,
+      "probe_target": 142.0,
+      "reason": "accepted",
+      "target_ratio": 0.1544
+    },
+    "escort": {
+      "accepted": true,
+      "capacity_units": 3.0,
+      "content_target": 3.0,
+      "equation": "capacity=3×1.0000=3.0000 >= target=2.4000;actions=3<=3;money=0<=1500",
+      "npc": "pei_wujiu",
+      "per_action_units": 1.0,
+      "probe_target": 2.4,
+      "reason": "accepted",
+      "target_ratio": 0.8
+    },
+    "join_sect": {
+      "accepted": true,
+      "capacity_units": 3.0,
+      "content_target": 1.0,
+      "equation": "capacity=3×1.0000=3.0000 >= target=1.0000;actions=3<=3;money=0<=1600",
+      "npc": "bai_lusheng",
+      "per_action_units": 1.0,
+      "probe_target": 1.0,
+      "reason": "accepted",
+      "target_ratio": 0.3333
     }
   }
 }
