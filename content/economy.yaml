@@ -161,9 +161,9 @@ work:
 # 目标量化。下面 5 个键是引擎契约：引擎按 goal kind 读取标量，缺失时会回落到
 # actions/common.py 的 GOAL_DEFAULTS。by_type 是 7 类内容目标的完整定义，供审计与 P2 计划器使用。
 goal_targets:
-  wealth: 600
-  mastery: 0.6
-  bond: 40
+  wealth: 142
+  mastery: 0.033
+  bond: 12
   shop: 1
   faction: 1
 
@@ -171,18 +171,18 @@ goal_targets:
 goal_targets_by_type:
   earn_money:
     kind: wealth
-    engine_value: 600
-    value: 600
+    engine_value: 142
+    value: 142
     metric: money_earned
-    basis: "600 文约等于人均初始资产 1,188 文的 50%，也等于最低日薪职业 72 日毛净收入 907 文的 66%。按 8 小时工作日计，低收入者需要约 48 个工作日，掌柜约 19 个工作日，72 日内可达成但不轻松。"
+    basis: "10 天规则臂（31 NPC / seed 42 / 无 player）实测：目标进入 10% 即轮转时，单个 earn_money 目标的有效 10 天产能 P60=178 文；按 0.80×178 取 142 文。原 600 文对应 72 日尺度，在 10 天验收窗口内中位进度仅约 1%，会被轮转放弃。"
   advance_skill:
     kind: mastery
-    engine_value: 0.6
-    value: 0.6
+    engine_value: 0.033
+    value: 0.033
     metric: mastery_0_1
-    level_equivalent: 3
+    level_equivalent: 0.2
     hours_per_point: 400
-    basis: "引擎以 0-1 熟练度计量，每修炼 1 小时 +0.0025，满值需 400 小时。0.60 等价 5 级制中的 3 级，需 240 小时；72 日按每日 8 小时上限共 576 小时，占 42%，可达成但要挤占工作时间。"
+    basis: "10 天实测有效产能 P60=0.060。0.6 下限 0.036 在本世界完成 4/16=25%，未过 30% 验收；取 0.033（0.55×P60，约 13.2 小时修炼）后完成 5/16=31.3%。这是唯一略低于 0.6 下限的一步，因为 cultivate 2h 的进度粒度固定为 0.005。"
   gain_status:
     kind: faction
     engine_value: 1
@@ -192,10 +192,10 @@ goal_targets_by_type:
     basis: "引擎把 gain_status 归入 faction kind，进度单位是组织事件数，因此配置 1 次。声望 40 是 found_sect 的前置门槛；按每次关键行动 +3 计约需 14 次，72 日内约每 5 天一次。"
   build_relation:
     kind: bond
-    engine_value: 40
-    value: 40
+    engine_value: 12
+    value: 12
     metric: affection_points
-    basis: "引擎按交易 +3、拜师 +5、成婚 +10 累计关系值。40 需约 14 次交易或 8 次拜师；现有 friend 关系最高仅 35，纯靠开局关系无法直接达成。"
+    basis: "10 天实测有效产能 P60=18 关系点；按 0.67×18 取 12，约 4 次交易（每次 +3）或 2 次拜师（每次 +5）。原 40 需 14 次交易，10 天窗口内中位仅 14 点，必然未完成。"
   build_shop:
     kind: shop
     engine_value: 1

@@ -115,6 +115,34 @@ DIALOGUE_GOLDEN_P3I_PRICE = {
     "dialogue_calls": 63,
 }
 
+# 目标体量校准基线（2026-11-04，非静默改旧基线）：
+# 10 天规则臂诊断显示 target=600/0.6/40 时 earn_money/advance_skill/build_relation
+# 完成率≈0；按 10 天有效产能 P60×0.6-0.8 校准为 142/0.033/12 后，K1 49.45%→65.93%，
+# 三类完成率 30.8%/31.3%/50.0%。目标值会写入 goal_create 事件与状态，2 天世界必然漂移
+# （791→796 events、经济流量与哈希同步变化），故旧 P3I_PRICE 基线值原样保留并 skip。
+CALIB_BASELINE_REASON = (
+    "目标体量校准（wealth 600→142、mastery 0.6→0.033、bond 40→12）后，"
+    "goal_create 的 target 与 NPC 目标轮转时点改变，2 天世界从 791 漂移到 796 events；"
+    "旧 P3I_PRICE 基线原样保留，本组为显式迁移基线。"
+)
+GOLDEN_CALIB = {
+    "events_total": 796,
+    "state_final": "55ac3ed8bde6182714e0b9576880c04eaed4296e2a04a079fb60a92c2e537db8",
+    "event_final": "344b501a5969cef1e518e36dd2b448c0f08145f8468fc621269c4c260f6fedb2",
+    "sell_in": 971,
+    "buy_out": 820,
+    "burned": 127,
+    "business_cash": 12184,
+    "precondition_blocked": 11,
+    "precondition_pruned": 2,
+}
+DIALOGUE_GOLDEN_CALIB = {
+    "events_total": 796,
+    "state_final": "139a879c30680314ddb93a026fc107ef9cb7609dbe264a47dadd205ed0bbf8c4",
+    "event_final": "bcd166d00d546c5f8c3aee69e661ca926680f3494cb3ee275f9194024717ae98",
+    "dialogue_calls": 63,
+}
+
 
 def _run_two_day(tmp_path: Path, run_id: str, *, dialogue: bool):
     env_keys = ("LLM_BASE_URL", "LLM_API_KEY", "LLM_MODEL", "WSIM_DIALOGUE")
@@ -237,6 +265,7 @@ def test_p3i_dialogue_enabled_fake_run_is_golden(tmp_path):
     )
 
 
+@pytest.mark.skip(reason="目标体量校准后 goal_create/状态哈希漂移；迁移到 GOLDEN_CALIB，见文件头说明")
 def test_p3i_price_deterministic_2d_fake_run_is_golden(tmp_path):
     """P3I 物价接线后的新基线：事件流不变（791），金额与哈希显式迁移。"""
     summary = _run_two_day(tmp_path, "golden-price", dialogue=False)
@@ -267,6 +296,7 @@ def test_p3i_price_deterministic_2d_fake_run_is_golden(tmp_path):
     assert len(blocked_file.read_text(encoding="utf-8").splitlines()) == GOLDEN_P3I_PRICE["precondition_blocked"]
 
 
+@pytest.mark.skip(reason="目标体量校准后 goal_create/状态哈希漂移；迁移到 DIALOGUE_GOLDEN_CALIB，见文件头说明")
 def test_p3i_price_dialogue_enabled_fake_run_is_golden(tmp_path):
     """P3I 物价接线后的新基线（dialogue 开启路径）。"""
     summary = _run_two_day(tmp_path, "golden-price-dialogue", dialogue=True)
@@ -282,4 +312,51 @@ def test_p3i_price_dialogue_enabled_fake_run_is_golden(tmp_path):
         "P3I 价格 dialogue 基线漂移（golden_p3i_price, actual）："
         + json.dumps(drift, ensure_ascii=False)
         + "；原因: " + P3I_PRICE_BASELINE_REASON
+    )
+
+
+def test_goal_calib_deterministic_2d_fake_run_is_golden(tmp_path):
+    """目标体量校准后的新基线：2 天世界显式迁移到 796 events。"""
+    summary = _run_two_day(tmp_path, "golden-calib", dialogue=False)
+    cf = summary["economy"]["cashflow"]
+    got = {
+        "events_total": summary["events"]["total"],
+        "state_final": summary["hashes"]["state_final"],
+        "event_final": summary["hashes"]["event_final"],
+        "sell_in": cf["inflow_by_reason"].get("sell", 0),
+        "buy_out": cf["outflow_by_reason"].get("buy", 0),
+        "burned": summary["economy"]["burned_total"],
+        "business_cash": summary["economy"]["business_cash_now"],
+        "precondition_blocked": summary["precondition_blocked"]["total"],
+        "precondition_pruned": summary["precondition_pruned"]["total"],
+    }
+    drift = {k: (GOLDEN_CALIB[k], got[k]) for k in GOLDEN_CALIB if got[k] != GOLDEN_CALIB[k]}
+    assert not drift, (
+        "目标体量校准基线漂移（golden_calib, actual）："
+        + json.dumps(drift, ensure_ascii=False)
+        + "；原因: " + CALIB_BASELINE_REASON
+    )
+
+    pruned_file = tmp_path / "golden-calib" / "pruned.jsonl"
+    blocked_file = tmp_path / "golden-calib" / "blocked.jsonl"
+    assert pruned_file.exists() and blocked_file.exists(), "缺少全量拦截记录导出"
+    assert len(pruned_file.read_text(encoding="utf-8").splitlines()) == GOLDEN_CALIB["precondition_pruned"]
+    assert len(blocked_file.read_text(encoding="utf-8").splitlines()) == GOLDEN_CALIB["precondition_blocked"]
+
+
+def test_goal_calib_dialogue_enabled_fake_run_is_golden(tmp_path):
+    """目标体量校准后的新基线（dialogue 开启路径）。"""
+    summary = _run_two_day(tmp_path, "golden-calib-dialogue", dialogue=True)
+    got = {
+        "events_total": summary["events"]["total"],
+        "state_final": summary["hashes"]["state_final"],
+        "event_final": summary["hashes"]["event_final"],
+        "dialogue_calls": summary["llm"]["dialogue_async"]["calls"],
+    }
+    drift = {k: (DIALOGUE_GOLDEN_CALIB[k], got[k])
+             for k in DIALOGUE_GOLDEN_CALIB if got[k] != DIALOGUE_GOLDEN_CALIB[k]}
+    assert not drift, (
+        "目标体量校准 dialogue 基线漂移（golden_calib_dialogue, actual）："
+        + json.dumps(drift, ensure_ascii=False)
+        + "；原因: " + CALIB_BASELINE_REASON
     )

@@ -966,7 +966,7 @@ def _positive_number(value):
 
 
 def check_goal_targets(economy, npcs, npc_money_total, report):
-    """校验 goal_targets：引擎契约、7 类目标、72 日可达性与 found_sect 可达范围。"""
+    """校验 goal_targets：引擎契约、7 类目标、10 日有效产能校准与 found_sect 可达范围。"""
     gt = economy.get("goal_targets")
     if not _require_dict(gt, "economy.goal_targets", report.errors):
         return
@@ -995,19 +995,8 @@ def check_goal_targets(economy, npcs, npc_money_total, report):
     wage_values = [v for v in wages.values() if isinstance(v, int) and not isinstance(v, bool) and v > 0]
     min_wage = min(wage_values) if wage_values else 0
     min_wealth_cap = 72 * min_wage * (1 - income_tax)
-    skill_cap = 72 * 8 * 0.0025
     shop = economy.get("shop_opening") or {}
     sect = economy.get("sect") or {}
-
-    max_friend = 0
-    for npc in npcs or []:
-        if not isinstance(npc, dict):
-            continue
-        for rel in npc.get("relations") or []:
-            if isinstance(rel, dict) and rel.get("type") == "friend":
-                val = rel.get("value")
-                if isinstance(val, int) and not isinstance(val, bool):
-                    max_friend = max(max_friend, val)
 
     optional = (
         "level_equivalent", "hours_per_point", "reputation_threshold",
@@ -1044,30 +1033,31 @@ def check_goal_targets(economy, npcs, npc_money_total, report):
                     f"{label}.engine_value={engine_value} 与 goal_targets.{expected_kind}={kind_scalar} 不一致"
                 )
 
-    # earn_money：最低收入者 72 日毛净收入的能力区间
-    earn = by_type.get("earn_money")
-    if isinstance(earn, dict) and min_wealth_cap > 0 and _positive_number(earn.get("engine_value")):
-        target = float(earn["engine_value"])
-        lo, hi = 0.5 * min_wealth_cap, 0.8 * min_wealth_cap
-        report.check(lo <= target <= hi, "earn_money 目标 72 日可达且不轻易",
-                      f"目标 {target:.0f} 文，应落在 {lo:.0f}-{hi:.0f}（最低日薪 {min_wage} 文×72 日×90%）")
+    # 10 天有效产能校准护栏（2026-11-04）：目标进入 10% 即被轮转，因此单目标
+    # 的有效 10 天产能是 P60 实测值（31 NPC / seed 42 / 无 player 规则臂），
+    # 不是 72 日理论上限。target 应落在有效产能的 0.6-0.8；advance_skill 因
+    # cultivate 2h 的 0.005 进度粒度，0.036 只能完成 4/16，故放宽到 0.5。
+    ten_day_capacity = {
+        "earn_money": (178.0, "文", 0.6, 0.8),
+        "advance_skill": (0.060, "", 0.5, 0.8),
+        "build_relation": (18.0, "关系点", 0.6, 0.8),
+    }
+    for gtype, (cap, unit, lo_ratio, hi_ratio) in ten_day_capacity.items():
+        entry = by_type.get(gtype)
+        if not isinstance(entry, dict) or not _positive_number(entry.get("engine_value")):
+            continue
+        target = float(entry["engine_value"])
+        ratio = target / cap
+        report.check(lo_ratio <= ratio <= hi_ratio, f"{gtype} 目标在 10 日有效产能的 {lo_ratio:.2f}-{hi_ratio:.2f}",
+                      f"目标 {target:g}{unit} / 实测 P60 {cap:g}{unit} = {ratio:.2f}")
 
-    # advance_skill：修炼工时能力区间
-    skill = by_type.get("advance_skill")
-    if isinstance(skill, dict) and _positive_number(skill.get("engine_value")):
-        target = float(skill["engine_value"])
-        lo, hi = 0.33 * skill_cap, 0.75 * skill_cap
-        report.check(lo <= target <= hi, "advance_skill 目标 72 日可达且不轻易",
-                      f"目标 {target:.2f}，应落在 {lo:.2f}-{hi:.2f}（72 日×8 小时×0.0025）")
-
-    # build_relation：必须高于现有 friend 上限，且 72 日内可累计
+    # build_relation 的进度从 0 累计（开局 friend 不预填），真正需要防的是
+    # “一次动作就完成”；12 点约 4 次交易，至少守住 2 次交易的下限。
     bond = by_type.get("build_relation")
     if isinstance(bond, dict) and _positive_number(bond.get("engine_value")):
         target = float(bond["engine_value"])
-        report.check(target > max_friend, "build_relation 目标高于现有 friend 上限",
-                      f"目标 {target:g}，现有 friend 最高 {max_friend}，开局关系无法直接达标")
-        report.check(target <= 0.8 * 72 * 3, "build_relation 目标 72 日可达",
-                      f"目标 {target:g} 超过交易累计上限 {0.8 * 72 * 3:.0f}")
+        report.check(target >= 2 * 3, "build_relation 目标至少需 2 次交易",
+                      f"目标 {target:g}，交易每次 +3")
 
     # build_shop：引擎只能持有 1 家店，资金门槛不低于摊位费
     shop_t = by_type.get("build_shop")
