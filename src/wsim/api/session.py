@@ -35,6 +35,7 @@ from ..world.writer import Writer
 from ..actions.registry import build_registry
 from ..actions.common import reputation_points
 from .growth import growth_view, today_view
+from .persistence import replay_into, verify_content_hash
 
 # 契约冻结版本：字段名/结构变更必须同步 docs/player-api.md 的 CHANGELOG。
 PROFILE_VERSION = 1
@@ -176,28 +177,41 @@ class WorldSession:
         npcs = sorted(self.content.npcs, key=lambda n: n["id"])
         if npc_limit:
             npcs = npcs[:npc_limit]
-        state = WorldState(locations=self.content.locations)
         self.store = EventStore(self.run_dir / "events.sqlite", check_same_thread=False)
         self.registry = build_registry(self.content, seed)
-        self.writer = Writer(state, self.store, self.registry, seed)
-        genesis = build_genesis(self.content, npcs, root=self.root)
-        self.writer.bootstrap(genesis.effects, tick=0, verb="genesis")
-        # 创世预置账号：唯一发放 300 文 + 炊饼×3 + 粗布×1 的地方。
-        seed_ids = [player_id]
-        for acct in seed_accounts or []:
-            pid = f"player:{str(acct).strip().lower()}"
-            if pid not in seed_ids:
-                seed_ids.append(pid)
-        if endow:
-            for pid in seed_ids:
-                self.writer.bootstrap(
-                    player_genesis_effects(
-                        pid,
-                        display_name if pid == player_id else pid.removeprefix("player:"),
-                        spawn,
-                    ),
-                    tick=0,
-                    verb="genesis_player",
+        # 存档优先：已有事件日志时回放，绝不重新创世/重复发放初始资产。
+        self.replayed = self.store.count() > 0
+        if self.replayed:
+            verify_content_hash(self.store, self.content.content_hash, self.run_dir)
+            state, player_ticks = replay_into(self.store, self.content.locations)
+            self.writer = Writer(state, self.store, self.registry, seed)
+            self.writer._player_ticks.update(player_ticks)
+            self.writer.committed_intents = self.store.count()
+        else:
+            state = WorldState(locations=self.content.locations)
+            self.writer = Writer(state, self.store, self.registry, seed)
+            genesis = build_genesis(self.content, npcs, root=self.root)
+            self.writer.bootstrap(genesis.effects, tick=0, verb="genesis")
+            # 创世预置账号：唯一发放 300 文 + 炊饼×3 + 粗布×1 的地方。
+            seed_ids = [player_id]
+            for acct in seed_accounts or []:
+                pid = f"player:{str(acct).strip().lower()}"
+                if pid not in seed_ids:
+                    seed_ids.append(pid)
+            if endow:
+                for pid in seed_ids:
+                    self.writer.bootstrap(
+                        player_genesis_effects(
+                            pid,
+                            display_name if pid == player_id else pid.removeprefix("player:"),
+                            spawn,
+                        ),
+                        tick=0,
+                        verb="genesis_player",
+                    )
+            if post_quests:
+                self.writer.submit(
+                    Intent(actor="system", verb="system_quest_post", args={}, tick=0, source="system")
                 )
         identities = {
             player_id: "propose_intent",
@@ -210,10 +224,6 @@ class WorldSession:
             audit_path=self.run_dir / "mcp_audit.jsonl",
             identities=identities,
         )
-        if post_quests:
-            self.writer.submit(
-                Intent(actor="system", verb="system_quest_post", args={}, tick=0, source="system")
-            )
         self.store.set_meta("seed", str(seed))
         self.store.set_meta("content_hash", self.content.content_hash)
         self.store.set_meta("player_id", player_id)
