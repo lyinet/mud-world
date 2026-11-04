@@ -1,6 +1,15 @@
 {
   "checks": [
     {
+      "name": "服务模式 匿名公共摘要下探活仍成立（/api/health 200、mode=live）",
+      "ok": true,
+      "detail": {
+        "mode": "live",
+        "upstream_ok": true,
+        "readonly": false
+      }
+    },
+    {
       "name": "服务模式 经代理探活判定为 auth 模式",
       "ok": true
     },
@@ -19,12 +28,13 @@
       }
     },
     {
-      "name": "服务模式 经代理匿名读只拿到公共摘要",
+      "name": "服务模式 经代理匿名读只拿到公共摘要（且不含 profile_version）",
       "ok": true,
       "detail": {
         "status": 200,
         "public": true,
-        "hasWallet": false
+        "hasWallet": false,
+        "hasProfileVersion": false
       }
     },
     {
@@ -77,7 +87,7 @@
           "hasAccess": true,
           "required": false,
           "username": "proxy_user",
-          "expiresAt": 1793806280000
+          "expiresAt": 1793807306000
         }
       }
     }
@@ -86,27 +96,6 @@
     "reads": [
       {
         "path": "/api/player/state",
-        "account": "u_demo",
-        "identity": null,
-        "status": 200,
-        "wallet": false
-      },
-      {
-        "path": "/api/player/state",
-        "account": "u_demo",
-        "identity": null,
-        "status": 200,
-        "wallet": false
-      },
-      {
-        "path": "/api/player/state",
-        "account": "u_demo",
-        "identity": null,
-        "status": 200,
-        "wallet": false
-      },
-      {
-        "path": "/api/player/state",
         "account": "proxy_user",
         "identity": "proxy_user",
         "status": 200,
@@ -146,13 +135,6 @@
         "identity": "proxy_user",
         "status": 200,
         "wallet": true
-      },
-      {
-        "path": "/api/player/state",
-        "account": "u_demo",
-        "identity": null,
-        "status": 200,
-        "wallet": false
       },
       {
         "path": "/api/player/state",

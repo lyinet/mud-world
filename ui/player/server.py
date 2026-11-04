@@ -1222,13 +1222,21 @@ class UpstreamUnavailable(Exception):
 
 
 def probe_upstream(base: str, timeout: float) -> bool:
-    """轻量探活：GET /api/player/state?account_id=u_demo，必须返回契约 JSON。"""
-    url = base.rstrip("/") + "/api/player/state?account_id=u_demo"
+    """轻量探活：GET /api/service/info，必须返回契约 JSON。
+
+    不能用匿名 GET /api/player/state：服务模式下匿名读只返回公共摘要白名单，
+    没有 profile_version，会让探活恒失败、整个门面降级成 readonly。
+    """
+    url = base.rstrip("/") + "/api/service/info"
     try:
         req = Request(url, headers={"Accept": "application/json"})
         with urlopen(req, timeout=timeout) as resp:
             payload = json.loads(resp.read().decode("utf-8"))
-        return isinstance(payload, dict) and payload.get("profile_version") == PROFILE_VERSION
+        return (
+            isinstance(payload, dict)
+            and payload.get("ok") is True
+            and payload.get("profile_version") == PROFILE_VERSION
+        )
     except (HTTPError, URLError, OSError, ValueError):
         return False
 

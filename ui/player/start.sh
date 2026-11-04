@@ -96,7 +96,7 @@ echo "[start] 启动 wsim.api：run=$RUN port=$API_PORT"
 API_PID=$!
 
 for i in $(seq 1 60); do
-  if curl -fsS "http://127.0.0.1:$API_PORT/api/player/state?account_id=u_demo" 2>/dev/null \
+  if curl -fsS "http://127.0.0.1:$API_PORT/api/service/info" 2>/dev/null \
       | grep -q '"profile_version"'; then
     echo "[start] wsim.api 就绪（run=${RUN}）"
     break
@@ -108,7 +108,7 @@ for i in $(seq 1 60); do
   sleep 0.5
 done
 
-if ! curl -fsS "http://127.0.0.1:$API_PORT/api/player/state?account_id=u_demo" 2>/dev/null \
+if ! curl -fsS "http://127.0.0.1:$API_PORT/api/service/info" 2>/dev/null \
     | grep -q '"profile_version"'; then
   echo "[start] 等待 wsim.api 超时：http://127.0.0.1:$API_PORT" >&2
   exit 5

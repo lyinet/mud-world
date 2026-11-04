@@ -152,10 +152,11 @@ class UpstreamHandler(BaseHTTPRequestHandler):
                 self.mock.record_read(path, account or identity, identity, 200, True)
                 self._json(200, st)
                 return
-            # 无令牌：公共摘要白名单，没有 wallet / player。
+            # 无令牌：公共摘要白名单，没有 wallet / player，也**没有 profile_version**
+            # （与 W1 方案 A 的真实契约一致；探活必须改走 /api/service/info）。
             self.mock.record_read(path, account, None, 200, False)
             self._json(200, {
-                "ok": True, "public": True, "profile_version": 1, "tick": 12,
+                "ok": True, "public": True, "tick": 12,
                 "account_id": account,
                 "summary": {"online_players": 1,
                             "quests": [{"name": QUEST["name"],
@@ -304,6 +305,13 @@ def ui_login(page, username: str = USER, password: str = "secret123") -> None:
 
 
 def run_proxy(browser, base: str, mock: ServiceMock, results: Results) -> dict:
+    health = json.loads(urllib.request.urlopen(base + "/api/health", timeout=5).read().decode("utf-8"))
+    results.must("服务模式 匿名公共摘要下探活仍成立（/api/health 200、mode=live）",
+                 health.get("ok") is True and health.get("mode") == "live"
+                 and health.get("upstream_ok") is True,
+                 {"mode": health.get("mode"), "upstream_ok": health.get("upstream_ok"),
+                  "readonly": health.get("readonly")})
+
     ctx = browser.new_context(viewport={"width": 1280, "height": 900})
     page = ctx.new_page()
     page.goto(base + "/?ui_check=1")
@@ -339,10 +347,12 @@ def run_proxy(browser, base: str, mock: ServiceMock, results: Results) -> dict:
       const r = await fetch('/api/player/state?account_id=' + encodeURIComponent(acct));
       const body = await r.json();
       return {status: r.status, public: !!body.public,
-              hasWallet: !!(body.player && body.player.wallet)};
+              hasWallet: !!(body.player && body.player.wallet),
+              hasProfileVersion: Object.prototype.hasOwnProperty.call(body, 'profile_version')};
     }""", USER)
-    results.must("服务模式 经代理匿名读只拿到公共摘要",
-                 anon["status"] == 200 and anon["public"] and not anon["hasWallet"], anon)
+    results.must("服务模式 经代理匿名读只拿到公共摘要（且不含 profile_version）",
+                 anon["status"] == 200 and anon["public"] and not anon["hasWallet"]
+                 and not anon["hasProfileVersion"], anon)
 
     raw403 = page.evaluate("""async () => {
       const t = JSON.parse(localStorage.getItem('ws_auth_v1') || '{}').access_token;
