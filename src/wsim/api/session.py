@@ -7,8 +7,9 @@
 from __future__ import annotations
 
 import threading
+import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from ..actions.player import (
     ACCOUNT_RE,
@@ -17,10 +18,14 @@ from ..actions.player import (
     ENDOWMENT_SOURCE,
     ENDOWMENT_TOTAL_CAP,
     PLAYER_VERBS,
+    PRESENCE_ACTIVE_SECONDS,
+    PRESENCE_OFFLINE_SECONDS,
     RUNTIME_CARRY_SOURCE,
     RUNTIME_ENDOWMENT_SOURCE,
     STARTING_ITEMS,
     STARTING_MONEY,
+    SystemTickAction,
+    activity_stage,
     player_genesis_effects,
     player_status,
 )
@@ -34,6 +39,7 @@ from ..world.store import EventStore
 from ..world.writer import Writer
 from ..actions.registry import build_registry
 from ..actions.common import reputation_points
+from .event_tail import EventTail
 from .growth import growth_view, today_view
 from .persistence import replay_into, verify_content_hash
 
@@ -159,6 +165,9 @@ class WorldSession:
         tick_step: int = 6,
         seed_accounts: list[str] | None = None,
         run_dir: Path | str | None = None,
+        presence_clock: Callable[[], float] | None = None,
+        presence_active_seconds: float = PRESENCE_ACTIVE_SECONDS,
+        presence_offline_seconds: float = PRESENCE_OFFLINE_SECONDS,
     ):
         self.root = Path(root)
         self.run_id = run_id
@@ -172,6 +181,11 @@ class WorldSession:
         self.lock = threading.RLock()
         self.requests: dict[str, dict[str, Any]] = {}
         self.intents: dict[str, dict[str, Any]] = {}
+        # 在线状态只看玩家自己的 wall-clock 活跃时间，绝不看全局 tick（并发下世界日会被压缩）。
+        self._presence_clock = presence_clock or time.monotonic
+        self._presence_active = max(0.0, float(presence_active_seconds))
+        self._presence_offline = max(self._presence_active, float(presence_offline_seconds))
+        self._last_active: dict[str, float] = {}
 
         self.content = load_content(self.root, allow_fixture=False, use_content=True)
         npcs = sorted(self.content.npcs, key=lambda n: n["id"])
@@ -179,6 +193,8 @@ class WorldSession:
             npcs = npcs[:npc_limit]
         self.store = EventStore(self.run_dir / "events.sqlite", check_same_thread=False)
         self.registry = build_registry(self.content, seed)
+        # 日界结算并入 system_tick（见 SystemTickAction）；此处把动作实例换成带 content 的版本。
+        self.registry.register(SystemTickAction(self.content))
         # 存档优先：已有事件日志时回放，绝不重新创世/重复发放初始资产。
         self.replayed = self.store.count() > 0
         if self.replayed:
@@ -218,6 +234,13 @@ class WorldSession:
                 self.writer.submit(
                     Intent(actor="system", verb="system_quest_post", args={}, tick=0, source="system")
                 )
+        # 写路径尾部缓存：启动时从 sqlite 重建，之后由每次事务成功后 observe 同步。
+        self.tail = EventTail(self.store)
+        # 回放/创世完成后，仍在线的档案从“服务启动时刻”开始计活跃；崩溃恢复不依赖内存历史。
+        now = self._presence_clock()
+        for pid, prof in self.state.players.items():
+            if prof.online:
+                self._last_active[pid] = now
         identities = {
             player_id: "propose_intent",
             "ops:request": "admin_apply",
@@ -269,6 +292,7 @@ class WorldSession:
                 return view
             prof = self.state.players[pid]
             ent = self.state.entities[pid]
+            now = self._presence_clock()
             player = {
                 "entity_id": pid,
                 "account_id": account,
@@ -282,6 +306,9 @@ class WorldSession:
                 "max_stamina": round(float(ent.max_stamina), 3),
                 "presence": ent.presence,
                 "online": bool(prof.online),
+                # 三种在线状态：active（活跃）/ idle（在线静置）/ offline（真正离线）。
+                "activity": self._activity_of(pid, now),
+                "idle_seconds": round(max(0.0, now - self._last_active.get(pid, now)), 1),
                 "created_tick": int(prof.created_tick),
                 "last_intent_tick": int(prof.last_intent_tick),
                 "endowed": bool(prof.endowed),
@@ -701,6 +728,8 @@ class WorldSession:
                     "reason_text": _reason_text("bad_account"),
                 }
             pid = self._pid(account)
+            # 重连即视为活跃：宽限期内的静置不应在恢复后被判离线。
+            self._last_active[pid] = self._presence_clock()
             prof = self.state.players.get(pid)
             if prof is None or not prof.online:
                 # advance=False：重连不额外推进 tick；enter 自身仍写入事件日志。
@@ -745,11 +774,18 @@ class WorldSession:
             return self._reject_early(account, action, "forbidden_verb", tick)
 
         prof = self.state.players.get(pid)
+        now = self._presence_clock()
         if action != "enter":
             if prof is None:
                 return self._reject_early(account, action, "player_not_entered", tick)
             if not prof.online:
                 return self._reject_early(account, action, "player_offline", tick)
+            idle = now - self._last_active.get(pid, now)
+            if idle > self._presence_offline:
+                # 只有玩家自己的 wall-clock 静置超过宽限期才判离线；全局 tick 不参与判定。
+                self._mark_offline(pid, tick)
+                return self._reject_early(account, action, "player_offline", tick)
+        self._last_active[pid] = now
         if verb not in ("move", "talk", "trade", "quest_accept", "quest_deliver"):
             allowed = self.content.allowed_roles(verb)
             if allowed is not None and "*" not in allowed and prof is not None and prof.role not in allowed:
@@ -893,38 +929,62 @@ class WorldSession:
             self.gateway.call("ops:approve", "admin.approve", {"token": token})
             applied = self.gateway.call("ops:approve", "admin.apply", {"token": token})
         except GatewayError as exc:
-            return self.writer.reject(intent, f"gateway_error({exc})")
-        events = self.store.read_all()
+            event = self.writer.reject(intent, f"gateway_error({exc})")
+            self.tail.observe(event)
+            return event
+        # 常量时间取本次事务的事件（主键单行），不再为取尾部而 read_all 整条日志。
         seq = int(applied["seq"])
-        return events[seq - 1]
+        event = self.tail.event_at(seq)
+        if event is None or int(event.seq) != seq:
+            raise RuntimeError(f"event_missing_after_apply:{seq}")
+        return event
 
     def _advance(self) -> None:
         if self.tick_step <= 0:
             return
         tick = int(self.state.tick) + int(self.tick_step)
+        args: dict[str, Any] = {"step": int(self.tick_step)}
         if day_of(tick) != day_of(int(self.state.tick)):
-            self.writer.submit(
-                Intent(actor="system", verb="system_player_presence", args={},
-                       tick=tick, source="system")
+            # 日界结算合并进这一条 system_tick 事件（体力回复 → 过期委托下架 → 补发）。
+            # 改前每个世界日额外写 5 条（presence/recover/quest_fail/quest_post/tick）；
+            # 改后只写 1 条；system_player_presence 不再按全局 tick 批量把在线玩家标离线。
+            args.update(
+                {
+                    "day_boundary": True,
+                    "day": day_of(tick),
+                    "prune_expired": True,
+                }
             )
-            # 与 headless 日界一致：每日回复体力，否则玩家一次 8 小时工后永久卡住。
-            self.writer.submit(
-                Intent(actor="system", verb="system_recover", args={},
-                       tick=tick, source="system")
+        event = self.writer.submit(
+            Intent(actor="system", verb="system_tick", args=args, tick=tick, source="system")
+        )
+        self.tail.observe(event)
+
+    def _mark_offline(self, pid: str, tick: int) -> None:
+        """把静置超宽限期的玩家落成离线事件（可回放），供下次重连走 resume/enter。"""
+        prof = self.state.players.get(pid)
+        if prof is None or not prof.online:
+            return
+        event = self.writer.submit(
+            Intent(
+                actor=pid,
+                verb="player_leave",
+                args={"player_id": pid, "reason": "presence_idle_timeout"},
+                tick=int(tick),
+                source="system",
             )
-            # 日界先下架过期委托，再按模板补发，保证玩家每天有一批可接新单。
-            self.writer.submit(
-                Intent(actor="system", verb="system_quest_fail",
-                       args={"prune_expired": True},
-                       tick=tick, source="system")
-            )
-            self.writer.submit(
-                Intent(actor="system", verb="system_quest_post", args={"day": day_of(tick)},
-                       tick=tick, source="system")
-            )
-        self.writer.submit(
-            Intent(actor="system", verb="system_tick", args={"step": self.tick_step},
-                   tick=tick, source="system")
+        )
+        self.tail.observe(event)
+
+    def _activity_of(self, pid: str, now: float | None = None) -> str:
+        """active（活跃）/ idle（在线但静置）/ offline（真正离线）。"""
+        prof = self.state.players.get(pid)
+        if prof is None or not prof.online:
+            return "offline"
+        now_f = self._presence_clock() if now is None else float(now)
+        idle = max(0.0, now_f - self._last_active.get(pid, now_f))
+        return activity_stage(
+            idle, active_seconds=self._presence_active, offline_seconds=self._presence_offline
         )
 
     def _reject_early(self, account: str, action: str, code: str, tick: int) -> dict[str, Any]:
@@ -937,6 +997,7 @@ class WorldSession:
             source="player",
         )
         event = self.writer.reject(intent, code)
+        self.tail.observe(event)
         return self._response(event, {}, action, pid)
 
     def _response(self, event, data: dict[str, Any], action: str, pid: str) -> dict[str, Any]:

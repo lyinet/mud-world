@@ -12,7 +12,6 @@ from __future__ import annotations
 import re
 
 from ..agent.dialogue import PLAYER_NAME
-from ..core.clock import TICKS_PER_DAY
 from ..core.models import Effect, Intent, Reject
 from ..world.state import WorldState
 from .common import wallet
@@ -21,6 +20,12 @@ from .registry import Action
 ACCOUNT_RE = re.compile(r"^[a-z0-9_-]{3,32}$")
 ARCHETYPES: dict[str, str] = {"游侠": "镖师", "商人": "掌柜", "捕快": "捕快"}
 PRESENCE_STATES = ("online", "offline", "custody", "dormant")
+
+# 在线三态只看玩家自己的 wall-clock 活跃时间：全局 tick 每动作 +6，50 人并发时
+# 一个“世界日”约 1 秒，拿 tick 差值判离线会把在线玩家批量误判。
+# active（活跃）/ idle（在线静置）/ offline（真正离线，超过 W1 的 60 秒宽限）。
+PRESENCE_ACTIVE_SECONDS = 30.0
+PRESENCE_OFFLINE_SECONDS = 60.0
 
 # 初始资产的唯一事实来源：genesis 预置与首次进入发放共用。
 STARTING_MONEY = 300
@@ -88,17 +93,22 @@ def _valid_name(state: WorldState, name: str, pid: str = "") -> bool:
     return all(ent.name != name for eid, ent in state.entities.items() if eid != pid)
 
 
-def offline_stage(tick: int, last_intent_tick: int) -> str | None:
-    """按离线天数返回应降级到的状态；不足 1 日返回 None。"""
-    idle_ticks = max(0, int(tick) - int(last_intent_tick))
-    days = idle_ticks // TICKS_PER_DAY
-    if days >= 7:
-        return "dormant"
-    if days >= 3:
-        return "custody"
-    if days >= 1:
-        return "offline"
-    return None
+def activity_stage(
+    idle_seconds: float,
+    *,
+    active_seconds: float = PRESENCE_ACTIVE_SECONDS,
+    offline_seconds: float = PRESENCE_OFFLINE_SECONDS,
+) -> str:
+    """按玩家自己的真实活跃时间（wall-clock 秒）判定在线三态。
+
+    不得用全局 tick / 世界日：并发越高 tick 推进越快，会把仍在线的玩家误判为离线。
+    """
+    idle = max(0.0, float(idle_seconds))
+    if idle <= float(active_seconds):
+        return "active"
+    if idle <= float(offline_seconds):
+        return "idle"
+    return "offline"
 
 
 def player_genesis_effects(
@@ -394,30 +404,51 @@ class PlayerPresenceAction(Action):
 
 
 class SystemPlayerPresenceAction(Action):
-    """离线策略：1 游戏日 offline、3 日 custody、7 日 dormant；只降不升。"""
+    """日界在线状态结算：保留 verb 以兼容旧事件/插件，但不再批量改玩家状态。
+
+    API 会话的在线三态改由 `WorldSession` 按玩家自己的 wall-clock 活跃时间判定
+    （见 `activity_stage`），日界不再按全局 tick 把在线玩家降级。
+    """
 
     verb = "system_player_presence"
 
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
-        tick = int(intent.tick)
-        rank = {"offline": 1, "custody": 2, "dormant": 3}
-        effects: list[Effect] = []
-        for pid in sorted(state.players):
-            prof = state.players[pid]
-            target = offline_stage(tick, prof.last_intent_tick)
-            if target is None or rank.get(target, 0) <= rank.get(prof.presence, 0):
-                continue
-            effects.append(Effect("player_presence", {"id": pid, "presence": target, "tick": tick}))
-        return effects
+        return []
 
 
 class SystemTickAction(Action):
-    """API 会话推进世界钟的 no-op 事件；不改变任何状态。"""
+    """API 会话推进世界钟。
+
+    日界（`args["day_boundary"]=True`）时把当日结算合并进这一条事件：
+    体力回复 → 过期委托下架 → 补发。改前每个世界日额外写 5 条系统事件
+    （presence/recover/quest_fail/quest_post/tick），改后只写这 1 条。
+    """
 
     verb = "system_tick"
 
+    def __init__(self, content=None):
+        self.content = content
+
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
-        return []
+        if self.content is None or not bool(intent.args.get("day_boundary")):
+            return []
+        # 延迟导入，避免 actions 模块之间的循环依赖。
+        from ..world.effects import apply_effects
+        from .quests import SystemQuestFailAction, SystemQuestPostAction
+        from .system import SystemRecoverAction
+
+        effects: list[Effect] = []
+        # 用状态副本串行试算，保持“回复 → 下架 → 补发”的先后语义（补发要看到已下架的板）。
+        trial = state.clone()
+        for action in (
+            SystemRecoverAction(self.content),
+            SystemQuestFailAction(self.content),
+            SystemQuestPostAction(self.content),
+        ):
+            part = action.apply(trial, intent, rng)
+            effects.extend(part)
+            apply_effects(trial, part)
+        return effects
 
 
 def player_status(state: WorldState, pid: str) -> dict:
