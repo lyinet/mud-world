@@ -1,0 +1,944 @@
+{
+  "meta": {
+    "tag": "delivery-p3k",
+    "tag_commit": "b23827a16bba6fa1527f58aaea44f8539a8e9301",
+    "head": "2a1a57ba2fbbb5dfad5ee2929917054c03bfccdf",
+    "tree_root": "/private/tmp/w4-e2e-src",
+    "service_run": "w4-e2e-1105074250",
+    "legacy_run": "w4-e2e-legacy-1105074250",
+    "account": "w4e2e_1105074250",
+    "started_at": "2026-11-05 07:42:50",
+    "service_api": "http://127.0.0.1:58233",
+    "service_proxy": "http://127.0.0.1:58234"
+  },
+  "checks": [
+    {
+      "name": "服务模式 探活判定 auth（真 /api/service/info）",
+      "ok": true,
+      "detail": {
+        "tag": "delivery-p3k",
+        "tag_commit": "b23827a16bba6fa1527f58aaea44f8539a8e9301",
+        "head": "2a1a57ba2fbbb5dfad5ee2929917054c03bfccdf",
+        "tree_root": "/private/tmp/w4-e2e-src",
+        "service_run": "w4-e2e-1105074250",
+        "legacy_run": "w4-e2e-legacy-1105074250",
+        "account": "w4e2e_1105074250",
+        "started_at": "2026-11-05 07:42:50",
+        "service_api": "http://127.0.0.1:58233",
+        "service_proxy": "http://127.0.0.1:58234"
+      }
+    },
+    {
+      "name": "1. 注册 → 自动登录",
+      "ok": true,
+      "detail": {
+        "register": 1,
+        "login": 1
+      }
+    },
+    {
+      "name": "1. 令牌真落盘 ws_auth_v1",
+      "ok": true,
+      "detail": {
+        "username": "w4e2e_1105074250",
+        "expires_at": 1793922172000,
+        "has_refresh": null
+      }
+    },
+    {
+      "name": "1. 首登读到完整状态（钱包/背包/技能/关系）",
+      "ok": true,
+      "detail": {
+        "tick": 6,
+        "location": "market",
+        "location_name": "集市",
+        "money": 300,
+        "items": 2,
+        "skills": 1,
+        "relations": 0,
+        "active": [],
+        "keys": [
+          "account_id",
+          "active_quests",
+          "activity",
+          "archetype",
+          "created_tick",
+          "endowed",
+          "endowed_tick",
+          "entity_id",
+          "home",
+          "idle_seconds",
+          "last_intent_tick",
+          "location",
+          "location_name",
+          "max_stamina",
+          "name",
+          "online",
+          "presence",
+          "relations",
+          "role",
+          "skills",
+          "stamina",
+          "wallet"
+        ]
+      }
+    },
+    {
+      "name": "1. 刷新后仍登录且仍读完整状态（不是公共摘要）",
+      "ok": true,
+      "detail": {
+        "tick": 6,
+        "location": "market",
+        "location_name": "集市",
+        "money": 300,
+        "items": 2,
+        "skills": 1,
+        "relations": 0,
+        "active": [],
+        "keys": [
+          "account_id",
+          "active_quests",
+          "activity",
+          "archetype",
+          "created_tick",
+          "endowed",
+          "endowed_tick",
+          "entity_id",
+          "home",
+          "idle_seconds",
+          "last_intent_tick",
+          "location",
+          "location_name",
+          "max_stamina",
+          "name",
+          "online",
+          "presence",
+          "relations",
+          "role",
+          "skills",
+          "stamina",
+          "wallet"
+        ]
+      }
+    },
+    {
+      "name": "闭环 对话（真 API + 真代理）",
+      "ok": true,
+      "detail": {
+        "relation": {
+          "affection": 1,
+          "kind": "acquaintance",
+          "target": "jin_mancang",
+          "trust": 40.5
+        },
+        "reply": "街面上传得凶，一版比一版玄；我只看亲眼见的，你别再往外传。"
+      }
+    },
+    {
+      "name": "闭环 接单：任务进入 active",
+      "ok": true,
+      "detail": [
+        "quest:tutorial_silk_sample:0"
+      ]
+    },
+    {
+      "name": "闭环 移动：market → pharmacy",
+      "ok": true,
+      "detail": {
+        "location": "pharmacy"
+      }
+    },
+    {
+      "name": "闭环 交付 → 钱包增长 300→312",
+      "ok": true,
+      "detail": {
+        "tick": 30,
+        "location": "pharmacy",
+        "location_name": "药铺",
+        "money": 312,
+        "items": 2,
+        "skills": 1,
+        "relations": 2,
+        "active": [],
+        "keys": [
+          "account_id",
+          "active_quests",
+          "activity",
+          "archetype",
+          "created_tick",
+          "endowed",
+          "endowed_tick",
+          "entity_id",
+          "home",
+          "idle_seconds",
+          "last_intent_tick",
+          "location",
+          "location_name",
+          "max_stamina",
+          "name",
+          "online",
+          "presence",
+          "relations",
+          "role",
+          "skills",
+          "stamina",
+          "wallet"
+        ]
+      }
+    },
+    {
+      "name": "原因码 not_at_giver 走真实 API 到 UI 文案",
+      "ok": true,
+      "detail": [
+        "接任务「捎账本到客栈」07:42:53你不在委托人所在的地点；先走到委托人那里。原因码：not_at_giver"
+      ]
+    },
+    {
+      "name": "原因码 not_at_target 走真实 API 到 UI 文案",
+      "ok": true,
+      "detail": [
+        "交付「捎账本到客栈」07:42:53还没到任务目标地点或委托人处；先移动过去再交付。原因码：not_at_target",
+        "接任务「捎账本到客栈」07:42:53你不在委托人所在的地点；先走到委托人那里。原因码：not_at_giver"
+      ]
+    },
+    {
+      "name": "原因码 player_offline 走真实 API 到 UI 文案",
+      "ok": true,
+      "detail": [
+        "移动 集市07:42:54你已离线；请重新进入世界后再操作。原因码：player_offline",
+        "交付「捎账本到客栈」07:42:53还没到任务目标地点或委托人处；先移动过去再交付。原因码：not_at_target",
+        "接任务「捎账本到客栈」07:42:53你不在委托人所在的地点；先走到委托人那里。原因码：not_at_giver"
+      ]
+    },
+    {
+      "name": "2. 并发两个 401 只触发一次 refresh（单飞）",
+      "ok": true,
+      "detail": {
+        "reads": [
+          {
+            "ok": true,
+            "tick": 72,
+            "location": {
+              "description": "",
+              "exits": [
+                {
+                  "exists": true,
+                  "id": "market",
+                  "name": "集市"
+                },
+                {
+                  "exists": true,
+                  "id": "temple",
+                  "name": "城隍庙"
+                }
+              ],
+              "id": "pharmacy",
+              "name": "药铺",
+              "services": [
+                "ginseng",
+                "moxa_roll",
+                "mugwort",
+                "plaster",
+                "service_diagnosis",
+                "wound_powder"
+              ]
+            },
+            "money": 312
+          },
+          {
+            "ok": true,
+            "tick": 72,
+            "location": {
+              "description": "",
+              "exits": [
+                {
+                  "exists": true,
+                  "id": "market",
+                  "name": "集市"
+                },
+                {
+                  "exists": true,
+                  "id": "temple",
+                  "name": "城隍庙"
+                }
+              ],
+              "id": "pharmacy",
+              "name": "药铺",
+              "services": [
+                "ginseng",
+                "moxa_roll",
+                "mugwort",
+                "plaster",
+                "service_diagnosis",
+                "wound_powder"
+              ]
+            },
+            "money": 312
+          }
+        ],
+        "refresh": 1,
+        "401": 2
+      }
+    },
+    {
+      "name": "2. 轮换后旧令牌被拒、新令牌可用",
+      "ok": true,
+      "detail": {
+        "old_me": 401,
+        "new_me": 200
+      }
+    },
+    {
+      "name": "2. 失败一侧不误清新令牌（登录态保持）",
+      "ok": true,
+      "detail": {
+        "mode": "auth",
+        "hasAccess": true,
+        "required": false,
+        "username": "w4e2e_1105074250",
+        "expiresAt": 1793922174000
+      }
+    },
+    {
+      "name": "3. 中途 401 刷新重放：世界状态不丢",
+      "ok": true,
+      "detail": {
+        "before": {
+          "tick": 72,
+          "location": "pharmacy",
+          "location_name": "药铺",
+          "money": 312,
+          "items": 2,
+          "skills": 1,
+          "relations": 2,
+          "active": [
+            "quest:errand_market_ledger:0"
+          ],
+          "keys": [
+            "account_id",
+            "active_quests",
+            "activity",
+            "archetype",
+            "created_tick",
+            "endowed",
+            "endowed_tick",
+            "entity_id",
+            "home",
+            "idle_seconds",
+            "last_intent_tick",
+            "location",
+            "location_name",
+            "max_stamina",
+            "name",
+            "online",
+            "presence",
+            "relations",
+            "role",
+            "skills",
+            "stamina",
+            "wallet"
+          ]
+        },
+        "after": {
+          "tick": 72,
+          "location": "pharmacy",
+          "location_name": "药铺",
+          "money": 312,
+          "items": 2,
+          "skills": 1,
+          "relations": 2,
+          "active": [
+            "quest:errand_market_ledger:0"
+          ],
+          "keys": [
+            "account_id",
+            "active_quests",
+            "activity",
+            "archetype",
+            "created_tick",
+            "endowed",
+            "endowed_tick",
+            "entity_id",
+            "home",
+            "idle_seconds",
+            "last_intent_tick",
+            "location",
+            "location_name",
+            "max_stamina",
+            "name",
+            "online",
+            "presence",
+            "relations",
+            "role",
+            "skills",
+            "stamina",
+            "wallet"
+          ]
+        }
+      }
+    },
+    {
+      "name": "3. 中途 401 不写错误历史",
+      "ok": true,
+      "detail": {
+        "before": 0,
+        "after": 0
+      }
+    },
+    {
+      "name": "5. auth_account_mismatch 真 403 → 前端用令牌身份重取（无红字）",
+      "ok": true,
+      "detail": {
+        "api": {
+          "status": 403,
+          "code": "auth_account_mismatch"
+        },
+        "ui": {
+          "account": "w4e2e_1105074250",
+          "money": 312
+        }
+      }
+    },
+    {
+      "name": "3. 令牌被轮换走后旧令牌失效（/auth/me 401）",
+      "ok": true,
+      "detail": {
+        "rotate": 200
+      }
+    },
+    {
+      "name": "3. 令牌失效不清世界快照（钱/地点仍在），只提示一次重新登录",
+      "ok": true,
+      "detail": {
+        "money": "312 文",
+        "place": "药铺",
+        "auth": {
+          "mode": "auth",
+          "hasAccess": false,
+          "required": true,
+          "username": "w4e2e_1105074250",
+          "expiresAt": 0
+        },
+        "notice": "需要重新登录登录已失效，写操作需要重新登录；世界状态保持不变。\n登录/注册",
+        "noticeVisible": true,
+        "errors": [
+          "鉴权07:42:55登录已失效，需要重新登录；世界状态保持不变。原因码：auth_required"
+        ]
+      }
+    },
+    {
+      "name": "4. legacy（--auth off）UI 判定为 legacy",
+      "ok": true,
+      "detail": {
+        "mode": "legacy",
+        "hasAccess": false,
+        "required": false,
+        "username": "",
+        "expiresAt": 0
+      }
+    },
+    {
+      "name": "4. legacy 注册/登录/刷新均 503 auth_disabled",
+      "ok": true,
+      "detail": {
+        "/api/auth/register": {
+          "status": 503,
+          "code": "auth_disabled"
+        },
+        "/api/auth/login": {
+          "status": 503,
+          "code": "auth_disabled"
+        },
+        "/api/auth/refresh": {
+          "status": 503,
+          "code": "auth_disabled"
+        }
+      }
+    }
+  ],
+  "screenshots": [
+    "service-reload-state.png",
+    "service-loop-delivered.png",
+    "service-reason-codes.png",
+    "service-mid-401-preserved.png",
+    "legacy-auth-disabled.png"
+  ],
+  "service_stats": {
+    "requests": [
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/?ui_check=1"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/style.css"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/app.js"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/health"
+      },
+      {
+        "method": "POST",
+        "url": "http://127.0.0.1:58234/api/auth/refresh"
+      },
+      {
+        "method": "POST",
+        "url": "http://127.0.0.1:58234/api/auth/register"
+      },
+      {
+        "method": "POST",
+        "url": "http://127.0.0.1:58234/api/auth/login"
+      },
+      {
+        "method": "POST",
+        "url": "http://127.0.0.1:58234/api/player/enter"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/?ui_check=1"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/style.css"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/app.js"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/health"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "method": "POST",
+        "url": "http://127.0.0.1:58234/api/auth/refresh"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "method": "POST",
+        "url": "http://127.0.0.1:58234/api/player/action"
+      },
+      {
+        "method": "POST",
+        "url": "http://127.0.0.1:58234/api/player/action"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "method": "POST",
+        "url": "http://127.0.0.1:58234/api/player/action"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "method": "POST",
+        "url": "http://127.0.0.1:58234/api/player/action"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "method": "POST",
+        "url": "http://127.0.0.1:58234/api/player/action"
+      },
+      {
+        "method": "POST",
+        "url": "http://127.0.0.1:58234/api/player/action"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "method": "POST",
+        "url": "http://127.0.0.1:58234/api/player/action"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "method": "POST",
+        "url": "http://127.0.0.1:58234/api/player/action"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "method": "POST",
+        "url": "http://127.0.0.1:58234/api/player/action"
+      },
+      {
+        "method": "POST",
+        "url": "http://127.0.0.1:58234/api/player/leave"
+      },
+      {
+        "method": "POST",
+        "url": "http://127.0.0.1:58234/api/player/action"
+      },
+      {
+        "method": "POST",
+        "url": "http://127.0.0.1:58234/api/player/enter"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/?ui_check=1"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/style.css"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/app.js"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/health"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "method": "POST",
+        "url": "http://127.0.0.1:58234/api/auth/refresh"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "method": "POST",
+        "url": "http://127.0.0.1:58234/api/auth/refresh"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=u_other"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "method": "POST",
+        "url": "http://127.0.0.1:58234/api/auth/refresh"
+      }
+    ],
+    "responses": [
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/?ui_check=1"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/style.css"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/app.js"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/health"
+      },
+      {
+        "status": 401,
+        "url": "http://127.0.0.1:58234/api/auth/refresh"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/auth/register"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/auth/login"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/enter"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/?ui_check=1"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/style.css"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/app.js"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/health"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/auth/refresh"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/action"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/action"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/action"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/action"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "status": 409,
+        "url": "http://127.0.0.1:58234/api/player/action"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/action"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/action"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/action"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "status": 409,
+        "url": "http://127.0.0.1:58234/api/player/action"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/leave"
+      },
+      {
+        "status": 409,
+        "url": "http://127.0.0.1:58234/api/player/action"
+      },
+      {
+        "status": 409,
+        "url": "http://127.0.0.1:58234/api/player/enter"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/?ui_check=1"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/style.css"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/app.js"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/health"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/auth/refresh"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "status": 401,
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "status": 401,
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/auth/refresh"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "status": 403,
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=u_other"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "status": 401,
+        "url": "http://127.0.0.1:58234/api/player/state?account_id=w4e2e_1105074250"
+      },
+      {
+        "status": 401,
+        "url": "http://127.0.0.1:58234/api/auth/refresh"
+      }
+    ]
+  }
+}

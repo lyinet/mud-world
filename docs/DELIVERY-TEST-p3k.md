@@ -256,3 +256,71 @@ API_PORT=8567 PORT=8547 RUN_ID=p3k-final8 ./start.sh
 | `GET /` | HTTP 200（玩家面板） |
 
 结论：v2 仅修正 README 溯源与文档计数，运行文件与 v1 一致；三路径全量结论沿用 §3–§6。
+
+## 11. 真服务端到端（tag 之后补验，2026-11-05）
+
+**为什么补**：§3–§6 的服务模式证据是 `curl` 直连 API + 若干端点抽查，UI 侧此前只有
+`tools/ui_check_proxy.py` 的 **mock 上游**。真 API（`--auth on` + 真 `service.sqlite`）→
+真 `ui/player/server.py` 代理 → 真浏览器这条链路，从注册、令牌落盘、refresh 轮换、
+中途 401、拒绝原因码到玩家闭环，没有一次性跑通过。
+
+**版本与代码口径**
+
+| 项 | 值 |
+| --- | --- |
+| 冻结 tag | `delivery-p3k` = `b23827a16bba6fa1527f58aaea44f8539a8e9301`（未移动） |
+| 实测树 | `HEAD` = `2a1a57ba2fbbb5dfad5ee2929917054c03bfccdf`（含 tag 之后的 `e807cfc`/`0ff9dc2` 两笔 W4 修复） |
+| 实测树来源 | `git archive HEAD` 快照（`/tmp/w4-e2e-src`），**不含**工作区未提交改动 |
+| 服务 run / legacy run | `w4-e2e-1105074250` / `w4-e2e-legacy-1105074250` |
+| 账号 | `w4e2e_1105074250` |
+| 端口 | API `58233`（`--auth on`），代理 `58234`；legacy API/代理为另取的随机空闲端口 |
+| 模型调用 | 0（全程本地） |
+
+> 说明：W3 会话正在改 `src/wsim/sim/intent.py`（未提交）。为保证结论对应交付树而非
+> 半成品，API 与代理都从 `git archive HEAD` 的快照启动，避免外人未落地改动污染证据。
+
+**复现命令**
+
+```bash
+cd /Users/lyinet/projects/XKX/world-sim
+rm -rf /tmp/w4-e2e-src && mkdir -p /tmp/w4-e2e-src
+git archive HEAD | tar -x -C /tmp/w4-e2e-src
+python3 tools/e2e_service_check.py --root /tmp/w4-e2e-src
+# 输出：reports/w4-e2e/e2e-service.json + 5 张截图；退出码 0 表示 22 项全过
+```
+
+脚本自行拉起两组真实服务（服务模式 `--auth on`、legacy 模式 `--auth off`），各配一个
+真实 `ui/player/server.py` 代理，再用 Playwright（headless Chromium）走真实页面；
+`runs/` 下的一次性 run 目录即真实 sqlite 落盘位置（快照目录内）。
+
+**逐项结果（22 checks，0 failed）**
+
+| # | 验收项 | 结果 | 观测 |
+| --- | --- | --- | --- |
+| 1 | 注册 → 自动登录 → 令牌落盘 | **PASS** | UI 注册触发 `POST /api/auth/register` 1 次、`POST /api/auth/login` 1 次；`localStorage.ws_auth_v1` 含 `access_token`/`username`/`expires_at`（无口令） |
+| 1b | 刷新后仍登录且读完整状态 | **PASS** | `reload()` 后 `hasAccess=true`、进入页关闭；状态含 `wallet.money=300`、`items=2`、`skills=1`、`relations`（22 个私有键，非 9 键公共摘要） |
+| 2 | refresh 轮换 + 单飞 | **PASS** | 并发 2 个伪令牌 401：`refresh` 仅 **1** 次，两个读都成功；旧令牌 `/api/auth/me` **401**、新令牌 **200**；`hasAccess=true` 且 `authNotice` 隐藏（失败一侧未误清） |
+| 3 | 中途 401 不吞世界状态 | **PASS** | 刷新重放前后 `tick=72`、`pharmacy`、`312 文`、`active=[quest:errand_market_ledger:0]` 完全一致；错误历史 **0 → 0** |
+| 3b | 令牌被服务端轮换走后 | **PASS** | `/auth/me` 401；UI 钱包仍显示 `312 文`、地点仍 `药铺`、`hasAccess=false`、重新登录提示可见；仅 1 条 auth_required 记录 |
+| 4 | legacy（`--auth off`）判定 | **PASS** | UI `authState().mode=legacy`；经真代理 `POST /api/auth/register|login|refresh` 全部 **503 `auth_disabled`** |
+| 5 | 原因码端到端 | **PASS** | UI 错误浮层文案与原因码：`not_at_giver`（药铺接集市单）、`not_at_target`（回药铺交付客栈单）、`player_offline`（leave 后移动）、`auth_account_mismatch`（API 真 403 `code=auth_account_mismatch`，前端用令牌身份静默重取，不写红字） |
+| 6 | service 模式玩家闭环 | **PASS** | 注册新号 → 进入世界 → 对话（真 NPC 回复、关系 `trust 40.5`）→ 接 `quest:tutorial_silk_sample:0` → 集市→药铺 → 交付 → 钱包 **300 → 312 文**，任务离开 active |
+
+**截图证据**（均在 `reports/w4-e2e/`）
+
+| 文件 | 内容 |
+| --- | --- |
+| `service-reload-state.png` | 刷新后仍登录、完整状态（钱包/背包/技能/关系） |
+| `service-loop-delivered.png` | 交付后钱包 312 文 |
+| `service-reason-codes.png` | 错误浮层展开，三条真实拒绝文案 + `原因码：not_at_target/player_offline/not_at_giver` |
+| `service-mid-401-preserved.png` | 中途 401 刷新重放后：312 文、药铺、无错误红字 |
+| `legacy-auth-disabled.png` | legacy 模式页面（登录/注册不可用） |
+
+**产品缺陷**：本轮 **0 个**。仅有两处**测试假设**需要修正（不是产品问题）：
+
+- `quest_deliver` 的定位前置是 `at_target or at_giver`（`src/wsim/actions/quests.py` 第 153–156 行），
+  在集市（委托人所在地）交付账本单是**合法**的，所以 `not_at_target` 必须在集市之外触发；
+- 证据脚本的 `read_state` 里 `st.location` 是对象（带 `id/name/exits`），不是字符串。
+
+**未覆盖**：72 天长周期、多玩家并发压测、浏览器真机（仅 headless Chromium）；
+playwright 请求日志只记录 `method/url`，不含 `Authorization` 头。
