@@ -2,10 +2,11 @@
 (function () {
   'use strict';
 
+  /* 读接口一律带令牌：服务模式下不带令牌只会拿到公共摘要（没有 wallet/背包）。 */
   const API = {
     health: () => getJSON('/api/health'),
     enter: (body) => postJSON('/api/player/enter', body),
-    state: (account) => getJSON('/api/player/state?account_id=' + encodeURIComponent(account || '')),
+    state: (account) => getJSON('/api/player/state?account_id=' + encodeURIComponent(account || ''), true),
     action: (account, verb, args, clientTick) => postJSON('/api/player/action', {
       account_id: account || '',
       verb: verb,
@@ -14,11 +15,17 @@
     }),
     messages: (account, since) => getJSON(
       '/api/player/messages?account_id=' + encodeURIComponent(account || '') +
-      '&since_tick=' + encodeURIComponent(String(since == null ? 0 : since))
+      '&since_tick=' + encodeURIComponent(String(since == null ? 0 : since)),
+      true
     ),
-    intent: (account, id) => getJSON(
+    intents: (account, id) => getJSON(
       '/api/player/intents/' + encodeURIComponent(id) +
-      '?account_id=' + encodeURIComponent(account || '')
+      '?account_id=' + encodeURIComponent(account || ''),
+      true
+    ),
+    quests: (account) => getJSON(
+      '/api/player/quests?account_id=' + encodeURIComponent(account || ''),
+      true
     )
   };
 
@@ -154,20 +161,55 @@
     return state.auth.access ? { Authorization: 'Bearer ' + state.auth.access } : {};
   }
 
-  async function getJSON(url, withAuth) {
-    const headers = Object.assign({ Accept: 'application/json' }, withAuth ? authHeader() : {});
+  /* 跨账号读被拒时，令牌账号才是事实源：把 account_id 换成令牌身份重取一次。 */
+  function withIdentityAccount(url) {
+    const identity = state.auth.username;
+    if (!identity) return url;
+    const q = url.indexOf('?');
+    const base = q < 0 ? url : url.slice(0, q);
+    const params = new URLSearchParams(q < 0 ? '' : url.slice(q + 1));
+    params.set('account_id', identity);
+    const qs = params.toString();
+    return qs ? base + '?' + qs : base;
+  }
+
+  async function getJSON(url, withAuth, opts) {
+    opts = opts || {};
+    const sentToken = withAuth ? state.auth.access : '';
+    const headers = Object.assign(
+      { Accept: 'application/json' },
+      sentToken ? { Authorization: 'Bearer ' + sentToken } : {}
+    );
     const res = await fetch(url, { headers: headers, cache: 'no-store' });
     const data = await res.json().catch(() => ({}));
-    if (res.status === 401) {
-      clearAuth('expired');
-      notifyAuthRequired('登录已失效，需要重新登录。');
-      const err = new Error('需要重新登录');
-      err.authRequired = true;
-      err.status = 401;
-      throw err;
+    if (res.status === 401 && withAuth) {
+      if (!opts.retried) {
+        // legacy 服务端不认令牌：退成匿名读，不弹登录。
+        if (state.auth.mode === 'legacy') return getJSON(url, false, Object.assign({}, opts, { retried: true }));
+        // 与写操作共用同一个单飞刷新；并发 401 只 refresh 一次，每个请求各重放一次。
+        if (await ensureFreshToken(sentToken)) return getJSON(url, true, Object.assign({}, opts, { retried: true }));
+      }
+      // 刷新确实失败：只清令牌、提示一次；最近一次世界状态保留在 state.st。
+      if (state.auth.access === sentToken) {
+        clearAuth('expired');
+        notifyAuthRequired('登录已失效，需要重新登录；世界状态保持不变。');
+      }
+      const authErr = new Error((data && (data.reason_text || data.message)) || '需要重新登录');
+      authErr.authRequired = true;
+      authErr.status = 401;
+      authErr.code = data && data.code;
+      throw authErr;
+    }
+    if (res.status === 403 && data && data.code === 'auth_account_mismatch'
+        && !opts.identityRetried && state.auth.access) {
+      // 用令牌身份重取一次；这不是玩家可感知的错误，不写错误历史、不弹红字。
+      return getJSON(withIdentityAccount(url), withAuth, Object.assign({}, opts, { identityRetried: true }));
     }
     if (!res.ok) {
-      throw new Error((data && (data.message || data.error || data.reason_text)) || ('HTTP ' + res.status));
+      const err = new Error((data && (data.message || data.error || data.reason_text)) || ('HTTP ' + res.status));
+      err.status = res.status;
+      err.code = data && data.code;
+      throw err;
     }
     return data;
   }
@@ -184,7 +226,11 @@
     }
     if (!state.auth.access) return Promise.resolve(false);
     if (state.auth.refreshing) return state.auth.refreshing;
-    const p = refreshAuth().then(function (ok) { return !!ok; }, function () { return false; });
+    const p = refreshAuth().then(function (ok) {
+      // 我们的 refresh 失败、但并发的另一次（如启动探针）已换出新令牌时，
+      // 同样视为“可重放”，否则会把刚换好的令牌误当成失效。
+      return !!ok || !!(state.auth.access && failedToken && state.auth.access !== failedToken);
+    }, function () { return false; });
     state.auth.refreshing = p;
     p.then(function () {
       if (state.auth.refreshing === p) state.auth.refreshing = null;
@@ -214,7 +260,7 @@
     if (res.status === 401 && !authEndpoint) {
       if (!opts.retried) {
         const renewed = await ensureFreshToken(sentToken);
-        if (renewed) return postJSON(url, body, { retried: true });
+        if (renewed) return postJSON(url, body, Object.assign({}, opts, { retried: true }));
       }
       // 服务端已判定为 legacy（refresh 返回 503 auth_disabled）：不按登录失效处理。
       if (state.auth.mode === 'legacy') {
@@ -225,6 +271,12 @@
         clearAuth('expired');
         notifyAuthRequired('登录已失效，需要重新登录；世界状态保持不变。');
       }
+    }
+    if (res.status === 403 && data && data.code === 'auth_account_mismatch'
+        && !authEndpoint && !opts.identityRetried && state.auth.username) {
+      // 令牌账号是唯一事实源：用令牌身份重写请求账号并重试一次，不当作玩家错误。
+      const next = Object.assign({}, body || {}, { account_id: state.auth.username });
+      return postJSON(url, next, Object.assign({}, opts, { identityRetried: true }));
     }
     return {
       httpOk: res.ok,
@@ -424,9 +476,11 @@
         return false;
       }
       if (res.status === 401) {
-        // 刷新失败只在单飞链里提示一次，避免并发 401 造成弹窗风暴。
-        clearAuth('expired');
-        notifyAuthRequired('登录已失效，需要重新登录；世界状态保持不变。');
+        // 只在“这个令牌仍是当前令牌”时清；并发的另一次 refresh 可能已经换新。
+        if (state.auth.access === token) {
+          clearAuth('expired');
+          notifyAuthRequired('登录已失效，需要重新登录；世界状态保持不变。');
+        }
       }
       return false;
     }
@@ -452,12 +506,13 @@
     }
 
     let probe = null;
+    const probeToken = state.auth.access;
     try {
       probe = await fetch(AUTH_API.refresh, {
         method: 'POST',
         headers: Object.assign(
           { Accept: 'application/json' },
-          state.auth.access ? { Authorization: 'Bearer ' + state.auth.access } : {}
+          probeToken ? { Authorization: 'Bearer ' + probeToken } : {}
         ),
         cache: 'no-store'
       });
@@ -481,7 +536,8 @@
       }
       state.auth.mode = 'auth';
       state.auth.probeDone = true;
-      if (hadToken) clearAuth('expired');
+      // 探针用的旧令牌已被并发的 refresh 换新时，不要误清有效令牌。
+      if (hadToken && state.auth.access === probeToken) clearAuth('expired');
       renderAuthUI();
       return;
     }
@@ -1856,6 +1912,7 @@
         el('enterBtn').disabled = true;
         return;
       }
+      loadStoredAuth();  // 先载入本地令牌：restore 的首次读必须带 Authorization，否则服务模式只拿到公共摘要
       const results = await Promise.all([restoreAccount(), probeAuth()]);
       const restored = results[0];
       renderNotice(state.st);
@@ -1897,6 +1954,10 @@
       apiAction: function (verb, args) {
         const acct = state.session && state.session.accountId;
         return API.action(acct, verb, args || {}, state.st ? state.st.tick : null);
+      },
+      readState: function (account) {
+        const acct = account == null ? (state.session && state.session.accountId) : account;
+        return API.state(acct);
       },
       authState: function () {
         return {

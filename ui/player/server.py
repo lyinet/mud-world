@@ -1233,15 +1233,28 @@ def probe_upstream(base: str, timeout: float) -> bool:
         return False
 
 
-def forward_upstream(base: str, method: str, path_query: str, body: bytes | None, timeout: float) -> tuple[int, bytes]:
-    """原样转发；上游的 HTTP 状态码与响应体一并带回。"""
+def forward_upstream(
+    base: str,
+    method: str,
+    path_query: str,
+    body: bytes | None,
+    timeout: float,
+    headers: dict[str, str] | None = None,
+) -> tuple[int, bytes]:
+    """原样转发；上游的 HTTP 状态码与响应体一并带回。
+
+    headers 用于透传 Authorization 等鉴权头：GET/POST 都必须带，
+    否则服务模式（auth_required=True）经代理的读写会被上游判成匿名。
+    """
     url = base.rstrip("/") + path_query
-    headers = {"Accept": "application/json"}
+    merged = {"Accept": "application/json"}
+    if headers:
+        merged.update({k: v for k, v in headers.items() if v})
     data = None
     if method == "POST":
         data = body or b"{}"
-        headers["Content-Type"] = "application/json; charset=utf-8"
-    req = Request(url, data=data, headers=headers, method=method)
+        merged.setdefault("Content-Type", "application/json; charset=utf-8")
+    req = Request(url, data=data, headers=merged, method=method)
     try:
         with urlopen(req, timeout=timeout) as resp:
             return int(resp.status), resp.read()
@@ -1278,6 +1291,16 @@ class Handler(BaseHTTPRequestHandler):
     def _body(self) -> bytes:
         length = int(self.headers.get("Content-Length") or 0)
         return self.rfile.read(length) if length else b"{}"
+
+    def _upstream_headers(self, method: str) -> dict[str, str]:
+        """只透传鉴权与内容类型，不把浏览器的其它头带给上游。"""
+        headers = {"Accept": "application/json"}
+        authorization = self.headers.get("Authorization")
+        if authorization:
+            headers["Authorization"] = authorization
+        if method == "POST":
+            headers["Content-Type"] = "application/json; charset=utf-8"
+        return headers
 
     def _send_bytes(self, code: int, body: bytes, ctype: str = "application/json; charset=utf-8") -> None:
         self.send_response(code)
@@ -1354,6 +1377,9 @@ class Handler(BaseHTTPRequestHandler):
             if path.startswith("/api/player/"):
                 self._read(path, query)
                 return
+            if path in ("/api/auth/me", "/api/service/info", "/api/state"):
+                self._read(path, query)
+                return
             if self.mode == "readonly" and path == "/api/scene":
                 self._json(200, self.view.scene(
                     pid=(query.get("player") or [""])[0],
@@ -1385,7 +1411,10 @@ class Handler(BaseHTTPRequestHandler):
             self._read_local(path, query)
             return
         try:
-            code, body = forward_upstream(self.upstream, "GET", self.path, None, self.timeout)
+            code, body = forward_upstream(
+                self.upstream, "GET", self.path, None, self.timeout,
+                headers=self._upstream_headers("GET"),
+            )
         except UpstreamUnavailable:
             self._proxy_unavailable()
             return
@@ -1394,7 +1423,11 @@ class Handler(BaseHTTPRequestHandler):
             self._send_bytes(code, body)
             return
         _add_aliases(payload)
-        # 读接口一律 200：页面不会把业务性 ok:false 当成网络错误。
+        if code >= 400:
+            # 鉴权错误必须原样保留 401/403 与错误体，不能吞成 200/502。
+            self._json(code, payload)
+            return
+        # 读接口成功一律 200：页面不会把业务性 ok:false 当成网络错误。
         self._json(200, payload)
 
     def _read_local(self, path: str, query: dict[str, list[str]]) -> None:
@@ -1419,6 +1452,13 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:  # noqa: N802
         path = urlparse(self.path).path.rstrip("/") or "/"
         try:
+            if path.startswith("/api/auth/") or path == "/api/player/reconnect":
+                if self.mode != "live":
+                    self._json(404, {"ok": False, "reason": "not_supported",
+                                     "message": "只读模式不转发鉴权端点。"})
+                    return
+                self._forward_auth()
+                return
             if path in WRITE_PATHS:
                 body = self._body()
                 self._write(path, body)
@@ -1441,7 +1481,10 @@ class Handler(BaseHTTPRequestHandler):
             self._write_local(path, body)
             return
         try:
-            code, raw = forward_upstream(self.upstream, "POST", self.path, body, self.timeout)
+            code, raw = forward_upstream(
+                self.upstream, "POST", self.path, body, self.timeout,
+                headers=self._upstream_headers("POST"),
+            )
         except UpstreamUnavailable:
             self._proxy_unavailable()
             return
@@ -1450,8 +1493,29 @@ class Handler(BaseHTTPRequestHandler):
             self._send_bytes(code, raw)
             return
         _add_aliases(payload)
+        if code >= 400 and code != 409:
+            # 401/403（以及 400/429/5xx）原样带回，前端才能区分重新登录与业务拒绝。
+            self._json(code, payload)
+            return
         rejected = payload.get("ok") is False or payload.get("status") == "rejected"
         self._json(409 if rejected else 200, payload)
+
+    def _forward_auth(self) -> None:
+        """鉴权端点原样转发（POST），保留 200/400/401/409/503 语义。"""
+        body = self._body()
+        try:
+            code, raw = forward_upstream(
+                self.upstream, "POST", self.path, body, self.timeout,
+                headers=self._upstream_headers("POST"),
+            )
+        except UpstreamUnavailable:
+            self._proxy_unavailable()
+            return
+        payload = self._parse(raw)
+        if payload is None:
+            self._send_bytes(code, raw)
+            return
+        self._json(code, payload)
 
     def _write_local(self, path: str, body: bytes) -> None:
         view = self.view

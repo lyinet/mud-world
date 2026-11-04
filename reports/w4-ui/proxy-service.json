@@ -1,0 +1,200 @@
+{
+  "checks": [
+    {
+      "name": "服务模式 经代理探活判定为 auth 模式",
+      "ok": true
+    },
+    {
+      "name": "服务模式 经代理注册+登录拿到令牌",
+      "ok": true
+    },
+    {
+      "name": "服务模式 经代理登录后 GET state 拿到本人 wallet（非公共摘要）",
+      "ok": true,
+      "detail": {
+        "ok": true,
+        "account": "proxy_user",
+        "money": 300,
+        "items": 2
+      }
+    },
+    {
+      "name": "服务模式 经代理匿名读只拿到公共摘要",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "public": true,
+        "hasWallet": false
+      }
+    },
+    {
+      "name": "服务模式 代理原样透传 403 auth_account_mismatch",
+      "ok": true,
+      "detail": {
+        "status": 403,
+        "code": "auth_account_mismatch"
+      }
+    },
+    {
+      "name": "服务模式 前端 403 用令牌身份重取（不弹红字）",
+      "ok": true,
+      "detail": {
+        "account": "proxy_user",
+        "money": 300
+      }
+    },
+    {
+      "name": "服务模式 经代理写操作不再 401",
+      "ok": true,
+      "detail": {
+        "httpOk": true,
+        "status": 200,
+        "data": {
+          "ok": true,
+          "event_seq": 2,
+          "tick": 18,
+          "next_tick": 24
+        },
+        "authRequired": false,
+        "authDisabled": false
+      }
+    },
+    {
+      "name": "服务模式 代理原样透传写操作 401",
+      "ok": true,
+      "detail": {
+        "status": 401,
+        "code": "auth_missing_token"
+      }
+    },
+    {
+      "name": "服务模式 刷新后仍按令牌取数（钱包不消失）",
+      "ok": true,
+      "detail": {
+        "money": 300,
+        "t": {
+          "mode": "auth",
+          "hasAccess": true,
+          "required": false,
+          "username": "proxy_user",
+          "expiresAt": 1793806280000
+        }
+      }
+    }
+  ],
+  "stats": {
+    "reads": [
+      {
+        "path": "/api/player/state",
+        "account": "u_demo",
+        "identity": null,
+        "status": 200,
+        "wallet": false
+      },
+      {
+        "path": "/api/player/state",
+        "account": "u_demo",
+        "identity": null,
+        "status": 200,
+        "wallet": false
+      },
+      {
+        "path": "/api/player/state",
+        "account": "u_demo",
+        "identity": null,
+        "status": 200,
+        "wallet": false
+      },
+      {
+        "path": "/api/player/state",
+        "account": "proxy_user",
+        "identity": "proxy_user",
+        "status": 200,
+        "wallet": true
+      },
+      {
+        "path": "/api/player/state",
+        "account": "proxy_user",
+        "identity": "proxy_user",
+        "status": 200,
+        "wallet": true
+      },
+      {
+        "path": "/api/player/state",
+        "account": "proxy_user",
+        "identity": null,
+        "status": 200,
+        "wallet": false
+      },
+      {
+        "path": "/api/player/state",
+        "account": "u_other",
+        "identity": "proxy_user",
+        "status": 403,
+        "wallet": false
+      },
+      {
+        "path": "/api/player/state",
+        "account": "u_other",
+        "identity": "proxy_user",
+        "status": 403,
+        "wallet": false
+      },
+      {
+        "path": "/api/player/state",
+        "account": "proxy_user",
+        "identity": "proxy_user",
+        "status": 200,
+        "wallet": true
+      },
+      {
+        "path": "/api/player/state",
+        "account": "u_demo",
+        "identity": null,
+        "status": 200,
+        "wallet": false
+      },
+      {
+        "path": "/api/player/state",
+        "account": "proxy_user",
+        "identity": "proxy_user",
+        "status": 200,
+        "wallet": true
+      },
+      {
+        "path": "/api/player/state",
+        "account": "proxy_user",
+        "identity": "proxy_user",
+        "status": 200,
+        "wallet": true
+      },
+      {
+        "path": "/api/player/state",
+        "account": "proxy_user",
+        "identity": "proxy_user",
+        "status": 200,
+        "wallet": true
+      }
+    ],
+    "writes": [
+      {
+        "path": "/api/player/enter",
+        "auth": true,
+        "identity": "proxy_user",
+        "status": 200
+      },
+      {
+        "path": "/api/player/action",
+        "auth": true,
+        "identity": "proxy_user",
+        "status": 200
+      },
+      {
+        "path": "/api/player/action",
+        "auth": false,
+        "identity": null,
+        "status": 401
+      }
+    ]
+  }
+}
