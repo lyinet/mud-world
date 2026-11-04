@@ -608,7 +608,10 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             content_goal_id=str(d.get("content_goal_id", "")),
             content_type=str(d.get("content_type", "")),
         )
-        _entity(state, npc).goal_id = gid
+        # 次级目标（自提案）不接管 entity.goal_id：既有内容主线继续规划，
+        # 自目标只靠带 `_goal_id` 的独立额度动作推进。
+        if not bool(d.get("secondary", False)):
+            _entity(state, npc).goal_id = gid
         return
 
     if op == "goal_progress":

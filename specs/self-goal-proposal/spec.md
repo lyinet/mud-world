@@ -167,6 +167,26 @@ Verdict 必须携带：`reason`、`equation`、`days`、`quota`、`per_action_un
 
 只 stage 自有文件，禁止 `git add -A`；不碰 `docs/QUICKSTART.md`、`docs/known-limitations.md`、`docs/RELEASE-NOTES-p3i.md`、`dist/`、`dialogue*.py`、`text_guard.py`；不改 tag；不动 `content/`（冻结 hash `7ec670c1…`）。默认关闭。
 
+## 7b. 独立额度（第二轮，修 bug）
+
+机制不变，只把自目标从“主目标”降为“次级目标”：
+
+- `goal_create` 支持 `secondary=True`：建目标但**不写** `entity.goal_id`，内容主线不受影响。
+- Planner 在内容目标 `depth` 个动作之后，**每天额外排 1 个**自目标动作（`SELF_GOAL_ACTIONS_PER_DAY=1`），并把该动作 intent 打上 `_goal_id`。
+- `goal_progress(state, npc, kind, units, tick, goal_id=...)`：显式 `goal_id` 只认该目标，类型不匹配返回空，**绝不回落**到活跃目标。
+- 校验器配额改为 `action_capacity = deadline_days × 1`；`per_action` 与独立额度真实产出对齐（`mastery=0.0025×2`，`wealth=max(单件净售价,5)`）。
+- 自额度动作使用独立 memo，避免 `_goal_step` 的 opened/joined/apprentice/married 标记压掉次日内容动作。
+
+判据：自提案臂 K1 ≥ 纯规则臂 −5pp（≥63.13%），且“自提案占用既有额度次数”= 0。
+
+## 7c. 代理指标（替代 K1 主指标）
+
+- **SGR**：激活的自目标中真正完成的比例；同时报 `target/capacity`（校验器预筛后的基线难度）。SGR 高只证明提案与执行一致，不证明提案质量。
+- **STC**：自提案涉及的类型数与分布。
+- **SGC**：完成一个自目标后 3 天内是否提出下一个（及是否同类型/顺承）。须注明 stub 固定 3 天节奏会抬高该值。
+- 三项均可仅由 `events.jsonl` + `self_goal_proposals.jsonl` 复算（`tools/self_goal_metrics.py`）。
+- 提案理由 rubric 4 维（处境贴合 / 目标具体可执行 / 与目标的因果链 / 是否像本人会说），先做双打分者可操作性验证（`tools/self_goal_rubric.py`），不做拟人性结论。
+
 ## 8. 已知风险
 
 - 规则 planner 只认识既有 `content_type` 分支，因此自提案复用既有类型；这是「可执行」而非「有意义」的保证，报告须写明。

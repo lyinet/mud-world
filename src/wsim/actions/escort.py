@@ -15,6 +15,7 @@ from ..world.state import WorldState
 from .common import (
     arg_int,
     escort_business,
+    explicit_goal_id,
     goal_progress,
     memory,
     payment_with_shortfall,
@@ -212,7 +213,10 @@ class SystemEscortArriveAction(Action):
                         tax = min(tax, bal + min(share, state.account_balance(agency.cash_account)))
                     if tax > 0:
                         effects.extend(tax_split_effects(self.content, wallet(carrier.id), tax))
-                effects.extend(goal_progress(state, carrier.id, "escort", 1.0, intent.tick))
+                effects.extend(goal_progress(
+                    state, carrier.id, "escort", 1.0, intent.tick,
+                    goal_id=explicit_goal_id(intent),
+                ))
                 note = f"镖单{oid}送达，得银{share}文"
                 if order.risk_event:
                     note += f"（风险事件 {order.risk_event}，扣{order.fee_penalty}文"

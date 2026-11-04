@@ -9,6 +9,7 @@ from .common import (
     alive,
     business_selling,
     business_with_cash,
+    explicit_goal_id,
     goal_progress,
     memory,
     require_entity,
@@ -119,7 +120,7 @@ class SellAction(Action):
             Effect("item_move", {"src": ent.id, "dst": buyer.id, "item": item, "qty": qty}),
             Effect("transfer", {"src": buyer.cash_account, "dst": wallet(ent.id), "amount": revenue, "reason": "sell"}),
             Effect("set_field", {"entity": ent.id, "field": "last_action_tick", "value": intent.tick}),
-            *goal_progress(state, ent.id, "wealth", float(max(0, net)), intent.tick),
+            *goal_progress(state, ent.id, "wealth", float(max(0, net)), intent.tick, goal_id=explicit_goal_id(intent)),
             *memory(state, ent.id, intent.tick, f"向{buyer.name}卖出{item}x{qty}，得{revenue}文", 0.2),
         ]
         if tax > 0:
@@ -216,9 +217,12 @@ class TradeAction(Action):
             [
                 Effect("set_field", {"entity": ent.id, "field": "last_action_tick", "value": intent.tick}),
                 Effect("set_field", {"entity": target.id, "field": "last_action_tick", "value": intent.tick}),
-                *goal_progress(state, ent.id, "bond", 3.0, intent.tick),
+                *goal_progress(state, ent.id, "bond", 3.0, intent.tick, goal_id=explicit_goal_id(intent)),
                 *goal_progress(state, target.id, "bond", 3.0, intent.tick),
-                *([*goal_progress(state, ent.id, "wealth", float(delta), intent.tick)] if delta > 0 else []),
+                *([*goal_progress(
+                    state, ent.id, "wealth", float(delta), intent.tick,
+                    goal_id=explicit_goal_id(intent),
+                )] if delta > 0 else []),
                 *memory(state, ent.id, intent.tick, f"与{target.name}交易", 0.2),
                 *memory(state, target.id, intent.tick, f"与{ent.name}交易", 0.2),
             ]

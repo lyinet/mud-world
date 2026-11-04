@@ -467,9 +467,14 @@ class SystemGoalAction(Action):
             ),
             "content_goal_id": str(args.get("content_goal_id", "")),
             "content_type": str(args.get("content_type", "")),
+            "secondary": bool(args.get("secondary", False)),
         }
+        # 次级目标（自提案）：只建目标，不切换 entity.goal_id，因此绝不顶掉
+        # 既有的内容主线；它的进度由带 `_goal_id` 的独立额度动作单独记。
+        secondary = bool(args.get("secondary", False))
         if goal_id in state.goals:
-            effects.append(Effect("set_field", {"entity": ent.id, "field": "goal_id", "value": goal_id}))
+            if not secondary:
+                effects.append(Effect("set_field", {"entity": ent.id, "field": "goal_id", "value": goal_id}))
         else:
             effects.append(Effect("goal_create", payload))
         reason = str(args.get("reason", "")) or intent.reason

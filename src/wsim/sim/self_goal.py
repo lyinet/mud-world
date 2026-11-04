@@ -27,7 +27,7 @@ from ..actions.common import (
 )
 from ..core.clock import TICKS_PER_DAY, day_of
 from ..world.state import WorldState
-from .intent import DEPTH_GOAL_ACTIONS, GoalChoice
+from .intent import GoalChoice
 
 SUPPORTED_TYPES = frozenset(
     {
@@ -42,8 +42,12 @@ SUPPORTED_TYPES = frozenset(
 ALLOWED_PRECONDITIONS = frozenset(
     {"has_employer", "at_location", "target_present", "owns_no_shop", "has_org"}
 )
-MASTERY_PER_ACTION = 0.0025 * 8  # cultivate 8h 上限
+MASTERY_PER_ACTION = 0.0025 * 2  # 独立额度动作走 cultivate 2h（与 Planner._goal_step 一致）
 SHOP_STALL_COST = 300
+# 自提案的独立额度：每个 NPC 每天额外 1 次自目标深度动作，不占用内容目标的
+# DEPTH_GOAL_ACTIONS 名额。校验器的 action_capacity 必须按这个额度算。
+SELF_GOAL_ACTIONS_PER_DAY = 1
+TRADE_MONEY_PER_ACTION = 5.0  # `_goal_step` 的 trade 兜底：money_delta=5
 
 
 def _is_int(v: Any) -> bool:
@@ -230,13 +234,15 @@ class FeasibilityValidator:
         return float(wage) * (1.0 - float(taxes.get("income", 0.0)))
 
     def _best_sell_revenue(self, state: WorldState, npc: str) -> float:
+        """单次 sell 动作的净收益上限（一次只卖 1 件，不是全部库存）。"""
         ent = state.entities[npc]
         best = 0.0
+        tax_rate = float((self.content.economy.get("taxes") or {}).get("transaction", 0.0))
         for item in sellable_items(self.content, ent):
-            qty = int(ent.inventory.get(item, 0))
-            if qty <= 0:
+            if int(ent.inventory.get(item, 0)) <= 0:
                 continue
-            best = max(best, float(sell_price(self.content, item, state) * qty))
+            price = float(sell_price(self.content, item, state))
+            best = max(best, price * (1.0 - tax_rate))
         return best
 
     def _target_present(self, state: WorldState, proposal: SelfGoalProposal) -> bool:
@@ -299,7 +305,7 @@ class FeasibilityValidator:
         tier: str,
     ) -> Verdict:
         days = int(proposal.deadline_days)
-        quota = int(DEPTH_GOAL_ACTIONS.get(tier, 1))
+        quota = SELF_GOAL_ACTIONS_PER_DAY
         action_capacity = days * quota
         ent = state.entities.get(proposal.npc)
         checks: list[dict[str, Any]] = []
@@ -334,20 +340,20 @@ class FeasibilityValidator:
         capacity = 0.0
         cash = state.account_balance(wallet(ent.id))
         if kind == "wealth":
-            wage = self._wage_net(ent.role)
+            # 独立额度不排 work：现钱只来自 sell（单件净收益）或 trade（+5 文兜底）。
             sell = self._best_sell_revenue(state, ent.id)
-            per = max(wage, sell)
+            per = max(TRADE_MONEY_PER_ACTION, sell)
             checks.append(
                 _check(
                     "income_source",
                     per > 0,
                     round(per, 4),
                     ">0",
-                    f"max(wage_net={wage:.2f}, best_sell={sell:.2f})={per:.2f}",
+                    f"max(trade={TRADE_MONEY_PER_ACTION:.2f}, best_sell_net={sell:.2f})={per:.2f}",
                 )
             )
             if per <= 0:
-                return reject("no_income_source", f"per_action=max({wage:.2f},{sell:.2f})=0")
+                return reject("no_income_source", f"per_action=max({TRADE_MONEY_PER_ACTION},{sell:.2f})=0")
             capacity = action_capacity * per
         elif kind == "mastery":
             per = MASTERY_PER_ACTION
@@ -367,7 +373,7 @@ class FeasibilityValidator:
         elif kind == "bond":
             present = self._target_present(state, proposal)
             has_biz = bool(state.business_at(ent.location))
-            per = 5.0 if present else (3.0 if has_biz else 0.0)
+            per = 3.0 if (present or has_biz) else 0.0
             checks.append(
                 _check(
                     "bond_source",
@@ -575,19 +581,19 @@ class SelfGoalLedger:
         self, state: WorldState, npc: str, tick: int, tier: str, index: int, cycle: int
     ) -> dict[str, Any] | None:
         ent = state.entities[npc]
-        quota = int(DEPTH_GOAL_ACTIONS.get(tier, 1))
         days = self.max_window_days
-        actions = days * quota
+        actions = days * SELF_GOAL_ACTIONS_PER_DAY
         has_employer = bool(employer_of(state, ent))
         use_mastery = max_skill(ent) < 0.9 and (not has_employer or index % 2 == 0)
         if use_mastery:
             ctype = "advance_skill"
-            target = min(float(goal_target(self.content, "mastery")), 0.9 * actions * MASTERY_PER_ACTION)
+            per = MASTERY_PER_ACTION
+            target = min(float(goal_target(self.content, "mastery")), 0.9 * actions * per)
             pre = []
         else:
             ctype = "earn_money"
-            wage = self._wage_net(ent.role)
-            target = min(float(goal_target(self.content, "wealth")), 0.9 * actions * wage)
+            per = max(TRADE_MONEY_PER_ACTION, self._best_sell(state, npc))
+            target = min(float(goal_target(self.content, "wealth")), 0.9 * actions * per)
             pre = ["has_employer"] if has_employer else []
         expected_actions = actions
         expected_money = 0
@@ -723,7 +729,9 @@ class SelfGoalLedger:
         if self._initial_goal_active(state, npc):
             return "initial_goal_protected", f"active={ent.goal_id} is initial content goal"
         active_self = self._active_self_goal(state, npc)
-        if active_self is not None and active_self.id != ent.goal_id:
+        if active_self is not None:
+            # 自目标是次级目标，始终不占 entity.goal_id；因此“同 NPC 同时只有
+            # 一个活跃自目标”这条硬门不再需要豁免当前主目标的情况。
             return "self_goal_active", f"active_self_goal={active_self.id}"
         return "", ""
 
@@ -757,8 +765,7 @@ class SelfGoalLedger:
         if ent is None or ent.status != "alive":
             return None
 
-        if self.consume_expired(state, npc, tick):
-            return None
+        # 到期由上层 consume_expired 负责；这里只负责“给一个可规划的自目标”。
         active_self = self._active_self_goal(state, npc)
         if active_self is not None:
             return GoalChoice(
@@ -771,6 +778,7 @@ class SelfGoalLedger:
                 source="self",
                 reason="继续推进自定目标",
                 create=False,
+                secondary=True,
             )
 
         proposal = self.pending.get(npc)
@@ -857,6 +865,7 @@ class SelfGoalLedger:
             source="self",
             reason=proposal.purpose,
             create=True,
+            secondary=True,
         )
 
     def scan(self, state: WorldState, tick: int) -> None:

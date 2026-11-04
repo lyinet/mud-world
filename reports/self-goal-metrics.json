@@ -1,0 +1,155 @@
+{
+  "quota": {
+    "content_progress_rule": 374,
+    "content_progress_self": 417,
+    "self_actions_credited_to_content": 0,
+    "self_actions_credited_to_self": 97,
+    "self_actions_total": 140
+  },
+  "rule_arm": {
+    "events": {
+      "content_goal_progress_events": 374,
+      "content_goal_progress_without_self_slot": 374,
+      "content_progress_per_npc_day": 1.1687,
+      "days": 10,
+      "leak_examples": [],
+      "npc_count": 32,
+      "self_goal_progress_events": 0,
+      "self_slot_events": 0,
+      "self_slot_moves": 0,
+      "self_slot_progress_on_content": 0,
+      "self_slot_progress_on_self": 0
+    }
+  },
+  "self_arm": {
+    "events": {
+      "content_goal_progress_events": 417,
+      "content_goal_progress_without_self_slot": 417,
+      "content_progress_per_npc_day": 1.3031,
+      "days": 10,
+      "leak_examples": [],
+      "npc_count": 32,
+      "self_goal_progress_events": 97,
+      "self_slot_events": 140,
+      "self_slot_moves": 0,
+      "self_slot_progress_on_content": 0,
+      "self_slot_progress_on_self": 97
+    },
+    "trace": {
+      "activations": 56,
+      "baseline_difficulty": {
+        "max": 0.9278,
+        "mean": 0.8228,
+        "median": 0.9,
+        "min": 0.1544,
+        "n": 56
+      },
+      "completions": 22,
+      "expired": 8,
+      "segments": {
+        "first_5d": {
+          "activations": 27,
+          "completions": 13,
+          "expired": 0,
+          "sgr": 0.4815,
+          "types": {
+            "advance_skill": 18,
+            "earn_money": 9
+          }
+        },
+        "last_5d": {
+          "activations": 29,
+          "completions": 9,
+          "expired": 8,
+          "sgr": 0.3103,
+          "types": {
+            "advance_skill": 20,
+            "earn_money": 9
+          }
+        }
+      },
+      "sgc": {
+        "completed": 22,
+        "examples": [
+          {
+            "done": "self:cao_banxian:1:advance_skill",
+            "done_type": "advance_skill",
+            "gap_ticks": 317,
+            "next": "self:cao_banxian:452:advance_skill",
+            "next_type": "advance_skill",
+            "npc": "cao_banxian"
+          },
+          {
+            "done": "self:shi_gandang:1:advance_skill",
+            "done_type": "advance_skill",
+            "gap_ticks": 160,
+            "next": "self:shi_gandang:514:advance_skill",
+            "next_type": "advance_skill",
+            "npc": "shi_gandang"
+          },
+          {
+            "done": "self:duan_wudou:54:advance_skill",
+            "done_type": "advance_skill",
+            "gap_ticks": 150,
+            "next": "self:duan_wudou:537:advance_skill",
+            "next_type": "advance_skill",
+            "npc": "duan_wudou"
+          },
+          {
+            "done": "self:wen_xiaoman:61:advance_skill",
+            "done_type": "advance_skill",
+            "gap_ticks": 150,
+            "next": "self:wen_xiaoman:559:advance_skill",
+            "next_type": "advance_skill",
+            "npc": "wen_xiaoman"
+          },
+          {
+            "done": "self:zhuo_bufan:35:advance_skill",
+            "done_type": "advance_skill",
+            "gap_ticks": 81,
+            "next": "self:zhuo_bufan:532:advance_skill",
+            "next_type": "advance_skill",
+            "npc": "zhuo_bufan"
+          },
+          {
+            "done": "self:gu_qingya:132:advance_skill",
+            "done_type": "advance_skill",
+            "gap_ticks": 385,
+            "next": "self:gu_qingya:876:advance_skill",
+            "next_type": "advance_skill",
+            "npc": "gu_qingya"
+          },
+          {
+            "done": "self:cao_banxian:452:advance_skill",
+            "done_type": "advance_skill",
+            "gap_ticks": 345,
+            "next": "self:cao_banxian:901:advance_skill",
+            "next_type": "advance_skill",
+            "npc": "cao_banxian"
+          },
+          {
+            "done": "self:hua_jieyu:40:advance_skill",
+            "done_type": "advance_skill",
+            "gap_ticks": 107,
+            "next": "self:hua_jieyu:688:advance_skill",
+            "next_type": "advance_skill",
+            "npc": "hua_jieyu"
+          }
+        ],
+        "next_within_3d": 19,
+        "next_within_3d_related": 19,
+        "rate_any": 0.8636,
+        "rate_related": 0.8636
+      },
+      "sgr": 0.3929,
+      "stc": {
+        "distinct_types": 2,
+        "distribution": {
+          "advance_skill": 38,
+          "earn_money": 18
+        },
+        "share_of_earn_money": 0.3214
+      }
+    }
+  }
+}

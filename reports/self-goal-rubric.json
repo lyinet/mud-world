@@ -1,0 +1,662 @@
+{
+  "corpus_proposals": 87,
+  "dim_stats": {
+    "与目标的因果链": {
+      "disagreements": 20,
+      "items": [
+        "self:cao_banxian:1:advance_skill",
+        "self:liu_sanniang:31:earn_money",
+        "self:wen_xiaoman:61:advance_skill",
+        "self:gu_qingya:132:advance_skill",
+        "self:xie_tingyun:286:earn_money",
+        "self:shi_gandang:514:advance_skill",
+        "self:luo_qingxu:590:earn_money",
+        "self:pei_wujiu:719:earn_money",
+        "self:su_hexiang:883:earn_money",
+        "self:cui_tieyi:912:earn_money",
+        "self:bai_lusheng:1005:advance_skill",
+        "self:wei_changgeng:1311:advance_skill",
+        "self:zhuo_bufan:1342:advance_skill",
+        "self:fang_cunxin:1412:advance_skill",
+        "self:han_xinglin:57:earn_money",
+        "self:ruan_qingfu:217:earn_money",
+        "self:han_xinglin:511:earn_money",
+        "self:han_xinglin:890:earn_money",
+        "self:lu_xinghua:1085:earn_money",
+        "self:lu_xinghua:1406:earn_money"
+      ],
+      "max_abs_gap": 2,
+      "mean_a": 2.8,
+      "mean_b": 4.4
+    },
+    "处境贴合": {
+      "disagreements": 8,
+      "items": [
+        "self:cao_banxian:1:advance_skill",
+        "self:wen_xiaoman:61:advance_skill",
+        "self:gu_qingya:132:advance_skill",
+        "self:shi_gandang:514:advance_skill",
+        "self:bai_lusheng:1005:advance_skill",
+        "self:wei_changgeng:1311:advance_skill",
+        "self:zhuo_bufan:1342:advance_skill",
+        "self:fang_cunxin:1412:advance_skill"
+      ],
+      "max_abs_gap": 2,
+      "mean_a": 4.2,
+      "mean_b": 5.0
+    },
+    "是否像本人会说": {
+      "disagreements": 20,
+      "items": [
+        "self:cao_banxian:1:advance_skill",
+        "self:liu_sanniang:31:earn_money",
+        "self:wen_xiaoman:61:advance_skill",
+        "self:gu_qingya:132:advance_skill",
+        "self:xie_tingyun:286:earn_money",
+        "self:shi_gandang:514:advance_skill",
+        "self:luo_qingxu:590:earn_money",
+        "self:pei_wujiu:719:earn_money",
+        "self:su_hexiang:883:earn_money",
+        "self:cui_tieyi:912:earn_money",
+        "self:bai_lusheng:1005:advance_skill",
+        "self:wei_changgeng:1311:advance_skill",
+        "self:zhuo_bufan:1342:advance_skill",
+        "self:fang_cunxin:1412:advance_skill",
+        "self:han_xinglin:57:earn_money",
+        "self:ruan_qingfu:217:earn_money",
+        "self:han_xinglin:511:earn_money",
+        "self:han_xinglin:890:earn_money",
+        "self:lu_xinghua:1085:earn_money",
+        "self:lu_xinghua:1406:earn_money"
+      ],
+      "max_abs_gap": 2,
+      "mean_a": 3.0,
+      "mean_b": 5.0
+    },
+    "目标具体可执行": {
+      "disagreements": 7,
+      "items": [
+        "self:liu_sanniang:31:earn_money",
+        "self:han_xinglin:57:earn_money",
+        "self:ruan_qingfu:217:earn_money",
+        "self:han_xinglin:511:earn_money",
+        "self:han_xinglin:890:earn_money",
+        "self:lu_xinghua:1085:earn_money",
+        "self:lu_xinghua:1406:earn_money"
+      ],
+      "max_abs_gap": 4,
+      "mean_a": 3.7,
+      "mean_b": 5.0
+    }
+  },
+  "items": [
+    {
+      "accepted": true,
+      "capacity": 0.015,
+      "diff": {
+        "与目标的因果链": -1,
+        "处境贴合": -2,
+        "是否像本人会说": -2,
+        "目标具体可执行": 0
+      },
+      "goal_type": "advance_skill",
+      "npc": "cao_banxian",
+      "proposal_id": "self:cao_banxian:1:advance_skill",
+      "purpose": "把0.440的手艺再精进到0.014",
+      "scorer_a": {
+        "与目标的因果链": 4,
+        "处境贴合": 3,
+        "是否像本人会说": 3,
+        "目标具体可执行": 5
+      },
+      "scorer_b": {
+        "与目标的因果链": 5,
+        "处境贴合": 5,
+        "是否像本人会说": 5,
+        "目标具体可执行": 5
+      },
+      "target": 0.0135,
+      "tick": 1
+    },
+    {
+      "accepted": true,
+      "capacity": 331.74,
+      "diff": {
+        "与目标的因果链": -2,
+        "处境贴合": 0,
+        "是否像本人会说": -2,
+        "目标具体可执行": -2
+      },
+      "goal_type": "earn_money",
+      "npc": "liu_sanniang",
+      "proposal_id": "self:liu_sanniang:31:earn_money",
+      "purpose": "攒142文件盘缠",
+      "scorer_a": {
+        "与目标的因果链": 2,
+        "处境贴合": 5,
+        "是否像本人会说": 3,
+        "目标具体可执行": 3
+      },
+      "scorer_b": {
+        "与目标的因果链": 4,
+        "处境贴合": 5,
+        "是否像本人会说": 5,
+        "目标具体可执行": 5
+      },
+      "target": 142.0,
+      "tick": 31
+    },
+    {
+      "accepted": true,
+      "capacity": 0.015,
+      "diff": {
+        "与目标的因果链": -1,
+        "处境贴合": -2,
+        "是否像本人会说": -2,
+        "目标具体可执行": 0
+      },
+      "goal_type": "advance_skill",
+      "npc": "wen_xiaoman",
+      "proposal_id": "self:wen_xiaoman:61:advance_skill",
+      "purpose": "把0.420的手艺再精进到0.014",
+      "scorer_a": {
+        "与目标的因果链": 4,
+        "处境贴合": 3,
+        "是否像本人会说": 3,
+        "目标具体可执行": 5
+      },
+      "scorer_b": {
+        "与目标的因果链": 5,
+        "处境贴合": 5,
+        "是否像本人会说": 5,
+        "目标具体可执行": 5
+      },
+      "target": 0.0135,
+      "tick": 61
+    },
+    {
+      "accepted": true,
+      "capacity": 0.015,
+      "diff": {
+        "与目标的因果链": -1,
+        "处境贴合": -2,
+        "是否像本人会说": -2,
+        "目标具体可执行": 0
+      },
+      "goal_type": "advance_skill",
+      "npc": "gu_qingya",
+      "proposal_id": "self:gu_qingya:132:advance_skill",
+      "purpose": "把0.480的手艺再精进到0.014",
+      "scorer_a": {
+        "与目标的因果链": 4,
+        "处境贴合": 3,
+        "是否像本人会说": 3,
+        "目标具体可执行": 5
+      },
+      "scorer_b": {
+        "与目标的因果链": 5,
+        "处境贴合": 5,
+        "是否像本人会说": 5,
+        "目标具体可执行": 5
+      },
+      "target": 0.0135,
+      "tick": 132
+    },
+    {
+      "accepted": true,
+      "capacity": 104.76,
+      "diff": {
+        "与目标的因果链": -2,
+        "处境贴合": 0,
+        "是否像本人会说": -2,
+        "目标具体可执行": 0
+      },
+      "goal_type": "earn_money",
+      "npc": "xie_tingyun",
+      "proposal_id": "self:xie_tingyun:286:earn_money",
+      "purpose": "攒97文件盘缠",
+      "scorer_a": {
+        "与目标的因果链": 2,
+        "处境贴合": 5,
+        "是否像本人会说": 3,
+        "目标具体可执行": 5
+      },
+      "scorer_b": {
+        "与目标的因果链": 4,
+        "处境贴合": 5,
+        "是否像本人会说": 5,
+        "目标具体可执行": 5
+      },
+      "target": 97.2,
+      "tick": 286
+    },
+    {
+      "accepted": true,
+      "capacity": 0.015,
+      "diff": {
+        "与目标的因果链": -1,
+        "处境贴合": -2,
+        "是否像本人会说": -2,
+        "目标具体可执行": 0
+      },
+      "goal_type": "advance_skill",
+      "npc": "shi_gandang",
+      "proposal_id": "self:shi_gandang:514:advance_skill",
+      "purpose": "把0.584的手艺再精进到0.014",
+      "scorer_a": {
+        "与目标的因果链": 4,
+        "处境贴合": 3,
+        "是否像本人会说": 3,
+        "目标具体可执行": 5
+      },
+      "scorer_b": {
+        "与目标的因果链": 5,
+        "处境贴合": 5,
+        "是否像本人会说": 5,
+        "目标具体可执行": 5
+      },
+      "target": 0.0135,
+      "tick": 514
+    },
+    {
+      "accepted": true,
+      "capacity": 104.76,
+      "diff": {
+        "与目标的因果链": -2,
+        "处境贴合": 0,
+        "是否像本人会说": -2,
+        "目标具体可执行": 0
+      },
+      "goal_type": "earn_money",
+      "npc": "luo_qingxu",
+      "proposal_id": "self:luo_qingxu:590:earn_money",
+      "purpose": "攒97文件盘缠",
+      "scorer_a": {
+        "与目标的因果链": 2,
+        "处境贴合": 5,
+        "是否像本人会说": 3,
+        "目标具体可执行": 5
+      },
+      "scorer_b": {
+        "与目标的因果链": 4,
+        "处境贴合": 5,
+        "是否像本人会说": 5,
+        "目标具体可执行": 5
+      },
+      "target": 97.2,
+      "tick": 590
+    },
+    {
+      "accepted": true,
+      "capacity": 61.11,
+      "diff": {
+        "与目标的因果链": -2,
+        "处境贴合": 0,
+        "是否像本人会说": -2,
+        "目标具体可执行": 0
+      },
+      "goal_type": "earn_money",
+      "npc": "pei_wujiu",
+      "proposal_id": "self:pei_wujiu:719:earn_money",
+      "purpose": "攒57文件盘缠",
+      "scorer_a": {
+        "与目标的因果链": 2,
+        "处境贴合": 5,
+        "是否像本人会说": 3,
+        "目标具体可执行": 5
+      },
+      "scorer_b": {
+        "与目标的因果链": 4,
+        "处境贴合": 5,
+        "是否像本人会说": 5,
+        "目标具体可执行": 5
+      },
+      "target": 56.7,
+      "tick": 719
+    },
+    {
+      "accepted": true,
+      "capacity": 209.52,
+      "diff": {
+        "与目标的因果链": -2,
+        "处境贴合": 0,
+        "是否像本人会说": -2,
+        "目标具体可执行": 0
+      },
+      "goal_type": "earn_money",
+      "npc": "su_hexiang",
+      "proposal_id": "self:su_hexiang:883:earn_money",
+      "purpose": "攒142文件盘缠",
+      "scorer_a": {
+        "与目标的因果链": 2,
+        "处境贴合": 5,
+        "是否像本人会说": 3,
+        "目标具体可执行": 5
+      },
+      "scorer_b": {
+        "与目标的因果链": 4,
+        "处境贴合": 5,
+        "是否像本人会说": 5,
+        "目标具体可执行": 5
+      },
+      "target": 142.0,
+      "tick": 883
+    },
+    {
+      "accepted": true,
+      "capacity": 15.0,
+      "diff": {
+        "与目标的因果链": -2,
+        "处境贴合": 0,
+        "是否像本人会说": -2,
+        "目标具体可执行": 0
+      },
+      "goal_type": "earn_money",
+      "npc": "cui_tieyi",
+      "proposal_id": "self:cui_tieyi:912:earn_money",
+      "purpose": "攒14文件盘缠",
+      "scorer_a": {
+        "与目标的因果链": 2,
+        "处境贴合": 5,
+        "是否像本人会说": 3,
+        "目标具体可执行": 5
+      },
+      "scorer_b": {
+        "与目标的因果链": 4,
+        "处境贴合": 5,
+        "是否像本人会说": 5,
+        "目标具体可执行": 5
+      },
+      "target": 13.5,
+      "tick": 912
+    },
+    {
+      "accepted": true,
+      "capacity": 0.015,
+      "diff": {
+        "与目标的因果链": -1,
+        "处境贴合": -2,
+        "是否像本人会说": -2,
+        "目标具体可执行": 0
+      },
+      "goal_type": "advance_skill",
+      "npc": "bai_lusheng",
+      "proposal_id": "self:bai_lusheng:1005:advance_skill",
+      "purpose": "把0.715的手艺再精进到0.014",
+      "scorer_a": {
+        "与目标的因果链": 4,
+        "处境贴合": 3,
+        "是否像本人会说": 3,
+        "目标具体可执行": 5
+      },
+      "scorer_b": {
+        "与目标的因果链": 5,
+        "处境贴合": 5,
+        "是否像本人会说": 5,
+        "目标具体可执行": 5
+      },
+      "target": 0.0135,
+      "tick": 1005
+    },
+    {
+      "accepted": true,
+      "capacity": 0.015,
+      "diff": {
+        "与目标的因果链": -1,
+        "处境贴合": -2,
+        "是否像本人会说": -2,
+        "目标具体可执行": 0
+      },
+      "goal_type": "advance_skill",
+      "npc": "wei_changgeng",
+      "proposal_id": "self:wei_changgeng:1311:advance_skill",
+      "purpose": "把0.608的手艺再精进到0.014",
+      "scorer_a": {
+        "与目标的因果链": 4,
+        "处境贴合": 3,
+        "是否像本人会说": 3,
+        "目标具体可执行": 5
+      },
+      "scorer_b": {
+        "与目标的因果链": 5,
+        "处境贴合": 5,
+        "是否像本人会说": 5,
+        "目标具体可执行": 5
+      },
+      "target": 0.0135,
+      "tick": 1311
+    },
+    {
+      "accepted": true,
+      "capacity": 0.015,
+      "diff": {
+        "与目标的因果链": -1,
+        "处境贴合": -2,
+        "是否像本人会说": -2,
+        "目标具体可执行": 0
+      },
+      "goal_type": "advance_skill",
+      "npc": "zhuo_bufan",
+      "proposal_id": "self:zhuo_bufan:1342:advance_skill",
+      "purpose": "把0.835的手艺再精进到0.014",
+      "scorer_a": {
+        "与目标的因果链": 4,
+        "处境贴合": 3,
+        "是否像本人会说": 3,
+        "目标具体可执行": 5
+      },
+      "scorer_b": {
+        "与目标的因果链": 5,
+        "处境贴合": 5,
+        "是否像本人会说": 5,
+        "目标具体可执行": 5
+      },
+      "target": 0.0135,
+      "tick": 1342
+    },
+    {
+      "accepted": true,
+      "capacity": 0.015,
+      "diff": {
+        "与目标的因果链": -1,
+        "处境贴合": -2,
+        "是否像本人会说": -2,
+        "目标具体可执行": 0
+      },
+      "goal_type": "advance_skill",
+      "npc": "fang_cunxin",
+      "proposal_id": "self:fang_cunxin:1412:advance_skill",
+      "purpose": "把0.408的手艺再精进到0.014",
+      "scorer_a": {
+        "与目标的因果链": 4,
+        "处境贴合": 3,
+        "是否像本人会说": 3,
+        "目标具体可执行": 5
+      },
+      "scorer_b": {
+        "与目标的因果链": 5,
+        "处境贴合": 5,
+        "是否像本人会说": 5,
+        "目标具体可执行": 5
+      },
+      "target": 0.0135,
+      "tick": 1412
+    },
+    {
+      "accepted": false,
+      "capacity": 40.74,
+      "diff": {
+        "与目标的因果链": -2,
+        "处境贴合": 0,
+        "是否像本人会说": -2,
+        "目标具体可执行": -4
+      },
+      "goal_type": "earn_money",
+      "npc": "han_xinglin",
+      "proposal_id": "self:han_xinglin:57:earn_money",
+      "purpose": "攒76文件盘缠",
+      "scorer_a": {
+        "与目标的因果链": 2,
+        "处境贴合": 5,
+        "是否像本人会说": 3,
+        "目标具体可执行": 1
+      },
+      "scorer_b": {
+        "与目标的因果链": 4,
+        "处境贴合": 5,
+        "是否像本人会说": 5,
+        "目标具体可执行": 5
+      },
+      "target": 75.6,
+      "tick": 57
+    },
+    {
+      "accepted": false,
+      "capacity": 43.65,
+      "diff": {
+        "与目标的因果链": -2,
+        "处境贴合": 0,
+        "是否像本人会说": -2,
+        "目标具体可执行": -4
+      },
+      "goal_type": "earn_money",
+      "npc": "ruan_qingfu",
+      "proposal_id": "self:ruan_qingfu:217:earn_money",
+      "purpose": "攒142文件盘缠",
+      "scorer_a": {
+        "与目标的因果链": 2,
+        "处境贴合": 5,
+        "是否像本人会说": 3,
+        "目标具体可执行": 1
+      },
+      "scorer_b": {
+        "与目标的因果链": 4,
+        "处境贴合": 5,
+        "是否像本人会说": 5,
+        "目标具体可执行": 5
+      },
+      "target": 142.0,
+      "tick": 217
+    },
+    {
+      "accepted": false,
+      "capacity": 46.56,
+      "diff": {
+        "与目标的因果链": -2,
+        "处境贴合": 0,
+        "是否像本人会说": -2,
+        "目标具体可执行": -4
+      },
+      "goal_type": "earn_money",
+      "npc": "han_xinglin",
+      "proposal_id": "self:han_xinglin:511:earn_money",
+      "purpose": "攒86文件盘缠",
+      "scorer_a": {
+        "与目标的因果链": 2,
+        "处境贴合": 5,
+        "是否像本人会说": 3,
+        "目标具体可执行": 1
+      },
+      "scorer_b": {
+        "与目标的因果链": 4,
+        "处境贴合": 5,
+        "是否像本人会说": 5,
+        "目标具体可执行": 5
+      },
+      "target": 86.4,
+      "tick": 511
+    },
+    {
+      "accepted": false,
+      "capacity": 46.56,
+      "diff": {
+        "与目标的因果链": -2,
+        "处境贴合": 0,
+        "是否像本人会说": -2,
+        "目标具体可执行": -4
+      },
+      "goal_type": "earn_money",
+      "npc": "han_xinglin",
+      "proposal_id": "self:han_xinglin:890:earn_money",
+      "purpose": "攒86文件盘缠",
+      "scorer_a": {
+        "与目标的因果链": 2,
+        "处境贴合": 5,
+        "是否像本人会说": 3,
+        "目标具体可执行": 1
+      },
+      "scorer_b": {
+        "与目标的因果链": 4,
+        "处境贴合": 5,
+        "是否像本人会说": 5,
+        "目标具体可执行": 5
+      },
+      "target": 86.4,
+      "tick": 890
+    },
+    {
+      "accepted": false,
+      "capacity": 26.19,
+      "diff": {
+        "与目标的因果链": -2,
+        "处境贴合": 0,
+        "是否像本人会说": -2,
+        "目标具体可执行": -4
+      },
+      "goal_type": "earn_money",
+      "npc": "lu_xinghua",
+      "proposal_id": "self:lu_xinghua:1085:earn_money",
+      "purpose": "攒65文件盘缠",
+      "scorer_a": {
+        "与目标的因果链": 2,
+        "处境贴合": 5,
+        "是否像本人会说": 3,
+        "目标具体可执行": 1
+      },
+      "scorer_b": {
+        "与目标的因果链": 4,
+        "处境贴合": 5,
+        "是否像本人会说": 5,
+        "目标具体可执行": 5
+      },
+      "target": 64.8,
+      "tick": 1085
+    },
+    {
+      "accepted": false,
+      "capacity": 26.19,
+      "diff": {
+        "与目标的因果链": -2,
+        "处境贴合": 0,
+        "是否像本人会说": -2,
+        "目标具体可执行": -4
+      },
+      "goal_type": "earn_money",
+      "npc": "lu_xinghua",
+      "proposal_id": "self:lu_xinghua:1406:earn_money",
+      "purpose": "攒65文件盘缠",
+      "scorer_a": {
+        "与目标的因果链": 2,
+        "处境贴合": 5,
+        "是否像本人会说": 3,
+        "目标具体可执行": 1
+      },
+      "scorer_b": {
+        "与目标的因果链": 4,
+        "处境贴合": 5,
+        "是否像本人会说": 5,
+        "目标具体可执行": 5
+      },
+      "target": 64.8,
+      "tick": 1406
+    }
+  ],
+  "rubric": {
+    "与目标的因果链": "1=没有因果描述；2=只有现状或只有结果；4=现状→结果但数值对不上；5=两者都对得上 target",
+    "处境贴合": "1=无地点/无依据；3=有真实地点；5=地点+可执行前置条件都锚在当前状态",
+    "是否像本人会说": "1=模板腔且过长；3=简短但无自我指涉；5=第一人称、短句、像本人说的",
+    "目标具体可执行": "1=target 超出独立额度或小到没有意义；3=占用额度 20%~50%；5=占用 50%~95%"
+  },
+  "sample_accepted": 14,
+  "sample_size": 20
+}

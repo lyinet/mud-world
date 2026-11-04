@@ -19,7 +19,8 @@ def _raw(npc: str, **over):
         "target": 0.01,
         "deadline_days": 3,
         "preconditions": [],
-        "expected_actions": 6,
+        # 独立额度：每 NPC 每天额外 1 次，3 天窗口 = 3 次。
+        "expected_actions": 3,
         "expected_money": 0,
         "objects": ["inn"],
         "purpose": "精进手艺",
@@ -60,7 +61,7 @@ def test_validator_rejects_over_budget_actions(real_content, real_state):
     verdict = FeasibilityValidator(real_content).validate(real_state, proposal, 0, "active")
     assert not verdict.accepted
     assert verdict.reason == "budget_actions_exceeded"
-    assert "expected_actions=12 > action_capacity=6" in verdict.equation
+    assert "expected_actions=12 > action_capacity=3" in verdict.equation
 
 
 def test_validator_rejects_over_budget_money(real_content, real_state):
@@ -82,6 +83,34 @@ def test_validator_rejects_unreachable_target(real_content, real_state):
     assert not verdict.accepted
     assert verdict.reason == "target_exceeds_capacity"
     assert f"< target={proposal.target:.4f}" in verdict.equation
+
+
+def test_secondary_progress_never_credits_active_content_goal(real_content, real_state):
+    """独立额度动作只记自目标：显式 goal_id 不匹配时返回空，绝不回落到主目标。"""
+    from wsim.actions.common import goal_progress
+
+    npc = str(real_content.npcs[0]["id"])
+    ent = real_state.entities[npc]
+    content_goal = real_state.goals[ent.goal_id]
+    self_goal = f"self:{npc}:0:advance_skill"
+    real_state.goals[self_goal] = Goal(
+        id=self_goal, npc=npc, kind="mastery", target=0.01, status="active",
+        source="self", content_goal_id=f"self:{self_goal}", content_type="advance_skill",
+    )
+    self_effects = goal_progress(real_state, npc, "mastery", 0.005, 1, goal_id=self_goal)
+    assert [e.data["id"] for e in self_effects] == [self_goal]
+
+    # 类型不匹配（自目标 mastery，动作给 wealth）→ 空，不记到内容目标。
+    mismatch = goal_progress(real_state, npc, "wealth", 100.0, 1, goal_id=self_goal)
+    assert mismatch == []
+
+    # 未知 goal_id 同样不得回落。
+    unknown = goal_progress(real_state, npc, "mastery", 0.005, 1, goal_id="self:missing")
+    assert unknown == []
+
+    # 不带 goal_id 的老路径仍然记到当前活跃内容目标。
+    legacy = goal_progress(real_state, npc, content_goal.kind, 1.0, 1)
+    assert [e.data["id"] for e in legacy] == [content_goal.id]
 
 
 def test_lifecycle_initial_goal_protected(real_content, real_state):

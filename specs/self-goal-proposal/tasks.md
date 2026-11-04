@@ -50,6 +50,20 @@
    - 只 stage 自有文件：`src/wsim/sim/self_goal.py`、`src/wsim/actions/system.py`、`src/wsim/sim/intent.py`、`src/wsim/sim/headless.py`、`tests/test_self_goal.py`、`tools/self_goal_feasibility.py`、`specs/self-goal-proposal/`、`reports/self-goal-feasibility.md`、`reports/self-goal-stage0.json`；禁止 `git add -A`。
    - 提交信息：`feat(self-goal): 模型目标提案与引擎可行性校验（默认关闭）`。
 
+## 第二轮（独立额度 + 活指标）
+
+9. **配额分开**
+   - `world/effects.py` `goal_create` 支持 `secondary`：建目标不切 `entity.goal_id`。
+   - `actions/system.py` `system_goal` 透传 `secondary`；已存在目标时不发 `set_field`。
+   - `sim/intent.py` Planner：内容动作之后每天 +1 自目标动作（带 `_goal_id`），独立 memo。
+   - `actions/common.py` `goal_progress` 支持显式 `goal_id` 且不回落；13 个调用点透传。
+   - `sim/self_goal.py`：`SELF_GOAL_ACTIONS_PER_DAY=1`，额度与 per_action 对齐。
+10. **指标**
+    - `tools/self_goal_metrics.py`：SGR / STC / SGC + 前 5/后 5 天分段 + 配额占用复算。
+    - `tools/self_goal_rubric.py`：4 维 rubric、20 条分层抽样、双打分者分歧。
+11. **验收**
+    - 自提案臂 K1 ≥ 63.13%；占用既有额度 = 0；两次重跑 hash 一致；全量 pytest 计数记录。
+
 ## 验收线
 
 - 阶段 0 通过率 ≥60%；拒绝全部可复算；两次重跑 hash 一致。

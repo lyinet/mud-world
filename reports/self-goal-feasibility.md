@@ -1,150 +1,145 @@
-# 自提案目标：零成本可行性验证报告
+# 自提案目标：独立额度 + 活指标（stub，零模型调用）
 
-**判断：机制在「提案是否可达」这一层成立；在「K1 目标完成率」上是负增益，不成立为增益机制。**
+**判断一：独立额度把 K1 拉回护栏内。** 纯规则臂 62/91=68.13%，自提案臂 62/91=68.13%，**差 0.00pp**（护栏要求 ≥63.13%，PASS）；自提案动作**占用既有额度 0 次**。
 
-- 阶段 0 全部判据通过：stub 提案通过率 100%（≥60%）、两次重跑 state/event/文件 hash 完全一致、无真实模型调用。
-- 校验器能放行可达提案、拒绝超预算与窗口内不可达提案；拒绝均带可复算式。
-- 但自提案目标占用深度动作额度，纯规则臂 K1 62/91=68.13%，自提案臂 38/91=41.76%，**差 −26.37pp**。
-- 因此本报告只证明“提案可达性校验闭环成立”，**不证明提案有意义/像人，也不证明能提升 K1**；后者需另立评测。
+**判断二：NPC 有了“自己的打算”的雏形，但还谈不上稳定。** 自提案完成率 SGR 39.29%（56 个激活里完成 22 个），进入后 5 天明显衰减（前 5 天 48.15% → 后 5 天 31.03%，到期 8 个）；类型只覆盖 2/6，且 68% 集中在最容易的 `advance_skill`。SGC 86.4% 看着高，但它主要是“固定 3 天发一条提案”的节奏产物，不能当“主动延续意图”的证据。
 
-## 1. 提案格式
+## 1. 配额分开（修 bug，不改架构）
 
-模型只输出 JSON，不输出动作、不直接改 state：
+### 改动
 
-```json
-{
-  "npc": "npc_id",
-  "goal_type": "earn_money",
-  "target": 75.6,
-  "deadline_days": 3,
-  "preconditions": ["has_employer"],
-  "expected_actions": 6,
-  "expected_money": 0,
-  "objects": ["loc_id"],
-  "purpose": "攒够换季盘缠"
-}
-```
+自目标从“主目标”降为**次级目标**：
 
-约束：`goal_type` 仅限既有可执行类型（`earn_money/advance_skill/build_relation/build_shop/join_sect/escort`）；`deadline_days` 1..3；`preconditions` 仅限可机器检查的 token；`expected_actions/expected_money` 必须声明；`purpose` 只作审计文本。解析失败记 `schema:<字段>:<原因>`。
-
-创建路径：校验通过 → 入队 pending → 激活硬门通过 → `system_goal`（`source=self`）→ Writer/Effect 建目标。**提案层没有 state 写权限。**
-
-## 2. 校验器算式
-
-```text
-days            = deadline_days
-quota           = DEPTH_GOAL_ACTIONS[tier]   # silent/background=1, active=2, spotlight=3
-action_capacity = days × quota
-capacity_units  = action_capacity × per_action_units
-```
-
-`per_action_units`：
-
-| kind | 上限产能/动作 | 不可达/拒绝 |
+| 位置 | 改动 | 原因 |
 |---|---|---|
-| wealth | `max(工资净额, 可卖库存最高收益)` | 两者为 0 → `no_income_source` |
-| mastery | `0.0025 × 8 = 0.02` | 技能已满 → `skill_capped` |
-| bond | 对象在场 5.0；否则有商业体 3.0 | 都没有 → `bond_target_absent` |
-| shop | 1.0 | 现金<300 / 已有店 / 无地主 / 金库 guard → 对应 `shop_*` |
-| faction | 1.0 | 当地无组织 → `org_absent` |
-| escort | 1.0 | 无可用镖路 → `escort_route_absent` |
+| `world/effects.py` `goal_create` | 新增 `secondary` 分支：建目标但**不写** `entity.goal_id` | 原来 `goal_create` 无条件接管行动目标，这是 K1 全崩的真正根因（不是动作额度） |
+| `actions/system.py` `system_goal` | 透传 `secondary`；已存在目标时不发 `set_field` | 保证次级目标永远不顶掉内容主线 |
+| `sim/intent.py` `Planner.plan` | 在内容目标的 `depth` 个动作**之后**，每天额外排 1 个自目标动作；该动作的 intent 带 `_goal_id` | 自目标有独立额度；额度用满只是“不做”，不会回流挤占内容目标 |
+| `sim/intent.py` `Planner` | 自额度动作使用**独立的 memo** | `_goal_step` 会在 memo 里记 opened/joined/apprentice/married；共享 memo 会压掉次日的**内容**动作 |
+| `actions/common.py` `goal_progress` | 新增 `goal_id` 参数：显式指定时**只认该目标**，类型不匹配直接返回空，绝不回落到活跃目标 | 结构上保证自目标进度不会记账到内容目标 |
+| `actions/{basic,commerce,business,social,escort}.py` | 13 个 `goal_progress` 调用点透传 `explicit_goal_id(intent)` | 让上行保障真正生效 |
+| `sim/self_goal.py` | `SELF_GOAL_ACTIONS_PER_DAY=1`；校验器 `action_capacity = days × 1`；`mastery per_action=0.0025×2`、`wealth per_action=max(单件净售价, 5)` | 额度模型与独立额度动作的真实产出对齐，否则“基线难度”是假的 |
+| `sim/self_goal.py` `can_activate` | 只保留“同 NPC 同时只有一个活跃自目标” | 自目标不再接管主目标，旧豁免条件不再需要 |
 
-判定：
+### 三条数字
 
-1. `capacity_units < target` → `target_exceeds_capacity`，算式 `capacity=<days>×<per>=<capacity> < target=<target>`。
-2. `expected_actions > action_capacity` → `budget_actions_exceeded`。
-3. `expected_money > cash` → `budget_money_exceeded`。
-4. 全部通过 → `accepted`，同一算式写入 `equation`。
+| 指标 | 数值 |
+|---|---|
+| 纯规则臂 K1（in_scope） | **62/91 = 68.13%** |
+| 自提案臂 K1（in_scope） | **62/91 = 68.13%**（created_only 62/78 = 79.49%，规则臂 70/88 = 79.49%） |
+| 自提案占用既有额度的次数 | **0** |
 
-**激活时二次校验**：窗口从激活时刻重新起算，按当前 state 与当前档位重算容量；避免“入队时可达、激活时窗口被等待吃掉”的旧问题。
+“占用 0 次”的复算口径（两条独立证据）：
 
-## 3. 生命周期硬门
+- 140 个带 `_goal_id` 的自额度动作里，`goal_progress` 落到内容目标的次数 = **0**（`reports/self-goal-metrics.json` → `quota.self_actions_credited_to_content`）。
+- 内容目标进度事件数没有下降：规则臂 374 条、自提案臂 417 条；每 NPC·天 1.17 → 1.30。
 
-1. **初始目标保护**：当前 `entity.goal_id` 仍是该 NPC 内容包排序第一条目标且 active → 不激活，记 `initial_goal_protected`。制度上不允许覆盖。
-2. **同 NPC 活跃自提案 ≤1**：已有 `source=self` 且 active 的目标 → 不激活，记 `self_goal_active`。
-3. pending 不是世界目标；过期作废，不产生事件。
+自额度动作构成：`cultivate` 103 次（其中 62 次真记到自目标）、`sell` 37 次（35 次记到自目标）；41 次 `cultivate` 是“自目标要钱但没货、动作回落到练手艺”造成的空转，记不到 wealth，属于动作选择问题，不影响配额隔离。
 
-## 4. 阶段 0 对照表（10 天 / 31 NPC / seed 42）
+## 2. 换度量：量“活的”
 
-| 指标 | 纯规则臂 R | 自提案 competent |
-|---|---:|---:|
-| 提交提案数 | — | 89 |
-| 校验通过 | — | 89 |
-| 通过率 | — | **100%** |
-| 提案被拒原因分布 | — | 无（0 条） |
-| 激活创建数 | — | 69 |
-| 真正完成数 | — | **53** |
-| 到期未完成 | — | 6 |
-| 激活被拒 | — | `initial_goal_protected=38` |
-| K1（in_scope） | **62/91 = 68.13%** | **38/91 = 41.76%** |
-| K1 差 | — | **−26.37pp** |
-| state_final | `1130a5d1…` | 同左 |
-| event_final | `b26ec81c…` | 同左 |
-| events.jsonl sha256 | `9e0b178f…` | 同左 |
-| 提案 trace sha256 | `47038396…` | 同左 |
+全部可从 `events.jsonl` + `self_goal_proposals.jsonl` 复算（`tools/self_goal_metrics.py`）。
 
-阶段 0 的 89 条提案全部可达/预算自洽，因此没有提案级拒绝；38 条 `initial_goal_protected` 是**激活层生命周期拒绝**，不是可行性拒绝。
+### SGR 自主完成率
 
-## 5. 阶段 1 校验器覆盖（scenarios stub）
+| 口径 | 数值 |
+|---|---|
+| 激活 56 / 完成 22 | **SGR = 39.29%** |
+| 到期未完成 | 8 |
+| 校验器预筛后的基线难度 `target/capacity`（n=56） | 均值 **0.823**，中位 **0.90**，区间 0.154~0.928 |
 
-| 类别 | 结果 | 条数 | 算式/原因 |
-|---|---|---:|---|
-| 合法可达 | 校验放行 | 46 | `capacity=… >= target=…`；其中 12 条随后被 `self_goal_active` 拒绝 |
-| 超预算 | 拒绝 | 34 | `expected_actions=12 > action_capacity=6` |
-| 窗口内不可达 | 拒绝 | 34 | `capacity=… < target=9999.0` |
-| 初始目标保护 | 激活拒绝 | 14 | `initial_goal_protected` |
-| 已有活跃自目标 | 激活拒绝 | 12 | `self_goal_active` |
+基线难度说明：多数提案把目标定在“独立额度的 90%”，属于**贴着额度上限**的难度；所以 SGR 不是“目标太松白送”，而是“定了要用满额度的活，实际只有 4 成兑现”。
 
-- 提案级被拒 68 条，**68/68 带可复算 equation**。
-- 激活创建 29，完成 22，pending 过期 1，活跃到期 3。
-- 覆盖完整：合法、超预算、不可达、初始保护、活跃自目标五类均留痕。
+**SGR 高只证明提案与执行一致，不证明提案质量。** 这里是反过来的证据：SGR 只有 39%，说明执行端（动作类型选错、窗口到期）没跟上提案。
 
-## 6. 判据逐项
+分段稳定性（10 天）：
 
-| 判据 | 结果 | 证据 |
+| 区段 | 激活 | 完成 | 到期 | SGR | 类型分布 |
+|---|---|---|---|---|---|
+| 前 5 天 | 27 | 13 | 0 | 48.15% | advance_skill 18 / earn_money 9 |
+| 后 5 天 | 29 | 9 | 8 | 31.03% | advance_skill 20 / earn_money 9 |
+
+后段衰减主要来自“到期 8 个”：3 天窗口内没排够动作就过期，不是被放弃。
+
+### STC 类型覆盖
+
+| 类型 | 激活数 | 占比 |
 |---|---|---|
-| 阶段 0 stub 通过率 ≥60% | **PASS** | 89/89 = 100% |
-| 被拒案例 100% 有可复算原因 | **PASS** | 阶段 1 提案级 68/68 有 `equation`；阶段 0 无提案级拒绝 |
-| 两次重跑 state/event hash 一致 | **PASS** | state `1130a5d1…`、event `b26ec81c…`、events sha `9e0b178f…`、trace sha `47038396…` 均一致 |
-| 不调用真实模型 / 零成本 | **PASS** | `enable_llm=False`；仅 stub |
-| 校验器放行不可达 / 误拒可达 | **未发生** | 可达放行；不可达标 `target_exceeds_capacity` |
+| `advance_skill` | 38 | 67.9% |
+| `earn_money` | 18 | 32.1% |
 
-## 7. 局限（必须一起读）
+**覆盖 2/6**（`build_relation / build_shop / join_sect / escort` 一条没提）。stub 的选题规则就是“没雇主练手艺、有雇主攒钱”，所以这不是模型偏好，而是 stub 写死的分布；只能说明指标能区分类型，不能说明模型只会挑软柿子——要那结论得等真实模型。
 
-- **只解决“提案是否可达”，没有解决“提案是否有意义/是否像人”**。`purpose` 只是文本，校验器不判断动机质量、叙事一致性或拟人性。
-- competent stub 用 0.9×容量安全边际生成目标，因此 100% 通过只能说明校验器不误拒“合理提案”，不等于真实模型也会提出合理提案。
-- K1 下降是机制的真实代价：自提案占用深度动作额度，内容目标被挤占。**本报告不宣称 K1 改善。**
-- 规则 planner 只认识既有 `content_type` 分支，所以提案复用既有类型；这是“可执行”保证，不是“有意义”保证。
-- 全量测试有 1 项与本机制无关的失败：`tests/test_w1_reconnect.py::test_reconnect_within_60s_restores_same_session`（`tick 36 != 30`），属于并行 W1 会话改动；本机制默认关闭，未触碰 `api/**`、`scheduler.py`、`headless.py`。
+### SGC 目标链
 
-## 8. 真实模型预算（仅报价，不申请）
+| 指标 | 数值 |
+|---|---|
+| 完成 22 个后 3 天内又提一个 | 19 → **86.4%** |
+| 其中“相关”（同类型或顺承类型） | 19 → **86.4%** |
+| 没接上的 | 3 |
 
-若项目负责人要求进入真实模型阶段，按每轮 89–124 次提案、20% 重试冗余估算：
+**这条不能当“它有自己的打算”的证据。** stub 固定每 3 天发一条提案，而窗口也是 3 天，所以“完成后 3 天内又有一条”几乎必然成立；19 条全部同类型，是因为 stub 一直选 `advance_skill`。这个 86.4% 是**发言节奏**，不是**意图延续**。要让它有意义，下一版得把“提案触发”改成“完成后才触发”，并允许模型自己选类型。
 
-- 请求数上限：**150 次**
-- 输入上限：**300k tokens**；输出上限：**30k tokens**
-- 成本上限：**$0.63**（$0.0015/1k 输入 + $0.006/1k 输出）
+## 3. 提案理由 rubric（先验 rubric，不做盲评）
 
-在未确认“是否接受自提案挤占内容目标”前，不建议直接花这笔钱。
+4 维、各 1~5 分：**处境贴合 / 目标具体可执行 / 与目标的因果链 / 是否像本人会说**。
+从 87 条提案里分层抽 20 条（14 条通过 + 6 条被拒），两个独立打分者用同一 rubric 打分：
 
-## 9. 复现
+- 打分者 A：严格复算（用 `capacity_units`、`preconditions`、`purpose` 里的数字对账）；
+- 打分者 B：读者直觉（只看文本是否成立，不复算额度）。
+
+| 维度 | A 均值 | B 均值 | 分歧条数 | 最大分差 |
+|---|---|---|---|---|
+| 处境贴合 | 4.20 | 5.00 | 8/20 | 2 |
+| 目标具体可执行 | 3.70 | 5.00 | 7/20 | 4 |
+| 与目标的因果链 | 2.80 | 4.40 | 20/20 | 2 |
+| 是否像本人会说 | 3.00 | 5.00 | 20/20 | 2 |
+
+### 分歧项与修订
+
+1. **`与目标的因果链` 20/20 全分歧。** A 给 2 分（`攒142文盘缠` 只有一个数，没有“现状”），B 给 4 分（文本非空即算讲通）。
+   - 修订：这一维必须写成“**现状数值 → 结果数值，且差值等于 target**”，明确“只有一个数值记 2 分、没有数值记 1 分”，并附一条正例（`把0.440的手艺再精进到0.4535`）和一条反例（`攒142文盘缠`）。
+2. **`目标具体可执行` 最大分差 4。** 6 条被拒提案（如 `target=142 / capacity=43.65`）A 给 1 分，B 给 5 分——B 没有额度概念。
+   - 修订：该维**强制引用校验器算式**（`target/capacity`），不允许凭感觉；并且被拒提案也必须能被评分（现在 B 的规则对拒案完全失效）。
+3. **`处境贴合` 8/20 分歧。** `advance_skill` 的 `preconditions` 本来就合法为空，A 却因此扣到 3 分。
+   - 修订：增加“该类型本身不需要前置条件时，空 preconditions 不扣分”，把“无依据”和“不需要依据”分开。
+4. **`是否像本人会说` 20/20 全分歧且 B 全部满分。** 20 条 purpose 都是 9~13 字的同一模板，B 的“短句=像话”规则直接饱和。
+   - 修订：这一维必须先给**人物锚点**（该 NPC 的语气词/称呼/忌讳），否则不可评；同时注明**模板文本对该维无判别力**。
+
+**不做拟人性结论。** 以上只验证“rubric 可被两个打分者独立执行、且能定位规则漏洞”；真实模型的拟人性盲评等预算批准后再做。
+
+## 4. 验收与纪律
+
+- **确定性**：同一配置两次重跑，`state_final / event_final / events.jsonl sha256 / trace sha256` 全部一致。
+  - state_final `ce14b58a…`
+  - event_final `3de0710d…`
+  - events.jsonl `bc8ec623…`
+  - trace `9d266e36…`
+- **全量 pytest**：收集 382，通过 380，失败 2。
+  - `tests/test_p3e_golden.py::test_p4_milestone_deterministic_2d_fake_run_is_golden`
+  - `tests/test_p3e_golden.py::test_p4_milestone_dialogue_enabled_fake_run_is_golden`
+  - 两条都是 P4 会话新增 `system_milestone/system_maintenance` 日界动作导致的 golden 基线漂移（失败信息自身写明 796→800 事件），**不是本次改动引入**，按纪律不修别人的文件。
+  - `test_w1_reconnect` 本轮已绿（W1 会话已修）。
+- **K1 只作护栏**：本报告不把“K1 提升”当卖点；K1 的结论是“没被自提案拖累”。
+- **零模型调用**：全部 stub，无 API 调用、无费用。
+- 未改动 `api/**`、`ui/player/**`、`content/**`、`sim/scheduler.py`、`sim/headless.py`。
+
+## 5. 阶段 0/1 复核（本次重跑）
+
+| 项 | 数值 |
+|---|---|
+| 提案数 / 放行 / 通过率 | 87 / 75 / **86.21%** |
+| 提案级拒绝 | 12，全部 `target_exceeds_capacity`，均带可复算 `equation` |
+| 激活 / 完成 / 到期 | 56 / 22 / 8 |
+| 激活硬门拒绝 | 35，全部 `initial_goal_protected` |
+| 复核缺算式的拒绝 | 0（`feasibility_rejects_without_equation=0`） |
+| 场景臂（覆盖非法/超预算/不可达/初始保护/活跃自目标） | 通过，见 `reports/self-goal-stage0.json` `scenarios` |
+
+## 6. 复算入口
 
 ```bash
-cd /Users/lyinet/projects/XKX/world-sim
-PYTHONPATH=src .venv/bin/pytest -q tests/test_self_goal.py
-PYTHONPATH=src .venv/bin/python tools/self_goal_feasibility.py \
-  --out reports/self-goal-stage0.json
+PYTHONPATH=src .venv/bin/python tools/self_goal_feasibility.py --out reports/self-goal-stage0.json
+PYTHONPATH=src .venv/bin/python tools/self_goal_metrics.py --out reports/self-goal-metrics.json
+PYTHONPATH=src .venv/bin/python tools/self_goal_rubric.py --out reports/self-goal-rubric.json
+PYTHONPATH=src .venv/bin/python -m pytest -q
 ```
-
-运行目录：`runs/sg-rule-10d-s42`、`runs/sg-competent-10d-s42-a|b`、`runs/sg-scenarios-10d-s42`。
-
-## 10. 代码
-
-- 提案/校验器/台账：[self_goal.py](file:///Users/lyinet/projects/XKX/world-sim/src/wsim/sim/self_goal.py)
-- 决策接入：[intent.py](file:///Users/lyinet/projects/XKX/world-sim/src/wsim/sim/intent.py)
-- `source=self` 映射：[system.py](file:///Users/lyinet/projects/XKX/world-sim/src/wsim/actions/system.py)
-- 测试：[test_self_goal.py](file:///Users/lyinet/projects/XKX/world-sim/tests/test_self_goal.py)
-- 验证工具：[self_goal_feasibility.py](file:///Users/lyinet/projects/XKX/world-sim/tools/self_goal_feasibility.py)
-- 规格：[spec.md](file:///Users/lyinet/projects/XKX/world-sim/specs/self-goal-proposal/spec.md)
-
-commit：`67a14e4`（已 push 到 `origin/master`）。

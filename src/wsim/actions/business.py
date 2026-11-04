@@ -5,6 +5,7 @@ from ..core.models import Effect, Intent, Reject
 from ..world.state import WorldState
 from .common import (
     arg_str,
+    explicit_goal_id,
     first_business_at,
     founding_members,
     goal_progress,
@@ -83,7 +84,7 @@ class OpenShopAction(Action):
                 ),
                 Effect("set_field", {"entity": ent.id, "field": "business", "value": shop_id}),
                 Effect("set_field", {"entity": ent.id, "field": "last_action_tick", "value": intent.tick}),
-                *goal_progress(state, ent.id, "shop", 1.0, intent.tick),
+                *goal_progress(state, ent.id, "shop", 1.0, intent.tick, goal_id=explicit_goal_id(intent)),
                 *memory(state, ent.id, intent.tick, f"在{at}开设{name}（{shop_type}），花费{cost}文", 0.6),
             ]
         )
@@ -175,7 +176,7 @@ class FoundSectAction(Action):
         effects.extend(
             [
                 Effect("set_field", {"entity": ent.id, "field": "last_action_tick", "value": intent.tick}),
-                *goal_progress(state, ent.id, "faction", 1.0, intent.tick),
+                *goal_progress(state, ent.id, "faction", 1.0, intent.tick, goal_id=explicit_goal_id(intent)),
                 *memory(state, ent.id, intent.tick, f"在{at}创立{name}，缴纳{fee}文", 0.9),
             ]
         )

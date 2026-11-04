@@ -102,11 +102,13 @@ class GoalChoice:
     content_type: str
     kind: str
     target: float
-    source: str  # content / urgent
+    source: str  # content / urgent / self
     reason: str
     create: bool = True
     preempted: bool = False
     abandon: str = ""
+    # 次级目标：只建目标、不切 entity.goal_id，进度走独立额度。
+    secondary: bool = False
 
 
 class GoalSelector:
@@ -481,6 +483,9 @@ class Planner:
         self._quest_attempt: dict[str, int] = {}
         # 因金库缓冲不足而延后的开店次数（由 MockReasoner 汇总到 summary）。
         self.postponed_open_shop = 0
+        # 自提案独立额度：实际排上的自目标动作数 / 因当天没空位而放弃的次数。
+        self.secondary_steps = 0
+        self.secondary_steps_dropped = 0
 
     def _cost(self, verb: str, args: dict) -> float:
         econ = self.content.economy
@@ -538,6 +543,7 @@ class Planner:
         interval: int,
         tier: str,
         variant: int = 0,
+        secondary: GoalChoice | None = None,
     ) -> list[Intent]:
         ent = state.entities.get(npc)
         if ent is None or ent.status != "alive":
@@ -549,6 +555,9 @@ class Planner:
         cash = state.account_balance(wallet(npc))
         depth = DEPTH_GOAL_ACTIONS.get(tier, 1)
         memo: dict[str, Any] = {}
+        # 自提案独立额度用自己的一份 memo：_goal_step 在里面记 opened/joined/
+        # apprentice/married 等“本窗口已做过”，共享会把次日的**内容**动作压掉。
+        secondary_memo: dict[str, Any] = {}
         self._stamina = float(ent.stamina)
         recover = float((self.content.economy.get("recovery") or {}).get("stamina_per_day", 40))
         label = GOAL_LABEL.get(choice.content_type, choice.content_type)
@@ -625,6 +634,24 @@ class Planner:
                 )
                 if len(intents) == before:
                     break
+
+            # 自提案的独立额度：每天额外 1 次自目标深度动作，排在内容目标之后。
+            # 内容目标的 depth 名额已经用满/排在前面，所以这里只会“不做”，
+            # 不会回流挤占内容目标。
+            if secondary is not None:
+                if cursor >= seg_end:
+                    self.secondary_steps_dropped += 1
+                else:
+                    before = len(intents)
+                    loc, cursor, cash = self._goal_step(
+                        state, intents, ent, secondary, loc, cursor, seg_end, 0, cash, secondary_memo
+                    )
+                    if len(intents) == before:
+                        self.secondary_steps_dropped += 1
+                    else:
+                        self.secondary_steps += 1
+                        for it in intents[before:]:
+                            it.args.setdefault("_goal_id", secondary.goal_id)
 
             # 只在计划窗口的最后一天回家，避免每天往返
             if day == day_last:
@@ -1427,6 +1454,8 @@ class MockReasoner(Reasoner):
         self.goal_override_skipped = 0
         # 自提案目标（默认关闭）：仅当环境变量显式指定 mode 时启用。
         self.self_goal_book = None
+        self.self_secondary_steps = 0     # 独立额度实际排上的自目标动作数
+        self.self_secondary_dropped = 0   # 当天没有空位、自目标动作被放弃的次数
         self._npc_index = {
             str(row.get("id")): i for i, row in enumerate(content.npcs or [])
         } if content is not None else {}
@@ -1543,15 +1572,14 @@ class MockReasoner(Reasoner):
                                     "rule_progress": round(self._goal_progress(state, choice.goal_id), 4),
                                 }
                             )
+        # 自提案目标只拿独立额度：它是次级目标，不替换内容主线目标。
+        self_choice: GoalChoice | None = None
         if self.self_goal_book is not None:
             self_abandon = self.self_goal_book.consume_expired(state, npc, start)
-            self_pick = self.self_goal_book.choose(state, npc, start, tier)
-            if self_pick is not None:
-                choice = self_pick
-                choice_source = "self"
-            elif self_abandon and choice is not None:
-                # 到期未完成：放弃自目标，同日回到内容目标。
+            if self_abandon and choice is not None:
+                # 到期未完成：放弃自目标，内容目标照常继续。
                 choice = replace(choice, abandon=self_abandon)
+            self_choice = self.self_goal_book.choose(state, npc, start, tier)
         if choice is None:
             return []
 
@@ -1590,9 +1618,40 @@ class MockReasoner(Reasoner):
                 Intent(actor=npc, verb="system_goal", args=args, tick=start, source="planner", reason=choice.reason)
             )
 
-        plan = self.planner.plan(state, npc, choice, start, interval, tier, self._variant.get(npc, 0))
+        # 次级自目标首次激活时建目标，但不切换 entity.goal_id（secondary=True）。
+        if self_choice is not None and self_choice.create:
+            intents.append(
+                Intent(
+                    actor=npc,
+                    verb="system_goal",
+                    tick=start,
+                    source="planner",
+                    args={
+                        "goal": self_choice.goal_id,
+                        "content_goal_id": self_choice.content_goal_id,
+                        "content_type": self_choice.content_type,
+                        "kind": self_choice.kind,
+                        "target": self_choice.target,
+                        "goal_source": "self",
+                        "create": True,
+                        "secondary": True,
+                        "abandon": "",
+                        "reason": self_choice.reason,
+                    },
+                    reason=self_choice.reason,
+                )
+            )
+
+        plan = self.planner.plan(
+            state, npc, choice, start, interval, tier,
+            self._variant.get(npc, 0), secondary=self_choice,
+        )
         self.postponed_open_shop += self.planner.postponed_open_shop
         self.planner.postponed_open_shop = 0
+        self.self_secondary_steps += self.planner.secondary_steps
+        self.self_secondary_dropped += self.planner.secondary_steps_dropped
+        self.planner.secondary_steps = 0
+        self.planner.secondary_steps_dropped = 0
         intents.extend(plan)
         if self.strategy_enabled and self.strategy_book is not None:
             strategy_plan = self.strategy_book.active_plan(npc, tick)
@@ -1623,6 +1682,7 @@ class MockReasoner(Reasoner):
                 "reason": choice.reason,
                 "persona": (self.content.personas.get(npc, "") if self.content is not None else ""),
                 "planned_through": self._planned_through[npc],
+                "self_goal": self_choice.goal_id if self_choice is not None else "",
                 "actions": [i.verb for i in intents],
             }
         )

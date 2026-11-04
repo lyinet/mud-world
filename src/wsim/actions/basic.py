@@ -12,6 +12,7 @@ from .common import (
     business_selling,
     cheapest_food,
     employer_of,
+    explicit_goal_id,
     food_item,
     goal_progress,
     income_tax,
@@ -86,7 +87,7 @@ class CultivateAction(Action):
             Effect("stamina", {"entity": ent.id, "delta": -cost}),
             Effect("skill", {"entity": ent.id, "skill": skill, "delta": gained}),
             Effect("set_field", {"entity": ent.id, "field": "last_action_tick", "value": intent.tick}),
-            *goal_progress(state, ent.id, "mastery", gained, intent.tick),
+            *goal_progress(state, ent.id, "mastery", gained, intent.tick, goal_id=explicit_goal_id(intent)),
             *memory(state, ent.id, intent.tick, f"修炼{skill} {hours}小时", 0.25),
         ]
 
@@ -172,7 +173,7 @@ class WorkAction(Action):
                 Effect("stamina", {"entity": ent.id, "delta": -cost}),
                 Effect("skill", {"entity": ent.id, "skill": skill, "delta": hours * 0.0006}),
                 Effect("set_field", {"entity": ent.id, "field": "last_action_tick", "value": intent.tick}),
-                *goal_progress(state, ent.id, "wealth", float(max(0, net)), intent.tick),
+                *goal_progress(state, ent.id, "wealth", float(max(0, net)), intent.tick, goal_id=explicit_goal_id(intent)),
                 *memory(
                     state,
                     ent.id,

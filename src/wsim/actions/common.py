@@ -28,6 +28,7 @@ GOAL_TYPE_MAP = {
     "gain_status": "faction",
     "join_sect": "faction",
     "found_sect": "faction",
+    "escort": "escort",
 }
 
 
@@ -126,8 +127,31 @@ def active_goal(state: WorldState, npc: str, kind: str | None = None) -> Goal | 
     return goal
 
 
-def goal_progress(state: WorldState, npc: str, kind: str, units: float, tick: int) -> list[Effect]:
-    goal = active_goal(state, npc, kind)
+def explicit_goal_id(intent) -> str:
+    """计划器给独立额度动作打的标记：把进度只记到该目标。"""
+    return str(intent.args.get("_goal_id") or "")
+
+
+def goal_progress(
+    state: WorldState,
+    npc: str,
+    kind: str,
+    units: float,
+    tick: int,
+    goal_id: str = "",
+) -> list[Effect]:
+    """记目标进度。
+
+    `goal_id` 显式指定时只认该目标，且类型必须匹配；不匹配就返回空，
+    绝不回落到当前活跃目标。自提案目标的独立动作走这条路径，保证它
+    不会把进度记到既有内容目标上（即不占既有目标的额度）。
+    """
+    if goal_id:
+        goal = state.goals.get(goal_id)
+        if goal is None or goal.status != "active" or goal.npc != npc or goal.kind != kind:
+            return []
+    else:
+        goal = active_goal(state, npc, kind)
     if goal is None or goal.target <= 0:
         return []
     delta = max(0.0, float(units)) / goal.target

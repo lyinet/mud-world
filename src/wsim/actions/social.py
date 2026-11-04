@@ -9,6 +9,7 @@ from .common import (
     alive,
     arg_int,
     arg_str,
+    explicit_goal_id,
     goal_progress,
     max_skill,
     memory,
@@ -323,7 +324,7 @@ class ApprenticeAction(Action):
             Effect("add_disciple", {"master": target.id, "disciple": ent.id}),
             Effect("set_field", {"entity": ent.id, "field": "master", "value": target.id}),
             Effect("set_field", {"entity": ent.id, "field": "last_action_tick", "value": intent.tick}),
-            *goal_progress(state, ent.id, "bond", 5.0, intent.tick),
+            *goal_progress(state, ent.id, "bond", 5.0, intent.tick, goal_id=explicit_goal_id(intent)),
             *memory(state, ent.id, intent.tick, f"拜{target.name}为师", 0.6),
             *memory(state, target.id, intent.tick, f"收{ent.name}为徒", 0.6),
         ]
@@ -380,7 +381,7 @@ class JoinSectAction(Action):
         effects.extend(
             [
                 Effect("set_field", {"entity": ent.id, "field": "last_action_tick", "value": intent.tick}),
-                *goal_progress(state, ent.id, "faction", 1.0, intent.tick),
+                *goal_progress(state, ent.id, "faction", 1.0, intent.tick, goal_id=explicit_goal_id(intent)),
                 *memory(state, ent.id, intent.tick, f"加入{fac.name}", 0.5),
             ]
         )
@@ -438,7 +439,7 @@ class RecruitAction(Action):
             Effect("set_field", {"entity": ent.id, "field": "last_action_tick", "value": intent.tick}),
             # 招人只是进度，不能把 found_sect 目标提前判成完成：
             # 5 次招揽才累计 0.5，真正的 1.0 由 found_sect 动作给出。
-            *goal_progress(state, ent.id, "faction", 0.1, intent.tick),
+            *goal_progress(state, ent.id, "faction", 0.1, intent.tick, goal_id=explicit_goal_id(intent)),
             *memory(state, ent.id, intent.tick, f"招揽{target.name}入伙", 0.5),
             *memory(state, target.id, intent.tick, f"答应与{ent.name}共举门派", 0.4),
         ]
@@ -483,7 +484,7 @@ class MarryAction(Action):
             Effect("marry", {"a": ent.id, "b": target.id}),
             Effect("set_field", {"entity": ent.id, "field": "last_action_tick", "value": intent.tick}),
             Effect("set_field", {"entity": target.id, "field": "last_action_tick", "value": intent.tick}),
-            *goal_progress(state, ent.id, "bond", 10.0, intent.tick),
+            *goal_progress(state, ent.id, "bond", 10.0, intent.tick, goal_id=explicit_goal_id(intent)),
             *goal_progress(state, target.id, "bond", 10.0, intent.tick),
             *memory(state, ent.id, intent.tick, f"与{target.name}成婚", 0.9),
             *memory(state, target.id, intent.tick, f"与{ent.name}成婚", 0.9),
