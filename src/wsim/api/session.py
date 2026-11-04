@@ -46,6 +46,20 @@ from .persistence import replay_into, verify_content_hash
 # 契约冻结版本：字段名/结构变更必须同步 docs/player-api.md 的 CHANGELOG。
 PROFILE_VERSION = 1
 
+# 服务模式下匿名读的唯一可见字段（白名单）。新增字段默认不可见，
+# 避免私有字段因为“忘记排除”自动泄漏。
+PUBLIC_STATE_KEYS = (
+    "ok",
+    "name",
+    "place",
+    "activity",
+    "idle_seconds",
+    "online",
+    "sect_name",
+    "shop_name",
+    "server_tick",
+)
+
 WRITE_ACTIONS: dict[str, str] = {
     "enter": "player_enter",
     "heartbeat": "player_heartbeat",
@@ -339,6 +353,90 @@ class WorldSession:
                 "growth": view["growth"],
                 "today": view["today"],
             }
+
+    # ------------------------------------------------ 服务模式匿名读（公共摘要）
+    def public_state(self, account: str) -> dict[str, Any]:
+        """服务模式匿名读：只返回 `PUBLIC_STATE_KEYS` 白名单内的公共摘要。
+
+        白名单实现（不是剔除私有字段），新增字段默认不可见，防止将来
+        加入钱包/背包类字段后自动泄漏。
+        """
+        account = str(account or "").strip().lower()
+        with self.lock:
+            if not ACCOUNT_RE.match(account):
+                return {
+                    "ok": False,
+                    "reject_reason": "bad_account",
+                    "reason_text": _reason_text("bad_account"),
+                    "server_tick": int(self.state.tick),
+                }
+            pid = self._pid(account)
+            ent = self.state.entities.get(pid)
+            prof = self.state.players.get(pid)
+            if ent is None or prof is None:
+                return {
+                    "ok": False,
+                    "reject_reason": "player_not_entered",
+                    "reason_text": _reason_text("player_not_entered"),
+                    "server_tick": int(self.state.tick),
+                }
+            now = self._presence_clock()
+            row = {
+                "ok": True,
+                "name": ent.name,
+                "place": self._loc_name(ent.location),
+                "activity": self._activity_of(pid, now),
+                "idle_seconds": round(max(0.0, now - self._last_active.get(pid, now)), 1),
+                "online": bool(prof.online),
+                "sect_name": self._faction_name(ent),
+                "shop_name": self._business_name(ent),
+                "server_tick": int(self.state.tick),
+            }
+            return {key: row[key] for key in PUBLIC_STATE_KEYS}
+
+    def public_quests(self) -> dict[str, Any]:
+        """服务模式匿名读：只返回公共开放任务，不含奖励明细与任何人已接任务。"""
+        rows: list[dict[str, Any]] = []
+        with self.lock:
+            for quest in sorted(self.state.quests.values(), key=lambda q: q.id):
+                if quest.status != "open":
+                    continue
+                row = self._quest_row(quest)
+                for key in ("reward_money", "reward_relation", "acceptable"):
+                    row.pop(key, None)
+                rows.append(row)
+            return {
+                "ok": True,
+                "tick": int(self.state.tick),
+                "open": rows,
+                "active": [],
+            }
+
+    def public_messages(self, account: str, since_tick: int = 0) -> dict[str, Any]:
+        """服务模式匿名读：不返回任何人的私聊内容，形状与本人读一致。"""
+        account = str(account or "").strip().lower()
+        try:
+            since = max(0, int(since_tick))
+        except (TypeError, ValueError):
+            since = 0
+        with self.lock:
+            return {
+                "ok": True,
+                "profile_version": PROFILE_VERSION,
+                "account_id": account,
+                "tick": int(self.state.tick),
+                "since_tick": since,
+                "next_since_tick": int(self.state.tick),
+                "messages": [],
+            }
+
+    def _faction_name(self, ent) -> str:
+        faction = self.state.factions.get(str(ent.faction or ""))
+        return faction.name if faction is not None else ""
+
+    def _business_name(self, ent) -> str:
+        biz = self.state.businesses.get(str(ent.business or ""))
+        return biz.name if biz is not None else ""
 
     def action(
         self,

@@ -100,8 +100,10 @@ def test_expired_token_covers_writes_and_auth_me(service):
 
 def test_reads_are_anonymous_but_writes_require_token(service):
     base, session, _, _ = service
+    # 服务模式匿名读只给公共摘要：不再泄漏钱包/技能/关系等私有字段。
     status, payload = _request(base, "/api/player/state?account_id=u_demo", method="GET")
     assert status == 200 and payload["ok"] is True
+    assert "wallet" not in payload and "player" not in payload
     status, info = _request(base, "/api/service/info", method="GET")
     assert status == 200 and info["auth_required"] is True
 
@@ -203,6 +205,10 @@ def test_legacy_mode_stays_anonymous(tmp_path):
             body={"account_id": "u_demo", "display_name": "陈捕快", "archetype": "捕快"},
         )
         assert status == 200 and payload["ok"] is True
+        # legacy 匿名试玩口径不变：无令牌仍能读完整状态（含钱包/技能/关系）。
+        status, state = _request(base, "/api/player/state?account_id=u_demo", method="GET")
+        assert status == 200 and state["player"]["wallet"]["money"] == 300
+        assert "skills" in state["player"] and "relations" in state["player"]
     finally:
         server.shutdown()
         thread.join(timeout=5)

@@ -44,8 +44,9 @@ def _login(base, username):
     return payload["token"]
 
 
-def _state(base, account):
-    return _request(base, f"/api/player/state?account_id={account}", method="GET")[1]
+def _state(base, account, token):
+    # 服务模式匿名读只给公共摘要，读完整状态必须带本人令牌。
+    return _request(base, f"/api/player/state?account_id={account}", method="GET", token=token)[1]
 
 
 def test_two_clients_twenty_interleaved_rounds_are_isolated(tmp_path):
@@ -60,8 +61,8 @@ def test_two_clients_twenty_interleaved_rounds_are_isolated(tmp_path):
             )
             assert status == 200 and payload["ok"], payload
 
-        state_a = _state(base, "u_a")
-        state_b = _state(base, "u_b")
+        state_a = _state(base, "u_a", token_a)
+        state_b = _state(base, "u_b", token_b)
         assert {p["id"] for p in state_a["online_players"]} >= {"player:u_a", "player:u_b"}
         assert {p["id"] for p in state_b["online_players"]} >= {"player:u_a", "player:u_b"}
 
@@ -98,13 +99,13 @@ def test_two_clients_twenty_interleaved_rounds_are_isolated(tmp_path):
         assert not errors
 
         # 钱包隔离：A 工作挣钱，B 不变。
-        money_b_before = _state(base, "u_b")["player"]["wallet"]
+        money_b_before = _state(base, "u_b", token_b)["player"]["wallet"]
         status, worked = _request(
             base, "/api/player/action", body={"verb": "work", "args": {"hours": 8}}, token=token_a
         )
         assert status == 200 and worked["ok"]
-        final_a = _state(base, "u_a")
-        final_b = _state(base, "u_b")
+        final_a = _state(base, "u_a", token_a)
+        final_b = _state(base, "u_b", token_b)
         assert final_a["player"]["wallet"]["money"] > 300
         assert final_b["player"]["wallet"]["money"] == 300
         assert final_b["player"]["wallet"] == money_b_before

@@ -1,11 +1,10 @@
-"""`GET /api/state` 只读别名：必须与 `/api/player/state` 走同一 handler、行为完全一致。
+"""`GET /api/state` 只读别名：与 `/api/player/state` 走同一 handler，行为完全一致。
 
-W1 契约里读端点匿名只读（docs/AUTH-API-W1.md §3）。因此这里的断言是
-“任何令牌状态下两个路径的状态码与响应字节完全相同”，而不是给别名单独加鉴权：
-- 无令牌：两者都 200；
-- 无效令牌：读端点不解析令牌，两者都 200；
-- 有效令牌：两者都 200；
-- 三种情况下响应体逐字节相同。
+服务模式（auth_required=True）下的读口径（docs/AUTH-API-W1.md §3）：
+- 无令牌：200，只返回公共摘要（白名单 PUBLIC_STATE_KEYS）；
+- 无效令牌：401 `auth_invalid_token`；
+- 有效令牌：200，返回本人完整状态。
+三种情况下两条路径的状态码与响应字节必须逐字节相同。
 """
 from __future__ import annotations
 
@@ -19,7 +18,7 @@ import pytest
 
 from wsim.api.auth import AccountStore
 from wsim.api.server import create_server
-from wsim.api.session import WorldSession
+from wsim.api.session import PUBLIC_STATE_KEYS, WorldSession
 
 ROOT = Path(__file__).resolve().parents[1]
 MAIN = "/api/player/state?account_id=u_demo"
@@ -38,24 +37,25 @@ def _raw(base: str, path: str, token: str = "") -> tuple[int, bytes]:
         return exc.code, exc.read()
 
 
-def _login(base: str, username: str = "u_demo", password: str = "secret123") -> str:
-    def post(path: str, body: dict) -> tuple[int, dict]:
-        req = urllib.request.Request(
-            base + path,
-            data=json.dumps(body).encode("utf-8"),
-            method="POST",
-            headers={"Content-Type": "application/json"},
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                return resp.status, json.loads(resp.read().decode("utf-8"))
-        except urllib.error.HTTPError as exc:
-            return exc.code, json.loads(exc.read().decode("utf-8"))
+def _post(base: str, path: str, body: dict, token: str = "") -> tuple[int, dict]:
+    headers = {"Content-Type": "application/json"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    req = urllib.request.Request(
+        base + path, data=json.dumps(body).encode("utf-8"), method="POST", headers=headers
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return resp.status, json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        return exc.code, json.loads(exc.read().decode("utf-8"))
 
-    status, payload = post("/api/auth/register", {"username": username, "password": password})
-    assert status in (200, 409), (status, payload)
-    status, payload = post("/api/auth/login", {"username": username, "password": password})
-    assert status == 200, (status, payload)
+
+def _login(base: str, username: str = "u_demo", password: str = "secret123") -> str:
+    status, _ = _post(base, "/api/auth/register", {"username": username, "password": password})
+    assert status in (200, 409), status
+    status, payload = _post(base, "/api/auth/login", {"username": username, "password": password})
+    assert status == 200, payload
     return str(payload["token"])
 
 
@@ -85,13 +85,33 @@ def service(tmp_path):
 def test_alias_matches_main_for_all_token_states(service):
     base, _, _ = service
     token = _login(base)
-    for label, bearer in (("missing", ""), ("invalid", "not-a-real-token"), ("valid", token)):
-        main_status, main_body = _raw(base, MAIN, bearer)
-        alias_status, alias_body = _raw(base, ALIAS, bearer)
-        assert alias_status != 404, label
-        assert alias_status == main_status, (label, main_status, alias_status)
-        assert alias_body == main_body, f"{label}: 响应体不一致"
-        assert json.loads(alias_body)["ok"] is True, label
+    status, payload = _post(
+        base, "/api/player/enter",
+        {"display_name": "陈捕快", "archetype": "捕快"}, token=token,
+    )
+    assert status == 200 and payload["ok"] is True, payload
+
+    # 1) 无令牌：公共摘要，200
+    main_status, main_body = _raw(base, MAIN)
+    alias_status, alias_body = _raw(base, ALIAS)
+    assert alias_status == main_status == 200
+    assert alias_body == main_body
+    assert set(json.loads(alias_body)) == set(PUBLIC_STATE_KEYS)
+
+    # 2) 无效令牌：401 auth_invalid_token
+    main_status, main_body = _raw(base, MAIN, "not-a-real-token")
+    alias_status, alias_body = _raw(base, ALIAS, "not-a-real-token")
+    assert alias_status == main_status == 401
+    assert alias_body == main_body
+    assert json.loads(alias_body)["code"] == "auth_invalid_token"
+
+    # 3) 有效令牌：本人完整状态，200
+    main_status, main_body = _raw(base, MAIN, token)
+    alias_status, alias_body = _raw(base, ALIAS, token)
+    assert alias_status == main_status == 200
+    assert alias_body == main_body
+    body = json.loads(alias_body)
+    assert body["ok"] is True and body["player"]["wallet"]["money"] == 300
 
 
 def test_alias_matches_main_in_legacy_mode(tmp_path):
@@ -104,6 +124,8 @@ def test_alias_matches_main_in_legacy_mode(tmp_path):
     thread.start()
     base = f"http://127.0.0.1:{server.server_address[1]}"
     try:
+        _post(base, "/api/player/enter",
+              {"account_id": "u_demo", "display_name": "陈捕快", "archetype": "捕快"})
         main_status, main_body = _raw(base, MAIN)
         alias_status, alias_body = _raw(base, ALIAS)
         assert alias_status == main_status == 200

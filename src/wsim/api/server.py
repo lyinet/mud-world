@@ -175,30 +175,74 @@ class _Handler(BaseHTTPRequestHandler):
                 },
             )
             return
+        identity, auth_err = self._read_identity()
+        if auth_err:
+            self._send_auth_error(auth_err)
+            return
+        requested = str(account or "").strip().lower()
+        if identity is not None and requested and requested != identity:
+            # 与写端点同规则：令牌账号是唯一事实源，不接受读别人的状态。
+            self._send(403, error_payload("auth_account_mismatch", session.state.tick))
+            return
+        # 服务模式：无令牌只看公共摘要；legacy 模式保持匿名全量（行为不变）。
+        anonymous = identity is None and self._auth_required()
+        target = identity or account
         if path.startswith(_INTENTS_PREFIX):
             intent_id = unquote(path[len(_INTENTS_PREFIX):])
             if not intent_id:
                 self._send(400, {"ok": False, "reject_reason": "bad_intent_id",
                                  "reason_text": "intent_id 不能为空。", "tick": session.state.tick})
                 return
-            self._send(200, session.intent(account, intent_id))
+            if anonymous:
+                # 个人动作结果，且 intent_id/request_id 可枚举：服务模式必须带令牌。
+                self._send_auth_error("auth_missing_token")
+                return
+            self._send(200, session.intent(target, intent_id))
             return
         if path == "/api/player/messages":
-            self._send(200, session.messages(account, query.get("since_tick", "0")))
+            since = query.get("since_tick", "0")
+            if anonymous:
+                self._send(200, session.public_messages(target, since))
+            else:
+                self._send(200, session.messages(target, since))
             return
         route = _GET_ROUTES.get(path)
         if route is None:
             self._send(404, {"ok": False, "reject_reason": "unknown_action",
                              "reason_text": "未知接口；可用接口见 docs/player-api.md。"})
             return
+        if anonymous:
+            if route == "quests":
+                other = session.public_quests()
+            else:
+                other = session.public_state(target)
+            self._send(200, other)
+            return
         if route == "state":
-            payload = session.player_state(account)
+            payload = session.player_state(target)
         elif route == "status":
-            payload = session.status(account)
+            payload = session.status(target)
         else:
-            payload = session.quests(account)
+            payload = session.quests(target)
         payload.setdefault("profile_version", 1)
         self._send(200, payload)
+
+    def _read_identity(self) -> tuple[str | None, str | None]:
+        """读请求的令牌身份：service 模式校验，legacy 模式完全不解析。
+
+        返回 `(令牌账号, 错误码)`；`(None, None)` 表示匿名。
+        读请求不刷新 `last_seen_at`（`touch=False`），否则读一次就把
+        60 秒断线宽限续上，重连语义会被读请求污染。
+        """
+        if not self._auth_required() or not self._bearer():
+            return None, None
+        accounts = self._accounts()
+        if accounts is None:
+            return None, "auth_disabled"
+        row, err = accounts.resolve_token(self._bearer(), touch=False)
+        if err or row is None:
+            return None, err or "auth_invalid_token"
+        return str(row["account_id"]), None
 
     # ------------------------------------------------------------------ POST
     def do_POST(self) -> None:  # noqa: N802

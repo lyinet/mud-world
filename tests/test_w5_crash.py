@@ -134,7 +134,8 @@ def test_kill9_then_restart_recovers(tmp_path):
 
         status, payload = _http(base2, "/api/player/state?account_id=crash001")
         assert status == 200 and payload["ok"], payload
-        assert payload["player"]["name"] == "崩测001"
+        # 服务模式匿名读只返回公共摘要（name 在顶层，不再有 player.player 私有块）。
+        assert payload["name"] == "崩测001"
 
         after = _event_stats(run_dir)
         assert after[1] == 1, after  # 0 重复创世

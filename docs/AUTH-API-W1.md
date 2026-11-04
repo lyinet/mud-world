@@ -112,10 +112,27 @@ curl -s -X POST http://127.0.0.1:8020/api/player/reconnect \
 `/api/player/move`、`/api/player/talk`、`/api/player/trade`、`/api/player/quest/accept`、
 `/api/player/quest/deliver`、`/api/player/reconnect`。
 
-读端点保持匿名只读：`/api/player/state`、`/api/state`、`/api/player/status`、`/api/player/quests`、
-`/api/player/messages`、`/api/player/intents/<id>`、`/api/service/info`。
+### 读端点的可见面（服务模式）
+
+读端点不强制登录，但匿名可见面收窄为公共摘要；私有字段只在带本人令牌时返回。
+
+- **带令牌**：先校验令牌；通过后 `account_id` 一律以令牌账号为准。请求显式传了
+  不同账号 → **403 `auth_account_mismatch`**（与写端点同规则），返回本人完整状态。
+- **无令牌**：仍 **200**，但只返回公共摘要。字段白名单固定为：
+  `ok`、`name`、`place`、`activity`、`idle_seconds`、`online`、`sect_name`、`shop_name`、`server_tick`。
+  白名单之外的键（`wallet`（含 `items`）、`skills`、`stamina`、`relations`、`active_quests`、
+  `active_quests_detail`、`growth`、`today`、`last_intent_tick`）**不会出现**；白名单是
+  正向实现，将来新增私有字段默认不可见。
+- `/api/player/messages` 匿名 → 200 `messages: []`；带令牌 → 本人私聊。
+- `/api/player/quests` 匿名 → 200 只含公共开放任务（无奖励明细、无任何人的已接任务）。
+- `/api/player/intents/<id>` **例外：服务模式必须带令牌**。它是个人动作结果，且
+  `intent_id` / `request_id` 可枚举，匿名 → **401 `auth_missing_token`**；令牌账号与 actor
+  不一致 → **403 `auth_account_mismatch`**。
+- `/api/player/status`、`/api/player/state` 同一口径：匿名公共摘要，本人完整状态。
 
 `/api/state` 是 `/api/player/state` 的只读别名，二者等价（同一 handler、同一鉴权行为、响应体逐字节相同）。
+
+- **legacy 模式（`--auth off`）行为不变**：匿名仍可读完整状态，仅限本地试玩/selfcheck。
 
 `GET /api/service/info` 返回：
 

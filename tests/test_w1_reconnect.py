@@ -77,7 +77,7 @@ def _play(base, token):
         body={"display_name": "测试甲", "archetype": "游侠"}, token=token,
     )
     assert status == 200 and payload["ok"] is True
-    state = _request(base, "/api/player/state?account_id=u_demo", method="GET")[1]
+    state = _request(base, "/api/player/state?account_id=u_demo", method="GET", token=token)[1]
     acceptable = [row["id"] for row in state["quest_board"]["rows"] if row["acceptable"]]
     assert acceptable
     assert _request(base, "/api/player/quest/accept", body={"quest": acceptable[0]}, token=token)[1]["ok"]
@@ -116,7 +116,7 @@ def test_reconnect_within_60s_restores_same_session(tmp_path):
         status, left = _request(base, "/api/player/leave", body={}, token=token)
         assert status == 200 and left["ok"] is True and left["session_disconnected"] is True
         tick_at_disconnect = session.state.tick
-        before = _snapshot(_request(base, "/api/player/state?account_id=u_demo", method="GET")[1])
+        before = _snapshot(_request(base, "/api/player/state?account_id=u_demo", method="GET", token=token)[1])
 
         clock.t += 59
         status, res = _request(base, "/api/player/reconnect", body={}, token=token)
@@ -143,7 +143,7 @@ def test_reconnect_after_60s_new_session_keeps_save(tmp_path):
         status, left = _request(base, "/api/player/leave", body={}, token=token)
         assert status == 200 and left["ok"] is True
         tick_at_disconnect = session.state.tick
-        before = _snapshot(_request(base, "/api/player/state?account_id=u_demo", method="GET")[1])
+        before = _snapshot(_request(base, "/api/player/state?account_id=u_demo", method="GET", token=token)[1])
 
         clock.t += 61
         status, res = _request(base, "/api/player/reconnect", body={}, token=token)
@@ -175,7 +175,7 @@ def test_reconnect_after_process_restart_keeps_save(tmp_path):
         _play(base, token)
         status, left = _request(base, "/api/player/leave", body={}, token=token)
         assert status == 200 and left["ok"] is True
-        before = _snapshot(_request(base, "/api/player/state?account_id=u_demo", method="GET")[1])
+        before = _snapshot(_request(base, "/api/player/state?account_id=u_demo", method="GET", token=token)[1])
     finally:
         _stop(server, thread, session, accounts)
 
@@ -204,7 +204,7 @@ def test_silent_disconnect_within_60s_keeps_session(tmp_path):
         assert status == 200
         token, sid = login["token"], login["session_id"]
         _play(base, token)
-        before = _snapshot(_request(base, "/api/player/state?account_id=u_demo", method="GET")[1])
+        before = _snapshot(_request(base, "/api/player/state?account_id=u_demo", method="GET", token=token)[1])
 
         clock.t += 59
         status, res = _request(base, "/api/player/reconnect", body={}, token=token)
@@ -225,7 +225,7 @@ def test_silent_disconnect_after_60s_creates_new_session(tmp_path):
         assert status == 200
         token, sid = login["token"], login["session_id"]
         _play(base, token)
-        before = _snapshot(_request(base, "/api/player/state?account_id=u_demo", method="GET")[1])
+        before = _snapshot(_request(base, "/api/player/state?account_id=u_demo", method="GET", token=token)[1])
 
         clock.t += 61
         status, res = _request(base, "/api/player/reconnect", body={}, token=token)
