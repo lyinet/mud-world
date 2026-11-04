@@ -9,6 +9,34 @@
 
 ---
 
+## [记账] 2026-11-04 — `466c807` 混装提交审计（W2 + W3/W3b + content）
+
+- **commit**：`466c807`（`feat(content): 扩展包改为引擎原生加载`，提交时间 2026-11-04 20:53）。
+- **审计结果**：该提交实际包含 **9 个文件**，与“误吞 W2 + content + W3 + W4 + W5”的描述**不完全一致**：
+  本次审计**未在该提交中发现 W1 / W4 / W5 / 打包文档 / agent 自提案文件**。
+- **文件归属**
+  | 文件 | 归属 |
+  | --- | --- |
+  | `docs/AMBIENT.md` | W2 调度器（自走运行说明） |
+  | `src/wsim/sim/scheduler.py` | W2 调度器 |
+  | `tests/test_w2_scheduler.py` | W2 调度器 |
+  | `tools/ambient_accept.py` | W2 调度器（验收器） |
+  | `tools/ambient_run.py` | W2 调度器（运行器） |
+  | `src/wsim/core/content.py` | W3 内容（原生包加载） |
+  | `src/wsim/core/content_manifest.py` | W3 内容（包清单/校验） |
+  | `tools/content_scale.py` | W3 内容（扩容工具） |
+  | `tests/test_w3b_native_packs.py` | W3b 人物卡（原生加载测试） |
+- **为什么会出现混装**：提交信息只描述“内容包原生加载”，却同时带入 W2 调度器全套文件（`scheduler.py`
+  942 行、ambient 工具与文档）。从文件构成判断，是多个并行会话共享同一工作区 / index 时，提交未按
+  pathspec 限定范围，把另一条线已就绪的改动一起打包（**推断**，非提交者声明）。
+- **影响**：`466c807` 无法按“一条线一个 commit”回溯；但 9 个文件均已入库，内容没有丢失。
+- **处置**：不改写历史（amend / rebase / filter / 强推一律不做）；以本条文件归属表补足追溯粒度，
+  后续提交须用 `git commit -- <paths>` 限定范围（见 `docs/GIT-WORKFLOW.md` §2）。
+- **验证**：干净 HEAD（`d7f3707` 的 `git archive`）上 `pytest` **385 passed, 10 skipped**、
+  `selfcheck.sh` **4/4 PASS**，说明混装内容与当前基线兼容。
+
+---
+
 ## [未发布] 2026-11-04 — W1 引擎变更（账号 / 存档 / 内容 hash 闸门）
 
 - **改了什么**
