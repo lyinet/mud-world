@@ -47,7 +47,7 @@ from ..world.state import WorldState
 from ..world.store import EventStore
 from ..world.writer import Writer
 from .genesis import build_genesis
-from .intent import MockReasoner
+from .intent import MockReasoner, GoalSwitchPolicy
 from .lod import LODScheduler, load_lod_config
 
 
@@ -95,6 +95,15 @@ class RunConfig:
     llm_budget: dict[str, Any] | None = None
     llm_max_tokens: int = 4096
     llm_temperature: float = 0.0
+    # 目标切换策略（默认关闭；1 tick = 10 分钟游戏时间）。
+    goal_policy_enabled: bool = False
+    goal_commit_ticks: int = 0
+    goal_hysteresis_delta: float = 0.0
+    # 覆盖护栏 v2 / 目标类型配额（默认关闭）。
+    override_guard_v2: bool = False
+    override_high_probability: float = 0.55
+    type_quota_enabled: bool = False
+    type_quota_floor: int = 1
 
 
 def _npc_money(state: WorldState) -> int:
@@ -231,7 +240,18 @@ def run_headless(
     telemetry = CostTelemetry(rates=load_cost_rates(root))
     # LLM 模式下 cost.jsonl 只记真实模型调用；Mock 底稿是免费降级，不重复计费。
     mock_reasoner = MockReasoner(
-        seed=cfg.seed, content=content, telemetry=None if cfg.enable_llm else telemetry
+        seed=cfg.seed,
+        content=content,
+        telemetry=None if cfg.enable_llm else telemetry,
+        goal_policy=GoalSwitchPolicy(
+            enabled=bool(cfg.goal_policy_enabled),
+            commit_ticks=max(0, int(cfg.goal_commit_ticks)),
+            hysteresis_delta=max(0.0, float(cfg.goal_hysteresis_delta)),
+            override_guard_v2=bool(cfg.override_guard_v2),
+            override_high_probability=float(cfg.override_high_probability),
+            type_quota=bool(cfg.type_quota_enabled),
+            type_quota_floor=int(cfg.type_quota_floor),
+        ),
     )
     reasoner: Any = mock_reasoner
     budget: BudgetGuard | None = None
@@ -801,6 +821,30 @@ def run_headless(
     lod_summary = scheduler.summary()
     lod_summary["changes"] = lod_changes
     goal_changes = list(mock_reasoner.selector.changes) if mock_reasoner.selector is not None else []
+    goal_policy_stats = mock_reasoner.goal_switch_stats(horizon)
+    goal_policy_summary = {
+        "enabled": bool(cfg.goal_policy_enabled),
+        "commit_ticks": max(0, int(cfg.goal_commit_ticks)),
+        "hysteresis_delta": max(0.0, float(cfg.goal_hysteresis_delta)),
+        "commitment_blocked": getattr(mock_reasoner, "goal_commitment_blocked", 0),
+        "override_guard_v2": bool(cfg.override_guard_v2),
+        "override_high_probability": float(cfg.override_high_probability),
+        "override_blocked": sum(getattr(mock_reasoner, "override_blocked_by_reason", {}).values()),
+        "override_blocked_by_reason": dict(
+            sorted(getattr(mock_reasoner, "override_blocked_by_reason", {}).items())
+        ),
+        "override_blocked_examples": list(
+            getattr(mock_reasoner, "override_blocked_examples", [])
+        ),
+        "type_quota": bool(cfg.type_quota_enabled),
+        "type_quota_floor": int(cfg.type_quota_floor),
+        "quota_redirects": getattr(mock_reasoner, "quota_redirects", 0),
+        "quota_redirect_examples": list(
+            getattr(mock_reasoner, "quota_redirect_examples", [])
+        ),
+        **goal_policy_stats,
+        "log": "goal_switches.jsonl",
+    }
     intent_audit = {
         "decisions": len(mock_reasoner.decisions),
         "goal_changes": len(goal_changes),
@@ -1068,6 +1112,7 @@ def run_headless(
         "k3": k3,
         "lod": lod_summary,
         "intent": intent_audit,
+        "goal_policy": goal_policy_summary,
         "model_agency": model_agency,
         "economy": econ,
         "wages": wages,
@@ -1118,6 +1163,13 @@ def run_headless(
     (out_dir / "cost.jsonl").write_text(telemetry.to_jsonl(), encoding="utf-8")
     (out_dir / "goal_changes.jsonl").write_text(
         "\n".join(json.dumps(c, ensure_ascii=False, sort_keys=True) for c in goal_changes) + "\n",
+        encoding="utf-8",
+    )
+    (out_dir / "goal_switches.jsonl").write_text(
+        "".join(
+            json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n"
+            for r in mock_reasoner.goal_switches
+        ),
         encoding="utf-8",
     )
     (out_dir / "lod_tiers.jsonl").write_text(

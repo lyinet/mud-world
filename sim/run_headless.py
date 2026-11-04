@@ -39,6 +39,25 @@ def main() -> int:
     p.add_argument("--budget-daily-cost", type=float, default=None)
     p.add_argument("--budget-monthly-cost", type=float, default=None)
     p.add_argument("--budget-soft-ratio", type=float, default=None)
+    p.add_argument(
+        "--goal-policy",
+        action="store_true",
+        help="启用目标切换策略（承诺窗口 + 滞回阈值）；默认关闭以保留旧行为",
+    )
+    p.add_argument("--goal-commit-ticks", type=int, default=0, help="目标承诺窗口（tick，1 tick=10 分钟）")
+    p.add_argument("--goal-hysteresis-delta", type=float, default=0.0, help="滞回阈值 Δ")
+    p.add_argument(
+        "--override-guard-v2",
+        action="store_true",
+        help="启用覆盖护栏 v2（保护高预期完成概率的规则目标）",
+    )
+    p.add_argument("--override-high-probability", type=float, default=0.55, help="高概率保护阈值")
+    p.add_argument(
+        "--type-quota",
+        action="store_true",
+        help="启用目标类型配额（build_shop / earn_money / advance_skill 下限）",
+    )
+    p.add_argument("--type-quota-floor", type=int, default=1, help="每 NPC 核心类型下限")
     args = p.parse_args()
 
     budget: dict[str, object] = {}
@@ -64,6 +83,13 @@ def main() -> int:
         llm_budget=budget or None,
         llm_max_tokens=args.llm_max_tokens,
         llm_temperature=args.llm_temperature,
+        goal_policy_enabled=args.goal_policy,
+        goal_commit_ticks=args.goal_commit_ticks,
+        goal_hysteresis_delta=args.goal_hysteresis_delta,
+        override_guard_v2=args.override_guard_v2,
+        override_high_probability=args.override_high_probability,
+        type_quota_enabled=args.type_quota,
+        type_quota_floor=args.type_quota_floor,
     )
     s = run_headless(ROOT, cfg)
     out = {
@@ -144,6 +170,8 @@ def main() -> int:
         "cost": s["cost"],
         "llm": s["llm"],
         "decisions": s.get("decisions", {}),
+        "goal_policy": s.get("goal_policy", {}),
+        "k1_detail": s.get("k1", {}),
         "model_agency": s.get("model_agency", {}),
         "budget": s.get("budget", {}),
         "verdict": s["verdict"],

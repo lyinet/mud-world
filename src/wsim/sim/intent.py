@@ -69,6 +69,28 @@ CONTENT_GOAL_TYPES = {
     "join_sect",
     "found_sect",
 }
+# 类型配额只保护这三类核心目标，避免模型覆盖导致系统性低于规则臂。
+CORE_GOAL_TYPES = ("build_shop", "earn_money", "advance_skill")
+
+
+@dataclass(frozen=True)
+class GoalSwitchPolicy:
+    """目标切换策略（默认全部关闭，便于与旧行为对照）。
+
+    - commit_ticks：选定目标后至少保持的 tick 数（1 tick=10 分钟），0 表示不限制；
+    - hysteresis_delta：模型目标评分必须超过当前目标评分 + delta 才允许覆盖；
+    - override_guard_v2：覆盖护栏 v2，按“预期完成概率”保护规则目标；
+    - type_quota：按 NPC 为 build_shop/earn_money/advance_skill 设类型下限；
+    - 只有对应开关为真时生效；紧急/生存目标始终绕过承诺窗口。
+    """
+
+    enabled: bool = False
+    commit_ticks: int = 0
+    hysteresis_delta: float = 0.0
+    override_guard_v2: bool = False
+    override_high_probability: float = 0.55
+    type_quota: bool = False
+    type_quota_floor: int = 1
 
 
 @dataclass(frozen=True)
@@ -1262,7 +1284,7 @@ class MockReasoner(Reasoner):
     无 world_view.state/content 时退化为旧的规则桩（单测/Provider 桩会用这条路径）。
     """
 
-    def __init__(self, seed: int = 42, content=None, telemetry=None):
+    def __init__(self, seed: int = 42, content=None, telemetry=None, goal_policy: "GoalSwitchPolicy | None" = None):
         self.seed = seed
         self.content = content
         self.telemetry = telemetry
@@ -1271,10 +1293,24 @@ class MockReasoner(Reasoner):
         self._planned_through: dict[str, int] = {}
         self._variant: dict[str, int] = {}
         self._last_reject: dict[str, str] = {}
+        self.goal_policy = goal_policy
+        # 目标承诺窗口的起点（决策 tick）；没有记录时回退到目标的 created_tick。
+        self._goal_selected_tick: dict[str, int] = {}
+        self.goal_switches: list[dict[str, Any]] = []
+        self.goal_commitment_blocked = 0
+        self.override_blocked_by_reason: dict[str, int] = {}
+        self.override_blocked_examples: list[dict[str, Any]] = []
+        self.quota_redirects = 0
+        self.quota_redirect_examples: list[dict[str, Any]] = []
         self.decisions: list[dict[str, Any]] = []
         self.replan_count = 0
         self.postponed_open_shop = 0
         self.goal_override_skipped = 0
+        # 内容目标优先级（1 最好，3 最差），用于确定性目标评分。
+        self._priorities: dict[str, dict[str, float]] = {
+            str(npc): {str(g.get("id", "")): float(g.get("priority", 5.0)) for g in goals}
+            for npc, goals in (self.selector._content_goals.items() if self.selector is not None else [])
+        }
 
     def decide(
         self,
@@ -1295,24 +1331,83 @@ class MockReasoner(Reasoner):
         start = max(tick, self._planned_through.get(npc, tick))
         interval = int(world_view.get("interval", TICKS_PER_DAY))
         tier = str(world_view.get("tier", "active"))
+        current = self._active_goal_choice(state, npc)
         choice = self.selector.choose(state, npc, tick)
+        choice_source = "planner"
         # A3：模型目标合法且可规划时直接采用；紧急/生存目标仍由规则抢占。
-        # 第二轮护栏（启发式，非证明）：模型目标“不劣于”规则目标才覆盖，避免
-        # 反复切换把累积型目标的进度摊薄。判据：模型目标无进度、规则目标也几乎
-        # 没进度时允许换；否则要求模型目标的归一化进度不低于规则目标 + 5pp。
+        # 开关化策略（默认关闭）：
+        # - 承诺窗口：非紧急目标被选定后至少保持 commit_ticks 才允许切换；
+        # - 滞回阈值：模型目标评分必须 > 当前目标评分 + delta 才允许覆盖。
         if goal_override and choice is not None and choice.source != "urgent":
             alt = self._choice_for_goal(state, npc, goal_override)
             if alt is not None:
-                if self._override_not_worse(state, choice, alt, npc):
+                guard_reason = ""
+                if self.goal_policy is not None and self.goal_policy.override_guard_v2:
+                    allowed, guard_reason = self._override_guard_v2(state, npc, choice, alt)
+                elif self.goal_policy is not None and self.goal_policy.enabled:
+                    allowed = self._hysteresis_allows(state, current, alt)
+                    guard_reason = "hysteresis" if not allowed else ""
+                else:
+                    allowed = self._override_not_worse(state, choice, alt, npc)
+                    guard_reason = "rule_target_has_progress" if not allowed else ""
+                if allowed:
                     choice = alt
+                    choice_source = "model"
                 else:
                     self.goal_override_skipped += 1
+                    if guard_reason == "hysteresis":
+                        self.goal_commitment_blocked += 1
+                    self._record_switch(
+                        tick, npc, current, alt, "model", "keep_blocked",
+                        self._guard_reason_text(guard_reason),
+                        state=state,
+                        override_blocked_reason=guard_reason,
+                    )
+                    if (
+                        guard_reason
+                        and self.goal_policy is not None
+                        and self.goal_policy.override_guard_v2
+                    ):
+                        self.override_blocked_by_reason[guard_reason] = (
+                            self.override_blocked_by_reason.get(guard_reason, 0) + 1
+                        )
+                        if len(self.override_blocked_examples) < 8:
+                            self.override_blocked_examples.append(
+                                {
+                                    "tick": int(tick),
+                                    "npc": npc,
+                                    "rule_goal": choice.goal_id,
+                                    "model_goal": alt.goal_id,
+                                    "reason": guard_reason,
+                                    "rule_expected_probability": round(
+                                        self._expected_completion_probability(state, npc, choice), 4
+                                    ),
+                                    "rule_progress": round(self._goal_progress(state, choice.goal_id), 4),
+                                }
+                            )
         if choice is None:
             return []
+
+        if self.goal_policy is not None and self.goal_policy.enabled:
+            choice, choice_source = self._enforce_commitment(state, npc, tick, current, choice, choice_source)
+
+        if self.goal_policy is not None and self.goal_policy.type_quota:
+            choice, quota_note = self._apply_type_quota(state, npc, tick, current, choice, choice_source)
+            if quota_note and choice_source == "model":
+                choice_source = "planner"
 
         intents: list[Intent] = []
         active = state.entities[npc].goal_id if npc in state.entities else None
         if choice.create or active != choice.goal_id:
+            if active and active != choice.goal_id:
+                self._record_switch(
+                    tick, npc, current, choice, choice_source, "switch", choice.reason, state=state
+                )
+            elif not active:
+                self._record_switch(
+                    tick, npc, None, choice, choice_source, "select", choice.reason, state=state
+                )
+            self._goal_selected_tick[npc] = tick
             args = {
                 "goal": choice.goal_id,
                 "content_goal_id": choice.content_goal_id,
@@ -1369,6 +1464,314 @@ class MockReasoner(Reasoner):
                 persona_tokens=prompt.persona_tokens,
             )
         return intents
+
+    # ---- 目标切换策略（承诺窗口 / 滞回 / 留痕）--------------------------------
+
+    def _active_goal_choice(self, state: WorldState, npc: str) -> GoalChoice | None:
+        ent = state.entities.get(npc)
+        if ent is None or not ent.goal_id:
+            return None
+        goal = state.goals.get(ent.goal_id)
+        if goal is None or goal.status != "active":
+            return None
+        return GoalChoice(
+            npc=npc,
+            goal_id=goal.id,
+            content_goal_id=goal.content_goal_id,
+            content_type=goal.content_type,
+            kind=goal.kind,
+            target=goal.target,
+            source="urgent" if goal.content_type.startswith("urgent_") else "content",
+            reason="保持当前目标",
+            create=False,
+        )
+
+    def _goal_progress(self, state: WorldState, goal_id: str) -> float:
+        goal = state.goals.get(goal_id)
+        if goal is None or goal.target <= 0:
+            return 0.0
+        return min(1.0, max(0.0, float(goal.progress) / float(goal.target)))
+
+    def _type_history_rate(self, state: WorldState, content_type: str) -> float:
+        """同类型历史通过率（按当前 run 已创建目标，progress>0.1 视为通过）。
+
+        早期样本少时用 0.5 先验 + alpha=4 平滑，保证确定性且不偏向某一类型。
+        """
+        created = [
+            g for g in state.goals.values()
+            if g.content_goal_id and g.content_type == content_type
+        ]
+        if not created:
+            return 0.5
+        passed = sum(1 for g in created if g.status == "completed" or self._goal_progress(state, g.id) > 0.1)
+        alpha = 4.0
+        return (passed + alpha * 0.5) / (len(created) + alpha)
+
+    def _goal_prereq_ok(self, state: WorldState, npc: str, content_type: str) -> bool:
+        ent = state.entities.get(npc)
+        if ent is None:
+            return False
+        loc = ent.location
+        if content_type == "build_relation":
+            return any(
+                other.id != npc and other.status == "alive" and other.location == loc
+                for other in state.entities.values()
+            )
+        if content_type in ("earn_money", "build_shop"):
+            return bool(state.business_at(loc))
+        return True
+
+    def _expected_completion_probability(self, state: WorldState, npc: str, choice: GoalChoice) -> float:
+        """被覆盖目标的预期完成概率：类型历史通过率 × 前置可达性 + 当前进度加成。"""
+        base = self._type_history_rate(state, choice.content_type)
+        if not self._goal_prereq_ok(state, npc, choice.content_type):
+            base *= 0.6
+        progress = self._goal_progress(state, choice.goal_id)
+        return min(0.99, base + (1.0 - base) * progress)
+
+    def _guard_score(self, state: WorldState, npc: str, choice: GoalChoice) -> float:
+        priority = self._priorities.get(npc, {}).get(choice.content_goal_id, 5.0)
+        return self._expected_completion_probability(state, npc, choice) + 0.05 * (3.0 - priority)
+
+    def _override_guard_v2(
+        self, state: WorldState, npc: str, rule: GoalChoice, alt: GoalChoice
+    ) -> tuple[bool, str]:
+        """覆盖护栏 v2：保护高概率规则目标；放行时要求同类型且评分严格更高。"""
+        if alt.goal_id == rule.goal_id:
+            return True, ""
+        if rule.source == "urgent" or rule.content_type.startswith("urgent_"):
+            return False, "urgent_protected"
+        threshold = (
+            float(self.goal_policy.override_high_probability) if self.goal_policy is not None else 0.55
+        )
+        if self._expected_completion_probability(state, npc, rule) >= threshold:
+            return False, "high_completion_probability"
+        if alt.content_type != rule.content_type:
+            return False, "type_mismatch"
+        if self._guard_score(state, npc, alt) <= self._guard_score(state, npc, rule):
+            return False, "score_not_strictly_higher"
+        return True, ""
+
+    @staticmethod
+    def _guard_reason_text(reason: str) -> str:
+        return {
+            "high_completion_probability": "覆盖护栏 v2：规则目标预期完成概率高，禁止覆盖",
+            "type_mismatch": "覆盖护栏 v2：模型目标与规则目标类型不同",
+            "score_not_strictly_higher": "覆盖护栏 v2：模型目标评分未严格更高",
+            "urgent_protected": "覆盖护栏 v2：紧急/生存目标受保护",
+            "hysteresis": "滞回阈值未通过",
+            "rule_target_has_progress": "规则目标已有进度，禁止覆盖",
+            "type_quota": "类型配额补位",
+        }.get(reason, reason or "覆盖被拒绝")
+
+    def _deficit_types(self, state: WorldState, npc: str) -> list[str]:
+        """返回该 NPC 尚未达到类型下限的核心目标类型（按固定顺序）。"""
+        floor = int(self.goal_policy.type_quota_floor) if self.goal_policy is not None else 1
+        rows = self.selector._content_goals.get(npc, []) if self.selector is not None else []
+        owned = {str(r.get("type", "")) for r in rows if str(r.get("type", "")) in CORE_GOAL_TYPES}
+        deficits = []
+        for ctype in CORE_GOAL_TYPES:
+            if ctype not in owned:
+                continue
+            activated = sum(
+                1 for g in state.goals.values()
+                if g.npc == npc and g.content_goal_id and g.content_type == ctype
+            )
+            if activated < floor:
+                deficits.append(ctype)
+        return deficits
+
+    def _apply_type_quota(
+        self,
+        state: WorldState,
+        npc: str,
+        tick: int,
+        current: GoalChoice | None,
+        choice: GoalChoice,
+        source: str,
+    ) -> tuple[GoalChoice, str]:
+        """选择目标时优先补足该 NPC 尚缺的核心类型（模型与规则轮转都适用）。"""
+        if current is None or choice is None:
+            return choice, ""
+        if choice.source == "urgent" or choice.content_type.startswith("urgent_"):
+            return choice, ""
+        if choice.goal_id == current.goal_id:
+            return choice, ""
+        deficits = self._deficit_types(state, npc)
+        if not deficits or choice.content_type in deficits:
+            return choice, ""
+        rows = self.selector._content_goals.get(npc, []) if self.selector is not None else []
+        replacement = None
+        for row in rows:
+            ctype = str(row.get("type", ""))
+            if ctype not in deficits:
+                continue
+            rid = str(row.get("id", ""))
+            gid = f"{npc}:{rid}"
+            sg = state.goals.get(gid)
+            if sg is not None and sg.status in ("completed", "abandoned"):
+                continue
+            kind = goal_kind(ctype)
+            replacement = GoalChoice(
+                npc=npc,
+                goal_id=gid,
+                content_goal_id=rid,
+                content_type=ctype,
+                kind=kind,
+                target=float(goal_target(self.content, kind)),
+                source="content",
+                reason=f"类型配额补位（{choice.content_type}→{ctype}）",
+                create=sg is None,
+            )
+            break
+        if replacement is None or replacement.goal_id == current.goal_id:
+            return choice, ""
+        self.quota_redirects += 1
+        if len(self.quota_redirect_examples) < 8:
+            self.quota_redirect_examples.append(
+                {
+                    "tick": int(tick),
+                    "npc": npc,
+                    "from_type": choice.content_type,
+                    "to_type": replacement.content_type,
+                    "to_goal": replacement.goal_id,
+                    "deficits": deficits,
+                }
+            )
+        return replacement, "type_quota"
+
+    def _goal_score(self, state: WorldState, choice: GoalChoice) -> float:
+        """确定性目标评分：内容优先级（1 最好）+ 已完成进度比例（0–1）。
+
+        评分只用于滞回比较，不参与规划；同一状态 + 同一目标必得同一分数。
+        紧急目标不参与比较，统一给 99。
+        """
+        if choice.source == "urgent" or choice.content_type.startswith("urgent_"):
+            return 99.0
+        goal = state.goals.get(choice.goal_id)
+        ratio = 0.0
+        if goal is not None and goal.target > 0:
+            ratio = min(1.0, max(0.0, float(goal.progress) / float(goal.target)))
+        priority = self._priorities.get(choice.npc, {}).get(choice.content_goal_id, 5.0)
+        return (3.0 - priority) + ratio
+
+    def _fmt_score(self, state: WorldState, choice: GoalChoice | None) -> str:
+        return f"{self._goal_score(state, choice):.3f}" if choice is not None else "-inf"
+
+    def _hysteresis_allows(
+        self, state: WorldState, current: GoalChoice | None, alt: GoalChoice
+    ) -> bool:
+        if current is None or current.goal_id == alt.goal_id:
+            return True
+        # 生存/紧急目标优先，模型不得覆盖。
+        if current.source == "urgent" or current.content_type.startswith("urgent_"):
+            return False
+        delta = float(self.goal_policy.hysteresis_delta) if self.goal_policy is not None else 0.0
+        return self._goal_score(state, alt) > self._goal_score(state, current) + delta
+
+    def _enforce_commitment(
+        self,
+        state: WorldState,
+        npc: str,
+        tick: int,
+        current: GoalChoice | None,
+        desired: GoalChoice,
+        source: str,
+    ) -> tuple[GoalChoice, str]:
+        if current is None or desired.goal_id == current.goal_id:
+            return desired, source
+        # 紧急目标可以随时抢占；从紧急状态回到主线是规则已判定急事已了，也放行。
+        if desired.source == "urgent" or desired.content_type.startswith("urgent_"):
+            return desired, source
+        if current.source == "urgent" or current.content_type.startswith("urgent_"):
+            return desired, source
+        goal = state.goals.get(current.goal_id)
+        since = self._goal_selected_tick.get(npc)
+        if since is None:
+            since = goal.created_tick if goal is not None else tick
+        elapsed = tick - since
+        commit = int(self.goal_policy.commit_ticks) if self.goal_policy is not None else 0
+        if elapsed < commit:
+            self.goal_commitment_blocked += 1
+            self._record_switch(
+                tick, npc, current, desired, source, "keep_blocked",
+                f"目标承诺窗口未满（{elapsed}/{commit} tick）",
+                state=state,
+            )
+            return current, "planner"
+        return desired, source
+
+    def _record_switch(
+        self,
+        tick: int,
+        npc: str,
+        from_choice: GoalChoice | None,
+        to_choice: GoalChoice,
+        source: str,
+        action: str,
+        reason: str,
+        *,
+        state: WorldState,
+        override_blocked_reason: str = "",
+    ) -> None:
+        """写一条可审计的目标切换/保持记录（确定性，不含墙钟/随机）。"""
+        from_goal = from_choice.goal_id if from_choice is not None else ""
+        from_progress = self._goal_progress(state, from_goal) if from_goal else None
+        self.goal_switches.append(
+            {
+                "tick": int(tick),
+                "npc": npc,
+                "from_goal": from_goal,
+                "to_goal": to_choice.goal_id,
+                "source": source,
+                "action": action,
+                "reason": str(reason),
+                "override_blocked_reason": override_blocked_reason,
+                "from_progress": round(from_progress, 4) if from_progress is not None else None,
+                "from_score": round(self._goal_score(state, from_choice), 4) if from_choice else None,
+                "to_score": round(self._goal_score(state, to_choice), 4),
+            }
+        )
+
+    def goal_switch_stats(self, horizon_tick: int) -> dict[str, Any]:
+        """从留痕记录复算切换次数与目标平均存活 tick（按 NPC 分段）。"""
+        rows = self.goal_switches
+        switches = [r for r in rows if r["action"] == "switch"]
+        attempts = [r for r in rows if r["action"] in ("switch", "keep_blocked")]
+        blocked = [r for r in rows if r["action"] == "keep_blocked"]
+        selections = [r for r in rows if r["action"] in ("select", "switch")]
+        per_npc: dict[str, list[int]] = {}
+        for r in selections:
+            per_npc.setdefault(str(r["npc"]), []).append(int(r["tick"]))
+        segments: list[int] = []
+        closed: list[int] = []
+        for npc, ticks in sorted(per_npc.items()):
+            points = sorted(set(ticks))
+            if not points:
+                continue
+            for a, b in zip(points, points[1:]):
+                length = max(0, b - a)
+                segments.append(length)
+                closed.append(length)
+            segments.append(max(0, int(horizon_tick) - points[-1]))
+        by_source: dict[str, int] = {}
+        for r in switches:
+            by_source[str(r["source"])] = by_source.get(str(r["source"]), 0) + 1
+        blocked_by_policy: dict[str, int] = {}
+        for r in blocked:
+            key = "hysteresis" if "滞回" in str(r["reason"]) else "commitment_window"
+            blocked_by_policy[key] = blocked_by_policy.get(key, 0) + 1
+        return {
+            "switches": len(switches),
+            "switch_attempts": len(attempts),
+            "blocked": len(blocked),
+            "blocked_by_policy": dict(sorted(blocked_by_policy.items())),
+            "switches_by_source": dict(sorted(by_source.items())),
+            "mean_survival_ticks": round(sum(segments) / len(segments), 2) if segments else 0.0,
+            "mean_survival_ticks_uncensored": round(sum(closed) / len(closed), 2) if closed else 0.0,
+            "segments": len(segments),
+            "npcs": len(per_npc),
+        }
 
     def _override_not_worse(self, state: WorldState, rule: GoalChoice, alt: GoalChoice, npc: str) -> bool:
         """启发式护栏：规则目标已有进度时不允许覆盖，避免摊薄累积型目标。"""
