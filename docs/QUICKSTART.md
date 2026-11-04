@@ -19,7 +19,7 @@
 
 ```text
 [start] Python: Python 3.12.7 (.../.venv/bin/python)
-种子世界: quickstart-2d · 2 游戏日 · 633 条事件 · NPC 自主行动 541 条
+种子世界: quickstart-2d · 2 游戏日 · 836 条事件 · NPC 自主行动 736 条
 最近 8 条 NPC 自主行动（只读回放，不是你的实时会话）:
   [第2日 22:00] 严守一：去了集市
 [demo] 端口: API=8020 前端=8000 均空闲
@@ -106,7 +106,7 @@ curl -sS 'http://127.0.0.1:8000/api/player/state?account_id=u_walk'
 实测输出（seed=42）：
 
 ```text
-种子世界: quickstart-2d · 2 游戏日 · 633 条事件 · NPC 自主行动 541 条
+种子世界: quickstart-2d · 2 游戏日 · 836 条事件 · NPC 自主行动 736 条
 最近 12 条 NPC 自主行动（只读回放，不是你的实时会话）:
   [第2日 20:20] 罗轻絮：还债
   [第2日 21:30] 严守一：在城隍庙干活
@@ -189,10 +189,10 @@ curl -sS -X POST http://127.0.0.1:8000/api/player/action \
 ```
 
 四项串行：内容包校验、`pytest`、框架验收、玩家闭环（临时起 API + 前端，跑进入/移动/对话/接任务）。
-本机实测（2026-11-04，`delivery-p3j`）：
+本机实测（2026-11-04，`delivery-p3k`）：
 
 ```text
-321 passed, 8 skipped
+414 passed, 10 skipped
 [PASS] 内容包校验 content/validate_content.py
 [PASS] 单元测试 pytest
 [PASS] 框架验收 tools/framework_check.py（临时副本，不写 runs/）
@@ -200,7 +200,7 @@ curl -sS -X POST http://127.0.0.1:8000/api/player/action \
 总结: selfcheck PASS（4 项全部通过）
 ```
 
-8 条 skip 是显式保留的旧基线（824 / 791 / 796 events），不是删测试凑绿。
+10 条 skip 是显式保留的旧基线（824 / 791 / 796 events 等），不是删测试凑绿。
 
 ### 3.2 浏览器手工走查（无截图能力时照此执行）
 
