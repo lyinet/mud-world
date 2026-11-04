@@ -36,6 +36,7 @@ TOP_DIRS = [
     "ui",
     "config",
     "content",
+    "deploy",
     "scripts",
     "tools",
     "tests",
