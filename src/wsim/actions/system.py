@@ -459,7 +459,12 @@ class SystemGoalAction(Action):
             "target": float(args.get("target", 1.0)),
             "created_tick": intent.tick,
             # A3：只有 urgent 目标不进 K1 分母；content/model 都是内容目标（source=npc）。
-            "source": "urgent" if goal_source == "urgent" else "npc",
+            # 自提案目标 source=self，不进内容目标分母，也便于生命周期审计识别。
+            "source": (
+                "urgent"
+                if goal_source == "urgent"
+                else ("self" if goal_source == "self" else "npc")
+            ),
             "content_goal_id": str(args.get("content_goal_id", "")),
             "content_type": str(args.get("content_type", "")),
         }

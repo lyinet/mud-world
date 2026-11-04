@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import json
+import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, replace
 from typing import Any
@@ -1424,6 +1425,29 @@ class MockReasoner(Reasoner):
         self.replan_count = 0
         self.postponed_open_shop = 0
         self.goal_override_skipped = 0
+        # 自提案目标（默认关闭）：仅当环境变量显式指定 mode 时启用。
+        self.self_goal_book = None
+        self._npc_index = {
+            str(row.get("id")): i for i, row in enumerate(content.npcs or [])
+        } if content is not None else {}
+        mode = os.environ.get("WSIM_SELF_GOAL_MODE", "").strip().lower()
+        if content is not None and mode in ("competent", "scenarios"):
+            from .self_goal import SelfGoalLedger  # 延迟导入，避免启动期循环依赖
+
+            def _env_int(name: str, default: int) -> int:
+                raw = os.environ.get(name, "").strip()
+                try:
+                    return int(raw) if raw else default
+                except ValueError:
+                    return default
+
+            self.self_goal_book = SelfGoalLedger(
+                content,
+                mode=mode,
+                every_days=_env_int("WSIM_SELF_GOAL_EVERY_DAYS", 3),
+                max_window_days=_env_int("WSIM_SELF_GOAL_MAX_WINDOW_DAYS", 3),
+                trace_path=os.environ.get("WSIM_SELF_GOAL_TRACE", "").strip(),
+            )
         # A4 战略层（默认关闭）：开启后 LLM 决策选择器被日界战略计划替代。
         self.strategy_book = None
         self.strategy_enabled = False
@@ -1460,6 +1484,11 @@ class MockReasoner(Reasoner):
         start = max(tick, self._planned_through.get(npc, tick))
         interval = int(world_view.get("interval", TICKS_PER_DAY))
         tier = str(world_view.get("tier", "active"))
+        if self.self_goal_book is not None:
+            # 自提案：按 NPC 自己的决策节奏提交，每 every_days 天一次。
+            self.self_goal_book.maybe_issue(
+                state, npc, tick, tier, self._npc_index.get(npc, 0)
+            )
         current = self._active_goal_choice(state, npc)
         choice = self.selector.choose(state, npc, tick)
         choice_source = "planner"
@@ -1514,6 +1543,15 @@ class MockReasoner(Reasoner):
                                     "rule_progress": round(self._goal_progress(state, choice.goal_id), 4),
                                 }
                             )
+        if self.self_goal_book is not None:
+            self_abandon = self.self_goal_book.consume_expired(state, npc, start)
+            self_pick = self.self_goal_book.choose(state, npc, start, tier)
+            if self_pick is not None:
+                choice = self_pick
+                choice_source = "self"
+            elif self_abandon and choice is not None:
+                # 到期未完成：放弃自目标，同日回到内容目标。
+                choice = replace(choice, abandon=self_abandon)
         if choice is None:
             return []
 
