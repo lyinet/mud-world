@@ -149,14 +149,28 @@ XKX_CONTENT_PACKS=scaleup_w3 PYTHONPATH=src \
 
 ## 7. 最终包与实测包的差异
 
-最终 `p3k` 由文档提交后的同一 HEAD 重建。相对本实测包（`e317223` 树）**只多两个文件**：
+最终 `p3k` 由文档提交后的同一 HEAD 重建。相对本实测包（`e317223` 树）**只多两个新文档并更新
+`QUICKSTART.md` 的版本数字**：
 
-- `docs/DELIVERY-TEST-p3k.md`（本文件）
-- `docs/RELEASE-NOTES-p3k.md`
+- 新增 `docs/DELIVERY-TEST-p3k.md`（本文件）
+- 新增 `docs/RELEASE-NOTES-p3k.md`
+- 更新 `docs/QUICKSTART.md`（p3j 旧数字 → p3k 实测数字）
 
-`src/`、`content/`、`ui/`、`scripts/`、`tools/`、`deploy/` 等运行文件逐字节相同（见交付回报中的
-`diff` 与逐文件 SHA256 比对）；因此第 2–6 节的实测结论对最终包同样成立。
-最终包在交付前再次干净解包，并用同一 `./start.sh` 命令复核 API 200 与面板 200。
+`src/`、`content/`、`ui/`、`scripts/`、`tools/`、`deploy/` 等运行文件逐字节相同
+（`diff -rq` 只列出上述 3 个 docs 差异，清单逐文件 SHA256 一致）；因此第 2–6 节的实测结论
+对最终包同样成立。
+
+最终包（489 文件，约 2.26 MiB）再次干净解包到 `/tmp/xkx-p3k-deliver` 并用同一命令复核：
+
+| 复核项 | 最终包观测（21:54，端口 8562/8542） |
+| --- | --- |
+| 首次启动 | 21:54:23 建 `.venv`，21:54:38 API + 前端就绪（约 15s） |
+| `GET /api/service/info` | `{"ok": true, "auth_required": false}` |
+| `GET /api/state` | HTTP 404 `unknown_action`（0.0028s，口径见 §3） |
+| `GET /api/player/state?account_id=u_new` | HTTP 200 `player_not_entered`（0.0009s） |
+| `GET /` | HTTP 200，12,406 B，`<title>入世 · 世界门面</title>` |
+| `POST enter`（`u_p3kd` / “初十”） | `ok=true`，`tick=0`，钱包 300 文 |
+| `GET /api/player/state` | `ok=true`，`tick=6`，集市，在场 NPC 7，`open_quests=26` |
 
 ## 8. 未覆盖 / 风险
 
