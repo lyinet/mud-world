@@ -642,6 +642,7 @@ class WorldSession:
         action: str,
         payload: dict[str, Any] | None = None,
         request_id: str = "",
+        advance: bool = True,
     ) -> dict[str, Any]:
         payload = dict(payload or {})
         with self.lock:
@@ -650,7 +651,7 @@ class WorldSession:
                 cached = self.requests[cache_key]
                 cached.setdefault("status", "executed" if cached.get("ok") else "rejected")
                 return cached
-            response = self._perform(account, action, payload)
+            response = self._perform(account, action, payload, advance=advance)
             response.setdefault("profile_version", PROFILE_VERSION)
             response.setdefault("status", "executed" if response.get("ok") else "rejected")
             if cache_key:
@@ -660,7 +661,73 @@ class WorldSession:
                     self.intents[str(response["intent_id"])] = response
             return response
 
-    def _perform(self, account: str, action: str, payload: dict[str, Any]) -> dict[str, Any]:
+    def resume(
+        self,
+        account: str,
+        *,
+        session_id: str = "",
+        token: str = "",
+        expires_at: int = 0,
+        new_session: bool = False,
+        tick_at_disconnect: int | None = None,
+        reconnect_grace: int = 60,
+    ) -> dict[str, Any]:
+        """重连恢复：不推进 tick，只把离线档案重新上线并返回完整快照。
+
+        60 秒内与超时后的区别由 `AccountStore.reconnect` 决定；这里只保证
+        位置/钱包/任务/成长线来自事件日志，不因重连被重置。
+        """
+        account = str(account or "").strip().lower()
+        with self.lock:
+            if not ACCOUNT_RE.match(account):
+                return {
+                    "ok": False,
+                    "profile_version": PROFILE_VERSION,
+                    "resumed": True,
+                    "new_session": bool(new_session),
+                    "session_id": session_id,
+                    "token": token,
+                    "token_type": "Bearer",
+                    "expires_at": int(expires_at),
+                    "tick": int(self.state.tick),
+                    "tick_at_disconnect": int(tick_at_disconnect or 0),
+                    "reconnect_grace_seconds": int(reconnect_grace),
+                    "reject_reason": "bad_account",
+                    "reason_text": _reason_text("bad_account"),
+                }
+            pid = self._pid(account)
+            prof = self.state.players.get(pid)
+            if prof is None or not prof.online:
+                # advance=False：重连不额外推进 tick；enter 自身仍写入事件日志。
+                self._perform(account, "enter", {"account_id": account}, advance=False)
+            state = self.player_state(account)
+            payload: dict[str, Any] = {
+                "ok": bool(state.get("ok")),
+                "profile_version": PROFILE_VERSION,
+                "resumed": True,
+                "new_session": bool(new_session),
+                "session_id": session_id,
+                "token": token,
+                "token_type": "Bearer",
+                "expires_at": int(expires_at),
+                "tick": int(self.state.tick),
+                "tick_at_disconnect": int(
+                    tick_at_disconnect if tick_at_disconnect is not None else self.state.tick
+                ),
+                "reconnect_grace_seconds": int(reconnect_grace),
+                "state": state,
+            }
+            if state.get("ok"):
+                payload["player"] = state["player"]
+                payload["quests"] = state["player"]["active_quests"]
+            else:
+                payload["reject_reason"] = str(state.get("reject_reason") or "")
+                payload["reason_text"] = str(state.get("reason_text") or "")
+            return payload
+
+    def _perform(
+        self, account: str, action: str, payload: dict[str, Any], advance: bool = True
+    ) -> dict[str, Any]:
         account = str(account or "").strip().lower()
         tick = self.state.tick
         if not ACCOUNT_RE.match(account):
@@ -702,7 +769,8 @@ class WorldSession:
                         source="player",
                     )
                 )
-        self._advance()
+        if advance:
+            self._advance()
         data = self._status_view(pid) if event.outcome == "ok" else {}
         response = self._response(event, data, action, pid)
         response["next_tick"] = self.state.tick

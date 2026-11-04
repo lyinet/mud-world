@@ -8,7 +8,8 @@ import sys
 import threading
 from pathlib import Path
 
-from .server import create_server
+from .auth import DEFAULT_ITERATIONS, DEFAULT_RECONNECT_GRACE, DEFAULT_TOKEN_TTL, AccountStore
+from .server import create_server, resolve_auth_required
 from .session import WorldSession
 from .persistence import ContentHashMismatch
 
@@ -28,6 +29,23 @@ def main(argv: list[str] | None = None) -> int:
         default=[],
         help="创世预置账号（可重复）；默认 u_demo。其他账号首次 enter 由 player_endowment 发放。",
     )
+    parser.add_argument(
+        "--auth",
+        choices=("auto", "on", "off"),
+        default="auto",
+        help="auto：存在 deploy/service.yaml 时强制鉴权；on/off 为显式覆盖。",
+    )
+    parser.add_argument(
+        "--session-db",
+        default="",
+        help="账号/令牌 sqlite 路径；默认 <run_dir>/service.sqlite。",
+    )
+    parser.add_argument("--token-ttl", type=int, default=DEFAULT_TOKEN_TTL, help="令牌有效期（秒）。")
+    parser.add_argument(
+        "--reconnect-grace", type=int, default=DEFAULT_RECONNECT_GRACE,
+        help="断线重连宽限（秒）；超时后按新会话处理但存档仍在。",
+    )
+    parser.add_argument("--auth-iterations", type=int, default=DEFAULT_ITERATIONS, help="PBKDF2 迭代次数。")
     args = parser.parse_args(argv)
 
     root = Path(args.root).resolve()
@@ -44,7 +62,19 @@ def main(argv: list[str] | None = None) -> int:
         # 固定契约：退出码 3 + 单行 JSON 错误到 stderr；不监听、不写事件。
         print(exc.log_line(), file=sys.stderr, flush=True)
         return exc.exit_code
-    server = create_server(session, args.host, args.port)
+    auth_required = resolve_auth_required(root, args.auth)
+    accounts: AccountStore | None = None
+    if auth_required:
+        session_db = Path(args.session_db) if args.session_db else session.run_dir / "service.sqlite"
+        accounts = AccountStore(
+            session_db,
+            iterations=args.auth_iterations,
+            token_ttl=args.token_ttl,
+            reconnect_grace=args.reconnect_grace,
+        )
+    server = create_server(
+        session, args.host, args.port, accounts=accounts, auth_required=auth_required
+    )
     host, port = server.server_address
     print(
         json.dumps(
@@ -54,6 +84,8 @@ def main(argv: list[str] | None = None) -> int:
                 "listen": f"http://{host}:{port}",
                 "profile_version": 1,
                 "tick": session.state.tick,
+                "auth_required": auth_required,
+                "auth_mode": args.auth,
                 "docs": "docs/player-api.md",
             },
             ensure_ascii=False,
@@ -76,6 +108,8 @@ def main(argv: list[str] | None = None) -> int:
     finally:
         server.server_close()
         session.close()
+        if accounts is not None:
+            accounts.close()
     return 0
 
 
