@@ -278,11 +278,13 @@ def load_content(
     content_dir = root / "content"
     fixture_dir = root / "fixtures" / "default"
     manifest_mode = use_content and (content_dir / "manifest.yaml").exists()
+    packs: list[Any] = []
 
     if manifest_mode:
         from .content_manifest import load_content_packages
 
         loaded = load_content_packages(content_dir)
+        packs = loaded.packs
         raw_npcs = loaded.data["npcs"]
         raw_locs = loaded.data["locations"]
         raw_items = loaded.data["items"]
@@ -449,13 +451,42 @@ def load_content(
                     content.escort_routes[str(r["id"])] = dict(r)
             content.sources["escort_routes"] = "content/escort_routes.yaml"
 
+        # 已开启扩展包的委托模板：与 base 直接合并，键名冲突时以包内为准。
+        for pack in packs:
+            qp = pack.file("quests")
+            if qp is None or not qp.exists():
+                continue
+            raw_q = _read_yaml(qp) or {}
+            for q in (raw_q.get("quests") if isinstance(raw_q, dict) else raw_q) or []:
+                if isinstance(q, dict) and q.get("id"):
+                    content.quests[str(q["id"])] = dict(q)
+            source = f"content/{qp.relative_to(content_dir).as_posix()}"
+            prior = content.sources.get("quests")
+            content.sources["quests"] = f"{prior}+{source}" if prior else source
+
     # personas：整卡读入，供 Prompt 按 token 预算与章节优先级截断（见 agent/prompt.py）。
+    # 已开启扩展包的卡放在 content/packs/<id>/personas/ 下，与 base 30 张合并。
     persona_dir = content_dir / "personas"
+    persona_sources: list[str] = []
     if use_content and persona_dir.is_dir():
         for p in sorted(persona_dir.glob("*.md")):
             content.personas[p.stem] = p.read_text(encoding="utf-8").strip()
         if content.personas:
-            content.sources["personas"] = "content/personas/*.md"
+            persona_sources.append("content/personas/*.md")
+    for pack in packs:
+        pack_personas = pack.path / "personas"
+        if not pack_personas.is_dir():
+            continue
+        found = False
+        for p in sorted(pack_personas.glob("*.md")):
+            content.personas[p.stem] = p.read_text(encoding="utf-8").strip()
+            found = True
+        if found:
+            persona_sources.append(
+                f"content/{pack_personas.relative_to(content_dir).as_posix()}/*.md"
+            )
+    if persona_sources:
+        content.sources["personas"] = "+".join(persona_sources)
 
     _repair_exits(content)
     return content

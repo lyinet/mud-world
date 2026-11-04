@@ -170,7 +170,7 @@ def tree_digest(directory: Path) -> str:
 
 
 def _prepare_work_root(pack_id: str) -> Path:
-  """在 runs/_w3/ 下准备一个带 content/ 与 config/ 的临时根目录。"""
+  """物化路径（仅保留给 materialize/determinism 复现，原生开启不再需要）。"""
   work = ROOT / "runs" / "_w3" / pack_id
   if work.exists():
     shutil.rmtree(work)
@@ -183,10 +183,19 @@ def _prepare_work_root(pack_id: str) -> Path:
 
 
 def load_enabled(pack_id: str):
+  """引擎原生开启态：设置 XKX_CONTENT_PACKS 后直接从 content/ 加载，不物化。"""
   sys.path.insert(0, str(ROOT / "src"))
   from wsim.core.content import load_content
-  work = _prepare_work_root(pack_id)
-  return work, load_content(work, min_npcs=0, allow_fixture=False, use_content=True)
+  old = os.environ.get("XKX_CONTENT_PACKS")
+  os.environ["XKX_CONTENT_PACKS"] = pack_id
+  try:
+    content = load_content(ROOT, min_npcs=0, allow_fixture=False, use_content=True)
+  finally:
+    if old is None:
+      os.environ.pop("XKX_CONTENT_PACKS", None)
+    else:
+      os.environ["XKX_CONTENT_PACKS"] = old
+  return ROOT, content
 
 
 def cmd_materialize(args) -> int:
@@ -237,6 +246,96 @@ def cmd_run(args) -> int:
       "content_hash": summary.get("content_hash"),
   }, ensure_ascii=False, indent=2))
   return 0
+
+
+DIALOGUE_PROBE_MESSAGES = (
+    "你这些年过得怎样？",
+    "你这门手艺，做到今天不容易罢？",
+    "街面上最近安稳么？",
+)
+
+
+def dialogue_probe(pack_id: str, days: int = 2) -> dict:
+  """在 2 日窗口内对每个新增 NPC 做确定性对话探针。
+
+  回退判定：没有自己的卡，或卡里提不出说话风格/口头禅，或回应没引用本卡台词。
+  """
+  sys.path.insert(0, str(ROOT / "src"))
+  from wsim.agent.dialogue import compose_talk, extract_persona_voice
+  from wsim.core.clock import TICKS_PER_DAY
+  _, content = load_enabled(pack_id)
+  meta = pack_meta(pack_id)
+  pack_npcs = _entries(_pack_file(pack_id, meta, "npcs"), "npcs")
+  pack_personas = PACKS / pack_id / "personas"
+
+  rows = {}
+  fallback_total = 0
+  probe_total = 0
+  for npc in pack_npcs:
+    nid = npc["id"]
+    persona = content.personas.get(nid, "")
+    voice = extract_persona_voice(persona)
+    card_quotes = set(voice["quotes"])
+    ticks = [d * TICKS_PER_DAY + TICKS_PER_DAY // 2 for d in range(max(1, days))]
+    hits = 0
+    quoted = []
+    for i, tick in enumerate(ticks):
+      message = DIALOGUE_PROBE_MESSAGES[i % len(DIALOGUE_PROBE_MESSAGES)]
+      reply = compose_talk(
+          persona, nid, npc.get("name", nid), npc.get("role", ""), message, tick,
+      )
+      generic = compose_talk(
+          "", nid, npc.get("name", nid), npc.get("role", ""), message, tick,
+      )
+      own_quote = (not reply.get("quote")) or reply["quote"] in card_quotes
+      uses_card = (
+          bool(persona)
+          and bool(reply.get("style"))
+          and bool(reply.get("reaction"))
+          and (reply.get("style") != generic.get("style")
+               or reply.get("reaction") != generic.get("reaction"))
+      )
+      hit = uses_card and own_quote
+      hits += 1 if hit else 0
+      if reply.get("quote") and reply["quote"] in card_quotes:
+        quoted.append(reply["quote"])
+    n = len(ticks)
+    fallback = n - hits
+    fallback_total += fallback
+    probe_total += n
+    rows[nid] = {
+        "name": npc.get("name", nid),
+        "home": npc.get("home"),
+        "card": card_quotes != set() and bool(voice["style"]) and bool(voice["reaction"]),
+        "card_quotes": len(card_quotes),
+        "probes": n,
+        "hits": hits,
+        "fallbacks": fallback,
+        "quoted_replies": len(quoted),
+        "quotes_used": sorted(set(quoted)),
+    }
+
+  cards_missing = sorted(set(n["id"] for n in pack_npcs) - set(content.personas))
+  extra_cards = sorted(p.stem for p in pack_personas.glob("*.md")) if pack_personas.is_dir() else []
+  extra_cards = sorted(set(extra_cards) - set(n["id"] for n in pack_npcs))
+  return {
+      "pack": pack_id,
+      "days": days,
+      "new_npcs": len(pack_npcs),
+      "cards_present": len(pack_npcs) - len(cards_missing),
+      "cards_missing": cards_missing,
+      "extra_cards": extra_cards,
+      "probes": probe_total,
+      "fallbacks": fallback_total,
+      "fallback_rate": round(fallback_total / probe_total, 4) if probe_total else 1.0,
+      "per_npc": {k: rows[k] for k in sorted(rows)},
+  }
+
+
+def cmd_dialogue(args) -> int:
+  result = dialogue_probe(args.pack, days=args.days)
+  print(json.dumps(result, ensure_ascii=False, indent=2))
+  return 0 if result["fallback_rate"] == 0.0 else 1
 
 
 def _quest_template(quest_ref: str) -> str:
@@ -360,6 +459,11 @@ def main() -> int:
   p_audit.add_argument("--pack", default="scaleup_w3")
   p_audit.add_argument("--run-dir", required=True)
   p_audit.set_defaults(func=cmd_audit)
+
+  p_dlg = sub.add_parser("dialogue", help="2 日窗口内逐 NPC 对话命中/回退审计")
+  p_dlg.add_argument("--pack", default="scaleup_w3")
+  p_dlg.add_argument("--days", type=int, default=2)
+  p_dlg.set_defaults(func=cmd_dialogue)
 
   args = parser.parse_args()
   return args.func(args)

@@ -10,6 +10,7 @@
 """
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -78,6 +79,104 @@ class LoadedContent:
     manifest_version: str = ""
     errors: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    packs: list["ContentPack"] = field(default_factory=list)
+
+
+PACK_SWITCH_FILE = "enabled.yaml"
+PACK_ENV_VAR = "XKX_CONTENT_PACKS"
+# 包内文件按固定顺序合并，避免依赖 YAML 映射的解析顺序。
+PACK_FILE_TYPES = ("npcs", "locations", "items", "verbs", "economy", "roles", "sects")
+
+
+@dataclass
+class ContentPack:
+    """一个已开启的内容扩展包；path 指 content/packs/<id>/ 目录。"""
+
+    id: str
+    path: Path
+    meta: dict[str, Any]
+
+    def file(self, key: str) -> Path | None:
+        rel = (self.meta.get("files") or {}).get(key)
+        if not rel:
+            return None
+        return self.path / str(rel)
+
+
+def enabled_pack_ids(content_dir: Path) -> list[str]:
+    """读取扩展包开关。
+
+    优先级：`XKX_CONTENT_PACKS` 环境变量（逗号分隔）> `content/packs/enabled.yaml`。
+    两者都没有声明时返回空列表，加载路径与关闭态完全一致。
+    """
+    env = os.environ.get(PACK_ENV_VAR, "").strip()
+    if env:
+        return [p.strip() for p in env.split(",") if p.strip()]
+    switch = content_dir / "packs" / PACK_SWITCH_FILE
+    if not switch.is_file():
+        return []
+    raw = _read_yaml(switch) or {}
+    enabled = raw.get("enabled") if isinstance(raw, dict) else None
+    if not isinstance(enabled, list):
+        return []
+    return [str(p).strip() for p in enabled if str(p).strip()]
+
+
+def enabled_content_packs(content_dir: Path) -> list[ContentPack]:
+    """解析已开启包并校验 pack.yaml 与文件路径；任何缺失都直接失败。"""
+    packs: list[ContentPack] = []
+    errors: list[str] = []
+    for pid in enabled_pack_ids(content_dir):
+        pdir = content_dir / "packs" / pid
+        meta_path = pdir / "pack.yaml"
+        if not meta_path.is_file():
+            errors.append(f"content/packs/{pid}/pack.yaml: 内容包不存在或缺少 pack.yaml")
+            continue
+        meta = _read_yaml(meta_path)
+        if not isinstance(meta, dict):
+            errors.append(f"content/packs/{pid}/pack.yaml: 顶层必须是映射")
+            continue
+        files = meta.get("files") or {}
+        if not isinstance(files, dict):
+            errors.append(f"content/packs/{pid}/pack.yaml: files 必须是映射")
+            continue
+        for key in sorted(files):
+            if key not in PACK_FILE_TYPES:
+                continue
+            rel = Path(str(files[key]))
+            if rel.is_absolute() or ".." in rel.parts:
+                errors.append(f"content/packs/{pid}/pack.yaml: files.{key} 必须是包内相对路径")
+                continue
+            if not (pdir / rel).is_file():
+                errors.append(
+                    f"content/packs/{pid}/pack.yaml: files.{key} 指向的文件不存在 "
+                    f"content/packs/{pid}/{rel.as_posix()}"
+                )
+        packs.append(ContentPack(id=pid, path=pdir, meta=meta))
+    if errors:
+        raise ContentValidationError(errors)
+    return packs
+
+
+def _pack_packages(content_dir: Path, packs: list[ContentPack]) -> list[Package]:
+    """把已开启包转换成与 manifest 包同构的 Package 列表。"""
+    out: list[Package] = []
+    for pack in packs:
+        version = str(pack.meta.get("version") or "1.0.0")
+        for key in PACK_FILE_TYPES:
+            path = pack.file(key)
+            if path is None:
+                continue
+            out.append(
+                Package(
+                    id=f"{pack.id}-{key}",
+                    type=key,
+                    path=path,
+                    version=version,
+                    root_key=TYPE_ROOT_KEYS[key],
+                )
+            )
+    return out
 
 
 # --------------------------------------------------------------------------
@@ -619,8 +718,10 @@ def validate_merged(merged: dict[str, Any], meta: dict[str, Any], content_dir: P
 
 
 def load_content_packages(content_dir: Path) -> LoadedContent:
-    """读取 manifest 并返回合并后的原始数据（未规范化）。"""
+    """读取 manifest 与已开启扩展包，返回合并后的原始数据（未规范化）。"""
     _, packages, _ = _load_manifest(content_dir)
+    packs = enabled_content_packs(content_dir)
+    packages = list(packages) + _pack_packages(content_dir, packs)
     merged: dict[str, Any] = {
         "npcs": [],
         "locations": [],
@@ -663,6 +764,7 @@ def load_content_packages(content_dir: Path) -> LoadedContent:
         data=merged,
         sources={k: "+".join(v) for k, v in sources.items() if v},
         manifest_version=str(manifest_data.get("manifest_version", "")),
+        packs=packs,
     )
 
 
