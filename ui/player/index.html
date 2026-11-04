@@ -26,11 +26,16 @@
     </div>
     <div class="top-actions">
       <span class="run-tag" id="runTag">载入中</span>
+      <button class="ghost small auth-btn" id="authBtn" type="button" title="登录或注册">登录/注册</button>
       <button class="ghost small" id="switchBtn" type="button" title="换一个玩家身份/账号">换人</button>
     </div>
   </header>
 
   <div id="noticeBar" class="notice-bar hidden"></div>
+  <div id="authNotice" class="auth-notice hidden" role="status">
+    <span><b>需要重新登录</b><span id="authNoticeText">登录已失效，写操作需要重新登录。</span></span>
+    <button class="ghost small" id="authNoticeBtn" type="button">登录/注册</button>
+  </div>
 
   <main class="layout" id="layout">
     <!-- 左：位置 / 出口 / 在场 NPC -->
@@ -183,6 +188,10 @@
       用 <code>--readonly</code> 启动时降级为“提案不落地”，页面顶部会显示“只读模式”。
     </div>
 
+    <div class="entry-auth-line hidden" id="entryAuthLine">
+      <span id="entryAuthText">写操作需要登录；读世界和看推荐匿名可用。</span>
+      <button class="ghost" id="entryAuthBtn" type="button">登录 / 注册</button>
+    </div>
     <div class="entry-actions">
       <button class="primary" id="enterBtn" type="button">进入世界</button>
     </div>
@@ -206,7 +215,65 @@
   </div>
 </div>
 
-<div class="toast hidden" id="toast" role="status"></div>
+<!-- 新手引导：仅在首次进入时出现，可随时跳过 -->
+<div class="guide-layer hidden" id="guideLayer">
+  <div class="guide-spotlight" id="guideSpotlight" aria-hidden="true"></div>
+  <div class="guide-card" id="guideCard" role="region" aria-labelledby="guideTitle" aria-live="polite">
+    <div class="guide-top">
+      <span class="guide-step" id="guideStep">1 / 4</span>
+      <button class="guide-skip" id="guideSkip" type="button">跳过</button>
+    </div>
+    <h3 id="guideTitle">—</h3>
+    <p id="guideWhy">—</p>
+    <div class="guide-actions">
+      <button class="primary" id="guideNext" type="button">下一步</button>
+    </div>
+  </div>
+</div>
+
+<!-- 错误可复查：右下角折叠历史，最多 3 条 -->
+<div class="error-dock" id="errorDock">
+  <div class="error-list hidden" id="errorList" role="log" aria-label="最近错误"></div>
+  <button class="error-toggle hidden" id="errorToggle" type="button" aria-expanded="false">
+    最近错误 <span id="errorCount">0</span>
+  </button>
+</div>
+
+<!-- 轻量登录/注册：用户名 + 口令，不存口令明文 -->
+<div class="modal hidden" id="authModal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+  <div class="modal-card auth-card">
+    <button class="modal-close" id="authClose" type="button" aria-label="关闭">×</button>
+    <div class="modal-head">
+      <div class="avatar big" id="authAvatar">登</div>
+      <div>
+        <h2 id="authTitle">登录 / 注册</h2>
+        <p id="authSub">写操作需要令牌；读世界和看推荐匿名可用。</p>
+      </div>
+    </div>
+    <div class="auth-tabs" role="tablist" aria-label="登录方式">
+      <button class="auth-tab active" id="authTabLogin" type="button" role="tab" aria-selected="true" data-auth-mode="login">登录</button>
+      <button class="auth-tab" id="authTabRegister" type="button" role="tab" aria-selected="false" data-auth-mode="register">注册</button>
+    </div>
+    <form id="authForm">
+      <div class="field">
+        <label for="authUsername">用户名</label>
+        <input id="authUsername" type="text" maxlength="32" placeholder="3-32 位字母/数字/-/_" autocomplete="username" />
+      </div>
+      <div class="field">
+        <label for="authPassword">口令</label>
+        <input id="authPassword" type="password" maxlength="72" placeholder="至少 6 位" autocomplete="current-password" />
+      </div>
+      <p class="tiny" id="authHint">口令只用于本次请求，不写入 localStorage；本地只保存令牌。</p>
+      <div class="entry-actions">
+        <button class="primary" id="authSubmit" type="submit">登录</button>
+        <button class="ghost hidden" id="authLogout" type="button">退出登录</button>
+      </div>
+    </form>
+    <div class="entry-error hidden" id="authError"></div>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
 
 <script src="app.js"></script>
 </body>

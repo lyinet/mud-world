@@ -704,6 +704,41 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   .npc-doing { white-space: normal; }
 }
 
+/* W4 移动端：主流程优先排序 + 可折叠 + 触控 ≥44px */
+@media (max-width: 768px) {
+  .layout { grid-template-columns: 1fr; }
+  .panel.right { order: 1; }
+  .layout > .panel.side:not(.right) { order: 2; }
+  .layout > .panel.center { order: 3; }
+  .panel.right > .block.fold-growth { order: 3; }
+  .panel.right > .block:nth-child(3) { order: 2; }
+
+  .fold-btn { display: inline-flex; align-items: center; justify-content: center; }
+  .block.foldable.collapsed > .block-body { display: none; }
+
+  /* 触控目标：主流程按钮和输入都不小于 44px */
+  button:not(.modal-close),
+  input,
+  textarea,
+  .exit,
+  .npc,
+  .search-row { min-height: 44px; }
+  button { padding-top: 9px; padding-bottom: 9px; }
+  button.small { padding: 9px 12px; }
+  .quest button { min-height: 44px; padding: 9px 13px; }
+  .today-act { min-height: 44px; }
+  .guide-skip,
+  .guide-actions button,
+  .auth-tab,
+  .error-toggle { min-height: 44px; }
+  .auth-btn { max-width: 112px; }
+  .auth-notice { margin: 10px 12px 0; }
+  .guide-card { width: min(320px, calc(100vw - 24px)); }
+  .guide-skip { display: inline-flex; align-items: center; }
+  .toast { top: 112px; }
+  .error-dock { right: 10px; bottom: 10px; }
+}
+
 /* 世界回应（/api/player/messages 轮询结果） */
 .replies {
   margin-top: 8px;
@@ -742,6 +777,228 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   background: var(--gold-soft);
   border-color: #e3cf9c;
   color: #7a5a18;
+}
+
+/* ---------------------------------------------------------------- W4 体验层 */
+/* 登录入口：不挤占状态条，窄屏自动截断 */
+.auth-btn {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.auth-btn:disabled { opacity: .65; }
+.auth-notice {
+  margin: 10px 20px 0;
+  padding: 9px 12px;
+  border: 1px solid #d8a79d;
+  background: #fbebe7;
+  color: #6d2a21;
+  border-radius: 10px;
+  font-size: 12.5px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.auth-notice b { margin-right: 4px; }
+.auth-notice button { min-height: 36px; }
+
+/* 登录 / 注册弹层 */
+.auth-card { width: min(420px, 100%); }
+.auth-tabs {
+  display: flex;
+  gap: 6px;
+  margin: 4px 0 12px;
+  border-bottom: 1px solid var(--line-soft);
+  padding-bottom: 8px;
+}
+.auth-tab {
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.auth-tab.active {
+  background: var(--paper-2);
+  border-color: var(--line);
+  color: var(--ink);
+  font-weight: 600;
+}
+.auth-card .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+.auth-card .field label { font-size: 12px; color: var(--muted); }
+.auth-card .field input {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fffef9;
+  padding: 9px 11px;
+  font-size: 14px;
+}
+.entry-auth-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 10px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper-2);
+  font-size: 12px;
+  color: var(--muted);
+}
+.entry-auth-line button { min-height: 36px; }
+.auth-card .entry-error {
+  margin-top: 10px;
+  border: 1px solid #d8a79d;
+  background: #fbebe7;
+  color: #6d2a21;
+  border-radius: 9px;
+  padding: 8px 10px;
+  font-size: 12.5px;
+}
+
+/* 新手引导：不设遮罩点击层，只高亮一个元素 */
+.guide-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 41;
+  pointer-events: none;
+}
+.guide-spotlight {
+  position: fixed;
+  border: 3px solid #c8955a;
+  border-radius: 12px;
+  box-shadow: 0 0 0 4px rgba(200, 149, 90, .22), 0 0 0 9999px rgba(43, 34, 24, .10);
+  pointer-events: none;
+  transition: left .16s ease, top .16s ease, width .16s ease, height .16s ease;
+}
+.guide-card {
+  position: fixed;
+  pointer-events: auto;
+  width: 300px;
+  background: #fffaf0;
+  color: var(--ink);
+  border: 1px solid #d9bd88;
+  border-radius: 14px;
+  padding: 12px 14px;
+  box-shadow: 0 16px 40px rgba(62, 48, 30, .24);
+  animation: rise .18s ease-out;
+}
+.guide-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.guide-step {
+  font-size: 11px;
+  letter-spacing: .08em;
+  color: #7a571c;
+  background: var(--gold-soft);
+  border: 1px solid #e3cf9c;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.guide-skip {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  text-decoration: underline;
+  min-height: 32px;
+  padding: 4px 6px;
+}
+.guide-card h3 { margin: 8px 0 4px; font-family: var(--serif); font-size: 16px; letter-spacing: .04em; }
+.guide-card p { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--ink-soft); }
+.guide-actions { display: flex; justify-content: flex-end; margin-top: 10px; }
+.guide-actions button { min-height: 36px; }
+
+/* 错误历史：右下角折叠，最多 3 条 */
+.error-dock {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  z-index: 58;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  pointer-events: none;
+}
+.error-dock > * { pointer-events: auto; }
+.error-toggle {
+  min-height: 44px;
+  border: 1px solid #d8a79d;
+  background: #fbebe7;
+  color: #6d2a21;
+  border-radius: 999px;
+  padding: 7px 13px;
+  font-size: 12px;
+  box-shadow: 0 8px 20px rgba(62, 48, 30, .16);
+}
+.error-toggle span {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  margin-left: 4px;
+  border-radius: 999px;
+  background: #6d2a21;
+  color: #fff7ea;
+  font-size: 11px;
+}
+.error-list {
+  width: min(340px, calc(100vw - 28px));
+  max-height: 42vh;
+  overflow: auto;
+  background: #fffaf0;
+  border: 1px solid #d8a79d;
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(62, 48, 30, .24);
+  padding: 8px 10px;
+}
+.error-item { border-left: 3px solid var(--red); padding: 5px 0 6px 8px; font-size: 12px; }
+.error-item + .error-item { margin-top: 6px; }
+.error-head { display: flex; justify-content: space-between; gap: 8px; color: var(--ink-soft); }
+.error-head span { color: var(--muted); font-size: 10.5px; }
+.error-code { margin-top: 2px; color: var(--muted); font-size: 10.5px; }
+
+/* 可折叠分组（只在 ≤768px 出现按钮） */
+.fold-btn {
+  display: none;
+  border: 1px solid var(--line);
+  background: var(--paper-2);
+  border-radius: 8px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  font-size: 16px;
+  color: var(--ink-soft);
+  flex: none;
+}
+.block-body { display: flex; flex-direction: column; gap: 9px; min-height: 0; }
+
+/* 焦点可见：比默认 2px 更明显，触控/键盘都不用猜 */
+button:focus-visible, input:focus-visible, textarea:focus-visible,
+.archetype:focus-within {
+  outline: 3px solid #c8955a;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* 提示不打扰：顶部居中且不接收点击，不挡任何按钮 */
+.toast {
+  top: 82px;
+  bottom: auto;
+  pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  /* 覆盖基础 .toast 的 top:82px，避免压到状态条 */
+  .toast { top: 112px; }
+  /* 覆盖后出现的基础 36px，保证引导按钮也 ≥44px */
+  .guide-actions button,
+  .guide-skip { min-height: 44px; }
 }
 
 /* P4 今天能做什么 / 成长线 */

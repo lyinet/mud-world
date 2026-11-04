@@ -22,6 +22,75 @@
     )
   };
 
+  /* 原因码映射：前端只认 reject_reason，中文文案由这里兜底。
+     未知码仍会显示服务端 reason_text；两者都没有时走通用兜底。 */
+  const REASON_TEXT = {
+    auth_required: '需要登录后才能执行写操作；请先登录/注册。',
+    invalid_token: '登录凭证无效；请重新登录。',
+    token_expired: '登录已过期；请重新登录。',
+    bad_credentials: '用户名或口令不正确；请检查后重试。',
+    username_taken: '这个用户名已被占用；换一个用户名再注册。',
+    weak_password: '口令太短或格式不合要求；请换一个更稳妥的口令。',
+    bad_username: '用户名格式不合法；请用 3-32 位字母、数字、下划线或连字符。',
+    auth_unavailable: '登录服务暂时不可用；可先匿名浏览，稍后再试。',
+    missing_account: '缺少账号；请先创建账号再进入世界。',
+    bad_account: '账号格式不合法（3-32 位小写字母、数字、下划线或连字符）。',
+    unknown_action: '未知操作；请刷新页面后重试。',
+    forbidden_verb: '该操作在本阶段不开放（伤害/抢掠/强迫婚配等不可逆动作被禁用）。',
+    player_not_entered: '你还没有进入世界；请先进入世界。',
+    player_offline: '你已离线；请重新进入世界后再操作。',
+    already_offline: '你已经是离线状态。',
+    already_online: '你已经在线，无需重复进入。',
+    identity_locked: '身份进入后不可更改；请用原身份重新登录。',
+    bad_archetype: '身份必须是游侠、商人或捕快。',
+    bad_display_name: '角色名需 2-12 字，且不能与现有角色重名。',
+    bad_location: '地点不存在。',
+    unknown_location: '地点不存在；请从当前地点可用的出口中选择。',
+    not_adjacent: '目标地点与当前位置不相邻；请沿道路逐段移动。',
+    insufficient_stamina: '体力不足；请先休息或进食。',
+    unknown_target: '目标人物不存在。',
+    not_together: '对方不在你当前所在的地点；先移动到对方所在处。',
+    target_offline: '对方不在线，不能进行该操作。',
+    player_consent_required: '该操作需要对方本人同意；本阶段关闭 NPC 对玩家的婚配与招揽。',
+    bad_message: '消息不能为空且不超过 200 字。',
+    heartbeat_too_soon: '心跳过于频繁；请稍后再试。',
+    stale_tick: '你的请求使用了过期时间点；请刷新状态后重试。',
+    unknown_verb: '动作未注册；请刷新页面后重试。',
+    quest_not_found: '这条委托已不在任务板上；请刷新任务板换一条。',
+    quest_not_open: '任务已被接走或已结束；请换一条开放中的委托。',
+    giver_missing: '任务发布人已不在世界；这条委托无法继续。',
+    not_at_giver: '你不在委托人所在的地点；先走到委托人那里。',
+    busy_on_escort: '你正在押镖，不能同时接单；先完成押镖。',
+    too_many_quests: '你手上已有 2 个进行中任务；先交付其中一个，再接新单。',
+    quest_not_accepted_by_actor: '这个任务不是由你接下的，不能由你交付。',
+    quest_expired: '这条委托已超过截止时间；去任务板换一条未过期的。',
+    reputation_too_low: '声望还不够接这一单；先做小委托或经营人情，达到门槛再来。',
+    not_at_target: '还没到任务目标地点或委托人处；先移动过去再交付。',
+    quest_item_missing: '采购类委托需要你持有目标物品；先取得物品再交付。',
+    item_not_held: '你身上没有这条委托要求的物品；先取得物品再交付。',
+    trade_unfair: '交易价值明显不对等；对方拒绝了这笔买卖。',
+    service_item: '服务类物品不能用于玩家交易。',
+    offer_not_held: '你给出的物品数量不足。',
+    want_not_held: '对方没有你想要的物品。',
+    insufficient_money: '你的钱不够。',
+    target_insufficient_money: '对方的钱不够支付这笔差额。',
+    hostile: '对方对你敌对，拒绝交易。',
+    role_not_allowed: '你的身份不允许该操作。',
+    player_cap_reached: '本区域玩家席位已满，暂时无法创建新账号。',
+    endowment_already_granted: '该账号已经领取过初始资产，不能重复领取。',
+    endowment_cap_reached: '本区域初始资产发放总额已达上限；请联系运维。',
+    account_missing: '玩家钱包账户不存在，已被回滚。',
+    effect_invalid: '操作违反世界规则，已被回滚。',
+    bad_args: '参数不完整或格式错误。',
+    'bad_arg:money_delta': '金额参数必须是整数。',
+    intent_not_found: '没有找到这个请求；请刷新后重试。',
+    readonly_mode: '只读模式不支持该动作；请用可写模式启动。'
+  };
+
+  const AUTH_KEY = 'ws_auth_v1';
+  const GUIDE_KEY = 'ws_player_guide_v1';
+  const CHECK_MODE = /(?:^|[?&])ui_check=1(?:&|$)/.test(window.location.search);
+
   const state = {
     health: null,
     session: null,     // {accountId, entityId, displayName, archetype, role, mode}
@@ -31,7 +100,27 @@
     pollTimer: null,
     log: [],
     sinceTick: 0,
-    seenMessages: {}
+    seenMessages: {},
+    auth: {
+      mode: 'unknown',   // unknown | auth | legacy
+      access: '',
+      refresh: '',
+      expiresAt: 0,
+      username: '',
+      required: false,
+      probeDone: false
+    },
+    guide: {
+      active: false,
+      step: 1,
+      status: 'idle',    // idle | active | skipped | completed
+      accountId: ''
+    },
+    ui: {
+      errors: [],
+      foldsReady: false,
+      toastTimer: null
+    }
   };
 
   const $ = (sel) => document.querySelector(sel);
@@ -43,24 +132,47 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
-  async function getJSON(url) {
-    const res = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+  function authHeader() {
+    return state.auth.access ? { Authorization: 'Bearer ' + state.auth.access } : {};
+  }
+
+  async function getJSON(url, withAuth) {
+    const headers = Object.assign({ Accept: 'application/json' }, withAuth ? authHeader() : {});
+    const res = await fetch(url, { headers: headers, cache: 'no-store' });
     const data = await res.json().catch(() => ({}));
+    if (res.status === 401) {
+      clearAuth('expired');
+      notifyAuthRequired('登录已失效，需要重新登录。');
+      const err = new Error('需要重新登录');
+      err.authRequired = true;
+      err.status = 401;
+      throw err;
+    }
     if (!res.ok) {
       throw new Error((data && (data.message || data.error || data.reason_text)) || ('HTTP ' + res.status));
     }
     return data;
   }
 
-  async function postJSON(url, body) {
+  async function postJSON(url, body, retried) {
+    const headers = Object.assign(
+      { 'Content-Type': 'application/json', Accept: 'application/json' },
+      /^\/auth\//.test(url) ? {} : authHeader()
+    );
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      headers: headers,
       body: JSON.stringify(body),
       cache: 'no-store'
     });
     const data = await res.json().catch(() => ({}));
-    return { httpOk: res.ok, status: res.status, data: data };
+    if (res.status === 401 && !retried && !/^\/auth\//.test(url)) {
+      const refreshed = await refreshAuth();
+      if (refreshed) return postJSON(url, body, true);
+      clearAuth('expired');
+      notifyAuthRequired('登录已失效，需要重新登录。');
+    }
+    return { httpOk: res.ok, status: res.status, data: data, authRequired: res.status === 401 };
   }
 
   function sleep(ms) { return new Promise(function (resolve) { setTimeout(resolve, ms); }); }
@@ -69,9 +181,376 @@
     const node = el('toast');
     node.textContent = message;
     node.classList.remove('hidden', 'bad');
+    node.setAttribute('aria-live', bad ? 'assertive' : 'polite');
     if (bad) node.classList.add('bad');
-    clearTimeout(toast._t);
-    toast._t = setTimeout(() => node.classList.add('hidden'), 4200);
+    clearTimeout(state.ui.toastTimer);
+    state.ui.toastTimer = setTimeout(function () { node.classList.add('hidden'); }, bad ? 5200 : 4200);
+  }
+
+  function reasonText(code, serverText) {
+    const key = String(code == null ? '' : code).trim();
+    if (key && REASON_TEXT[key]) return REASON_TEXT[key];
+    const human = String(serverText == null ? '' : serverText).trim();
+    if (human) return human;
+    if (key) return '操作没有完成：' + key + '（服务端没有给出中文说明，请刷新后再试）。';
+    return '操作没有完成，但服务端没有给出原因；请刷新状态后重试。';
+  }
+
+  function reasonOf(data, status) {
+    const d = data || {};
+    const code = String(d.reason || d.reject_reason || d.error || '').trim();
+    const serverText = d.reason_text || d.message || '';
+    return {
+      code: code,
+      text: reasonText(code, serverText),
+      isAuth: status === 401 || ['auth_required', 'invalid_token', 'token_expired'].indexOf(code) >= 0
+    };
+  }
+
+  function clockText(at) {
+    const d = new Date(at || Date.now());
+    const p = function (n) { return n < 10 ? '0' + n : String(n); };
+    return p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+  }
+
+  function renderErrorDock() {
+    const rows = state.ui.errors.slice(0, 3);
+    const toggle = el('errorToggle');
+    const list = el('errorList');
+    el('errorCount').textContent = String(rows.length);
+    toggle.classList.toggle('hidden', !rows.length);
+    if (!rows.length) {
+      list.classList.add('hidden');
+      list.innerHTML = '';
+      return;
+    }
+    list.innerHTML = rows.map(function (r) {
+      return '<div class="error-item"><div class="error-head"><b>' + escapeHtml(r.context || '操作') +
+        '</b><span>' + escapeHtml(clockText(r.at)) + '</span></div>' +
+        '<div>' + escapeHtml(r.text || '') + '</div>' +
+        (r.code ? '<div class="error-code">原因码：<code>' + escapeHtml(r.code) + '</code></div>' : '') +
+        '</div>';
+    }).join('');
+  }
+
+  function recordError(context, code, text) {
+    state.ui.errors.unshift({ at: Date.now(), context: context, code: code || '', text: text || '' });
+    if (state.ui.errors.length > 3) state.ui.errors.length = 3;
+    renderErrorDock();
+  }
+
+  function notifyError(context, data, status, fallback) {
+    const r = reasonOf(data, status);
+    const text = r.text || fallback || '操作没有完成。';
+    toast(text, true);
+    recordError(context, r.code, text);
+    pushLog('rejected', context + '：' + text, r.code || '');
+    return r;
+  }
+
+  /* ------------------------------------------------------------- 鉴权 / 令牌 */
+  function loadStoredAuth() {
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(AUTH_KEY) || 'null'); } catch (e) { saved = null; }
+    if (!saved || typeof saved !== 'object') return false;
+    state.auth.access = String(saved.access_token || '');
+    state.auth.refresh = String(saved.refresh_token || '');
+    state.auth.expiresAt = Number(saved.expires_at || 0) || 0;
+    state.auth.username = String(saved.username || '');
+    return !!state.auth.access;
+  }
+
+  function persistAuth() {
+    try {
+      if (!state.auth.access && !state.auth.refresh) {
+        localStorage.removeItem(AUTH_KEY);
+        return;
+      }
+      localStorage.setItem(AUTH_KEY, JSON.stringify({
+        access_token: state.auth.access,
+        refresh_token: state.auth.refresh,
+        expires_at: state.auth.expiresAt,
+        username: state.auth.username
+        // 口令不落盘：只在登录请求体里出现。
+      }));
+    } catch (e) { /* localStorage 不可用时保留内存态 */ }
+  }
+
+  function clearAuth(reason) {
+    state.auth.access = '';
+    state.auth.refresh = '';
+    state.auth.expiresAt = 0;
+    state.auth.required = reason === 'expired';
+    try { localStorage.removeItem(AUTH_KEY); } catch (e) { /* ignore */ }
+    renderAuthUI();
+  }
+
+  function tokenFields(payload) {
+    const d = payload && typeof payload === 'object' ? payload : {};
+    const inner = d.data && typeof d.data === 'object' ? d.data : {};
+    const merged = Object.assign({}, d, inner);
+    return {
+      access: String(merged.access_token || merged.accessToken || merged.token || ''),
+      refresh: String(merged.refresh_token || merged.refreshToken || ''),
+      expiresAt: merged.expires_at || merged.expiresAt || merged.expires || '',
+      expiresIn: merged.expires_in || merged.expiresIn || 0,
+      username: String((merged.user && (merged.user.username || merged.user.name)) || merged.username || '')
+    };
+  }
+
+  function normalizeExpires(value, expiresIn) {
+    if (value != null && value !== '') {
+      const n = Number(value);
+      if (Number.isFinite(n) && n > 0) return n > 1e12 ? Math.round(n) : Math.round(n * 1000);
+      const t = Date.parse(String(value));
+      if (Number.isFinite(t) && t > 0) return t;
+    }
+    if (Number(expiresIn) > 0) return Date.now() + Number(expiresIn) * 1000;
+    return 0;
+  }
+
+  function applyAuthPayload(payload, username) {
+    const t = tokenFields(payload);
+    if (!t.access) return false;
+    state.auth.access = t.access;
+    state.auth.refresh = t.refresh || state.auth.refresh;
+    state.auth.expiresAt = normalizeExpires(t.expiresAt, t.expiresIn);
+    state.auth.username = t.username || username || state.auth.username || '';
+    state.auth.mode = 'auth';
+    state.auth.required = false;
+    persistAuth();
+    renderAuthUI();
+    return true;
+  }
+
+  async function refreshAuth() {
+    if (!state.auth.refresh) return false;
+    try {
+      const res = await fetch('/auth/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ refresh_token: state.auth.refresh }),
+        cache: 'no-store'
+      });
+      if (res.status === 404 || res.status === 405) return false;
+      const body = await res.json().catch(function () { return {}; });
+      if (!res.ok) {
+        if (res.status === 400 || res.status === 401) clearAuth('expired');
+        return false;
+      }
+      return applyAuthPayload(body, state.auth.username);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  async function probeAuth() {
+    const hadToken = loadStoredAuth();
+    if (hadToken) {
+      // 启动时先拿已有令牌试探读端点；401/过期就当未登录，清掉本地令牌。
+      const savedAccount = (function () {
+        try {
+          const raw = JSON.parse(localStorage.getItem('ws_player_account') || 'null');
+          return raw && raw.account_id ? raw.account_id : 'u_demo';
+        } catch (e) { return 'u_demo'; }
+      })();
+      try {
+        const res = await fetch('/api/player/state?account_id=' + encodeURIComponent(savedAccount), {
+          headers: Object.assign({ Accept: 'application/json' }, authHeader()),
+          cache: 'no-store'
+        });
+        if (res.status === 401) {
+          if (state.auth.refresh) {
+            const renewed = await refreshAuth();
+            if (!renewed) clearAuth('expired');
+          } else {
+            clearAuth('expired');
+          }
+        }
+      } catch (e) { /* 上游暂时不可达时保留令牌，交给写操作再判 */ }
+    }
+    let probe = null;
+    try {
+      probe = await fetch('/auth/refresh', {
+        method: 'POST',
+        headers: Object.assign(
+          { 'Content-Type': 'application/json', Accept: 'application/json' },
+          {} // 刷新只用 refresh_token，不附过期 access
+        ),
+        body: JSON.stringify({ refresh_token: state.auth.refresh || '' }),
+        cache: 'no-store'
+      });
+    } catch (e) {
+      state.auth.mode = state.auth.access ? 'auth' : 'legacy';
+      state.auth.probeDone = true;
+      renderAuthUI();
+      return;
+    }
+    if (probe.status === 404 || probe.status === 405 || probe.status === 501) {
+      // 服务端没有鉴权端点：legacy 匿名模式，不强行要求登录。
+      state.auth.mode = 'legacy';
+      state.auth.required = false;
+      state.auth.probeDone = true;
+      renderAuthUI();
+      return;
+    }
+    state.auth.mode = 'auth';
+    state.auth.probeDone = true;
+    if (probe.ok) {
+      const body = await probe.json().catch(function () { return {}; });
+      applyAuthPayload(body, state.auth.username);
+    } else if (probe.status === 401 && state.auth.refresh) {
+      clearAuth('expired');
+    }
+    renderAuthUI();
+  }
+
+  function renderAuthNotice() {
+    const notice = el('authNotice');
+    const show = state.auth.mode === 'auth' && state.auth.required;
+    notice.classList.toggle('hidden', !show);
+    if (!show) return;
+    el('authNoticeText').textContent = state.auth.access
+      ? '登录凭证已过期，写操作会被拒绝；请重新登录后继续。'
+      : '登录已失效，写操作需要重新登录；世界状态保持不变。';
+    el('authNoticeBtn').textContent = state.auth.access ? '重新登录' : '登录/注册';
+  }
+
+  function renderAuthUI() {
+    const btn = el('authBtn');
+    if (!btn) return;
+    btn.classList.remove('hidden');
+    const line = el('entryAuthLine');
+    if (state.auth.mode === 'legacy') {
+      btn.textContent = '匿名模式';
+      btn.disabled = true;
+      btn.title = '服务端未启用鉴权：匿名也能正常游玩。';
+      state.auth.required = false;
+      if (line) line.classList.add('hidden');
+    } else {
+      btn.disabled = false;
+      btn.title = state.auth.access ? '已登录，点击可退出登录' : '登录或注册';
+      btn.textContent = state.auth.access
+        ? ('已登录 · ' + (state.auth.username || '账号'))
+        : (state.auth.required ? '需要重新登录' : '登录/注册');
+      if (line) {
+        line.classList.remove('hidden');
+        el('entryAuthText').textContent = state.auth.access
+          ? ('已登录 · ' + (state.auth.username || '账号') + '；令牌已保存在本机。')
+          : (state.auth.required
+            ? '登录已失效，需要重新登录；世界状态不会丢。'
+            : '写操作需要登录；读世界和看推荐匿名可用。');
+        el('entryAuthBtn').textContent = state.auth.access ? '账号 / 退出' : '登录 / 注册';
+      }
+    }
+    renderAuthNotice();
+  }
+
+  function notifyAuthRequired(text) {
+    state.auth.required = true;
+    renderAuthUI();
+    toast(text || '需要重新登录后才能继续。', true);
+    recordError('鉴权', 'auth_required', text || '登录已失效，需要重新登录。');
+  }
+
+  function setAuthMode(mode) {
+    const isRegister = mode === 'register';
+    state.auth.uiMode = isRegister ? 'register' : 'login';
+    el('authTabLogin').classList.toggle('active', !isRegister);
+    el('authTabRegister').classList.toggle('active', isRegister);
+    el('authTabLogin').setAttribute('aria-selected', String(!isRegister));
+    el('authTabRegister').setAttribute('aria-selected', String(isRegister));
+    el('authSubmit').textContent = isRegister ? '注册并登录' : '登录';
+    el('authTitle').textContent = isRegister ? '注册账号' : '登录';
+    el('authSub').textContent = isRegister
+      ? '注册后令牌自动保存；口令不会写入本地存储。'
+      : '写操作需要令牌；读世界和看推荐匿名可用。';
+    el('authPassword').setAttribute('autocomplete', isRegister ? 'new-password' : 'current-password');
+  }
+
+  function openAuthModal(mode) {
+    setAuthMode(mode || state.auth.uiMode || 'login');
+    el('authError').classList.add('hidden');
+    el('authUsername').value = state.auth.username || el('authUsername').value || '';
+    el('authPassword').value = '';
+    el('authLogout').classList.toggle('hidden', !state.auth.access);
+    el('authModal').classList.remove('hidden');
+    setTimeout(function () { el('authUsername').focus(); }, 0);
+  }
+
+  function closeAuthModal() {
+    el('authModal').classList.add('hidden');
+  }
+
+  async function submitAuth(ev) {
+    if (ev) ev.preventDefault();
+    const mode = state.auth.uiMode === 'register' ? 'register' : 'login';
+    const username = el('authUsername').value.trim();
+    const password = el('authPassword').value;
+    const error = el('authError');
+    error.classList.add('hidden');
+    if (!username) { error.textContent = '请填写用户名。'; error.classList.remove('hidden'); return; }
+    if (!password) { error.textContent = '请填写口令。'; error.classList.remove('hidden'); return; }
+    if (mode === 'register' && password.length < 6) {
+      error.textContent = '注册口令至少 6 位。';
+      error.classList.remove('hidden');
+      return;
+    }
+    const btn = el('authSubmit');
+    btn.disabled = true;
+    const old = btn.textContent;
+    btn.textContent = '提交中…';
+    try {
+      const res = await fetch('/auth/' + mode, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ username: username, password: password }),
+        cache: 'no-store'
+      });
+      const body = await res.json().catch(function () { return {}; });
+      if (res.status === 404 || res.status === 405) {
+        state.auth.mode = 'legacy';
+        renderAuthUI();
+        closeAuthModal();
+        toast('服务端未启用鉴权：可直接匿名游玩。');
+        return;
+      }
+      if (!res.ok || body.ok === false || !tokenFields(body).access) {
+        const r = reasonOf(body, res.status);
+        error.textContent = r.text;
+        error.classList.remove('hidden');
+        return;
+      }
+      applyAuthPayload(body, username);
+      state.auth.username = state.auth.username || username;
+      persistAuth();
+      closeAuthModal();
+      toast('登录成功：' + (state.auth.username || username));
+      if (state.st) render(state.st);
+    } catch (e) {
+      error.textContent = '登录请求失败：' + (e.message || e);
+      error.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = old;
+      setAuthMode(mode);
+    }
+  }
+
+  function logoutAuth() {
+    clearAuth('logout');
+    state.auth.required = false;
+    closeAuthModal();
+    toast('已退出登录；匿名仍可浏览世界。');
+  }
+
+  function requireAuthForWrite() {
+    if (state.auth.mode === 'auth' && !state.auth.access) {
+      notifyAuthRequired('这项操作需要登录后才能执行。');
+      openAuthModal('login');
+      return false;
+    }
+    return true;
   }
 
   /* ------------------------------------------------------------- tick / 钱物 */
@@ -99,6 +578,214 @@
     state.log.unshift({ kind: kind, text: text, meta: meta || '', at: Date.now() });
     if (state.log.length > 40) state.log.length = 40;
     renderLog();
+  }
+
+  /* ------------------------------------------------------------- 新手引导 */
+  function guideMap() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(GUIDE_KEY) || '{}');
+      return raw && typeof raw === 'object' ? raw : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function guideRecord(account) {
+    const map = guideMap();
+    return (account && map[account]) || null;
+  }
+
+  function writeGuideRecord(account, status, step) {
+    if (!account) return;
+    const map = guideMap();
+    map[account] = { status: status, step: step == null ? 1 : step, updated: Date.now() };
+    try { localStorage.setItem(GUIDE_KEY, JSON.stringify(map)); } catch (e) { /* ignore */ }
+  }
+
+  function activeQuestForGuide() {
+    const board = (state.st && state.st.quest_board) || {};
+    const rows = (board.active || []).concat(board.rows || []);
+    return rows.find(function (q) {
+      return q && (q.accepted_by_me || q.status === 'accepted');
+    }) || null;
+  }
+
+  function locationLabel(id) {
+    if (!id) return '目标地点';
+    const loc = (state.st && state.st.location) || {};
+    const exits = loc.exits || [];
+    const hit = exits.find(function (x) { return x.id === id; });
+    return (hit && hit.name) || id;
+  }
+
+  function guideTarget(step) {
+    if (step === 1) {
+      return { node: el('todayNext'), title: '① 先看「先做这个」',
+        why: '它会指出今天最值得做的一件事，省得你在 12 行信息里自己挑。' };
+    }
+    if (step === 2) {
+      const node = document.querySelector('.quest button[data-quest][data-can-accept-here="1"]') ||
+        document.querySelector('.quest button[data-quest]');
+      return { node: node, title: '② 接一条委托',
+        why: '委托是前期最稳的收入；接单后任务会留在任务板，随时可以交付。' };
+    }
+    const quest = activeQuestForGuide();
+    if (step === 3) {
+      if (!quest) {
+        return { node: null, title: '③ 移动到委托人处',
+          why: '先接一条委托，这一步会指向委托人所在的出口。' };
+      }
+      const locId = ((state.st && state.st.location) || {}).id || '';
+      const need = quest.target_location || quest.giver_location || '';
+      if (need && need !== locId) {
+        const node = document.querySelector('#exits button[data-exit-id="' + need + '"]') ||
+          document.querySelector('#exits button[data-exit-id]');
+        return { node: node, title: '③ 移动到委托人处',
+          why: '「' + (quest.name || '这条委托') + '」在' + locationLabel(need) +
+            '；点出口逐段走过去，到了才能交付。' };
+      }
+      return { node: document.querySelector('.quest button[data-deliver]'), title: '③ 已到委托地点',
+        why: '委托人就在当前地点，不用再移动；下一步直接在任务卡上交付。' };
+    }
+    return {
+      node: document.querySelector('.quest button[data-deliver]'),
+      title: '④ 交付并看到资金变化',
+      why: '交付后报酬会从委托人钱包转到你身上；留意顶部「钱」的数值变化。'
+    };
+  }
+
+  function ensureBlockOpen(node) {
+    if (!node) return;
+    const block = node.closest ? node.closest('.block.foldable.collapsed') : null;
+    if (block) {
+      const btn = block.querySelector('.fold-btn');
+      toggleFold(block, btn, false);
+    }
+  }
+
+  function positionGuide(node) {
+    const layer = el('guideLayer');
+    const card = el('guideCard');
+    const spot = el('guideSpotlight');
+    if (layer.classList.contains('hidden')) return;
+    if (!node) {
+      spot.classList.add('hidden');
+      const cw = card.offsetWidth || 300;
+      card.style.left = Math.max(12, (window.innerWidth - cw) / 2) + 'px';
+      card.style.top = Math.max(12, (window.innerHeight - card.offsetHeight) / 2) + 'px';
+      return;
+    }
+    const r = node.getBoundingClientRect();
+    if (!r.width || !r.height || r.bottom < 0 || r.top > window.innerHeight) {
+      spot.classList.add('hidden');
+      return;
+    }
+    spot.classList.remove('hidden');
+    spot.style.left = Math.round(r.left - 4) + 'px';
+    spot.style.top = Math.round(r.top - 4) + 'px';
+    spot.style.width = Math.round(r.width + 8) + 'px';
+    spot.style.height = Math.round(r.height + 8) + 'px';
+    const cw = Math.min(320, window.innerWidth - 24);
+    card.style.width = cw + 'px';
+    const ch = card.offsetHeight || 180;
+    const gap = 12;
+    let top = r.bottom + gap;
+    if (top + ch > window.innerHeight - 10) top = r.top - ch - gap;
+    top = Math.max(10, Math.min(window.innerHeight - ch - 10, top));
+    let left = r.left + r.width / 2 - cw / 2;
+    left = Math.max(10, Math.min(window.innerWidth - cw - 10, left));
+    card.style.left = Math.round(left) + 'px';
+    card.style.top = Math.round(top) + 'px';
+  }
+
+  function guideNextLabel(step) {
+    if (step >= 4) return '完成引导';
+    if (step === 2) return '我已接单，下一步';
+    if (step === 3) return '我已到达，下一步';
+    return '下一步';
+  }
+
+  function renderGuide() {
+    if (!state.guide.active) { hideGuide(); return; }
+    const ctx = guideTarget(state.guide.step);
+    ensureBlockOpen(ctx.node);
+    if (ctx.node && ctx.node.scrollIntoView) {
+      ctx.node.scrollIntoView({ block: 'center', inline: 'nearest' });
+    }
+    el('guideStep').textContent = String(state.guide.step) + ' / 4';
+    el('guideTitle').textContent = ctx.title;
+    el('guideWhy').textContent = ctx.why;
+    el('guideNext').textContent = guideNextLabel(state.guide.step);
+    el('guideLayer').classList.remove('hidden');
+    requestAnimationFrame(function () { positionGuide(ctx.node); });
+  }
+
+  function hideGuide() {
+    const layer = el('guideLayer');
+    if (layer) layer.classList.add('hidden');
+    const spot = el('guideSpotlight');
+    if (spot) spot.classList.add('hidden');
+  }
+
+  function repositionGuide() {
+    if (!state.guide.active) return;
+    const ctx = guideTarget(state.guide.step);
+    ensureBlockOpen(ctx.node);
+    el('guideStep').textContent = String(state.guide.step) + ' / 4';
+    el('guideTitle').textContent = ctx.title;
+    el('guideWhy').textContent = ctx.why;
+    el('guideNext').textContent = guideNextLabel(state.guide.step);
+    requestAnimationFrame(function () { positionGuide(ctx.node); });
+  }
+
+  function setGuideStep(step) {
+    state.guide.step = Math.max(1, Math.min(4, step));
+    state.guide.active = true;
+    state.guide.status = 'active';
+    if (state.guide.accountId) writeGuideRecord(state.guide.accountId, 'active', state.guide.step);
+    renderGuide();
+  }
+
+  function maybeStartGuide() {
+    const account = state.session && state.session.accountId;
+    if (!account || !state.st) return;
+    const rec = guideRecord(account);
+    if (rec && (rec.status === 'skipped' || rec.status === 'completed')) return;
+    state.guide.accountId = account;
+    state.guide.active = true;
+    state.guide.status = 'active';
+    state.guide.step = rec && rec.status === 'active' && rec.step ? rec.step : 1;
+    writeGuideRecord(account, 'active', state.guide.step);
+    renderGuide();
+  }
+
+  function guideAdvanceOn(action) {
+    if (!state.guide.active) return;
+    if (action === 'deliver') { completeGuide(); return; }
+    if (action === 'accept' && state.guide.step <= 2) { setGuideStep(3); return; }
+    if (action === 'move' && state.guide.step <= 3) {
+      const quest = activeQuestForGuide();
+      const locId = ((state.st && state.st.location) || {}).id || '';
+      const need = quest && (quest.target_location || quest.giver_location);
+      if (!need || need === locId) setGuideStep(4);
+      else renderGuide(); // 还没到，继续指向下一个出口
+    }
+  }
+
+  function completeGuide() {
+    if (state.guide.accountId) writeGuideRecord(state.guide.accountId, 'completed', 4);
+    state.guide.active = false;
+    state.guide.status = 'completed';
+    hideGuide();
+    toast('引导完成：你已经走完「看推荐 → 接单 → 移动 → 交付」。');
+  }
+
+  function skipGuide() {
+    if (state.guide.accountId) writeGuideRecord(state.guide.accountId, 'skipped', state.guide.step);
+    state.guide.active = false;
+    state.guide.status = 'skipped';
+    hideGuide();
+    toast('已跳过新手引导；下次进入不会再自动出现。');
   }
 
   /* ------------------------------------------------------------- 进入流程 */
@@ -254,8 +941,22 @@
     try {
       const res = await API.enter({ account_id: accountId, display_name: displayName, archetype: archetype });
       const result = res.data || {};
-      if (res.status === 409 || result.ok === false) {
-        throw new Error(result.message || result.reason_text || result.reason || ('HTTP ' + res.status));
+      if (res.authRequired) {
+        const box = el('entryError');
+        box.textContent = '进入世界是写操作，需要登录后才能执行；请先在右上角登录/注册，再点「进入世界」。';
+        box.classList.remove('hidden');
+        btn.textContent = '进入世界';
+        openAuthModal('login');
+        return;
+      }
+      if (res.status === 409 || result.ok === false || res.status === 0) {
+        const r = reasonOf(result, res.status);
+        const box = el('entryError');
+        box.textContent = r.text;
+        box.classList.remove('hidden');
+        recordError('进入世界', r.code, r.text);
+        btn.textContent = '进入世界';
+        return;
       }
       const st = await loadState(accountId);
       renderEntryResult(result, st);
@@ -279,6 +980,7 @@
     }
     showEntry(false);
     if (state.st) render(state.st);
+    maybeStartGuide();
   }
 
   /* ------------------------------------------------------------- 场景渲染 */
@@ -293,6 +995,7 @@
     renderGrowth(st);
     renderTalkTarget();
     renderLog();
+    if (state.guide.active) repositionGuide();
   }
 
   function renderStatus(st) {
@@ -343,6 +1046,7 @@
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'exit';
+      btn.setAttribute('data-exit-id', exit.id || '');
       btn.innerHTML = '<span>' + escapeHtml(exit.name) + '<br><span class="id">' +
         escapeHtml(exit.id) + '</span></span><span class="go">走 →</span>';
       btn.title = '移动到' + exit.name;
@@ -361,19 +1065,18 @@
       showEntry(true);
       return;
     }
+    if (!requireAuthForWrite()) return;
     const beforeTick = state.st ? Number(state.st.tick) : 0;
     state.busy = true;
     el('exitHint').style.color = '';
     try {
       const res = await API.action(state.session.accountId, 'move', { to: exit.id }, beforeTick);
       const data = res.data || {};
-      if (res.status === 409 || data.ok === false) {
-        const reason = data.message || data.reason_text || '移动被拒';
-        const code = data.reason || data.reject_reason;
+      if (res.authRequired || res.status === 401) return;
+      if (res.status === 409 || data.ok === false || res.status === 0) {
+        const r = notifyError('移动 ' + exit.name, data, res.status);
         el('exitHint').style.color = '#9b3b2f';
-        el('exitHint').textContent = reason + (code ? '（' + code + '）' : '');
-        toast(reason + (code ? '（' + code + '）' : ''), true);
-        pushLog('rejected', '移动 ' + exit.name + ' 被拒：' + reason, code || '');
+        el('exitHint').textContent = r.text;
         return;
       }
       if (data.status === 'proposed' || data.readonly) {
@@ -389,8 +1092,10 @@
       pushLog('ok', '移动到 ' + exit.name + ' · event_seq ' + (data.event_seq == null ? '?' : data.event_seq),
         'tick ' + (data.tick == null ? '?' : data.tick));
       await loadState(state.session.accountId);
+      guideAdvanceOn('move');
     } catch (err) {
       toast('移动请求失败：' + (err.message || err), true);
+      recordError('移动 ' + exit.name, '', '网络请求失败：' + (err.message || err));
     } finally {
       state.busy = false;
     }
@@ -526,6 +1231,7 @@
     const message = el('talkInput').value.trim();
     if (!message) { toast('消息不能为空。', true); return; }
     if (message.length > 200) { toast('消息不能超过 200 字。', true); return; }
+    if (!requireAuthForWrite()) return;
     const beforeTick = state.st ? Number(state.st.tick) : 0;
     const input = el('talkInput');
     const send = el('talkSend');
@@ -535,14 +1241,12 @@
       const data = res.data || {};
       const box = el('talkResult');
       box.classList.remove('hidden', 'ok', 'bad');
-      if (res.status === 409 || data.ok === false) {
-        const reason = data.message || data.reason_text || '对话被拒';
-        const code = data.reason || data.reject_reason;
+      if (res.authRequired || res.status === 401) return;
+      if (res.status === 409 || data.ok === false || res.status === 0) {
+        const r = notifyError('对 ' + npc.name + ' 说话', data, res.status);
         box.classList.add('bad');
-        box.innerHTML = '<b>被拒：</b>' + escapeHtml(reason) +
-          '<br><span class="tiny">拒绝码：<code>' + escapeHtml(code || '') + '</code></span>';
-        toast(reason + (code ? '（' + code + '）' : ''), true);
-        pushLog('rejected', '对 ' + npc.name + ' 说话被拒：' + reason, code || '');
+        box.innerHTML = '<b>被拒：</b>' + escapeHtml(r.text) +
+          (r.code ? '<br><span class="tiny">原因码：<code>' + escapeHtml(r.code) + '</code></span>' : '');
         return;
       }
       if (data.status === 'proposed' || data.readonly) {
@@ -736,6 +1440,7 @@
               : '暂不可接（发布人不在场或任务上限）';
       const card = document.createElement('div');
       card.className = 'quest' + (q.can_accept_here && !mine ? ' acceptable' : '');
+      card.setAttribute('data-quest-card', q.id || '');
       const statusPill = mine
         ? '<span class="pill accepted" title="status=accepted, accepted_by_me=true">accepted_by_me</span>'
         : '<span class="pill open">open</span>';
@@ -747,11 +1452,14 @@
         (q.deadline_day ? ' · 截止第 ' + escapeHtml(q.deadline_day) + ' 天' : '') + '</div>' +
         '<div class="quest-hint' + (q.can_accept_here && !mine ? ' ok' : '') + '">' + escapeHtml(hint) + '</div>' +
         '<div class="quest-actions">' + statusPill + (mine
-          ? '<button type="button" class="ghost" disabled>进行中</button>'
+          ? '<button type="button" class="primary" data-deliver="' + escapeHtml(q.id) + '">交付</button>'
           : '<button type="button" class="' + (q.can_accept_here ? 'primary' : 'ghost') +
-            '" data-quest="' + escapeHtml(q.id) + '">去接</button>') + '</div>';
+            '" data-quest="' + escapeHtml(q.id) + '" data-can-accept-here="' +
+            (q.can_accept_here ? '1' : '0') + '">去接</button>') + '</div>';
       const btn = card.querySelector('button[data-quest]');
       if (btn) btn.addEventListener('click', function () { doAccept(q); });
+      const deliver = card.querySelector('button[data-deliver]');
+      if (deliver) deliver.addEventListener('click', function () { doDeliver(q); });
       list.appendChild(card);
     });
   }
@@ -759,17 +1467,16 @@
   async function doAccept(quest) {
     const account = state.session && state.session.accountId;
     if (!account) { toast('先进入世界，才能接任务。', true); showEntry(true); return; }
+    if (!requireAuthForWrite()) return;
     const beforeTick = state.st ? Number(state.st.tick) : 0;
     const res = await API.action(account, 'quest_accept', { quest: quest.id }, beforeTick)
       .catch(function (err) {
         return { status: 0, data: { ok: false, message: '接任务请求失败：' + (err.message || err) } };
       });
     const data = res.data || {};
-    if (res.status === 409 || data.ok === false) {
-      const reason = data.message || data.reason_text || '接任务被拒';
-      const code = data.reason || data.reject_reason;
-      toast(reason + (code ? '（' + code + '）' : ''), true);
-      pushLog('rejected', '接任务「' + quest.name + '」被拒：' + reason, code || '');
+    if (res.authRequired || res.status === 401) return;
+    if (res.status === 409 || data.ok === false || res.status === 0) {
+      notifyError('接任务「' + quest.name + '」', data, res.status);
       return;
     }
     if (data.status === 'proposed' || data.readonly) {
@@ -783,22 +1490,55 @@
       (counts.accepted_by_me != null ? '（我进行中 ' + counts.accepted_by_me + '）' : '') +
       ' · event_seq ' + (data.event_seq == null ? '?' : data.event_seq));
     pushLog('ok', '接下任务「' + quest.name + '」', 'event_seq ' + (data.event_seq == null ? '?' : data.event_seq));
+    guideAdvanceOn('accept');
+  }
+
+  async function doDeliver(quest) {
+    const account = state.session && state.session.accountId;
+    if (!account) { toast('先进入世界，才能交付。', true); showEntry(true); return; }
+    if (!requireAuthForWrite()) return;
+    const beforeTick = state.st ? Number(state.st.tick) : 0;
+    const beforeMoney = Number(((state.st || {}).player || {}).wallet ? state.st.player.wallet.money : 0) || 0;
+    const res = await API.action(account, 'quest_deliver', { quest: quest.id }, beforeTick)
+      .catch(function (err) {
+        return { status: 0, data: { ok: false, message: '交付请求失败：' + (err.message || err) } };
+      });
+    const data = res.data || {};
+    if (res.authRequired || res.status === 401) return;
+    if (res.status === 409 || data.ok === false || res.status === 0) {
+      notifyError('交付「' + quest.name + '」', data, res.status);
+      return;
+    }
+    if (data.status === 'proposed' || data.readonly) {
+      toast('只读模式：已提交交付提案（不落地）。');
+      pushLog('proposal', '交付提案：' + quest.name, data.intent_id || '');
+      return;
+    }
+    const st = await loadState(account);
+    const afterMoney = Number(((st || {}).player || {}).wallet ? st.player.wallet.money : 0) || 0;
+    const delta = afterMoney - beforeMoney;
+    const moneyText = delta === 0
+      ? ('钱包 ' + afterMoney + ' 文（本次无现金变化）')
+      : ('钱包 ' + beforeMoney + ' → ' + afterMoney + ' 文（' + (delta > 0 ? '+' : '') + delta + '）');
+    toast('交付成功：' + quest.name + ' · ' + moneyText);
+    pushLog('ok', '交付「' + quest.name + '」' + (delta !== 0 ? ' · ' + (delta > 0 ? '+' : '') + delta + ' 文' : ''),
+      'event_seq ' + (data.event_seq == null ? '?' : data.event_seq));
+    guideAdvanceOn('deliver');
   }
 
   async function doGrowthAction(action, payload, label) {
     const account = state.session && state.session.accountId;
     if (!account) { toast('先进入世界。', true); showEntry(true); return; }
+    if (!requireAuthForWrite()) return;
     const beforeTick = state.st ? Number(state.st.tick) : 0;
     const res = await API.action(account, action, payload, beforeTick)
       .catch(function (err) {
         return { status: 0, data: { ok: false, message: '请求失败：' + (err.message || err) } };
       });
     const data = res.data || {};
-    if (res.status === 409 || data.ok === false) {
-      const reason = data.message || data.reason_text || '操作被拒';
-      const code = data.reason || data.reject_reason;
-      toast(reason + (code ? '（' + code + '）' : ''), true);
-      pushLog('rejected', label + '被拒：' + reason, code || '');
+    if (res.authRequired || res.status === 401) return;
+    if (res.status === 409 || data.ok === false || res.status === 0) {
+      notifyError(label, data, res.status);
       return;
     }
     if (data.status === 'proposed' || data.readonly) {
@@ -833,10 +1573,76 @@
         return true;
       }
     } catch (err) {
-      // 上游暂时不可达：回进入页，不伪造位置。
+      // 上游暂时不可达：回进入页，不伪造位置；若是鉴权问题，保留已记住的账号。
+      if (err && err.authRequired) return false;
     }
     try { localStorage.removeItem('ws_player_account'); } catch (e) { /* ignore */ }
     return false;
+  }
+
+  /* ------------------------------------------------------------- 折叠分组 */
+  const mobileMq = window.matchMedia('(max-width: 768px)');
+
+  function toggleFold(block, btn, collapsed) {
+    if (!block) return;
+    const next = collapsed == null ? !block.classList.contains('collapsed') : !!collapsed;
+    block.classList.toggle('collapsed', next);
+    if (btn) {
+      btn.setAttribute('aria-expanded', String(!next));
+      btn.title = next ? '展开这一组' : '收起这一组';
+      btn.setAttribute('aria-label', (next ? '展开' : '收起') + '分组');
+      btn.querySelector('span').textContent = next ? '▸' : '▾';
+    }
+  }
+
+  function initFolds() {
+    if (state.ui.foldsReady) return;
+    state.ui.foldsReady = true;
+    const blocks = Array.prototype.slice.call(document.querySelectorAll('.panel.side > .block'));
+    blocks.forEach(function (block, index) {
+      const head = block.querySelector(':scope > .block-head');
+      if (!head) return;
+      const body = document.createElement('div');
+      body.className = 'block-body';
+      while (head.nextSibling) body.appendChild(head.nextSibling);
+      block.appendChild(body);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'fold-btn';
+      btn.setAttribute('aria-expanded', 'true');
+      btn.setAttribute('aria-label', '收起分组');
+      btn.title = '收起这一组';
+      btn.innerHTML = '<span aria-hidden="true">▾</span>';
+      btn.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        toggleFold(block, btn);
+        repositionGuide();
+      });
+      head.appendChild(btn);
+      block.classList.add('foldable');
+      block.setAttribute('data-fold-index', String(index));
+    });
+    const right = Array.prototype.slice.call(document.querySelectorAll('.panel.right > .block'));
+    state.ui.growthBlock = right[1] || null;
+    if (state.ui.growthBlock) state.ui.growthBlock.classList.add('fold-growth');
+    syncFoldDefaults();
+  }
+
+  function syncFoldDefaults() {
+    if (!state.ui.foldsReady) return;
+    const mobile = mobileMq.matches;
+    if (state.ui.foldMode === mobile) return;
+    state.ui.foldMode = mobile;
+    if (mobile) {
+      if (state.ui.growthBlock) {
+        const btn = state.ui.growthBlock.querySelector('.fold-btn');
+        toggleFold(state.ui.growthBlock, btn, true);
+      }
+    } else {
+      document.querySelectorAll('.block.foldable').forEach(function (block) {
+        toggleFold(block, block.querySelector('.fold-btn'), false);
+      });
+    }
   }
 
   function initEvents() {
@@ -857,6 +1663,8 @@
       state.selected = null;
       state.st = null;
       state.log = [];
+      state.guide.active = false;
+      hideGuide();
       el('log').innerHTML = '';
       try { localStorage.removeItem('ws_player_account'); } catch (e) { /* ignore */ }
       el('accountId').value = randomAccount();
@@ -871,9 +1679,51 @@
     el('npcModal').addEventListener('click', function (ev) {
       if (ev.target === el('npcModal')) closeNpcModal();
     });
-    document.addEventListener('keydown', function (ev) {
-      if (ev.key === 'Escape') { closeNpcModal(); el('searchResults').classList.add('hidden'); }
+
+    el('authBtn').addEventListener('click', function () {
+      if (state.auth.mode === 'legacy') return;
+      openAuthModal(state.auth.access ? 'login' : 'login');
+      el('authLogout').classList.toggle('hidden', !state.auth.access);
     });
+    el('entryAuthBtn').addEventListener('click', function () { openAuthModal('login'); });
+    el('authClose').addEventListener('click', closeAuthModal);
+    el('authNoticeBtn').addEventListener('click', function () { openAuthModal('login'); });
+    el('authTabLogin').addEventListener('click', function () { setAuthMode('login'); });
+    el('authTabRegister').addEventListener('click', function () { setAuthMode('register'); });
+    el('authForm').addEventListener('submit', submitAuth);
+    el('authLogout').addEventListener('click', logoutAuth);
+    el('authModal').addEventListener('click', function (ev) {
+      if (ev.target === el('authModal')) closeAuthModal();
+    });
+
+    el('guideNext').addEventListener('click', function () {
+      if (state.guide.step >= 4) { completeGuide(); return; }
+      setGuideStep(state.guide.step + 1);
+    });
+    el('guideSkip').addEventListener('click', skipGuide);
+
+    el('errorToggle').addEventListener('click', function () {
+      const list = el('errorList');
+      const open = list.classList.contains('hidden');
+      list.classList.toggle('hidden', !open);
+      el('errorToggle').setAttribute('aria-expanded', String(open));
+    });
+
+    document.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape') {
+        closeNpcModal();
+        closeAuthModal();
+        el('searchResults').classList.add('hidden');
+      }
+    });
+    window.addEventListener('resize', function () {
+      syncFoldDefaults();
+      repositionGuide();
+    });
+    window.addEventListener('scroll', function () {
+      if (state.guide.active) repositionGuide();
+    }, true);
+    mobileMq.addEventListener ? mobileMq.addEventListener('change', syncFoldDefaults) : mobileMq.addListener(syncFoldDefaults);
     document.addEventListener('click', function (ev) {
       const box = el('searchResults');
       const input = el('npcSearch');
@@ -886,7 +1736,9 @@
   async function init() {
     initEvents();
     initSearch();
+    initFolds();
     initEntryForm();
+    renderAuthUI();
     try {
       state.health = await API.health();
       renderRunTag();
@@ -897,7 +1749,8 @@
         el('enterBtn').disabled = true;
         return;
       }
-      const restored = await restoreAccount();
+      const results = await Promise.all([restoreAccount(), probeAuth()]);
+      const restored = results[0];
       renderNotice(state.st);
       if (restored) {
         showEntry(false);
@@ -905,6 +1758,7 @@
         showEntry(true);
       }
       if (state.st) render(state.st);
+      if (restored) maybeStartGuide();
       clearInterval(state.pollTimer);
       state.pollTimer = setInterval(async function () {
         await refreshHealth();
@@ -912,7 +1766,7 @@
           try {
             await loadState(state.session.accountId);
           } catch (err) {
-            markDegraded(err);
+            if (!err.authRequired) markDegraded(err);
           }
         }
       }, 10000);
@@ -922,6 +1776,52 @@
       box.classList.remove('hidden');
       el('enterBtn').disabled = true;
     }
+  }
+
+  if (CHECK_MODE) {
+    // 只给 tools/ui_check.py 用的只读/断言入口；正常页面不暴露。
+    window.__XKX = {
+      reasonText: reasonText,
+      reasonOf: reasonOf,
+      reasons: Object.keys(REASON_TEXT),
+      showError: function (code, serverText) {
+        return notifyError('测试错误', { reason: code, reason_text: serverText || '' }, 409);
+      },
+      authState: function () {
+        return {
+          mode: state.auth.mode,
+          hasAccess: !!state.auth.access,
+          required: state.auth.required,
+          username: state.auth.username,
+          expiresAt: state.auth.expiresAt
+        };
+      },
+      guideState: function () {
+        return {
+          active: state.guide.active,
+          step: state.guide.step,
+          status: state.guide.status,
+          accountId: state.guide.accountId
+        };
+      },
+      guideTargetInfo: function () {
+        const ctx = guideTarget(state.guide.step);
+        if (!ctx.node) return null;
+        const r = ctx.node.getBoundingClientRect();
+        return {
+          title: ctx.title,
+          text: ctx.node.textContent.trim().slice(0, 80),
+          rect: { left: r.left, top: r.top, width: r.width, height: r.height,
+                  right: r.right, bottom: r.bottom },
+          tag: ctx.node.tagName,
+          id: ctx.node.id || '',
+          quest: ctx.node.getAttribute('data-quest') || '',
+          deliver: ctx.node.getAttribute('data-deliver') || '',
+          exitId: ctx.node.getAttribute('data-exit-id') || '',
+          disabled: !!ctx.node.disabled
+        };
+      }
+    };
   }
 
   if (document.readyState === 'loading') {
