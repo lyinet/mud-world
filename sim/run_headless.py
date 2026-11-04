@@ -39,6 +39,16 @@ def main() -> int:
     p.add_argument("--budget-daily-cost", type=float, default=None)
     p.add_argument("--budget-monthly-cost", type=float, default=None)
     p.add_argument("--budget-soft-ratio", type=float, default=None)
+    p.add_argument("--budget-soft-cost", type=float, default=None, help="run 级成本软阈值（美元）")
+    p.add_argument("--budget-hard-cost", type=float, default=None, help="run 级成本硬闸（美元，超限中止）")
+    p.add_argument(
+        "--enable-strategy",
+        action="store_true",
+        help="启用 A4 战略层（每 NPC 每 N 游戏日一份计划，替代 tick 级 LLM 目标选择器）",
+    )
+    p.add_argument("--strategy-every-days", type=int, default=3)
+    p.add_argument("--strategy-horizon-days", type=int, default=3)
+    p.add_argument("--strategy-fake", action="store_true", help="强制确定性 fake 端点（零网络成本）")
     p.add_argument(
         "--goal-policy",
         action="store_true",
@@ -67,6 +77,8 @@ def main() -> int:
         ("daily_cost", args.budget_daily_cost),
         ("monthly_cost", args.budget_monthly_cost),
         ("soft_ratio", args.budget_soft_ratio),
+        ("soft_cost", args.budget_soft_cost),
+        ("hard_cost", args.budget_hard_cost),
     ):
         if value is not None:
             budget[key] = value
@@ -90,6 +102,10 @@ def main() -> int:
         override_high_probability=args.override_high_probability,
         type_quota_enabled=args.type_quota,
         type_quota_floor=args.type_quota_floor,
+        strategy_enabled=args.enable_strategy,
+        strategy_every_days=args.strategy_every_days,
+        strategy_horizon_days=args.strategy_horizon_days,
+        strategy_fake=args.strategy_fake,
     )
     s = run_headless(ROOT, cfg)
     out = {
@@ -174,6 +190,7 @@ def main() -> int:
         "k1_detail": s.get("k1", {}),
         "model_agency": s.get("model_agency", {}),
         "budget": s.get("budget", {}),
+        "strategy": s.get("strategy", {}),
         "verdict": s["verdict"],
         "content_audit": {
             "issues": s["content_audit"]["issues"],

@@ -30,6 +30,8 @@ from ..agent.provider import (
     load_provider_settings,
     make_replay_transport,
 )
+from ..agent.strategy_client import StrategyClient, make_fake_strategy_transport
+from ..sim.strategy import StrategyBook
 from ..audit.conservation import conservation, debt_ledger
 from ..audit.debt_audit import debt_audit
 from ..audit.diversity import diversity_stats
@@ -104,6 +106,11 @@ class RunConfig:
     override_high_probability: float = 0.55
     type_quota_enabled: bool = False
     type_quota_floor: int = 1
+    # A4 战略层（默认关闭）：日界为每个 NPC 生成一份长期计划。
+    strategy_enabled: bool = False
+    strategy_every_days: int = 3
+    strategy_horizon_days: int = 3
+    strategy_fake: bool = False
 
 
 def _npc_money(state: WorldState) -> int:
@@ -257,6 +264,16 @@ def run_headless(
     budget: BudgetGuard | None = None
     llm_info: dict[str, Any] = {"enabled": False, "model": "mock", "reason": "mock_only"}
     dialogue_async = None
+    # A4 战略层：默认关闭；开启后 LLM 不再做 tick 级目标选择。
+    strategy_book: StrategyBook | None = StrategyBook() if cfg.strategy_enabled else None
+    strategy_client: StrategyClient | None = None
+    strategy_info: dict[str, Any] = {
+        "enabled": bool(cfg.strategy_enabled),
+        "mode": "off",
+        "every_days": int(cfg.strategy_every_days),
+        "horizon_days": int(cfg.strategy_horizon_days),
+        "replaced_decision_selector": bool(cfg.strategy_enabled),
+    }
     run_concurrency = max(1, int(load_provider_settings(root).get("concurrency", 4)))
     if cfg.enable_llm:
         settings = load_provider_settings(root)
@@ -362,6 +379,68 @@ def run_headless(
                 if talk is not None:
                     talk.dialogue = dialogue_async
             llm_info["dialogue_async"] = dialogue_async is not None
+            if cfg.strategy_enabled and not cfg.strategy_fake:
+                strategy_replay_path = os.environ.get("WSIM_STRATEGY_REPLAY", "").strip()
+                strategy_record_path = os.environ.get("WSIM_STRATEGY_RECORD", "").strip()
+                try:
+                    strategy_provider = slot_client(
+                        "strategy",
+                        transport=make_replay_transport(strategy_replay_path) if strategy_replay_path else None,
+                        record_path=(strategy_record_path or None),
+                        replay=bool(strategy_replay_path),
+                    )
+                except ProviderConfigError as exc:
+                    strategy_info.update({"mode": "error", "error": str(exc)})
+                else:
+                    strategy_client = StrategyClient(
+                        strategy_provider,
+                        content,
+                        telemetry,
+                        budget=budget,
+                        concurrency=run_concurrency,
+                        record_path=(strategy_record_path or None),
+                        replay_mode=bool(strategy_replay_path),
+                        max_tokens=int((slots.get("strategy") or {}).get("max_tokens", 512)),
+                    )
+                    strategy_info.update(
+                        {
+                            "mode": "replay" if strategy_replay_path else "real",
+                            "model": strategy_provider.config.model,
+                            "fingerprint": strategy_provider.config.fingerprint(),
+                            "replay": strategy_replay_path,
+                            "record": strategy_record_path,
+                        }
+                    )
+                    llm_info["strategy"] = strategy_info
+                    # 关键：战略层替代决策选择器，tick 级动作仍走规则 planner。
+                    reasoner = mock_reasoner
+    if cfg.strategy_enabled and strategy_client is None and (cfg.strategy_fake or not cfg.enable_llm):
+        fake_provider = ProviderClient(
+            ProviderConfig(
+                base_url="fake://strategy",
+                key="fake-strategy",
+                model="fake-strategy",
+                offline=False,
+                max_tokens=512,
+                temperature=0.0,
+                json_mode=False,
+                slot="strategy",
+            ),
+            transport=make_fake_strategy_transport(),
+        )
+        strategy_client = StrategyClient(
+            fake_provider,
+            content,
+            telemetry,
+            budget=None,
+            concurrency=run_concurrency,
+            fake=True,
+        )
+        strategy_info.update({"mode": "fake", "model": "fake-strategy"})
+    if cfg.strategy_enabled and strategy_client is not None:
+        mock_reasoner.enable_strategy(strategy_book)
+        reasoner = mock_reasoner
+        strategy_info["enabled"] = True
     scheduler = LODScheduler(
         sorted(npc_ids),
         lod_cfg,
@@ -500,6 +579,50 @@ def run_headless(
             ),
         )
 
+    def issue_strategy(base: int, day: int) -> None:
+        """日界为每个存活 NPC 生成一份长期计划；写 strategy.jsonl，不写事件流。"""
+        if strategy_client is None or strategy_book is None:
+            return
+        recent_by_npc: dict[str, list[str]] = {}
+        for ev in events[-800:]:
+            recent_by_npc.setdefault(str(ev.actor), []).append(
+                f"{stamp(ev.tick)} {ev.verb} {ev.outcome}"
+            )
+        items = []
+        for npc_id in sorted(npc_ids):
+            ent = writer.state.entities.get(npc_id)
+            if ent is None or ent.status != "alive":
+                continue
+            items.append(
+                {
+                    "npc": npc_id,
+                    "tick": base,
+                    "day": day,
+                    "state": writer.state,
+                    "horizon_days": int(cfg.strategy_horizon_days),
+                    "recent_events": recent_by_npc.get(npc_id, [])[-4:],
+                }
+            )
+        results = strategy_client.plan_batch(items)
+        for row in results:
+            plan = row.get("plan")
+            if plan is None:
+                continue
+            strategy_book.register(plan, bool(row.get("valid")), list(row.get("reasons") or []))
+        strategy_info["last_day"] = day
+        strategy_info["last_batch"] = {
+            "items": len(items),
+            "valid": sum(1 for r in results if r.get("valid")),
+            "invalid": sum(1 for r in results if r.get("plan") is not None and not r.get("valid")),
+            "fallbacks": sum(1 for r in results if r.get("plan") is None),
+            "cost": round(sum(float(r.get("cost") or 0.0) for r in results), 6),
+        }
+        log.append(
+            f"[{stamp(base)}] strategy_batch day={day + 1} items={len(items)} "
+            f"valid={strategy_info['last_batch']['valid']} "
+            f"invalid={strategy_info['last_batch']['invalid']}"
+        )
+
     for day in range(cfg.days):
         if budget is not None and budget.aborted:
             log.append(f"[{stamp(day * TICKS_PER_DAY)}] aborted_at_day={day + 1} reason=budget_hard_limit")
@@ -525,6 +648,8 @@ def run_headless(
             }
             for npc in sorted(nearby):
                 scheduler.set_tier(npc, "spotlight", now=base, reason="player_nearby")
+        if strategy_client is not None and day % max(1, int(cfg.strategy_every_days)) == 0:
+            issue_strategy(base, day)
         run_night_batch(base, day)
 
         for tick in range(base, base + TICKS_PER_DAY):
@@ -1047,6 +1172,14 @@ def run_headless(
         "wage_chain_pass": all(wages["reconciliation"].values()),
     }
 
+    strategy_summary = {"enabled": False}
+    if cfg.strategy_enabled:
+        strategy_summary = dict(strategy_info)
+        if strategy_client is not None:
+            strategy_summary.update(strategy_client.summary())
+        if strategy_book is not None:
+            strategy_summary["book"] = strategy_book.summary()
+        llm_info["strategy"] = strategy_summary
     summary = {
         "run_id": run_id,
         "seed": cfg.seed,
@@ -1055,6 +1188,7 @@ def run_headless(
         "content_hash": content.content_hash,
         "content_sources": dict(content.sources),
         "aborted": aborted_info,
+        "strategy": strategy_summary,
         "hashes": {
             "state_day10": hash_10d,
             "state_final": final_hash,
@@ -1172,6 +1306,8 @@ def run_headless(
         ),
         encoding="utf-8",
     )
+    if strategy_book is not None:
+        (out_dir / "strategy.jsonl").write_text(strategy_book.to_jsonl(), encoding="utf-8")
     (out_dir / "lod_tiers.jsonl").write_text(
         "\n".join(json.dumps(c, ensure_ascii=False, sort_keys=True) for c in lod_changes) + "\n",
         encoding="utf-8",

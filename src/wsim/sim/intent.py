@@ -134,6 +134,10 @@ class GoalSelector:
         self.debt_pressure = debt_pressure
         self._urgent_last: dict[str, int] = {}
         self.changes: list[dict[str, Any]] = []
+        # A4 战略层（默认关闭）：计划只影响选目标，不影响动作生成。
+        self.strategy_book = None
+        self.strategy_mode = False
+        self._strategy_obs: dict[str, tuple[str, float, int]] = {}
         self._content_goals = {
             str(n["id"]): sorted(
                 n.get("goals") or [],
@@ -229,6 +233,7 @@ class GoalSelector:
         urgent = self._urgent(state, npc)
         last_urgent = self._urgent_last.get(npc, -10_000)
         cooldown_ok = tick - last_urgent >= self.preempt_cooldown_ticks
+        plan = self._strategy_plan(state, npc, tick)
 
         if urgent is not None:
             ctype, kind, motivation = urgent
@@ -252,6 +257,10 @@ class GoalSelector:
 
             gid = f"urgent:{npc}:{ctype}:{day_of(tick)}"
             self._urgent_last[npc] = tick
+            strategy_keeps = bool(plan is not None and active is not None and active.id in plan.goal_ids)
+            if strategy_keeps:
+                # A4：紧急事件只暂停计划，不放弃计划目标；解除后回到原主目标。
+                self.strategy_book.record_pause(plan, tick, ctype, active.id)
             choice = GoalChoice(
                 npc=npc,
                 goal_id=gid,
@@ -265,7 +274,10 @@ class GoalSelector:
                 preempted=active is not None,
                 abandon=(
                     active.id
-                    if active is not None and active.id != gid and active.content_type != "found_sect"
+                    if active is not None
+                    and active.id != gid
+                    and active.content_type != "found_sect"
+                    and not strategy_keeps
                     else ""
                 ),
             )
@@ -281,11 +293,20 @@ class GoalSelector:
             )
             return choice
 
-        # 无紧急事件：回到内容主线
-        content_goal = self._next_content_goal(state, npc)
+        # 无紧急事件：先按战略计划选，计划耗尽/不存在时回到内容主线的轮转
+        content_goal = None
+        if plan is not None:
+            content_goal = self._plan_goal(state, npc, plan, tick)
+        plan_goal = content_goal is not None
+        if content_goal is None:
+            content_goal = self._next_content_goal(state, npc)
         if content_goal is None:
             return None
         gid = f"{npc}:{content_goal['id']}"
+        label = GOAL_LABEL.get(str(content_goal.get("type")), content_goal.get("type"))
+        plan_note = ""
+        if plan_goal and plan is not None:
+            plan_note = f"按{plan.horizon_days}日计划「{plan.rationale[:28]}」推进"
         if active is not None and active.id == gid:
             return GoalChoice(
                 npc=npc,
@@ -295,11 +316,19 @@ class GoalSelector:
                 kind=goal_kind(str(content_goal.get("type", ""))),
                 target=float(goal_target(self.content, goal_kind(str(content_goal.get("type", ""))))),
                 source="content",
-                reason=f"{name}（{trait}{ptag}）：按内容目标推进「{GOAL_LABEL.get(str(content_goal.get('type')), content_goal.get('type'))}」",
+                reason=(
+                    f"{name}（{trait}{ptag}）：{plan_note}「{label}」"
+                    if plan_note
+                    else f"{name}（{trait}{ptag}）：按内容目标推进「{label}」"
+                ),
                 create=False,
             )
         abandon = active.id if active is not None and active.content_type.startswith("urgent_") else ""
-        reason = f"{name}（{trait}{ptag}）：急事已了，回到主线「{GOAL_LABEL.get(str(content_goal.get('type')), content_goal.get('type'))}」"
+        reason = (
+            f"{name}（{trait}{ptag}）：{plan_note}「{label}」"
+            if plan_note
+            else f"{name}（{trait}{ptag}）：急事已了，回到主线「{label}」"
+        )
         if abandon:
             self.changes.append(
                 {
@@ -323,6 +352,80 @@ class GoalSelector:
             create=gid not in state.goals,
             abandon=abandon,
         )
+
+    def _strategy_plan(self, state: WorldState, npc: str, tick: int):
+        """战略层开启且当前有未过期计划时返回计划；否则 None。"""
+        if not self.strategy_mode or self.strategy_book is None:
+            return None
+        return self.strategy_book.active_plan(npc, tick)
+
+    def _strategy_stalled(self, npc: str, tick: int, goal_id: str, progress: float) -> bool:
+        """确定性停滞检测：同一已选目标 48 tick（4 游戏小时）无进度则视为前置不可行。"""
+        prev = self._strategy_obs.get(npc)
+        if prev is None or prev[0] != goal_id or progress > prev[1]:
+            self._strategy_obs[npc] = (goal_id, progress, tick)
+            return False
+        return tick - prev[2] >= 48
+
+    def _plan_goal(self, state: WorldState, npc: str, plan, tick: int):
+        """在计划内轮转：当前目标推进到 10% 后换下一条，全部触达后留在当前条完成。
+
+        - 当前目标已在计划里且 progress<0.1：维持，保证跨日承诺；
+        - progress>=0.1：转到计划内下一条尚未推进的条目（不迁出计划）；
+        - 计划内条目全部触达：剩余内容目标交回规则自由轮转，避免第 4 条被长期堵死。
+        """
+        active = self._active(state, npc)
+        if active is not None and active.id in plan.goal_ids:
+            if str(active.content_type).startswith("urgent_"):
+                return {"id": active.content_goal_id, "type": active.content_type, "role": "active"}
+            progress = float(active.progress)
+            if progress < 0.1:
+                if self._strategy_stalled(npc, tick, active.id, float(active.progress)):
+                    for entry in plan.entries:
+                        if entry.goal_id == active.id:
+                            continue
+                        goal = state.goals.get(entry.goal_id)
+                        if goal is not None and goal.status in ("completed", "abandoned"):
+                            continue
+                        other = float(goal.progress) if goal is not None else 0.0
+                        if other < 0.1:
+                            if self.strategy_book is not None:
+                                self.strategy_book.record_deviation(plan, tick, "infeasible_prereq", entry.goal_id)
+                            return {"id": entry.content_goal_id, "type": entry.content_type, "role": entry.role}
+                    # 计划内没有其它可推进条目：让规则轮转到计划外目标，避免整段卡死（K1 护栏）。
+                    return None
+                return {"id": active.content_goal_id, "type": active.content_type, "role": "active"}
+            for entry in plan.entries:
+                if entry.goal_id == active.id:
+                    continue
+                goal = state.goals.get(entry.goal_id)
+                if goal is not None and goal.status in ("completed", "abandoned"):
+                    continue
+                other = float(goal.progress) if goal is not None else 0.0
+                if other < 0.1:
+                    if self.strategy_book is not None:
+                        self.strategy_book.record_deviation(plan, tick, "in_plan_rotate", entry.goal_id)
+                    return {"id": entry.content_goal_id, "type": entry.content_type, "role": entry.role}
+            # 计划内条目都已触达 10%：剩余未完成内容目标交回规则自由轮转，
+            # 防止“只许三条”把第 4 条目标彻底堵死（K1 护栏）。
+            return None
+        if active is not None and not str(active.content_type).startswith("urgent_"):
+            progress = float(active.progress)
+            if progress >= 0.1:
+                # G1 兜底：合法计划应已把它纳入；这里只防状态在计划生效后变化。
+                if self.strategy_book is not None:
+                    self.strategy_book.record_deviation(plan, tick, "g1_preserve_active", active.id)
+                return {"id": active.content_goal_id, "type": active.content_type, "role": "active"}
+            # 计划外的当前目标尚未推进到 10%：先让它走完这一步，避免每 tick 来回换。
+            return {"id": active.content_goal_id, "type": active.content_type, "role": "active"}
+        for entry in plan.entries:
+            goal = state.goals.get(entry.goal_id)
+            if goal is not None and goal.status in ("completed", "abandoned"):
+                continue
+            other = float(goal.progress) if goal is not None else 0.0
+            if other < 0.1:
+                return {"id": entry.content_goal_id, "type": entry.content_type, "role": entry.role}
+        return None
 
     def _as_choice(self, goal, name: str, trait: str, reason: str, create: bool) -> GoalChoice:
         return GoalChoice(
@@ -1306,11 +1409,22 @@ class MockReasoner(Reasoner):
         self.replan_count = 0
         self.postponed_open_shop = 0
         self.goal_override_skipped = 0
+        # A4 战略层（默认关闭）：开启后 LLM 决策选择器被日界战略计划替代。
+        self.strategy_book = None
+        self.strategy_enabled = False
         # 内容目标优先级（1 最好，3 最差），用于确定性目标评分。
         self._priorities: dict[str, dict[str, float]] = {
             str(npc): {str(g.get("id", "")): float(g.get("priority", 5.0)) for g in goals}
             for npc, goals in (self.selector._content_goals.items() if self.selector is not None else [])
         }
+
+    def enable_strategy(self, book) -> None:
+        """接入 A4 战略计划台账；tick 级动作仍由本规则 planner 生成。"""
+        self.strategy_book = book
+        self.strategy_enabled = True
+        if self.selector is not None:
+            self.selector.strategy_book = book
+            self.selector.strategy_mode = True
 
     def decide(
         self,
@@ -1427,6 +1541,22 @@ class MockReasoner(Reasoner):
         self.postponed_open_shop += self.planner.postponed_open_shop
         self.planner.postponed_open_shop = 0
         intents.extend(plan)
+        if self.strategy_enabled and self.strategy_book is not None:
+            strategy_plan = self.strategy_book.active_plan(npc, tick)
+            if strategy_plan is not None:
+                if choice.goal_id in strategy_plan.goal_ids:
+                    actions = [i for i in plan if i.verb != "system_goal"]
+                    self.strategy_book.record_consumption(
+                        strategy_plan,
+                        choice.goal_id,
+                        tick,
+                        scheduled=bool(actions),
+                        actions=len(actions),
+                    )
+                elif choice.source != "urgent":
+                    self.strategy_book.record_deviation(
+                        strategy_plan, tick, "fallback_default_content", choice.goal_id
+                    )
         self._planned_through[npc] = start + max(1, interval)
         self.decisions.append(
             {

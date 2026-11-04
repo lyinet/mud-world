@@ -241,7 +241,7 @@ def load_model_slots(root: Path | str) -> dict[str, dict[str, Any]]:
     provider = dict(raw.get("provider") or {})
     models = dict(raw.get("models") or {})
     out: dict[str, dict[str, Any]] = {}
-    for slot in ("decision", "dialogue", "intent"):
+    for slot in ("decision", "dialogue", "intent", "strategy"):
         cfg = dict(provider)
         slot_cfg = dict(models.get(slot) or {})
         cfg.update(slot_cfg)

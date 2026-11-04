@@ -79,6 +79,20 @@ models:
     timeout_s: 60
     max_retries: 2
     json_mode: true
+  strategy:
+    # A4 战略层：每 NPC 每 3 游戏日一次长期计划，只输出 JSON 方向。
+    type: openai_chat
+    base_url: "http://127.0.0.1:3425/v1"
+    api_key_env: "LLM_API_KEY"
+    model: "deepseek/deepseek-flash"
+    model_env: "LLM_STRATEGY_MODEL"
+    extra_body:
+      - reasoning_effort: "none"
+    max_tokens: 512
+    temperature: 0.2
+    timeout_s: 60
+    max_retries: 1
+    json_mode: true
   # 历史选型，保留回溯但不参与调度（loader 不读取此块）。
   xing:
     enabled: false

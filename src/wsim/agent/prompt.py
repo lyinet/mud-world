@@ -456,6 +456,104 @@ def build_decision_prompt(
     return Prompt(system=DECISION_SYSTEM_PROMPT, user=user, persona_tokens=persona_tokens)
 
 
+STRATEGY_SYSTEM_PROMPT = (
+    "你是多 NPC 世界模拟器的长期战略层。只输出 JSON，不要解释。"
+    "你每隔若干游戏日为一个角色制定一次计划：只决定「这几天做哪几件事、和谁来往、钱守到什么底线」，"
+    "不决定今天这个 tick 做什么动作。移动/上工/吃饭/修炼/买卖/跑任务等具体动作由规则层执行，"
+    "你不得输出任何动词、动作参数、地点或物品 id。"
+    "硬规则："
+    "(1) 目标只能从 goal_candidates 里选，最多 3 个；primary_goal_id 一个，secondary_goal_ids 至多两个。"
+    "(2) 只要 active_goal 未关闭且仍在 goal_candidates 里，就优先把它放进计划（除非你明确决定改道）；"
+    "若当前 active_goal 的 progress>=0.1，还必须把它放进 primary/secondary/preserve_goal_ids，否则计划作废。"
+    "(3) 若 goal_candidates 里仍有未完成的 build_shop/earn_money/advance_skill，"
+    "type_quota 至少包含其中一类。"
+    "(4) relation_targets 只能是 known_npcs 里的 id；不得引用已完成或已放弃的目标。"
+    "(5) rationale 用第一人称口语，不超过 80 字，说清为什么这样安排。"
+    '输出格式：{"plan_id":"plan:<npc>:<tick>","primary_goal_id":"<goal_id 或 null>",'
+    '"secondary_goal_ids":["<goal_id>"],"relation_targets":["<npc_id>"],'
+    '"budget":{"cash_floor":40,"max_discretionary_spend":200,"max_goal_actions_per_day":2},'
+    '"preserve_goal_ids":["<goal_id>"],"type_quota":["build_shop"],"confidence":0.6,'
+    '"rationale":"<一句中文理由>"}'
+)
+
+
+def _strategy_goal_candidates(content, state: WorldState, npc: str) -> list[dict[str, Any]]:
+    row = next((n for n in content.npcs if str(n.get("id")) == npc), {})
+    out: list[dict[str, Any]] = []
+    for g in sorted(row.get("goals") or [], key=lambda x: (float(x.get("priority", 9)), str(x.get("id", "")))):
+        gid = f"{npc}:{g.get('id')}"
+        goal = state.goals.get(gid)
+        status = goal.status if goal is not None else "not_created"
+        if status in ("completed", "abandoned"):
+            continue
+        out.append(
+            {
+                "goal_id": gid,
+                "content_goal_id": str(g.get("id", "")),
+                "type": str(g.get("type", "")),
+                "priority": g.get("priority"),
+                "progress": round(float(goal.progress), 3) if goal is not None else 0.0,
+                "status": status,
+            }
+        )
+    for sid in sorted(getattr(content, "sects", {}) or {}):
+        sect = content.sects[sid]
+        if str(sect.get("founder_candidate") or "") != npc:
+            continue
+        gid = f"{npc}:found_{sid}"
+        goal = state.goals.get(gid)
+        status = goal.status if goal is not None else "not_created"
+        if status in ("completed", "abandoned"):
+            continue
+        out.insert(0, {
+            "goal_id": gid,
+            "content_goal_id": f"found_{sid}",
+            "type": "found_sect",
+            "priority": 1,
+            "progress": round(float(goal.progress), 3) if goal is not None else 0.0,
+            "status": status,
+        })
+    return out
+
+
+def build_strategy_prompt(
+    content,
+    state: WorldState,
+    npc: str,
+    tick: int,
+    horizon_days: int,
+    recent_events: Iterable[str] = (),
+    persona_budget_tokens: int = 200,
+) -> Prompt:
+    """战略层 prompt：只给方向所需的状态，不给动作清单，控制输入 token。"""
+    ent = state.entities.get(npc)
+    row = next((n for n in content.npcs if str(n.get("id")) == npc), {})
+    cash = state.account_balance(wallet(npc)) if ent is not None else 0
+    active = _brief_goal(state, npc)
+    summary = {
+        "npc": npc,
+        "name": str(row.get("name") or npc),
+        "role": ent.role if ent is not None else str(row.get("role") or ""),
+        "day": day_of(tick),
+        "tick": tick,
+        "horizon_days": int(horizon_days),
+        "cash": cash,
+        "stamina": round(float(ent.stamina), 1) if ent is not None else 0,
+        "location": ent.location if ent is not None else "",
+        "active_goal": active,
+        "goal_candidates": _strategy_goal_candidates(content, state, npc),
+        "known_npcs": sorted(str(n.get("id")) for n in content.npcs),
+        "relations": _brief_relations(state, npc, limit=6),
+        "debts": _brief_debts(state, npc, limit=4),
+        "recent_events": list(recent_events)[-6:],
+    }
+    raw = content.personas.get(npc, "") if content is not None else ""
+    persona, persona_tokens = compose_persona(raw, persona_budget_tokens) if raw else ("", 0)
+    user = "角色设定：\n" + (persona or "（无设定，按身份与当前状态行事）") + "\n\n当前状态：\n"
+    user += json.dumps(summary, ensure_ascii=False, sort_keys=True)
+    return Prompt(system=STRATEGY_SYSTEM_PROMPT, user=user, persona_tokens=persona_tokens)
+
+
 def parse_decision_hint(text: str) -> tuple[str, str]:
     """从决策 JSON 里取 (verb, target)；缺失/非法返回空串，交给意图槽兜底。
 
