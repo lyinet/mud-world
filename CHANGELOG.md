@@ -9,6 +9,23 @@
 
 ---
 
+## [安全] 2026-11-04 — 读端点越权读取已修复
+
+- **问题**：服务模式下读端点匿名且接受任意 `account_id`，读路径不解析令牌，
+  存在读端点越权读取（可见面过宽）。
+- **修复**：匿名可见面收窄为公共摘要（白名单 `ok`/`name`/`place`/`activity`/
+  `idle_seconds`/`online`/`sect_name`/`shop_name`/`server_tick`）；带令牌强制
+  `account = 令牌账号`，不一致 403 `auth_account_mismatch`；`messages` 匿名返回空列表；
+  `quests` 匿名只给公共开放任务；`intents` 服务模式强制令牌（匿名 401
+  `auth_missing_token`）。legacy 模式（`--auth off`）行为不变。
+- **契约**：`docs/AUTH-API-W1.md` §3「读端点的可见面（服务模式）」。
+- **验证**：全量 pytest **422 passed / 10 skipped / 0 failed**；`scripts/selfcheck.sh`
+  **4/4 PASS**；匿名 `state` 响应体逐键等于白名单，且 grep 不到
+  `wallet|items|skills|relations|active_quests|growth|today`。
+- **commit**：`133333e`。
+
+---
+
 ## [安全] 2026-11-04 — W5 崩溃演练明文令牌清理
 
 - **事件**：`deploy/crash_drill.sh` 曾把用 `drill-secret` 登录得到的完整 Bearer token
