@@ -263,9 +263,7 @@ class _Handler(BaseHTTPRequestHandler):
         if route == "leave" and row is not None and bool(result.get("ok")):
             accounts = self._accounts()
             if accounts is not None:
-                accounts.disconnect(
-                    str(row["id"]), int(result.get("tick") or session.state.tick)
-                )
+                accounts.disconnect(str(row["id"]), int(session.state.tick))
                 result["session_id"] = str(row["id"])
                 result["session_disconnected"] = True
         self._send(status, result)
