@@ -13,6 +13,10 @@ dist/
 .env.local
 *.pem
 *.key
+# 演练/压测产物中的凭证默认不入库（令牌只允许留摘要）
+**/token.txt
+**/*.token
+reports/**/token*
 # 本地自动推送日志
 .git/push.log
 # 交付证据里的 run 目录需要入库，供干净 clone 直接事件回放。

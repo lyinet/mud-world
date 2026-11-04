@@ -6,7 +6,8 @@
 #   4) 内容 hash 校验仍生效（篡改副本启动必须退出码 3）
 #
 # 用法：deploy/crash_drill.sh
-# 产物：reports/w5/crash-drill/（token、前后事件计数、不变量 JSON、日志）
+# 产物：reports/w5/crash-drill/（令牌摘要、前后事件计数、不变量 JSON、日志）
+# 安全：令牌只存在于进程内存/局部变量，不落盘；如需核对只写 sha256 与末 4 位。
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
@@ -20,7 +21,7 @@ KILL_AFTER=${KILL_AFTER:-20}
 
 mkdir -p "$OUT"
 rm -rf "$ROOT/runs/$RUN" "$ROOT/runs/$RUN-tampered"
-rm -f "$OUT"/*.json "$OUT"/*.log "$OUT"/token.txt
+rm -f "$OUT"/*.json "$OUT"/*.log "$OUT"/token.txt "$OUT"/token-digest.txt
 
 start_server() {
   local tag=$1 run=${2:-$RUN} port=${3:-$PORT}
@@ -66,7 +67,10 @@ post("/api/player/enter", {"display_name":"崩演练01","archetype":"游侠"}, t
 print(tok)
 PY
 )
-printf '%s' "$TOKEN" > "$OUT/token.txt"
+# 不落盘完整令牌：只记录 sha256 与末 4 位，便于核对同一令牌而不泄漏凭证。
+printf 'sha256=%s\nlast4=%s\n' \
+  "$(printf '%s' "$TOKEN" | shasum -a 256 | cut -d' ' -f1)" \
+  "${TOKEN: -4}" > "$OUT/token-digest.txt"
 
 BEFORE=$(counts)
 echo "kill 前事件统计(count,genesis,max_seq): $BEFORE" | tee "$OUT/counts.txt"
@@ -99,9 +103,10 @@ req = urllib.request.Request(f"http://127.0.0.1:{os.environ.get('PORT', '8099')}
                              headers={"Authorization": f"Bearer {token}"})
 try:
     with urllib.request.urlopen(req, timeout=5) as r:
-        print(r.status, r.read().decode())
+        payload = json.loads(r.read().decode())
+        print(r.status, "ok=" + str(payload.get("ok")), "expires_at=" + str(payload.get("expires_at")))
 except Exception as exc:
-    print("ERROR", type(exc).__name__, exc)
+    print("ERROR", type(exc).__name__)
 PY
 )
 echo "重启后 /api/auth/me: $ME" | tee "$OUT/token-check.txt"
@@ -161,3 +166,11 @@ for k, v in checks.items():
     print(f"{'PASS' if v else 'FAIL'}  {k}")
 print("总体:", "PASS" if summary["ok"] else "FAIL")
 PY
+
+# 演练结束即吊销测试会话：令牌即时失效，且脚本全程未把令牌原文写入磁盘。
+for d in "$RUN" "$RUN-tampered"; do
+  if [ -f "$ROOT/runs/$d/service.sqlite" ]; then
+    sqlite3 "$ROOT/runs/$d/service.sqlite" "DELETE FROM sessions;" || true
+  fi
+done
+echo "演练会话已吊销（DELETE FROM sessions），令牌即时失效。"
