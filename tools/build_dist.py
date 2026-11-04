@@ -27,6 +27,8 @@ TOP_FILES = [
     "ARCHITECTURE.md",
     "spec.md",
     "tasks.md",
+    "SECURITY.md",
+    "CHANGELOG.md",
 ]
 TOP_DIRS = [
     "src",
