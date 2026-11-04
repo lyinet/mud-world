@@ -220,3 +220,39 @@ v2 不可用；legacy builder 不读 `deploy/Dockerfile.dockerignore`，构建�
   `docs/RELEASE-NOTES-p3k.md` §2）。
 - `reports/w4-ui/` 浏览器证据不入包；UI 行为以 `docs/PLAYER-GUIDE.md` 与代码为准。
 - 72 天长周期、多人长跑仍未验证；委托补发只在玩家会话作用域生效。
+
+## 10. v2 重打（`delivery-p3k` tag 之后的溯源修正）
+
+> 本节为追加记录；§1–§9 的 v1 实测记录**原样保留**，两者差异有溯源价值。
+
+**为何重打**：v1 包内 `README.md`（由 `deploy/README.md` 生成）第 3 行写「本版基于 `9c76cde`」，
+实际交付基线是 `b23827a`。W5 已提交 `b6cfb89` 更正该行，并同步 README 内过时内容与测试计数
+（`423 passed, 10 skipped`）。`delivery-p3k` tag 仍指向 `b23827a`，不动。
+
+**新旧产物对应**：
+
+| 版本 | 构建来源 | tar.gz SHA256 | zip SHA256 |
+| --- | --- | --- | --- |
+| v1（tag 时产物） | `b23827a` | `a7ef84ea8c457cd820dc6913e9e06ff0934d86d119afe3c6f316b6aa6564fe1d` | `2dac83d9e9106ceaa60b4329609e7956835fec706128d44380993b2b2ed6e01c` |
+| v2（本次重打） | `b6cfb89` + 本文件所在文档提交 | 见 `dist/p3k-SHA256.txt` | 见 `dist/p3k-SHA256.txt` |
+
+v2 的最终哈希、实际构建 HEAD SHA 与构建时间写在 `dist/p3k-SHA256.txt`（该文件不入库；
+本文件随包，无法自指包哈希）。
+
+**v2 冒烟（全新目录解包）**：
+
+```bash
+rm -rf /tmp/xkx-p3k-final8 && mkdir -p /tmp/xkx-p3k-final8
+cd /tmp/xkx-p3k-final8 && tar -xzf dist/xkx-world-sim-delivery-p3k.tar.gz
+cd world-sim
+API_PORT=8567 PORT=8547 RUN_ID=p3k-final8 ./start.sh
+```
+
+| 检查 | 结果 |
+| --- | --- |
+| 包内 `README.md` 首行 | `# XKX / world-sim 对外试玩包（p3k）` |
+| 包内 `README.md` 第 3 行 | 「本版基于 `b23827a`」 |
+| `GET /api/state` | HTTP 200 |
+| `GET /` | HTTP 200（玩家面板） |
+
+结论：v2 仅修正 README 溯源与文档计数，运行文件与 v1 一致；三路径全量结论沿用 §3–§6。
