@@ -1,0 +1,100 @@
+{
+  "config": {
+    "content_hash": "7ec670c1c83c7b99e9bee35f84602bd7a68ef22126b29c9003529809b2c3d53f",
+    "days": 10,
+    "enable_llm": false,
+    "every_days": 3,
+    "max_window_days": 3,
+    "npc_limit": "all",
+    "seed": 42
+  },
+  "criteria": {
+    "all_rejects_have_equation": true,
+    "deterministic_rerun": true,
+    "pass_rate_ge_60": true
+  },
+  "deterministic": true,
+  "hashes": {
+    "competent_a": {
+      "event_final": "b26ec81cdd84a51876217f846f9bd246c1e3f3fddad470fd06ae1edf7ee647ea",
+      "events_jsonl_sha256": "9e0b178f50e28095f561c1b2d92ee62d65bdb8404ace53dc5063b171eed4433f",
+      "state_final": "1130a5d10028c6137455058708872822d3bb7777f76d9afb13bd9a08f8734fc3",
+      "trace_sha256": "470383969c1349645ec4cfb78cf0eef287942c3bda0619de0f8f012954d36ec2"
+    },
+    "competent_b": {
+      "event_final": "b26ec81cdd84a51876217f846f9bd246c1e3f3fddad470fd06ae1edf7ee647ea",
+      "events_jsonl_sha256": "9e0b178f50e28095f561c1b2d92ee62d65bdb8404ace53dc5063b171eed4433f",
+      "state_final": "1130a5d10028c6137455058708872822d3bb7777f76d9afb13bd9a08f8734fc3",
+      "trace_sha256": "470383969c1349645ec4cfb78cf0eef287942c3bda0619de0f8f012954d36ec2"
+    },
+    "rule": {
+      "event_final": "fe9b9ebb32c17b6ae227a4d8bad87090fed1c454d807bf239a687f50a7ba5b5c",
+      "events_jsonl_sha256": "fefe3cc712ca4510176b2f9f45c37ec9e72ea5f186ee3e417a625954715201a8",
+      "state_final": "3de594d241434104ce60cebb5e887d1dc6a3f44e30bb39e95ac61aae5f5ce9a9",
+      "trace_sha256": ""
+    },
+    "scenarios": {
+      "event_final": "2536a6520b5bdf70abab984d9a9885c018a46ff5bed76dc74b5a8c4970f078b4",
+      "events_jsonl_sha256": "130c5e641f51c813afda4bbbafb8805d22f19a43f4662c3e6375a1447d1ec738",
+      "state_final": "48bb521e4af829b90f81f5eb4587e4896265d206262cf1b120e6f64ff58e82e9",
+      "trace_sha256": "ca58f14ec11489705bb757d6fbac758c339fe0246aea6e3bad2b3ccc212f818a"
+    }
+  },
+  "k1": {
+    "competent": {
+      "k1_rate": 0.4175824175824176,
+      "k1_rate_created_only": 0.7037037037037037,
+      "k1_rate_in_scope": 0.4175824175824176,
+      "k1_rate_in_scope_created_only": 0.7037037037037037
+    },
+    "competent_goals_progressed_in_scope": 38,
+    "delta_k1_rate_in_scope": -0.26373626373626374,
+    "rule": {
+      "k1_rate": 0.6813186813186813,
+      "k1_rate_created_only": 0.7948717948717948,
+      "k1_rate_in_scope": 0.6813186813186813,
+      "k1_rate_in_scope_created_only": 0.7948717948717948
+    },
+    "rule_goals_progressed_in_scope": 62
+  },
+  "run_dirs": {
+    "competent_a": "/Users/lyinet/projects/XKX/world-sim/runs/sg-competent-10d-s42-a",
+    "competent_b": "/Users/lyinet/projects/XKX/world-sim/runs/sg-competent-10d-s42-b",
+    "rule": "/Users/lyinet/projects/XKX/world-sim/runs/sg-rule-10d-s42",
+    "scenarios": "/Users/lyinet/projects/XKX/world-sim/runs/sg-scenarios-10d-s42"
+  },
+  "stage0": {
+    "accepted": 89,
+    "activation_reasons": {
+      "initial_goal_protected": 38
+    },
+    "activations": 69,
+    "completions": 53,
+    "feasibility_rejects_without_equation": 0,
+    "goal_expired": 6,
+    "pass_rate": 1.0,
+    "pending_expired": 0,
+    "proposal_reasons": {},
+    "proposals": 89,
+    "rejected": 0
+  },
+  "stage1": {
+    "accepted": 46,
+    "activation_reasons": {
+      "initial_goal_protected": 14,
+      "self_goal_active": 12
+    },
+    "activations": 29,
+    "completions": 22,
+    "feasibility_rejects_without_equation": 0,
+    "goal_expired": 3,
+    "pass_rate": 0.40350877192982454,
+    "pending_expired": 1,
+    "proposal_reasons": {
+      "budget_actions_exceeded": 34,
+      "target_exceeds_capacity": 34
+    },
+    "proposals": 114,
+    "rejected": 68
+  }
+}
