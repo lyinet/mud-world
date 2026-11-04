@@ -45,7 +45,7 @@ TOP_DIRS = [
     "reports",
 ]
 SKIP_DIRS = {"__pycache__", ".pytest_cache", ".venv", ".git", "dist", ".DS_Store"}
-SKIP_SUFFIXES = {".pyc", ".pyo", ".sqlite-wal", ".sqlite-shm"}
+SKIP_SUFFIXES = {".pyc", ".pyo", ".sqlite", ".sqlite-wal", ".sqlite-shm"}
 
 
 def iter_files(path: Path):
