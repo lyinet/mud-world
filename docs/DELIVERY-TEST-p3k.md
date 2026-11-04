@@ -147,30 +147,35 @@ XKX_CONTENT_PACKS=scaleup_w3 PYTHONPATH=src \
 | 玩家闭环（临时端口随机） | **PASS**（enter → 书院 → 对话 → 接任务 → 刷新状态仍在） |
 | 总结 | **selfcheck PASS（4 项全部通过）** |
 
-## 7. 最终包与实测包的差异
+## 7. 最终包（最新 HEAD）与实测包的差异
 
-最终 `p3k` 由文档提交后的同一 HEAD 重建。相对本实测包（`e317223` 树）**只多两个新文档并更新
-`QUICKSTART.md` 的版本数字**：
+实测包基于 `e317223` 树（487 文件 / 2.25 MiB）。最终包以出包时的最新 HEAD **`92d77f7`** 重建：
+**509 文件 / 5.62 MiB**（增大来自 W4 验收截图 `reports/w4-ui/` 20 个文件）。
 
-- 新增 `docs/DELIVERY-TEST-p3k.md`（本文件）
-- 新增 `docs/RELEASE-NOTES-p3k.md`
-- 更新 `docs/QUICKSTART.md`（p3j 旧数字 → p3k 实测数字）
+相对实测包，差异**全部在 docs / reports / 安全说明**，启动与玩法路径未变：
 
-`src/`、`content/`、`ui/`、`scripts/`、`tools/`、`deploy/` 等运行文件逐字节相同
-（`diff -rq` 只列出上述 3 个 docs 差异，清单逐文件 SHA256 一致）；因此第 2–6 节的实测结论
-对最终包同样成立。
+- 新增 `docs/DELIVERY-TEST-p3k.md`、`docs/RELEASE-NOTES-p3k.md`；更新 `docs/QUICKSTART.md`；
+- 入库 `reports/w4-ui/` 20 个浏览器证据文件；更新 `docs/DELIVERY-TEST-p3j.md`；
+- `SECURITY.md`（W5 令牌纪律）、`CHANGELOG.md`、`deploy/crash_drill.sh`（演练不再落盘令牌）
+  随并行提交更新；`deploy/crash_drill.sh` 不在 `./start.sh` 启动路径内；
+- `src/`、`content/`、`ui/`、`config/`、`scripts/`、`tools/` **无变化**（清单 SHA256 比对确认）。
 
-最终包（489 文件，约 2.26 MiB）再次干净解包到 `/tmp/xkx-p3k-deliver` 并用同一命令复核：
+最终包（`92d77f7`）再次干净解包到 `/tmp/xkx-p3k-final3` 并用同一命令复核：
 
-| 复核项 | 最终包观测（21:54，端口 8562/8542） |
+| 复核项 | 最终包观测（21:56，端口 8562/8542） |
 | --- | --- |
-| 首次启动 | 21:54:23 建 `.venv`，21:54:38 API + 前端就绪（约 15s） |
+| 首次启动 | 21:56:13 建 `.venv`，21:56:25 API + 前端就绪（约 12s） |
 | `GET /api/service/info` | `{"ok": true, "auth_required": false}` |
-| `GET /api/state` | HTTP 404 `unknown_action`（0.0028s，口径见 §3） |
-| `GET /api/player/state?account_id=u_new` | HTTP 200 `player_not_entered`（0.0009s） |
+| `GET /api/state` | HTTP 404 `unknown_action`（0.0009s，口径见 §3） |
+| `GET /api/player/state?account_id=u_new` | HTTP 200 `player_not_entered`（0.0007s） |
 | `GET /` | HTTP 200，12,406 B，`<title>入世 · 世界门面</title>` |
-| `POST enter`（`u_p3kd` / “初十”） | `ok=true`，`tick=0`，钱包 300 文 |
+| `POST enter`（`u_p3ke` / “十一”） | `ok=true`，`tick=0`，钱包 300 文 |
 | `GET /api/player/state` | `ok=true`，`tick=6`，集市，在场 NPC 7，`open_quests=26` |
+| `reports/w4-ui/` | 20 个文件随包存在 |
+| `deploy/service.yaml` | 0（按设计排除，见 RELEASE-NOTES §1.6） |
+
+最后再提交本文件的上述更新并重建 `p3k`；该次重建相对 `92d77f7` 包只差本文件正文，
+运行文件仍逐字节一致，故上表结论即最终交付包的实测结论。
 
 ## 8. 未覆盖 / 风险
 
