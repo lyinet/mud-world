@@ -1,0 +1,1 @@
+{"ok": true, "run_dir": "/Users/lyinet/projects/XKX/world-sim/runs/w5-crash-drill", "listen": "http://127.0.0.1:8099", "profile_version": 1, "tick": 1296, "auth_required": true, "auth_mode": "on", "docs": "docs/player-api.md"}

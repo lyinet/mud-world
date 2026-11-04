@@ -1,0 +1,8 @@
+=== W5 负载结果 ===
+玩家: 20/20 已进入, 周期 591, 实际时长 62.22s
+请求: 1242  错误: 0 (0.0%)  5xx: 0  429容量: 0  业务拒绝: 19
+全端点延迟 ms: {'count': 1242, 'p50': 7.301, 'p95': 25.85, 'p99': 38.542, 'mean': 10.261, 'max': 227.133}
+/api/state P95: 14.081ms  (门槛 <300ms: PASS)
+RSS: baseline=NoneMB peak=NoneMB end=NoneMB; CPU peak=None% mean=None% total=Nones
+不变量: PASS  events=1248 钱包delta=0 seq连续=True integrity=ok
+验收: {"state_p95_under_300ms": true, "error_rate_under_0_5pct": true, "zero_http_500": true, "invariants_pass": true, "event_count_monotonic": true, "all": true}

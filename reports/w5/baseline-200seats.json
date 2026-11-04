@@ -1,0 +1,520 @@
+{
+  "schema": "w5-load-report/v1",
+  "started_at": "2026-11-04T12:44:43+00:00",
+  "duration_s": 120.0,
+  "actual_duration_s": 144.02,
+  "config": {
+    "base_url": "http://127.0.0.1:8027",
+    "players": 199,
+    "think_time_s": 3.0,
+    "ramp_up_s": 10.0,
+    "tag": "b612f3",
+    "run_dir": "/Users/lyinet/projects/XKX/world-sim/runs/w5-cap2",
+    "server_pid": 30826
+  },
+  "players": {
+    "started": 199,
+    "entered": 199,
+    "failed_enter": 0,
+    "cycles": 1365,
+    "player_errors": []
+  },
+  "totals": {
+    "requests": 4085,
+    "ok": 2438,
+    "errors": 659,
+    "http_5xx": 0,
+    "http_401": 0,
+    "capacity_rejections": 0,
+    "business_rejections": 988,
+    "error_rate_pct": 16.1322,
+    "latency_ms": {
+      "all": {
+        "count": 4085,
+        "p50": 4747.248,
+        "p95": 10001.872,
+        "p99": 10032.473,
+        "mean": 5165.528,
+        "max": 15344.616
+      },
+      "by_endpoint": {
+        "GET /api/player/state": {
+          "count": 1365,
+          "p50": 5481.367,
+          "p95": 10001.709,
+          "p99": 10003.026,
+          "mean": 5623.413,
+          "max": 10032.444
+        },
+        "POST /api/auth/login": {
+          "count": 199,
+          "p50": 8.052,
+          "p95": 19.425,
+          "p99": 67.284,
+          "mean": 7.072,
+          "max": 69.192
+        },
+        "POST /api/auth/register": {
+          "count": 199,
+          "p50": 22.367,
+          "p95": 62.833,
+          "p99": 79.145,
+          "mean": 24.714,
+          "max": 114.098
+        },
+        "POST /api/player/enter": {
+          "count": 1150,
+          "p50": 6949.374,
+          "p95": 10002.305,
+          "p99": 10034.424,
+          "mean": 6655.058,
+          "max": 10135.957
+        },
+        "POST /api/player/quest/accept": {
+          "count": 784,
+          "p50": 4159.857,
+          "p95": 10002.196,
+          "p99": 12024.33,
+          "mean": 4964.205,
+          "max": 15344.616
+        },
+        "POST /api/player/quest/deliver": {
+          "count": 1,
+          "p50": 1571.165,
+          "p95": 1571.165,
+          "p99": 1571.165,
+          "mean": 1571.165,
+          "max": 1571.165
+        },
+        "POST /api/player/talk": {
+          "count": 387,
+          "p50": 4159.71,
+          "p95": 10002.087,
+          "p99": 12025.729,
+          "mean": 4837.401,
+          "max": 15343.046
+        }
+      }
+    },
+    "rejections_by_code": {
+      "already_online": 16,
+      "player_offline": 951,
+      "quest_expired": 6,
+      "quest_not_open": 15
+    },
+    "error_samples": [
+      "POST /api/player/enter: TimeoutError: timed out",
+      "POST /api/player/enter: TimeoutError: timed out",
+      "POST /api/player/enter: TimeoutError: timed out",
+      "GET /api/player/state: TimeoutError: timed out",
+      "POST /api/player/enter: TimeoutError: timed out",
+      "POST /api/player/enter: TimeoutError: timed out",
+      "POST /api/player/enter: TimeoutError: timed out",
+      "POST /api/player/enter: TimeoutError: timed out",
+      "POST /api/player/enter: TimeoutError: timed out",
+      "POST /api/player/enter: TimeoutError: timed out",
+      "GET /api/player/state: TimeoutError: timed out",
+      "GET /api/player/state: TimeoutError: timed out",
+      "GET /api/player/state: TimeoutError: timed out",
+      "POST /api/player/enter: TimeoutError: timed out",
+      "GET /api/player/state: TimeoutError: timed out",
+      "POST /api/player/enter: TimeoutError: timed out",
+      "POST /api/player/enter: TimeoutError: timed out",
+      "POST /api/player/talk: TimeoutError: timed out",
+      "POST /api/player/talk: TimeoutError: timed out",
+      "POST /api/player/enter: TimeoutError: timed out",
+      "POST /api/player/enter: TimeoutError: timed out",
+      "POST /api/player/enter: TimeoutError: timed out",
+      "POST /api/player/enter: TimeoutError: timed out",
+      "POST /api/player/enter: TimeoutError: timed out",
+      "GET /api/player/state: TimeoutError: timed out",
+      "POST /api/player/enter: TimeoutError: timed out",
+      "GET /api/player/state: TimeoutError: timed out",
+      "POST /api/player/enter: TimeoutError: timed out",
+      "POST /api/player/enter: TimeoutError: timed out",
+      "GET /api/player/state: TimeoutError: timed out"
+    ]
+  },
+  "resources": {
+    "samples": [
+      {
+        "t": 0.0,
+        "rss_mb": 8.95,
+        "cpu_pct": 0.0,
+        "cpu_s": 70.1,
+        "alive": true
+      },
+      {
+        "t": 5.01,
+        "rss_mb": 97.59,
+        "cpu_pct": 92.06,
+        "cpu_s": 74.7,
+        "alive": true
+      },
+      {
+        "t": 10.03,
+        "rss_mb": 104.83,
+        "cpu_pct": 99.95,
+        "cpu_s": 79.7,
+        "alive": true
+      },
+      {
+        "t": 15.04,
+        "rss_mb": 103.2,
+        "cpu_pct": 97.4,
+        "cpu_s": 84.6,
+        "alive": true
+      },
+      {
+        "t": 20.04,
+        "rss_mb": 107.3,
+        "cpu_pct": 96.88,
+        "cpu_s": 89.5,
+        "alive": true
+      },
+      {
+        "t": 25.06,
+        "rss_mb": 105.22,
+        "cpu_pct": 95.15,
+        "cpu_s": 94.2,
+        "alive": true
+      },
+      {
+        "t": 30.08,
+        "rss_mb": 107.98,
+        "cpu_pct": 95.57,
+        "cpu_s": 99.0,
+        "alive": true
+      },
+      {
+        "t": 35.1,
+        "rss_mb": 105.22,
+        "cpu_pct": 90.33,
+        "cpu_s": 103.6,
+        "alive": true
+      },
+      {
+        "t": 40.12,
+        "rss_mb": 111.91,
+        "cpu_pct": 91.07,
+        "cpu_s": 108.1,
+        "alive": true
+      },
+      {
+        "t": 45.13,
+        "rss_mb": 114.0,
+        "cpu_pct": 88.85,
+        "cpu_s": 112.6,
+        "alive": true
+      },
+      {
+        "t": 50.15,
+        "rss_mb": 110.78,
+        "cpu_pct": 96.26,
+        "cpu_s": 117.4,
+        "alive": true
+      },
+      {
+        "t": 55.17,
+        "rss_mb": 109.7,
+        "cpu_pct": 91.65,
+        "cpu_s": 122.0,
+        "alive": true
+      },
+      {
+        "t": 60.18,
+        "rss_mb": 114.55,
+        "cpu_pct": 90.15,
+        "cpu_s": 126.5,
+        "alive": true
+      },
+      {
+        "t": 65.19,
+        "rss_mb": 114.95,
+        "cpu_pct": 88.65,
+        "cpu_s": 131.0,
+        "alive": true
+      },
+      {
+        "t": 70.2,
+        "rss_mb": 115.08,
+        "cpu_pct": 92.14,
+        "cpu_s": 135.6,
+        "alive": true
+      },
+      {
+        "t": 75.21,
+        "rss_mb": 116.75,
+        "cpu_pct": 96.8,
+        "cpu_s": 140.4,
+        "alive": true
+      },
+      {
+        "t": 80.22,
+        "rss_mb": 121.98,
+        "cpu_pct": 98.01,
+        "cpu_s": 145.3,
+        "alive": true
+      },
+      {
+        "t": 85.23,
+        "rss_mb": 121.73,
+        "cpu_pct": 98.19,
+        "cpu_s": 150.3,
+        "alive": true
+      },
+      {
+        "t": 90.24,
+        "rss_mb": 120.95,
+        "cpu_pct": 94.2,
+        "cpu_s": 155.0,
+        "alive": true
+      },
+      {
+        "t": 95.26,
+        "rss_mb": 125.12,
+        "cpu_pct": 96.05,
+        "cpu_s": 159.8,
+        "alive": true
+      },
+      {
+        "t": 100.28,
+        "rss_mb": 126.28,
+        "cpu_pct": 97.17,
+        "cpu_s": 164.7,
+        "alive": true
+      },
+      {
+        "t": 105.29,
+        "rss_mb": 127.09,
+        "cpu_pct": 96.38,
+        "cpu_s": 169.5,
+        "alive": true
+      },
+      {
+        "t": 110.3,
+        "rss_mb": 124.19,
+        "cpu_pct": 97.53,
+        "cpu_s": 174.4,
+        "alive": true
+      },
+      {
+        "t": 115.31,
+        "rss_mb": 125.97,
+        "cpu_pct": 91.61,
+        "cpu_s": 179.0,
+        "alive": true
+      },
+      {
+        "t": 120.32,
+        "rss_mb": 131.48,
+        "cpu_pct": 94.64,
+        "cpu_s": 183.7,
+        "alive": true
+      },
+      {
+        "t": 125.36,
+        "rss_mb": 129.55,
+        "cpu_pct": 94.76,
+        "cpu_s": 188.5,
+        "alive": true
+      },
+      {
+        "t": 130.38,
+        "rss_mb": 128.3,
+        "cpu_pct": 93.67,
+        "cpu_s": 193.2,
+        "alive": true
+      },
+      {
+        "t": 135.39,
+        "rss_mb": 119.25,
+        "cpu_pct": 74.85,
+        "cpu_s": 197.0,
+        "alive": true
+      },
+      {
+        "t": 140.4,
+        "rss_mb": 123.97,
+        "cpu_pct": 85.62,
+        "cpu_s": 201.2,
+        "alive": true
+      }
+    ],
+    "rss_baseline_mb": 8.95,
+    "rss_peak_mb": 131.48,
+    "rss_end_mb": 123.97,
+    "rss_growth_mb": 115.02,
+    "cpu_peak_pct": 99.95,
+    "cpu_mean_pct": 90.19,
+    "cpu_seconds_total": 131.1,
+    "event_count_samples": [
+      {
+        "at": "2026-11-04T12:44:48+00:00",
+        "count": 8470
+      },
+      {
+        "at": "2026-11-04T12:44:53+00:00",
+        "count": 8618
+      },
+      {
+        "at": "2026-11-04T12:44:58+00:00",
+        "count": 8756
+      },
+      {
+        "at": "2026-11-04T12:45:03+00:00",
+        "count": 8910
+      },
+      {
+        "at": "2026-11-04T12:45:08+00:00",
+        "count": 9104
+      },
+      {
+        "at": "2026-11-04T12:45:13+00:00",
+        "count": 9267
+      },
+      {
+        "at": "2026-11-04T12:45:18+00:00",
+        "count": 9362
+      },
+      {
+        "at": "2026-11-04T12:45:23+00:00",
+        "count": 9449
+      },
+      {
+        "at": "2026-11-04T12:45:28+00:00",
+        "count": 9695
+      },
+      {
+        "at": "2026-11-04T12:45:33+00:00",
+        "count": 9805
+      },
+      {
+        "at": "2026-11-04T12:45:38+00:00",
+        "count": 9894
+      },
+      {
+        "at": "2026-11-04T12:45:43+00:00",
+        "count": 10057
+      },
+      {
+        "at": "2026-11-04T12:45:48+00:00",
+        "count": 10226
+      },
+      {
+        "at": "2026-11-04T12:45:53+00:00",
+        "count": 10318
+      },
+      {
+        "at": "2026-11-04T12:45:58+00:00",
+        "count": 10415
+      },
+      {
+        "at": "2026-11-04T12:46:03+00:00",
+        "count": 10625
+      },
+      {
+        "at": "2026-11-04T12:46:08+00:00",
+        "count": 10758
+      },
+      {
+        "at": "2026-11-04T12:46:13+00:00",
+        "count": 10844
+      },
+      {
+        "at": "2026-11-04T12:46:18+00:00",
+        "count": 10975
+      },
+      {
+        "at": "2026-11-04T12:46:23+00:00",
+        "count": 11131
+      },
+      {
+        "at": "2026-11-04T12:46:28+00:00",
+        "count": 11253
+      },
+      {
+        "at": "2026-11-04T12:46:33+00:00",
+        "count": 11355
+      },
+      {
+        "at": "2026-11-04T12:46:38+00:00",
+        "count": 11433
+      },
+      {
+        "at": "2026-11-04T12:46:43+00:00",
+        "count": 11587
+      },
+      {
+        "at": "2026-11-04T12:46:48+00:00",
+        "count": 11751
+      },
+      {
+        "at": "2026-11-04T12:46:53+00:00",
+        "count": 11824
+      },
+      {
+        "at": "2026-11-04T12:46:58+00:00",
+        "count": 11866
+      },
+      {
+        "at": "2026-11-04T12:47:03+00:00",
+        "count": 11923
+      }
+    ],
+    "event_count_monotonic": true
+  },
+  "event_growth": {
+    "count_before": 8338,
+    "count_after": 11973,
+    "delta": 3635,
+    "monotonic": true
+  },
+  "invariants": {
+    "run_dir": "/Users/lyinet/projects/XKX/world-sim/runs/w5-cap2",
+    "db_exists": true,
+    "ok": true,
+    "errors": [],
+    "integrity_check": "ok",
+    "event_count": 11973,
+    "seq": {
+      "first": 1,
+      "last": 11973,
+      "count": 11973,
+      "distinct": 11973,
+      "contiguous": true
+    },
+    "wallet": {
+      "accounts": 241,
+      "sum_balance": 107150,
+      "minted_total": 107150,
+      "burned_total": 0,
+      "expected_sum": 107150,
+      "delta": 0,
+      "transfers": 67
+    },
+    "negative_rows": [],
+    "half_write_rows": [],
+    "genesis_events": 2,
+    "genesis_ok_events": 1,
+    "outcomes": {
+      "ok": 5696,
+      "rejected": 6277
+    }
+  },
+  "pass": {
+    "state_p95_under_300ms": false,
+    "error_rate_under_0_5pct": false,
+    "zero_http_500": true,
+    "invariants_pass": true,
+    "event_count_monotonic": true,
+    "all": false
+  },
+  "per_seat": {
+    "requests_per_seat": 20.53,
+    "requests_per_seat_second": 0.1425,
+    "cpu_seconds_total": 131.1,
+    "cpu_seconds_per_request": 0.032093,
+    "rss_growth_mb_per_seat": 0.578
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "ok": true,
+  "config": {
+    "base_url": "http://127.0.0.1:8028",
+    "writes": 200,
+    "account": "w5wtwt1",
+    "tag": "wt1",
+    "run_dir": "/Users/lyinet/projects/XKX/world-sim/runs/w5-load"
+  },
+  "attempted": 200,
+  "successful": 200,
+  "rejected": 0,
+  "rejects_by_code": {},
+  "elapsed_s": 46.73,
+  "writes_per_second": 4.28,
+  "attempts_per_second": 4.28,
+  "latency_ms": {
+    "count": 200,
+    "p50": 234.773,
+    "p95": 309.069,
+    "p99": 374.23,
+    "mean": 233.546,
+    "max": 401.674
+  },
+  "events_delta": 432,
+  "events_per_second": 9.245,
+  "read_all_before": {
+    "ok": true,
+    "run_dir": "/Users/lyinet/projects/XKX/world-sim/runs/w5-load",
+    "event_count": 17283,
+    "db_size_mb": 8.49,
+    "samples_ms": [
+      95.91,
+      156.4,
+      116.57
+    ],
+    "median_ms": 116.57,
+    "min_ms": 95.91,
+    "max_ms": 156.4,
+    "ms_per_event": 0.006745,
+    "implication": "线上每次玩家写都调用一次 read_all；单写者下写吞吐上限≈1/median_ms"
+  },
+  "read_all_after": {
+    "ok": true,
+    "run_dir": "/Users/lyinet/projects/XKX/world-sim/runs/w5-load",
+    "event_count": 17715,
+    "db_size_mb": 8.71,
+    "samples_ms": [
+      134.55,
+      198.12,
+      151.64
+    ],
+    "median_ms": 151.64,
+    "min_ms": 134.55,
+    "max_ms": 198.12,
+    "ms_per_event": 0.00856,
+    "implication": "线上每次玩家写都调用一次 read_all；单写者下写吞吐上限≈1/median_ms"
+  },
+  "implication": "writes_per_second 是当前单写者实现的写吞吐上界；read_all_after.median_ms 是修复后应消除的固定成本"
+}

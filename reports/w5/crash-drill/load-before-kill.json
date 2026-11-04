@@ -1,0 +1,170 @@
+{
+  "schema": "w5-load-report/v1",
+  "started_at": "2026-11-04T13:28:26+00:00",
+  "duration_s": 60.0,
+  "actual_duration_s": 62.22,
+  "config": {
+    "base_url": "http://127.0.0.1:8099",
+    "players": 20,
+    "think_time_s": 2.0,
+    "ramp_up_s": 3.0,
+    "tag": "441dca",
+    "run_dir": "/Users/lyinet/projects/XKX/world-sim/runs/w5-crash-drill",
+    "server_pid": 0
+  },
+  "players": {
+    "started": 20,
+    "entered": 20,
+    "failed_enter": 0,
+    "cycles": 591,
+    "player_errors": []
+  },
+  "totals": {
+    "requests": 1242,
+    "ok": 1223,
+    "errors": 0,
+    "http_5xx": 0,
+    "http_401": 0,
+    "capacity_rejections": 0,
+    "business_rejections": 19,
+    "error_rate_pct": 0.0,
+    "latency_ms": {
+      "all": {
+        "count": 1242,
+        "p50": 7.301,
+        "p95": 25.85,
+        "p99": 38.542,
+        "mean": 10.261,
+        "max": 227.133
+      },
+      "by_endpoint": {
+        "GET /api/player/state": {
+          "count": 591,
+          "p50": 2.585,
+          "p95": 14.081,
+          "p99": 30.595,
+          "mean": 4.752,
+          "max": 194.484
+        },
+        "POST /api/auth/login": {
+          "count": 20,
+          "p50": 1.444,
+          "p95": 5.776,
+          "p99": 12.595,
+          "mean": 2.456,
+          "max": 12.595
+        },
+        "POST /api/auth/register": {
+          "count": 20,
+          "p50": 2.002,
+          "p95": 5.91,
+          "p99": 18.444,
+          "mean": 3.254,
+          "max": 18.444
+        },
+        "POST /api/player/enter": {
+          "count": 20,
+          "p50": 13.123,
+          "p95": 20.915,
+          "p99": 23.082,
+          "mean": 13.423,
+          "max": 23.082
+        },
+        "POST /api/player/quest/accept": {
+          "count": 100,
+          "p50": 13.116,
+          "p95": 27.742,
+          "p99": 32.57,
+          "mean": 14.859,
+          "max": 33.644
+        },
+        "POST /api/player/quest/deliver": {
+          "count": 93,
+          "p50": 13.79,
+          "p95": 30.051,
+          "p99": 227.133,
+          "mean": 17.996,
+          "max": 227.133
+        },
+        "POST /api/player/talk": {
+          "count": 398,
+          "p50": 14.219,
+          "p95": 28.453,
+          "p99": 60.661,
+          "mean": 16.065,
+          "max": 79.153
+        }
+      }
+    },
+    "rejections_by_code": {
+      "quest_expired": 17,
+      "quest_not_open": 2
+    },
+    "error_samples": []
+  },
+  "resources": {
+    "samples": [],
+    "rss_baseline_mb": null,
+    "rss_peak_mb": null,
+    "rss_end_mb": null,
+    "rss_growth_mb": null,
+    "cpu_peak_pct": null,
+    "cpu_mean_pct": null,
+    "cpu_seconds_total": null,
+    "event_count_samples": [],
+    "event_count_monotonic": true
+  },
+  "event_growth": {
+    "count_before": 6,
+    "count_after": 1248,
+    "delta": 1242,
+    "monotonic": true
+  },
+  "invariants": {
+    "run_dir": "/Users/lyinet/projects/XKX/world-sim/runs/w5-crash-drill",
+    "db_exists": true,
+    "ok": true,
+    "errors": [],
+    "integrity_check": "ok",
+    "event_count": 1248,
+    "seq": {
+      "first": 1,
+      "last": 1248,
+      "count": 1248,
+      "distinct": 1248,
+      "contiguous": true
+    },
+    "wallet": {
+      "accounts": 63,
+      "sum_balance": 53750,
+      "minted_total": 53750,
+      "burned_total": 0,
+      "expected_sum": 53750,
+      "delta": 0,
+      "transfers": 77
+    },
+    "negative_rows": [],
+    "half_write_rows": [],
+    "genesis_events": 2,
+    "genesis_ok_events": 1,
+    "outcomes": {
+      "ok": 1229,
+      "rejected": 19
+    }
+  },
+  "pass": {
+    "state_p95_under_300ms": true,
+    "error_rate_under_0_5pct": true,
+    "zero_http_500": true,
+    "invariants_pass": true,
+    "event_count_monotonic": true,
+    "all": true
+  },
+  "per_seat": {
+    "requests_per_seat": 62.1,
+    "requests_per_seat_second": 0.9981,
+    "cpu_seconds_total": null,
+    "cpu_seconds_per_request": null,
+    "rss_growth_mb_per_seat": null
+  }
+}

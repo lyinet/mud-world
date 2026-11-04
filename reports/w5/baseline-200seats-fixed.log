@@ -1,0 +1,445 @@
+{
+  "schema": "w5-load-report/v1",
+  "started_at": "2026-11-04T13:23:03+00:00",
+  "duration_s": 120.0,
+  "actual_duration_s": 126.45,
+  "config": {
+    "base_url": "http://127.0.0.1:8032",
+    "players": 199,
+    "think_time_s": 3.0,
+    "ramp_up_s": 10.0,
+    "tag": "bf",
+    "run_dir": "/Users/lyinet/projects/XKX/world-sim/runs/w5-cap-fixed",
+    "server_pid": 40066
+  },
+  "players": {
+    "started": 199,
+    "entered": 199,
+    "failed_enter": 0,
+    "cycles": 4779,
+    "player_errors": []
+  },
+  "totals": {
+    "requests": 10155,
+    "ok": 9906,
+    "errors": 0,
+    "http_5xx": 0,
+    "http_401": 0,
+    "capacity_rejections": 0,
+    "business_rejections": 249,
+    "error_rate_pct": 0.0,
+    "latency_ms": {
+      "all": {
+        "count": 10155,
+        "p50": 884.723,
+        "p95": 1770.273,
+        "p99": 2036.701,
+        "mean": 894.298,
+        "max": 2392.647
+      },
+      "by_endpoint": {
+        "GET /api/player/state": {
+          "count": 4779,
+          "p50": 915.052,
+          "p95": 1761.775,
+          "p99": 2055.277,
+          "mean": 931.669,
+          "max": 2364.799
+        },
+        "POST /api/auth/login": {
+          "count": 199,
+          "p50": 0.9,
+          "p95": 16.215,
+          "p99": 19.741,
+          "mean": 4.994,
+          "max": 20.983
+        },
+        "POST /api/auth/register": {
+          "count": 199,
+          "p50": 1.321,
+          "p95": 12.7,
+          "p99": 20.098,
+          "mean": 4.306,
+          "max": 28.404
+        },
+        "POST /api/player/enter": {
+          "count": 199,
+          "p50": 14.603,
+          "p95": 334.279,
+          "p99": 452.14,
+          "mean": 66.301,
+          "max": 518.954
+        },
+        "POST /api/player/quest/accept": {
+          "count": 329,
+          "p50": 369.29,
+          "p95": 1068.406,
+          "p99": 1191.522,
+          "mean": 456.259,
+          "max": 1240.337
+        },
+        "POST /api/player/talk": {
+          "count": 4450,
+          "p50": 1047.027,
+          "p95": 1809.708,
+          "p99": 2083.791,
+          "mean": 1003.145,
+          "max": 2392.647
+        }
+      }
+    },
+    "rejections_by_code": {
+      "quest_not_open": 249
+    },
+    "error_samples": []
+  },
+  "resources": {
+    "samples": [
+      {
+        "t": 0.0,
+        "rss_mb": 22.41,
+        "cpu_pct": 0.0,
+        "cpu_s": 0.2,
+        "alive": true
+      },
+      {
+        "t": 5.02,
+        "rss_mb": 38.59,
+        "cpu_pct": 40.69,
+        "cpu_s": 2.2,
+        "alive": true
+      },
+      {
+        "t": 10.03,
+        "rss_mb": 49.05,
+        "cpu_pct": 96.54,
+        "cpu_s": 7.0,
+        "alive": true
+      },
+      {
+        "t": 15.05,
+        "rss_mb": 54.0,
+        "cpu_pct": 96.93,
+        "cpu_s": 11.9,
+        "alive": true
+      },
+      {
+        "t": 20.06,
+        "rss_mb": 56.89,
+        "cpu_pct": 98.65,
+        "cpu_s": 16.9,
+        "alive": true
+      },
+      {
+        "t": 25.08,
+        "rss_mb": 60.72,
+        "cpu_pct": 89.75,
+        "cpu_s": 21.4,
+        "alive": true
+      },
+      {
+        "t": 30.09,
+        "rss_mb": 62.7,
+        "cpu_pct": 98.01,
+        "cpu_s": 26.3,
+        "alive": true
+      },
+      {
+        "t": 35.1,
+        "rss_mb": 65.42,
+        "cpu_pct": 99.31,
+        "cpu_s": 31.2,
+        "alive": true
+      },
+      {
+        "t": 40.12,
+        "rss_mb": 69.0,
+        "cpu_pct": 100.28,
+        "cpu_s": 36.3,
+        "alive": true
+      },
+      {
+        "t": 45.13,
+        "rss_mb": 71.52,
+        "cpu_pct": 99.29,
+        "cpu_s": 41.2,
+        "alive": true
+      },
+      {
+        "t": 50.15,
+        "rss_mb": 72.64,
+        "cpu_pct": 97.08,
+        "cpu_s": 46.1,
+        "alive": true
+      },
+      {
+        "t": 55.16,
+        "rss_mb": 75.59,
+        "cpu_pct": 99.73,
+        "cpu_s": 51.1,
+        "alive": true
+      },
+      {
+        "t": 60.18,
+        "rss_mb": 78.38,
+        "cpu_pct": 98.77,
+        "cpu_s": 56.1,
+        "alive": true
+      },
+      {
+        "t": 65.19,
+        "rss_mb": 81.34,
+        "cpu_pct": 99.07,
+        "cpu_s": 61.0,
+        "alive": true
+      },
+      {
+        "t": 70.21,
+        "rss_mb": 83.7,
+        "cpu_pct": 99.28,
+        "cpu_s": 66.0,
+        "alive": true
+      },
+      {
+        "t": 75.23,
+        "rss_mb": 80.69,
+        "cpu_pct": 94.86,
+        "cpu_s": 70.8,
+        "alive": true
+      },
+      {
+        "t": 80.24,
+        "rss_mb": 85.12,
+        "cpu_pct": 99.32,
+        "cpu_s": 75.8,
+        "alive": true
+      },
+      {
+        "t": 85.25,
+        "rss_mb": 86.89,
+        "cpu_pct": 98.68,
+        "cpu_s": 80.7,
+        "alive": true
+      },
+      {
+        "t": 90.26,
+        "rss_mb": 88.89,
+        "cpu_pct": 93.43,
+        "cpu_s": 85.4,
+        "alive": true
+      },
+      {
+        "t": 95.27,
+        "rss_mb": 91.31,
+        "cpu_pct": 95.36,
+        "cpu_s": 90.2,
+        "alive": true
+      },
+      {
+        "t": 100.28,
+        "rss_mb": 93.39,
+        "cpu_pct": 100.04,
+        "cpu_s": 95.2,
+        "alive": true
+      },
+      {
+        "t": 105.29,
+        "rss_mb": 92.84,
+        "cpu_pct": 96.47,
+        "cpu_s": 100.0,
+        "alive": true
+      },
+      {
+        "t": 110.32,
+        "rss_mb": 96.27,
+        "cpu_pct": 96.37,
+        "cpu_s": 104.8,
+        "alive": true
+      },
+      {
+        "t": 115.34,
+        "rss_mb": 97.58,
+        "cpu_pct": 98.82,
+        "cpu_s": 109.8,
+        "alive": true
+      },
+      {
+        "t": 120.35,
+        "rss_mb": 99.14,
+        "cpu_pct": 98.5,
+        "cpu_s": 114.8,
+        "alive": true
+      },
+      {
+        "t": 125.36,
+        "rss_mb": 78.66,
+        "cpu_pct": 47.9,
+        "cpu_s": 117.2,
+        "alive": true
+      }
+    ],
+    "rss_baseline_mb": 22.41,
+    "rss_peak_mb": 99.14,
+    "rss_end_mb": 78.66,
+    "rss_growth_mb": 56.25,
+    "cpu_peak_pct": 100.28,
+    "cpu_mean_pct": 89.74,
+    "cpu_seconds_total": 117.0,
+    "event_count_samples": [
+      {
+        "at": "2026-11-04T13:23:08+00:00",
+        "count": 573
+      },
+      {
+        "at": "2026-11-04T13:23:13+00:00",
+        "count": 1344
+      },
+      {
+        "at": "2026-11-04T13:23:18+00:00",
+        "count": 1944
+      },
+      {
+        "at": "2026-11-04T13:23:23+00:00",
+        "count": 2486
+      },
+      {
+        "at": "2026-11-04T13:23:28+00:00",
+        "count": 2905
+      },
+      {
+        "at": "2026-11-04T13:23:33+00:00",
+        "count": 3385
+      },
+      {
+        "at": "2026-11-04T13:23:38+00:00",
+        "count": 3873
+      },
+      {
+        "at": "2026-11-04T13:23:43+00:00",
+        "count": 4355
+      },
+      {
+        "at": "2026-11-04T13:23:48+00:00",
+        "count": 4765
+      },
+      {
+        "at": "2026-11-04T13:23:53+00:00",
+        "count": 5178
+      },
+      {
+        "at": "2026-11-04T13:23:58+00:00",
+        "count": 5599
+      },
+      {
+        "at": "2026-11-04T13:24:03+00:00",
+        "count": 5976
+      },
+      {
+        "at": "2026-11-04T13:24:08+00:00",
+        "count": 6338
+      },
+      {
+        "at": "2026-11-04T13:24:13+00:00",
+        "count": 6695
+      },
+      {
+        "at": "2026-11-04T13:24:19+00:00",
+        "count": 7010
+      },
+      {
+        "at": "2026-11-04T13:24:24+00:00",
+        "count": 7365
+      },
+      {
+        "at": "2026-11-04T13:24:29+00:00",
+        "count": 7703
+      },
+      {
+        "at": "2026-11-04T13:24:34+00:00",
+        "count": 8030
+      },
+      {
+        "at": "2026-11-04T13:24:39+00:00",
+        "count": 8356
+      },
+      {
+        "at": "2026-11-04T13:24:44+00:00",
+        "count": 8697
+      },
+      {
+        "at": "2026-11-04T13:24:49+00:00",
+        "count": 9013
+      },
+      {
+        "at": "2026-11-04T13:24:54+00:00",
+        "count": 9324
+      },
+      {
+        "at": "2026-11-04T13:24:59+00:00",
+        "count": 9658
+      },
+      {
+        "at": "2026-11-04T13:25:04+00:00",
+        "count": 9993
+      },
+      {
+        "at": "2026-11-04T13:25:09+00:00",
+        "count": 10158
+      }
+    ],
+    "event_count_monotonic": true
+  },
+  "event_growth": {
+    "count_before": 3,
+    "count_after": 10158,
+    "delta": 10155,
+    "monotonic": true
+  },
+  "invariants": {
+    "run_dir": "/Users/lyinet/projects/XKX/world-sim/runs/w5-cap-fixed",
+    "db_exists": true,
+    "ok": true,
+    "errors": [],
+    "integrity_check": "ok",
+    "event_count": 10158,
+    "seq": {
+      "first": 1,
+      "last": 10158,
+      "count": 10158,
+      "distinct": 10158,
+      "contiguous": true
+    },
+    "wallet": {
+      "accounts": 241,
+      "sum_balance": 107150,
+      "minted_total": 107150,
+      "burned_total": 0,
+      "expected_sum": 107150,
+      "delta": 0,
+      "transfers": 0
+    },
+    "negative_rows": [],
+    "half_write_rows": [],
+    "genesis_events": 2,
+    "genesis_ok_events": 1,
+    "outcomes": {
+      "ok": 9909,
+      "rejected": 249
+    }
+  },
+  "pass": {
+    "state_p95_under_300ms": false,
+    "error_rate_under_0_5pct": true,
+    "zero_http_500": true,
+    "invariants_pass": true,
+    "event_count_monotonic": true,
+    "all": false
+  },
+  "per_seat": {
+    "requests_per_seat": 51.03,
+    "requests_per_seat_second": 0.4036,
+    "cpu_seconds_total": 117.0,
+    "cpu_seconds_per_request": 0.011521,
+    "rss_growth_mb_per_seat": 0.283
+  }
+}

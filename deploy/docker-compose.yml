@@ -1,0 +1,43 @@
+# W5 一条命令起引擎 + API + 前端：
+#   cd world-sim/deploy && docker compose up -d --build
+#
+# - events.sqlite 与 service.sqlite 都在命名卷 xkx-w5-data 的 /app/runs/<RUN_ID>/ 下。
+# - 镜像不包含任何密钥；.env 只在运行时作为环境注入（不存在也可启动）。
+# - 默认端口 8020（API）、8030（前端）。
+
+name: xkx
+
+services:
+  world:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: xkx/world-sim:w5
+    container_name: xkx-world
+    ports:
+      - "${API_PORT:-8020}:8020"
+      - "${UI_PORT:-8030}:8030"
+    environment:
+      RUN_ID: "${RUN_ID:-service}"
+      API_PORT: "8020"
+      UI_PORT: "8030"
+      AUTH_MODE: "${AUTH_MODE:-on}"
+      TICK_STEP: "${TICK_STEP:-6}"
+    # 只读运行时注入：compose 从宿主 .env 读取，不写入镜像；缺失时按 required:false 跳过。
+    env_file:
+      - path: ../.env
+        required: false
+    volumes:
+      - xkx-data:/app/runs
+    restart: unless-stopped
+    stop_grace_period: 20s
+    healthcheck:
+      test: ["CMD", "python", "/app/deploy/healthcheck.py"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  xkx-data:
+    name: xkx-w5-data

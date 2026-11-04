@@ -1,0 +1,311 @@
+{
+  "schema": "w5-load-report/v1",
+  "started_at": "2026-11-04T13:25:37+00:00",
+  "duration_s": 60.0,
+  "actual_duration_s": 63.6,
+  "config": {
+    "base_url": "http://127.0.0.1:8033",
+    "players": 100,
+    "think_time_s": 3.0,
+    "ramp_up_s": 8.0,
+    "tag": "c100",
+    "run_dir": "/Users/lyinet/projects/XKX/world-sim/runs/w5-cap100",
+    "server_pid": 45186
+  },
+  "players": {
+    "started": 100,
+    "entered": 100,
+    "failed_enter": 0,
+    "cycles": 1889,
+    "player_errors": []
+  },
+  "totals": {
+    "requests": 4078,
+    "ok": 4073,
+    "errors": 0,
+    "http_5xx": 0,
+    "http_401": 0,
+    "capacity_rejections": 0,
+    "business_rejections": 5,
+    "error_rate_pct": 0.0,
+    "latency_ms": {
+      "all": {
+        "count": 4078,
+        "p50": 11.912,
+        "p95": 33.109,
+        "p99": 65.843,
+        "mean": 12.463,
+        "max": 189.799
+      },
+      "by_endpoint": {
+        "GET /api/player/state": {
+          "count": 1889,
+          "p50": 2.144,
+          "p95": 25.135,
+          "p99": 47.972,
+          "mean": 7.081,
+          "max": 170.107
+        },
+        "POST /api/auth/login": {
+          "count": 100,
+          "p50": 0.89,
+          "p95": 2.086,
+          "p99": 14.589,
+          "mean": 1.474,
+          "max": 29.81
+        },
+        "POST /api/auth/register": {
+          "count": 100,
+          "p50": 1.399,
+          "p95": 5.028,
+          "p99": 13.781,
+          "mean": 2.023,
+          "max": 21.016
+        },
+        "POST /api/player/enter": {
+          "count": 100,
+          "p50": 12.098,
+          "p95": 18.556,
+          "p99": 106.326,
+          "mean": 14.772,
+          "max": 107.992
+        },
+        "POST /api/player/quest/accept": {
+          "count": 81,
+          "p50": 12.093,
+          "p95": 26.461,
+          "p99": 44.502,
+          "mean": 13.531,
+          "max": 44.502
+        },
+        "POST /api/player/quest/deliver": {
+          "count": 1,
+          "p50": 3.922,
+          "p95": 3.922,
+          "p99": 3.922,
+          "mean": 3.922,
+          "max": 3.922
+        },
+        "POST /api/player/talk": {
+          "count": 1807,
+          "p50": 14.529,
+          "p95": 39.818,
+          "p99": 71.217,
+          "mean": 19.104,
+          "max": 189.799
+        }
+      }
+    },
+    "rejections_by_code": {
+      "quest_expired": 1,
+      "quest_not_open": 4
+    },
+    "error_samples": []
+  },
+  "resources": {
+    "samples": [
+      {
+        "t": 0.0,
+        "rss_mb": 31.14,
+        "cpu_pct": 0.0,
+        "cpu_s": 0.2,
+        "alive": true
+      },
+      {
+        "t": 5.01,
+        "rss_mb": 37.06,
+        "cpu_pct": 27.76,
+        "cpu_s": 1.6,
+        "alive": true
+      },
+      {
+        "t": 10.02,
+        "rss_mb": 39.33,
+        "cpu_pct": 43.93,
+        "cpu_s": 3.8,
+        "alive": true
+      },
+      {
+        "t": 15.04,
+        "rss_mb": 41.55,
+        "cpu_pct": 43.67,
+        "cpu_s": 6.0,
+        "alive": true
+      },
+      {
+        "t": 20.05,
+        "rss_mb": 44.45,
+        "cpu_pct": 46.68,
+        "cpu_s": 8.3,
+        "alive": true
+      },
+      {
+        "t": 25.06,
+        "rss_mb": 45.69,
+        "cpu_pct": 45.92,
+        "cpu_s": 10.6,
+        "alive": true
+      },
+      {
+        "t": 30.06,
+        "rss_mb": 47.69,
+        "cpu_pct": 47.53,
+        "cpu_s": 13.0,
+        "alive": true
+      },
+      {
+        "t": 35.07,
+        "rss_mb": 49.47,
+        "cpu_pct": 47.7,
+        "cpu_s": 15.4,
+        "alive": true
+      },
+      {
+        "t": 40.09,
+        "rss_mb": 51.42,
+        "cpu_pct": 49.86,
+        "cpu_s": 17.9,
+        "alive": true
+      },
+      {
+        "t": 45.1,
+        "rss_mb": 53.28,
+        "cpu_pct": 55.7,
+        "cpu_s": 20.6,
+        "alive": true
+      },
+      {
+        "t": 50.11,
+        "rss_mb": 54.77,
+        "cpu_pct": 52.46,
+        "cpu_s": 23.3,
+        "alive": true
+      },
+      {
+        "t": 55.13,
+        "rss_mb": 56.48,
+        "cpu_pct": 51.23,
+        "cpu_s": 25.9,
+        "alive": true
+      },
+      {
+        "t": 60.14,
+        "rss_mb": 57.92,
+        "cpu_pct": 51.11,
+        "cpu_s": 28.4,
+        "alive": true
+      }
+    ],
+    "rss_baseline_mb": 31.14,
+    "rss_peak_mb": 57.92,
+    "rss_end_mb": 57.92,
+    "rss_growth_mb": 26.78,
+    "cpu_peak_pct": 55.7,
+    "cpu_mean_pct": 43.35,
+    "cpu_seconds_total": 28.2,
+    "event_count_samples": [
+      {
+        "at": "2026-11-04T13:25:42+00:00",
+        "count": 370
+      },
+      {
+        "at": "2026-11-04T13:25:47+00:00",
+        "count": 795
+      },
+      {
+        "at": "2026-11-04T13:25:52+00:00",
+        "count": 1131
+      },
+      {
+        "at": "2026-11-04T13:25:57+00:00",
+        "count": 1468
+      },
+      {
+        "at": "2026-11-04T13:26:02+00:00",
+        "count": 1785
+      },
+      {
+        "at": "2026-11-04T13:26:07+00:00",
+        "count": 2121
+      },
+      {
+        "at": "2026-11-04T13:26:12+00:00",
+        "count": 2443
+      },
+      {
+        "at": "2026-11-04T13:26:17+00:00",
+        "count": 2766
+      },
+      {
+        "at": "2026-11-04T13:26:22+00:00",
+        "count": 3105
+      },
+      {
+        "at": "2026-11-04T13:26:27+00:00",
+        "count": 3431
+      },
+      {
+        "at": "2026-11-04T13:26:32+00:00",
+        "count": 3757
+      },
+      {
+        "at": "2026-11-04T13:26:37+00:00",
+        "count": 4081
+      }
+    ],
+    "event_count_monotonic": true
+  },
+  "event_growth": {
+    "count_before": 3,
+    "count_after": 4081,
+    "delta": 4078,
+    "monotonic": true
+  },
+  "invariants": {
+    "run_dir": "/Users/lyinet/projects/XKX/world-sim/runs/w5-cap100",
+    "db_exists": true,
+    "ok": true,
+    "errors": [],
+    "integrity_check": "ok",
+    "event_count": 4081,
+    "seq": {
+      "first": 1,
+      "last": 4081,
+      "count": 4081,
+      "distinct": 4081,
+      "contiguous": true
+    },
+    "wallet": {
+      "accounts": 142,
+      "sum_balance": 77450,
+      "minted_total": 77450,
+      "burned_total": 0,
+      "expected_sum": 77450,
+      "delta": 0,
+      "transfers": 0
+    },
+    "negative_rows": [],
+    "half_write_rows": [],
+    "genesis_events": 2,
+    "genesis_ok_events": 1,
+    "outcomes": {
+      "ok": 4076,
+      "rejected": 5
+    }
+  },
+  "pass": {
+    "state_p95_under_300ms": true,
+    "error_rate_under_0_5pct": true,
+    "zero_http_500": true,
+    "invariants_pass": true,
+    "event_count_monotonic": true,
+    "all": true
+  },
+  "per_seat": {
+    "requests_per_seat": 40.78,
+    "requests_per_seat_second": 0.6412,
+    "cpu_seconds_total": 28.2,
+    "cpu_seconds_per_request": 0.006915,
+    "rss_growth_mb_per_seat": 0.268
+  }
+}
