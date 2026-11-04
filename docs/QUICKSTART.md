@@ -189,10 +189,10 @@ curl -sS -X POST http://127.0.0.1:8000/api/player/action \
 ```
 
 四项串行：内容包校验、`pytest`、框架验收、玩家闭环（临时起 API + 前端，跑进入/移动/对话/接任务）。
-本机实测（2026-11-04）：
+本机实测（2026-11-04，`delivery-p3h`）：
 
 ```text
-194 passed
+287 passed
 [PASS] 内容包校验 content/validate_content.py
 [PASS] 单元测试 pytest
 [PASS] 框架验收 tools/framework_check.py（临时副本，不写 runs/）
@@ -276,10 +276,12 @@ key 只从环境变量读取（见 [.env.example](../.env.example)）。401 检�
 
 首发不美化任何未达标项，完整清单与证据见 [known-limitations.md](known-limitations.md)：
 
-- K1 自主目标推进率 **7.69%（7/91，FAIL）**；
-- `dialogue` 槽实测 **0 次调用**，文笔未评测；
-- 只保证**事件日志回放**（`MATCH`），不保证整跑复现；
-- K6 对外口径为**含剪枝**：fake 2 天 **0.85%**、deepseek 2 天 **0.90%**；严格口径 **0.24% / 0.00%** 仅作分解（见 Release Notes）。
+- K1 自主目标推进率 **45.05%（41/91，对照规则臂 49.45%，低 4.40pp，FAIL）**；
+- K3 行为多样性为 **diagnostic_only**，不设 pass/fail，也不能当作目标完成率证据；
+- 对话默认走**模板**（零成本）；模型仅 spotlight NPC / 玩家主动深聊；R5 盲评结论为
+  “模板已接近模型水平”（非平手 55.9%，CI 44.1%–67.1%）；
+- 只保证**事件日志回放**（两臂 `MATCH`，回放成本 0），不保证整跑复现；
+- K6 对外口径 **1.142%（严格）/ 1.755%（含剪枝）**，均 <2% PASS；trade 竞态 53 条全部 stale。
 
 ## 6. 包里不含什么
 

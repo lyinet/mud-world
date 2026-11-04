@@ -1,63 +1,139 @@
-# 已知限制（首发交付，不美化）
+# 已知限制（对外首发，不美化）
 
-> **版本**：`delivery-p3g`（基线 `60e8596`）为对外首发；`delivery-p3f`（`943645f`）含他人在途改动，仅作内部里程碑，不作对外最终版。
+> **版本**：`delivery-p3h`（基线 `451aed3`）为对外首发。`delivery-p3f`/`delivery-p3g` 为内部里程碑，
+> 不作对外最终版。本文只写本次交付能证实的范围，未达标项按 FAIL / diagnostic / 未验证列。
 
-本文只记录**本次交付能证实**的范围。任何未达标项都按 FAIL / 未验证列出，不用“基本可用”“已优化”之类措辞。
-
-## 1. 硬指标：未达标项
+## 1. 硬指标
 
 | 项 | 实测 | 判定 | 证据 |
-| --- | --- | --- | --- |
-| K1 自主目标推进率 | **7/91 = 7.69%** | **FAIL** | [p3e-report-stats.md](../reports/evidence/p3e-report-stats.md) §2；2 天 / 12 NPC / seed 42 / deepseek 端点 |
-| `dialogue` 槽调用 | **0 次** | **未验证** | 同上 §2：`LLM 调用 {'decision': 19, 'intent': 19}`，没有 dialogue；文笔/角色扮演质量未评测 |
-| 整跑级复现 | 只保证**事件日志回放** | **未承诺** | `tools/replay.py` 对 `k6r2` 的 `events.jsonl` 回放 **MATCH**（222 events，`e607d200…`）；用录制 intent 重跑得到 220 事件（原 222）、`replay_miss=18`，状态不同 |
-| K6 含剪枝口径（对外结论） | **7/824 = 0.85%**（fake 2 天）<br>**2/222 = 0.90%**（deepseek 2 天） | PASS | `(rejected+blocked+pruned)/events`；见 [fake summary](../reports/evidence/p3e-fake-llm-2d-summary-k6r2.json)、[deepseek summary](../reports/evidence/p3e-deepseek-real-2d-12npc-k6r2-summary.json) |
-| K6 严格口径（仅作分解） | **2/824 = 0.24%**（fake）<br>**0/222 = 0.00%**（deepseek） | PASS | `(rejected+blocked)/events`，不作为对外结论 |
+|---|---|---|---|
+| K1 自主目标推进率 | M 臂 **41/91 = 45.05%**；R 臂（纯规则）**45/91 = 49.45%** | **FAIL** | [a3-model3 summary](../reports/evidence/a3-model3-10d-31npc/summary.json)、[a3-rule3 summary](../reports/evidence/a3-rule3-10d-31npc/summary.json)；10 天 / 31 NPC / seed 42 |
+| K1 相对规则臂 | 模型**低于规则臂 4.40pp**（-4.40pp） | **FAIL** | 同上 |
 
-补充披露（同一份证据）：
+**结论（原文）**：模型带来行为多样性，但不提高目标完成率。
 
-- **世界已改写**：确定性 fake run 从 **816 → 824 events**（state `b1a7edaf…` → `1bd870c4…`）；经济数字同步变化：sell 流入 **1165→849**、buy **956→795**、burned **112→113**、商户现金 **11925→12058**。原因是同 tick 调度改为只让 `talk` 先于 `move`，原本被前置拦截的话变成成功事件。该 824 事件世界已由 [tests/test_p3e_golden.py](../tests/test_p3e_golden.py) 锁死（事件总数/事件序哈希/state hash/经济流量）。**后续任何行为变更必须同步更新 golden 基线并重新出包**，不能沿用本包数字。
-- 全量拦截审计已落盘：[fake blocked](../reports/evidence/runs/p3e-fake-llm-2d-k6r2/blocked.jsonl)、[fake pruned](../reports/evidence/runs/p3e-fake-llm-2d-k6r2/pruned.jsonl)、[deepseek blocked](../reports/evidence/runs/p3e-deepseek-real-2d-12npc-k6r2/blocked.jsonl)、[deepseek pruned](../reports/evidence/runs/p3e-deepseek-real-2d-12npc-k6r2/pruned.jsonl)。
-- deepseek 新旧两次是**独立采样**，不是受控对照；新 run 的 2 条 blocked→pruned 属于**换桶**，不是行为改善。动作来源 model **0.7%** / rule **99.3%**，主要仍是规则驱动，不能当作模型质量验收。
-- K1 的 7.69% 是“2 天长窗口、无玩家在场”的真实进度，不是模型能力结论。72 天无玩家 run 的 75.56% 未进入本次首发表，不能拿来替代 7.69%。
-- 模板覆盖只到 **25/34 = 73.53%**（17 模板），`修炼`、`开店` 等仍有失败项；详见 [p3e-report-stats.md](../reports/evidence/p3e-report-stats.md) §1。
+- 本轮触发停止规则：K1 45.05% < 49.45% 后不再追 +5pp，不再开新一轮调参。
+- 模型事件占比 264/3168 = 8.33%（全 ok 7.35%）；`llm→goal_progress` 链 89 条；
+  `model_actions / rule_actions = 302 / 3114`。模型介入是真实的，但没有转化为更高的目标完成率。
+- 不能把 `goal_from_model`（189）当作模型影响力证据，它只是“与规则相同”的计数。
 
-### 复现命令
+### K3 行为多样性（diagnostic_only，不设 pass/fail）
+
+| 指标 | R 臂 | M 臂 |
+|---|---:|---:|
+| verb 类目 | 16 | **17** |
+| verb entropy（bits） | 2.5842 | **2.7231** |
+| verb pairwise JS | 0.1087 | **0.1448** |
+| 对象层 entropy（bits） | 5.0478 | **5.0185**（略低） |
+
+- 对象层 entropy 略低（5.0185 vs 5.0478）如实保留，不做方向性美化；对象层类目 91 vs 96、
+  pairwise JS 0.5315 vs 0.5447、top10 share 0.6081 vs 0.6285。
+- K3 只作诊断信号：支持“模型带来行为多样性”，但**不以 K3 宣称目标完成率提升**。
+- 完整双层与折叠视图见 [k3_details](../reports/evidence/a3-model3-10d-31npc/k3_details.json)。
+
+### K6 非法提案率
+
+| 口径 | 实测 | 判定 |
+|---|---:|---|
+| 严格（`blocked` / events） | **41/3590 = 1.142%** | PASS（<2%） |
+| 含剪枝（`blocked + pruned` / events） | **63/3590 = 1.755%** | PASS（<2%） |
+| 已执行非法 | 0 | PASS |
+
+- trade 竞态 **53 条**（35 条 llm + 18 条 planner）**全部走 stale 丢弃**，不计非法、不进 `pruned`；
+  非 trade 的 22 条位置类提案仍按 `pruned` 处理；另有 41 条真前置/业务拦截在 `blocked`。
+- 逐条可查：[M 臂 blocked](../reports/evidence/a3-model3-10d-31npc/blocked.jsonl) /
+  [pruned](../reports/evidence/a3-model3-10d-31npc/pruned.jsonl) /
+  [stale](../reports/evidence/a3-model3-10d-31npc/stale.jsonl)；R 臂同类文件在
+  [a3-rule3](../reports/evidence/a3-rule3-10d-31npc/)（stale 为空）。
+- 归类修正没有改世界：事件流 `event_hash.txt` 仍为 `9b921eb1…`，事件总数 3590 未变。
+
+## 2. 对话质量：R5 最终盲评（70 对）
+
+| 项 | 实测 |
+|---|---|
+| 胜负 | 模型 **38 胜** / 模板 **30 胜** / 平手 **2** |
+| 非平手胜率 | 模型 **55.9%**，Wilson 95% CI **[44.1%, 67.1%]** |
+| 结论 | **模板已接近模型水平。** |
+
+- 模型 **70/70 对都比模板长**（均 **49.0 字 vs 31.0 字**，+57.9%）；模型胜场全部落在“更长”一侧，
+  不能排除篇幅/信息量因素。
+- 主观判定“**更长但内容更空**”共 **17 条，全部在模型侧**；模板侧 0 条。
+- 模型侧 **55/70 条**命中套路化动作/口号，共 **87 次**：案板 39、擦手 19、“兄弟”10、
+  “要肥要瘦/趁早” 8、秤上话术 4、“刀认人” 3。模板侧 8/70 条、8 次零散套话，无动作句。
+- 四项均分：模型 4.33 / 模板 4.25（差 ≤0.10）；信息量两侧都偏低（3.56 / 3.49）。
+- 方括号主题词标签、Markdown、括号动作、第三人称旁白：两侧均为 0。
+- 完整结果与反例见 [result-r5.md](../reports/evidence/blind-eval-r4/result-r5.md)；
+  输入/回复/答案键在同目录。
+
+**产品默认**：对话默认走**模板**（零成本、可复现）；模型只用于 spotlight NPC 或玩家主动深聊。
+不把模型作为默认对话路径，也不把 R5 的 55.9% 当作“模型明显更好”。
+
+## 3. 复现与回放
+
+| 项 | 结果 |
+|---|---|
+| 整 run 回放 `c4fc017c…` | **MATCH**，events 3697，K1 41/91，`cost=0.0` |
+| 整 run 回放 `9b921eb1…` | **MATCH**，events 3590，K1 41/91，`cost=0.0`，`llm.replay.mode=replay` |
+| 事件日志回放 | 只保证这一层；**不保证**重新跑一遍得到同一事件序列 |
+
+回放命令（包内证据已含 events）：
 
 ```bash
-# 指标汇总
-PYTHONPATH=src .venv/bin/python tools/p3e_report_stats.py
-
-# golden 基线（824 事件世界）
-PYTHONPATH=src .venv/bin/python -m pytest tests/test_p3e_golden.py -q
-
-# 事件日志回放（应输出 MATCH，state=e607d200…）
 PYTHONPATH=src .venv/bin/python tools/replay.py \
-  --run reports/evidence/runs/p3e-deepseek-real-2d-12npc-k6r2
+  --run reports/evidence/a3-model3-10d-31npc
 ```
 
-## 2. 玩家侧限制（本次实测确认）
+已知模板单关键词误判（两条，均因路由只做子串匹配）：
 
-1. **实时会话是动作驱动的**：`wsim.api` 只在玩家动作后推进 6 tick；没有后台 NPC 调度器。因此进入后静静等待，世界时钟不会自己走，NPC 也不会在实时会话里自主移动。
-   - 可观察的 NPC 连续自主行动来自首次运行生成的 2 日种子 run（`runs/quickstart-2d`），用 `scripts/world_feed.py` 查看；它是只读回放，不与你的实时会话同步。
-   - 状态里的 `present_npcs[*].doing` 当前恒为空字符串，不要把它当成 NPC 正在做的事。
-2. **默认对话不是大模型生成**：离线默认走规则/人格模板，回复稳定、可复现，但不代表 LLM dialogue 槽可用；真实 `dialogue` 槽在 2 天 run 里 0 次调用（见 §1）。
-3. **单区域 + 无鉴权**：一个 API 实例只跑一个区域；`account_id` 是纯字符串，没有密码/令牌。**不要把 8020/8000 直接暴露到公网**。
-4. **容量上限**：单区域 200 个玩家席位；初始资产累计上限 60000 文。超限返回 `player_cap_reached` / `endowment_cap_reached`。
-5. **存档语义**：`wsim.api` 每次启动都从 genesis 新开世界，不 replay 旧 `events.sqlite`；`demo.sh` 检测到旧 `player-demo` 会自动换新目录，不静默追加。事件日志可用 `tools/replay.py` 重建状态，但**不保证重新跑一遍得到同一事件序列**。
-6. **断线提示延迟**：前端每 10 秒轮询 `/api/health`，引擎掉线后最多约 10 秒显示“上游不可达”；不是 WebSocket 实时推送。
-7. **只验证 macOS**：本次端到端在 macOS + Python 3.12.7 上跑通；Linux 理论可用，未做首发实测。Windows WSL 未验证。
+1. 问旧事「邢捕快以前在哪儿当差」被「哪儿」判成问路，答成客栈怎么走；
+2. 借刀被「要不要」（含「不要」）/「不买」一类拒绝词判成拒绝。
 
-## 3. 交付包里没有的东西
+其余跑偏样本（问灯笼、问避巡街、问铺子卖什么）见 [result-r4.md](../reports/evidence/blind-eval-r3/result-r4.md)。
+
+## 4. 成本与预算（如实）
+
+| 项 | 实测 / 上限 |
+|---|---|
+| A3 跨轮累计 | 约 **$5.80**（`$5.796`）；跨轮预算不合并，累计超过单轮上限 |
+| 第三轮 M 臂 | **$2.466982**（decision 406 次，996,602 输入 / 20,944 输出 token）；soft $2.5 未触发，hard $3.0 未触发，run 未 aborted |
+| 第二轮 M 臂 | **$2.657972**；在 $2.5015 打印 soft 警告，未触 hard $3.0 |
+| 对话生成累计 | 约 **$0.33**（R3 盲评 $0.110151 / 上限 $0.30；R4 盲评 $0.220709 / 上限 $0.25，均未超限） |
+| 回放成本 | **$0.00** |
+
+单价按 $0.0015/1k 输入、$0.006/1k 输出（含 LOD 倍率）。**超限事实**：A3 跨轮累计 $5.796 超过
+单轮硬上限 $3.0，是因为规则明确“跨轮预算不合并”，不是单轮闸门失效；单轮均未触 hard、未中止。
+
+## 5. 玩家侧限制（本次实测确认）
+
+1. **实时会话是动作驱动的**：`wsim.api` 只在玩家动作后推进 6 tick，没有后台 NPC 调度器。
+   进入后静置，世界时钟不会自己走。可观察的 NPC 连续自主行动来自首次运行生成的 2 日种子世界
+   （`runs/quickstart-2d`），用 `scripts/world_feed.py` 只读查看，不与实时会话同步。
+   状态里 `present_npcs[*].doing` 恒为空字符串。
+2. **默认对话是模板**：离线默认走规则/人格模板，稳定可复现；真实模型对话只在 spotlight / 主动深聊，
+   并受超时、预算、错误回退约束（失败回退固定兜底句）。
+3. **单区域 + 无鉴权**：一个 API 实例只跑一个区域；`account_id` 是纯字符串，没有密码/令牌。
+   **不要把 8020/8000 直接暴露公网**。
+4. **容量上限**：单区域 200 个玩家席位；初始资产累计上限 60000 文。超限返回
+   `player_cap_reached` / `endowment_cap_reached`。
+5. **存档语义**：`wsim.api` 每次启动从 genesis 新开世界，不 replay 旧 `events.sqlite`；
+   `demo.sh` 检测到旧 `player-demo` 会自动换新目录，不静默追加。
+6. **断线提示延迟**：前端每 10 秒轮询 `/api/health`，引擎掉线后最多约 10 秒显示“上游不可达”；
+   不是 WebSocket 实时推送。
+7. **只验证 macOS**：端到端在 macOS + Python 3.12.7 跑通；Linux 理论可用，未做首发实测；
+   Windows WSL 未验证。
+
+## 6. 交付包里没有的东西
 
 - 没有真实模型 key，也没有把任何 `.env`/密钥打进包；
 - 没有 72 天全量 run、没有 GPU/向量库依赖；
 - 没有账号体系、支付、跨区域迁移、后台管理界面；
-- 没有“NPC 在实时会话中持续自主行动”的调度能力（见 §2.1）。
+- 没有“NPC 在实时会话中持续自主行动”的调度能力（见 §5.1）。
 
-## 4. 仍然成立的能力边界
+## 7. 仍然成立的能力边界
 
-- 事件日志回放可重建同一状态（222 events，`e607d200…`，`MATCH`）；
-- K6 对外含剪枝口径 **0.85%**（fake 2 天）/ **0.90%**（deepseek 2 天）PASS；严格口径 **0.24% / 0.00%** 仅作分解；
-- 玩家闭环（进入 → 移动 → 对话 → 接任务 → 刷新保留）已在本次干净解包环境实测通过；
-- `selfcheck.sh` 4/4 PASS、`pytest` **194 passed**。
+- 事件日志回放可重建同一状态（两臂 `MATCH`，回放成本 0）；
+- K6 对外口径 **1.142% / 1.755%**，均 <2% PASS；
+- 玩家闭环（进入 → 移动 → 对话 → 接任务 → 刷新保留）已在干净解包环境实测通过；
+- `scripts/selfcheck.sh` 4/4 PASS；`pytest` **287 passed**；
+- golden 基线（事件总数/事件序哈希/state hash/经济流量）由 `tests/test_p3e_golden.py` 锁死；
+  本次归类修正只把 `not_together trade` 从 `pruned` 改记 `stale`，事件/state 哈希不变。

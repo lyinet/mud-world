@@ -37,6 +37,7 @@ TOP_DIRS = [
     "scripts",
     "tools",
     "tests",
+    "specs",
     "fixtures",
     "plugins",
     "client",
