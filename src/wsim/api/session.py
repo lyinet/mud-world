@@ -33,6 +33,7 @@ from ..world.state import WorldState
 from ..world.store import EventStore
 from ..world.writer import Writer
 from ..actions.registry import build_registry
+from .growth import growth_view, today_view
 
 # 契约冻结版本：字段名/结构变更必须同步 docs/player-api.md 的 CHANGELOG。
 PROFILE_VERSION = 1
@@ -46,6 +47,10 @@ WRITE_ACTIONS: dict[str, str] = {
     "trade": "trade",
     "quest/accept": "quest_accept",
     "quest/deliver": "quest_deliver",
+    "cultivate": "cultivate",
+    "work": "work",
+    "open_shop": "open_shop",
+    "join_sect": "join_sect",
     # 统一动作入口使用的下划线别名（与 /api/player/quest/accept 等价）。
     "quest_accept": "quest_accept",
     "quest_deliver": "quest_deliver",
@@ -62,6 +67,10 @@ ACTION_ALIASES: dict[str, str] = {
     "move": "move",
     "talk": "talk",
     "trade": "trade",
+    "cultivate": "cultivate",
+    "work": "work",
+    "open_shop": "open_shop",
+    "join_sect": "join_sect",
     "quest_accept": "quest/accept",
     "quest/accept": "quest/accept",
     "quest_deliver": "quest/deliver",
@@ -283,6 +292,8 @@ class WorldSession:
                 # 兼容旧 /api/player/status 的扁平字段，前端可逐步迁移。
                 "nearby": present,
                 "active_quests_detail": view["active_quests_detail"],
+                "growth": view["growth"],
+                "today": view["today"],
             }
 
     def action(
@@ -404,6 +415,19 @@ class WorldSession:
             self._quest_row(self.state.quests[qid]) for qid in view["active_quests"]
             if qid in self.state.quests
         ]
+        # P4：成长线 + “今天能做什么”。只读派生，随状态刷新。
+        board = self._quest_board_view(pid, loc)
+        today = today_view(
+            self.state,
+            self.content,
+            pid,
+            location=loc,
+            quest_board=board,
+            nearby=nearby,
+        )
+        today["location_name"] = self._loc_name(loc)
+        view["growth"] = growth_view(self.state, self.content, pid)
+        view["today"] = today
         view["tick"] = self.state.tick
         view["ok"] = True
         return view
@@ -708,6 +732,8 @@ class WorldSession:
         }
 
     def _args(self, action: str, pid: str, account: str, payload: dict[str, Any]) -> dict[str, Any]:
+        # 先把下划线别名归一成规范动词，否则 quest_accept 会漏掉 quest 参数。
+        action = ACTION_ALIASES.get(action, action)
         base: dict[str, Any] = {"account_id": account, "player_id": pid}
         if action == "enter":
             prof = self.state.players.get(pid)
@@ -736,6 +762,29 @@ class WorldSession:
             return base
         if action in ("quest/accept", "quest/deliver"):
             base["quest"] = str(payload.get("quest") or "")
+            return base
+        if action == "cultivate":
+            # 客户端不指定技能时交给动作层按角色自动取；空字符串会被 arg_str 判成 bad_arg。
+            skill = str(payload.get("skill") or "")
+            if skill:
+                base["skill"] = skill
+            base["hours"] = payload.get("hours", 2)
+            return base
+        if action == "work":
+            ent = self.state.entities.get(pid)
+            base["at"] = str(payload.get("at") or (ent.location if ent is not None else ""))
+            base["hours"] = payload.get("hours", 8)
+            return base
+        if action == "open_shop":
+            ent = self.state.entities.get(pid)
+            base["at"] = str(payload.get("at") or (ent.location if ent is not None else ""))
+            base["shop_type"] = str(payload.get("shop_type") or "stall")
+            base["name"] = str(payload.get("name") or f"{ent.name if ent else '玩家'}的摊子")
+            return base
+        if action == "join_sect":
+            ent = self.state.entities.get(pid)
+            base["target"] = str(payload.get("target") or (ent.location if ent is not None else ""))
+            base["dues"] = payload.get("dues", 0)
             return base
         return base
 
@@ -766,6 +815,11 @@ class WorldSession:
         if day_of(tick) != day_of(int(self.state.tick)):
             self.writer.submit(
                 Intent(actor="system", verb="system_player_presence", args={},
+                       tick=tick, source="system")
+            )
+            # 与 headless 日界一致：每日回复体力，否则玩家一次 8 小时工后永久卡住。
+            self.writer.submit(
+                Intent(actor="system", verb="system_recover", args={},
                        tick=tick, source="system")
             )
         self.writer.submit(

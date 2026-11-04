@@ -293,6 +293,21 @@ class GoalSelector:
             )
             return choice
 
+        # P4：里程碑接力。完成一级后由日界 system_milestone 建好下一段，
+        # 次日保持该里程碑直到完成，不再被基础目标轮转打断。
+        if active is not None and active.status == "active" and active.source == "milestone":
+            return GoalChoice(
+                npc=npc,
+                goal_id=active.id,
+                content_goal_id=active.content_goal_id,
+                content_type=active.content_type,
+                kind=active.kind,
+                target=active.target,
+                source="milestone",
+                reason=f"{name}（{trait}{ptag}）：继续长期里程碑「{active.content_goal_id}」",
+                create=False,
+            )
+
         # 无紧急事件：先按战略计划选，计划耗尽/不存在时回到内容主线的轮转
         content_goal = None
         if plan is not None:

@@ -167,6 +167,126 @@ goal_targets:
   shop: 1
   faction: 1
 
+# P4 里程碑链：一级内容目标完成后，按 10 天可达节奏续接二、三级。
+# 每段 target 都是“本段从零开始的累计量”，不是全链累计。
+milestones:
+  # 同时推进长期里程碑的 NPC 上限；其余人仍走基础轮转，避免开放目标数膨胀。
+  active_cap: 3
+  chains:
+    earn_money:
+      - stage: 2
+        content_type: earn_money
+        kind: wealth
+        target: 250
+        label: 扩店本钱
+      - stage: 3
+        content_type: earn_money
+        kind: wealth
+        target: 500
+        label: 分号本钱
+    advance_skill:
+      - stage: 2
+        content_type: advance_skill
+        kind: mastery
+        target: 0.066
+        label: 手艺精进
+      - stage: 3
+        content_type: advance_skill
+        kind: mastery
+        target: 0.10
+        label: 独当一面
+    build_relation:
+      - stage: 2
+        content_type: build_relation
+        kind: bond
+        target: 24
+        label: 人情往来
+      - stage: 3
+        content_type: build_relation
+        kind: bond
+        target: 36
+        label: 生死之交
+    build_shop:
+      - stage: 2
+        content_type: earn_money
+        kind: wealth
+        target: 250
+        label: 扩店本钱
+      - stage: 3
+        content_type: earn_money
+        kind: wealth
+        target: 500
+        label: 分号本钱
+    join_sect:
+      - stage: 2
+        content_type: build_relation
+        kind: bond
+        target: 24
+        label: 收徒与招募
+      - stage: 3
+        content_type: build_relation
+        kind: bond
+        target: 36
+        label: 门派中人
+    found_sect:
+      - stage: 2
+        content_type: build_relation
+        kind: bond
+        target: 24
+        label: 收徒与招募
+      - stage: 3
+        content_type: build_relation
+        kind: bond
+        target: 36
+        label: 门派中人
+  # 链走完后的二级目标。门槛 = 一级完成 + 资金/声望；不满足时先做 prep 备资目标。
+  secondary:
+    build_shop:
+      id: shop_ops
+      content_type: earn_money
+      kind: wealth
+      target: 30
+      label: 雇伙计与交月租
+      require_money: 250
+      repeat: true
+    join_sect:
+      id: sect_ops
+      content_type: build_relation
+      kind: bond
+      target: 24
+      label: 收徒与招募
+      require_reputation: 12
+      repeat: true
+    found_sect:
+      id: sect_ops
+      content_type: build_relation
+      kind: bond
+      target: 24
+      label: 收徒与招募
+      require_reputation: 12
+      repeat: true
+    build_relation:
+      id: household
+      content_type: earn_money
+      kind: wealth
+      target: 300
+      label: 置产
+      require_money: 300
+      repeat: false
+
+# P4 维护型目标：完成不是终点，完成后按月/按旬产生新义务。
+maintenance:
+  # 10 天验收窗口用 10 日一期（游戏内“月供”），长跑每期同样按 10 天计。
+  rent_period_days: 10
+  sect_dues_period_days: 10
+  sect_dues: 6
+  # 技艺生疏 / 关系衰减每 5 天结算一次，只作用于最久未动作的 5 名 NPC。
+  skill_decay_period_days: 5
+  skill_decay: 0.002
+  relation_decay_period_days: 5
+  relation_decay: 1.0
+  decay_top_n: 5
+
 # 7 类内容目标的完整定义、推导依据与派生门槛。引擎不直接读取本段，审计与 P2 计划器使用。
 goal_targets_by_type:
   earn_money:

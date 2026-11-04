@@ -720,6 +720,15 @@ def run_headless(
             emit(Intent(actor="system", verb="system_quest_fail", args={}, tick=base + TICKS_PER_DAY - 1,
                         source="system"))
         )
+        # P4：日界结算里程碑续接与维护义务（月租/月费/技艺生疏/关系衰减）。
+        day_events.append(
+            emit(Intent(actor="system", verb="system_milestone", args={"day": day},
+                        tick=base + TICKS_PER_DAY - 1, source="system"))
+        )
+        day_events.append(
+            emit(Intent(actor="system", verb="system_maintenance", args={"day": day},
+                        tick=base + TICKS_PER_DAY - 1, source="system"))
+        )
         # 预算审计：当天真的因超限降级 Mock 才写，一天最多一条。
         if budget is not None and budget.take_audit(day):
             day_events.append(

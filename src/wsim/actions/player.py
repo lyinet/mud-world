@@ -44,6 +44,10 @@ PLAYER_VERBS = frozenset(
         "move",
         "talk",
         "trade",
+        "cultivate",
+        "work",
+        "open_shop",
+        "join_sect",
         "quest_accept",
         "quest_deliver",
     }

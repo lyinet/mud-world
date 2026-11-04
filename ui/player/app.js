@@ -289,6 +289,8 @@
     renderPlace(st);
     renderNpcs(st);
     renderQuests(st);
+    renderToday(st);
+    renderGrowth(st);
     renderTalkTarget();
     renderLog();
   }
@@ -620,6 +622,94 @@
   }
 
   /* ------------------------------------------------------------- 任务板 */
+  function renderToday(st) {
+    const t = st.today || {};
+    el('todayTick').textContent = t.tick != null
+      ? ('tick ' + t.tick + ' · ' + clockOf(t.tick).label)
+      : '—';
+    el('todayNext').innerHTML = '<span>先做这个</span>' + escapeHtml(t.next_action || '—');
+    const list = el('todayList');
+    list.innerHTML = '';
+    const quests = t.quests || [];
+    const skills = t.skills || [];
+    const npcs = t.npcs || [];
+    const biz = t.business || [];
+    const groups = [
+      { label: '可接委托', rows: quests.map(function (q) {
+        return q.name + ' · ' + q.reward_money + ' 文 · ' + q.giver_name;
+      }) },
+      { label: '可学技能', rows: skills.map(function (s) {
+        if (!s.next_at) return s.skill + ' 已到顶';
+        return s.skill + ' ' + s.current + ' → ' + s.next_at + '（约 ' + s.hours_to_next + ' 小时）';
+      }) },
+      { label: '可拜访 NPC', rows: npcs.map(function (n) { return n.name + '（' + n.role + '）'; }) },
+      { label: '可买产业', rows: biz.map(function (b) {
+        return b.shop_type + ' ' + b.cost + ' 文' + (b.affordable ? ' · 买得起' : ' · 还差本钱') +
+          (b.blocked ? ' · 商会护盘期间暂不可开' : '');
+      }) },
+    ];
+    groups.forEach(function (g) {
+      if (!g.rows.length) return;
+      const box = document.createElement('div');
+      box.className = 'today-group';
+      box.innerHTML = '<div class="today-label">' + escapeHtml(g.label) + '</div>' +
+        g.rows.slice(0, 3).map(function (line) {
+          return '<div class="today-row">' + escapeHtml(line) + '</div>';
+        }).join('') +
+        (g.rows.length > 3 ? '<div class="today-more">还有 ' + (g.rows.length - 3) + ' 项</div>' : '');
+      if (g.label === '可学技能' && skills[0] && skills[0].hours_to_next) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'primary today-act';
+        btn.textContent = '练 2 小时';
+        btn.addEventListener('click', function () {
+          doGrowthAction('cultivate', { skill: skills[0].skill, hours: 2 }, '练手艺');
+        });
+        box.appendChild(btn);
+      }
+      if (g.label === '可买产业') {
+        biz.forEach(function (b) {
+          if (!b.affordable || b.blocked) return;
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'ghost today-act';
+          btn.textContent = '开' + (b.shop_type === 'stall' ? '摊' : b.shop_type === 'storefront' ? '铺' : '分号') +
+            '（' + b.cost + ' 文）';
+          btn.addEventListener('click', function () {
+            doGrowthAction('open_shop', { shop_type: b.shop_type }, '置产');
+          });
+          box.appendChild(btn);
+        });
+      }
+      list.appendChild(box);
+    });
+    if (!list.children.length) {
+      list.innerHTML = '<div class="log-empty">此刻没有可做的事：先休息或换地点。</div>';
+    }
+  }
+
+  function renderGrowth(st) {
+    const g = st.growth || {};
+    const rows = [
+      { key: '声望', data: g.reputation },
+      { key: '技能', data: g.skill },
+      { key: '资产', data: g.assets },
+    ];
+    const list = el('growthList');
+    list.innerHTML = rows.filter(function (r) { return r.data; }).map(function (r) {
+      const d = r.data;
+      const pct = Math.max(0, Math.min(100, Math.round(Number(d.progress || 0) * 100)));
+      const next = d.next_at == null ? '已到顶' :
+        ('下一级 ' + d.next_name + ' · 还需 ' + (Number(d.next_at) - Number(d.value)).toFixed(3).replace(/\.?0+$/, ''));
+      return '<div class="growth-row">' +
+        '<div class="growth-top"><b>' + escapeHtml(r.key) + '</b>' +
+        '<span>Lv' + escapeHtml(d.level) + ' ' + escapeHtml(d.name) + '</span></div>' +
+        '<div class="growth-bar"><i style="width:' + pct + '%"></i></div>' +
+        '<div class="growth-hint">' + escapeHtml(next) + (d.next_unlock ? ' · ' + escapeHtml(d.next_unlock) : '') + '</div>' +
+        '</div>';
+    }).join('') || '<div class="log-empty">进入世界后显示成长线。</div>';
+  }
+
   function renderQuests(st) {
     const board = st.quest_board || {};
     const rows = board.rows || [];
@@ -693,6 +783,34 @@
       (counts.accepted_by_me != null ? '（我进行中 ' + counts.accepted_by_me + '）' : '') +
       ' · event_seq ' + (data.event_seq == null ? '?' : data.event_seq));
     pushLog('ok', '接下任务「' + quest.name + '」', 'event_seq ' + (data.event_seq == null ? '?' : data.event_seq));
+  }
+
+  async function doGrowthAction(action, payload, label) {
+    const account = state.session && state.session.accountId;
+    if (!account) { toast('先进入世界。', true); showEntry(true); return; }
+    const beforeTick = state.st ? Number(state.st.tick) : 0;
+    const res = await API.action(account, action, payload, beforeTick)
+      .catch(function (err) {
+        return { status: 0, data: { ok: false, message: '请求失败：' + (err.message || err) } };
+      });
+    const data = res.data || {};
+    if (res.status === 409 || data.ok === false) {
+      const reason = data.message || data.reason_text || '操作被拒';
+      const code = data.reason || data.reject_reason;
+      toast(reason + (code ? '（' + code + '）' : ''), true);
+      pushLog('rejected', label + '被拒：' + reason, code || '');
+      return;
+    }
+    if (data.status === 'proposed' || data.readonly) {
+      toast('只读模式：已提交' + label + '提案（不落地）。');
+      pushLog('proposal', label + '提案', data.intent_id || '');
+      return;
+    }
+    const st = await loadState(account);
+    const g = (st && st.growth) || {};
+    toast('已' + label + ' · ' + (g.skill ? ('技能 ' + g.skill.level + ' 级 ') : '') +
+      (g.assets ? ('资产 ' + g.assets.level + ' 级') : ''));
+    pushLog('ok', label, 'event_seq ' + (data.event_seq == null ? '?' : data.event_seq));
   }
 
   /* ------------------------------------------------------------- init */

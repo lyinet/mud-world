@@ -53,6 +53,7 @@ def build_registry(content, seed: int, plugin_dir: Path | None = None) -> Action
         SystemPlayerPresenceAction,
         SystemTickAction,
     )
+    from .milestones import SystemMaintenanceAction, SystemMilestoneAction
     from .social import ApprenticeAction, JoinSectAction, MarryAction, RecruitAction, TalkAction
     from .system import (
         SystemBudgetAction,
@@ -93,6 +94,8 @@ def build_registry(content, seed: int, plugin_dir: Path | None = None) -> Action
     reg.register(SystemQuestPostAction(content))
     reg.register(SystemQuestFailAction(content))
     reg.register(SystemGoalAction(content))
+    reg.register(SystemMilestoneAction(content))
+    reg.register(SystemMaintenanceAction(content))
     reg.register(SystemRecoverAction(content))
     reg.register(SystemLivingAction(content))
     reg.register(SystemDebtsAction(content))

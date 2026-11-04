@@ -143,6 +143,35 @@ DIALOGUE_GOLDEN_CALIB = {
     "dialogue_calls": 63,
 }
 
+# P4 里程碑 / 维护基线（2026-11-04，非静默改旧基线）：
+# 新增两个系统日界动作 system_milestone / system_maintenance，每个日界各发 1 条意图，
+# 2 天世界因此多出 4 条事件（796→800）；系统动作不改 NPC 的既有买卖与对话路径，
+# 经济流量（sell 971 / buy 820 / burned 127 / business_cash 12184）与拦截计数完全不变，
+# 仅 state/event 哈希与事件数显式漂移。旧 GOLDEN_CALIB / DIALOGUE_GOLDEN_CALIB
+# 原样保留，对应旧测试显式 skip；新基线见 GOLDEN_MILESTONE / DIALOGUE_GOLDEN_MILESTONE。
+MILESTONE_BASELINE_REASON = (
+    "新增 system_milestone / system_maintenance 日界动作（2 天共 4 条系统意图），"
+    "事件数 796→800，state/event 哈希漂移；经济流量与前置拦截计数不变，"
+    "旧 GOLDEN_CALIB 基线原样保留，本组为显式迁移基线。"
+)
+GOLDEN_MILESTONE = {
+    "events_total": 800,
+    "state_final": "a155665368313c1703ebcb5b1e4cdf5110a5890928918b23a4a6e725030428a0",
+    "event_final": "61b1531a03bb79b7c6548b87fb8f5e161d9ffc511dd13e8276419d936e7ac664",
+    "sell_in": 971,
+    "buy_out": 820,
+    "burned": 127,
+    "business_cash": 12184,
+    "precondition_blocked": 11,
+    "precondition_pruned": 2,
+}
+DIALOGUE_GOLDEN_MILESTONE = {
+    "events_total": 800,
+    "state_final": "ec1b2d5a1564b2d30a751d7e91bbd55a9b1df36be47c9183709bd5aa291de88f",
+    "event_final": "741f98f3ce37f1457ee6d95b519081167eb01c253fa09148a4cdd77b92ccec95",
+    "dialogue_calls": 63,
+}
+
 
 def _run_two_day(tmp_path: Path, run_id: str, *, dialogue: bool):
     env_keys = ("LLM_BASE_URL", "LLM_API_KEY", "LLM_MODEL", "WSIM_DIALOGUE")
@@ -315,6 +344,7 @@ def test_p3i_price_dialogue_enabled_fake_run_is_golden(tmp_path):
     )
 
 
+@pytest.mark.skip(reason="P4 新增日界系统事件（800 events）后 796-event 世界不可复现；迁移到 GOLDEN_MILESTONE，见文件头说明")
 def test_goal_calib_deterministic_2d_fake_run_is_golden(tmp_path):
     """目标体量校准后的新基线：2 天世界显式迁移到 796 events。"""
     summary = _run_two_day(tmp_path, "golden-calib", dialogue=False)
@@ -344,6 +374,7 @@ def test_goal_calib_deterministic_2d_fake_run_is_golden(tmp_path):
     assert len(blocked_file.read_text(encoding="utf-8").splitlines()) == GOLDEN_CALIB["precondition_blocked"]
 
 
+@pytest.mark.skip(reason="P4 新增日界系统事件（800 events）后 796-event 世界不可复现；迁移到 DIALOGUE_GOLDEN_MILESTONE，见文件头说明")
 def test_goal_calib_dialogue_enabled_fake_run_is_golden(tmp_path):
     """目标体量校准后的新基线（dialogue 开启路径）。"""
     summary = _run_two_day(tmp_path, "golden-calib-dialogue", dialogue=True)
@@ -359,4 +390,52 @@ def test_goal_calib_dialogue_enabled_fake_run_is_golden(tmp_path):
         "目标体量校准 dialogue 基线漂移（golden_calib_dialogue, actual）："
         + json.dumps(drift, ensure_ascii=False)
         + "；原因: " + CALIB_BASELINE_REASON
+    )
+
+
+def test_p4_milestone_deterministic_2d_fake_run_is_golden(tmp_path):
+    """P4 新基线：日界新增 system_milestone / system_maintenance（796→800 events）。"""
+    summary = _run_two_day(tmp_path, "golden-milestone", dialogue=False)
+    cf = summary["economy"]["cashflow"]
+    got = {
+        "events_total": summary["events"]["total"],
+        "state_final": summary["hashes"]["state_final"],
+        "event_final": summary["hashes"]["event_final"],
+        "sell_in": cf["inflow_by_reason"].get("sell", 0),
+        "buy_out": cf["outflow_by_reason"].get("buy", 0),
+        "burned": summary["economy"]["burned_total"],
+        "business_cash": summary["economy"]["business_cash_now"],
+        "precondition_blocked": summary["precondition_blocked"]["total"],
+        "precondition_pruned": summary["precondition_pruned"]["total"],
+    }
+    drift = {k: (GOLDEN_MILESTONE[k], got[k])
+             for k in GOLDEN_MILESTONE if got[k] != GOLDEN_MILESTONE[k]}
+    assert not drift, (
+        "P4 里程碑基线漂移（golden_milestone, actual）："
+        + json.dumps(drift, ensure_ascii=False)
+        + "；原因: " + MILESTONE_BASELINE_REASON
+    )
+
+    pruned_file = tmp_path / "golden-milestone" / "pruned.jsonl"
+    blocked_file = tmp_path / "golden-milestone" / "blocked.jsonl"
+    assert pruned_file.exists() and blocked_file.exists(), "缺少全量拦截记录导出"
+    assert len(pruned_file.read_text(encoding="utf-8").splitlines()) == GOLDEN_MILESTONE["precondition_pruned"]
+    assert len(blocked_file.read_text(encoding="utf-8").splitlines()) == GOLDEN_MILESTONE["precondition_blocked"]
+
+
+def test_p4_milestone_dialogue_enabled_fake_run_is_golden(tmp_path):
+    """P4 新基线（dialogue 开启路径）。"""
+    summary = _run_two_day(tmp_path, "golden-milestone-dialogue", dialogue=True)
+    got = {
+        "events_total": summary["events"]["total"],
+        "state_final": summary["hashes"]["state_final"],
+        "event_final": summary["hashes"]["event_final"],
+        "dialogue_calls": summary["llm"]["dialogue_async"]["calls"],
+    }
+    drift = {k: (DIALOGUE_GOLDEN_MILESTONE[k], got[k])
+             for k in DIALOGUE_GOLDEN_MILESTONE if got[k] != DIALOGUE_GOLDEN_MILESTONE[k]}
+    assert not drift, (
+        "P4 里程碑 dialogue 基线漂移（golden_milestone_dialogue, actual）："
+        + json.dumps(drift, ensure_ascii=False)
+        + "；原因: " + MILESTONE_BASELINE_REASON
     )
