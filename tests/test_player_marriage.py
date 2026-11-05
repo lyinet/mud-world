@@ -206,63 +206,93 @@ def test_courtship_intermediate_state(session):
     assert session.state.account_balance(f"wallet:{pid}") == 300
 
 
-def test_spouse_daily_plan_and_action(real_content):
-    from wsim.sim.genesis import build_genesis
+def test_spouse_daily_decide_without_content_goal(real_content):
+    """内容目标耗尽（choice is None）时，婚后日常仍必须每日发生。"""
+    from wsim.actions.registry import build_registry
+    from wsim.sim.intent import MockReasoner
 
+    npc = "npc_daily"
     state = WorldState(locations=real_content.locations)
-    apply_effects(state, build_genesis(real_content, real_content.npcs, root=ROOT).effects)
-    npc = next(
-        e.id
-        for e in state.entities.values()
-        if e.location == "market" and e.spouse is None and e.status == "alive"
-    )
     apply_effects(
         state,
         [
             Effect(
                 "create_entity",
                 {
+                    "id": npc,
+                    "name": "阿藕",
+                    "role": "worker",
+                    "location": "market",
+                    "home": "market",
+                    "stamina": 100.0,
+                    "skills": {"work": 0.4},
+                    "personality": {},
+                },
+            ),
+            Effect(
+                "create_entity",
+                {
                     "id": "player:t",
                     "name": "测试玩家",
                     "role": "捕快",
-                    "location": state.entities[npc].location,
-                    "home": state.entities[npc].location,
+                    "location": "market",
+                    "home": "market",
                     "stamina": 100.0,
                     "skills": {"捕快": 0.3},
                     "personality": {},
                     "presence": "online",
                 },
             ),
+            Effect("create_account", {"account": f"wallet:{npc}", "balance": 0}),
+            Effect("mint", {"account": f"wallet:{npc}", "amount": 100}),
             Effect("marry", {"a": npc, "b": "player:t"}),
             Effect("marriage_meta", {"a": npc, "b": "player:t", "status": "married", "since_tick": 0}),
         ],
     )
-
-    from wsim.actions.registry import build_registry
-    from wsim.sim.intent import GoalChoice, Planner
-
+    key = f"{npc}|player:t" if npc <= "player:t" else f"player:t|{npc}"
     registry = build_registry(real_content, 42)
-    plan = Planner(real_content, 42).plan(
-        state,
-        npc,
-        GoalChoice(npc, "g", "g", "work", "work", 1.0, "content", "test"),
-        0,
-        TICKS_PER_DAY * 3,
-        "spotlight",
-    )
-    daily = [i for i in plan if i.verb == "spouse_time"]
-    assert len(daily) == 3, [(i.tick, i.verb) for i in plan]
-    assert {i.tick // TICKS_PER_DAY for i in daily} == {0, 1, 2}
+    reasoner = MockReasoner(seed=42, content=real_content)
 
-    action = registry.get("spouse_time")
-    assert action is not None
-    intent = Intent(actor=npc, verb="spouse_time", args={"target": "player:t"}, tick=daily[0].tick, source="npc")
-    assert action.preconditions(state, intent) == []
-    apply_effects(state, action.apply(state, intent, None))
-    note = state.marriages[f"{npc}|player:t" if npc <= "player:t" else f"player:t|{npc}"]["daily_note"]
-    assert note
+    def view(tick: int) -> dict:
+        return {
+            "tick": tick,
+            "state": state,
+            "content": real_content,
+            "tier": "spotlight",
+            "interval": 36,
+        }
+
+    # 该 NPC 不在内容包里，没有可选目标：choose 返回 None。
+    assert reasoner.selector.choose(state, npc, 0) is None
+    first = reasoner.decide({"id": npc}, view(0))
+    assert [i.verb for i in first] == ["spouse_time"], first
+    # 同一世界日不重复。
+    assert reasoner.decide({"id": npc}, view(5)) == []
+
+    move = registry.get("move")
+    spouse_time = registry.get("spouse_time")
+    assert spouse_time is not None
+    assert spouse_time.preconditions(state, first[0]) == []
+    apply_effects(state, spouse_time.apply(state, first[0], None))
+    assert state.marriages[key]["last_daily_tick"] == 0
     assert state.memories["player:t"][-1]["source"] == "spouse:daily"
-    assert state.entities["player:t"].spouse == npc
+
+    # 次日玩家走到邻处：先按最短路径移动，再到场陪伴，均在同一 tick 内完成。
+    neighbor = sorted(real_content.locations["market"]["exits"])[0]
+    state.entities["player:t"].location = neighbor
+    day1 = reasoner.decide({"id": npc}, view(TICKS_PER_DAY))
+    verbs = [i.verb for i in day1]
+    assert verbs.count("spouse_time") == 1 and verbs.count("move") >= 1, day1
+    for intent in day1:
+        before = state.entities[npc].location
+        apply_effects(state, (move if intent.verb == "move" else spouse_time).apply(state, intent, None))
+        assert state.entities[npc].location != before or intent.verb != "move"
+    assert state.entities[npc].location == neighbor
+    assert state.marriages[key]["last_daily_tick"] == TICKS_PER_DAY
+
+    # 第三日仍在场：不再产生移动，只问候一次。
+    day2 = reasoner.decide({"id": npc}, view(TICKS_PER_DAY * 2))
+    assert [i.verb for i in day2] == ["spouse_time"], day2
 
 
 def test_no_player_state_omits_marriage_metadata(real_state):
