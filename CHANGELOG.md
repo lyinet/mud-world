@@ -9,6 +9,36 @@
 
 ---
 
+## [安全 P0] 2026-11-06 — LLM 预算在真实调用前强制拦截（自然日 UTC，可审计、可恢复）
+
+- **改了什么**
+  - `src/wsim/admin/budget.py`（新）：自然日（UTC）预算闸。`daily_budget_usd` 与
+    `per_capability_daily_tokens` 在每次 provider 网络请求前检查，`已用 ≥ 上限` 直接拒绝
+    （`budget_exhausted` / `capability_token_limit`），降级链继续、不中断 tick。
+  - `admin_usage(day, capability, provider_id, calls, tokens_in, tokens_out, cost_usd, denied, updated_at)`
+    （schema v3）：用量与拒绝计数落盘，重启不丢；`GET /api/admin/budget` 暴露
+    “今日已用 / 上限 / 剩余”，并与 `settings.budget`、`capabilities.<cap>.budget` 同源。
+  - 拒绝审计：`llm.budget_denied`，`detail` 含 day/timezone/capability/slot/provider_id/reason/
+    used_usd/limit_usd/used_tokens/token_limit；同日同能力位同 provider 同原因只记首次，
+    后续累加 `denied`。
+  - `agent/provider.py`：`_run` 每次 provider 尝试前查预算，调用后按真实 `usage` 记账；
+    回放、管理面 `test`、stub 能力位不检查不记账；管理库故障放行。
+  - 单价固定 `$0.0015/1K input`、`$0.006/1K output`（估算口径，缺失 usage 时按 4 字符≈1 token）。
+- **为什么改**：预算此前只显示不拦截，等于花钱没刹车；必须在真实调用前拒绝，且计数要跨重启，
+  拒绝要能回答“谁、哪个能力位、哪个 provider、当时已用、上限”。
+- **口径**：自然日（UTC），不按世界日；墙钟只用于 `admin_usage.day` 与审计时间，
+  不进入世界状态、事件序列或 `content_hash`。
+- **验证**
+  - `tests/test_admin_budget.py`：UTC 日界、持久化、两种拒绝码、0=不限、真实调用前拦截
+    （mock 未收到请求）、降级链走完不崩、调回上限恢复、审计首次节流、API 同源。
+  - 真实验收（管理 `:8031` + 玩家 `:8034` + mock `:9911`，`AsyncDialogueQueue → ProviderClient`）：
+    `0.2` 下首次成功（`used_usd=0.00024`、130 tokens）；`0.000001` 下 `budget_exhausted`、
+    mock 行数不变、`fallbacks=1`、两 provider 均被拒；`dialogue token=100` 下
+    `capability_token_limit`；调回后恢复成功（`0.00048`、260 tokens、mock 1→2）；
+    审计 4 条；重启管理服务后用量仍在；run 目录 grep key 明文 0 命中。
+  - 全量 `pytest`：653 collected（635 passed / 18 skipped），退出码 0。
+- **commit**：见本条目所在提交。
+
 ## [安全 P1] 2026-11-06 — 容器健康检查改为真探活（`deploy/healthcheck.py`）
 
 - **改了什么**
@@ -62,7 +92,7 @@
     429 → 第二 provider 成功（`stats.fallbacks=1`）；轮换 key 后 mock 只收到新 key；
     日志/审计/DB 字节 grep 明文 0 命中；无主密钥 503；killswitch 后 mock 调用数不变；
     重启管理服务后配置与能力状态仍在。
-  - `PYTHONPATH=src .venv/bin/python -m pytest -q`：642 项收集，全量退出码 0（17 skipped）。
+  - `PYTHONPATH=src .venv/bin/python -m pytest -q`：642 项收集（624 passed / 18 skipped），全量退出码 0。
 - **commit**：`add4075`
 
 ---

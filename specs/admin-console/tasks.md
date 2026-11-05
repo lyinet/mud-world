@@ -82,3 +82,14 @@
 - [x] 两进程真实验收 1–8；缺失项如实标注
 - [x] `pytest` 全量（642 collected：624 passed / 18 skipped，退出码 0）
 - [x] 提交 ⑤ 并 push（`97b0ad6`，`d8c644c..97b0ad6`）
+
+## 提交 ⑥（追加）：预算真实调用前拦截
+
+- [x] `src/wsim/admin/budget.py`（新）：自然日（UTC）预算检查/记账/拒绝审计；`0=不限`；fail-open
+- [x] `settings.py`：schema v3 新增 `admin_usage`；预算键改为 hot + 校验；`UsageStore`
+- [x] `providers.py`：`check_budget` / `record_usage` / `record_budget_denial` / `budget_summary`；
+      `capability_report` 内联每能力位 `budget{used,limit,remaining}`
+- [x] `agent/provider.py`：`_run` 每次 provider 尝试前检查，调用后按 `usage` 记账；拒绝继续降级链
+- [x] `server.py`：`GET /api/admin/budget`；`settings.budget`、`overview.budget`、`capabilities.<cap>.budget` 同源
+- [x] `tests/test_admin_budget.py` + 既有断言更新
+- [x] 真实验收：`budget_exhausted` / `capability_token_limit`、降级链不崩、调回恢复、重启用量仍在、审计 4 条

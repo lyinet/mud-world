@@ -43,7 +43,8 @@ python -m wsim.admin --root . --run <run> --host 127.0.0.1 --port 8031
     "tick_minutes": {"value": 10, "effective_value": null, "applied": false,
                      "restart_required": true, "source": "none", "note": "主服务当前无运行期读取点"}
   },
-  "hot": {"ambient_speed": false, "global_enabled": true, "providers": true, "routing": true, "...": "..."},
+  "hot": {"ambient_speed": false, "global_enabled": true, "daily_budget_usd": true,
+          "per_capability_daily_tokens": true, "providers": true, "routing": true, "...": "..."},
   "llm": {"global_enabled": true, "daily_budget_usd": 0.20,
           "per_capability_daily_tokens": {"dialogue": 0, "strategy": 0}},
   "providers": [{"id": "relay-a", "base_url": "https://...", "model": "...", "...": "..."}],
@@ -52,6 +53,9 @@ python -m wsim.admin --root . --run <run> --host 127.0.0.1 --port 8031
   "capabilities_status": {"dialogue": "active", "strategy": "unconfigured", "...": "..."},
   "capabilities_evidence": {"dialogue": "agent/dialogue_async.py::...", "...": "..."},
   "capabilities_last_check_at": "2026-11-05T18:41:03Z",
+  "budget": {"day": "2026-11-06", "timezone": "UTC", "daily_budget_usd": 0.20,
+             "used_usd": 0.0, "remaining_usd": 0.20, "denied": 0,
+             "tokens": {"dialogue": {"used": 0, "limit": 0, "remaining": null}}},
   "version": 11,
   "env_bridge": "runs/<run>/admin_env.sh"
 }
@@ -68,7 +72,7 @@ python -m wsim.admin --root . --run <run> --host 127.0.0.1 --port 8031
 | `providers[*]` / `routing[*]` | hot | 同上；换 provider/model/key 无需重启 |
 | `world.ambient_speed` / `world.ambient_cpu` | restart_required | 只在玩家 API 启动时读 `XKX_AMBIENT*` |
 | `world.tick_minutes` / `player_cap` / `starting_money` / `quest_floor_enabled` | restart_required | 主服务当前无运行期读取点 |
-| `llm.daily_budget_usd` / `per_capability_daily_tokens` | restart_required | 预算实际由 `sim/headless.py` 读 `config/llm.yaml`，本轮未接线 |
+| `llm.daily_budget_usd` / `per_capability_daily_tokens` | hot | 主服务在**每次真实调用前**查快照并拦截，≤5 秒生效；计数落 `admin_usage` |
 
 ### 世界参数的“重启后生效”流程
 
@@ -126,13 +130,55 @@ python -m wsim.admin --root . --run <run> --host 127.0.0.1 --port 8031
 - `routing_view` 与 `capabilities` 同源：每个能力位可直接看到
   `provider`、`model`、`fallback`、`last_served_by`。
 
-## 6. HTTP API
+## 6. 预算与额度（真实调用前拦截）
+
+### 6.1 口径
+
+- **计费窗口：自然日（UTC，写死）**。费用按真实时间结算，所以不按世界日；
+  `day` 固定为 UTC `YYYY-MM-DD`，跨 UTC 零点自动开新账，不做手动重置。
+- **确定性边界**：该自然日只由 `clock.py::now_utc()` 推导，仅写入 `admin_usage.day` 与审计时间；
+  **不进入世界状态、事件序列或 `content_hash`**。预算拒绝会让本次调用不发出，
+  但拒绝本身不会把墙钟写入仿真数据。
+- 回放（`ProviderClient.replay=True`）不检查、不记账：回放零网络、必须可复现。
+
+### 6.2 语义
+
+| 键 | 含义 | 0 值 |
+|---|---|---|
+| `llm.daily_budget_usd` | 当日（UTC）全部能力位累计花费上限（USD） | `≤0` 不限 |
+| `llm.per_capability_daily_tokens.<cap>` | 该能力位当日 token 上限（输入+输出） | `≤0` 不限 |
+
+- 调用前检查：**已用 ≥ 上限**即拒绝，不发出任何网络请求。
+  - 当日花费超限 → `budget_exhausted`
+  - 能力位 token 超限 → `capability_token_limit`
+- 降级链照旧：被拒的 provider 跳过，继续下一个；全部被拒则本次调用以拒绝原因失败，
+  `LLMReasoner` 按既有逻辑降级到 deterministic/mock，不中断 tick。
+- 记账：每次真实 provider 调用的最终 `usage`（`prompt_tokens`/`completion_tokens`）累加；
+  上游没回 `usage` 时按 4 字符≈1 token 估算。单价固定
+  `$0.0015/1K input`、`$0.006/1K output`（与 `agent/cost.py` 默认一致），属于估算口径。
+- 持久化：`admin_usage(day, capability, provider_id, calls, tokens_in, tokens_out, cost_usd, denied, updated_at)`，
+  重启不丢当日已用额度。
+- 审计：同一自然日同一能力位/provider/拒绝原因的**首次**拒绝写 `admin_audit`，
+  `action=llm.budget_denied`，`detail` 含
+  `day/timezone/capability/slot/provider_id/reason/used_usd/limit_usd/used_tokens/token_limit`；
+  后续拒绝计入 `admin_usage.denied`，不重复刷审计。
+- 失败放行：管理库读/写异常时放行且不阻断 tick，`GET /api/admin/budget` 的 `error` 字段暴露读取异常。
+
+### 6.3 查询
+
+- `GET /api/admin/budget`：`day`、`timezone`、`daily_budget_usd`、`used_usd`、`remaining_usd`、
+  `tokens.{capability}.{used,limit,remaining}`、`by_provider`、`calls`、`denied`。
+- `GET /api/admin/settings` 的 `budget` 字段同源；`capabilities.<cap>.budget` 也内联该项。
+- `GET /api/admin/overview` 的 `budget` 为精简版（day/timezone/上限/已用/剩余/拒绝数）。
+
+## 7. HTTP API
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | POST | `/api/admin/login` | `{token}` → 24h 会话；失败 10 次/5 分钟锁 15 分钟 |
 | GET | `/api/admin/health` | 管理服务自身健康（无需鉴权） |
-| GET | `/api/admin/overview` | 世界 tick、在线人数、事件总数、库体积、LLM 调用/花费、最近备份 |
+| GET | `/api/admin/overview` | 世界 tick、在线人数、事件总数、库体积、LLM 调用/花费、预算摘要、最近备份 |
+| GET | `/api/admin/budget` | 今日已用 / 上限 / 剩余（自然日 UTC），含各能力位 token 与 provider 明细 |
 | GET / PUT | `/api/admin/settings` | 见 §2/§3 |
 | GET | `/api/admin/providers` | 列表（掩码 key + 元数据）+ `routing_view` |
 | PUT / DELETE | `/api/admin/providers/{id}` | 新建/更新/删除；带 `api_key` 时加密入库 |
@@ -142,20 +188,26 @@ python -m wsim.admin --root . --run <run> --host 127.0.0.1 --port 8031
 
 鉴权：`Authorization: Bearer <session>`；仅存 sha256。非本机来源需在 `XKX_ADMIN_ALLOW_IPS`，否则 403 `admin_ip_not_allowed`。
 
-## 7. 时间源纪律
+## 8. 时间源纪律
 
 - 管理面墙钟统一走 `src/wsim/admin/clock.py::now_utc()`（审计/遥测专用）。
 - 该值不得进入世界状态、事件序列或 `content_hash`；影响仿真的参数只在 tick 边界从持久化配置读取。
 - `sim/`、`actions/`、`world/` 仍为确定性零容忍，不在此列。
 
-## 8. 本轮未达成（如实声明）
+## 9. 未实现 / 边界（如实声明）
 
-- `ambient_speed` 等世界参数无法热改：玩家 API 只在启动时读取，`api/**` 本轮禁改；用环境桥 + 重启 + `pid` 观测兑现 `applied`，不做假热更。
-- `llm.daily_budget_usd` / `per_capability_daily_tokens` 未强制拦截（需改 `sim/headless.py`）。
-- `intent` 槽仍走原有 env/config；管理面只映射 `dialogue`、`strategy`、`decision→night_batch`。
+- `ambient_speed` 等世界参数无法热改：玩家 API 只在启动时读取，`api/**` 禁改；
+  用环境桥 + 重启 + `pid` 观测兑现 `applied`，不做假热更。
+- `intent` 槽仍走原有 env/config；管理面只映射 `dialogue`、`strategy`、`decision→night_batch` 三个能力位。
+- 预算闸的已知边界：
+  - `POST /api/admin/providers/{id}/test`（`max_tokens=1`）属于连通性探测，**不检查、不记账**。
+  - 环境变量兜底的 provider 在 `admin_usage.provider_id` 中记为 `env`。
+  - 检查是“先查后花”，并发批量同时通过检查时可能小幅超限；下次调用即被拒绝。
+  - 单价为固定估算值，不是上游真实账单；以 `usage` 为准，缺失时按字符估算。
+  - 只在 `dialogue` / `strategy` / `night_batch` 三个真实调用点生效，stub 能力位不受影响。
 - 无前端 UI；本轮只交付后端。
 
-## 9. 2026-11-06 两进程验收摘要
+## 10. 2026-11-06 两进程验收摘要
 
 - 玩家 API `:8022`（run `admin-accept`）+ 管理服务 `:8031` + mock 中转站 `:9911`。
 - 改 `ambient_speed 1→2`：写入后 `effective_value=1.0`、`applied=false`；`source admin_env.sh` 重启玩家进程后
@@ -167,3 +219,15 @@ python -m wsim.admin --root . --run <run> --host 127.0.0.1 --port 8031
 - 无主密钥实例保存 key → 503 `master_key_missing`。
 - killswitch 后调用 `llm_killswitch`，mock 行数不变。
 - 重启管理服务后 `version=11`、providers/routing/world_state/`dialogue=active` 全部保留。
+- 2026-11-06 预算闸真实验收（run `admin-budget-accept`，管理 `:8031` + 玩家 `:8034` + mock `:9911`，
+  对话走 `AsyncDialogueQueue → ProviderClient`，与 `sim/headless.py` 同一链路；UTC 自然日 `2026-11-05`）：
+  - `daily_budget_usd=0.2`：首次真实 dialogue 成功，mock 1 次，`used_usd=0.00024`、`used_tokens=130`。
+  - 调到 `0.000001`：调用被拒 `last_error=budget_exhausted`，mock 仍 1 次（未发请求），
+    降级链 `fallbacks=1`、`errors_by_kind.budget_exhausted=2`（relay-a/relay-b 都被拒），tick 未崩。
+  - `per_capability_daily_tokens.dialogue=100`（已用 130）：拒绝 `capability_token_limit`，`fallbacks=2`，mock 仍 1 次。
+  - 调回 `daily=0.2`、token 上限 `0`：恢复成功，mock 1→2，`used_usd=0.00048`、`used_tokens=260`。
+  - 审计 4 条 `llm.budget_denied`（relay-a/b × 两种原因），`detail` 含
+    `day/timezone/slot/provider_id/reason/used_usd/limit_usd/used_tokens/token_limit`；
+    run 目录（含 `service.sqlite`）grep key 明文 0 命中。
+  - 重启管理服务后 `used_usd=0.00048`、`used_tokens=260`、`denied=4` 仍在（`admin_usage` 落盘）。
+  - 全量 `pytest`：653 collected（635 passed / 18 skipped），退出码 0。

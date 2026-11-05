@@ -30,6 +30,10 @@
 | D12 | 已 push 的 ①–③ 不改写历史；本轮追加 2 笔提交（`add4075` 参数契约+key 元数据+能力四态，随后文档+CHANGELOG） | 重写远端历史风险高；用户要求“各自 push”，追加提交同样满足可审计、可回滚。 |
 | D13 | 世界确定性不受影响：管理面只改 provider 解析与遥测，不写事件、不影响随机数、不入哈希 | 三条红线之一（同 seed 同事件序列必须同结果）保持成立。 |
 | D14 | admin 墙钟一律走 `src/wsim/admin/clock.py::now_utc()`（带 `# wallclock: audit-only`），`sim/`、`actions/`、`world/` 维持零容忍 | 审计/遥测允许墙钟，但必须单点收敛，且该值不得进入世界状态、事件序列、`content_hash`。 |
+| D15 | 预算计费窗口 = **自然日（UTC）**，写死为 `YYYY-MM-DD`；不按世界日 | 费用按真实时间结算。UTC 没有夏令时、跨进程/跨机器一致；世界日会随 tick 速度漂移，无法对应账单。 |
+| D16 | 拦截点在 `agent/provider.py::_run` 的**每次 provider 尝试之前**；`已用 ≥ 上限` 即拒绝，返回 `budget_exhausted` / `capability_token_limit`，并继续走降级链 | 事后统计等于花完才发现。检查先于网络请求，才能真刹车；拒绝不抛全局异常，避免中断 tick。 |
+| D17 | 用量持久化到 `admin_usage(day, capability, provider_id, …)`；同一日同一能力位/provider/原因的首次拒绝写 `admin_audit`（标记落 `admin_runtime`），后续只累加 `denied` | 重启不丢当日额度；审计要能回答“谁/哪个能力位/哪个 provider/已用/上限”，又不能每次拒绝都刷一条。 |
+| D18 | 预算检查/记账失败一律放行（fail-open）；回放（`replay=True`）与管理面 `test` 探测不检查、不记账；单价固定 `$0.0015/1K input`、`$0.006/1K output` | 管理库故障不能拖垮主服务；回放必须零网络可复现；连通性探测不消耗业务额度。单价是估算口径，真实账单以上游为准。 |
 
 ## 1. 独立进程与存储
 
@@ -42,7 +46,7 @@
 - 玩家 API 不新增任何端点；管理服务不复用玩家端口。
 - 环境变量总表：`XKX_SECRET_KEY`、`XKX_ADMIN_TOKEN`、`XKX_ADMIN_BIND`、`XKX_ADMIN_PORT`、`XKX_ADMIN_ALLOW_IPS`、`XKX_ADMIN_DB`、`XKX_SERVICE_DB`、`XKX_RUN`。
 
-### 1.1 schema（幂等，`PRAGMA user_version=2`）
+### 1.1 schema（幂等，`PRAGMA user_version=3`）
 
 ```sql
 admin_settings(key TEXT PRIMARY KEY, value_json TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 0,
@@ -56,9 +60,14 @@ admin_audit(id INTEGER PRIMARY KEY AUTOINCREMENT, at REAL NOT NULL, who TEXT NOT
 admin_sessions(token_hash TEXT PRIMARY KEY, created_at REAL NOT NULL, expires_at REAL NOT NULL, who TEXT NOT NULL)
 admin_login_failures(ip TEXT NOT NULL, failed_at REAL NOT NULL)
 admin_runtime(key TEXT PRIMARY KEY, value_json TEXT NOT NULL, updated_at REAL NOT NULL)
+admin_usage(day TEXT NOT NULL, capability TEXT NOT NULL, provider_id TEXT NOT NULL DEFAULT '',
+            calls INTEGER NOT NULL DEFAULT 0, tokens_in INTEGER NOT NULL DEFAULT 0,
+            tokens_out INTEGER NOT NULL DEFAULT 0, cost_usd REAL NOT NULL DEFAULT 0,
+            denied INTEGER NOT NULL DEFAULT 0, updated_at REAL NOT NULL,
+            PRIMARY KEY (day, capability, provider_id))
 ```
 
-- 迁移：`user_version=1` 的库补 `admin_secrets.created_at/last_used_at` 两列（`ALTER TABLE` 前查 `PRAGMA table_info`），并建 `admin_runtime`；重复调用不重复 ALTER。
+- 迁移：`user_version=1` 的库补 `admin_secrets.created_at/last_used_at` 两列（`ALTER TABLE` 前查 `PRAGMA table_info`），并建 `admin_runtime`；重复调用不重复 ALTER。v3 仅新增 `admin_usage`（`CREATE TABLE IF NOT EXISTS`，幂等）。
 - 全局版本号 = `MAX(admin_settings.version)`；每次配置写入把受影响行 `version` 设为 `旧全局版本 + 1`。
 - 所有配置写操作在 `BEGIN IMMEDIATE` 事务内完成「改配置 + 写审计」。
 - `admin_runtime` 不参与版本号：存 `world_state`（D2）与 `capability:<name>` 记录。
@@ -72,6 +81,7 @@ admin_runtime(key TEXT PRIMARY KEY, value_json TEXT NOT NULL, updated_at REAL NO
 - `hot_notes`：`{键: 说明}`
 - `world_state`：每个 `world` 键的运行观测四元组（D1/D5），见 §1.4
 - `capabilities` + `capabilities_status` + `capabilities_evidence`：见 §2
+- `budget`：当日（UTC）已用/上限/剩余 + 各能力位 token，与拦截同源
 - `env_bridge`：`admin_env.sh` 路径
 
 默认值：
@@ -220,6 +230,7 @@ IP 白名单：回环地址恒允许；非回环必须命中 `XKX_ADMIN_ALLOW_IP
 - `tests/test_admin_store.py`：schema 幂等（含 v1→v2 迁移）、版本递增、深合并、审计掩码、密文无明文、`master_key_missing`、secret 元数据、`world_state` 持久化、grep 日志/审计 0 命中、重开库配置仍在。
 - `tests/test_admin_providers.py`：resolve 优先级 DB→env→异常、快照 5s 节流、刷新、killswitch 拒调用、缺 key 回退、429→fallback、`record_result` 四态、节流、stub/unconfigured。
 - `tests/test_admin_server.py`：登录/401/限流锁定/IP 403、providers CRUD 掩码元数据、`test` 打本地 mock 中转站（成功/坏 base_url 失败）、429→fallback→成功、改 key 后 mock 收到新 key、audit 列表、killswitch、重启后配置仍在、写 `world.*` 后 `applied=false`/`effective_value` 仍旧、pid 变化后 `applied=true`。
+- `tests/test_admin_budget.py`：UTC 自然日边界、用量落盘并重开可见、`budget_exhausted` / `capability_token_limit`、0=不限、库缺失不建库不拦截、真实调用前拒绝（mock 未收到请求）、降级链走完不崩、调回上限后恢复、拒绝审计字段与首次节流、`GET /api/admin/budget` 与 settings/overview 同源。
 
 两进程验收（写进报告，不新增仓库脚本）：玩家 API `:8022` + 管理服务 `:8031` + 本地 mock 中转站 `:9911`。
 
@@ -231,10 +242,12 @@ IP 白名单：回环地址恒允许；非回环必须命中 `XKX_ADMIN_ALLOW_IP
 6. killswitch 打开后 LLM 调用被拒（`llm_killswitch`，计数不变）。
 7. 审计列表能查到每次变更，值为掩码。
 8. 重启管理服务配置仍在；`pytest` 全量通过并贴干净 HEAD 计数。
+9. 预算闸：把 `daily_budget_usd` 调到极小 → 真实 dialogue 调用被拒（`budget_exhausted`，mock 行数不增）；
+   降级链继续走完、tick 不崩；审计出现 `llm.budget_denied`（含已用/上限/provider）；调回上限后恢复成功。
 
 ## 6. 未纳入本轮（如实声明）
 
 - `world.*` 的运行时热改（需改 `api/session.py` 或 `sim/scheduler.py`，本轮禁改）；本轮用 `admin_env.sh` + 重启 + pid 观测兑现 `applied`。
-- admin 的 `daily_budget_usd` / `per_capability_daily_tokens` 强制拦截（需改 `sim/headless.py`）。
 - `intent` 槽与 `decision` 实时槽的独立路由（本轮只映射到 `night_batch`）。
 - 前端 UI（本轮只交付后端）。
+- 预算闸的 `test` 探测不记账、并发“先查后花”可能小幅超限、单价为估算口径（详见 `docs/ADMIN-CONSOLE.md` §9）。
