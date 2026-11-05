@@ -70,6 +70,10 @@ POSITION_WAGES = {"铁匠": 32, "绣娘": 24, "脚夫": 18, "掌柜": 36, "游�
 NPC_SKILL = {"npc:liu_sanniang": 0.30, "npc:wang_tiejiang": 0.40,
              "npc:afu": 0.20, "npc:chen_huolang": 0.05}
 AFFECTION = {"npc:wang_tiejiang": 7.0, "npc:afu": 7.0, "npc:chen_huolang": 7.0}
+# 信任单独一张表：婚姻裁决要同时看好感与信任。
+TRUST = {"npc:wang_tiejiang": 7.0, "npc:afu": 45.0, "npc:chen_huolang": 7.0}
+# 已与别人成婚的 NPC：用来验证 target_in_couple，不参与成功路径。
+NPC_MARRIED = {"npc:afu": "npc:pharmacy_keeper"}
 
 QUEST = {
     "id": "quest:silk_sample:0",
@@ -189,6 +193,11 @@ class MockWorld:
             "escort_orders": [],
             "stock_shift": 0,
             "stock_adj": {},
+            "affection": dict(AFFECTION),
+            "trust": dict(TRUST),
+            "marriage": {"status": "single", "spouse_id": "", "spouse_name": "",
+                         "since_tick": 0, "last_daily_tick": 0, "daily_note": ""},
+            "replies": [],
         }
 
     def enter(self, account_id, display_name, archetype):
@@ -232,7 +241,7 @@ class MockWorld:
                 "location": loc,
                 "location_name": LOCATIONS[loc]["name"],
                 "wallet": {"money": a["money"], "items": self._wallet_items(a)},
-                "relations": self._relations(),
+                "relations": self._relations(a),
             }
             return {
                 "ok": True,
@@ -242,6 +251,8 @@ class MockWorld:
                 "player": p,
                 "location": {"id": loc, "name": LOCATIONS[loc]["name"], "exits": exits},
                 "present_npcs": NPCS[loc],
+                "nearby": NPCS[loc],
+                "marriage": dict(a["marriage"]),
                 "shop": self._shop_view(a),
                 "escort_orders": [dict(o) for o in a["escort_orders"]],
                 "quest_board": {
@@ -290,13 +301,13 @@ class MockWorld:
                          "sell_price": SHOP_SELL_PRICE.get(item, max(1, price // 2))})
         return rows
 
-    def _relations(self):
+    def _relations(self, a):
         rows = []
-        for npc_id, aff in sorted(AFFECTION.items()):
+        for npc_id, aff in sorted(a["affection"].items()):
             npc = self._npc(npc_id)
             if npc:
                 rows.append({"target": npc_id, "name": npc["name"], "kind": "familiar",
-                             "affection": aff, "trust": aff})
+                             "affection": aff, "trust": a["trust"].get(npc_id, aff)})
         npc = self._npc("npc:liu_sanniang")
         if npc:
             rows.append({"target": npc["id"], "name": npc["name"], "kind": "familiar",
@@ -421,10 +432,22 @@ class MockWorld:
                              "tick": a["tick"], "next_tick": a["tick"] + 6,
                              "details": {"reward_money": QUEST["reward_money"]}}
             if verb == "talk":
+                target = str((args or {}).get("target") or "npc:liu_sanniang")
+                npc = self._npc(target)
+                if npc is None or npc["location"] != a["location"]:
+                    return reject("not_together")
+                # mock 不模拟每日上限，只验证 UI 的关系刷新与配偶标记。
+                a["affection"][target] = min(100.0, float(a["affection"].get(target, 0)) + 2.0)
+                a["trust"][target] = min(100.0, float(a["trust"].get(target, 0)) + 1.0)
+                if a["marriage"].get("spouse_id") == target:
+                    reply = npc["name"] + "（配偶）：锅里温着饭，早点回来。"
+                else:
+                    reply = npc["name"] + "：今日街上还算太平。"
+                a["replies"].append({"from": npc["name"], "text": reply, "tick": a["tick"] + 2})
                 a["tick"] += 2
                 a["event_seq"] += 1
                 return 200, {"ok": True, "event_seq": a["event_seq"], "tick": a["tick"],
-                             "details": {"reply": "刘三娘：布已经备好，送到药铺就行。"}}
+                             "details": {"reply": reply, "target": target}}
             if verb == "buy":
                 item = str((args or {}).get("item") or "")
                 qty = _int_arg((args or {}).get("qty"), 1)
@@ -588,6 +611,68 @@ class MockWorld:
                              "next_tick": a["tick"] + 6,
                              "details": {"route": route, "fee": fee,
                                          "arrive_tick": a["tick"] + 144}}
+            if verb == "marriage_propose":
+                target = str((args or {}).get("target") or "")
+                npc = self._npc(target)
+                m = a["marriage"]
+                if npc is None:
+                    return reject("target_not_found")
+                if target == "player:" + account_id:
+                    return reject("self_propose")
+                if m.get("status") == "married":
+                    return reject("already_married")
+                if target in NPC_MARRIED and NPC_MARRIED[target] != target:
+                    return reject("target_in_couple")
+                if npc["location"] != a["location"]:
+                    return reject("not_together")
+                money = _int_arg((args or {}).get("gift_money"), 0)
+                if money is None or money < 0:
+                    return reject("bad_arg:gift_money")
+                item = str((args or {}).get("gift_item") or "")
+                qty = _int_arg((args or {}).get("gift_qty"), 1)
+                if qty is None or qty < 1:
+                    return reject("bad_arg:gift_qty")
+                if item and int(a["items"].get(item, 0)) < qty:
+                    return reject("gift_missing")
+                if money > a["money"]:
+                    return reject("not_enough_money")
+                aff = float(a["affection"].get(target, 0))
+                trust = float(a["trust"].get(target, 0))
+                if aff >= 60.0 and trust >= 30.0:
+                    decision = "accept"
+                elif aff >= 45.0 or trust >= 20.0:
+                    decision = "courtship"
+                else:
+                    decision = "reject"
+                a["tick"] += 4
+                a["event_seq"] += 1
+                if decision == "accept":
+                    a["money"] -= money
+                    if item:
+                        a["items"][item] = int(a["items"].get(item, 0)) - qty
+                    m.update({"status": "married", "spouse_id": target,
+                              "spouse_name": npc["name"], "since_tick": a["tick"],
+                              "last_daily_tick": a["tick"], "daily_note": ""})
+                return 200, {"ok": True, "event_seq": a["event_seq"], "tick": a["tick"],
+                             "next_tick": a["tick"] + 6,
+                             "details": {"decision": decision,
+                                         "marriage": dict(m)}}
+            if verb == "marriage_end":
+                m = a["marriage"]
+                if m.get("status") != "married":
+                    return reject("not_married")
+                npc = self._npc(str(m.get("spouse_id") or ""))
+                if npc is None or npc["location"] != a["location"]:
+                    return reject("spouse_not_here")
+                a["tick"] += 3
+                a["event_seq"] += 1
+                name = m.get("spouse_name")
+                m.update({"status": "single", "spouse_id": "", "spouse_name": "",
+                          "since_tick": 0, "last_daily_tick": 0, "daily_note": ""})
+                return 200, {"ok": True, "event_seq": a["event_seq"], "tick": a["tick"],
+                             "next_tick": a["tick"] + 6,
+                             "details": {"decision": "ended", "spouse_name": name,
+                                         "marriage": dict(m)}}
             if verb in ("cultivate",):
                 a["tick"] += 2
                 a["event_seq"] += 1
@@ -735,7 +820,16 @@ class Handler(SimpleHTTPRequestHandler):
             self._json(200, self.world.feed((q.get("limit") or ["20"])[0]))
             return
         if path == "/api/player/messages":
-            self._json(200, {"ok": True, "rows": []})
+            q = parse_qs(urlsplit(self.path).query)
+            account = (q.get("account_id") or [""])[0]
+            since = int((q.get("since_tick") or ["0"])[0] or 0)
+            with self.world.lock:
+                a = self.world.accounts.get(account) or {}
+                rows = [{"kind": "talk_reply", "from": r["from"], "text": r["text"],
+                         "tick": r["tick"]}
+                        for r in (a.get("replies") or []) if int(r.get("tick", 0)) >= since]
+            self._json(200, {"ok": True, "messages": rows,
+                             "next_since_tick": (rows[-1]["tick"] + 1) if rows else since})
             return
         if path == "/__check/feed_push":
             # keep_blank_values：允许 summary= 传空串，用来验证 verb→中文兜底。
@@ -751,6 +845,23 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if path == "/api/player/intents":
             self._json(404, {"ok": False, "reason": "intent_not_found"})
+            return
+        if path == "/__check/marriage":
+            q = parse_qs(urlsplit(self.path).query)
+            account = (q.get("account") or [""])[0]
+            target = (q.get("target") or ["npc:wang_tiejiang"])[0]
+            with self.world.lock:
+                a = self.world.accounts.get(account)
+                if a is None:
+                    self._json(404, {"ok": False, "reason": "account_missing"})
+                    return
+                if "affection" in q:
+                    a["affection"][target] = float(q["affection"][0])
+                if "trust" in q:
+                    a["trust"][target] = float(q["trust"][0])
+                self._json(200, {"ok": True, "target": target,
+                                 "affection": a["affection"].get(target, 0),
+                                 "trust": a["trust"].get(target, 0)})
             return
         if path == "/__check/expire":
             self.world.expire_all()
@@ -1781,6 +1892,258 @@ def commerce_snapshot(page):
     }""")
 
 
+MARRIAGE_EVIDENCE = ROOT / "reports" / "w4-marriage"
+
+
+def marriage_capture(page, name, results, extra=None):
+    MARRIAGE_EVIDENCE.mkdir(parents=True, exist_ok=True)
+    path = MARRIAGE_EVIDENCE / (name + ".png")
+    page.screenshot(path=str(path))
+    if extra is not None:
+        extra["screenshot"] = str(path.relative_to(ROOT))
+    return extra
+
+
+def marriage_snapshot(page):
+    return page.evaluate("() => window.__XKX.marriageState()")
+
+
+def marriage_set_relation(page, account, target, aff, trust):
+    page.evaluate("""async (p) => {
+      const url = '/__check/marriage?account=' + encodeURIComponent(p.account) +
+        '&target=' + encodeURIComponent(p.target) +
+        '&affection=' + encodeURIComponent(p.aff) + '&trust=' + encodeURIComponent(p.trust);
+      await fetch(url);
+      await window.__XKX.refreshState(p.account);
+    }""", {"account": account, "target": target, "aff": aff, "trust": trust})
+    page.wait_for_function("""(p) => {
+      const s = window.__XKX.marriageState();
+      const c = (s.candidates || []).filter(x => x.id === p.target)[0];
+      return !!c && Math.abs(c.affection - p.aff) < 0.01 && Math.abs(c.trust - p.trust) < 0.01;
+    }""", arg={"target": target, "aff": aff, "trust": trust}, timeout=8000)
+
+
+def run_marriage(browser, base, results, world):
+    account = "u_marriage_mock"
+    spouse_id = "npc:wang_tiejiang"
+    ctx = browser.new_context(viewport={"width": 1280, "height": 900})
+    page = ctx.new_page()
+    shots = []
+
+    def shot(name, extra=None):
+        shots.append(name)
+        return marriage_capture(page, name, results, extra)
+
+    def choose(target):
+        page.click('[data-propose-choose="%s"]' % target)
+        page.wait_for_function("(id) => window.__XKX.marriageState().target === id",
+                               arg=target, timeout=5000)
+
+    def propose(money, item, qty):
+        page.fill("#proposeMoney", str(money))
+        page.select_option("#proposeItem", item)
+        page.fill("#proposeQty", str(qty))
+        page.click("#proposeGo")
+
+    def wait_result(needle, timeout=12000):
+        page.wait_for_function(
+            "(needle) => document.getElementById('proposeResult').textContent.indexOf(needle) >= 0",
+            arg=needle, timeout=timeout)
+
+    try:
+        page.goto(base + "/?ui_check=1")
+        enter_world(page, account, "婚仪验客")
+        try:
+            page.wait_for_selector("#guideSkip", state="visible", timeout=4000)
+            page.click("#guideSkip")
+            page.wait_for_function("() => document.getElementById('guideLayer').classList.contains('hidden')",
+                                   timeout=6000)
+        except Exception:
+            pass
+        page.locator("#commerceBlock").scroll_into_view_if_needed()
+        page.click('button[data-tab="marriage"]')
+        page.wait_for_function("() => !document.getElementById('pane-marriage').classList.contains('hidden')")
+        snap = marriage_snapshot(page)
+        rows = snap["candidates"]
+        results.add("婚姻 候选列表（好感/信任/已婚/同地点）",
+                    len(rows) >= 3 and all(row["married"] for row in rows),
+                    {"candidates": rows})
+        list_text = page.locator("#proposeList").inner_text()
+        results.add("婚姻 候选行显示四项字段",
+                    "好感" in list_text and "信任" in list_text
+                    and "同地点" in list_text and "已婚状态" in list_text,
+                    {"text": list_text[:160]})
+        wang = [row for row in rows if row["id"] == spouse_id][0]
+        results.add("婚姻 候选数据（王铁匠 7.0/7.0）",
+                    abs(wang["affection"] - 7.0) < 0.01 and abs(wang["trust"] - 7.0) < 0.01
+                    and wang["sameLocation"] and not wang["isSpouse"],
+                    wang)
+        shot("mock-marriage-1-candidates")
+
+        # 1) 好感/信任不足：中文婉拒，不露 code
+        choose(spouse_id)
+        marriage_set_relation(page, account, spouse_id, 10, 10)
+        page.fill("#proposeMoney", "0")
+        page.select_option("#proposeItem", "")
+        page.click("#proposeGo")
+        wait_result("婉拒")
+        text = page.locator("#proposeResult").inner_text()
+        results.add("婚姻 婉拒为中文且不露 code",
+                    "婉拒" in text and "bond_too_low" not in text and "trust_too_low" not in text,
+                    {"result": text})
+        shot("mock-marriage-2-reject")
+
+        # 2) 原因码映射全表（婚姻 + 后续 rest/押镖码）
+        codes = ["bond_too_low", "trust_too_low", "gift_missing", "not_enough_money",
+                 "already_married", "target_in_couple", "not_together", "self_propose",
+                 "spouse_not_here", "not_married", "no_payer_funds",
+                 "cannot_rest_while_escorting", "cannot_rest_now"]
+        mapped = page.evaluate("""(codes) => codes.map(c => [c, window.__XKX.reasonText(c)])""",
+                               codes)
+        bad = [c for c, t in mapped if not t or c in t]
+        results.add("婚姻 13 个原因码均有中文映射",
+                    not bad and all(len(t) >= 6 for _, t in mapped),
+                    {"mapped": mapped, "bad": bad})
+
+        # 3) 再处处看：不扣聘礼
+        before = marriage_snapshot(page)["money"]
+        marriage_set_relation(page, account, spouse_id, 50, 25)
+        propose(20, "", 1)
+        wait_result("再处处看")
+        after = marriage_snapshot(page)["money"]
+        results.add("婚姻 再处处看不扣聘礼",
+                    after == before and "再处处看" in page.locator("#proposeResult").inner_text(),
+                    {"before": before, "after": after})
+        shot("mock-marriage-3-courtship")
+
+        # 4) 达到门槛：成婚 + 配偶栏 + 聘礼/信物扣除
+        marriage_set_relation(page, account, spouse_id, 65, 35)
+        gift = [x for x in marriage_snapshot(page)["giftRows"] if x == "coarse_cloth"]
+        propose(40, "coarse_cloth", 1)
+        page.wait_for_function("() => window.__XKX.marriageState().status === 'married'",
+                               timeout=12000)
+        snap = marriage_snapshot(page)
+        results.add("婚姻 成婚结果含姓名与 tick",
+                    "成婚，tick" in snap["result"] and "王铁匠" in snap["result"],
+                    {"result": snap["result"]})
+        results.add("婚姻 配偶常驻栏出现",
+                    snap["spouseBlockVisible"] and "王铁匠" in snap["spouseInfo"]
+                    and "成婚 tick" in snap["spouseInfo"],
+                    {"spouseInfo": snap["spouseInfo"], "spouseNote": snap["spouseNote"]})
+        results.add("婚姻 今日陪伴口径可见",
+                    "今日已陪伴" in snap["spouseNote"] or "同地点" in snap["spouseNote"],
+                    {"spouseNote": snap["spouseNote"]})
+        results.add("婚姻 聘礼与信物真实扣除",
+                    snap["money"] == before - 40 and "coarse_cloth" not in snap["giftRows"],
+                    {"money": snap["money"], "before": before, "giftRows": snap["giftRows"],
+                     "gift_before": gift})
+        shot("mock-marriage-4-spouse-block")
+
+        # 5) 配偶对话与普通 NPC 可区分
+        page.wait_for_selector(".npc.spouse", timeout=8000)
+        page.click(".npc.spouse")
+        page.wait_for_function("() => document.getElementById('talkTarget').textContent.indexOf('（配偶）') >= 0",
+                               timeout=8000)
+        page.click("#npcClose")
+        page.wait_for_function("() => document.getElementById('npcModal').classList.contains('hidden')",
+                               timeout=6000)
+        page.fill("#talkInput", "今天回来吃饭吗")
+        page.click("#talkSend")
+        page.wait_for_selector(".reply-item.spouse", timeout=12000)
+        reply = page.locator(".reply-item.spouse").first.inner_text()
+        results.add("婚姻 配偶对话标记（配偶）并高亮",
+                    "（配偶）" in page.locator("#talkTarget").inner_text()
+                    and "（配偶）" in reply,
+                    {"talkTarget": page.locator("#talkTarget").inner_text(), "reply": reply})
+        shot("mock-marriage-5-spouse-talk")
+
+        # 6) 和离二次确认：取消不提交、确认后回单身
+        page.click("#marriageEndBtn")
+        page.wait_for_function("() => !document.getElementById('divorceModal').classList.contains('hidden')")
+        modal_text = page.locator("#divorceModal").inner_text()
+        results.add("婚姻 和离弹层写清聘礼不退还",
+                    "聘礼不退还" in modal_text and "和离" in modal_text,
+                    {"modal": modal_text})
+        shot("mock-marriage-6-divorce-confirm")
+        page.click("#divorceCancel")
+        page.wait_for_function("() => document.getElementById('divorceModal').classList.contains('hidden')")
+        results.add("婚姻 取消和离不改变婚姻态",
+                    marriage_snapshot(page)["status"] == "married",
+                    {"status": marriage_snapshot(page)["status"]})
+        before_tick = world.accounts[account]["tick"]
+        page.click("#marriageEndBtn")
+        page.click("#divorceConfirm")
+        page.wait_for_function("() => window.__XKX.marriageState().status === 'single'", timeout=12000)
+        snap = marriage_snapshot(page)
+        results.add("婚姻 和离成功回单身且配偶栏隐藏",
+                    not snap["spouseBlockVisible"] and "和离" in snap["result"],
+                    {"result": snap["result"], "tick_before": before_tick,
+                     "tick_after": world.accounts[account]["tick"]})
+        shot("mock-marriage-7-single")
+
+        # 7) 未开放页只留立派/收徒
+        page.click('button[data-tab="soon"]')
+        page.wait_for_function("() => !document.getElementById('pane-soon').classList.contains('hidden')")
+        soon = page.locator("#pane-soon").inner_text()
+        results.add("婚姻 未开放页移除结婚，仅立派/收徒",
+                    "结婚" not in soon and "立派" in soon and "收徒" in soon,
+                    {"soon": soon})
+
+        # 8) rest 占位：提示但不发请求
+        page.click('button[data-tab="shop"]')
+        before_tick = world.accounts[account]["tick"]
+        page.click("#restBtn")
+        rest = page.locator("#restResult").inner_text()
+        results.add("婚姻 rest 占位只提示，不发请求",
+                    "体力恢复中" in rest and world.accounts[account]["tick"] == before_tick,
+                    {"rest": rest, "tick_before": before_tick,
+                     "tick_after": world.accounts[account]["tick"]})
+
+        # 9) 375×812 不横向溢出、控件 ≥44px
+        page.set_viewport_size({"width": 375, "height": 812})
+        page.click('button[data-tab="marriage"]')
+        page.wait_for_selector("#proposeGo:visible")
+        sizes = page.evaluate("""() => {
+          const out = {scrollWidth: document.documentElement.scrollWidth,
+                       innerWidth: window.innerWidth,
+                       controls: {}};
+          for (const sel of ['#proposeGo', '#proposeMoney', '#proposeItem',
+                             '#proposeQty']) {
+            const n = document.querySelector(sel);
+            const r = n ? n.getBoundingClientRect() : {height: 0};
+            out.controls[sel] = Math.round(r.height);
+          }
+          return out;
+        }""")
+        shot("mock-marriage-8-mobile")
+        page.click('button[data-tab="shop"]')
+        page.wait_for_selector("#restBtn:visible")
+        rest_h = page.evaluate("""() => Math.round(document.getElementById('restBtn')
+          .getBoundingClientRect().height)""")
+        sizes["controls"]["#restBtn"] = rest_h
+        results.add("婚姻 375×812 不横向溢出",
+                    sizes["scrollWidth"] <= sizes["innerWidth"] + 1, sizes)
+        results.add("婚姻 375×812 新增控件 ≥44px",
+                    all(h >= 44 for h in sizes["controls"].values()), sizes)
+
+        # 10) 键盘：页签可聚焦、Enter 切换
+        page.set_viewport_size({"width": 1280, "height": 900})
+        page.focus('button[data-tab="marriage"]')
+        focused = page.evaluate("() => document.activeElement && document.activeElement.getAttribute('data-tab')")
+        page.keyboard.press("Enter")
+        results.add("婚姻 键盘可聚焦并切换页签",
+                    focused == "marriage"
+                    and not page.locator("#pane-marriage").evaluate(
+                        "n => n.classList.contains('hidden')"),
+                    {"focused": focused})
+    finally:
+        ctx.close()
+    (MARRIAGE_EVIDENCE / "mock-marriage.json").write_text(
+        json.dumps({"shots": shots, "checks": [r for r in results.rows if r["name"].startswith("婚姻 ")],
+                    "failed": sum(1 for r in results.rows if r["name"].startswith("婚姻 ") and not r["ok"])},
+                   ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 def run_commerce(browser, base, results, world):
     ctx, page = commerce_page(browser, base, "u_commerce", "商户甲")
     snap = commerce_snapshot(page)
@@ -1969,8 +2332,10 @@ def run_commerce(browser, base, results, world):
 
     page.click('[data-tab="soon"]')
     snap = commerce_snapshot(page)
-    results.must("商业 未开放玩法显示明确文案（结婚入口预留）",
-                 "结婚" in snap["soon"] and "该玩法尚未开放" in snap["soon"], snap["soon"])
+    results.must("商业 未开放玩法显示明确文案（仅立派/收徒，结婚已移出）",
+                 "立派" in snap["soon"] and "收徒" in snap["soon"]
+                 and "该玩法尚未开放" in snap["soon"] and "结婚" not in snap["soon"],
+                 snap["soon"])
     results.must("商业 not_implemented_for_player 中文映射",
                  page.evaluate("() => window.__XKX.reasonText('not_implemented_for_player', '')") == "该玩法尚未开放。",
                  page.evaluate("() => window.__XKX.reasonText('not_implemented_for_player', '')"))
@@ -2035,7 +2400,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--serve", action="store_true", help="只启动 mock 服务")
     ap.add_argument("--only", default="",
-                    help="desktop|mobile|keyboard|auth|reasons|regression|feed|commerce，逗号分隔")
+                    help="desktop|mobile|keyboard|auth|reasons|regression|feed|commerce|marriage，逗号分隔")
     ap.add_argument("--auth", action="store_true", help="--serve 时启用鉴权模式")
     args = ap.parse_args()
 
@@ -2065,6 +2430,8 @@ def main():
                     run_reasons(browser, base, results)
                 if not only or "feed" in only:
                     run_feed(browser, base, results, world)
+                if not only or "marriage" in only:
+                    run_marriage(browser, base, results, world)
                 if not only or "commerce" in only:
                     run_commerce(browser, base, results, world)
                 if not only or "desktop" in only:
@@ -2088,6 +2455,14 @@ def main():
         httpd.shutdown()
 
     results.dump(EVIDENCE_DIR / "checks.json")
+
+    marriage_rows = [r for r in results.rows if r["name"].startswith("婚姻 ")]
+    if marriage_rows:
+        MARRIAGE_EVIDENCE.mkdir(parents=True, exist_ok=True)
+        MARRIAGE_EVIDENCE.joinpath("mock-marriage.json").write_text(
+            json.dumps({"checks": marriage_rows,
+                        "failed": sum(1 for r in marriage_rows if not r["ok"])},
+                       ensure_ascii=False, indent=2), encoding="utf-8")
 
     # 世界动态专项证据（reports/w4-feed）：桌面 + 移动端检查与匿名性
     feed_rows = [r for r in results.rows

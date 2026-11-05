@@ -84,6 +84,16 @@
     qtyMax: 3
   };
   const SHOP_HIRE = { minAffection: 6.0, minSkill: 0.15, wageMinRatio: 0.8, wageMaxRatio: 1.5, capacity: { stall: 1, storefront: 2, branch: 3 } };
+  /* 婚姻裁决口径对齐 src/wsim/actions/marriage.py：
+     接受 = 好感 ≥60 且 信任 ≥30；再处处看 = 好感 ≥45 或 信任 ≥20；其余为拒绝。 */
+  const MARRIAGE_RULES = {
+    minAffection: 60.0,
+    minTrust: 30.0,
+    courtshipAffection: 45.0,
+    courtshipTrust: 20.0,
+    giftQtyMax: 20,
+    reasonChars: 40
+  };
 
   function tierOf(kind) {
     return COMMERCE_TIERS.filter(function (t) { return t.kind === kind; })[0] || null;
@@ -239,6 +249,15 @@
     target_not_player: '该操作只对玩家角色有效。',
     trust_too_low: '信任不足；先建立更深的交情。',
     unknown_actor: '操作发起人不在世界里；请刷新后重试。',
+    /* 押镖付款方与休息：服务端已登记原因码，UI 入口按上线节奏开放。 */
+    no_payer_funds: '付款方资金不足，这单暂时接不了。',
+    cannot_rest_while_escorting: '押镖途中不能休息；先完成这趟镖。',
+    cannot_rest_now: '现在不能休息；请稍后再试。',
+    'bad_arg:hours': '休息时长必须是 1-8 小时的整数。',
+    actor_not_alive: '操作发起人已不在人世。',
+    target_not_alive: '对方已不在人世。',
+    'bad_arg:gift_money': '聘礼必须是整数。',
+    'bad_arg:gift_qty': '信物数量必须是 1-20 的整数。',
     /* 玩家尚未开放的玩法：给明确文案，绝不落到「未知操作」。 */
     not_implemented_for_player: '该玩法尚未开放。',
     sect_exists: '这里已经有门派了。',
@@ -304,6 +323,12 @@
       hire: '',
       escort: '',
       deferred: null    // 正在输入表单时暂存的 state，失焦后补渲染
+    },
+    marriage: {
+      account: '',
+      target: '',      // 当前选中的求婚对象 id
+      result: '',      // 求婚/和离结果文案（跨轮询保留）
+      resultBad: false
     },
     ui: {
       errors: [],
@@ -1249,6 +1274,12 @@
     } else {
       state.commerce.account = acct;
     }
+    if (state.marriage.account && state.marriage.account !== acct) {
+      // 换账号时清掉上一段婚约的选择与结果，避免把别人的配偶带进界面。
+      state.marriage = { account: acct, target: '', result: '', resultBad: false };
+    } else {
+      state.marriage.account = acct;
+    }
     const readonly = !!st.readonly || !!(state.health && state.health.readonly);
     state.session = {
       accountId: st.account_id || p.account_id || '',
@@ -1329,6 +1360,7 @@
     renderQuests(st);
     renderToday(st);
     renderGrowth(st);
+    renderSpouseBlock(st);
     renderCommerce(st);
     renderTalkTarget();
     renderLog();
@@ -1449,11 +1481,14 @@
     present.forEach(function (npc) {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'npc' + (state.selected && state.selected.id === npc.id ? ' selected' : '');
+      const spouse = isSpouseNpc(npc, st);
+      btn.className = 'npc' + (state.selected && state.selected.id === npc.id ? ' selected' : '') +
+        (spouse ? ' spouse' : '');
       btn.innerHTML =
         '<span class="avatar role-' + escapeHtml(npc.role) + '">' + escapeHtml(firstChar(npc.name)) + '</span>' +
         '<span class="npc-main"><span class="npc-name">' + escapeHtml(npc.name) +
-        '<span class="npc-role">' + escapeHtml(npc.role) + '</span></span>' +
+        '<span class="npc-role">' + escapeHtml(npc.role) + '</span>' +
+        (spouse ? '<span class="spouse-badge">配偶</span>' : '') + '</span>' +
         '<span class="npc-doing">' + escapeHtml(npc.doing || '无记录') + '</span>' +
         '<span class="npc-goal">' + escapeHtml(npc.presence || '') + '</span>' +
         '</span>';
@@ -1514,9 +1549,12 @@
       box.innerHTML = '<div class="empty">点左侧在场 NPC，或搜索当前地点的人。</div>';
       return;
     }
+    const spouse = isSpouseNpc(npc, state.st);
+    box.classList.toggle('spouse', spouse);
     box.innerHTML =
       '<span class="avatar role-' + escapeHtml(npc.role || '') + '">' + escapeHtml(firstChar(npc.name)) + '</span>' +
-      '<div><div class="who">' + escapeHtml(npc.name) + '</div>' +
+      '<div><div class="who">' + escapeHtml(npc.name) +
+      (spouse ? '（配偶）<span class="spouse-badge">配偶</span>' : '') + '</div>' +
       '<div class="where">' + escapeHtml(npc.role || '') + ' · ' +
       escapeHtml((state.st && state.st.location && state.st.location.name) || '当前地点') +
       ' · ' + escapeHtml(npc.presence || '') + '</div></div>';
@@ -1531,10 +1569,16 @@
       if (state.seenMessages[id]) return;
       state.seenMessages[id] = true;
       const node = document.createElement('div');
-      node.className = 'reply-item';
+      const spouse = isSpouseName(msg.from);
+      const fromLabel = spouse
+        ? spouseNameOf(state.st)
+        : (npcDisplayName(msg.from) || String(msg.from || 'NPC'));
+      node.className = 'reply-item' + (spouse ? ' spouse' : '');
       node.innerHTML =
-        '<div class="reply-head"><b>' + escapeHtml(msg.from || 'NPC') + '</b>' +
-        '<span class="pill">世界回应</span><small>tick ' + escapeHtml(msg.tick == null ? '?' : msg.tick) +
+        '<div class="reply-head"><b>' + escapeHtml(fromLabel) +
+        (spouse ? '（配偶）' : '') + '</b>' +
+        '<span class="pill">' + (spouse ? '配偶回应' : '世界回应') + '</span><small>tick ' +
+        escapeHtml(msg.tick == null ? '?' : msg.tick) +
         ' · ' + escapeHtml(label || ('/api/player/messages?since_tick=' + sinceTick)) + '</small></div>' +
         '<div class="reply-text">' + escapeHtml(msg.text || '') + '</div>';
       box.appendChild(node);
@@ -1594,8 +1638,11 @@
         return;
       }
       const since = Math.max(0, Number(data.tick == null ? beforeTick : data.tick) - 1);
+      const withSpouse = isSpouseNpc(npc, state.st);
       box.classList.add('ok');
-      box.innerHTML = '<b>对话已执行</b> <code>' + escapeHtml(data.intent_id || '') + '</code>' +
+      box.classList.toggle('spouse', withSpouse);
+      box.innerHTML = '<b>对话已执行' + (withSpouse ? '（配偶）' : '') + '</b> <code>' +
+        escapeHtml(data.intent_id || '') + '</code>' +
         ' · event_seq ' + escapeHtml(data.event_seq == null ? '?' : data.event_seq) +
         ' · tick ' + escapeHtml(data.tick == null ? '?' : data.tick) +
         '<br><span class="tiny">正在用 <code>/api/player/messages?since_tick=' + since + '</code> 取世界回应…</span>';
@@ -2000,7 +2047,7 @@
   function setCommerceTab(tab) {
     const tabs = el('commerceTabs');
     if (!tabs) return;
-    const valid = ['shop', 'business', 'hire', 'escort', 'soon'];
+    const valid = ['shop', 'business', 'hire', 'escort', 'marriage', 'soon'];
     const cur = valid.indexOf(tab) >= 0 ? tab : 'shop';
     state.commerce.tab = cur;
     Array.prototype.forEach.call(tabs.querySelectorAll('[data-tab]'), function (btn) {
@@ -2357,7 +2404,6 @@
 
   function renderSoonList() {
     const rows = [
-      { verb: 'marry', name: '结婚', note: '该玩法尚未开放；入口先留在这里，下一步开放。' },
       { verb: 'found_sect', name: '立派', note: '该玩法尚未开放；入口先留在这里。' },
       { verb: 'apprentice', name: '收徒', note: '该玩法尚未开放；入口先留在这里。' }
     ];
@@ -2368,6 +2414,403 @@
         '<div class="row-actions"><button type="button" class="ghost commerce-btn" disabled ' +
         'title="该玩法尚未开放">尚未开放</button></div></div>';
     }).join('');
+  }
+
+  /* ------------------------------------------------------------- 婚姻 */
+  function marriageOf(st) {
+    return (st && st.marriage) || {};
+  }
+
+  function spouseIdOf(st) {
+    return String(marriageOf(st).spouse_id || '');
+  }
+
+  function spouseNameOf(st) {
+    const m = marriageOf(st);
+    return String(m.spouse_name || m.spouse_id || '');
+  }
+
+  function isSpouseNpc(npc, st) {
+    if (!npc || String(marriageOf(st).status || '') !== 'married') return false;
+    const sid = spouseIdOf(st);
+    if (!sid) return false;
+    if (String(npc.id || '') === sid) return true;
+    const name = spouseNameOf(st);
+    return !!(name && String(npc.name || '') === name);
+  }
+
+  function isSpouseName(name) {
+    if (String(marriageOf(state.st).status || '') !== 'married') return false;
+    const spouse = spouseNameOf(state.st);
+    const sid = spouseIdOf(state.st);
+    const raw = String(name || '');
+    /* 服务端 /messages 的 from 是 NPC 实体 id；本地 mock/未来接口也可能给姓名。 */
+    return !!(raw && (raw === spouse || (sid && raw === sid)));
+  }
+
+  function npcDisplayName(id) {
+    const rows = (state.st && state.st.present_npcs) || [];
+    for (let i = 0; i < rows.length; i += 1) {
+      const row = rows[i] || {};
+      if (String(row.id) === String(id)) return String(row.name || '');
+    }
+    return '';
+  }
+
+  function marriageCandidates(st) {
+    const rel = relationMap(st);
+    const m = marriageOf(st);
+    const sid = spouseIdOf(st);
+    const p = (st && st.player) || {};
+    const selfIds = [String(p.entity_id || ''),
+      state.session && state.session.entityId ? String(state.session.entityId) : ''];
+    return ((st && st.present_npcs) || []).filter(function (npc) {
+      return npc && npc.id;
+    }).map(function (npc) {
+      const r = rel[npc.id] || {};
+      const aff = Number(r.affection || 0);
+      const trust = Number(r.trust || 0);
+      const isSelf = selfIds.indexOf(String(npc.id)) >= 0;
+      const isSpouse = !!sid && String(npc.id) === sid;
+      const marriedText = isSpouse ? '已婚（你的配偶）' :
+        (isSelf ? '你自己' : '已婚状态：接口未提供');
+      return { npc: npc, aff: aff, trust: trust, isSelf: isSelf,
+        isSpouse: isSpouse, marriedText: marriedText,
+        couple: String(m.status || '') === 'married' };
+    });
+  }
+
+  function marriageOfCandidate(st, id) {
+    return marriageCandidates(st).filter(function (row) {
+      return String(row.npc.id) === String(id || '');
+    })[0] || null;
+  }
+
+  function giftRowsOf(st) {
+    const items = (((st && st.player) || {}).wallet || {}).items || [];
+    return items.filter(function (it) {
+      return it && it.item && Number(it.qty || 0) > 0;
+    }).map(function (it) {
+      return { item: it.item, name: it.name || it.item, qty: Number(it.qty || 0) };
+    });
+  }
+
+  function decisionHint(aff, trust) {
+    if (aff >= MARRIAGE_RULES.minAffection && trust >= MARRIAGE_RULES.minTrust) {
+      return { tone: 'ok', text: '预计接受：好感 ≥60 且信任 ≥30；服务端仍会复核聘礼与信物。' };
+    }
+    if (aff >= MARRIAGE_RULES.courtshipAffection || trust >= MARRIAGE_RULES.courtshipTrust) {
+      return { tone: 'warn', text: '预计婉拒：会进入「再处处看」，不扣聘礼与信物。' };
+    }
+    return { tone: 'bad', text: '预计拒绝：好感与信任都不足，不扣聘礼与信物。' };
+  }
+
+  function renderSpouseBlock(st) {
+    const block = el('marriageBlock');
+    if (!block) return;
+    const m = marriageOf(st);
+    const married = String(m.status || '') === 'married' && (m.spouse_id || m.spouse_name);
+    block.classList.toggle('hidden', !married);
+    if (!married) return;
+    const since = Number(m.since_tick || 0);
+    el('spouseInfo').textContent = '配偶：' + (m.spouse_name || m.spouse_id || '—') +
+      ' · 成婚 tick ' + since;
+    const note = String(m.daily_note || '').trim();
+    const last = Number(m.last_daily_tick || 0);
+    let text = '';
+    if (note || (last && last >= since)) {
+      text = '今日已陪伴' + (last ? '（tick ' + last + '）' : '') +
+        (note ? '：' + note : '。');
+    } else {
+      const near = ((st && st.nearby) || []).concat((st && st.present_npcs) || []);
+      const together = near.some(function (npc) {
+        return npc && String(npc.id || '') === spouseIdOf(st);
+      });
+      text = together
+        ? '今日与你同地点（接口未返回 spouse_time，按 nearby 同地点近似）。'
+        : '今日陪伴记录未由接口提供（也不在同地点）。';
+    }
+    el('spouseNote').textContent = text;
+    el('spouseCaliber').textContent = '伴侣日常';
+    el('divorceAvatar').textContent = firstChar(m.spouse_name || '离');
+  }
+
+  function renderMarriagePane(st) {
+    if (!state.st) return;
+    const m = marriageOf(st);
+    const married = String(m.status || '') === 'married';
+    const candidates = marriageCandidates(st);
+    const money = Number(((st.player || {}).wallet || {}).money || 0);
+    el('marriageHint').textContent = married
+      ? '你已成婚；和离后才能再求婚。'
+      : (candidates.length
+        ? ('当前地点 ' + candidates.length + ' 人；好感 / 信任取自关系记录')
+        : '当前地点没有可求婚的人');
+    const list = el('proposeList');
+    if (!candidates.length) {
+      list.innerHTML = '<div class="commerce-empty">当前地点没有可求婚的人。</div>';
+    } else {
+      list.innerHTML = candidates.map(function (row) {
+        const selected = String(state.marriage.target) === String(row.npc.id);
+        return '<div class="commerce-row propose-row' + (selected ? ' selected' : '') +
+          '" data-propose-row="' + escapeHtml(row.npc.id) + '">' +
+          '<div class="row-main"><span class="row-name">' + escapeHtml(row.npc.name || row.npc.id) +
+          '<span class="pill">' + escapeHtml(row.npc.role || '') + '</span>' +
+          (row.isSpouse ? '<span class="spouse-badge">配偶</span>' : '') + '</span>' +
+          '<span class="row-meta">好感 ' + escapeHtml(row.aff.toFixed(1)) +
+          ' · 信任 ' + escapeHtml(row.trust.toFixed(1)) +
+          ' · 同地点 · ' + escapeHtml(row.marriedText) + '</span></div>' +
+          '<div class="row-actions"><button type="button" class="ghost commerce-btn" ' +
+          'data-propose-choose="' + escapeHtml(row.npc.id) + '"' +
+          ((married || row.isSelf) ? ' disabled title="' +
+            escapeHtml(married ? '你已成婚' : '不能向自己求婚') + '"' : '') + '>' +
+          (selected ? '已选' : '选此人') + '</button></div></div>';
+      }).join('');
+    }
+    if (state.marriage.target &&
+        !candidates.some(function (row) { return String(row.npc.id) === String(state.marriage.target); })) {
+      state.marriage.target = '';
+    }
+    if (!state.marriage.target && !married) {
+      const first = candidates.filter(function (row) { return !row.isSelf; })[0] || candidates[0];
+      if (first) state.marriage.target = String(first.npc.id);
+    }
+    const gifts = giftRowsOf(st);
+    const select = el('proposeItem');
+    const prev = select.value;
+    select.innerHTML = '<option value="">不带信物</option>' + gifts.map(function (row) {
+      return '<option value="' + escapeHtml(row.item) + '">' + escapeHtml(row.name) +
+        '（持有 ' + escapeHtml(row.qty) + '）</option>';
+    }).join('');
+    select.value = gifts.some(function (row) { return row.item === prev; }) ? prev : '';
+    el('proposeMoney').max = String(Math.max(0, money));
+    const result = el('proposeResult');
+    result.textContent = state.marriage.result || '';
+    result.classList.toggle('bad', !!state.marriage.resultBad);
+    result.classList.toggle('ok', !!state.marriage.result && !state.marriage.resultBad);
+    updateProposeEstimate();
+  }
+
+  function updateProposeEstimate() {
+    const st = state.st;
+    if (!st) return;
+    const m = marriageOf(st);
+    const est = el('proposeEstimate');
+    const go = el('proposeGo');
+    const line = el('proposeTargetLine');
+    est.className = 'hint';
+    go.disabled = false;
+    go.textContent = '求婚';
+    if (String(m.status || '') === 'married') {
+      est.textContent = '你已成婚；先和离，才能再向别人求婚。';
+      go.disabled = true;
+      line.textContent = '配偶：' + spouseNameOf(st);
+      return;
+    }
+    const row = marriageOfCandidate(st, state.marriage.target);
+    if (!row) {
+      est.textContent = '先选一个在场的人，再定聘礼与信物。';
+      go.disabled = true;
+      line.textContent = '先选一个人，再定聘礼与信物。';
+      return;
+    }
+    const money = Math.floor(Number(el('proposeMoney').value) || 0);
+    const wallet = Number(((st.player || {}).wallet || {}).money || 0);
+    const item = el('proposeItem').value;
+    const gift = giftRowsOf(st).filter(function (g) { return g.item === item; })[0] || null;
+    const held = gift ? gift.qty : 0;
+    const qty = Math.max(1, Math.min(MARRIAGE_RULES.giftQtyMax,
+      Math.floor(Number(el('proposeQty').value) || 1)));
+    el('proposeQty').max = String(gift ? Math.max(1, Math.min(MARRIAGE_RULES.giftQtyMax, held)) :
+      MARRIAGE_RULES.giftQtyMax);
+    line.textContent = '求婚对象：' + (row.npc.name || row.npc.id) +
+      ' · 好感 ' + row.aff.toFixed(1) + ' · 信任 ' + row.trust.toFixed(1) +
+      ' · ' + row.marriedText;
+    const hint = decisionHint(row.aff, row.trust);
+    if (row.isSelf) {
+      est.textContent = reasonText('self_propose');
+      go.disabled = true;
+      return;
+    }
+    if (money < 0 || money > wallet) {
+      est.textContent = '聘礼 ' + money + ' 文超过钱包余额（' + wallet + ' 文）；先改小聘礼。';
+      go.disabled = true;
+      return;
+    }
+    if (item && qty > held) {
+      est.textContent = '信物数量超过持有（' + held + ' 件）；先改小数量。';
+      go.disabled = true;
+      return;
+    }
+    est.textContent = hint.text + ' · 聘礼 ' + money + ' 文' +
+      (gift ? (' · 信物 ' + (gift.name || gift.item) + '×' + qty) : ' · 不带信物');
+    est.className = 'hint ' + hint.tone;
+  }
+
+  function showMarriageResult(text, bad) {
+    state.marriage.result = text || '';
+    state.marriage.resultBad = !!bad;
+    const box = el('proposeResult');
+    if (box) {
+      box.textContent = state.marriage.result;
+      box.classList.toggle('bad', !!bad);
+      box.classList.toggle('ok', !!text && !bad);
+    }
+  }
+
+  async function doPropose() {
+    const account = state.session && state.session.accountId;
+    if (!account) { toast('先进入世界，才能求婚。', true); showEntry(true); return; }
+    if (!requireAuthForWrite()) return;
+    const st = state.st;
+    const m = marriageOf(st);
+    if (String(m.status || '') === 'married') {
+      showMarriageResult('你已成婚；先和离，才能再向别人求婚。', true);
+      return;
+    }
+    const row = marriageOfCandidate(st, state.marriage.target);
+    if (!row) { showMarriageResult('先选一个在场的人，再求婚。', true); return; }
+    if (row.isSelf) { showMarriageResult(reasonText('self_propose'), true); return; }
+    const money = Math.floor(Number(el('proposeMoney').value) || 0);
+    const wallet = Number(((st.player || {}).wallet || {}).money || 0);
+    if (money < 0 || money > wallet) {
+      showMarriageResult('聘礼 ' + money + ' 文超过钱包余额（' + wallet + ' 文）；先改小聘礼。', true);
+      return;
+    }
+    const item = el('proposeItem').value;
+    const gift = giftRowsOf(st).filter(function (g) { return g.item === item; })[0] || null;
+    const qty = Math.max(1, Math.min(MARRIAGE_RULES.giftQtyMax,
+      Math.floor(Number(el('proposeQty').value) || 1)));
+    if (item && (!gift || qty > gift.qty)) {
+      showMarriageResult('你背包里没有足够的这件信物。', true);
+      return;
+    }
+    const name = row.npc.name || row.npc.id;
+    const btn = el('proposeGo');
+    btn.disabled = true;
+    btn.textContent = '求婚中…';
+    showMarriageResult('', false);
+    try {
+      const res = await API.action(account, 'marriage_propose', {
+        target: row.npc.id,
+        gift_money: money,
+        gift_item: item || '',
+        gift_qty: item ? qty : 1
+      }, Number(st.tick || 0));
+      const data = res.data || {};
+      if (res.authRequired || res.status === 401) return;
+      if (res.status === 409 || data.ok === false || res.status === 0) {
+        const r = notifyError('向 ' + name + ' 求婚', data, res.status);
+        showMarriageResult('求婚没有完成：' + r.text, true);
+        return;
+      }
+      if (data.status === 'proposed' || data.readonly) {
+        showMarriageResult('只读模式：求婚提案已提交，世界不会落地。', true);
+        pushLog('proposal', '求婚提案：' + name, data.intent_id || '');
+        return;
+      }
+      const details = data.details || {};
+      const decision = String(details.decision || '');
+      const mar = details.marriage || {};
+      if (decision === 'accept') {
+        const spouse = mar.spouse_name || name;
+        const since = mar.since_tick == null ? data.tick : mar.since_tick;
+        showMarriageResult('与 ' + spouse + ' 成婚，tick ' + since, false);
+        toast('成婚：' + spouse);
+        pushLog('ok', '求婚成功', '配偶 ' + spouse + ' · tick ' + since);
+      } else if (decision === 'courtship') {
+        showMarriageResult(name + ' 说：再处处看（好感 ' + row.aff.toFixed(1) +
+          ' / 信任 ' + row.trust.toFixed(1) + '；不扣聘礼与信物）。', false);
+        toast(name + '：再处处看。');
+        pushLog('ok', '求婚：' + name + ' 再处处看', 'courtship');
+      } else {
+        const why = row.trust < MARRIAGE_RULES.minTrust
+          ? '信任还不足' : (row.aff < MARRIAGE_RULES.minAffection
+            ? '感情还没到谈婚论嫁的地步' : '对方拒绝了这次提亲');
+        const text = '对方婉拒了这次提亲：' + why + '（好感 ' + row.aff.toFixed(1) +
+          ' / 信任 ' + row.trust.toFixed(1) + '）；聘礼与信物未扣除。';
+        showMarriageResult(text, true);
+        toast(text, true);
+        pushLog('rejected', '求婚：' + name, why);
+      }
+      await loadState(account);
+    } catch (err) {
+      showMarriageResult('求婚请求失败：' + (err.message || err), true);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '求婚';
+      if (state.st) updateProposeEstimate();
+    }
+  }
+
+  function openDivorce() {
+    const m = marriageOf(state.st);
+    if (String(m.status || '') !== 'married') return;
+    const name = m.spouse_name || m.spouse_id || '配偶';
+    el('divorceText').textContent = '与 ' + name + ' 和离后恢复单身。聘礼不退还，共同财产不分割。';
+    el('divorceAvatar').textContent = firstChar(name);
+    el('divorceError').classList.add('hidden');
+    el('divorceError').textContent = '';
+    el('divorceModal').classList.remove('hidden');
+    setTimeout(function () { el('divorceCancel').focus(); }, 0);
+  }
+
+  function closeDivorce() {
+    const modal = el('divorceModal');
+    if (!modal || modal.classList.contains('hidden')) return;
+    modal.classList.add('hidden');
+    const back = el('marriageEndBtn');
+    if (back) back.focus();
+  }
+
+  async function doMarriageEnd() {
+    const account = state.session && state.session.accountId;
+    if (!account) { toast('先进入世界。', true); return; }
+    if (!requireAuthForWrite()) return;
+    const m = marriageOf(state.st);
+    const name = m.spouse_name || m.spouse_id || '配偶';
+    const btn = el('divorceConfirm');
+    btn.disabled = true;
+    btn.textContent = '和离中…';
+    el('divorceError').classList.add('hidden');
+    try {
+      const res = await API.action(account, 'marriage_end', {},
+        Number((state.st || {}).tick || 0));
+      const data = res.data || {};
+      if (res.authRequired || res.status === 401) return;
+      if (res.status === 409 || data.ok === false || res.status === 0) {
+        const r = notifyError('与 ' + name + ' 和离', data, res.status);
+        const box = el('divorceError');
+        box.textContent = r.text;
+        box.classList.remove('hidden');
+        return;
+      }
+      if (data.status === 'proposed' || data.readonly) {
+        el('divorceError').textContent = '只读模式：和离提案已提交，世界不会落地。';
+        el('divorceError').classList.remove('hidden');
+        return;
+      }
+      const tick = data.tick == null ? (state.st || {}).tick : data.tick;
+      showMarriageResult('已与 ' + name + ' 和离，tick ' + tick, false);
+      toast('已与 ' + name + ' 和离。');
+      pushLog('ok', '和离：' + name, 'tick ' + tick);
+      closeDivorce();
+      await loadState(account);
+    } catch (err) {
+      const box = el('divorceError');
+      box.textContent = '和离请求失败：' + (err.message || err);
+      box.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '确认和离';
+    }
+  }
+
+  function doRestPlaceholder() {
+    const text = '体力恢复中（休息接口尚未接入；这里只做占位提示，不发请求）。';
+    el('restResult').textContent = text;
+    toast(text);
+    pushLog('proposal', '休息占位', 'rest 动作待后端上线');
   }
 
   function renderCommerce(st) {
@@ -2396,6 +2839,7 @@
     renderEmployeeList(st, own);
     renderHireList(st, own);
     renderEscortForm(st);
+    renderMarriagePane(st);
     renderSoonList();
   }
 
@@ -2785,6 +3229,25 @@
     el('escortFee').addEventListener('input', updateEscortEstimate);
     el('escortGo').addEventListener('click', doEscort);
 
+    el('proposeList').addEventListener('click', function (ev) {
+      const btn = ev.target.closest('[data-propose-choose]');
+      if (!btn || btn.disabled) return;
+      state.marriage.target = btn.getAttribute('data-propose-choose');
+      renderMarriagePane(state.st || {});
+    });
+    el('proposeMoney').addEventListener('input', updateProposeEstimate);
+    el('proposeQty').addEventListener('input', updateProposeEstimate);
+    el('proposeItem').addEventListener('change', updateProposeEstimate);
+    el('proposeGo').addEventListener('click', doPropose);
+    el('restBtn').addEventListener('click', doRestPlaceholder);
+    el('marriageEndBtn').addEventListener('click', openDivorce);
+    el('divorceCancel').addEventListener('click', closeDivorce);
+    el('divorceClose').addEventListener('click', closeDivorce);
+    el('divorceConfirm').addEventListener('click', doMarriageEnd);
+    el('divorceModal').addEventListener('click', function (ev) {
+      if (ev.target === el('divorceModal')) closeDivorce();
+    });
+
     el('authBtn').addEventListener('click', function () {
       if (state.auth.mode === 'legacy') return;
       openAuthModal(state.auth.access ? 'login' : 'login');
@@ -2818,6 +3281,7 @@
       if (ev.key === 'Escape') {
         closeNpcModal();
         closeAuthModal();
+        closeDivorce();
         el('searchResults').classList.add('hidden');
       }
     });
@@ -2955,6 +3419,36 @@
       refreshState: function (account) {
         const acct = account == null ? (state.session && state.session.accountId) : account;
         return loadState(acct);
+      },
+      marriageState: function () {
+        const st = state.st || {};
+        const m = marriageOf(st);
+        return {
+          status: String(m.status || 'single'),
+          spouseId: spouseIdOf(st),
+          spouseName: spouseNameOf(st),
+          sinceTick: Number(m.since_tick || 0),
+          lastDailyTick: Number(m.last_daily_tick || 0),
+          dailyNote: String(m.daily_note || ''),
+          spouseBlockVisible: !el('marriageBlock').classList.contains('hidden'),
+          spouseInfo: el('spouseInfo').textContent.trim(),
+          spouseNote: el('spouseNote').textContent.trim(),
+          target: state.marriage.target,
+          candidates: marriageCandidates(st).map(function (row) {
+            return { id: row.npc.id, name: row.npc.name, role: row.npc.role,
+              affection: row.aff, trust: row.trust, married: row.marriedText,
+              isSpouse: row.isSpouse, sameLocation: true };
+          }),
+          giftRows: giftRowsOf(st).map(function (row) { return row.item; }),
+          money: Number(((st.player || {}).wallet || {}).money || 0),
+          result: state.marriage.result,
+          resultBad: !!state.marriage.resultBad,
+          estimate: el('proposeEstimate').textContent.trim(),
+          proposeDisabled: !!el('proposeGo').disabled,
+          confirmOpen: !el('divorceModal').classList.contains('hidden'),
+          talkTargetSpouse: !!el('talkTarget').classList.contains('spouse'),
+          restResult: el('restResult').textContent.trim()
+        };
       },
       guideTargetInfo: function () {
         const ctx = guideTarget(state.guide.step);

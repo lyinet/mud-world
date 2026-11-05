@@ -191,14 +191,29 @@
 | `relation_too_low` | 好感不足 6.0；先多交谈、经营人情再来雇。 |
 | `wage_too_low` | 日薪低于市价的 0.8 倍，对方不会接受。 |
 | `wage_too_high` | 日薪高于市价的 1.5 倍，对方觉得不合理。 |
-| `not_implemented_for_player` | 该玩法尚未开放。 |
-| `already_married` / `not_married` / `bond_too_low` / `target_in_couple` / `gift_missing` 等婚配码 | 见 `ui/player/app.js` 的 `REASON_TEXT`（入口下一步开放，文案已备齐）。 |
+| `already_married` | 你已经成婚了，不能再结一次。 |
+| `not_married` | 你还没有婚约，无法进行这个操作。 |
+| `bond_too_low` | 感情还没到谈婚论嫁的地步；先多相处、经营人情。 |
+| `trust_too_low` | 信任不足；先建立更深的交情。 |
+| `gift_missing` | 提亲需要带一件像样的礼物。 |
+| `self_propose` | 不能向自己提亲。 |
+| `target_in_couple` | 对方已有婚约或配偶，不能再谈。 |
+| `spouse_not_here` | 你的配偶不在当前地点；先走到对方那里。 |
+| `target_not_npc` / `target_not_player` | 对方不是可婚配的人物 / 该操作只对玩家角色有效。 |
+| `spouse_not_alive` / `spouse_offline` | 配偶已不在人世 / 配偶不在线，暂时不能互动。 |
+| `unknown_actor` | 操作发起人不在世界里；请刷新后重试。 |
+| `bad_arg:gift_money` | 聘礼必须是整数。 |
+| `bad_arg:gift_qty` | 信物数量必须是 1-20 的整数。 |
+| `no_payer_funds` | 付款方资金不足，这单暂时接不了。 |
+| `cannot_rest_while_escorting` | 押镖途中不能休息；先完成这趟镖。 |
+| `cannot_rest_now` | 现在不能休息；请稍后再试。 |
+| `bad_arg:hours` | 休息时长必须是 1-8 小时的整数。 |
 
 未知码：优先显示服务端 `reason_text/message`；都没有时显示上一节的兜底文案。
 
 ## 7. 商业与经营面板（W4）
 
-右栏「商业与经营」区块（`#commerceBlock`，顶栏「商业」按钮可直达），五页签：
+右栏「商业与经营」区块（`#commerceBlock`，顶栏「商业」按钮可直达），六页签：
 
 | 页签 | 入口 | 动作与真实请求 |
 | --- | --- | --- |
@@ -206,7 +221,8 @@
 | 经营 `business` | 摊 / 店面 / 分号三档 | `open_shop {kind}`；开店后显示店内现金、库存件数与雇工列表 |
 | 雇人 `hire` | 当前地点在场 NPC | `recruit {target,position,wage}`；日薪默认岗位市价 |
 | 押镖 `escort` | 所在地有镖局才可用 | `escort {route,[cargo_item],cargo_qty,cargo_value,fee}` |
-| 未开放 `soon` | 结婚 / 开宗立派 / 收徒 | 服务端返回 `not_implemented_for_player`，统一显示「该玩法尚未开放」 |
+| 婚姻 `marriage` | 当前地点有可求婚 NPC 时列出候选 | `marriage_propose {target,gift_money,gift_item,gift_qty}`；配偶栏「和离」发 `marriage_end {}` |
+| 未开放 `soon` | 开宗立派 / 收徒 | 服务端返回 `not_implemented_for_player`，统一显示「该玩法尚未开放」 |
 
 - **可买**：名称、单价、含税总价、库存、`buy_limit`；数量用原生数字输入（1-20，受 `buy_limit`/库存/现金约束），每行「买」按钮。
 - **可卖**：名称、`sell_price`、持有数量；数量上限为持有数，每行「卖」按钮。
@@ -217,19 +233,52 @@
 - **触控与键盘**：页签、行按钮、数字/下拉输入 `min-height: 44px`；页签支持 `←/→/Home/End`，行输入可用 Tab 到达并回车触发。
 - 证据：`reports/w4-commerce/`（`real-commerce.json` 含每个动作的真实请求/响应与 UI 快照，`real-*.png` 为桌面/移动截图）。
 
-## 8. 自动化验收
+## 8. 婚姻：如何求婚 / 如何和离
+
+婚姻入口在右栏「商业与经营」的「婚姻」页签（顶栏「商业」按钮可直达）。规则以服务端 `src/wsim/actions/marriage.py` 为准，前端只做展示与提交。
+
+### 8.1 求婚
+
+1. 先和对方同处一地。候选列表只列**当前地点在场**的 NPC，含「好感 / 信任 / 同地点 / 婚姻状态」；不在场的 NPC 不会出现。
+2. 把好感和信任攒够：**接受**需要 `好感 ≥ 60 且 信任 ≥ 30`；只到 `好感 ≥ 45 或 信任 ≥ 20` 时对方会「再处处看」（不扣聘礼/信物，关系不推进）；更低则为婉拒。
+   - 好感靠 `talk` 累积，服务端每人每 tick 最多 +2、每人每世界日最多 +8；新世界的初始好感为 0，所以要从头攒到 60 需要跨约 8 个世界日。
+   - 信任在首次交谈后从 40 起算，一般不需要额外经营；若因事件下降，同样用交谈补。
+3. 在列表里选一位 NPC，填**聘礼金额**（整数，不能超过钱包现金）与**信物**（下拉只列背包里真实持有、数量足够的物品；数量 1-20）。不选信物也可以，只要不填数量。
+4. 点「提亲」。裁决结果分三种：
+   - **接受**：显示「与 X 成婚，tick N」，同时从钱包扣掉聘礼、从背包扣掉信物，配偶常驻区立即出现；
+   - **再处处看**：显示「对方说：再处处看」，聘礼与信物**不扣**；
+   - **婉拒**：显示中文原因（好感/信任不足、对方已有婚约、双方不同地点、已婚后重复提亲、聘礼或信物不足等），**不扣**聘礼与信物。
+
+### 8.2 配偶常驻区
+
+成婚后右栏固定出现「配偶」块（即使切到别的页签也不消失）：
+
+- 第一行：`配偶：姓名 · 成婚 tick N`。
+- 第二行：配偶当日陪伴情况。接口有 `last_daily_tick / daily_note` 时直接显示当日记录；没有时以「配偶是否与你同地点（`nearby` 近似）」判断，并在块底注明「按 nearby 同地点近似」。
+- 对话对象是配偶时，NPC 列表、对话目标、对话结果与回复都会标「（配偶）」并加高亮；配偶回复的抬头是「配偶回应」，不会和普通「世界回应」混在一起。
+
+### 8.3 和离
+
+1. 点配偶块的「和离」按钮，弹出二次确认框，写明：和离后双方恢复单身；**聘礼不退还**，共同财产不分割。
+2. 「取消」不做任何事；「确认和离」提交 `marriage_end {}`，成功后回到单身态、配偶块隐藏。
+3. 和离要求配偶与你同处一地；不在同一地点时服务端返回 `spouse_not_here`（中文提示「你的配偶不在当前地点」），走到对方所在地再试。
+
+## 9. 自动化验收
 
 ```bash
-python3 tools/ui_check.py                 # 全部：原因码/桌面/移动/键盘/回归/鉴权/商业
-python3 tools/ui_check.py --only desktop  # 只跑某一组（含 --only commerce）
+python3 tools/ui_check.py                 # 全部：原因码/桌面/移动/键盘/回归/鉴权/商业/婚姻
+python3 tools/ui_check.py --only desktop  # 只跑某一组（含 --only commerce / --only marriage）
 python3 tools/ui_check.py --serve         # 起 mock 页面，手动看；--auth 启动鉴权模式
 python3 tools/ui_check_real_commerce.py   # 真服务（--auth off + ambient）商业面板取证
+python3 tools/ui_check_real_marriage.py   # 真服务成功路径：talk 到 60+ → 求婚 → 配偶栏 → 和离
 ```
 
 - mock 服务只改内存，不写 `runs/`、不启动世界 tick，避免与其它会话的确定性基线冲突。
 - 证据目录：`reports/w4-ui/`（`checks.json`、桌面/移动/鉴权截图、`keyboard.txt`、`mobile-summary.json`）。
+- 婚姻证据：`reports/w4-marriage/`（mock 与真服务截图；`real-marriage.json` 含每步真实请求/响应）。
+- 真服务婚姻脚本按真实时间累积好感（4x 下约 29 分钟），不是 mock 成功路径；`--smoke` 只跑 talk 循环验证选择器。
 
-## 9. 未覆盖 / 已知限制
+## 10. 未覆盖 / 已知限制
 
 - W1 契约已对齐；`/api/auth/*` 的真实响应样例来自 W1 收口说明与 `src/wsim/api/auth.py`，未在真实服务上做端到端联调（本轮仍用 mock 服务验收）。
 - 不做第三方登录；不做口令找回。
@@ -241,3 +290,7 @@ python3 tools/ui_check_real_commerce.py   # 真服务（--auth off + ambient）�
   2. `present_npcs` 不含技能与受雇状态，雇人行只显示好感（来自 `player.relations`），技能/受雇显示「接口未提供」；
   3. `_shop_view` 按物品去重，店铺库存件数无法可靠汇总，能汇总时才显示「N 件」，否则显示「件数未由接口提供」。
 - 真服务新世界的 NPC 技能要从 0 练到 0.15（`skill_too_low`），短跑世界雇人必然被拒；成功路径由 mock 验收覆盖。
+- 婚姻有两处接口缺口，UI 只做明确兜底、不伪造：
+  1. `present_npcs` / `nearby` 不返回 NPC 的配偶字段，候选列表对「别人是否已婚」显示「已婚状态：接口未提供」；能确定的只有玩家自己的配偶（显示「已婚（你的配偶）」）；
+  2. 配偶当日陪伴优先读 `state.marriage.last_daily_tick / daily_note`；接口没给出时用配偶是否同地点近似，并在配偶块下注明口径。
+- 「休息」目前只是按钮占位（点一下提示「体力恢复中」，不发请求）；`rest` 动作接入后再换成真实请求。

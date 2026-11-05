@@ -1,0 +1,270 @@
+{
+  "checks": [
+    {
+      "name": "婚姻 候选列表（好感/信任/已婚/同地点）",
+      "ok": true,
+      "detail": {
+        "candidates": [
+          {
+            "id": "npc:liu_sanniang",
+            "name": "刘三娘",
+            "role": "商户",
+            "affection": 0,
+            "trust": 0,
+            "married": "已婚状态：接口未提供",
+            "isSpouse": false,
+            "sameLocation": true
+          },
+          {
+            "id": "npc:wang_tiejiang",
+            "name": "王铁匠",
+            "role": "铁匠",
+            "affection": 7,
+            "trust": 7,
+            "married": "已婚状态：接口未提供",
+            "isSpouse": false,
+            "sameLocation": true
+          },
+          {
+            "id": "npc:afu",
+            "name": "阿福",
+            "role": "药童",
+            "affection": 7,
+            "trust": 45,
+            "married": "已婚状态：接口未提供",
+            "isSpouse": false,
+            "sameLocation": true
+          },
+          {
+            "id": "npc:chen_huolang",
+            "name": "陈货郎",
+            "role": "货郎",
+            "affection": 7,
+            "trust": 7,
+            "married": "已婚状态：接口未提供",
+            "isSpouse": false,
+            "sameLocation": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "婚姻 候选行显示四项字段",
+      "ok": true,
+      "detail": {
+        "text": "刘三娘商户\n好感 0.0 · 信任 0.0 · 同地点 · 已婚状态：接口未提供\n已选\n王铁匠铁匠\n好感 7.0 · 信任 7.0 · 同地点 · 已婚状态：接口未提供\n选此人\n阿福药童\n好感 7.0 · 信任 45.0 · 同地点 · 已婚状态：接口未提供\n选此人\n陈货郎货郎\n好感 7.0 · 信任 7.0 · 同地"
+      }
+    },
+    {
+      "name": "婚姻 候选数据（王铁匠 7.0/7.0）",
+      "ok": true,
+      "detail": {
+        "id": "npc:wang_tiejiang",
+        "name": "王铁匠",
+        "role": "铁匠",
+        "affection": 7,
+        "trust": 7,
+        "married": "已婚状态：接口未提供",
+        "isSpouse": false,
+        "sameLocation": true
+      }
+    },
+    {
+      "name": "婚姻 婉拒为中文且不露 code",
+      "ok": true,
+      "detail": {
+        "result": "对方婉拒了这次提亲：信任还不足（好感 10.0 / 信任 10.0）；聘礼与信物未扣除。"
+      }
+    },
+    {
+      "name": "婚姻 13 个原因码均有中文映射",
+      "ok": true,
+      "detail": {
+        "mapped": [
+          [
+            "bond_too_low",
+            "感情还没到谈婚论嫁的地步；先多相处、经营人情。"
+          ],
+          [
+            "trust_too_low",
+            "信任不足；先建立更深的交情。"
+          ],
+          [
+            "gift_missing",
+            "提亲需要带一件像样的礼物。"
+          ],
+          [
+            "not_enough_money",
+            "你的钱不够（买入价含交易税）。"
+          ],
+          [
+            "already_married",
+            "你已经成婚了，不能再结一次。"
+          ],
+          [
+            "target_in_couple",
+            "对方已有婚约或配偶，不能再谈。"
+          ],
+          [
+            "not_together",
+            "对方不在你当前所在的地点；先移动到对方所在处。"
+          ],
+          [
+            "self_propose",
+            "不能向自己提亲。"
+          ],
+          [
+            "spouse_not_here",
+            "你的配偶不在当前地点；先走到对方那里。"
+          ],
+          [
+            "not_married",
+            "你还没有婚约，无法进行这个操作。"
+          ],
+          [
+            "no_payer_funds",
+            "付款方资金不足，这单暂时接不了。"
+          ],
+          [
+            "cannot_rest_while_escorting",
+            "押镖途中不能休息；先完成这趟镖。"
+          ],
+          [
+            "cannot_rest_now",
+            "现在不能休息；请稍后再试。"
+          ]
+        ],
+        "bad": []
+      }
+    },
+    {
+      "name": "婚姻 再处处看不扣聘礼",
+      "ok": true,
+      "detail": {
+        "before": 300,
+        "after": 300
+      }
+    },
+    {
+      "name": "婚姻 成婚结果含姓名与 tick",
+      "ok": true,
+      "detail": {
+        "result": "与 王铁匠 成婚，tick 24"
+      }
+    },
+    {
+      "name": "婚姻 配偶常驻栏出现",
+      "ok": true,
+      "detail": {
+        "spouseInfo": "配偶：王铁匠 · 成婚 tick 24",
+        "spouseNote": "今日已陪伴（tick 24）。"
+      }
+    },
+    {
+      "name": "婚姻 今日陪伴口径可见",
+      "ok": true,
+      "detail": {
+        "spouseNote": "今日已陪伴（tick 24）。"
+      }
+    },
+    {
+      "name": "婚姻 聘礼与信物真实扣除",
+      "ok": true,
+      "detail": {
+        "money": 260,
+        "before": 300,
+        "giftRows": [
+          "flatbread"
+        ],
+        "gift_before": [
+          "coarse_cloth"
+        ]
+      }
+    },
+    {
+      "name": "婚姻 配偶对话标记（配偶）并高亮",
+      "ok": true,
+      "detail": {
+        "talkTarget": "王\n王铁匠（配偶）配偶\n铁匠 · 市集 · 在场",
+        "reply": "王铁匠（配偶）\n配偶回应\ntick 26 · /api/player/messages?since_tick=25\n王铁匠（配偶）：锅里温着饭，早点回来。"
+      }
+    },
+    {
+      "name": "婚姻 和离弹层写清聘礼不退还",
+      "ok": true,
+      "detail": {
+        "modal": "×\n王\n和离\n\n这一步不可撤销。\n\n与 王铁匠 和离后恢复单身。聘礼不退还，共同财产不分割。\n\n和离后双方恢复单身；聘礼不退还，共同财产不分割。\n取消\n确认和离"
+      }
+    },
+    {
+      "name": "婚姻 取消和离不改变婚姻态",
+      "ok": true,
+      "detail": {
+        "status": "married"
+      }
+    },
+    {
+      "name": "婚姻 和离成功回单身且配偶栏隐藏",
+      "ok": true,
+      "detail": {
+        "result": "已与 王铁匠 和离，tick 29",
+        "tick_before": 26,
+        "tick_after": 29
+      }
+    },
+    {
+      "name": "婚姻 未开放页移除结婚，仅立派/收徒",
+      "ok": true,
+      "detail": {
+        "soon": "立派\n该玩法尚未开放；入口先留在这里。\n尚未开放\n收徒\n该玩法尚未开放；入口先留在这里。\n尚未开放\n这些玩法暂未开放；入口先留在这里。"
+      }
+    },
+    {
+      "name": "婚姻 rest 占位只提示，不发请求",
+      "ok": true,
+      "detail": {
+        "rest": "体力恢复中（休息接口尚未接入；这里只做占位提示，不发请求）。",
+        "tick_before": 29,
+        "tick_after": 29
+      }
+    },
+    {
+      "name": "婚姻 375×812 不横向溢出",
+      "ok": true,
+      "detail": {
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "controls": {
+          "#proposeGo": 44,
+          "#proposeMoney": 44,
+          "#proposeItem": 44,
+          "#proposeQty": 44,
+          "#restBtn": 44
+        }
+      }
+    },
+    {
+      "name": "婚姻 375×812 新增控件 ≥44px",
+      "ok": true,
+      "detail": {
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "controls": {
+          "#proposeGo": 44,
+          "#proposeMoney": 44,
+          "#proposeItem": 44,
+          "#proposeQty": 44,
+          "#restBtn": 44
+        }
+      }
+    },
+    {
+      "name": "婚姻 键盘可聚焦并切换页签",
+      "ok": true,
+      "detail": {
+        "focused": "marriage"
+      }
+    }
+  ],
+  "failed": 0
+}

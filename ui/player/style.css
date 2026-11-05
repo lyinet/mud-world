@@ -919,6 +919,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   .panel.right > .block.fold-growth { order: 3; }
   .panel.right > .block:nth-child(3) { order: 2; }
   .panel.right > .block.commerce-block { order: 3; }
+  .panel.right > .block.marriage-block { order: 2; }
+  .commerce-tabs { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; }
+  .commerce-tabs .tab { flex: 0 0 auto; }
   .commerce-row .row-main { align-items: flex-start; }
   .commerce-row .row-actions > button { flex: 1 1 64px; }
 
@@ -950,6 +953,75 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   .feed-list { height: 148px; }
   .feed-block { padding-bottom: env(safe-area-inset-bottom, 0px); }
 }
+
+/* ---------------------------------------------------------------- W4 婚姻 */
+.hint.tiny { font-size: 11px; line-height: 1.45; }
+.hint.ok { color: #2f6b3a; }
+.hint.warn { color: #7a5a18; }
+.hint.bad { color: #9c342b; }
+
+.marriage-block .spouse-card {
+  border: 1px solid #e3cf9c;
+  background: #fff8e8;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.spouse-line {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.spouse-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+.spouse-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 7px;
+  margin-left: 6px;
+  border-radius: 999px;
+  border: 1px solid #d9bd88;
+  background: #fff3d9;
+  color: #7a5a18;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.npc.spouse {
+  border-color: #d9bd88;
+  background: #fff8e8;
+}
+.talk-target.spouse {
+  border-color: #d9bd88;
+  box-shadow: inset 3px 0 0 #c8955a;
+}
+.reply-item.spouse {
+  border-left-color: #c8955a;
+  background: #fff8e8;
+}
+.propose-row.selected {
+  border-color: #c8955a;
+  background: #fff8e8;
+}
+.propose-row .row-main { min-width: 0; }
+.propose-row .row-meta { overflow-wrap: anywhere; }
+#proposeMoney { width: 96px; }
+#proposeQty { width: 72px; }
+.divorce-card #divorceText {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 8px;
+}
+.divorce-card .modal-body .hint { margin-top: 8px; }
 
 /* 世界回应（/api/player/messages 轮询结果） */
 .replies {

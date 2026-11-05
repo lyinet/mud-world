@@ -9,6 +9,37 @@
 
 ---
 
+## [功能] 2026-11-05 — 玩家婚姻 UI：求婚入口、配偶栏、和离与配偶对话标记
+
+- **改了什么**
+  - `ui/player/index.html` / `app.js` / `style.css`：商业面板新增「婚姻」页签（六页签）；列当前地点可求婚 NPC，
+    显示好感、信任、婚姻状态与同地点；表单可选聘礼金额与信物（信物下拉只列背包真实持有物品），提交
+    `marriage_propose {target,gift_money,gift_item,gift_qty}`。
+  - 裁决呈现：接受显示「与 X 成婚，tick N」并刷新 `state.marriage`；「再处处看」不扣聘礼/信物；
+    婉拒按原因码映射成中文（`bond_too_low`/`trust_too_low`/`gift_missing`/`not_enough_money`/`already_married`/
+    `target_in_couple`/`not_together`/`self_propose`/`spouse_not_here` 等），不显示英文 code。
+  - 配偶常驻区：`status=married` 时固定显示「配偶：姓名 · 成婚 tick N」，并显示当日陪伴口径
+    （优先 `last_daily_tick/daily_note`；缺失时按 `nearby` 同地点近似并在块内注明）。
+  - 和离：二次确认弹层写明「聘礼不退还、共同财产不分割」，提交 `marriage_end {}`，成功回单身并隐藏配偶块。
+  - 配偶对话：NPC 列表、对话目标、执行结果与回应均标「（配偶）」并高亮；服务端 `/messages` 的 `from`
+    是 NPC 实体 id，回复展示前补一层姓名解析，避免界面出现 `liu_sanniang` 这类内部 id。
+  - 占位收窄：未开放页只保留「立派 / 收徒」；`REASON_TEXT` 增加 `no_payer_funds`、
+    `cannot_rest_while_escorting`、`cannot_rest_now`、`bad_arg:hours`；「休息」按钮先做占位（提示体力恢复中、不发请求）。
+  - 文档：`docs/PLAYER-GUIDE.md` 新增「如何求婚 / 如何和离」（门槛、聘礼与信物规则、和离不退款、口径与限制）。
+- **为什么改**：后端婚姻闭环已上线，前端仍把结婚放在「未开放」占位；玩家没有求婚入口，已婚状态与配偶日常也看不见。
+- **验证**
+  - `python3 tools/ui_check.py`：131 checks / 0 failed；其中 `--only marriage` 19 checks / 0 failed
+    （证据 `reports/w4-marriage/mock-marriage.json` 与 mock 截图）。
+  - `python3 tools/ui_check_proxy.py`：12 checks / 0 failed。
+  - 真服务（`--auth off` + `XKX_AMBIENT=1`、`XKX_AMBIENT_SPEED=4`）：`tools/ui_check_real_marriage.py`
+    走 UI 真实 talk 37 次跨 8 个世界日把好感提到 60/信任 77 → 求婚 accept（成婚 tick 1023）→ 配偶栏 →
+    配偶对话标记 → 和离（tick 1035）；15 checks / 0 failed，截图与每步请求/响应在
+    `reports/w4-marriage/real-marriage.json` 与 `real-*.png`。
+  - `python3 -m pytest -o addopts="" -q`：499 passed / 18 skipped / 0 failed。
+- **commit**：`（见本提交）`
+
+---
+
 ## [功能] 2026-11-05 — 玩家店铺与在场 NPC 视图补齐
 
 - **改了什么**

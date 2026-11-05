@@ -464,8 +464,9 @@ def main() -> None:
                 page.click('[data-tab="soon"]')
                 snap = snapshot(page)
                 steps["soon"] = snap["soonText"]
-                results.add("真服务 未开放玩法显示「该玩法尚未开放」",
-                            "该玩法尚未开放" in snap["soonText"] and "结婚" in snap["soonText"],
+                results.add("真服务 未开放玩法显示「该玩法尚未开放」（仅立派/收徒）",
+                            "该玩法尚未开放" in snap["soonText"] and "立派" in snap["soonText"]
+                            and "收徒" in snap["soonText"] and "结婚" not in snap["soonText"],
                             {"soonText": snap["soonText"]})
 
                 # 最近一次拒绝（若有）必须全是中文，不含原始 code。

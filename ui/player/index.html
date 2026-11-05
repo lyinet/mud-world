@@ -134,16 +134,33 @@
         <div class="quest-list" id="questList"></div>
       </div>
 
+      <!-- 已婚时常驻；单身时整块隐藏，不占版面 -->
+      <div class="block marriage-block hidden" id="marriageBlock">
+        <div class="block-head">
+          <h2>配偶</h2>
+          <span class="hint" id="spouseCaliber">口径见下</span>
+        </div>
+        <div class="spouse-card">
+          <div class="spouse-line" id="spouseInfo">—</div>
+          <div class="hint" id="spouseNote">—</div>
+        </div>
+        <div class="spouse-actions">
+          <button class="ghost small" id="marriageEndBtn" type="button">和离</button>
+        </div>
+        <div class="hint tiny" id="spouseCaliberNote">口径：优先服务端 last_daily_tick / daily_note；缺失时以同地点近似。</div>
+      </div>
+
       <div class="block commerce-block" id="commerceBlock">
         <div class="block-head">
           <h2>商业与经营</h2>
           <span class="hint" id="commerceHint">—</span>
         </div>
-        <div class="commerce-tabs" id="commerceTabs" role="tablist" aria-label="商业与经营">
+        <div class="commerce-tabs" id="commerceTabs" role="tablist" aria-label="商业、经营与婚姻">
           <button class="tab active" type="button" role="tab" data-tab="shop" aria-selected="true" aria-controls="pane-shop">商店</button>
           <button class="tab" type="button" role="tab" data-tab="business" aria-selected="false" aria-controls="pane-business">店铺</button>
           <button class="tab" type="button" role="tab" data-tab="hire" aria-selected="false" aria-controls="pane-hire">雇人</button>
           <button class="tab" type="button" role="tab" data-tab="escort" aria-selected="false" aria-controls="pane-escort">押镖</button>
+          <button class="tab" type="button" role="tab" data-tab="marriage" aria-selected="false" aria-controls="pane-marriage">婚姻</button>
           <button class="tab" type="button" role="tab" data-tab="soon" aria-selected="false" aria-controls="pane-soon">江湖</button>
         </div>
 
@@ -153,6 +170,10 @@
           <div class="commerce-consume">
             <button class="ghost small commerce-btn" id="consumeBtn" type="button">买一份现吃</button>
             <span class="hint" id="consumeResult">在当前铺子挑最便宜的一份吃食。</span>
+          </div>
+          <div class="commerce-consume">
+            <button class="ghost small commerce-btn" id="restBtn" type="button">休息（占位）</button>
+            <span class="hint" id="restResult">休息接口尚未接入；点一下只提示，不发请求。</span>
           </div>
           <div class="commerce-sub"><b>可卖</b><span class="hint" id="sellHint">—</span></div>
           <div class="commerce-list" id="sellList"></div>
@@ -194,6 +215,27 @@
           <div class="hint" id="escortEstimate">—</div>
           <button class="primary small commerce-btn" id="escortGo" type="button">押镖</button>
           <div class="hint" id="escortResult"></div>
+        </div>
+
+        <div class="commerce-pane hidden" id="pane-marriage" role="tabpanel">
+          <div class="commerce-sub"><b>可求婚的人</b><span class="hint" id="marriageHint">—</span></div>
+          <div class="commerce-list" id="proposeList"></div>
+          <div class="hint" id="proposeTargetLine">先选一个人，再定聘礼与信物。</div>
+          <div class="commerce-inline">
+            <label for="proposeMoney">聘礼</label>
+            <input id="proposeMoney" type="number" min="0" step="10" value="0" inputmode="numeric" />
+            <span class="hint">文</span>
+          </div>
+          <div class="commerce-inline">
+            <label for="proposeItem">信物</label>
+            <select id="proposeItem"></select>
+            <label for="proposeQty">数量</label>
+            <input id="proposeQty" type="number" min="1" max="20" step="1" value="1" inputmode="numeric" />
+          </div>
+          <div class="hint" id="proposeEstimate">—</div>
+          <button class="primary small commerce-btn" id="proposeGo" type="button">求婚</button>
+          <div class="hint" id="proposeResult"></div>
+          <div class="hint tiny" id="marriageRule">聘礼与信物在成婚时转交对方；再处处看或婉拒不扣。和离时聘礼不退还。</div>
         </div>
 
         <div class="commerce-pane hidden" id="pane-soon" role="tabpanel">
@@ -352,6 +394,29 @@
       </div>
     </form>
     <div class="entry-error hidden" id="authError"></div>
+  </div>
+</div>
+
+<!-- 和离二次确认：写清“聘礼不退还”，避免误触 -->
+<div class="modal hidden" id="divorceModal" role="dialog" aria-modal="true" aria-labelledby="divorceTitle">
+  <div class="modal-card divorce-card">
+    <button class="modal-close" id="divorceClose" type="button" aria-label="关闭">×</button>
+    <div class="modal-head">
+      <div class="avatar big" id="divorceAvatar">离</div>
+      <div>
+        <h2 id="divorceTitle">和离</h2>
+        <p>这一步不可撤销。</p>
+      </div>
+    </div>
+    <div class="modal-body">
+      <p id="divorceText">—</p>
+      <div class="hint">和离后双方恢复单身；<b>聘礼不退还</b>，共同财产不分割。</div>
+      <div class="entry-error hidden" id="divorceError"></div>
+    </div>
+    <div class="entry-actions">
+      <button class="ghost" id="divorceCancel" type="button">取消</button>
+      <button class="primary" id="divorceConfirm" type="button">确认和离</button>
+    </div>
   </div>
 </div>
 
