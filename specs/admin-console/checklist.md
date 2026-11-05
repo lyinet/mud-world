@@ -35,5 +35,5 @@
 ## 交付
 
 - [x] 两进程 + mock 中转站真实验收 1–8 输出已贴报告
-- [x] `pytest` 全量通过：642 collected，退出码 0（17 skipped）
+- [x] `pytest` 全量通过：642 collected（624 passed / 18 skipped），退出码 0
 - [x] 提交 `add4075` 已 push；文档、CHANGELOG、spec 随后提交

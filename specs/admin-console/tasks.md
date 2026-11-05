@@ -80,5 +80,5 @@
 - [x] `docs/ADMIN-CONSOLE.md`：启动方式、环境变量、API 示例、生效契约（`applied/effective_value`）、能力四态、诚实声明、安全注意
 - [x] `CHANGELOG.md` 追加条目
 - [x] 两进程真实验收 1–8；缺失项如实标注
-- [x] `pytest` 全量（642 collected，退出码 0，17 skipped）
+- [x] `pytest` 全量（642 collected：624 passed / 18 skipped，退出码 0）
 - [x] 提交 ⑤ 并 push（`97b0ad6`，`d8c644c..97b0ad6`）
