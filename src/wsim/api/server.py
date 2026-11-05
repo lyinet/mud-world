@@ -8,6 +8,7 @@ from __future__ import annotations
 import hmac
 import json
 import os
+import socket
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -49,6 +50,19 @@ _HEALTH = "/api/health"
 _WORLD_FEED = "/api/world/feed"
 _INTENTS_PREFIX = "/api/player/intents/"
 _METRICS = "/api/metrics"
+
+# 请求体/头部上限与超时：防止超大 JSON 与慢连接耗尽内存/线程。
+_MAX_BODY_BYTES = 8 * 1024
+_MAX_HEADER_BYTES = 8 * 1024
+_REQUEST_TIMEOUT = 30.0
+
+
+class _PayloadTooLarge(Exception):
+    pass
+
+
+class _HeadersTooLarge(Exception):
+    pass
 
 # 席位/额度类业务拒绝：用 429 明确表达“不是服务端 500”。
 _CAPACITY_CODES = frozenset({"player_cap_reached", "endowment_cap_reached"})
@@ -186,6 +200,43 @@ class _Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt: str, *args) -> None:  # 静默：不污染 playthrough 叙事
         return
 
+    def setup(self) -> None:
+        super().setup()
+        timeout = float(getattr(self.server, "request_timeout", _REQUEST_TIMEOUT))
+        if timeout > 0:
+            try:
+                self.connection.settimeout(timeout)
+            except OSError:
+                pass
+
+    def _max_body_bytes(self) -> int:
+        return int(getattr(self.server, "max_body_bytes", _MAX_BODY_BYTES))
+
+    def _max_header_bytes(self) -> int:
+        return int(getattr(self.server, "max_header_bytes", _MAX_HEADER_BYTES))
+
+    def _cors_origin(self) -> str:
+        """为空表示只允许同源（不下发 CORS 头，由浏览器拦截跨源）。"""
+        return str(getattr(self.server, "cors_origin", "") or "")
+
+    def _cors_headers(self) -> dict[str, str]:
+        origin = self._cors_origin()
+        if not origin:
+            return {}
+        return {
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Metrics-Token",
+            "Vary": "Origin",
+        }
+
+    def _check_headers(self) -> bool:
+        """请求头总字节数超限返回 False（调用方回 431）。"""
+        total = 0
+        for name, value in self.headers.items():
+            total += len(str(name)) + len(str(value)) + 4  # ": " + CRLF
+        return total <= self._max_header_bytes()
+
     # ------------------------------------------------------------- primitives
     def _send(
         self, status: int, payload: dict[str, Any], headers: dict[str, str] | None = None
@@ -200,6 +251,8 @@ class _Handler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
+        for name, value in self._cors_headers().items():
+            self.send_header(name, value)
         for name, value in (headers or {}).items():
             self.send_header(name, value)
         self.end_headers()
@@ -211,11 +264,15 @@ class _Handler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
+        for name, value in self._cors_headers().items():
+            self.send_header(name, value)
         self.end_headers()
         self.wfile.write(body)
 
     def _body(self) -> dict[str, Any]:
         length = int(self.headers.get("Content-Length") or 0)
+        if length > self._max_body_bytes():
+            raise _PayloadTooLarge
         raw = self.rfile.read(length) if length else b"{}"
         data = json.loads(raw.decode("utf-8") or "{}")
         if not isinstance(data, dict):
@@ -267,6 +324,19 @@ class _Handler(BaseHTTPRequestHandler):
     def _read_body_or_400(self) -> dict[str, Any] | None:
         try:
             return self._body()
+        except _PayloadTooLarge:
+            self._send(
+                413,
+                {
+                    "ok": False,
+                    "code": "payload_too_large",
+                    "reject_reason": "payload_too_large",
+                    "event_seq": 0,
+                    "tick": self._session().state.tick,
+                    "reason_text": f"请求体超过 {self._max_body_bytes()} 字节上限。",
+                },
+            )
+            return None
         except (ValueError, json.JSONDecodeError, UnicodeDecodeError):
             self._send(
                 400,
@@ -281,15 +351,56 @@ class _Handler(BaseHTTPRequestHandler):
             )
             return None
 
+    def _reject_headers(self) -> None:
+        self._send(
+            431,
+            {
+                "ok": False,
+                "code": "header_too_large",
+                "reject_reason": "header_too_large",
+                "tick": self._session().state.tick,
+                "reason_text": f"请求头超过 {self._max_header_bytes()} 字节上限。",
+            },
+        )
+
+    def _send_timeout(self) -> None:
+        try:
+            self._send(
+                408,
+                {
+                    "ok": False,
+                    "code": "request_timeout",
+                    "reject_reason": "request_timeout",
+                    "tick": self._session().state.tick,
+                    "reason_text": "请求读取超时。",
+                },
+            )
+        except OSError:
+            pass
+
     # ------------------------------------------------------------------- GET
     def do_GET(self) -> None:  # noqa: N802
         """把每次 GET 的耗时/状态码计入内存指标；不进入任何写事务。"""
         started = time.perf_counter()
         self._status_code = 200
         try:
+            if not self._check_headers():
+                self._reject_headers()
+                return
             self._do_GET()
+        except (socket.timeout, TimeoutError):
+            self._send_timeout()
         finally:
             self._observe(started)
+
+    def do_OPTIONS(self) -> None:  # noqa: N802
+        """CORS 预检：只有配置了 XKX_CORS_ORIGIN 才下发跨源头。"""
+        self._status_code = 204
+        self.send_response(204)
+        self.send_header("Content-Length", "0")
+        for name, value in self._cors_headers().items():
+            self.send_header(name, value)
+        self.end_headers()
 
     def _do_GET(self) -> None:
         session = self._session()
@@ -489,7 +600,12 @@ class _Handler(BaseHTTPRequestHandler):
         started = time.perf_counter()
         self._status_code = 200
         try:
+            if not self._check_headers():
+                self._reject_headers()
+                return
             self._do_POST()
+        except (socket.timeout, TimeoutError):
+            self._send_timeout()
         finally:
             self._observe(started)
 
@@ -657,6 +773,10 @@ def create_server(
     auth_required: bool = False,
     metrics_public: bool | None = None,
     metrics_token: str | None = None,
+    max_body_bytes: int | None = None,
+    max_header_bytes: int | None = None,
+    request_timeout: float | None = None,
+    cors_origin: str | None = None,
 ) -> ThreadingHTTPServer:
     server = ThreadingHTTPServer((host, int(port)), _Handler)
     server.session = session  # type: ignore[attr-defined]
@@ -670,6 +790,20 @@ def create_server(
     if metrics_token is None:
         metrics_token = os.environ.get("XKX_METRICS_TOKEN", "")
     server.metrics_token = str(metrics_token or "")  # type: ignore[attr-defined]
+    # 请求加固：上限与超时都可由环境变量覆盖，测试可显式注入更小值。
+    if max_body_bytes is None:
+        max_body_bytes = int(os.environ.get("XKX_MAX_BODY_BYTES", _MAX_BODY_BYTES))
+    server.max_body_bytes = max(1, int(max_body_bytes))  # type: ignore[attr-defined]
+    if max_header_bytes is None:
+        max_header_bytes = int(os.environ.get("XKX_MAX_HEADER_BYTES", _MAX_HEADER_BYTES))
+    server.max_header_bytes = max(1, int(max_header_bytes))  # type: ignore[attr-defined]
+    if request_timeout is None:
+        request_timeout = float(os.environ.get("XKX_REQUEST_TIMEOUT", _REQUEST_TIMEOUT))
+    server.request_timeout = float(request_timeout)  # type: ignore[attr-defined]
+    # CORS：默认空 = 只允许同源；XKX_CORS_ORIGIN 可显式放开某个来源（或 `*`）。
+    if cors_origin is None:
+        cors_origin = os.environ.get("XKX_CORS_ORIGIN", "")
+    server.cors_origin = str(cors_origin or "")  # type: ignore[attr-defined]
     server.daemon_threads = True
     return server
 

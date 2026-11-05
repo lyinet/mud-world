@@ -27,6 +27,31 @@
 
 ---
 
+## [安全 P0/P1] 2026-11-06 — 请求体/头部限制、超时、CORS 同源默认 + 依赖漏洞扫描
+
+- **改了什么**
+  - `src/wsim/api/server.py`：
+    - `Content-Length` 上限 8KB，超限 **413 `payload_too_large`**
+      （`XKX_MAX_BODY_BYTES` 可覆盖）；
+    - 请求头总字节数上限 8KB，超限 **431 `header_too_large`**
+      （`XKX_MAX_HEADER_BYTES` 可覆盖）；
+    - 连接读取超时（默认 30s，`XKX_REQUEST_TIMEOUT` 可覆盖），超时 **408 `request_timeout`**；
+    - CORS 默认**不出 CORS 头**（只允许同源）；`XKX_CORS_ORIGIN` 配置后下发
+      `Access-Control-Allow-Origin/Methods/Headers` 与 `Vary: Origin`，并支持 `OPTIONS` 预检（204）。
+  - `tests/test_w1_http_hardening.py`：413、431、CORS 默认/覆盖、408 五项。
+  - `reports/security/audit-2026-11-06.json`：`pip-audit -r requirements.txt` 原始报告。
+  - `SECURITY.md` 新增第 6 节“依赖漏洞扫描（每次上线前）”：工具、命令、结论与不可修项处置口径。
+- **为什么改**：上线前 P0/P1：无限请求体可撑爆内存；跨源默认放开等于把鉴权端点暴露给任意网页；
+  依赖漏洞需要可追溯的扫描基线。
+- **验证方式**
+  - `python -m pytest tests/test_w1_http_hardening.py -q` → 5 passed。
+  - `python3 -m pip_audit -r requirements.txt -o reports/security/audit-2026-11-06.json --format json`
+    → `No known vulnerabilities found`（扫描 `pyyaml 6.0.3`、`pytest 9.2.0`、`pluggy 1.7.0`、
+    `iniconfig 2.3.1`、`pygments 2.21.0`）。可修项与不可修项均为 0。
+- **commit**：`（见本提交）`
+
+---
+
 ## [安全 P0] 2026-11-06 — 登录限流防爆破 + 令牌吊销 + 审计
 
 - **改了什么**

@@ -67,3 +67,16 @@
    **不含 Bearer 本体**。该文件已于本次从 HEAD 删除；此前的历史提交中仍可检出，**未改写历史**。
    对应会话在压测后已清理，`session_id` 是一次性会话标识，不是长期凭证，也不可用于重新认证。
    同类“检查结果”文件按第 1–4 款处理，默认不入库。
+
+## 6. 依赖漏洞扫描（每次上线前）
+
+- **工具**：`pip-audit`（无则 `safety`），对 `requirements.txt` 的锁定版本扫描。
+- **命令**：`python3 -m pip_audit -r requirements.txt -o reports/security/audit-<date>.json --format json`
+- **2026-11-06 结论**：`No known vulnerabilities found`。扫描对象
+  `pyyaml 6.0.3`、`pytest 9.2.0` 及其传递依赖 `pluggy 1.7.0`、`iniconfig 2.3.1`、
+  `pygments 2.21.0`。原始报告：[reports/security/audit-2026-11-06.json](reports/security/audit-2026-11-06.json)。
+- **可修项**：无，无需升级与回归。
+- **不可修项**：无。若未来出现无补丁漏洞，必须在本节追加：CVE、受影响版本、影响面
+  （哪些端点/数据可达）、补偿措施（如禁用相关特性、网络层 ACL、限流或输入白名单），
+  并在 `CHANGELOG.md` 同步记录。
+
