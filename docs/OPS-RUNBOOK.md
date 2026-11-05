@@ -99,48 +99,54 @@ docker compose logs -f world   # 看到 [player-ui] mode=live 与 API 监听
 
 ## 3. 备份
 
-**在线一致性备份（推荐，WAL 模式安全）**：
+唯一事实源是 `runs/<RUN_ID>/events.sqlite`；`service.sqlite` 必须一起备份（账号/令牌）。
+**统一使用 `tools/backup_snapshot.py`**（sqlite 在线备份 API，不用 `cp`）：
 
 ```bash
-RUN=runs/service
-STAMP=$(date +%Y%m%d-%H%M%S)
-mkdir -p backups/$STAMP
-sqlite3 "$RUN/events.sqlite"  ".backup 'backups/$STAMP/events.sqlite'"
-sqlite3 "$RUN/service.sqlite" ".backup 'backups/$STAMP/service.sqlite'"
-sha256sum backups/$STAMP/*.sqlite > backups/$STAMP/SHA256SUMS
+# 宿主机（仓库根）
+.venv/bin/python tools/backup_snapshot.py --root . --run service
+
+# 容器内（容器已带 tools/；等价于 backup profile 的循环动作）
+docker exec xkx-world python /app/tools/backup_snapshot.py --root /app --run service
 ```
 
-容器内：
-
-```bash
-docker exec xkx-world sh -c 'mkdir -p /app/runs/_backup && \
-  sqlite3 /app/runs/service/events.sqlite ".backup \"/app/runs/_backup/events-$(date +%s).sqlite\""'
-docker cp xkx-world:/app/runs/_backup/. ./backups/
-```
+产物在 `backups/<UTC 时间戳>/`（`events.sqlite`、`service.sqlite`、`manifest.json`）。
+完整字段、轮转策略（48 小时滚动 + 最近 7 日每日 1 份）、删除安全校验、定时方案与
+实测 RPO/RTO 见 [docs/BACKUP-RESTORE.md](BACKUP-RESTORE.md)。
 
 要点：
 
 - 不要只 `cp events.sqlite` 而不拷 `-wal`/`-shm`；要么停服后拷贝，要么用 `.backup`。
-- 备份必须同时包含 `events.sqlite` 与 `service.sqlite`，否则恢复后令牌/账号丢失。
-- 备份粒度建议：每次升级前 + 每日一次；保留 7 天。
+- 备份工具在服务运行中执行，`manifest.json` 里有 `sha256`、`seq`、`content_hash`、
+  `state_hash`，可直接用于恢复校验。
+- 备份目录权限 `700`、文件 `600`（含账号哈希与令牌，勿对全员开放）。
 
 ---
 
 ## 4. 恢复
 
-1. 停止服务（避免双写）：`docker compose stop world` 或 kill API 进程。
-2. 把备份文件放回 `runs/<RUN_ID>/`，确保权限属于运行用户（容器内 uid 10001）。
-3. **不要修改 `meta.content_hash`**：它必须与当前 `content/` 一致。
+1. **停止服务**（单写者，禁止边恢复边写）：`docker compose stop world` 或 kill API 进程。
+2. 选备份：看 `manifest.json` 的 `created_at` 与 `seq.max`，选故障前最近一份。
+3. 校验并装回（非零退出即中止）：
+   ```bash
+   .venv/bin/python tools/restore_verify.py --root . \
+     --backup-dir backups/20261105T172730Z --apply-dir runs/service
+   ```
 4. 启动并验证：
+   ```bash
+   curl -s http://127.0.0.1:8020/api/service/info
+   curl -s -o /dev/null -w '%{http_code}\n' \
+     'http://127.0.0.1:8020/api/state?account_id=<account>'     # 期望 200
+   .venv/bin/python tools/load_test.py --verify-only --run-dir runs/service
+   ```
 
-```bash
-curl -s http://127.0.0.1:8020/api/service/info
-.venv/bin/python tools/load_test.py --verify-only --run-dir runs/service
-```
+`restore_verify.py` 逐项校验：文件 sha256/大小、`integrity_check=ok`、seq 连续且
+min/max/count 与 manifest 一致、重放 `state_hash` 一致、`content_hash` 与当前内容一致、
+`event_hash` 一致。任何一项失败退出码为 `2`，**不要继续起服**。
 
-`--verify-only` 应输出：`ok=true`、`integrity_check=ok`、`seq.contiguous=true`、`wallet.delta=0`、`half_write_rows=[]`。
-
-5. 内容 hash 不符时（退出码 3）：说明备份对应旧内容或内容被改。要么恢复对应版本的 `content/`，要么用新内容开新 run；**不要手改 hash 绕过**。
+5. 内容 hash 不符（起服退出码 3）：说明备份对应旧内容或内容被改。要么恢复对应版本的
+   `content/`，要么用新内容开新 run；**不要手改 hash 绕过**。
+6. `service.sqlite` 回滚后，备份之后签发的令牌/新账号会失效，通知玩家重新登录。
 
 ---
 
@@ -367,3 +373,72 @@ WAL 异常或磁盘满时：先停服，保留 `events.sqlite`/`-wal`/`-shm` 原
 - **世界时间不同步**：各区的世界日不同，跨区活动/榜单要按真实时间而非 tick。
 - **运维面 ×N**：备份、恢复、告警、僵尸会话清理都要按区执行；全局索引需单独备份，损坏时从各区 `service.sqlite` 重建。
 - **容量不可共享**：席位、钱包铸币额度、200 席上限都是区内概念；跨区不能“借席位”。
+
+---
+
+## 9. P0 备份与恢复（工具化，实测）
+
+> 完整设计、manifest 字段、轮转算法与全部原始输出见
+> [docs/BACKUP-RESTORE.md](BACKUP-RESTORE.md)。本节只放值守要用的结论与数字。
+
+### 9.1 资产与命令
+
+| 资产 | 位置 | 备份后丢失的后果 |
+|---|---|---|
+| 事件日志（唯一事实源） | `runs/<RUN_ID>/events.sqlite` | 世界状态全部丢失 |
+| 账号/令牌 | `runs/<RUN_ID>/service.sqlite` | 玩家需重新注册/登录 |
+| 备份产物 | `backups/<UTC 时间戳>/`（容器为 `xkx-w5-backups:/app/backups`） | — |
+
+```bash
+# 在线备份（服务不用停）
+.venv/bin/python tools/backup_snapshot.py --root . --run service
+
+# 校验并装回（必须先停服）
+.venv/bin/python tools/restore_verify.py --root . \
+  --backup-dir backups/<STAMP> --apply-dir runs/service
+```
+
+退出码：备份 `0/1/2`；恢复 `0` 通过、`2` 校验失败（任一失败都不得起服）。
+
+### 9.2 轮转与调度
+
+- 保留：**最近 48 小时全部** + **最近 7 个 UTC 日每日最新 1 份**；其余删除。
+- 删除仅限 `backups/` 直接子目录，且必须带 `generator=tools/backup_snapshot.py` 的
+  `manifest.json`；目录或其子项含符号链接时跳过并记录 `symlink_refused`。
+- 宿主机：`scripts/backup_loop.sh`，默认 `BK_INTERVAL=21600`（6 小时），启动先备一次。
+- 容器：`cd deploy && docker compose --profile backup up -d`（独立容器，不侵入世界进程；
+  镜像需重建以包含 `tools/`）。主 `docker compose up -d` 不含备份容器，属 profile 的预期行为。
+
+### 9.3 实测 RPO / RTO
+
+| 项目 | 实测值 | 口径 |
+|---|---|---|
+| 备份耗时 | 2.46–6.29s（29MB / 29.4k 事件） | `duration_ms`，含 state_hash 重放 |
+| 备份 SQLite copy | 91.9–334.8ms | `timing.backup_api_ms` |
+| 备份对写路径阻塞 | 最大 **31.252ms**（另次 8.226ms） | 存储层连续写探针，阈值 200ms |
+| RPO（6h 周期） | ≈ 6h00m07s | 6h + 最长备份耗时；事件增多会变长 |
+| 演练实际丢失 | 52 秒 / 20 条事件 | 最后备份 17:27:30Z → 故障 17:28:22Z |
+| RTO | **6.510s** | restore+verify 5.002s + API 到 `/api/state` 200 1.505s |
+| 循环漂移 | ≤1s（10s 间隔，5 次） | 时间戳 17:36:18/29/40/50/17:37:00Z |
+
+### 9.4 演练结论（2026-11-06）
+
+- **A 正常恢复**：写入 6 个动作 → 备份（seq 29438）→ 停服 → 移走 `events.sqlite` →
+  恢复（15/15 校验）→ 起服；`/api/state` HTTP 200，`location/market`、`wallet.money=300`、
+  `tick=88152` 与备份前逐字段一致，seq `count=distinct=max=29438`。
+- **B 损坏恢复**：截断到 4096 字节 → `sqlite3 PRAGMA integrity_check` 退出码 11
+  （`database disk image is malformed`）→ API 启动退出码 1（`store.py:43` 同一报错）→
+  从备份恢复 15/15 → 起服成功，`/api/health ok=true`、`/api/state` 200。
+- **C 恢复后继续写**：恢复后的 run 再写 10 个动作，seq `32581–32600` 接续自 32580，
+  `count=32600`、`distinct=32600`，无重复。
+- **D 备份不阻塞**：同起点 20 读 + 10 写 ×30s，基线写 P95 `394.95 / 358.52ms`，
+  备份期间 `269.86 / 368.44ms`（备份组不高于基线，单机噪声占主导）；
+  存储层探针在 6.289s 备份内 310 次写，最大 **31.252ms**，证明 SQLite 备份读快照不阻塞 WAL 写者。
+
+### 9.5 值守检查清单
+
+- 每日看 `backups/` 是否有当天目录，`manifest.json` 的 `verification_ok=true`。
+- 每周对最新备份跑一次 `restore_verify.py`（不带 `--apply-dir`），失败立即告警。
+- 备份与主库同盘：磁盘损坏会双丢，异地副本不在 P0 范围。
+- 内容包升级前先备份；升级后旧备份会因 `content_hash` 不符而无法启动（预期）。
+- 备份含账号哈希/令牌：目录 `700`、文件 `600`，拷离机器前加密。

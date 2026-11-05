@@ -9,6 +9,61 @@
 
 ---
 
+## [P0 数据安全] 2026-11-06 — 在线备份 / 恢复校验 / 轮转 / 定时
+
+- **改了什么**
+  - 新增 `tools/backup_snapshot.py`：`sqlite3.Connection.backup`（分页 1024 pages、
+    `sleep=0`、源连接 `PRAGMA query_only=1`、目标 `journal_mode=DELETE`）在线备份
+    `events.sqlite` 与 `service.sqlite` 到 `backups/<UTC 时间戳>/`，写 `manifest.json`：
+    每个文件 `sha256` / `size_bytes` / `integrity_check`、events `seq` 的
+    `min/max/count/distinct/holes/contiguous`、`content_hash`、重放得到的
+    `state_hash` / `event_hash`、`created_at`、`source_paths`、`backup_api_ms/steps`。
+    备份目录 `700`、文件 `600`。
+  - 新增 `tools/restore_verify.py`：恢复到临时目录后逐项校验（文件存在 / sha256 /
+    大小 / `integrity_check=ok` / seq 连续且 min-max-count 与 manifest 一致 /
+    `state_hash` / `event_hash` / 备份 `content_hash` 与 manifest 一致 /
+    与当前 `content/` 一致），**任一失败退出码 `2`**；可选 `--apply-dir` 在停服后装回，
+    装回前清除目标端陈旧 `-wal`/`-shm`。
+  - 新增 `tools/backup_impact.py`：20 并发读 + 10 并发写对照压测（`--auth on/off`、
+    `--duration`、`--tag`），用于实测备份对写路径的影响。
+  - 新增 `scripts/backup_loop.sh`：默认 `BK_INTERVAL=21600`（6h）、启动先备份一次、
+    `TERM/INT` 可中断；`BK_INTERVAL=10` 实测 5 份目录间隔 11/11/10/10s。
+  - 轮转（常量写在 `backup_snapshot.py`）：保留 `KEEP_ROLLING_HOURS=48` 内全部 +
+    `KEEP_DAILY_DAYS=7` 个 UTC 日每日最新 1 份；只识别 manifest 里
+    `generator=tools/backup_snapshot.py` 的自生成目录，目标必须是 `backups/` 的直接子目录，
+    **拒绝带符号链接的目标**，删除失败记 `prune.skipped` 不中断备份。
+  - `deploy/docker-compose.yml` 新增 `profiles: ["backup"]` 的 `backup` 服务
+    （复用 `xkx/world-sim:w5`，循环调 `backup_snapshot.py`）与命名卷
+    `xkx-w5-backups`；`deploy/Dockerfile` 加 `COPY tools /app/tools` 并预建 `/app/backups`；
+    `.gitignore` 加 `backups/`。
+  - 新增 `docs/BACKUP-RESTORE.md`；`docs/OPS-RUNBOOK.md` §3/§4 改写为工具口径，
+    新增 §9「P0 备份与恢复（工具化，实测）」。
+- **为什么改**：`events.sqlite` 是唯一事实源（事件日志 + `meta.content_hash`），
+  此前没有任何备份手段；`cp` 在 WAL 模式下会漏 `-wal`/`-shm`，必须用在线备份 API。
+  调度选 compose profile 而非 entrypoint 开关：entrypoint 在 API 进程内做定时器会与
+  `WorldSession` 抢锁、且停 API 就停备份；独立 profile 容器与主服务生命周期解耦、默认不启动。
+  理由与对比写在 `docs/BACKUP-RESTORE.md` §5.2。
+- **实测（原始输出见 `docs/BACKUP-RESTORE.md` §7–§8）**
+  - 备份耗时 **2.46–6.29s**（29MB / 29.4k 事件），RPO ≈ **6h00m07s**；演练 B 实际丢失
+    52s / 20 条事件（seq 29439–29458）。
+  - RTO **6.510s**（restore+verify 5.002s + API 启动到 `/api/state` 200 为 1.505s）。
+  - Drill A：备份 `seq max=29438` → 移走 `events.sqlite` → `restore_verify` 15/15 通过 →
+    起服 `/api/state` **200**、玩家状态子集逐字段一致、seq 连续。
+  - Drill B：`head -c 4096` 截断 → `sqlite3` 退出码 **11**、API 退出码 **1**
+    （`store.py:43 database disk image is malformed`）→ 恢复 15/15 → `/api/health ok=true`。
+  - Drill C：恢复后新增 20 个动作，`count=distinct=max=32600`，seq 32581–32600 接续无重复。
+  - Drill D：基线/备份 4 轮交替对照，写 P95 基线中位 **376.7ms**、备份期间 **319.2ms**
+    （备份组不高于基线）；存储层探针：备份 6.289s 期间 310 次写，**最大写延迟 31.252ms**
+    （另一轮 8.226ms），远低于 200ms 门槛。
+- **已知限制**（详见文档）：备份与主库同盘（丢盘两者一起丢，需要异地/对象存储副本）；
+  备份未加密（含账号 PBKDF2 哈希与令牌，目录 700、文件 600）；`state_hash` 重放成本随
+  事件数线性增长，会拉长备份与 RPO；`content/` 升级后旧备份无法直接启动（退出码 3，属预期）；
+  只做了 `--profile backup config` 渲染校验，**未做容器运行时演练**。
+- **未做**：未改 `src/wsim/api/**`、`actions/**`、`sim/**`、`ui/**`。
+- **commit**：`0e1d685`（工具与脚本）、`（本提交）`（文档与 CHANGELOG）。
+
+---
+
 ## [功能] 2026-11-06 — 玩家门派 P1：立派 / 收徒 / 日结 / 金库（动作层，未接线）
 
 - **改了什么**
