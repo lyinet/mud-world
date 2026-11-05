@@ -84,6 +84,8 @@ WRITE_ACTIONS: dict[str, str] = {
     "work": "work",
     "open_shop": "open_shop",
     "join_sect": "join_sect",
+    # 店铺雇佣：参数与 RecruitAction 一致（target/position/wage，shop 缺省本人店铺）。
+    "recruit": "recruit",
     # 消费类动作：复用 BuyAction / SellAction / ConsumeAction / EscortAction。
     "buy": "buy",
     "sell": "sell",
@@ -109,6 +111,7 @@ ACTION_ALIASES: dict[str, str] = {
     "work": "work",
     "open_shop": "open_shop",
     "join_sect": "join_sect",
+    "recruit": "recruit",
     "quest_accept": "quest/accept",
     "quest/accept": "quest/accept",
     "quest_deliver": "quest/deliver",
@@ -1390,6 +1393,20 @@ class WorldSession:
             ent = self.state.entities.get(pid)
             base["target"] = str(payload.get("target") or (ent.location if ent is not None else ""))
             base["dues"] = payload.get("dues", 0)
+            return base
+        if action == "recruit":
+            # 与 RecruitAction 一致：target / position / wage，shop 缺省为本人店铺。
+            # 空串会被 arg_str 判成 bad_arg，所以只透传非空键。
+            base["target"] = str(payload.get("target") or "")
+            shop = str(payload.get("shop") or "")
+            position = str(payload.get("position") or "")
+            if shop:
+                base["shop"] = shop
+            if position:
+                base["position"] = position
+            wage = payload.get("wage")
+            if wage is not None and wage != "":
+                base["wage"] = wage
             return base
         if action == "buy":
             base["item"] = str(payload.get("item") or "")

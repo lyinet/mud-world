@@ -9,6 +9,27 @@
 
 ---
 
+## [修复] 2026-11-05 — 玩家 API 放行 recruit：开店闭环在正式 HEAD 可用
+
+- **改了什么**
+  - `actions/player.py` 的 `PLAYER_VERBS` 与 `api/session.py` 的 `WRITE_ACTIONS`、
+    `ACTION_ALIASES` 都加入 `recruit`；`_args` 透传 `target/shop/position/wage`，
+    空串键不透传（`arg_str(required=False)` 对空串仍判 `bad_arg:shop`）。
+  - 语义直接复用既有 `RecruitAction`：带 `shop/position/wage` 走店铺雇佣，
+    不带时保持原门派招揽；没有另造接口或参数。
+  - 提速补丁（`_price_cache` / `_view_cache`）已在 `240e5a8` 入库，不是临时 hack：
+    按 `tick` 失效，避免 `player_state` 每次重复 35 次全城扫价；本轮不重复合入。
+- **验证**
+  - 正式仓库 HEAD + 本提交的 HTTP 端到端（ambient 4x、seed 42）：temple 开 `stall`
+    （tick 486）→ `recruit`（`yan_shouyi`/庙祝/18）一次成功（tick 2904）→ 过 3 个世界日
+    （tick 3024/3170/3317）三次 `system_shop_settle`，每天
+    `transfer(18, cash:shop:player:u_demo → wallet:yan_shouyi)`，合计 54 文、欠薪 0。
+  - 同一实例负样例：未经营人情 → `relation_too_low`；日薪 1 文 → `wage_too_low`。
+  - 对账：`accounts_sum 47241 = minted 47450 − burned 209`，`delta=0`，`escrow_total=0`。
+  - 新增 1 条测试（白名单/别名/参数透传 + 空 shop 不透传）；全量 pytest
+    483 收集 / 467 passed / 16 skipped；selfcheck 4/4。
+- **commit**：见本次提交（仅 recruit 放行 + 测试 + 文档）。
+
 ## [修复] 2026-11-05 — work 事件补 employer 归因：玩家店铺出工可审计
 
 - **改了什么**

@@ -53,6 +53,8 @@ PLAYER_VERBS = frozenset(
         "work",
         "open_shop",
         "join_sect",
+        # 店铺雇佣：复用 RecruitAction 的 shop/position/wage 语义（店员，不是门派招揽）。
+        "recruit",
         "quest_accept",
         "quest_deliver",
         # 消费类动作：语义由 BuyAction / SellAction / ConsumeAction / EscortAction 提供。

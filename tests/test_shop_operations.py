@@ -356,3 +356,29 @@ def test_day_end_emits_one_settle_after_maintenance_with_shop(tmp_path, real_con
         assert verbs.index("system_shop_settle") > verbs.index("system_maintenance")
         assert verbs.count("system_shop_settle") == 1
     assert [e.seq for e in events] == list(range(1, len(events) + 1))
+
+
+def test_player_api_exposes_recruit_with_shop_semantics():
+    """开店闭环的雇佣要能从 /api/player/action 进来：白名单 + 别名 + 参数透传。"""
+    from wsim.actions.player import PLAYER_VERBS
+    from wsim.api.session import ACTION_ALIASES, WRITE_ACTIONS, WorldSession
+
+    assert "recruit" in PLAYER_VERBS
+    assert ACTION_ALIASES["recruit"] == "recruit"
+    assert WRITE_ACTIONS["recruit"] == "recruit"
+
+    args = WorldSession._args(
+        None, "recruit", "player:u_demo", "u_demo",
+        {"target": "yan_shouyi", "shop": "", "position": "庙祝", "wage": 18},
+    )
+    assert args["target"] == "yan_shouyi"
+    assert args["position"] == "庙祝"
+    assert args["wage"] == 18
+    # 空 shop 不能透传：arg_str(required=False) 对空串仍会判 bad_arg:shop。
+    assert "shop" not in args
+
+    bare = WorldSession._args(
+        None, "recruit", "player:u_demo", "u_demo", {"target": "x"},
+    )
+    assert "position" not in bare and "wage" not in bare
+

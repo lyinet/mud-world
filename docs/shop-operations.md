@@ -227,3 +227,22 @@ run `hire-e2e`；content_hash `7ec670c1`。
   产出与工资都归到 `shop:player:u1` 的账上。
 - 无玩家雇佣对照：V5 golden 继续通过，state `0ee1f724…` / event `6a919efe…` 逐字节不变。
 
+## 7.4 正式 HEAD 放行 `recruit` 后复跑（2026-11-05）
+
+环境：真实仓库 HEAD + 本轮 `recruit` 放行（`actions/player.py` 的 `PLAYER_VERBS`、
+`api/session.py` 的 `WRITE_ACTIONS` / `ACTION_ALIASES` / `_args`）；`wsim.api` + ambient
+（seed 42、speed 4x），数据根 `/tmp/xkx-shop-e2e-run`，run `shop-e2e`。
+
+- 开店：tick 486 在 temple 执行 HTTP `open_shop`（`stall`、名“庙前香摊”）。
+  真 HEAD 新玩家只有 300 文，脚本先跑 3 趟空货短镖攒够开店 + 首批库存（345 文）。
+- 负样例（同一服务实例）：
+  - 未经营人情直接雇 → `reject_reason=relation_too_low`；
+  - 关系达标后日薪给 1 文 → `reject_reason=wage_too_low`。
+- 雇工：tick 2904 HTTP `recruit`（`target=yan_shouyi` / `position=庙祝` / `wage=18`）
+  一次成功，`shop_hire` 效果落库。
+- 日结：tick 3024 / 3170 / 3317 三次 `system_shop_settle`，每天一笔
+  `transfer(amount=18, src=cash:shop:player:u_demo, dst=wallet:yan_shouyi)`；
+  3 天工资合计 54 文，未付欠薪 0。
+- 对账：`accounts_sum=47241 = minted 47450 − burned 209`（`delta=0`），`escrow_total=0`。
+
+
