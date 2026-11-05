@@ -21,6 +21,8 @@
           "busy": [],
           "reportLoaded": false,
           "reportUnavailable": false,
+          "stockouts": 0,
+          "lowStock": 0,
           "dismissTarget": ""
         },
         "restockRows": [],
@@ -31,10 +33,12 @@
         "restockTotal": "合计 0 文",
         "ledger": {
           "emptyVisible": true,
-          "emptyText": "尚无日结记录，世界日结束后来看",
+          "emptyText": "你还没有店铺；开张后才有日结账本",
           "wrapVisible": false,
           "rows": [],
           "totalText": "",
+          "stockoutVisible": false,
+          "stockoutText": "",
           "wrapScroll": 0,
           "wrapClient": 0
         },
@@ -64,7 +68,8 @@
               "price": 40,
               "base_price": 40,
               "restock_price": 40,
-              "priced": true
+              "priced": true,
+              "zero_stock": false
             },
             {
               "item": "coarse_cloth",
@@ -73,7 +78,8 @@
               "price": 25,
               "base_price": 25,
               "restock_price": 25,
-              "priced": true
+              "priced": true,
+              "zero_stock": false
             },
             {
               "item": "flatbread",
@@ -82,7 +88,8 @@
               "price": 3,
               "base_price": 3,
               "restock_price": 3,
-              "priced": true
+              "priced": true,
+              "zero_stock": false
             },
             {
               "item": "needle",
@@ -91,7 +98,8 @@
               "price": 12,
               "base_price": 12,
               "restock_price": 12,
-              "priced": true
+              "priced": true,
+              "zero_stock": false
             },
             {
               "item": "noodle",
@@ -100,7 +108,8 @@
               "price": 5,
               "base_price": 5,
               "restock_price": 5,
-              "priced": true
+              "priced": true,
+              "zero_stock": false
             },
             {
               "item": "rice",
@@ -109,7 +118,8 @@
               "price": 4,
               "base_price": 4,
               "restock_price": 4,
-              "priced": true
+              "priced": true,
+              "zero_stock": false
             }
           ],
           "employees": 0,
@@ -189,44 +199,68 @@
           "busy": [],
           "reportLoaded": true,
           "reportUnavailable": false,
+          "stockouts": 0,
+          "lowStock": 2,
           "dismissTarget": ""
         },
         "restockRows": [
           {
             "item": "cleaver",
-            "text": "菜刀现有 2 件 · 进货单价 40 文/件进货合计 40 文",
+            "text": "菜刀现有 2 件 · 进货单价 40 文/件 · 库存不足（低于 3 件）补到 15 件进货合计 40 文",
             "qty": true,
-            "disabled": false
+            "disabled": false,
+            "alerts": [
+              "库存不足（低于 3 件）"
+            ],
+            "fill": {
+              "text": "补到 15 件",
+              "qty": "13"
+            }
           },
           {
             "item": "coarse_cloth",
             "text": "粗布（一匹）现有 4 件 · 进货单价 25 文/件进货合计 25 文",
             "qty": true,
-            "disabled": false
+            "disabled": false,
+            "alerts": [],
+            "fill": null
           },
           {
             "item": "flatbread",
             "text": "炊饼现有 10 件 · 进货单价 3 文/件进货合计 3 文",
             "qty": true,
-            "disabled": false
+            "disabled": false,
+            "alerts": [],
+            "fill": null
           },
           {
             "item": "needle",
-            "text": "绣花针现有 2 件 · 进货单价 12 文/件进货合计 12 文",
+            "text": "绣花针现有 2 件 · 进货单价 12 文/件 · 库存不足（低于 3 件）补到 15 件进货合计 12 文",
             "qty": true,
-            "disabled": false
+            "disabled": false,
+            "alerts": [
+              "库存不足（低于 3 件）"
+            ],
+            "fill": {
+              "text": "补到 15 件",
+              "qty": "13"
+            }
           },
           {
             "item": "noodle",
             "text": "汤面现有 8 件 · 进货单价 5 文/件进货合计 5 文",
             "qty": true,
-            "disabled": false
+            "disabled": false,
+            "alerts": [],
+            "fill": null
           },
           {
             "item": "rice",
             "text": "米饭现有 6 件 · 进货单价 4 文/件进货合计 4 文",
             "qty": true,
-            "disabled": false
+            "disabled": false,
+            "alerts": [],
+            "fill": null
           }
         ],
         "priceRows": [
@@ -327,6 +361,8 @@
             }
           ],
           "totalText": "7 日合计33511319816+844",
+          "stockoutVisible": false,
+          "stockoutText": "",
           "wrapScroll": 640,
           "wrapClient": 308
         },
@@ -401,6 +437,8 @@
           }
         ],
         "totalText": "7 日合计33511319816+844",
+        "stockoutVisible": false,
+        "stockoutText": "",
         "wrapScroll": 640,
         "wrapClient": 308
       }
@@ -464,14 +502,154 @@
           }
         ],
         "totalText": "7 日合计33511319816+844",
+        "stockoutVisible": false,
+        "stockoutText": "",
         "wrapScroll": 640,
         "wrapClient": 308
       }
     },
     {
+      "name": "店铺经营 缺货日在账本里用中文直说（含具体 SKU）",
+      "ok": true,
+      "detail": [
+        {
+          "day": "8",
+          "text": "第 8 日00320-320缺货导致零成交（炊饼/阳春面）",
+          "reason": "缺货导致零成交（炊饼/阳春面）",
+          "netClass": "profit-neg",
+          "netColor": "rgb(178, 59, 59)"
+        },
+        {
+          "day": "9",
+          "text": "第 9 日40602+325",
+          "reason": "",
+          "netClass": "profit-pos",
+          "netColor": "rgb(31, 122, 61)"
+        }
+      ]
+    },
+    {
+      "name": "店铺经营 账本提示最近缺货天数，空账本不显示",
+      "ok": true,
+      "detail": {
+        "emptyVisible": false,
+        "emptyText": "尚无日结记录，世界日结束后来看",
+        "wrapVisible": true,
+        "rows": [
+          {
+            "day": "8",
+            "text": "第 8 日00320-320缺货导致零成交（炊饼/阳春面）",
+            "reason": "缺货导致零成交（炊饼/阳春面）",
+            "netClass": "profit-neg",
+            "netColor": "rgb(178, 59, 59)"
+          },
+          {
+            "day": "9",
+            "text": "第 9 日40602+325",
+            "reason": "",
+            "netClass": "profit-pos",
+            "netColor": "rgb(31, 122, 61)"
+          }
+        ],
+        "totalText": "2 日合计40632205",
+        "stockoutVisible": true,
+        "stockoutText": "最近 2 个日结里，有 1 天缺货导致零成交；低于 3 件的 SKU 请优先补货。",
+        "wrapScroll": 640,
+        "wrapClient": 308
+      }
+    },
+    {
+      "name": "店铺经营 低库存/售罄 SKU 有显式提示与建议量入口",
+      "ok": true,
+      "detail": [
+        {
+          "item": "cleaver",
+          "text": "菜刀现有 2 件 · 进货单价 40 文/件 · 库存不足（低于 3 件）补到 15 件进货合计 40 文",
+          "qty": true,
+          "disabled": false,
+          "alerts": [
+            "库存不足（低于 3 件）"
+          ],
+          "fill": {
+            "text": "补到 15 件",
+            "qty": "13"
+          }
+        },
+        {
+          "item": "coarse_cloth",
+          "text": "粗布（一匹）现有 4 件 · 进货单价 25 文/件进货合计 25 文",
+          "qty": true,
+          "disabled": false,
+          "alerts": [],
+          "fill": null
+        },
+        {
+          "item": "flatbread",
+          "text": "炊饼现有 1 件 · 进货单价 3 文/件 · 库存不足（低于 3 件）补到 15 件进货合计 3 文",
+          "qty": true,
+          "disabled": false,
+          "alerts": [
+            "库存不足（低于 3 件）"
+          ],
+          "fill": {
+            "text": "补到 15 件",
+            "qty": "14"
+          }
+        },
+        {
+          "item": "needle",
+          "text": "绣花针现有 2 件 · 进货单价 12 文/件 · 库存不足（低于 3 件）补到 15 件进货合计 12 文",
+          "qty": true,
+          "disabled": false,
+          "alerts": [
+            "库存不足（低于 3 件）"
+          ],
+          "fill": {
+            "text": "补到 15 件",
+            "qty": "13"
+          }
+        },
+        {
+          "item": "noodle",
+          "text": "汤面现有 0 件 · 进货单价 5 文/件 · 已售罄 · 优先补货补到 15 件进货合计 5 文",
+          "qty": true,
+          "disabled": false,
+          "alerts": [
+            "已售罄 · 优先补货"
+          ],
+          "fill": {
+            "text": "补到 15 件",
+            "qty": "15"
+          }
+        },
+        {
+          "item": "rice",
+          "text": "米饭现有 2 件 · 进货单价 4 文/件 · 库存不足（低于 3 件）补到 15 件进货合计 4 文",
+          "qty": true,
+          "disabled": false,
+          "alerts": [
+            "库存不足（低于 3 件）"
+          ],
+          "fill": {
+            "text": "补到 15 件",
+            "qty": "13"
+          }
+        }
+      ]
+    },
+    {
+      "name": "店铺经营 一键补货只预填建议量，仍要玩家点「进货」确认",
+      "ok": true,
+      "detail": {
+        "filled": "15",
+        "calls": 0,
+        "toast": "已按建议量填好 15 件，点「进货」确认。"
+      }
+    },
+    {
       "name": "店铺经营 进货行显示该行合计 18 文",
       "ok": true,
-      "detail": "炊饼现有 10 件 · 进货单价 3 文/件进货合计 18 文"
+      "detail": "炊饼现有 1 件 · 进货单价 3 文/件 · 库存不足（低于 3 件）补到 15 件进货合计 18 文"
     },
     {
       "name": "店铺经营 进货成功文案含件数/花费/库存前后",
@@ -488,15 +666,15 @@
       "name": "店铺经营 not_enough_money 映射中文且不露原始码",
       "ok": true,
       "detail": [
-        "进货汤面01:57:56你的钱不够（买入价含交易税）。"
+        "进货汤面04:45:17你的钱不够（买入价含交易税）。"
       ]
     },
     {
       "name": "店铺经营 bad_arg:qty 映射中文",
       "ok": true,
       "detail": [
-        "进货汤面01:57:56数量必须是 1-20 的整数。",
-        "进货汤面01:57:56你的钱不够（买入价含交易税）。"
+        "进货汤面04:45:17数量必须是 1-20 的整数。",
+        "进货汤面04:45:17你的钱不够（买入价含交易税）。"
       ]
     },
     {
@@ -534,9 +712,9 @@
       "name": "店铺经营 price_out_of_range 映射中文",
       "ok": true,
       "detail": [
-        "改价炊饼01:57:58定价只能在基准价的 ±20% 以内；超出范围没人敢应价。",
-        "进货汤面01:57:56数量必须是 1-20 的整数。",
-        "进货汤面01:57:56你的钱不够（买入价含交易税）。"
+        "改价炊饼04:45:18定价只能在基准价的 ±20% 以内；超出范围没人敢应价。",
+        "进货汤面04:45:17数量必须是 1-20 的整数。",
+        "进货汤面04:45:17你的钱不够（买入价含交易税）。"
       ]
     },
     {
@@ -559,7 +737,8 @@
               "price": 40,
               "base_price": 40,
               "restock_price": 40,
-              "priced": true
+              "priced": true,
+              "zero_stock": false
             },
             {
               "item": "coarse_cloth",
@@ -568,7 +747,8 @@
               "price": 25,
               "base_price": 25,
               "restock_price": 25,
-              "priced": true
+              "priced": true,
+              "zero_stock": false
             },
             {
               "item": "flatbread",
@@ -577,7 +757,8 @@
               "price": 4,
               "base_price": 3,
               "restock_price": 3,
-              "priced": true
+              "priced": true,
+              "zero_stock": false
             },
             {
               "item": "needle",
@@ -586,7 +767,8 @@
               "price": 12,
               "base_price": 12,
               "restock_price": 12,
-              "priced": true
+              "priced": true,
+              "zero_stock": false
             },
             {
               "item": "noodle",
@@ -595,7 +777,8 @@
               "price": 5,
               "base_price": 5,
               "restock_price": 5,
-              "priced": true
+              "priced": true,
+              "zero_stock": false
             },
             {
               "item": "rice",
@@ -604,7 +787,8 @@
               "price": 4,
               "base_price": 4,
               "restock_price": 4,
-              "priced": true
+              "priced": true,
+              "zero_stock": false
             }
           ],
           "employees": 0,
@@ -684,44 +868,68 @@
           "busy": [],
           "reportLoaded": true,
           "reportUnavailable": false,
+          "stockouts": 0,
+          "lowStock": 2,
           "dismissTarget": ""
         },
         "restockRows": [
           {
             "item": "cleaver",
-            "text": "菜刀现有 2 件 · 进货单价 40 文/件进货合计 40 文",
+            "text": "菜刀现有 2 件 · 进货单价 40 文/件 · 库存不足（低于 3 件）补到 15 件进货合计 40 文",
             "qty": true,
-            "disabled": false
+            "disabled": false,
+            "alerts": [
+              "库存不足（低于 3 件）"
+            ],
+            "fill": {
+              "text": "补到 15 件",
+              "qty": "13"
+            }
           },
           {
             "item": "coarse_cloth",
             "text": "粗布（一匹）现有 4 件 · 进货单价 25 文/件进货合计 25 文",
             "qty": true,
-            "disabled": false
+            "disabled": false,
+            "alerts": [],
+            "fill": null
           },
           {
             "item": "flatbread",
             "text": "炊饼现有 16 件 · 进货单价 3 文/件进货合计 18 文",
             "qty": true,
-            "disabled": false
+            "disabled": false,
+            "alerts": [],
+            "fill": null
           },
           {
             "item": "needle",
-            "text": "绣花针现有 2 件 · 进货单价 12 文/件进货合计 12 文",
+            "text": "绣花针现有 2 件 · 进货单价 12 文/件 · 库存不足（低于 3 件）补到 15 件进货合计 12 文",
             "qty": true,
-            "disabled": false
+            "disabled": false,
+            "alerts": [
+              "库存不足（低于 3 件）"
+            ],
+            "fill": {
+              "text": "补到 15 件",
+              "qty": "13"
+            }
           },
           {
             "item": "noodle",
             "text": "汤面现有 8 件 · 进货单价 5 文/件进货合计 5 文",
             "qty": true,
-            "disabled": false
+            "disabled": false,
+            "alerts": [],
+            "fill": null
           },
           {
             "item": "rice",
             "text": "米饭现有 7 件 · 进货单价 4 文/件进货合计 4 文",
             "qty": true,
-            "disabled": false
+            "disabled": false,
+            "alerts": [],
+            "fill": null
           }
         ],
         "priceRows": [
@@ -822,6 +1030,8 @@
             }
           ],
           "totalText": "7 日合计33511319816+844",
+          "stockoutVisible": false,
+          "stockoutText": "",
           "wrapScroll": 640,
           "wrapClient": 308
         },
@@ -829,9 +1039,9 @@
         "modalText": "×\n    \n      辞\n      \n        辞退雇工\n        辞退后不再到店，日结也不再计当日工资。\n      \n    \n    \n      确定辞退 王铁匠？岗位 铁匠，日薪 32 文。\n      欠薪仍计：已经记在店铺账上的欠薪不会因为辞退而消失，仍需结清。\n      \n    \n    \n      取消\n      处理中…",
         "toast": "已辞退 王铁匠，欠薪 32 文仍计",
         "errors": [
-          "改价炊饼01:57:58定价只能在基准价的 ±20% 以内；超出范围没人敢应价。",
-          "进货汤面01:57:56数量必须是 1-20 的整数。",
-          "进货汤面01:57:56你的钱不够（买入价含交易税）。"
+          "改价炊饼04:45:18定价只能在基准价的 ±20% 以内；超出范围没人敢应价。",
+          "进货汤面04:45:17数量必须是 1-20 的整数。",
+          "进货汤面04:45:17你的钱不够（买入价含交易税）。"
         ],
         "log": [
           "event_seq 7你辞退 王铁匠 · 欠薪 32 文仍计",
@@ -853,9 +1063,9 @@
       "name": "店铺经营 target_not_employed 映射中文",
       "ok": true,
       "detail": [
-        "测试错误01:57:59这个人不在你的店里做工，无法辞退。",
-        "改价炊饼01:57:58定价只能在基准价的 ±20% 以内；超出范围没人敢应价。",
-        "进货汤面01:57:56数量必须是 1-20 的整数。"
+        "测试错误04:45:19这个人不在你的店里做工，无法辞退。",
+        "改价炊饼04:45:18定价只能在基准价的 ±20% 以内；超出范围没人敢应价。",
+        "进货汤面04:45:17数量必须是 1-20 的整数。"
       ]
     },
     {
@@ -873,7 +1083,8 @@
               "price": 40,
               "base_price": 40,
               "restock_price": 40,
-              "priced": true
+              "priced": true,
+              "zero_stock": false
             },
             {
               "item": "coarse_cloth",
@@ -882,7 +1093,8 @@
               "price": 25,
               "base_price": 25,
               "restock_price": 25,
-              "priced": true
+              "priced": true,
+              "zero_stock": false
             },
             {
               "item": "flatbread",
@@ -891,7 +1103,8 @@
               "price": 4,
               "base_price": 3,
               "restock_price": 3,
-              "priced": true
+              "priced": true,
+              "zero_stock": false
             },
             {
               "item": "needle",
@@ -900,7 +1113,8 @@
               "price": 12,
               "base_price": 12,
               "restock_price": 12,
-              "priced": true
+              "priced": true,
+              "zero_stock": false
             },
             {
               "item": "noodle",
@@ -909,7 +1123,8 @@
               "price": 5,
               "base_price": 5,
               "restock_price": 5,
-              "priced": true
+              "priced": true,
+              "zero_stock": false
             },
             {
               "item": "rice",
@@ -918,7 +1133,8 @@
               "price": 4,
               "base_price": 4,
               "restock_price": 4,
-              "priced": true
+              "priced": true,
+              "zero_stock": false
             }
           ],
           "employees": 0,
@@ -998,44 +1214,68 @@
           "busy": [],
           "reportLoaded": true,
           "reportUnavailable": false,
+          "stockouts": 0,
+          "lowStock": 2,
           "dismissTarget": ""
         },
         "restockRows": [
           {
             "item": "cleaver",
-            "text": "菜刀现有 2 件 · 进货单价 40 文/件进货合计 40 文",
+            "text": "菜刀现有 2 件 · 进货单价 40 文/件 · 库存不足（低于 3 件）补到 15 件进货合计 40 文",
             "qty": true,
-            "disabled": false
+            "disabled": false,
+            "alerts": [
+              "库存不足（低于 3 件）"
+            ],
+            "fill": {
+              "text": "补到 15 件",
+              "qty": "13"
+            }
           },
           {
             "item": "coarse_cloth",
             "text": "粗布（一匹）现有 4 件 · 进货单价 25 文/件进货合计 25 文",
             "qty": true,
-            "disabled": false
+            "disabled": false,
+            "alerts": [],
+            "fill": null
           },
           {
             "item": "flatbread",
             "text": "炊饼现有 16 件 · 进货单价 3 文/件进货合计 18 文",
             "qty": true,
-            "disabled": false
+            "disabled": false,
+            "alerts": [],
+            "fill": null
           },
           {
             "item": "needle",
-            "text": "绣花针现有 2 件 · 进货单价 12 文/件进货合计 12 文",
+            "text": "绣花针现有 2 件 · 进货单价 12 文/件 · 库存不足（低于 3 件）补到 15 件进货合计 12 文",
             "qty": true,
-            "disabled": false
+            "disabled": false,
+            "alerts": [
+              "库存不足（低于 3 件）"
+            ],
+            "fill": {
+              "text": "补到 15 件",
+              "qty": "13"
+            }
           },
           {
             "item": "noodle",
             "text": "汤面现有 8 件 · 进货单价 5 文/件进货合计 5 文",
             "qty": true,
-            "disabled": false
+            "disabled": false,
+            "alerts": [],
+            "fill": null
           },
           {
             "item": "rice",
             "text": "米饭现有 7 件 · 进货单价 4 文/件进货合计 4 文",
             "qty": true,
-            "disabled": false
+            "disabled": false,
+            "alerts": [],
+            "fill": null
           }
         ],
         "priceRows": [
@@ -1136,6 +1376,8 @@
             }
           ],
           "totalText": "7 日合计33511319816+844",
+          "stockoutVisible": false,
+          "stockoutText": "",
           "wrapScroll": 640,
           "wrapClient": 308
         },
@@ -1143,9 +1385,9 @@
         "modalText": "×\n    \n      辞\n      \n        辞退雇工\n        辞退后不再到店，日结也不再计当日工资。\n      \n    \n    \n      确定辞退 王铁匠？岗位 铁匠，日薪 32 文。\n      欠薪仍计：已经记在店铺账上的欠薪不会因为辞退而消失，仍需结清。\n      \n    \n    \n      取消\n      处理中…",
         "toast": "提现 20 文，店现 100 → 80",
         "errors": [
-          "测试错误01:57:59这个人不在你的店里做工，无法辞退。",
-          "改价炊饼01:57:58定价只能在基准价的 ±20% 以内；超出范围没人敢应价。",
-          "进货汤面01:57:56数量必须是 1-20 的整数。"
+          "测试错误04:45:19这个人不在你的店里做工，无法辞退。",
+          "改价炊饼04:45:18定价只能在基准价的 ±20% 以内；超出范围没人敢应价。",
+          "进货汤面04:45:17数量必须是 1-20 的整数。"
         ],
         "log": [
           "event_seq 8你提现 20 文 · 店现 100 → 80",
@@ -1166,12 +1408,12 @@
       }
     },
     {
-      "name": "店铺经营 提现拒绝码映射（bad_arg:amount / insufficient_shop_cash）",
+      "name": "店铺经营 提现本地校验与店铺现金不足中文提示",
       "ok": true,
       "detail": [
-        "提现01:57:59店铺现金不足，不能提这么多；先留着进货或等日结回款。",
-        "提现01:57:59提现金额必须是正整数。",
-        "测试错误01:57:59这个人不在你的店里做工，无法辞退。"
+        "提现04:45:20店铺现金不足；先等日结回款，或把数量调小。",
+        "提现04:45:19提现金额必须是正整数。",
+        "测试错误04:45:19这个人不在你的店里做工，无法辞退。"
       ]
     },
     {
@@ -1183,6 +1425,8 @@
         "wrapVisible": false,
         "rows": [],
         "totalText": "",
+        "stockoutVisible": false,
+        "stockoutText": "",
         "wrapScroll": 0,
         "wrapClient": 0
       }
@@ -1195,7 +1439,7 @@
         "innerWidth": 375,
         "scrollWidth": 375,
         "ledgerScrollable": true,
-        "controlCount": 32,
+        "controlCount": 34,
         "small": []
       }
     },
@@ -1207,7 +1451,7 @@
         "innerWidth": 375,
         "scrollWidth": 375,
         "ledgerScrollable": true,
-        "controlCount": 32,
+        "controlCount": 34,
         "small": []
       }
     }

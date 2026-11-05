@@ -9,6 +9,41 @@
 
 ---
 
+## [玩家 UI] 2026-11-06 — 店铺经营接真服务成功链、缺货提示与账本中文原因
+
+- **改了什么**
+  - `tools/ui_check_real_shopops.py`：能力探测改走五个动作的真实成功链（开张 → 定价 → 雇人 →
+    首日日结 → 进货 → 提现 → 次日日结 → 辞退），不再以 `blocked_backend_not_ready` 收尾。
+    押镖按服务端契约只发 `cargo: {item, qty}`；提现只发 `qty`；进货按“售罄 → 低于 3 件 → 其余”
+    选品并重试；雇人/辞退动作后强制刷新状态并切回经营页签；辞退 target 用同地点实体 id。
+  - `ui/player/app.js`：押镖请求体改为 `cargo`；提现参数改为 `qty`（本地校验仍用
+    `bad_arg:amount` 文案）；`shop_stock` 基准价跨铺子合并；真服务 `name` 对象归一化；
+    `employeeTargetOf` 优先读 `st.nearby`；补 `insufficient_shop_cash` / `employee_not_found` /
+    `target_not_employed` 中文；按 `docs/player-api.md §13` 补齐门派契约码中文（含 13 个拒绝码，
+    共 24 码），未知码不再落到「未知错误」。
+  - 缺货：账本按 `stockout` / `stockout_items` 用中文直说「缺货导致零成交（炊饼/阳春面）」，
+    账本上方提示最近 7 日「有 N 天缺货导致零成交」；库存视图对 `< 3` 件标「库存不足（低于 3 件）」、
+    售罄标「已售罄 · 优先补货」，并给「补到 10/15/20 件（摊/店面/分号）」入口——只按档位建议量
+    预填数量，仍需玩家点「进货」确认。空账本 / 未开店 / 非店主三种状态不显示缺货提示或假数据。
+  - `tools/ui_check.py`：mock 契约同步（escort `cargo`、withdraw `qty`、`bad_arg:qty`）；
+    新增缺货账本、缺货天数提示、低库存/售罄提示与一键预填、预填不自动下单 4 项用例，
+    并给 `/__check/shop_report` 增加 `stock=low/full` 造场。
+  - `docs/PLAYER-GUIDE.md` §7.1：补货低库存/售罄提示与「需确认」说明、账本缺货原因与顶部提示、
+    三种空态文案。
+- **为什么改**：后端五个开店动作已合入 master（`bcfd374` 起），旧的 `blocked_backend_not_ready`
+  探测已过期；`shop_report` 新增 `stock` / `stockouts` 与日结 `stock_units / stockout_items / stockout`
+  后，玩家需要能读懂“哪天因缺货而零成交”，并在库存视图里直接补到建议量。
+- **验证方式**
+  - 真服务：`python3 tools/ui_check_real_shopops.py` → run `w4-shopops-1106043526`，
+    HEAD `74b37ee`（含 `bcfd374`），**12 checks / 0 failed**，无 `blocked`；证据
+    `reports/w4-shopops/real-shopops.json` 与 `real-0-business` … `real-8-dismiss` 共 14 张截图。
+    真调用摘要：押镖钱包 159→363、开摊 200、改价 3→4、雇段五斗（日薪 30）、进货 flatbread 0→2、
+    提现 `qty 10`、次日账本 2 行、辞退 `target=duan_wudou`。
+  - mock：`python3 tools/ui_check.py --only shopops` → **24 checks / 0 failed**。
+  - 全量：`python3 tools/ui_check.py` → **155 checks / 0 failed**（退出码 0）。
+  - 全程零模型调用。
+- **commit**：见本条目所在提交。
+
 ## [玩家 API] 2026-11-06 — 门派动作接入 `/api/player/action`（六个写动词 + 私有状态 + 拒绝码成体系）
 
 - **改了什么**

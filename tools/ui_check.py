@@ -67,6 +67,15 @@ SHOP_STOCK = {
 }
 POSITION_WAGES = {"铁匠": 32, "绣娘": 24, "脚夫": 18, "掌柜": 36, "游医": 28,
                   "镖师": 30, "酒保": 20, "药童": 15, "货郎": 26}
+# 缺货日样例：与真服务日结字段同名（tx / stockout / stockout_items / stock_units）。
+LEDGER_STOCKOUT = [
+    {"day": 8, "revenue": 0, "restock": 0, "wage": 32, "tax": 0, "net_profit": -32,
+     "tx": 0, "trades": 0, "stockout": True, "stock_units": 0,
+     "stockout_items": ["flatbread", "noodle"]},
+    {"day": 9, "revenue": 40, "restock": 6, "wage": 0, "tax": 2, "net_profit": 32,
+     "tx": 5, "trades": 5, "stockout": False, "stock_units": 9,
+     "stockout_items": []},
+]
 LEDGER_SAMPLE = [
     {"day": 1, "revenue": 60, "restock": 18, "wage": 32, "tax": 3, "net_profit": 7, "trades": 9},
     {"day": 2, "revenue": 0, "restock": 0, "wage": 32, "tax": 0, "net_profit": -32, "trades": 0},
@@ -668,9 +677,12 @@ class MockWorld:
                                  "next_tick": a["tick"] + 6,
                                  "details": {"target": target, "wage_owed": owed}}
                 if verb == "withdraw":
-                    amount = _int_arg((args or {}).get("amount"), None)
+                    # 真服务 WithdrawAction 的参数名是 qty；amount 仅兼容旧请求。
+                    amount = _int_arg((args or {}).get("qty"), None)
+                    if amount is None:
+                        amount = _int_arg((args or {}).get("amount"), None)
                     if amount is None or amount <= 0:
-                        return reject("bad_arg:amount")
+                        return reject("bad_arg:qty")
                     if amount > int(own["cash"]):
                         return reject("insufficient_shop_cash")
                     own["cash"] -= amount
@@ -682,7 +694,11 @@ class MockWorld:
                                  "details": {"amount": amount, "shop_cash_before": own["cash"] + amount,
                                              "shop_cash_after": own["cash"]}}
                 return 200, {"ok": True, "event_seq": a["event_seq"], "tick": a["tick"], "next_tick": a["tick"] + 6,
-                             "details": {"days": [dict(d) for d in own.get("report", [])]}}
+                             "details": {
+                                 "days": [dict(d) for d in own.get("report", [])],
+                                 "stock": {item: int(qty) for item, qty in own["stock"].items()},
+                                 "stockouts": sum(1 for d in own.get("report", []) if d.get("stockout")),
+                             }}
             if verb == "escort":
                 if not any(b["kind"].find("escort") >= 0
                            for b in self._shop_view(a)["businesses"]):
@@ -692,8 +708,15 @@ class MockWorld:
                 allowed = [x[0] for x in LOCATIONS[a["location"]]["exits"]]
                 if not dest or route[0] != a["location"] or dest not in allowed:
                     return reject("route_not_adjacent")
-                item = str((args or {}).get("cargo_item") or "")
-                qty = _int_arg((args or {}).get("cargo_qty"), 1)
+                # 与真服务 session._args 一致：客户端只发 `cargo: {item, qty}`，
+                # 顶层 cargo_item/cargo_qty 仅兼容旧请求。
+                raw_cargo = (args or {}).get("cargo")
+                if isinstance(raw_cargo, dict):
+                    item = str(raw_cargo.get("item") or "")
+                    qty = _int_arg(raw_cargo.get("qty"), 1)
+                else:
+                    item = str((args or {}).get("cargo_item") or "")
+                    qty = _int_arg((args or {}).get("cargo_qty"), 1)
                 if qty is None or not 1 <= qty <= 100:
                     return reject("bad_arg:cargo_qty")
                 if qty > int(a["items"].get(item, 0)):
@@ -1043,11 +1066,29 @@ class Handler(SimpleHTTPRequestHandler):
                     return
                 if "cash" in q:
                     a["shop"]["cash"] = int(q["cash"][0])
+                if "stock" in q:
+                    a["stock_adj"] = {}
+                    hit = q["stock"][0]
+                    stock = {}
+                    for item in list(a["shop"]["stock"]):
+                        if hit == "low" and item == "noodle":
+                            stock[item] = 0
+                        elif hit == "low" and item == "flatbread":
+                            stock[item] = 1
+                        elif hit == "low" and item == "rice":
+                            stock[item] = 2
+                        else:
+                            stock[item] = int(SHOP_STOCK[a["shop"]["kind"]].get(item, 0))
+                    a["shop"]["stock"] = stock
                 if mode == "empty":
                     a["shop"]["report"] = []
+                elif mode == "stockout":
+                    a["shop"]["report"] = [dict(r) for r in LEDGER_STOCKOUT]
                 else:
                     a["shop"]["report"] = [dict(r) for r in LEDGER_SAMPLE]
                 self._json(200, {"ok": True, "days": len(a["shop"]["report"]),
+                                 "stockouts": sum(1 for r in a["shop"]["report"]
+                                                  if r.get("stockout")),
                                  "cash": a["shop"]["cash"]})
             return
         # 静态文件
@@ -2560,7 +2601,12 @@ def shopops_snapshot(page):
         restockRows: Array.from(document.querySelectorAll('#restockList .commerce-row')).map(r => ({
           item: r.getAttribute('data-restock-row'), text: r.textContent.trim(),
           qty: !!r.querySelector('input[data-restock-qty]'),
-          disabled: r.querySelector('[data-restock-go]') ? r.querySelector('[data-restock-go]').disabled : null
+          disabled: r.querySelector('[data-restock-go]') ? r.querySelector('[data-restock-go]').disabled : null,
+          alerts: Array.from(r.querySelectorAll('.stock-alert')).map(x => x.textContent.trim()),
+          fill: r.querySelector('[data-restock-fill]')
+            ? {text: r.querySelector('[data-restock-fill]').textContent.trim(),
+               qty: r.querySelector('[data-restock-fill]').getAttribute('data-fill-qty')}
+            : null
         })),
         priceRows: Array.from(document.querySelectorAll('#priceList .commerce-row')).map(r => ({
           item: r.getAttribute('data-price-row'), text: r.textContent.trim(),
@@ -2580,6 +2626,8 @@ def shopops_snapshot(page):
           wrapVisible: !document.getElementById('ledgerWrap').classList.contains('hidden'),
           rows: rows,
           totalText: document.getElementById('ledgerFoot').textContent.trim(),
+          stockoutVisible: !document.getElementById('ledgerStockout').hidden,
+          stockoutText: document.getElementById('ledgerStockout').textContent.trim(),
           wrapScroll: document.getElementById('ledgerWrap').scrollWidth,
           wrapClient: document.getElementById('ledgerWrap').clientWidth
         },
@@ -2602,7 +2650,8 @@ def run_shopops(browser, base, results, world):
                  and snap["withdrawDisabled"]
                  and all(not r["disabled"] for r in snap["restockRows"])
                  and snap["ledger"]["emptyVisible"]
-                 and "尚无日结记录" in snap["ledger"]["emptyText"], snap)
+                 and "你还没有店铺；开张后才有日结账本" in snap["ledger"]["emptyText"]
+                 and not snap["ledger"]["stockoutVisible"], snap)
     shopops_capture(page, "mock-shopops-noshop")
 
     page.request.get(base + "/__check/money?account=u_shopops&value=2000")
@@ -2637,6 +2686,46 @@ def run_shopops(browser, base, results, world):
                  and any("进货占去营收" in r["reason"] for r in snap["ledger"]["rows"])
                  and len(set(r["netColor"] for r in snap["ledger"]["rows"])) >= 2, snap["ledger"])
     shopops_capture(page, "mock-shopops-ledger")
+
+    # 缺货日：账本用中文直说，库存低/售罄 SKU 给提示与「一键补到建议量」入口。
+    page.request.get(base + "/__check/shop_report?account=u_shopops&mode=stockout&cash=80&stock=low")
+    page.evaluate("() => { window.__XKX.refreshShopReport(); return window.__XKX.refreshState('u_shopops'); }")
+    page.wait_for_function(
+        "() => document.querySelectorAll('#ledgerBody tr').length === 2", timeout=8000)
+    snap = shopops_snapshot(page)
+    flat_row = next(r for r in snap["restockRows"] if r["item"] == "flatbread")
+    noodle_row = next(r for r in snap["restockRows"] if r["item"] == "noodle")
+    results.must("店铺经营 缺货日在账本里用中文直说（含具体 SKU）",
+                 any("缺货导致零成交（炊饼/阳春面）" in r["reason"]
+                     for r in snap["ledger"]["rows"]), snap["ledger"]["rows"])
+    results.must("店铺经营 账本提示最近缺货天数，空账本不显示",
+                 snap["ledger"]["stockoutVisible"]
+                 and "有 1 天缺货导致零成交" in snap["ledger"]["stockoutText"], snap["ledger"])
+    target = int(flat_row["fill"]["text"].replace("补到 ", "").replace(" 件", ""))
+    results.must("店铺经营 低库存/售罄 SKU 有显式提示与建议量入口",
+                 target in (10, 15, 20)
+                 and "库存不足（低于 3 件）" in flat_row["text"]
+                 and flat_row["fill"]["qty"] == str(target - 1)
+                 and "已售罄 · 优先补货" in noodle_row["text"]
+                 and noodle_row["fill"] == {"text": "补到 %d 件" % target,
+                                            "qty": str(target)}, snap["restockRows"])
+    calls = page.request.get(base + "/__check/verb_stats?verb=restock").json()["calls"]
+    page.click('[data-restock-fill="noodle"]')
+    page.wait_for_timeout(400)
+    filled = page.input_value('input[data-restock-qty="noodle"]')
+    after_calls = page.request.get(base + "/__check/verb_stats?verb=restock").json()["calls"]
+    snap = shopops_snapshot(page)
+    results.must("店铺经营 一键补货只预填建议量，仍要玩家点「进货」确认",
+                 filled == str(target) and calls == after_calls
+                 and "已按建议量填好" in snap["toast"],
+                 {"filled": filled, "calls": after_calls, "toast": snap["toast"]})
+    shopops_capture(page, "mock-shopops-stockout")
+
+    # 复原满库存 + 样例账本，后续进货/定价用例继续按原基线。
+    page.request.get(base + "/__check/shop_report?account=u_shopops&mode=sample&cash=100&stock=full")
+    page.evaluate("() => { window.__XKX.refreshShopReport(); return window.__XKX.refreshState('u_shopops'); }")
+    page.wait_for_function(
+        "() => document.querySelectorAll('#ledgerBody tr').length === 7", timeout=8000)
 
     # 进货：数量 6，单价 3，合计 18；库存 10 → 16。
     page.fill('input[data-restock-qty="flatbread"]', "6")
@@ -2772,7 +2861,7 @@ def run_shopops(browser, base, results, world):
     page.wait_for_function(
         "() => document.getElementById('errorList').textContent.indexOf('店铺现金不足') >= 0", timeout=8000)
     snap = shopops_snapshot(page)
-    results.must("店铺经营 提现拒绝码映射（bad_arg:amount / insufficient_shop_cash）",
+    results.must("店铺经营 提现本地校验与店铺现金不足中文提示",
                  any("正整数" in e for e in snap["errors"])
                  and any("店铺现金不足" in e for e in snap["errors"]), snap["errors"])
 
@@ -2784,7 +2873,8 @@ def run_shopops(browser, base, results, world):
     snap = shopops_snapshot(page)
     results.must("店铺经营 空账本显示「尚无日结记录，世界日结束后来看」",
                  snap["ledger"]["emptyVisible"] and not snap["ledger"]["wrapVisible"]
-                 and "尚无日结记录，世界日结束后来看" in snap["ledger"]["emptyText"], snap["ledger"])
+                 and "尚无日结记录，世界日结束后来看" in snap["ledger"]["emptyText"]
+                 and not snap["ledger"]["stockoutVisible"], snap["ledger"])
     shopops_capture(page, "mock-shopops-empty")
 
     # 移动端 375×812：表格可横滚、页面不溢出、控件 ≥44px。

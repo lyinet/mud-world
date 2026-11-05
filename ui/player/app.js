@@ -84,8 +84,30 @@
     qtyMax: 3
   };
   const SHOP_HIRE = { minAffection: 6.0, minSkill: 0.15, wageMinRatio: 0.8, wageMaxRatio: 1.5, capacity: { stall: 1, storefront: 2, branch: 3 } };
-  /* 店铺经营：定价只能在基准价 ±20% 内；账本固定展示最近 7 个有日结的世界日。 */
-  const SHOP_OPS = { priceMinRatio: 0.8, priceMaxRatio: 1.2, reportDays: 7 };
+  /* 店铺经营：定价只能在基准价 ±20% 内；账本固定展示最近 7 个有日结的世界日。
+     低于 3 件视为缺货线；补货建议量按档位（摊 10 / 店面 15 / 分号 20），
+     对齐 docs/shop-profitability.md §7.2，补货仍由玩家点「进货」确认。 */
+  const SHOP_OPS = {
+    priceMinRatio: 0.8,
+    priceMaxRatio: 1.2,
+    reportDays: 7,
+    lowStock: 3,
+    restockTarget: { stall: 10, storefront: 15, branch: 20 }
+  };
+  /* 报告只给 item id；常规 SKU 的中文名在这里兜底，避免售罄后只显示英文 id。 */
+  const SHOP_ITEM_NAMES = {
+    flatbread: '炊饼', noodle: '阳春面', rice: '糙米', coarse_cloth: '粗布',
+    cleaver: '菜刀', needle: '绣针', wound_powder: '金疮药', mugwort: '艾草',
+    iron_ingot: '铁锭', raw_silk: '生丝', charcoal: '木炭', salted_meat: '腊肉'
+  };
+  /* 各档位开张时的常规 SKU；库存卖空后后端会删掉 0 件键，
+     前端用这份清单兜底，保证售罄 SKU 仍出现在库存视图里。 */
+  const SHOP_CANONICAL_SKUS = {
+    stall: ['flatbread', 'noodle', 'rice'],
+    storefront: ['flatbread', 'noodle', 'rice', 'coarse_cloth', 'cleaver', 'needle'],
+    branch: ['flatbread', 'noodle', 'rice', 'coarse_cloth', 'cleaver', 'needle',
+             'wound_powder', 'mugwort']
+  };
   /* 婚姻裁决口径对齐 src/wsim/actions/marriage.py：
      接受 = 好感 ≥60 且 信任 ≥30；再处处看 = 好感 ≥45 或 信任 ≥20；其余为拒绝。 */
   const MARRIAGE_RULES = {
@@ -235,8 +257,9 @@
     shop_full: '店铺雇工已满；升级铺面或先解雇再雇。',
     /* 店铺经营动作（restock / set_price / dismiss / withdraw / shop_report）。 */
     price_out_of_range: '定价只能在基准价的 ±20% 以内；超出范围没人敢应价。',
-    insufficient_shop_cash: '店铺现金不足，不能提这么多；先留着进货或等日结回款。',
+    insufficient_shop_cash: '店铺现金不足；先等日结回款，或把数量调小。',
     target_not_employed: '这个人不在你的店里做工，无法辞退。',
+    employee_not_found: '店里没有这个雇工；可能已经离开，刷新名单后再试。',
     'bad_arg:price': '价格必须是整数。',
     'bad_arg:amount': '提现金额必须是正整数。',
     unknown_position: '这个岗位不在市价表里；请从可选岗位中选择。',
@@ -272,6 +295,33 @@
     sect_exists: '这里已经有门派了。',
     already_in_faction: '你已经入了门派，不能另立门户。',
     low_reputation: '声望不足，暂时不能立派。',
+    /* 门派动作契约码（docs/player-api.md §13）：13 个拒绝码全部给中文，
+       其余参数/名册类码也一并覆盖，避免落到「未知错误」。 */
+    no_sect: '你还没有加入门派。',
+    not_sect_leader: '只有门主能执行这个操作。',
+    sect_full: '门派弟子已满，暂时不能再收徒。',
+    insufficient_funds: '你的钱不够支付这笔费用。',
+    insufficient_rep: '声望不足；先攒够声望再来。',
+    already_in_sect: '你已经在门派中，不能重复加入或另立门户。',
+    already_disciple: '对方已经是门派弟子了。',
+    disciple_not_found: '门派名册里没有这名弟子。',
+    favor_too_low: '对方对你好感不足，还不愿拜入门下。',
+    trust_too_low: '对方对你的信任不足，尚不能收为弟子。',
+    withdraw_over_cap: '提取金额超过可提上限。',
+    treasury_reserve: '金库需保留底金，不能全部取走。',
+    insufficient_treasury: '门派金库余额不足。',
+    already_settled_today: '今日俸禄已经发放，明日再来。',
+    arrears_too_high: '欠饷过高，对方已经离开门派。',
+    'bad_arg:day': '天数参数不合法。',
+    'bad_arg:name': '门派名称不合法。',
+    'bad_arg:sect_id': '门派编号参数不合法。',
+    invalid_sect_name: '门派名称不合法；请换一个可用的名称。',
+    sect_name_taken: '这个门派名称已被使用。',
+    sect_not_found: '找不到这个门派。',
+    no_disciples: '门派里还没有弟子。',
+    target_in_sect: '对方已经另有门派。',
+    target_is_player: '不能对玩家角色执行该门派操作。',
+    target_not_disciple: '对方不是本门弟子。',
     intent_not_found: '没有找到这个请求；请刷新后重试。',
     readonly_mode: '只读模式不支持该动作；请用可写模式启动。',
     world_important: '你所在或相邻的地点出现了重要动静；留意「世界动态」。'
@@ -336,6 +386,7 @@
         price: {},      // 改价：item -> 用户输入价格
         busy: {},       // 动作键 -> 是否在途（防重复点击）
         report: null,   // 最近一次 shop_report 的 days
+        reportDetails: null, // shop_report 顶层 stock / stockouts / price_overrides
         reportLoaded: false,
         reportUnavailable: false
       },
@@ -1289,7 +1340,7 @@
     if (state.commerce.account && state.commerce.account !== acct) {
       // 换账号时清掉上一位玩家留下的数量、雇工与押镖文案。
       state.commerce = { account: acct, tab: 'shop', qty: {}, pos: {}, wageSet: false, consume: '', hire: '', escort: '',
-        shopops: { qty: {}, price: {}, busy: {}, report: null, reportLoaded: false, reportUnavailable: false },
+        shopops: { qty: {}, price: {}, busy: {}, report: null, reportDetails: null, reportLoaded: false, reportUnavailable: false },
         dismissTarget: '', deferred: null };
     } else {
       state.commerce.account = acct;
@@ -2255,7 +2306,7 @@
     list.innerHTML = rows.map(function (emp) {
       const present = emp.present == null ? (emp.at_shop == null ? null : !!emp.at_shop) : !!emp.present;
       const presentText = present == null ? '到店情况未提供' : (present ? '到店' : '未到店');
-      const target = String(emp.id || emp.target || '');
+      const target = employeeTargetOf(st, emp);
       const owed = Number(emp.unpaid_wage || 0);
       const busy = !!state.commerce.shopops.busy['dismiss:' + target];
       return '<div class="commerce-row shopops-row" data-employee="' + escapeHtml(target) + '">' +
@@ -2272,6 +2323,17 @@
   }
 
   /* ------------------------------------------------------------- 店铺经营 */
+  function employeeTargetOf(st, emp) {
+    if (!emp) return '';
+    if (emp.id || emp.target) return String(emp.id || emp.target);
+    // 真服务 shop.employees 只回 name/position/wage；用同地点 nearby 反查实体 id，
+    // 否则 dismiss 会因 target 为空而无法点名。
+    const name = shopNameText(emp.name, '');
+    const near = (st && st.nearby) || (st && st.player && st.player.nearby) || [];
+    const hit = near.filter(function (n) { return n && n.name === name; })[0];
+    return hit ? String(hit.id) : name;
+  }
+
   function shopCashOf(st, own) {
     const shop = (st && st.shop) || {};
     if (shop.cash != null && Number.isFinite(Number(shop.cash))) return Number(shop.cash);
@@ -2286,9 +2348,57 @@
     return null;
   }
 
+  function shopNameText(raw, item) {
+    if (raw && typeof raw === 'object') {
+      if (raw.name != null) return shopNameText(raw.name, item);
+      if (raw.item != null) return String(raw.item);
+      return String(item);
+    }
+    return raw == null ? '' : String(raw);
+  }
+
+  function shopItemNameOf(item, names) {
+    const raw = (names && names[item] != null) ? names[item] : SHOP_ITEM_NAMES[item];
+    return shopNameText(raw, item) || String(item);
+  }
+
+  function shopReportDetailsOf(st) {
+    const cached = state.commerce.shopops.reportDetails;
+    if (cached && typeof cached === 'object') return cached;
+    const shop = (st && st.shop) || {};
+    const report = shop.report;
+    if (report && typeof report === 'object' && !Array.isArray(report)) return report;
+    if (shop.shop_report && typeof shop.shop_report === 'object') return shop.shop_report;
+    return {};
+  }
+
+  function shopReportStockOf(st) {
+    const stock = shopReportDetailsOf(st).stock;
+    if (stock && typeof stock === 'object' && !Array.isArray(stock)) return stock;
+    return {};
+  }
+
+  /* 库存行优先用店铺视图；真实服务的 stock 行不带基准价，
+     当前地点的 buy 行才带零售基准价，按 item 合并后定价才不会把批发价当基准价。
+     售罄 SKU 不会出现在 stock 行里，用 shop_report 顶层 stock 补 0 件行。 */
   function shopStockRowsOf(st, own) {
     if (!own) return [];
     const shop = (st && st.shop) || {};
+    const overrides = shopReportDetailsOf(st).price_overrides || {};
+    const buyInfo = {};
+    (shop.buy || []).forEach(function (row) {
+      if (!row || !row.item) return;
+      const hit = buyInfo[row.item] || {};
+      if (!hit.name && row.name) hit.name = row.name;
+      // 自家店的行优先；否则用同地点任意铺子的零售价作为该货基准价
+      // （stock 行只有 sell_price，不能拿 60% 的批发价当基准价）。
+      if (row.business === own.id && Number(row.price) > 0) {
+        hit.price = Number(row.price);
+      } else if (!hit.price && Number(row.price) > 0) {
+        hit.price = Number(row.price);
+      }
+      buyInfo[row.item] = hit;
+    });
     let raw = Array.isArray(shop.stock) ? shop.stock : null;
     if (!raw) {
       raw = (shop.buy || []).filter(function (row) {
@@ -2297,25 +2407,73 @@
         return { item: row.item, name: row.name, qty: row.stock, price: row.price };
       });
     }
-    return raw.filter(function (row) {
+    const rows = raw.filter(function (row) {
       return row && row.item;
     }).map(function (row) {
-      const base = Number(row.base_price != null ? row.base_price
-        : (row.price != null ? row.price : (row.sell_price != null ? row.sell_price : 0)));
-      const price = Number(row.price != null ? row.price
-        : (row.sell_price != null ? row.sell_price : base));
-      const restock = Number(row.restock_price != null ? row.restock_price
-        : (row.cost != null ? row.cost : (base || price)));
+      const info = buyInfo[row.item] || {};
+      const ownBase = Number(info.price || 0);
+      let base = Number(row.base_price != null ? row.base_price : 0);
+      if (!base && ownBase) base = ownBase;
+      if (!base && row.price != null) base = Number(row.price);
+      if (!base && row.sell_price != null) base = Number(row.sell_price);
+      let price = Number(row.price != null ? row.price : 0);
+      if (!price) price = ownBase || base;
+      const override = Number(overrides[row.item] || 0);
+      if (override > 0) price = override;
+      let restock = Number(row.restock_price != null ? row.restock_price : 0);
+      if (!restock && row.cost != null) restock = Number(row.cost);
+      if (!restock && row.sell_price != null) restock = Number(row.sell_price);
+      if (!restock) restock = base;
       return {
         item: String(row.item),
-        name: row.name || row.item,
+        name: shopNameText(row.name, row.item) || shopNameText(info.name, row.item) ||
+          shopItemNameOf(row.item, buyInfo),
         qty: Math.max(0, Number(row.qty != null ? row.qty : (row.stock || 0))),
         price: price,
         base_price: base || price,
         restock_price: restock,
-        priced: base > 0 || price > 0
+        priced: base > 0 || price > 0,
+        zero_stock: false
       };
     });
+    const seen = {};
+    rows.forEach(function (row) { seen[row.item] = true; });
+    const reportStock = shopReportStockOf(st);
+    Object.keys(reportStock).forEach(function (item) {
+      if (seen[item] || String(item).indexOf('escrow:') === 0) return;
+      const info = buyInfo[item] || {};
+      const qty = Math.max(0, Number(reportStock[item]) || 0);
+      if (qty > 0) return;
+      const base = Number(info.price || 0);
+      rows.push({
+        item: String(item),
+        name: shopItemNameOf(item, buyInfo),
+        qty: 0,
+        price: base,
+        base_price: base,
+        restock_price: base > 0 ? Math.max(1, Math.round(base * 0.6)) : 0,
+        priced: base > 0,
+        zero_stock: true
+      });
+      seen[item] = true;
+    });
+    const canonical = SHOP_CANONICAL_SKUS[String((own && own.kind) || 'stall')] || [];
+    canonical.forEach(function (item) {
+      if (seen[item]) return;
+      const info = buyInfo[item] || {};
+      const base = Number(info.price || 0);
+      rows.push({
+        item: item,
+        name: shopItemNameOf(item, buyInfo),
+        qty: 0,
+        price: base,
+        base_price: base,
+        restock_price: base > 0 ? Math.max(1, Math.round(base * 0.6)) : 0,
+        priced: base > 0,
+        zero_stock: true
+      });
+    });
+    return rows;
   }
 
   function priceBoundsOf(base) {
@@ -2334,6 +2492,17 @@
     return Math.max(1, Math.min(Math.max(1, max == null ? 20 : max), qty));
   }
 
+  function shopRestockTargetOf(own) {
+    const kind = String((own && own.kind) || 'stall');
+    return SHOP_OPS.restockTarget[kind] || SHOP_OPS.restockTarget.stall;
+  }
+
+  function restockFillQtyOf(row, own) {
+    const target = shopRestockTargetOf(own);
+    const need = Math.max(1, target - Math.max(0, Number(row.qty) || 0));
+    return Math.min(20, need);
+  }
+
   function shopReportDaysOf(st) {
     const cached = state.commerce.shopops.report;
     if (Array.isArray(cached) && cached.length) return cached.slice(-SHOP_OPS.reportDays);
@@ -2347,6 +2516,12 @@
     return [];
   }
 
+  function ledgerTradesOf(row) {
+    if (row.trades != null) return Number(row.trades || 0);
+    if (row.tx != null) return Number(row.tx || 0);
+    return 0;
+  }
+
   function ledgerTotalsOf(days) {
     const total = { revenue: 0, restock: 0, wage: 0, tax: 0, net_profit: 0, trades: 0 };
     (days || []).forEach(function (row) {
@@ -2355,19 +2530,30 @@
       total.wage += Number(row.wage || 0);
       total.tax += Number(row.tax || 0);
       total.net_profit += Number(row.net_profit || 0);
-      total.trades += Number(row.trades || 0);
+      total.trades += ledgerTradesOf(row);
     });
     return total;
   }
 
-  /* 负净利原因只由该行数值推导，不写死文案，也不臆测接口没给的库存字段。 */
+  function stockoutLabelOf(row) {
+    const items = Array.isArray(row.stockout_items) ? row.stockout_items : [];
+    const names = items.filter(Boolean).map(function (item) {
+      return SHOP_ITEM_NAMES[item] || item;
+    });
+    return names.length ? '（' + names.join('/') + '）' : '';
+  }
+
+  /* 负净利原因只由该行数值推导，不写死文案，也不臆测接口没给的库存字段。
+     后端用 `tx` 记成交笔数；缺货日优先用中文直说，而不是只显示一个布尔值。 */
   function ledgerReasonOf(row) {
     const revenue = Number(row.revenue || 0);
     const wage = Number(row.wage || 0);
     const restock = Number(row.restock || 0);
     const net = Number(row.net_profit || 0);
+    const trades = ledgerTradesOf(row);
+    if (row.stockout) return '缺货导致零成交' + stockoutLabelOf(row);
     if (net >= 0) return '';
-    if (revenue <= 0) return '当日无客流';
+    if (revenue <= 0 || trades <= 0) return '当日无客流';
     if (wage > revenue) return '工资高于营收';
     if (restock > 0 && restock >= revenue) return '进货占去营收';
     return '入不敷出';
@@ -2401,17 +2587,30 @@
       el('restockTotal').textContent = '合计 0 文';
       return;
     }
-    hint.textContent = rows.length + ' 种可进货';
+    const low = rows.filter(function (row) { return row.qty < SHOP_OPS.lowStock; });
+    hint.textContent = low.length
+      ? low.length + ' 种低于 ' + SHOP_OPS.lowStock + ' 件，先补货'
+      : rows.length + ' 种可进货';
+    const target = shopRestockTargetOf(own);
     list.innerHTML = rows.map(function (row) {
       const qty = restockQtyOf(row.item, 20);
       const busy = !!state.commerce.shopops.busy['restock:' + row.item];
       const total = row.restock_price > 0 ? row.restock_price * qty : 0;
-      return '<div class="commerce-row shopops-row" data-restock-row="' + escapeHtml(row.item) + '">' +
+      const isLow = row.qty < SHOP_OPS.lowStock;
+      const alert = row.qty <= 0
+        ? '<span class="stock-alert">已售罄 · 优先补货</span>'
+        : (isLow ? '<span class="stock-alert">库存不足（低于 ' + SHOP_OPS.lowStock + ' 件）</span>' : '');
+      const fill = restockFillQtyOf(row, own);
+      return '<div class="commerce-row shopops-row' + (isLow ? ' stock-low' : '') +
+        '" data-restock-row="' + escapeHtml(row.item) + '">' +
         '<div class="row-main"><span class="row-name">' + escapeHtml(row.name) + '</span>' +
         '<span class="row-meta">现有 <b class="stock-now">' + escapeHtml(row.qty) + '</b> 件 · 进货单价 ' +
         (row.priced ? (escapeHtml(row.restock_price) + ' 文/件') : '<span class="commerce-gap">接口未提供</span>') +
-        '</span></div>' +
+        (isLow ? ' · ' + alert : '') + '</span></div>' +
         '<div class="row-actions">' +
+        (isLow ? '<button type="button" class="ghost commerce-btn" data-restock-fill="' + escapeHtml(row.item) +
+          '" data-fill-qty="' + fill + '" title="按档位建议量 ' + target + ' 件预填，仍需点「进货」确认"' +
+          ((busy || reason) ? ' disabled' : '') + '>补到 ' + target + ' 件</button>' : '') +
         '<input type="number" min="1" max="20" step="1" inputmode="numeric" ' +
         'data-restock-qty="' + escapeHtml(row.item) + '" value="' + qty + '" aria-label="进几件' +
         escapeHtml(row.name) + '"' + ((busy || reason) ? ' disabled' : '') + ' />' +
@@ -2544,15 +2743,29 @@
 
   function renderLedger(st, own) {
     const days = own ? shopReportDaysOf(st) : [];
+    const reason = shopOpsDisabledReason(st, own);
     const empty = el('ledgerEmpty');
     const wrap = el('ledgerWrap');
     const body = el('ledgerBody');
     const foot = el('ledgerFoot');
+    const notice = el('ledgerStockout');
     if (!days.length) {
+      // 空账本 / 未开店 / 非店主三种状态各自说清楚，不放任何示例行或假数字。
+      if (!own) {
+        empty.textContent = '你还没有店铺；开张后才有日结账本';
+      } else if (reason.indexOf('不是你的') >= 0) {
+        empty.textContent = '你不是店主，看不到这家店的账本';
+      } else {
+        empty.textContent = '尚无日结记录，世界日结束后来看';
+      }
       empty.classList.remove('hidden');
       wrap.classList.add('hidden');
       body.innerHTML = '';
       foot.innerHTML = '';
+      if (notice) {
+        notice.hidden = true;
+        notice.textContent = '';
+      }
       return;
     }
     empty.classList.add('hidden');
@@ -2560,16 +2773,17 @@
     body.innerHTML = days.map(function (row) {
       const net = Number(row.net_profit || 0);
       const cls = net > 0 ? 'profit-pos' : (net < 0 ? 'profit-neg' : '');
-      const reason = ledgerReasonOf(row);
-      return '<tr data-ledger-day="' + escapeHtml(row.day) + '">' +
+      const note = ledgerReasonOf(row);
+      return '<tr data-ledger-day="' + escapeHtml(row.day) + '"' +
+        (row.stockout ? ' data-stockout="1" class="stockout-row"' : '') + '>' +
         '<td>' + escapeHtml('第 ' + (row.day == null ? '?' : row.day) + ' 日') + '</td>' +
         '<td>' + ledgerCell(row.revenue) + '</td>' +
         '<td>' + ledgerCell(row.restock) + '</td>' +
         '<td>' + ledgerCell(row.wage) + '</td>' +
         '<td>' + ledgerCell(row.tax) + '</td>' +
         '<td class="' + cls + '">' + (net > 0 ? '+' : '') + net + '</td>' +
-        '<td>' + ledgerCell(row.trades) + '</td>' +
-        '<td class="ledger-reason">' + escapeHtml(reason) + '</td></tr>';
+        '<td>' + ledgerTradesOf(row) + '</td>' +
+        '<td class="ledger-reason">' + escapeHtml(note) + '</td></tr>';
     }).join('');
     const total = ledgerTotalsOf(days);
     const netCls = total.net_profit > 0 ? 'profit-pos' : (total.net_profit < 0 ? 'profit-neg' : '');
@@ -2579,6 +2793,17 @@
       '<td>' + total.tax + '</td><td class="' + netCls + '">' +
       (total.net_profit > 0 ? '+' : '') + total.net_profit + '</td>' +
       '<td>' + total.trades + '</td><td></td></tr>';
+    if (notice) {
+      const details = shopReportDetailsOf(st);
+      const count = details.stockouts != null
+        ? Number(details.stockouts || 0)
+        : days.filter(function (row) { return !!row.stockout; }).length;
+      notice.hidden = count <= 0;
+      notice.textContent = count > 0
+        ? '最近 ' + days.length + ' 个日结里，有 ' + count + ' 天缺货导致零成交；低于 ' +
+          SHOP_OPS.lowStock + ' 件的 SKU 请优先补货。'
+        : '';
+    }
   }
 
   function ensureShopReport(st) {
@@ -2607,9 +2832,16 @@
         return;
       }
       const details = data.details || data;
+      const report = details.report && typeof details.report === 'object' ? details.report : {};
       const days = Array.isArray(details.days) ? details.days
-        : (Array.isArray(data.days) ? data.days : []);
+        : (Array.isArray(data.days) ? data.days
+          : (Array.isArray(report.days) ? report.days : []));
       ops.report = days;
+      ops.reportDetails = {
+        stock: report.stock || details.stock || {},
+        stockouts: report.stockouts != null ? report.stockouts : details.stockouts,
+        price_overrides: report.price_overrides || {}
+      };
       ops.reportLoaded = true;
       renderLedger(state.st || {}, ownShopOf(state.st || {}));
     } catch (err) {
@@ -3470,7 +3702,8 @@
     if (!startShopBusy(key)) return;
     renderCommerce(st);
     try {
-      const out = await commerceAction('withdraw', { amount: amount }, '提现' + amount + ' 文');
+      // 服务端 WithdrawAction 的参数名是 qty（不是 amount）。
+      const out = await commerceAction('withdraw', { qty: amount }, '提现' + amount + ' 文');
       if (!out) return;
       const data = out.data || {};
       const beforeCash = shopCashOf(out.before || {}, ownShopOf(out.before || {}));
@@ -3490,7 +3723,7 @@
     const reason = shopOpsDisabledReason(st, own);
     if (reason) return showReasonToast('辞退', 'not_shop_owner');
     const emp = (shopEmployeesOf(st, own) || []).filter(function (e) {
-      return String(e.id || e.target || '') === String(targetId);
+      return employeeTargetOf(st, e) === String(targetId);
     })[0];
     if (!emp) return showReasonToast('辞退', 'target_not_employed');
     state.commerce.dismissTarget = String(targetId);
@@ -3515,7 +3748,7 @@
     const reason = shopOpsDisabledReason(st, own);
     if (reason) return showReasonToast('辞退', 'not_shop_owner');
     const emp = (shopEmployeesOf(st, own) || []).filter(function (e) {
-      return String(e.id || e.target || '') === target;
+      return employeeTargetOf(st, e) === target;
     })[0] || {};
     const key = 'dismiss:' + target;
     if (!startShopBusy(key)) return;
@@ -3566,7 +3799,9 @@
     const unit = Number(cargoRow.price || 0);
     const cargoValue = Math.max(ESCORT_RULES.cargoMin, Math.round(unit * qty));
     const route = [ctx.loc.id, dest];
-    const args = { route: route, cargo_item: cargoItem, cargo_qty: qty, cargo_value: cargoValue, fee: fee };
+    // 服务端 /api/player/action 的 escort 参数只认 `cargo: {item, qty}`（见 session._args），
+    // 顶层 cargo_item/cargo_qty 会被忽略并触发 item_missing。
+    const args = { route: route, cargo: { item: cargoItem, qty: qty }, cargo_value: cargoValue, fee: fee };
     const out = await commerceAction('escort', args, '押镖 ' + (ctx.loc.name || ctx.loc.id) + '→' + dest);
     if (!out) return;
     const orders = ((out.st || {}).escort_orders || []).concat(((out.data || {}).escort_orders || []));
@@ -3797,6 +4032,21 @@
       if (btn && !btn.disabled) openDismiss(btn.getAttribute('data-dismiss'));
     });
     el('restockList').addEventListener('click', function (ev) {
+      const fill = ev.target.closest('[data-restock-fill]');
+      if (fill && !fill.disabled) {
+        // 只预填建议量，不代替玩家下单：仍要再点一次「进货」确认。
+        const item = fill.getAttribute('data-restock-fill');
+        const qty = Math.max(1, Math.min(20, Math.floor(Number(fill.getAttribute('data-fill-qty')) || 1)));
+        state.commerce.shopops.qty[item] = qty;
+        const input = el('restockList').querySelector('[data-restock-qty="' + item + '"]');
+        if (input) {
+          input.value = String(qty);
+          input.focus();
+        }
+        updateRestockTotal(state.st || {});
+        toast('已按建议量填好 ' + qty + ' 件，点「进货」确认。');
+        return;
+      }
       const btn = ev.target.closest('[data-restock-go]');
       if (btn && !btn.disabled) doRestock(btn.getAttribute('data-restock-go'));
     });
@@ -4009,6 +4259,9 @@
           sellRows: (shop.sell || []).length,
           servers: ((shop.businesses || []).length),
           ownShop: own ? { id: own.id, kind: own.kind, cash: own.cash, employees: Array.isArray(own.employees) ? own.employees.length : null } : null,
+          items: (((st.player || {}).wallet || {}).items || [])
+            .filter(function (it) { return it && it.item; })
+            .map(function (it) { return { item: it.item, qty: Number(it.qty || 0) }; }),
           hireRows: (st.present_npcs || []).length,
           hasEscortAgency: ((shop.businesses || []).some(function (b) { return String(b.kind || '').indexOf('escort') >= 0; })),
           escortDests: ((st.location || {}).exits || []).map(function (x) { return x.id; }),
@@ -4031,12 +4284,17 @@
           busy: Object.keys(state.commerce.shopops.busy),
           reportLoaded: !!state.commerce.shopops.reportLoaded,
           reportUnavailable: !!state.commerce.shopops.reportUnavailable,
+          stockouts: own ? Number(shopReportDetailsOf(st).stockouts || 0) : 0,
+          lowStock: own ? shopStockRowsOf(st, own).filter(function (row) {
+            return row.qty < SHOP_OPS.lowStock;
+          }).length : 0,
           dismissTarget: state.commerce.dismissTarget
         };
       },
       refreshShopReport: function () {
         const ops = state.commerce.shopops;
         ops.report = null;
+        ops.reportDetails = null;
         ops.reportLoaded = false;
         ops.reportUnavailable = false;
         ops.reportBusy = false;

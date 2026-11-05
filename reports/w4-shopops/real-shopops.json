@@ -1,149 +1,4652 @@
 {
   "meta": {
-    "run_id": "w4-shopops-1106020548",
-    "api": "http://127.0.0.1:57416",
-    "proxy": "http://127.0.0.1:57417",
+    "run_id": "w4-shopops-1106043526",
+    "api": "http://127.0.0.1:61622",
+    "proxy": "http://127.0.0.1:61623",
     "ambient_speed": "4",
-    "started_at": "2026-11-06 02:05:48",
-    "head": "857172b2f24c54288ae937d772df31983555c8e1",
-    "status": "blocked_backend_not_ready"
+    "started_at": "2026-11-06 04:35:26",
+    "head": "74b37eeed1f0cca177c4b50a295e2713e5cff1ef",
+    "status": "executed"
   },
-  "blocked": {
-    "status": "blocked_backend_not_ready",
-    "missing": [
-      "restock",
-      "set_price",
-      "dismiss",
-      "withdraw",
-      "shop_report"
-    ],
-    "probes": [
-      {
-        "verb": "restock",
-        "status": 409,
-        "code": "unknown_action",
-        "text": "未知操作；可用操作见 docs/player-api.md。",
-        "implemented": false
-      },
-      {
-        "verb": "set_price",
-        "status": 409,
-        "code": "unknown_action",
-        "text": "未知操作；可用操作见 docs/player-api.md。",
-        "implemented": false
-      },
-      {
-        "verb": "dismiss",
-        "status": 409,
-        "code": "unknown_action",
-        "text": "未知操作；可用操作见 docs/player-api.md。",
-        "implemented": false
-      },
-      {
-        "verb": "withdraw",
-        "status": 409,
-        "code": "unknown_action",
-        "text": "未知操作；可用操作见 docs/player-api.md。",
-        "implemented": false
-      },
-      {
-        "verb": "shop_report",
-        "status": 409,
-        "code": "unknown_action",
-        "text": "未知操作；可用操作见 docs/player-api.md。",
-        "implemented": false
-      }
-    ],
-    "note": "后端动作未进 master；本轮不跑成功路径，不用 mock 顶替真服务证据。"
-  },
+  "blocked": null,
   "steps": {
     "capability_probe": [
       {
         "verb": "restock",
         "status": 409,
-        "code": "unknown_action",
-        "text": "未知操作；可用操作见 docs/player-api.md。",
-        "implemented": false
+        "code": "no_shop",
+        "text": "操作未完成：no_shop（详见 docs/player-api.md 错误码表）。",
+        "implemented": true
       },
       {
         "verb": "set_price",
         "status": 409,
-        "code": "unknown_action",
-        "text": "未知操作；可用操作见 docs/player-api.md。",
-        "implemented": false
+        "code": "no_shop",
+        "text": "操作未完成：no_shop（详见 docs/player-api.md 错误码表）。",
+        "implemented": true
       },
       {
         "verb": "dismiss",
         "status": 409,
-        "code": "unknown_action",
-        "text": "未知操作；可用操作见 docs/player-api.md。",
-        "implemented": false
+        "code": "no_shop",
+        "text": "操作未完成：no_shop（详见 docs/player-api.md 错误码表）。",
+        "implemented": true
       },
       {
         "verb": "withdraw",
         "status": 409,
-        "code": "unknown_action",
-        "text": "未知操作；可用操作见 docs/player-api.md。",
-        "implemented": false
+        "code": "no_shop",
+        "text": "操作未完成：no_shop（详见 docs/player-api.md 错误码表）。",
+        "implemented": true
       },
       {
         "verb": "shop_report",
         "status": 409,
-        "code": "unknown_action",
-        "text": "未知操作；可用操作见 docs/player-api.md。",
-        "implemented": false
+        "code": "no_shop",
+        "text": "操作未完成：no_shop（详见 docs/player-api.md 错误码表）。",
+        "implemented": true
       }
     ],
-    "blocked": {
-      "status": "blocked_backend_not_ready",
-      "missing": [
-        "restock",
-        "set_price",
-        "dismiss",
-        "withdraw",
-        "shop_report"
+    "pre_open_sell": {
+      "sold": {
+        "coarse_cloth": {
+          "qty": 1,
+          "action": {
+            "request": {
+              "account_id": "w4shopops1106043526",
+              "verb": "sell",
+              "args": {
+                "item": "coarse_cloth",
+                "qty": 1
+              },
+              "client_tick": 7
+            },
+            "status": 200,
+            "response": {
+              "action": "sell",
+              "client_tick": 7,
+              "client_tick_ignored": true,
+              "confirm": false,
+              "data": {
+                "active_quests": [],
+                "active_quests_detail": [],
+                "archetype": "游侠",
+                "growth": {
+                  "assets": {
+                    "at": 0.0,
+                    "level": 1,
+                    "money": 315,
+                    "name": "囊中羞涩",
+                    "next_at": 600.0,
+                    "next_name": "小有积蓄",
+                    "next_unlock": "可开摊（本钱 300 文）",
+                    "progress": 0.525,
+                    "value": 315.0
+                  },
+                  "reputation": {
+                    "at": 0.0,
+                    "level": 1,
+                    "name": "无名之辈",
+                    "next_at": 3.0,
+                    "next_name": "街坊熟人",
+                    "next_unlock": "可接护送类委托，街坊愿意搭话",
+                    "progress": 0.0,
+                    "value": 0.0
+                  },
+                  "skill": {
+                    "at": 0.0,
+                    "level": 1,
+                    "name": "生手",
+                    "next_at": 0.42,
+                    "next_name": "手熟",
+                    "next_unlock": "可独立开摊（手艺够撑起门面）",
+                    "progress": 0.833,
+                    "skill": "镖师",
+                    "skills": {
+                      "镖师": 0.35
+                    },
+                    "value": 0.35
+                  }
+                },
+                "home": "market",
+                "id": "player:w4shopops1106043526",
+                "inventory": {
+                  "flatbread": 3
+                },
+                "location": "market",
+                "marriage": {
+                  "daily_note": "",
+                  "last_daily_tick": 0,
+                  "since_tick": 0,
+                  "spouse_id": "",
+                  "spouse_name": "",
+                  "status": "single"
+                },
+                "max_stamina": 100.0,
+                "name": "铺面客",
+                "nearby": [
+                  {
+                    "id": "duan_wudou",
+                    "name": "段五斗",
+                    "presence": "online",
+                    "role": "屠户"
+                  },
+                  {
+                    "id": "jin_mancang",
+                    "name": "金满仓",
+                    "presence": "online",
+                    "role": "掌柜"
+                  },
+                  {
+                    "id": "liu_sanniang",
+                    "name": "柳三娘",
+                    "presence": "online",
+                    "role": "绣娘"
+                  },
+                  {
+                    "id": "luo_qingxu",
+                    "name": "罗轻絮",
+                    "presence": "online",
+                    "role": "绣娘"
+                  },
+                  {
+                    "id": "meng_jiuniang",
+                    "name": "孟九娘",
+                    "presence": "online",
+                    "role": "媒婆"
+                  },
+                  {
+                    "id": "player:u_demo",
+                    "name": "陈捕快",
+                    "presence": "offline",
+                    "role": "visitor"
+                  },
+                  {
+                    "id": "ruan_qingfu",
+                    "name": "阮青蚨",
+                    "presence": "online",
+                    "role": "货郎"
+                  },
+                  {
+                    "id": "xing_pojun",
+                    "name": "邢破军",
+                    "presence": "online",
+                    "role": "捕快"
+                  }
+                ],
+                "ok": true,
+                "online": true,
+                "presence": "online",
+                "relations": [],
+                "role": "镖师",
+                "sect": {
+                  "in_sect": false,
+                  "sect": null
+                },
+                "skills": {
+                  "镖师": 0.35
+                },
+                "stamina": 100.0,
+                "tick": 37,
+                "today": {
+                  "business": [
+                    {
+                      "affordable": true,
+                      "blocked": "",
+                      "cost": 300,
+                      "shop_type": "stall"
+                    },
+                    {
+                      "affordable": false,
+                      "blocked": "",
+                      "cost": 1200,
+                      "shop_type": "storefront"
+                    },
+                    {
+                      "affordable": false,
+                      "blocked": "",
+                      "cost": 3000,
+                      "shop_type": "branch"
+                    }
+                  ],
+                  "location": "market",
+                  "location_name": "集市",
+                  "next_action": "先接委托：【轻】打听客栈酒价",
+                  "npcs": [
+                    {
+                      "hint": "可打听委托",
+                      "id": "duan_wudou",
+                      "name": "段五斗",
+                      "role": "屠户"
+                    },
+                    {
+                      "hint": "可打听委托",
+                      "id": "jin_mancang",
+                      "name": "金满仓",
+                      "role": "掌柜"
+                    },
+                    {
+                      "hint": "可打听委托",
+                      "id": "liu_sanniang",
+                      "name": "柳三娘",
+                      "role": "绣娘"
+                    }
+                  ],
+                  "quests": [
+                    {
+                      "giver_name": "阮青蚨",
+                      "id": "quest:daily_market_inquiry:0",
+                      "name": "【轻】打听客栈酒价",
+                      "reward_money": 9
+                    },
+                    {
+                      "giver_name": "金满仓",
+                      "id": "quest:debt_duan_to_jin:0",
+                      "name": "代金满仓讨债",
+                      "reward_money": 25
+                    },
+                    {
+                      "giver_name": "金满仓",
+                      "id": "quest:errand_market_ledger:0",
+                      "name": "捎账本到客栈",
+                      "reward_money": 10
+                    }
+                  ],
+                  "skills": [
+                    {
+                      "current": 0.35,
+                      "hours_to_next": 28,
+                      "next_at": 0.42,
+                      "next_level": 2,
+                      "skill": "镖师"
+                    }
+                  ],
+                  "tick": 43
+                },
+                "wallet": 315
+              },
+              "details": {},
+              "event_seq": 21,
+              "intent_id": "i:e1b50a0ec1def93f24e0e250be29f7a62b8a46539c08eecc0dbbbded78742e10",
+              "next_tick": 43,
+              "ok": true,
+              "player": "player:w4shopops1106043526",
+              "profile_version": 1,
+              "reason_text": "",
+              "reject_reason": "",
+              "status": "executed",
+              "tick": 37,
+              "verb": "sell"
+            }
+          }
+        },
+        "flatbread": {
+          "qty": 3,
+          "action": {
+            "request": {
+              "account_id": "w4shopops1106043526",
+              "verb": "sell",
+              "args": {
+                "item": "flatbread",
+                "qty": 3
+              },
+              "client_tick": 43
+            },
+            "status": 200,
+            "response": {
+              "action": "sell",
+              "client_tick": 43,
+              "client_tick_ignored": true,
+              "confirm": false,
+              "data": {
+                "active_quests": [],
+                "active_quests_detail": [],
+                "archetype": "游侠",
+                "growth": {
+                  "assets": {
+                    "at": 0.0,
+                    "level": 1,
+                    "money": 321,
+                    "name": "囊中羞涩",
+                    "next_at": 600.0,
+                    "next_name": "小有积蓄",
+                    "next_unlock": "可开摊（本钱 300 文）",
+                    "progress": 0.535,
+                    "value": 321.0
+                  },
+                  "reputation": {
+                    "at": 0.0,
+                    "level": 1,
+                    "name": "无名之辈",
+                    "next_at": 3.0,
+                    "next_name": "街坊熟人",
+                    "next_unlock": "可接护送类委托，街坊愿意搭话",
+                    "progress": 0.0,
+                    "value": 0.0
+                  },
+                  "skill": {
+                    "at": 0.0,
+                    "level": 1,
+                    "name": "生手",
+                    "next_at": 0.42,
+                    "next_name": "手熟",
+                    "next_unlock": "可独立开摊（手艺够撑起门面）",
+                    "progress": 0.833,
+                    "skill": "镖师",
+                    "skills": {
+                      "镖师": 0.35
+                    },
+                    "value": 0.35
+                  }
+                },
+                "home": "market",
+                "id": "player:w4shopops1106043526",
+                "inventory": {},
+                "location": "market",
+                "marriage": {
+                  "daily_note": "",
+                  "last_daily_tick": 0,
+                  "since_tick": 0,
+                  "spouse_id": "",
+                  "spouse_name": "",
+                  "status": "single"
+                },
+                "max_stamina": 100.0,
+                "name": "铺面客",
+                "nearby": [
+                  {
+                    "id": "duan_wudou",
+                    "name": "段五斗",
+                    "presence": "online",
+                    "role": "屠户"
+                  },
+                  {
+                    "id": "jin_mancang",
+                    "name": "金满仓",
+                    "presence": "online",
+                    "role": "掌柜"
+                  },
+                  {
+                    "id": "liu_sanniang",
+                    "name": "柳三娘",
+                    "presence": "online",
+                    "role": "绣娘"
+                  },
+                  {
+                    "id": "luo_qingxu",
+                    "name": "罗轻絮",
+                    "presence": "online",
+                    "role": "绣娘"
+                  },
+                  {
+                    "id": "meng_jiuniang",
+                    "name": "孟九娘",
+                    "presence": "online",
+                    "role": "媒婆"
+                  },
+                  {
+                    "id": "player:u_demo",
+                    "name": "陈捕快",
+                    "presence": "offline",
+                    "role": "visitor"
+                  },
+                  {
+                    "id": "ruan_qingfu",
+                    "name": "阮青蚨",
+                    "presence": "online",
+                    "role": "货郎"
+                  },
+                  {
+                    "id": "xing_pojun",
+                    "name": "邢破军",
+                    "presence": "online",
+                    "role": "捕快"
+                  }
+                ],
+                "ok": true,
+                "online": true,
+                "presence": "online",
+                "relations": [],
+                "role": "镖师",
+                "sect": {
+                  "in_sect": false,
+                  "sect": null
+                },
+                "skills": {
+                  "镖师": 0.35
+                },
+                "stamina": 100.0,
+                "tick": 43,
+                "today": {
+                  "business": [
+                    {
+                      "affordable": true,
+                      "blocked": "",
+                      "cost": 300,
+                      "shop_type": "stall"
+                    },
+                    {
+                      "affordable": false,
+                      "blocked": "",
+                      "cost": 1200,
+                      "shop_type": "storefront"
+                    },
+                    {
+                      "affordable": false,
+                      "blocked": "",
+                      "cost": 3000,
+                      "shop_type": "branch"
+                    }
+                  ],
+                  "location": "market",
+                  "location_name": "集市",
+                  "next_action": "先接委托：【轻】打听客栈酒价",
+                  "npcs": [
+                    {
+                      "hint": "可打听委托",
+                      "id": "duan_wudou",
+                      "name": "段五斗",
+                      "role": "屠户"
+                    },
+                    {
+                      "hint": "可打听委托",
+                      "id": "jin_mancang",
+                      "name": "金满仓",
+                      "role": "掌柜"
+                    },
+                    {
+                      "hint": "可打听委托",
+                      "id": "liu_sanniang",
+                      "name": "柳三娘",
+                      "role": "绣娘"
+                    }
+                  ],
+                  "quests": [
+                    {
+                      "giver_name": "阮青蚨",
+                      "id": "quest:daily_market_inquiry:0",
+                      "name": "【轻】打听客栈酒价",
+                      "reward_money": 9
+                    },
+                    {
+                      "giver_name": "金满仓",
+                      "id": "quest:debt_duan_to_jin:0",
+                      "name": "代金满仓讨债",
+                      "reward_money": 25
+                    },
+                    {
+                      "giver_name": "金满仓",
+                      "id": "quest:errand_market_ledger:0",
+                      "name": "捎账本到客栈",
+                      "reward_money": 10
+                    }
+                  ],
+                  "skills": [
+                    {
+                      "current": 0.35,
+                      "hours_to_next": 28,
+                      "next_at": 0.42,
+                      "next_level": 2,
+                      "skill": "镖师"
+                    }
+                  ],
+                  "tick": 49
+                },
+                "wallet": 321
+              },
+              "details": {},
+              "event_seq": 23,
+              "intent_id": "i:6be0b7d873bee85f9054d31d687a502618f3e8fab0dc6bb64865f94873f6d6d2",
+              "next_tick": 49,
+              "ok": true,
+              "player": "player:w4shopops1106043526",
+              "profile_version": 1,
+              "reason_text": "",
+              "reject_reason": "",
+              "status": "executed",
+              "tick": 43,
+              "verb": "sell"
+            }
+          }
+        }
+      },
+      "after": {
+        "tab": "shop",
+        "money": 321,
+        "buyRows": 9,
+        "sellRows": 0,
+        "servers": 9,
+        "ownShop": null,
+        "items": [],
+        "hireRows": 7,
+        "hasEscortAgency": false,
+        "escortDests": [
+          "academy",
+          "inn",
+          "pharmacy",
+          "smithy",
+          "teahouse"
+        ],
+        "activeEscorts": 0,
+        "deferred": false,
+        "editing": false
+      }
+    },
+    "at_smithy": {
+      "tab": "shop",
+      "money": 321,
+      "buyRows": 5,
+      "sellRows": 0,
+      "servers": 5,
+      "ownShop": null,
+      "items": [],
+      "hireRows": 1,
+      "hasEscortAgency": false,
+      "escortDests": [
+        "escort_agency",
+        "market"
       ],
-      "probes": [
-        {
-          "verb": "restock",
-          "status": 409,
-          "code": "unknown_action",
-          "text": "未知操作；可用操作见 docs/player-api.md。",
-          "implemented": false
+      "activeEscorts": 0,
+      "deferred": false,
+      "editing": false
+    },
+    "pre_open_buy": {
+      "request": {
+        "account_id": "w4shopops1106043526",
+        "verb": "buy",
+        "args": {
+          "item": "cleaver",
+          "qty": 2
         },
-        {
-          "verb": "set_price",
-          "status": 409,
-          "code": "unknown_action",
-          "text": "未知操作；可用操作见 docs/player-api.md。",
-          "implemented": false
+        "client_tick": 55
+      },
+      "status": 200,
+      "response": {
+        "action": "buy",
+        "client_tick": 55,
+        "client_tick_ignored": true,
+        "confirm": false,
+        "data": {
+          "active_quests": [],
+          "active_quests_detail": [],
+          "archetype": "游侠",
+          "growth": {
+            "assets": {
+              "at": 0.0,
+              "level": 1,
+              "money": 159,
+              "name": "囊中羞涩",
+              "next_at": 600.0,
+              "next_name": "小有积蓄",
+              "next_unlock": "可开摊（本钱 300 文）",
+              "progress": 0.265,
+              "value": 159.0
+            },
+            "reputation": {
+              "at": 0.0,
+              "level": 1,
+              "name": "无名之辈",
+              "next_at": 3.0,
+              "next_name": "街坊熟人",
+              "next_unlock": "可接护送类委托，街坊愿意搭话",
+              "progress": 0.0,
+              "value": 0.0
+            },
+            "skill": {
+              "at": 0.0,
+              "level": 1,
+              "name": "生手",
+              "next_at": 0.42,
+              "next_name": "手熟",
+              "next_unlock": "可独立开摊（手艺够撑起门面）",
+              "progress": 0.833,
+              "skill": "镖师",
+              "skills": {
+                "镖师": 0.35
+              },
+              "value": 0.35
+            }
+          },
+          "home": "market",
+          "id": "player:w4shopops1106043526",
+          "inventory": {
+            "cleaver": 2
+          },
+          "location": "smithy",
+          "marriage": {
+            "daily_note": "",
+            "last_daily_tick": 0,
+            "since_tick": 0,
+            "spouse_id": "",
+            "spouse_name": "",
+            "status": "single"
+          },
+          "max_stamina": 100.0,
+          "name": "铺面客",
+          "nearby": [
+            {
+              "id": "shen_yanzhou",
+              "name": "沈砚舟",
+              "presence": "online",
+              "role": "铁匠"
+            }
+          ],
+          "ok": true,
+          "online": true,
+          "presence": "online",
+          "relations": [],
+          "role": "镖师",
+          "sect": {
+            "in_sect": false,
+            "sect": null
+          },
+          "skills": {
+            "镖师": 0.35
+          },
+          "stamina": 95.0,
+          "tick": 55,
+          "today": {
+            "business": [
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 300,
+                "shop_type": "stall"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 1200,
+                "shop_type": "storefront"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 3000,
+                "shop_type": "branch"
+              }
+            ],
+            "location": "smithy",
+            "location_name": "铁匠铺",
+            "next_action": "先接委托：【中】铁匠铺拉风箱",
+            "npcs": [
+              {
+                "hint": "可打听委托",
+                "id": "shen_yanzhou",
+                "name": "沈砚舟",
+                "role": "铁匠"
+              }
+            ],
+            "quests": [
+              {
+                "giver_name": "沈砚舟",
+                "id": "quest:daily_smithy_bellows:0",
+                "name": "【中】铁匠铺拉风箱",
+                "reward_money": 15
+              }
+            ],
+            "skills": [
+              {
+                "current": 0.35,
+                "hours_to_next": 28,
+                "next_at": 0.42,
+                "next_level": 2,
+                "skill": "镖师"
+              }
+            ],
+            "tick": 61
+          },
+          "wallet": 159
         },
+        "details": {},
+        "event_seq": 27,
+        "intent_id": "i:c0ace10c274210b0a938e56e90dcbd77d22fb3e9c9ebbe16cfc1c0139527b20d",
+        "next_tick": 61,
+        "ok": true,
+        "player": "player:w4shopops1106043526",
+        "profile_version": 1,
+        "reason_text": "",
+        "reject_reason": "",
+        "status": "executed",
+        "tick": 55,
+        "verb": "buy"
+      },
+      "unit": 79,
+      "qty": 2,
+      "after": {
+        "tab": "shop",
+        "money": 159,
+        "buyRows": 5,
+        "sellRows": 1,
+        "servers": 5,
+        "ownShop": null,
+        "items": [
+          {
+            "item": "cleaver",
+            "qty": 2
+          }
+        ],
+        "hireRows": 1,
+        "hasEscortAgency": false,
+        "escortDests": [
+          "escort_agency",
+          "market"
+        ],
+        "activeEscorts": 0,
+        "deferred": false,
+        "editing": false
+      }
+    },
+    "at_agency": {
+      "tab": "shop",
+      "money": 159,
+      "buyRows": 2,
+      "sellRows": 1,
+      "servers": 2,
+      "ownShop": null,
+      "items": [
         {
-          "verb": "dismiss",
-          "status": 409,
-          "code": "unknown_action",
-          "text": "未知操作；可用操作见 docs/player-api.md。",
-          "implemented": false
-        },
-        {
-          "verb": "withdraw",
-          "status": 409,
-          "code": "unknown_action",
-          "text": "未知操作；可用操作见 docs/player-api.md。",
-          "implemented": false
-        },
-        {
-          "verb": "shop_report",
-          "status": 409,
-          "code": "unknown_action",
-          "text": "未知操作；可用操作见 docs/player-api.md。",
-          "implemented": false
+          "item": "cleaver",
+          "qty": 2
         }
       ],
-      "note": "后端动作未进 master；本轮不跑成功路径，不用 mock 顶替真服务证据。"
+      "hireRows": 3,
+      "hasEscortAgency": true,
+      "escortDests": [
+        "ferry",
+        "smithy"
+      ],
+      "activeEscorts": 0,
+      "deferred": false,
+      "editing": false
+    },
+    "escort": {
+      "action": {
+        "request": {
+          "account_id": "w4shopops1106043526",
+          "verb": "escort",
+          "args": {
+            "route": [
+              "escort_agency",
+              "smithy"
+            ],
+            "cargo": {
+              "item": "cleaver",
+              "qty": 2
+            },
+            "cargo_value": 158,
+            "fee": 210
+          },
+          "client_tick": 67
+        },
+        "status": 200,
+        "response": {
+          "action": "escort",
+          "client_tick": 67,
+          "client_tick_ignored": true,
+          "confirm": false,
+          "data": {
+            "active_quests": [],
+            "active_quests_detail": [],
+            "archetype": "游侠",
+            "growth": {
+              "assets": {
+                "at": 0.0,
+                "level": 1,
+                "money": 159,
+                "name": "囊中羞涩",
+                "next_at": 600.0,
+                "next_name": "小有积蓄",
+                "next_unlock": "可开摊（本钱 300 文）",
+                "progress": 0.265,
+                "value": 159.0
+              },
+              "reputation": {
+                "at": 0.0,
+                "level": 1,
+                "name": "无名之辈",
+                "next_at": 3.0,
+                "next_name": "街坊熟人",
+                "next_unlock": "可接护送类委托，街坊愿意搭话",
+                "progress": 0.0,
+                "value": 0.0
+              },
+              "skill": {
+                "at": 0.0,
+                "level": 1,
+                "name": "生手",
+                "next_at": 0.42,
+                "next_name": "手熟",
+                "next_unlock": "可独立开摊（手艺够撑起门面）",
+                "progress": 0.833,
+                "skill": "镖师",
+                "skills": {
+                  "镖师": 0.35
+                },
+                "value": 0.35
+              }
+            },
+            "home": "market",
+            "id": "player:w4shopops1106043526",
+            "inventory": {},
+            "location": "escort_agency",
+            "marriage": {
+              "daily_note": "",
+              "last_daily_tick": 0,
+              "since_tick": 0,
+              "spouse_id": "",
+              "spouse_name": "",
+              "status": "single"
+            },
+            "max_stamina": 100.0,
+            "name": "铺面客",
+            "nearby": [
+              {
+                "id": "pei_wujiu",
+                "name": "裴无咎",
+                "presence": "online",
+                "role": "镖师"
+              },
+              {
+                "id": "shi_gandang",
+                "name": "石敢当",
+                "presence": "online",
+                "role": "石匠"
+              },
+              {
+                "id": "zhuo_bufan",
+                "name": "卓不凡",
+                "presence": "online",
+                "role": "镖师"
+              }
+            ],
+            "ok": true,
+            "online": true,
+            "presence": "online",
+            "relations": [],
+            "role": "镖师",
+            "sect": {
+              "in_sect": false,
+              "sect": null
+            },
+            "skills": {
+              "镖师": 0.35
+            },
+            "stamina": 90.0,
+            "tick": 67,
+            "today": {
+              "business": [
+                {
+                  "affordable": false,
+                  "blocked": "",
+                  "cost": 300,
+                  "shop_type": "stall"
+                },
+                {
+                  "affordable": false,
+                  "blocked": "",
+                  "cost": 1200,
+                  "shop_type": "storefront"
+                },
+                {
+                  "affordable": false,
+                  "blocked": "",
+                  "cost": 3000,
+                  "shop_type": "branch"
+                }
+              ],
+              "location": "escort_agency",
+              "location_name": "镖局",
+              "next_action": "先做工攒钱",
+              "npcs": [
+                {
+                  "hint": "可打听委托",
+                  "id": "pei_wujiu",
+                  "name": "裴无咎",
+                  "role": "镖师"
+                },
+                {
+                  "hint": "可打听委托",
+                  "id": "shi_gandang",
+                  "name": "石敢当",
+                  "role": "石匠"
+                },
+                {
+                  "hint": "可打听委托",
+                  "id": "zhuo_bufan",
+                  "name": "卓不凡",
+                  "role": "镖师"
+                }
+              ],
+              "quests": [],
+              "skills": [
+                {
+                  "current": 0.35,
+                  "hours_to_next": 28,
+                  "next_at": 0.42,
+                  "next_level": 2,
+                  "skill": "镖师"
+                }
+              ],
+              "tick": 73
+            },
+            "wallet": 159
+          },
+          "details": {},
+          "event_seq": 31,
+          "intent_id": "i:c22e6037899ccccdd2c0a978b3c1fad9977c8201a269cc02ccf36752d443c372",
+          "next_tick": 73,
+          "ok": true,
+          "player": "player:w4shopops1106043526",
+          "profile_version": 1,
+          "reason_text": "",
+          "reject_reason": "",
+          "status": "executed",
+          "tick": 67,
+          "verb": "escort"
+        }
+      },
+      "money_before": 159,
+      "accepted": true,
+      "errors": [],
+      "money_after": 363
+    },
+    "open_shop": {
+      "action": {
+        "request": {
+          "account_id": "w4shopops1106043526",
+          "verb": "open_shop",
+          "args": {
+            "shop_type": "stall"
+          },
+          "client_tick": 251
+        },
+        "status": 200,
+        "response": {
+          "action": "open_shop",
+          "client_tick": 251,
+          "client_tick_ignored": true,
+          "confirm": false,
+          "data": {
+            "active_quests": [],
+            "active_quests_detail": [],
+            "archetype": "游侠",
+            "growth": {
+              "assets": {
+                "at": 0.0,
+                "level": 1,
+                "money": 18,
+                "name": "囊中羞涩",
+                "next_at": 600.0,
+                "next_name": "小有积蓄",
+                "next_unlock": "可开摊（本钱 300 文）",
+                "progress": 0.53,
+                "value": 318.0
+              },
+              "reputation": {
+                "at": 3.0,
+                "level": 2,
+                "name": "街坊熟人",
+                "next_at": 15.0,
+                "next_name": "小有名气",
+                "next_unlock": "行会引荐：可进出门派与商会内堂",
+                "progress": 0.583,
+                "value": 10.0
+              },
+              "skill": {
+                "at": 0.0,
+                "level": 1,
+                "name": "生手",
+                "next_at": 0.42,
+                "next_name": "手熟",
+                "next_unlock": "可独立开摊（手艺够撑起门面）",
+                "progress": 0.833,
+                "skill": "镖师",
+                "skills": {
+                  "镖师": 0.35
+                },
+                "value": 0.35
+              }
+            },
+            "home": "market",
+            "id": "player:w4shopops1106043526",
+            "inventory": {},
+            "location": "market",
+            "marriage": {
+              "daily_note": "",
+              "last_daily_tick": 0,
+              "since_tick": 0,
+              "spouse_id": "",
+              "spouse_name": "",
+              "status": "single"
+            },
+            "max_stamina": 100.0,
+            "name": "铺面客",
+            "nearby": [
+              {
+                "id": "duan_wudou",
+                "name": "段五斗",
+                "presence": "online",
+                "role": "屠户"
+              },
+              {
+                "id": "jin_mancang",
+                "name": "金满仓",
+                "presence": "online",
+                "role": "掌柜"
+              },
+              {
+                "id": "liu_sanniang",
+                "name": "柳三娘",
+                "presence": "online",
+                "role": "绣娘"
+              },
+              {
+                "id": "lu_xinghua",
+                "name": "卢杏花",
+                "presence": "online",
+                "role": "菜农"
+              },
+              {
+                "id": "luo_qingxu",
+                "name": "罗轻絮",
+                "presence": "online",
+                "role": "绣娘"
+              },
+              {
+                "id": "meng_jiuniang",
+                "name": "孟九娘",
+                "presence": "online",
+                "role": "媒婆"
+              },
+              {
+                "id": "player:u_demo",
+                "name": "陈捕快",
+                "presence": "offline",
+                "role": "visitor"
+              },
+              {
+                "id": "shen_yanzhou",
+                "name": "沈砚舟",
+                "presence": "online",
+                "role": "铁匠"
+              },
+              {
+                "id": "wei_changgeng",
+                "name": "卫长庚",
+                "presence": "online",
+                "role": "更夫"
+              },
+              {
+                "id": "xing_pojun",
+                "name": "邢破军",
+                "presence": "online",
+                "role": "捕快"
+              }
+            ],
+            "ok": true,
+            "online": true,
+            "presence": "online",
+            "relations": [],
+            "role": "镖师",
+            "sect": {
+              "in_sect": false,
+              "sect": null
+            },
+            "skills": {
+              "镖师": 0.35
+            },
+            "stamina": 85.0,
+            "tick": 255,
+            "today": {
+              "business": [],
+              "location": "market",
+              "location_name": "集市",
+              "next_action": "先接委托：【中】铁匠铺拉风箱",
+              "npcs": [
+                {
+                  "hint": "可打听委托",
+                  "id": "duan_wudou",
+                  "name": "段五斗",
+                  "role": "屠户"
+                },
+                {
+                  "hint": "可打听委托",
+                  "id": "jin_mancang",
+                  "name": "金满仓",
+                  "role": "掌柜"
+                },
+                {
+                  "hint": "可打听委托",
+                  "id": "liu_sanniang",
+                  "name": "柳三娘",
+                  "role": "绣娘"
+                }
+              ],
+              "quests": [
+                {
+                  "giver_name": "沈砚舟",
+                  "id": "quest:daily_smithy_bellows:144",
+                  "name": "【中】铁匠铺拉风箱",
+                  "reward_money": 15
+                },
+                {
+                  "giver_name": "金满仓",
+                  "id": "quest:errand_market_ledger:0",
+                  "name": "捎账本到客栈",
+                  "reward_money": 10
+                },
+                {
+                  "giver_name": "柳三娘",
+                  "id": "quest:errand_silk_sample:144",
+                  "name": "送一匹绸样",
+                  "reward_money": 8
+                }
+              ],
+              "skills": [
+                {
+                  "current": 0.35,
+                  "hours_to_next": 28,
+                  "next_at": 0.42,
+                  "next_level": 2,
+                  "skill": "镖师"
+                }
+              ],
+              "tick": 261
+            },
+            "wallet": 18
+          },
+          "details": {},
+          "event_seq": 649,
+          "intent_id": "i:b55a576157fa9b86d2238ede3e1b6cd1bcc5ca65dd9fe9ab07b7346b187b4547",
+          "next_tick": 261,
+          "ok": true,
+          "player": "player:w4shopops1106043526",
+          "profile_version": 1,
+          "reason_text": "",
+          "reject_reason": "",
+          "status": "executed",
+          "tick": 255,
+          "verb": "open_shop"
+        }
+      },
+      "after": {
+        "op": {
+          "reason": "",
+          "cash": 0,
+          "stock": [
+            {
+              "item": "flatbread",
+              "name": "炊饼",
+              "qty": 6,
+              "price": 3,
+              "base_price": 3,
+              "restock_price": 2,
+              "priced": true,
+              "zero_stock": false
+            },
+            {
+              "item": "noodle",
+              "name": "阳春面",
+              "qty": 4,
+              "price": 5,
+              "base_price": 5,
+              "restock_price": 3,
+              "priced": true,
+              "zero_stock": false
+            },
+            {
+              "item": "rice",
+              "name": "糙米（一斗）",
+              "qty": 3,
+              "price": 13,
+              "base_price": 13,
+              "restock_price": 8,
+              "priced": true,
+              "zero_stock": false
+            }
+          ],
+          "employees": 0,
+          "days": [],
+          "total": {
+            "revenue": 0,
+            "restock": 0,
+            "wage": 0,
+            "tax": 0,
+            "net_profit": 0,
+            "trades": 0
+          },
+          "busy": [],
+          "reportLoaded": true,
+          "reportUnavailable": false,
+          "stockouts": 0,
+          "lowStock": 0,
+          "dismissTarget": ""
+        },
+        "ownText": "铺面客的摊子 · 摊 · 店内现金 0 文 · 库存 件数未由接口提供 · 店址 集市",
+        "restockTotal": "合计 13 文",
+        "withdrawText": "当前店现 0 文",
+        "ledgerRows": 0,
+        "ledgerEmpty": true,
+        "ledgerText": "\n              \n                \n                  世界日营收进货工资\n                  税净利笔数说明\n                \n              \n              \n              \n            ",
+        "totalText": "",
+        "stockoutText": "",
+        "employees": 0,
+        "employeeText": "店里还没有雇工。",
+        "hireText": "段五斗屠户好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 30 文（可 24-45）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇金满仓掌柜好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 36 文（可 29-54）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇柳三娘绣娘好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇卢杏花菜农好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 20 文（可 16-30）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇罗轻絮绣娘好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇孟九娘媒婆好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇沈砚舟铁匠好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 32 文（可 26-48）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇卫长庚更夫好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 16 文（可 13-24）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇邢破军捕快好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 26 文（可 21-39）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇",
+        "toast": "已开摊 · 店内现金 0 文",
+        "errors": []
+      }
+    },
+    "order_note": "真服务店铺的店现初始为 0，restock 前置要求店现足够；因此首笔进货安排在首日日结营收入账之后，其余按 开张→定价→雇人→（首日结算）→进货→提现→次日结算 执行。",
+    "set_price": {
+      "item": "flatbread",
+      "base": 3,
+      "target": 4,
+      "action": {
+        "request": {
+          "account_id": "w4shopops1106043526",
+          "verb": "set_price",
+          "args": {
+            "item": "flatbread",
+            "price": 4
+          },
+          "client_tick": 261
+        },
+        "status": 200,
+        "response": {
+          "action": "set_price",
+          "client_tick": 261,
+          "client_tick_ignored": true,
+          "confirm": false,
+          "data": {
+            "active_quests": [],
+            "active_quests_detail": [],
+            "archetype": "游侠",
+            "growth": {
+              "assets": {
+                "at": 0.0,
+                "level": 1,
+                "money": 18,
+                "name": "囊中羞涩",
+                "next_at": 600.0,
+                "next_name": "小有积蓄",
+                "next_unlock": "可开摊（本钱 300 文）",
+                "progress": 0.53,
+                "value": 318.0
+              },
+              "reputation": {
+                "at": 3.0,
+                "level": 2,
+                "name": "街坊熟人",
+                "next_at": 15.0,
+                "next_name": "小有名气",
+                "next_unlock": "行会引荐：可进出门派与商会内堂",
+                "progress": 0.583,
+                "value": 10.0
+              },
+              "skill": {
+                "at": 0.0,
+                "level": 1,
+                "name": "生手",
+                "next_at": 0.42,
+                "next_name": "手熟",
+                "next_unlock": "可独立开摊（手艺够撑起门面）",
+                "progress": 0.833,
+                "skill": "镖师",
+                "skills": {
+                  "镖师": 0.35
+                },
+                "value": 0.35
+              }
+            },
+            "home": "market",
+            "id": "player:w4shopops1106043526",
+            "inventory": {},
+            "location": "market",
+            "marriage": {
+              "daily_note": "",
+              "last_daily_tick": 0,
+              "since_tick": 0,
+              "spouse_id": "",
+              "spouse_name": "",
+              "status": "single"
+            },
+            "max_stamina": 100.0,
+            "name": "铺面客",
+            "nearby": [
+              {
+                "id": "duan_wudou",
+                "name": "段五斗",
+                "presence": "online",
+                "role": "屠户"
+              },
+              {
+                "id": "jin_mancang",
+                "name": "金满仓",
+                "presence": "online",
+                "role": "掌柜"
+              },
+              {
+                "id": "liu_sanniang",
+                "name": "柳三娘",
+                "presence": "online",
+                "role": "绣娘"
+              },
+              {
+                "id": "lu_xinghua",
+                "name": "卢杏花",
+                "presence": "online",
+                "role": "菜农"
+              },
+              {
+                "id": "luo_qingxu",
+                "name": "罗轻絮",
+                "presence": "online",
+                "role": "绣娘"
+              },
+              {
+                "id": "meng_jiuniang",
+                "name": "孟九娘",
+                "presence": "online",
+                "role": "媒婆"
+              },
+              {
+                "id": "player:u_demo",
+                "name": "陈捕快",
+                "presence": "offline",
+                "role": "visitor"
+              },
+              {
+                "id": "shen_yanzhou",
+                "name": "沈砚舟",
+                "presence": "online",
+                "role": "铁匠"
+              },
+              {
+                "id": "wei_changgeng",
+                "name": "卫长庚",
+                "presence": "online",
+                "role": "更夫"
+              },
+              {
+                "id": "xing_pojun",
+                "name": "邢破军",
+                "presence": "online",
+                "role": "捕快"
+              }
+            ],
+            "ok": true,
+            "online": true,
+            "presence": "online",
+            "relations": [],
+            "role": "镖师",
+            "sect": {
+              "in_sect": false,
+              "sect": null
+            },
+            "skills": {
+              "镖师": 0.35
+            },
+            "stamina": 85.0,
+            "tick": 267,
+            "today": {
+              "business": [],
+              "location": "market",
+              "location_name": "集市",
+              "next_action": "先接委托：【中】铁匠铺拉风箱",
+              "npcs": [
+                {
+                  "hint": "可打听委托",
+                  "id": "duan_wudou",
+                  "name": "段五斗",
+                  "role": "屠户"
+                },
+                {
+                  "hint": "可打听委托",
+                  "id": "jin_mancang",
+                  "name": "金满仓",
+                  "role": "掌柜"
+                },
+                {
+                  "hint": "可打听委托",
+                  "id": "liu_sanniang",
+                  "name": "柳三娘",
+                  "role": "绣娘"
+                }
+              ],
+              "quests": [
+                {
+                  "giver_name": "沈砚舟",
+                  "id": "quest:daily_smithy_bellows:144",
+                  "name": "【中】铁匠铺拉风箱",
+                  "reward_money": 15
+                },
+                {
+                  "giver_name": "金满仓",
+                  "id": "quest:errand_market_ledger:0",
+                  "name": "捎账本到客栈",
+                  "reward_money": 10
+                },
+                {
+                  "giver_name": "柳三娘",
+                  "id": "quest:errand_silk_sample:144",
+                  "name": "送一匹绸样",
+                  "reward_money": 8
+                }
+              ],
+              "skills": [
+                {
+                  "current": 0.35,
+                  "hours_to_next": 28,
+                  "next_at": 0.42,
+                  "next_level": 2,
+                  "skill": "镖师"
+                }
+              ],
+              "tick": 273
+            },
+            "wallet": 18
+          },
+          "details": {},
+          "event_seq": 653,
+          "intent_id": "i:a4348c40a1dd00ca9fadc61c13fa7cbdd0a620b660d4cfa6cb85e60c39fbacb7",
+          "next_tick": 273,
+          "ok": true,
+          "player": "player:w4shopops1106043526",
+          "profile_version": 1,
+          "reason_text": "",
+          "reject_reason": "",
+          "status": "executed",
+          "tick": 267,
+          "verb": "set_price"
+        }
+      },
+      "after": {
+        "op": {
+          "reason": "",
+          "cash": 0,
+          "stock": [
+            {
+              "item": "flatbread",
+              "name": "炊饼",
+              "qty": 6,
+              "price": 3,
+              "base_price": 3,
+              "restock_price": 2,
+              "priced": true,
+              "zero_stock": false
+            },
+            {
+              "item": "noodle",
+              "name": "阳春面",
+              "qty": 4,
+              "price": 5,
+              "base_price": 5,
+              "restock_price": 3,
+              "priced": true,
+              "zero_stock": false
+            },
+            {
+              "item": "rice",
+              "name": "糙米（一斗）",
+              "qty": 3,
+              "price": 13,
+              "base_price": 13,
+              "restock_price": 8,
+              "priced": true,
+              "zero_stock": false
+            }
+          ],
+          "employees": 0,
+          "days": [],
+          "total": {
+            "revenue": 0,
+            "restock": 0,
+            "wage": 0,
+            "tax": 0,
+            "net_profit": 0,
+            "trades": 0
+          },
+          "busy": [],
+          "reportLoaded": true,
+          "reportUnavailable": false,
+          "stockouts": 0,
+          "lowStock": 0,
+          "dismissTarget": ""
+        },
+        "ownText": "铺面客的摊子 · 摊 · 店内现金 0 文 · 库存 件数未由接口提供 · 店址 集市",
+        "restockTotal": "合计 13 文",
+        "withdrawText": "当前店现 0 文",
+        "ledgerRows": 0,
+        "ledgerEmpty": true,
+        "ledgerText": "\n              \n                \n                  世界日营收进货工资\n                  税净利笔数说明\n                \n              \n              \n              \n            ",
+        "totalText": "",
+        "stockoutText": "",
+        "employees": 0,
+        "employeeText": "店里还没有雇工。",
+        "hireText": "段五斗屠户好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 30 文（可 24-45）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇金满仓掌柜好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 36 文（可 29-54）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇柳三娘绣娘好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇卢杏花菜农好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 20 文（可 16-30）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇罗轻絮绣娘好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇孟九娘媒婆好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇沈砚舟铁匠好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 32 文（可 26-48）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇卫长庚更夫好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 16 文（可 13-24）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇邢破军捕快好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 26 文（可 21-39）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇",
+        "toast": "改价 炊饼 3 → 4 文（+33%）",
+        "errors": []
+      }
+    },
+    "hire": {
+      "candidates": [
+        {
+          "id": "duan_wudou",
+          "name": "段五斗屠户"
+        },
+        {
+          "id": "jin_mancang",
+          "name": "金满仓掌柜"
+        },
+        {
+          "id": "liu_sanniang",
+          "name": "柳三娘绣娘"
+        },
+        {
+          "id": "lu_xinghua",
+          "name": "卢杏花菜农"
+        },
+        {
+          "id": "luo_qingxu",
+          "name": "罗轻絮绣娘"
+        },
+        {
+          "id": "meng_jiuniang",
+          "name": "孟九娘媒婆"
+        },
+        {
+          "id": "shen_yanzhou",
+          "name": "沈砚舟铁匠"
+        },
+        {
+          "id": "wei_changgeng",
+          "name": "卫长庚更夫"
+        },
+        {
+          "id": "xing_pojun",
+          "name": "邢破军捕快"
+        }
+      ],
+      "hired": {
+        "npc": "duan_wudou",
+        "name": "段五斗屠户",
+        "position": "屠户",
+        "action": {
+          "request": {
+            "account_id": "w4shopops1106043526",
+            "verb": "recruit",
+            "args": {
+              "target": "duan_wudou",
+              "position": "屠户",
+              "wage": 30
+            },
+            "client_tick": 297
+          },
+          "status": 200,
+          "response": {
+            "action": "recruit",
+            "client_tick": 297,
+            "client_tick_ignored": true,
+            "confirm": false,
+            "data": {
+              "active_quests": [],
+              "active_quests_detail": [],
+              "archetype": "游侠",
+              "growth": {
+                "assets": {
+                  "at": 0.0,
+                  "level": 1,
+                  "money": 18,
+                  "name": "囊中羞涩",
+                  "next_at": 600.0,
+                  "next_name": "小有积蓄",
+                  "next_unlock": "可开摊（本钱 300 文）",
+                  "progress": 0.53,
+                  "value": 318.0
+                },
+                "reputation": {
+                  "at": 3.0,
+                  "level": 2,
+                  "name": "街坊熟人",
+                  "next_at": 15.0,
+                  "next_name": "小有名气",
+                  "next_unlock": "行会引荐：可进出门派与商会内堂",
+                  "progress": 0.833,
+                  "value": 13.0
+                },
+                "skill": {
+                  "at": 0.0,
+                  "level": 1,
+                  "name": "生手",
+                  "next_at": 0.42,
+                  "next_name": "手熟",
+                  "next_unlock": "可独立开摊（手艺够撑起门面）",
+                  "progress": 0.833,
+                  "skill": "镖师",
+                  "skills": {
+                    "镖师": 0.35
+                  },
+                  "value": 0.35
+                }
+              },
+              "home": "market",
+              "id": "player:w4shopops1106043526",
+              "inventory": {},
+              "location": "market",
+              "marriage": {
+                "daily_note": "",
+                "last_daily_tick": 0,
+                "since_tick": 0,
+                "spouse_id": "",
+                "spouse_name": "",
+                "status": "single"
+              },
+              "max_stamina": 100.0,
+              "name": "铺面客",
+              "nearby": [
+                {
+                  "id": "duan_wudou",
+                  "name": "段五斗",
+                  "presence": "online",
+                  "role": "屠户"
+                },
+                {
+                  "id": "jin_mancang",
+                  "name": "金满仓",
+                  "presence": "online",
+                  "role": "掌柜"
+                },
+                {
+                  "id": "liu_sanniang",
+                  "name": "柳三娘",
+                  "presence": "online",
+                  "role": "绣娘"
+                },
+                {
+                  "id": "lu_xinghua",
+                  "name": "卢杏花",
+                  "presence": "online",
+                  "role": "菜农"
+                },
+                {
+                  "id": "luo_qingxu",
+                  "name": "罗轻絮",
+                  "presence": "online",
+                  "role": "绣娘"
+                },
+                {
+                  "id": "meng_jiuniang",
+                  "name": "孟九娘",
+                  "presence": "online",
+                  "role": "媒婆"
+                },
+                {
+                  "id": "player:u_demo",
+                  "name": "陈捕快",
+                  "presence": "offline",
+                  "role": "visitor"
+                },
+                {
+                  "id": "shen_yanzhou",
+                  "name": "沈砚舟",
+                  "presence": "online",
+                  "role": "铁匠"
+                },
+                {
+                  "id": "wei_changgeng",
+                  "name": "卫长庚",
+                  "presence": "online",
+                  "role": "更夫"
+                },
+                {
+                  "id": "xing_pojun",
+                  "name": "邢破军",
+                  "presence": "online",
+                  "role": "捕快"
+                }
+              ],
+              "ok": true,
+              "online": true,
+              "presence": "online",
+              "relations": [
+                {
+                  "affection": 6.0,
+                  "kind": "acquaintance",
+                  "name": "段五斗",
+                  "target": "duan_wudou",
+                  "trust": 43.0
+                }
+              ],
+              "role": "镖师",
+              "sect": {
+                "in_sect": false,
+                "sect": null
+              },
+              "skills": {
+                "镖师": 0.35
+              },
+              "stamina": 100.0,
+              "tick": 297,
+              "today": {
+                "business": [],
+                "location": "market",
+                "location_name": "集市",
+                "next_action": "先接委托：【中】铁匠铺拉风箱",
+                "npcs": [
+                  {
+                    "hint": "可打听委托",
+                    "id": "duan_wudou",
+                    "name": "段五斗",
+                    "role": "屠户"
+                  },
+                  {
+                    "hint": "可打听委托",
+                    "id": "jin_mancang",
+                    "name": "金满仓",
+                    "role": "掌柜"
+                  },
+                  {
+                    "hint": "可打听委托",
+                    "id": "liu_sanniang",
+                    "name": "柳三娘",
+                    "role": "绣娘"
+                  }
+                ],
+                "quests": [
+                  {
+                    "giver_name": "沈砚舟",
+                    "id": "quest:daily_smithy_bellows:144",
+                    "name": "【中】铁匠铺拉风箱",
+                    "reward_money": 15
+                  },
+                  {
+                    "giver_name": "金满仓",
+                    "id": "quest:errand_market_ledger:291",
+                    "name": "捎账本到客栈",
+                    "reward_money": 10
+                  },
+                  {
+                    "giver_name": "孟九娘",
+                    "id": "quest:errand_market_sweet:291",
+                    "name": "捎一包喜糖到书院",
+                    "reward_money": 9
+                  }
+                ],
+                "skills": [
+                  {
+                    "current": 0.35,
+                    "hours_to_next": 28,
+                    "next_at": 0.42,
+                    "next_level": 2,
+                    "skill": "镖师"
+                  }
+                ],
+                "tick": 303
+              },
+              "wallet": 18
+            },
+            "details": {},
+            "event_seq": 663,
+            "intent_id": "i:3df50c97b3237864410ecfb30bbcf0b0ed7f2021612fe17e01a4340b476f47e8",
+            "next_tick": 303,
+            "ok": true,
+            "player": "player:w4shopops1106043526",
+            "profile_version": 1,
+            "reason_text": "",
+            "reject_reason": "",
+            "status": "executed",
+            "tick": 297,
+            "verb": "recruit"
+          }
+        }
+      },
+      "try": {
+        "npc": "duan_wudou",
+        "name": "段五斗屠户",
+        "position": "屠户",
+        "action": {
+          "request": {
+            "account_id": "w4shopops1106043526",
+            "verb": "recruit",
+            "args": {
+              "target": "duan_wudou",
+              "position": "屠户",
+              "wage": 30
+            },
+            "client_tick": 297
+          },
+          "status": 200,
+          "response": {
+            "action": "recruit",
+            "client_tick": 297,
+            "client_tick_ignored": true,
+            "confirm": false,
+            "data": {
+              "active_quests": [],
+              "active_quests_detail": [],
+              "archetype": "游侠",
+              "growth": {
+                "assets": {
+                  "at": 0.0,
+                  "level": 1,
+                  "money": 18,
+                  "name": "囊中羞涩",
+                  "next_at": 600.0,
+                  "next_name": "小有积蓄",
+                  "next_unlock": "可开摊（本钱 300 文）",
+                  "progress": 0.53,
+                  "value": 318.0
+                },
+                "reputation": {
+                  "at": 3.0,
+                  "level": 2,
+                  "name": "街坊熟人",
+                  "next_at": 15.0,
+                  "next_name": "小有名气",
+                  "next_unlock": "行会引荐：可进出门派与商会内堂",
+                  "progress": 0.833,
+                  "value": 13.0
+                },
+                "skill": {
+                  "at": 0.0,
+                  "level": 1,
+                  "name": "生手",
+                  "next_at": 0.42,
+                  "next_name": "手熟",
+                  "next_unlock": "可独立开摊（手艺够撑起门面）",
+                  "progress": 0.833,
+                  "skill": "镖师",
+                  "skills": {
+                    "镖师": 0.35
+                  },
+                  "value": 0.35
+                }
+              },
+              "home": "market",
+              "id": "player:w4shopops1106043526",
+              "inventory": {},
+              "location": "market",
+              "marriage": {
+                "daily_note": "",
+                "last_daily_tick": 0,
+                "since_tick": 0,
+                "spouse_id": "",
+                "spouse_name": "",
+                "status": "single"
+              },
+              "max_stamina": 100.0,
+              "name": "铺面客",
+              "nearby": [
+                {
+                  "id": "duan_wudou",
+                  "name": "段五斗",
+                  "presence": "online",
+                  "role": "屠户"
+                },
+                {
+                  "id": "jin_mancang",
+                  "name": "金满仓",
+                  "presence": "online",
+                  "role": "掌柜"
+                },
+                {
+                  "id": "liu_sanniang",
+                  "name": "柳三娘",
+                  "presence": "online",
+                  "role": "绣娘"
+                },
+                {
+                  "id": "lu_xinghua",
+                  "name": "卢杏花",
+                  "presence": "online",
+                  "role": "菜农"
+                },
+                {
+                  "id": "luo_qingxu",
+                  "name": "罗轻絮",
+                  "presence": "online",
+                  "role": "绣娘"
+                },
+                {
+                  "id": "meng_jiuniang",
+                  "name": "孟九娘",
+                  "presence": "online",
+                  "role": "媒婆"
+                },
+                {
+                  "id": "player:u_demo",
+                  "name": "陈捕快",
+                  "presence": "offline",
+                  "role": "visitor"
+                },
+                {
+                  "id": "shen_yanzhou",
+                  "name": "沈砚舟",
+                  "presence": "online",
+                  "role": "铁匠"
+                },
+                {
+                  "id": "wei_changgeng",
+                  "name": "卫长庚",
+                  "presence": "online",
+                  "role": "更夫"
+                },
+                {
+                  "id": "xing_pojun",
+                  "name": "邢破军",
+                  "presence": "online",
+                  "role": "捕快"
+                }
+              ],
+              "ok": true,
+              "online": true,
+              "presence": "online",
+              "relations": [
+                {
+                  "affection": 6.0,
+                  "kind": "acquaintance",
+                  "name": "段五斗",
+                  "target": "duan_wudou",
+                  "trust": 43.0
+                }
+              ],
+              "role": "镖师",
+              "sect": {
+                "in_sect": false,
+                "sect": null
+              },
+              "skills": {
+                "镖师": 0.35
+              },
+              "stamina": 100.0,
+              "tick": 297,
+              "today": {
+                "business": [],
+                "location": "market",
+                "location_name": "集市",
+                "next_action": "先接委托：【中】铁匠铺拉风箱",
+                "npcs": [
+                  {
+                    "hint": "可打听委托",
+                    "id": "duan_wudou",
+                    "name": "段五斗",
+                    "role": "屠户"
+                  },
+                  {
+                    "hint": "可打听委托",
+                    "id": "jin_mancang",
+                    "name": "金满仓",
+                    "role": "掌柜"
+                  },
+                  {
+                    "hint": "可打听委托",
+                    "id": "liu_sanniang",
+                    "name": "柳三娘",
+                    "role": "绣娘"
+                  }
+                ],
+                "quests": [
+                  {
+                    "giver_name": "沈砚舟",
+                    "id": "quest:daily_smithy_bellows:144",
+                    "name": "【中】铁匠铺拉风箱",
+                    "reward_money": 15
+                  },
+                  {
+                    "giver_name": "金满仓",
+                    "id": "quest:errand_market_ledger:291",
+                    "name": "捎账本到客栈",
+                    "reward_money": 10
+                  },
+                  {
+                    "giver_name": "孟九娘",
+                    "id": "quest:errand_market_sweet:291",
+                    "name": "捎一包喜糖到书院",
+                    "reward_money": 9
+                  }
+                ],
+                "skills": [
+                  {
+                    "current": 0.35,
+                    "hours_to_next": 28,
+                    "next_at": 0.42,
+                    "next_level": 2,
+                    "skill": "镖师"
+                  }
+                ],
+                "tick": 303
+              },
+              "wallet": 18
+            },
+            "details": {},
+            "event_seq": 663,
+            "intent_id": "i:3df50c97b3237864410ecfb30bbcf0b0ed7f2021612fe17e01a4340b476f47e8",
+            "next_tick": 303,
+            "ok": true,
+            "player": "player:w4shopops1106043526",
+            "profile_version": 1,
+            "reason_text": "",
+            "reject_reason": "",
+            "status": "executed",
+            "tick": 297,
+            "verb": "recruit"
+          }
+        },
+        "errors": [],
+        "hireText": "段五斗屠户好感 6.0 · 技能 接口未提供 · 受雇 接口未提供 · 市价 30 文（可 24-45）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇金满仓掌柜好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 36 文（可 29-54）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇柳三娘绣娘好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇卢杏花菜农好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 20 文（可 16-30）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇罗轻絮绣娘好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇孟九娘媒婆好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇沈砚舟铁匠好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 32 文（可 26-48）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇卫长庚更夫好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 16 文（可 13-24）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇邢破军捕快好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 26 文（可 21-39）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇"
+      },
+      "after": {
+        "op": {
+          "reason": "",
+          "cash": 8,
+          "stock": [
+            {
+              "item": "flatbread",
+              "name": "炊饼",
+              "qty": 5,
+              "price": 3,
+              "base_price": 3,
+              "restock_price": 2,
+              "priced": true,
+              "zero_stock": false
+            },
+            {
+              "item": "noodle",
+              "name": "阳春面",
+              "qty": 3,
+              "price": 5,
+              "base_price": 5,
+              "restock_price": 3,
+              "priced": true,
+              "zero_stock": false
+            },
+            {
+              "item": "rice",
+              "name": "糙米（一斗）",
+              "qty": 3,
+              "price": 13,
+              "base_price": 13,
+              "restock_price": 8,
+              "priced": true,
+              "zero_stock": false
+            }
+          ],
+          "employees": 1,
+          "days": [],
+          "total": {
+            "revenue": 0,
+            "restock": 0,
+            "wage": 0,
+            "tax": 0,
+            "net_profit": 0,
+            "trades": 0
+          },
+          "busy": [],
+          "reportLoaded": true,
+          "reportUnavailable": false,
+          "stockouts": 0,
+          "lowStock": 0,
+          "dismissTarget": ""
+        },
+        "ownText": "铺面客的摊子 · 摊 · 店内现金 8 文 · 库存 件数未由接口提供 · 店址 集市",
+        "restockTotal": "合计 13 文",
+        "withdrawText": "当前店现 8 文",
+        "ledgerRows": 0,
+        "ledgerEmpty": true,
+        "ledgerText": "\n              \n                \n                  世界日营收进货工资\n                  税净利笔数说明\n                \n              \n              \n              \n            ",
+        "totalText": "",
+        "stockoutText": "",
+        "employees": 1,
+        "employeeText": "段五斗岗位 屠户 · 日薪 30 文 · 到店辞退",
+        "hireText": "段五斗屠户好感 6.0 · 技能 接口未提供 · 受雇 接口未提供 · 市价 30 文（可 24-45）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇柳三娘绣娘好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇卢杏花菜农好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 20 文（可 16-30）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇罗轻絮绣娘好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇孟九娘媒婆好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇沈砚舟铁匠好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 32 文（可 26-48）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇卫长庚更夫好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 16 文（可 13-24）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇邢破军捕快好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 26 文（可 21-39）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇",
+        "toast": "已雇佣 段五斗 做 屠户，日薪 30 文。",
+        "errors": []
+      }
+    },
+    "ledger_first": {
+      "days": [
+        {
+          "customers": 0,
+          "day": 1,
+          "net_profit": -1,
+          "restock": 0,
+          "revenue": 0,
+          "stock_units": 13,
+          "stockout": false,
+          "stockout_items": [],
+          "tax": 1,
+          "tx": 0,
+          "wage": 0
+        }
+      ],
+      "ledger_empty": false,
+      "after": {
+        "op": {
+          "reason": "",
+          "cash": 30,
+          "stock": [
+            {
+              "item": "flatbread",
+              "name": "炊饼",
+              "qty": 1,
+              "price": 4,
+              "base_price": 3,
+              "restock_price": 2,
+              "priced": true,
+              "zero_stock": false
+            },
+            {
+              "item": "noodle",
+              "name": "阳春面",
+              "qty": 1,
+              "price": 5,
+              "base_price": 5,
+              "restock_price": 3,
+              "priced": true,
+              "zero_stock": false
+            },
+            {
+              "item": "rice",
+              "name": "糙米（一斗）",
+              "qty": 3,
+              "price": 13,
+              "base_price": 13,
+              "restock_price": 8,
+              "priced": true,
+              "zero_stock": false
+            }
+          ],
+          "employees": 1,
+          "days": [
+            {
+              "customers": 0,
+              "day": 1,
+              "net_profit": -1,
+              "restock": 0,
+              "revenue": 0,
+              "stock_units": 13,
+              "stockout": false,
+              "stockout_items": [],
+              "tax": 1,
+              "tx": 0,
+              "wage": 0
+            }
+          ],
+          "total": {
+            "revenue": 0,
+            "restock": 0,
+            "wage": 0,
+            "tax": 1,
+            "net_profit": -1,
+            "trades": 0
+          },
+          "busy": [],
+          "reportLoaded": true,
+          "reportUnavailable": false,
+          "stockouts": 0,
+          "lowStock": 2,
+          "dismissTarget": ""
+        },
+        "ownText": "铺面客的摊子 · 摊 · 店内现金 30 文 · 库存 件数未由接口提供 · 店址 集市",
+        "restockTotal": "合计 13 文",
+        "withdrawText": "当前店现 30 文",
+        "ledgerRows": 1,
+        "ledgerEmpty": false,
+        "ledgerText": "\n              \n                \n                  世界日营收进货工资\n                  税净利笔数说明\n                \n              \n              第 1 日0001-10当日无客流\n              1 日合计0001-10\n            ",
+        "totalText": "1 日合计0001-10",
+        "stockoutText": "",
+        "employees": 1,
+        "employeeText": "段五斗岗位 屠户 · 日薪 30 文 · 到店辞退",
+        "hireText": "段五斗屠户好感 6.0 · 技能 接口未提供 · 受雇 接口未提供 · 市价 30 文（可 24-45）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇金满仓掌柜好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 36 文（可 29-54）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇柳三娘绣娘好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇卢杏花菜农好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 20 文（可 16-30）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇罗轻絮绣娘好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇孟九娘媒婆好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇沈砚舟铁匠好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 32 文（可 26-48）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇卫长庚更夫好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 16 文（可 13-24）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇邢破军捕快好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 26 文（可 21-39）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇",
+        "toast": "附近动静：交了一份委托",
+        "errors": []
+      }
+    },
+    "restock": {
+      "item": "flatbread",
+      "qty": 2,
+      "before": 0,
+      "after": 2,
+      "attempts": [
+        {
+          "attempt": 0,
+          "item": "flatbread",
+          "qty": 2,
+          "cash": 38,
+          "status": 200,
+          "reason": ""
+        }
+      ],
+      "action": {
+        "request": {
+          "account_id": "w4shopops1106043526",
+          "verb": "restock",
+          "args": {
+            "item": "flatbread",
+            "qty": 2
+          },
+          "client_tick": 318
+        },
+        "status": 200,
+        "response": {
+          "action": "restock",
+          "client_tick": 318,
+          "client_tick_ignored": true,
+          "confirm": false,
+          "data": {
+            "active_quests": [],
+            "active_quests_detail": [],
+            "archetype": "游侠",
+            "growth": {
+              "assets": {
+                "at": 0.0,
+                "level": 1,
+                "money": 18,
+                "name": "囊中羞涩",
+                "next_at": 600.0,
+                "next_name": "小有积蓄",
+                "next_unlock": "可开摊（本钱 300 文）",
+                "progress": 0.53,
+                "value": 318.0
+              },
+              "reputation": {
+                "at": 3.0,
+                "level": 2,
+                "name": "街坊熟人",
+                "next_at": 15.0,
+                "next_name": "小有名气",
+                "next_unlock": "行会引荐：可进出门派与商会内堂",
+                "progress": 0.833,
+                "value": 13.0
+              },
+              "skill": {
+                "at": 0.0,
+                "level": 1,
+                "name": "生手",
+                "next_at": 0.42,
+                "next_name": "手熟",
+                "next_unlock": "可独立开摊（手艺够撑起门面）",
+                "progress": 0.833,
+                "skill": "镖师",
+                "skills": {
+                  "镖师": 0.35
+                },
+                "value": 0.35
+              }
+            },
+            "home": "market",
+            "id": "player:w4shopops1106043526",
+            "inventory": {},
+            "location": "market",
+            "marriage": {
+              "daily_note": "",
+              "last_daily_tick": 0,
+              "since_tick": 0,
+              "spouse_id": "",
+              "spouse_name": "",
+              "status": "single"
+            },
+            "max_stamina": 100.0,
+            "name": "铺面客",
+            "nearby": [
+              {
+                "id": "duan_wudou",
+                "name": "段五斗",
+                "presence": "online",
+                "role": "屠户"
+              },
+              {
+                "id": "liu_sanniang",
+                "name": "柳三娘",
+                "presence": "online",
+                "role": "绣娘"
+              },
+              {
+                "id": "lu_xinghua",
+                "name": "卢杏花",
+                "presence": "online",
+                "role": "菜农"
+              },
+              {
+                "id": "luo_qingxu",
+                "name": "罗轻絮",
+                "presence": "online",
+                "role": "绣娘"
+              },
+              {
+                "id": "meng_jiuniang",
+                "name": "孟九娘",
+                "presence": "online",
+                "role": "媒婆"
+              },
+              {
+                "id": "player:u_demo",
+                "name": "陈捕快",
+                "presence": "offline",
+                "role": "visitor"
+              },
+              {
+                "id": "shen_yanzhou",
+                "name": "沈砚舟",
+                "presence": "online",
+                "role": "铁匠"
+              },
+              {
+                "id": "shi_gandang",
+                "name": "石敢当",
+                "presence": "online",
+                "role": "石匠"
+              },
+              {
+                "id": "wei_changgeng",
+                "name": "卫长庚",
+                "presence": "online",
+                "role": "更夫"
+              },
+              {
+                "id": "xing_pojun",
+                "name": "邢破军",
+                "presence": "online",
+                "role": "捕快"
+              }
+            ],
+            "ok": true,
+            "online": true,
+            "presence": "online",
+            "relations": [
+              {
+                "affection": 6.0,
+                "kind": "acquaintance",
+                "name": "段五斗",
+                "target": "duan_wudou",
+                "trust": 43.0
+              }
+            ],
+            "role": "镖师",
+            "sect": {
+              "in_sect": false,
+              "sect": null
+            },
+            "skills": {
+              "镖师": 0.35
+            },
+            "stamina": 100.0,
+            "tick": 319,
+            "today": {
+              "business": [],
+              "location": "market",
+              "location_name": "集市",
+              "next_action": "先接委托：铁匠铺代工",
+              "npcs": [
+                {
+                  "hint": "可打听委托",
+                  "id": "duan_wudou",
+                  "name": "段五斗",
+                  "role": "屠户"
+                },
+                {
+                  "hint": "可打听委托",
+                  "id": "liu_sanniang",
+                  "name": "柳三娘",
+                  "role": "绣娘"
+                },
+                {
+                  "hint": "可打听委托",
+                  "id": "lu_xinghua",
+                  "name": "卢杏花",
+                  "role": "菜农"
+                }
+              ],
+              "quests": [
+                {
+                  "giver_name": "石敢当",
+                  "id": "quest:commission_stonework:144",
+                  "name": "铁匠铺代工",
+                  "reward_money": 12
+                },
+                {
+                  "giver_name": "沈砚舟",
+                  "id": "quest:daily_smithy_bellows:144",
+                  "name": "【中】铁匠铺拉风箱",
+                  "reward_money": 15
+                },
+                {
+                  "giver_name": "柳三娘",
+                  "id": "quest:errand_silk_sample:144",
+                  "name": "送一匹绸样",
+                  "reward_money": 8
+                }
+              ],
+              "skills": [
+                {
+                  "current": 0.35,
+                  "hours_to_next": 28,
+                  "next_at": 0.42,
+                  "next_level": 2,
+                  "skill": "镖师"
+                }
+              ],
+              "tick": 325
+            },
+            "wallet": 18
+          },
+          "details": {},
+          "event_seq": 997,
+          "intent_id": "i:be6ccc119ac4a8988a5692a87846f6461c0882f0802faf0a3689700f0df0fe29",
+          "next_tick": 325,
+          "ok": true,
+          "player": "player:w4shopops1106043526",
+          "profile_version": 1,
+          "reason_text": "",
+          "reject_reason": "",
+          "status": "executed",
+          "tick": 319,
+          "verb": "restock"
+        }
+      },
+      "snapshot": {
+        "op": {
+          "reason": "",
+          "cash": 34,
+          "stock": [
+            {
+              "item": "flatbread",
+              "name": "炊饼",
+              "qty": 2,
+              "price": 4,
+              "base_price": 3,
+              "restock_price": 2,
+              "priced": true,
+              "zero_stock": false
+            },
+            {
+              "item": "rice",
+              "name": "糙米（一斗）",
+              "qty": 3,
+              "price": 13,
+              "base_price": 13,
+              "restock_price": 8,
+              "priced": true,
+              "zero_stock": false
+            },
+            {
+              "item": "noodle",
+              "name": "阳春面",
+              "qty": 0,
+              "price": 5,
+              "base_price": 5,
+              "restock_price": 3,
+              "priced": true,
+              "zero_stock": true
+            }
+          ],
+          "employees": 1,
+          "days": [
+            {
+              "customers": 0,
+              "day": 1,
+              "net_profit": -1,
+              "restock": 0,
+              "revenue": 0,
+              "stock_units": 13,
+              "stockout": false,
+              "stockout_items": [],
+              "tax": 1,
+              "tx": 0,
+              "wage": 0
+            }
+          ],
+          "total": {
+            "revenue": 0,
+            "restock": 0,
+            "wage": 0,
+            "tax": 1,
+            "net_profit": -1,
+            "trades": 0
+          },
+          "busy": [],
+          "reportLoaded": true,
+          "reportUnavailable": false,
+          "stockouts": 0,
+          "lowStock": 2,
+          "dismissTarget": ""
+        },
+        "ownText": "铺面客的摊子 · 摊 · 店内现金 34 文 · 库存 件数未由接口提供 · 店址 集市",
+        "restockTotal": "合计 15 文",
+        "withdrawText": "当前店现 34 文",
+        "ledgerRows": 1,
+        "ledgerEmpty": false,
+        "ledgerText": "\n              \n                \n                  世界日营收进货工资\n                  税净利笔数说明\n                \n              \n              第 1 日0001-10当日无客流\n              1 日合计0001-10\n            ",
+        "totalText": "1 日合计0001-10",
+        "stockoutText": "",
+        "employees": 1,
+        "employeeText": "段五斗岗位 屠户 · 日薪 30 文 · 到店辞退",
+        "hireText": "段五斗屠户好感 6.0 · 技能 接口未提供 · 受雇 接口未提供 · 市价 30 文（可 24-45）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇柳三娘绣娘好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇卢杏花菜农好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 20 文（可 16-30）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇罗轻絮绣娘好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇孟九娘媒婆好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇沈砚舟铁匠好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 32 文（可 26-48）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇石敢当石匠好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 28 文（可 22-42）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇卫长庚更夫好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 16 文（可 13-24）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇邢破军捕快好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 26 文（可 21-39）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇",
+        "toast": "进货 炊饼×2，花费 4 文，库存 0 → 2",
+        "errors": []
+      }
+    },
+    "withdraw": {
+      "amount": 10,
+      "action": {
+        "request": {
+          "account_id": "w4shopops1106043526",
+          "verb": "withdraw",
+          "args": {
+            "qty": 10
+          },
+          "client_tick": 325
+        },
+        "status": 200,
+        "response": {
+          "action": "withdraw",
+          "client_tick": 325,
+          "client_tick_ignored": true,
+          "confirm": false,
+          "data": {
+            "active_quests": [],
+            "active_quests_detail": [],
+            "archetype": "游侠",
+            "growth": {
+              "assets": {
+                "at": 0.0,
+                "level": 1,
+                "money": 28,
+                "name": "囊中羞涩",
+                "next_at": 600.0,
+                "next_name": "小有积蓄",
+                "next_unlock": "可开摊（本钱 300 文）",
+                "progress": 0.547,
+                "value": 328.0
+              },
+              "reputation": {
+                "at": 3.0,
+                "level": 2,
+                "name": "街坊熟人",
+                "next_at": 15.0,
+                "next_name": "小有名气",
+                "next_unlock": "行会引荐：可进出门派与商会内堂",
+                "progress": 0.833,
+                "value": 13.0
+              },
+              "skill": {
+                "at": 0.0,
+                "level": 1,
+                "name": "生手",
+                "next_at": 0.42,
+                "next_name": "手熟",
+                "next_unlock": "可独立开摊（手艺够撑起门面）",
+                "progress": 0.833,
+                "skill": "镖师",
+                "skills": {
+                  "镖师": 0.35
+                },
+                "value": 0.35
+              }
+            },
+            "home": "market",
+            "id": "player:w4shopops1106043526",
+            "inventory": {},
+            "location": "market",
+            "marriage": {
+              "daily_note": "",
+              "last_daily_tick": 0,
+              "since_tick": 0,
+              "spouse_id": "",
+              "spouse_name": "",
+              "status": "single"
+            },
+            "max_stamina": 100.0,
+            "name": "铺面客",
+            "nearby": [
+              {
+                "id": "duan_wudou",
+                "name": "段五斗",
+                "presence": "online",
+                "role": "屠户"
+              },
+              {
+                "id": "liu_sanniang",
+                "name": "柳三娘",
+                "presence": "online",
+                "role": "绣娘"
+              },
+              {
+                "id": "lu_xinghua",
+                "name": "卢杏花",
+                "presence": "online",
+                "role": "菜农"
+              },
+              {
+                "id": "luo_qingxu",
+                "name": "罗轻絮",
+                "presence": "online",
+                "role": "绣娘"
+              },
+              {
+                "id": "meng_jiuniang",
+                "name": "孟九娘",
+                "presence": "online",
+                "role": "媒婆"
+              },
+              {
+                "id": "player:u_demo",
+                "name": "陈捕快",
+                "presence": "offline",
+                "role": "visitor"
+              },
+              {
+                "id": "shen_yanzhou",
+                "name": "沈砚舟",
+                "presence": "online",
+                "role": "铁匠"
+              },
+              {
+                "id": "shi_gandang",
+                "name": "石敢当",
+                "presence": "online",
+                "role": "石匠"
+              },
+              {
+                "id": "wei_changgeng",
+                "name": "卫长庚",
+                "presence": "online",
+                "role": "更夫"
+              },
+              {
+                "id": "xing_pojun",
+                "name": "邢破军",
+                "presence": "online",
+                "role": "捕快"
+              }
+            ],
+            "ok": true,
+            "online": true,
+            "presence": "online",
+            "relations": [
+              {
+                "affection": 6.0,
+                "kind": "acquaintance",
+                "name": "段五斗",
+                "target": "duan_wudou",
+                "trust": 43.0
+              }
+            ],
+            "role": "镖师",
+            "sect": {
+              "in_sect": false,
+              "sect": null
+            },
+            "skills": {
+              "镖师": 0.35
+            },
+            "stamina": 100.0,
+            "tick": 325,
+            "today": {
+              "business": [],
+              "location": "market",
+              "location_name": "集市",
+              "next_action": "先接委托：铁匠铺代工",
+              "npcs": [
+                {
+                  "hint": "可打听委托",
+                  "id": "duan_wudou",
+                  "name": "段五斗",
+                  "role": "屠户"
+                },
+                {
+                  "hint": "可打听委托",
+                  "id": "liu_sanniang",
+                  "name": "柳三娘",
+                  "role": "绣娘"
+                },
+                {
+                  "hint": "可打听委托",
+                  "id": "lu_xinghua",
+                  "name": "卢杏花",
+                  "role": "菜农"
+                }
+              ],
+              "quests": [
+                {
+                  "giver_name": "石敢当",
+                  "id": "quest:commission_stonework:144",
+                  "name": "铁匠铺代工",
+                  "reward_money": 12
+                },
+                {
+                  "giver_name": "沈砚舟",
+                  "id": "quest:daily_smithy_bellows:144",
+                  "name": "【中】铁匠铺拉风箱",
+                  "reward_money": 15
+                },
+                {
+                  "giver_name": "柳三娘",
+                  "id": "quest:errand_silk_sample:144",
+                  "name": "送一匹绸样",
+                  "reward_money": 8
+                }
+              ],
+              "skills": [
+                {
+                  "current": 0.35,
+                  "hours_to_next": 28,
+                  "next_at": 0.42,
+                  "next_level": 2,
+                  "skill": "镖师"
+                }
+              ],
+              "tick": 331
+            },
+            "wallet": 28
+          },
+          "details": {},
+          "event_seq": 999,
+          "intent_id": "i:25d63dfefbf3f8e234f091113e1e1d2d4944786eb8b917549ba57dc5c6123805",
+          "next_tick": 331,
+          "ok": true,
+          "player": "player:w4shopops1106043526",
+          "profile_version": 1,
+          "reason_text": "",
+          "reject_reason": "",
+          "status": "executed",
+          "tick": 325,
+          "verb": "withdraw"
+        }
+      },
+      "attempts": [
+        {
+          "attempt": 0,
+          "amount": 10,
+          "cash": 34,
+          "status": 200,
+          "reason": ""
+        }
+      ],
+      "after": {
+        "op": {
+          "reason": "",
+          "cash": 24,
+          "stock": [
+            {
+              "item": "flatbread",
+              "name": "炊饼",
+              "qty": 2,
+              "price": 4,
+              "base_price": 3,
+              "restock_price": 2,
+              "priced": true,
+              "zero_stock": false
+            },
+            {
+              "item": "rice",
+              "name": "糙米（一斗）",
+              "qty": 3,
+              "price": 13,
+              "base_price": 13,
+              "restock_price": 8,
+              "priced": true,
+              "zero_stock": false
+            },
+            {
+              "item": "noodle",
+              "name": "阳春面",
+              "qty": 0,
+              "price": 5,
+              "base_price": 5,
+              "restock_price": 3,
+              "priced": true,
+              "zero_stock": true
+            }
+          ],
+          "employees": 1,
+          "days": [
+            {
+              "customers": 0,
+              "day": 1,
+              "net_profit": -1,
+              "restock": 0,
+              "revenue": 0,
+              "stock_units": 13,
+              "stockout": false,
+              "stockout_items": [],
+              "tax": 1,
+              "tx": 0,
+              "wage": 0
+            }
+          ],
+          "total": {
+            "revenue": 0,
+            "restock": 0,
+            "wage": 0,
+            "tax": 1,
+            "net_profit": -1,
+            "trades": 0
+          },
+          "busy": [],
+          "reportLoaded": true,
+          "reportUnavailable": false,
+          "stockouts": 0,
+          "lowStock": 2,
+          "dismissTarget": ""
+        },
+        "ownText": "铺面客的摊子 · 摊 · 店内现金 24 文 · 库存 件数未由接口提供 · 店址 集市",
+        "restockTotal": "合计 15 文",
+        "withdrawText": "当前店现 24 文",
+        "ledgerRows": 1,
+        "ledgerEmpty": false,
+        "ledgerText": "\n              \n                \n                  世界日营收进货工资\n                  税净利笔数说明\n                \n              \n              第 1 日0001-10当日无客流\n              1 日合计0001-10\n            ",
+        "totalText": "1 日合计0001-10",
+        "stockoutText": "",
+        "employees": 1,
+        "employeeText": "段五斗岗位 屠户 · 日薪 30 文 · 到店辞退",
+        "hireText": "段五斗屠户好感 6.0 · 技能 接口未提供 · 受雇 接口未提供 · 市价 30 文（可 24-45）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇柳三娘绣娘好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇卢杏花菜农好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 20 文（可 16-30）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇罗轻絮绣娘好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇孟九娘媒婆好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇沈砚舟铁匠好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 32 文（可 26-48）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇石敢当石匠好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 28 文（可 22-42）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇卫长庚更夫好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 16 文（可 13-24）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇邢破军捕快好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 26 文（可 21-39）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇",
+        "toast": "提现 10 文，店现 34 → 24",
+        "errors": []
+      }
+    },
+    "ledger_second": {
+      "days": [
+        {
+          "customers": 0,
+          "day": 1,
+          "net_profit": -1,
+          "restock": 0,
+          "revenue": 0,
+          "stock_units": 13,
+          "stockout": false,
+          "stockout_items": [],
+          "tax": 1,
+          "tx": 0,
+          "wage": 0
+        },
+        {
+          "customers": 15,
+          "day": 2,
+          "net_profit": 21,
+          "restock": 21,
+          "revenue": 73,
+          "stock_units": 2,
+          "stockout": false,
+          "stockout_items": [
+            "flatbread",
+            "noodle"
+          ],
+          "tax": 1,
+          "tx": 15,
+          "wage": 30
+        }
+      ],
+      "after": {
+        "op": {
+          "reason": "",
+          "cash": 16,
+          "stock": [
+            {
+              "item": "coarse_cloth",
+              "name": "粗布（一匹）",
+              "qty": 1,
+              "price": 25,
+              "base_price": 25,
+              "restock_price": 15,
+              "priced": true,
+              "zero_stock": false
+            },
+            {
+              "item": "rice",
+              "name": "糙米（一斗）",
+              "qty": 1,
+              "price": 13,
+              "base_price": 13,
+              "restock_price": 8,
+              "priced": true,
+              "zero_stock": false
+            },
+            {
+              "item": "flatbread",
+              "name": "炊饼",
+              "qty": 0,
+              "price": 3,
+              "base_price": 3,
+              "restock_price": 2,
+              "priced": true,
+              "zero_stock": true
+            },
+            {
+              "item": "noodle",
+              "name": "阳春面",
+              "qty": 0,
+              "price": 5,
+              "base_price": 5,
+              "restock_price": 3,
+              "priced": true,
+              "zero_stock": true
+            }
+          ],
+          "employees": 1,
+          "days": [
+            {
+              "customers": 0,
+              "day": 1,
+              "net_profit": -1,
+              "restock": 0,
+              "revenue": 0,
+              "stock_units": 13,
+              "stockout": false,
+              "stockout_items": [],
+              "tax": 1,
+              "tx": 0,
+              "wage": 0
+            },
+            {
+              "customers": 15,
+              "day": 2,
+              "net_profit": 21,
+              "restock": 21,
+              "revenue": 73,
+              "stock_units": 2,
+              "stockout": false,
+              "stockout_items": [
+                "flatbread",
+                "noodle"
+              ],
+              "tax": 1,
+              "tx": 15,
+              "wage": 30
+            }
+          ],
+          "total": {
+            "revenue": 73,
+            "restock": 21,
+            "wage": 30,
+            "tax": 2,
+            "net_profit": 20,
+            "trades": 15
+          },
+          "busy": [],
+          "reportLoaded": true,
+          "reportUnavailable": false,
+          "stockouts": 0,
+          "lowStock": 4,
+          "dismissTarget": ""
+        },
+        "ownText": "铺面客的摊子 · 摊 · 店内现金 16 文 · 库存 件数未由接口提供 · 店址 集市",
+        "restockTotal": "合计 30 文",
+        "withdrawText": "当前店现 16 文",
+        "ledgerRows": 2,
+        "ledgerEmpty": false,
+        "ledgerText": "\n              \n                \n                  世界日营收进货工资\n                  税净利笔数说明\n                \n              \n              第 1 日0001-10当日无客流第 2 日7321301+2115\n              2 日合计7321302+2015\n            ",
+        "totalText": "2 日合计7321302+2015",
+        "stockoutText": "",
+        "employees": 1,
+        "employeeText": "段五斗岗位 屠户 · 日薪 30 文 · 到店辞退",
+        "hireText": "白露生学究好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇段五斗屠户好感 6.0 · 技能 接口未提供 · 受雇 接口未提供 · 市价 30 文（可 24-45）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇韩杏林药童好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 15 文（可 12-23）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇柳三娘绣娘好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇卢杏花菜农好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 20 文（可 16-30）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇罗轻絮绣娘好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇沈砚舟铁匠好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 32 文（可 26-48）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇卫长庚更夫好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 16 文（可 13-24）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇邢破军捕快好感 3.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 26 文（可 21-39）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇",
+        "toast": "附近动静：交了一份委托",
+        "errors": []
+      }
+    },
+    "dismiss": {
+      "target": "duan_wudou",
+      "action": {
+        "request": {
+          "account_id": "w4shopops1106043526",
+          "verb": "dismiss",
+          "args": {
+            "target": "duan_wudou"
+          },
+          "client_tick": 453
+        },
+        "status": 200,
+        "response": {
+          "action": "dismiss",
+          "client_tick": 453,
+          "client_tick_ignored": true,
+          "confirm": false,
+          "data": {
+            "active_quests": [],
+            "active_quests_detail": [],
+            "archetype": "游侠",
+            "growth": {
+              "assets": {
+                "at": 0.0,
+                "level": 1,
+                "money": 28,
+                "name": "囊中羞涩",
+                "next_at": 600.0,
+                "next_name": "小有积蓄",
+                "next_unlock": "可开摊（本钱 300 文）",
+                "progress": 0.547,
+                "value": 328.0
+              },
+              "reputation": {
+                "at": 15.0,
+                "level": 3,
+                "name": "小有名气",
+                "next_at": 40.0,
+                "next_name": "一方人物",
+                "next_unlock": "门派客卿：可收徒、可代掌门派事务",
+                "progress": 0.04,
+                "value": 16.0
+              },
+              "skill": {
+                "at": 0.0,
+                "level": 1,
+                "name": "生手",
+                "next_at": 0.42,
+                "next_name": "手熟",
+                "next_unlock": "可独立开摊（手艺够撑起门面）",
+                "progress": 0.833,
+                "skill": "镖师",
+                "skills": {
+                  "镖师": 0.35
+                },
+                "value": 0.35
+              }
+            },
+            "home": "market",
+            "id": "player:w4shopops1106043526",
+            "inventory": {
+              "flatbread": 1
+            },
+            "location": "market",
+            "marriage": {
+              "daily_note": "",
+              "last_daily_tick": 0,
+              "since_tick": 0,
+              "spouse_id": "",
+              "spouse_name": "",
+              "status": "single"
+            },
+            "max_stamina": 100.0,
+            "name": "铺面客",
+            "nearby": [
+              {
+                "id": "bai_lusheng",
+                "name": "白露生",
+                "presence": "online",
+                "role": "学究"
+              },
+              {
+                "id": "duan_wudou",
+                "name": "段五斗",
+                "presence": "online",
+                "role": "屠户"
+              },
+              {
+                "id": "liu_sanniang",
+                "name": "柳三娘",
+                "presence": "online",
+                "role": "绣娘"
+              },
+              {
+                "id": "lu_xinghua",
+                "name": "卢杏花",
+                "presence": "online",
+                "role": "菜农"
+              },
+              {
+                "id": "luo_qingxu",
+                "name": "罗轻絮",
+                "presence": "online",
+                "role": "绣娘"
+              },
+              {
+                "id": "meng_jiuniang",
+                "name": "孟九娘",
+                "presence": "online",
+                "role": "媒婆"
+              },
+              {
+                "id": "player:u_demo",
+                "name": "陈捕快",
+                "presence": "offline",
+                "role": "visitor"
+              },
+              {
+                "id": "shen_yanzhou",
+                "name": "沈砚舟",
+                "presence": "online",
+                "role": "铁匠"
+              },
+              {
+                "id": "wei_changgeng",
+                "name": "卫长庚",
+                "presence": "online",
+                "role": "更夫"
+              },
+              {
+                "id": "xing_pojun",
+                "name": "邢破军",
+                "presence": "online",
+                "role": "捕快"
+              }
+            ],
+            "ok": true,
+            "online": true,
+            "presence": "online",
+            "relations": [
+              {
+                "affection": 6.0,
+                "kind": "acquaintance",
+                "name": "段五斗",
+                "target": "duan_wudou",
+                "trust": 43.0
+              },
+              {
+                "affection": 3.0,
+                "kind": "friend",
+                "name": "邢破军",
+                "target": "xing_pojun",
+                "trust": 40.0
+              },
+              {
+                "affection": 3.0,
+                "kind": "friend",
+                "name": "邢破军",
+                "target": "xing_pojun",
+                "trust": 40.0
+              }
+            ],
+            "role": "镖师",
+            "sect": {
+              "in_sect": false,
+              "sect": null
+            },
+            "skills": {
+              "镖师": 0.35
+            },
+            "stamina": 100.0,
+            "tick": 453,
+            "today": {
+              "business": [],
+              "location": "market",
+              "location_name": "集市",
+              "next_action": "先接委托：捎一包喜糖到书院",
+              "npcs": [
+                {
+                  "hint": "可打听委托",
+                  "id": "bai_lusheng",
+                  "name": "白露生",
+                  "role": "学究"
+                },
+                {
+                  "hint": "可打听委托",
+                  "id": "duan_wudou",
+                  "name": "段五斗",
+                  "role": "屠户"
+                },
+                {
+                  "hint": "可打听委托",
+                  "id": "liu_sanniang",
+                  "name": "柳三娘",
+                  "role": "绣娘"
+                }
+              ],
+              "quests": [
+                {
+                  "giver_name": "孟九娘",
+                  "id": "quest:errand_market_sweet:434",
+                  "name": "捎一包喜糖到书院",
+                  "reward_money": 9
+                },
+                {
+                  "giver_name": "柳三娘",
+                  "id": "quest:errand_silk_sample:434",
+                  "name": "送一匹绸样",
+                  "reward_money": 8
+                },
+                {
+                  "giver_name": "柳三娘",
+                  "id": "quest:tutorial_silk_sample:434",
+                  "name": "【引导2/4】把绣样送到药铺苏掌柜手上",
+                  "reward_money": 12
+                }
+              ],
+              "skills": [
+                {
+                  "current": 0.35,
+                  "hours_to_next": 28,
+                  "next_at": 0.42,
+                  "next_level": 2,
+                  "skill": "镖师"
+                }
+              ],
+              "tick": 459
+            },
+            "wallet": 28
+          },
+          "details": {},
+          "event_seq": 1572,
+          "intent_id": "i:610a37472aeafd8a4a754f1062e8315adfd7e2f45533f804c07c40bb7aa68d11",
+          "next_tick": 459,
+          "ok": true,
+          "player": "player:w4shopops1106043526",
+          "profile_version": 1,
+          "reason_text": "",
+          "reject_reason": "",
+          "status": "executed",
+          "tick": 453,
+          "verb": "dismiss"
+        }
+      },
+      "after": {
+        "op": {
+          "reason": "",
+          "cash": 16,
+          "stock": [
+            {
+              "item": "coarse_cloth",
+              "name": "粗布（一匹）",
+              "qty": 1,
+              "price": 25,
+              "base_price": 25,
+              "restock_price": 15,
+              "priced": true,
+              "zero_stock": false
+            },
+            {
+              "item": "rice",
+              "name": "糙米（一斗）",
+              "qty": 1,
+              "price": 13,
+              "base_price": 13,
+              "restock_price": 8,
+              "priced": true,
+              "zero_stock": false
+            },
+            {
+              "item": "flatbread",
+              "name": "炊饼",
+              "qty": 0,
+              "price": 3,
+              "base_price": 3,
+              "restock_price": 2,
+              "priced": true,
+              "zero_stock": true
+            },
+            {
+              "item": "noodle",
+              "name": "阳春面",
+              "qty": 0,
+              "price": 5,
+              "base_price": 5,
+              "restock_price": 3,
+              "priced": true,
+              "zero_stock": true
+            }
+          ],
+          "employees": 0,
+          "days": [
+            {
+              "customers": 0,
+              "day": 1,
+              "net_profit": -1,
+              "restock": 0,
+              "revenue": 0,
+              "stock_units": 13,
+              "stockout": false,
+              "stockout_items": [],
+              "tax": 1,
+              "tx": 0,
+              "wage": 0
+            },
+            {
+              "customers": 15,
+              "day": 2,
+              "net_profit": 21,
+              "restock": 21,
+              "revenue": 73,
+              "stock_units": 2,
+              "stockout": false,
+              "stockout_items": [
+                "flatbread",
+                "noodle"
+              ],
+              "tax": 1,
+              "tx": 15,
+              "wage": 30
+            }
+          ],
+          "total": {
+            "revenue": 73,
+            "restock": 21,
+            "wage": 30,
+            "tax": 2,
+            "net_profit": 20,
+            "trades": 15
+          },
+          "busy": [],
+          "reportLoaded": true,
+          "reportUnavailable": false,
+          "stockouts": 0,
+          "lowStock": 4,
+          "dismissTarget": ""
+        },
+        "ownText": "铺面客的摊子 · 摊 · 店内现金 16 文 · 库存 件数未由接口提供 · 店址 集市",
+        "restockTotal": "合计 30 文",
+        "withdrawText": "当前店现 16 文",
+        "ledgerRows": 2,
+        "ledgerEmpty": false,
+        "ledgerText": "\n              \n                \n                  世界日营收进货工资\n                  税净利笔数说明\n                \n              \n              第 1 日0001-10当日无客流第 2 日7321301+2115\n              2 日合计7321302+2015\n            ",
+        "totalText": "2 日合计7321302+2015",
+        "stockoutText": "",
+        "employees": 0,
+        "employeeText": "店里还没有雇工。",
+        "hireText": "白露生学究好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇段五斗屠户好感 6.0 · 技能 接口未提供 · 受雇 接口未提供 · 市价 30 文（可 24-45）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇柳三娘绣娘好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇卢杏花菜农好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 20 文（可 16-30）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇罗轻絮绣娘好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇孟九娘媒婆好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇沈砚舟铁匠好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 32 文（可 26-48）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇卫长庚更夫好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 16 文（可 13-24）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇邢破军捕快好感 3.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 26 文（可 21-39）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇",
+        "toast": "已辞退 段五斗，无欠薪",
+        "errors": []
+      }
     }
   },
   "results": [
+    {
+      "name": "真服务 能力探测：五个店铺经营动作均已实现",
+      "ok": true,
+      "detail": {
+        "probes": [
+          {
+            "verb": "restock",
+            "status": 409,
+            "code": "no_shop",
+            "text": "操作未完成：no_shop（详见 docs/player-api.md 错误码表）。",
+            "implemented": true
+          },
+          {
+            "verb": "set_price",
+            "status": 409,
+            "code": "no_shop",
+            "text": "操作未完成：no_shop（详见 docs/player-api.md 错误码表）。",
+            "implemented": true
+          },
+          {
+            "verb": "dismiss",
+            "status": 409,
+            "code": "no_shop",
+            "text": "操作未完成：no_shop（详见 docs/player-api.md 错误码表）。",
+            "implemented": true
+          },
+          {
+            "verb": "withdraw",
+            "status": 409,
+            "code": "no_shop",
+            "text": "操作未完成：no_shop（详见 docs/player-api.md 错误码表）。",
+            "implemented": true
+          },
+          {
+            "verb": "shop_report",
+            "status": 409,
+            "code": "no_shop",
+            "text": "操作未完成：no_shop（详见 docs/player-api.md 错误码表）。",
+            "implemented": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "真服务 押镖结算后钱包增加到可开店",
+      "ok": true,
+      "detail": {
+        "before": 159,
+        "after": 363
+      }
+    },
+    {
+      "name": "真服务 开摊成功后经营区可用（店内现金/库存可见）",
+      "ok": true,
+      "detail": "铺面客的摊子 · 摊 · 店内现金 0 文 · 库存 件数未由接口提供 · 店址 集市"
+    },
+    {
+      "name": "真服务 改价走 UI 真调用（新价与 ±% 来自服务端）",
+      "ok": true,
+      "detail": {
+        "request": {
+          "account_id": "w4shopops1106043526",
+          "verb": "set_price",
+          "args": {
+            "item": "flatbread",
+            "price": 4
+          },
+          "client_tick": 261
+        },
+        "response": {
+          "action": "set_price",
+          "client_tick": 261,
+          "client_tick_ignored": true,
+          "confirm": false,
+          "data": {
+            "active_quests": [],
+            "active_quests_detail": [],
+            "archetype": "游侠",
+            "growth": {
+              "assets": {
+                "at": 0.0,
+                "level": 1,
+                "money": 18,
+                "name": "囊中羞涩",
+                "next_at": 600.0,
+                "next_name": "小有积蓄",
+                "next_unlock": "可开摊（本钱 300 文）",
+                "progress": 0.53,
+                "value": 318.0
+              },
+              "reputation": {
+                "at": 3.0,
+                "level": 2,
+                "name": "街坊熟人",
+                "next_at": 15.0,
+                "next_name": "小有名气",
+                "next_unlock": "行会引荐：可进出门派与商会内堂",
+                "progress": 0.583,
+                "value": 10.0
+              },
+              "skill": {
+                "at": 0.0,
+                "level": 1,
+                "name": "生手",
+                "next_at": 0.42,
+                "next_name": "手熟",
+                "next_unlock": "可独立开摊（手艺够撑起门面）",
+                "progress": 0.833,
+                "skill": "镖师",
+                "skills": {
+                  "镖师": 0.35
+                },
+                "value": 0.35
+              }
+            },
+            "home": "market",
+            "id": "player:w4shopops1106043526",
+            "inventory": {},
+            "location": "market",
+            "marriage": {
+              "daily_note": "",
+              "last_daily_tick": 0,
+              "since_tick": 0,
+              "spouse_id": "",
+              "spouse_name": "",
+              "status": "single"
+            },
+            "max_stamina": 100.0,
+            "name": "铺面客",
+            "nearby": [
+              {
+                "id": "duan_wudou",
+                "name": "段五斗",
+                "presence": "online",
+                "role": "屠户"
+              },
+              {
+                "id": "jin_mancang",
+                "name": "金满仓",
+                "presence": "online",
+                "role": "掌柜"
+              },
+              {
+                "id": "liu_sanniang",
+                "name": "柳三娘",
+                "presence": "online",
+                "role": "绣娘"
+              },
+              {
+                "id": "lu_xinghua",
+                "name": "卢杏花",
+                "presence": "online",
+                "role": "菜农"
+              },
+              {
+                "id": "luo_qingxu",
+                "name": "罗轻絮",
+                "presence": "online",
+                "role": "绣娘"
+              },
+              {
+                "id": "meng_jiuniang",
+                "name": "孟九娘",
+                "presence": "online",
+                "role": "媒婆"
+              },
+              {
+                "id": "player:u_demo",
+                "name": "陈捕快",
+                "presence": "offline",
+                "role": "visitor"
+              },
+              {
+                "id": "shen_yanzhou",
+                "name": "沈砚舟",
+                "presence": "online",
+                "role": "铁匠"
+              },
+              {
+                "id": "wei_changgeng",
+                "name": "卫长庚",
+                "presence": "online",
+                "role": "更夫"
+              },
+              {
+                "id": "xing_pojun",
+                "name": "邢破军",
+                "presence": "online",
+                "role": "捕快"
+              }
+            ],
+            "ok": true,
+            "online": true,
+            "presence": "online",
+            "relations": [],
+            "role": "镖师",
+            "sect": {
+              "in_sect": false,
+              "sect": null
+            },
+            "skills": {
+              "镖师": 0.35
+            },
+            "stamina": 85.0,
+            "tick": 267,
+            "today": {
+              "business": [],
+              "location": "market",
+              "location_name": "集市",
+              "next_action": "先接委托：【中】铁匠铺拉风箱",
+              "npcs": [
+                {
+                  "hint": "可打听委托",
+                  "id": "duan_wudou",
+                  "name": "段五斗",
+                  "role": "屠户"
+                },
+                {
+                  "hint": "可打听委托",
+                  "id": "jin_mancang",
+                  "name": "金满仓",
+                  "role": "掌柜"
+                },
+                {
+                  "hint": "可打听委托",
+                  "id": "liu_sanniang",
+                  "name": "柳三娘",
+                  "role": "绣娘"
+                }
+              ],
+              "quests": [
+                {
+                  "giver_name": "沈砚舟",
+                  "id": "quest:daily_smithy_bellows:144",
+                  "name": "【中】铁匠铺拉风箱",
+                  "reward_money": 15
+                },
+                {
+                  "giver_name": "金满仓",
+                  "id": "quest:errand_market_ledger:0",
+                  "name": "捎账本到客栈",
+                  "reward_money": 10
+                },
+                {
+                  "giver_name": "柳三娘",
+                  "id": "quest:errand_silk_sample:144",
+                  "name": "送一匹绸样",
+                  "reward_money": 8
+                }
+              ],
+              "skills": [
+                {
+                  "current": 0.35,
+                  "hours_to_next": 28,
+                  "next_at": 0.42,
+                  "next_level": 2,
+                  "skill": "镖师"
+                }
+              ],
+              "tick": 273
+            },
+            "wallet": 18
+          },
+          "details": {},
+          "event_seq": 653,
+          "intent_id": "i:a4348c40a1dd00ca9fadc61c13fa7cbdd0a620b660d4cfa6cb85e60c39fbacb7",
+          "next_tick": 273,
+          "ok": true,
+          "player": "player:w4shopops1106043526",
+          "profile_version": 1,
+          "reason_text": "",
+          "reject_reason": "",
+          "status": "executed",
+          "tick": 267,
+          "verb": "set_price"
+        }
+      }
+    },
+    {
+      "name": "真服务 雇人走 UI 真调用（雇到人并出现在员工名单）",
+      "ok": true,
+      "detail": {
+        "hired": {
+          "npc": "duan_wudou",
+          "name": "段五斗屠户",
+          "position": "屠户",
+          "action": {
+            "request": {
+              "account_id": "w4shopops1106043526",
+              "verb": "recruit",
+              "args": {
+                "target": "duan_wudou",
+                "position": "屠户",
+                "wage": 30
+              },
+              "client_tick": 297
+            },
+            "status": 200,
+            "response": {
+              "action": "recruit",
+              "client_tick": 297,
+              "client_tick_ignored": true,
+              "confirm": false,
+              "data": {
+                "active_quests": [],
+                "active_quests_detail": [],
+                "archetype": "游侠",
+                "growth": {
+                  "assets": {
+                    "at": 0.0,
+                    "level": 1,
+                    "money": 18,
+                    "name": "囊中羞涩",
+                    "next_at": 600.0,
+                    "next_name": "小有积蓄",
+                    "next_unlock": "可开摊（本钱 300 文）",
+                    "progress": 0.53,
+                    "value": 318.0
+                  },
+                  "reputation": {
+                    "at": 3.0,
+                    "level": 2,
+                    "name": "街坊熟人",
+                    "next_at": 15.0,
+                    "next_name": "小有名气",
+                    "next_unlock": "行会引荐：可进出门派与商会内堂",
+                    "progress": 0.833,
+                    "value": 13.0
+                  },
+                  "skill": {
+                    "at": 0.0,
+                    "level": 1,
+                    "name": "生手",
+                    "next_at": 0.42,
+                    "next_name": "手熟",
+                    "next_unlock": "可独立开摊（手艺够撑起门面）",
+                    "progress": 0.833,
+                    "skill": "镖师",
+                    "skills": {
+                      "镖师": 0.35
+                    },
+                    "value": 0.35
+                  }
+                },
+                "home": "market",
+                "id": "player:w4shopops1106043526",
+                "inventory": {},
+                "location": "market",
+                "marriage": {
+                  "daily_note": "",
+                  "last_daily_tick": 0,
+                  "since_tick": 0,
+                  "spouse_id": "",
+                  "spouse_name": "",
+                  "status": "single"
+                },
+                "max_stamina": 100.0,
+                "name": "铺面客",
+                "nearby": [
+                  {
+                    "id": "duan_wudou",
+                    "name": "段五斗",
+                    "presence": "online",
+                    "role": "屠户"
+                  },
+                  {
+                    "id": "jin_mancang",
+                    "name": "金满仓",
+                    "presence": "online",
+                    "role": "掌柜"
+                  },
+                  {
+                    "id": "liu_sanniang",
+                    "name": "柳三娘",
+                    "presence": "online",
+                    "role": "绣娘"
+                  },
+                  {
+                    "id": "lu_xinghua",
+                    "name": "卢杏花",
+                    "presence": "online",
+                    "role": "菜农"
+                  },
+                  {
+                    "id": "luo_qingxu",
+                    "name": "罗轻絮",
+                    "presence": "online",
+                    "role": "绣娘"
+                  },
+                  {
+                    "id": "meng_jiuniang",
+                    "name": "孟九娘",
+                    "presence": "online",
+                    "role": "媒婆"
+                  },
+                  {
+                    "id": "player:u_demo",
+                    "name": "陈捕快",
+                    "presence": "offline",
+                    "role": "visitor"
+                  },
+                  {
+                    "id": "shen_yanzhou",
+                    "name": "沈砚舟",
+                    "presence": "online",
+                    "role": "铁匠"
+                  },
+                  {
+                    "id": "wei_changgeng",
+                    "name": "卫长庚",
+                    "presence": "online",
+                    "role": "更夫"
+                  },
+                  {
+                    "id": "xing_pojun",
+                    "name": "邢破军",
+                    "presence": "online",
+                    "role": "捕快"
+                  }
+                ],
+                "ok": true,
+                "online": true,
+                "presence": "online",
+                "relations": [
+                  {
+                    "affection": 6.0,
+                    "kind": "acquaintance",
+                    "name": "段五斗",
+                    "target": "duan_wudou",
+                    "trust": 43.0
+                  }
+                ],
+                "role": "镖师",
+                "sect": {
+                  "in_sect": false,
+                  "sect": null
+                },
+                "skills": {
+                  "镖师": 0.35
+                },
+                "stamina": 100.0,
+                "tick": 297,
+                "today": {
+                  "business": [],
+                  "location": "market",
+                  "location_name": "集市",
+                  "next_action": "先接委托：【中】铁匠铺拉风箱",
+                  "npcs": [
+                    {
+                      "hint": "可打听委托",
+                      "id": "duan_wudou",
+                      "name": "段五斗",
+                      "role": "屠户"
+                    },
+                    {
+                      "hint": "可打听委托",
+                      "id": "jin_mancang",
+                      "name": "金满仓",
+                      "role": "掌柜"
+                    },
+                    {
+                      "hint": "可打听委托",
+                      "id": "liu_sanniang",
+                      "name": "柳三娘",
+                      "role": "绣娘"
+                    }
+                  ],
+                  "quests": [
+                    {
+                      "giver_name": "沈砚舟",
+                      "id": "quest:daily_smithy_bellows:144",
+                      "name": "【中】铁匠铺拉风箱",
+                      "reward_money": 15
+                    },
+                    {
+                      "giver_name": "金满仓",
+                      "id": "quest:errand_market_ledger:291",
+                      "name": "捎账本到客栈",
+                      "reward_money": 10
+                    },
+                    {
+                      "giver_name": "孟九娘",
+                      "id": "quest:errand_market_sweet:291",
+                      "name": "捎一包喜糖到书院",
+                      "reward_money": 9
+                    }
+                  ],
+                  "skills": [
+                    {
+                      "current": 0.35,
+                      "hours_to_next": 28,
+                      "next_at": 0.42,
+                      "next_level": 2,
+                      "skill": "镖师"
+                    }
+                  ],
+                  "tick": 303
+                },
+                "wallet": 18
+              },
+              "details": {},
+              "event_seq": 663,
+              "intent_id": "i:3df50c97b3237864410ecfb30bbcf0b0ed7f2021612fe17e01a4340b476f47e8",
+              "next_tick": 303,
+              "ok": true,
+              "player": "player:w4shopops1106043526",
+              "profile_version": 1,
+              "reason_text": "",
+              "reject_reason": "",
+              "status": "executed",
+              "tick": 297,
+              "verb": "recruit"
+            }
+          }
+        },
+        "base_name": "段五斗",
+        "after": {
+          "op": {
+            "reason": "",
+            "cash": 8,
+            "stock": [
+              {
+                "item": "flatbread",
+                "name": "炊饼",
+                "qty": 5,
+                "price": 3,
+                "base_price": 3,
+                "restock_price": 2,
+                "priced": true,
+                "zero_stock": false
+              },
+              {
+                "item": "noodle",
+                "name": "阳春面",
+                "qty": 3,
+                "price": 5,
+                "base_price": 5,
+                "restock_price": 3,
+                "priced": true,
+                "zero_stock": false
+              },
+              {
+                "item": "rice",
+                "name": "糙米（一斗）",
+                "qty": 3,
+                "price": 13,
+                "base_price": 13,
+                "restock_price": 8,
+                "priced": true,
+                "zero_stock": false
+              }
+            ],
+            "employees": 1,
+            "days": [],
+            "total": {
+              "revenue": 0,
+              "restock": 0,
+              "wage": 0,
+              "tax": 0,
+              "net_profit": 0,
+              "trades": 0
+            },
+            "busy": [],
+            "reportLoaded": true,
+            "reportUnavailable": false,
+            "stockouts": 0,
+            "lowStock": 0,
+            "dismissTarget": ""
+          },
+          "ownText": "铺面客的摊子 · 摊 · 店内现金 8 文 · 库存 件数未由接口提供 · 店址 集市",
+          "restockTotal": "合计 13 文",
+          "withdrawText": "当前店现 8 文",
+          "ledgerRows": 0,
+          "ledgerEmpty": true,
+          "ledgerText": "\n              \n                \n                  世界日营收进货工资\n                  税净利笔数说明\n                \n              \n              \n              \n            ",
+          "totalText": "",
+          "stockoutText": "",
+          "employees": 1,
+          "employeeText": "段五斗岗位 屠户 · 日薪 30 文 · 到店辞退",
+          "hireText": "段五斗屠户好感 6.0 · 技能 接口未提供 · 受雇 接口未提供 · 市价 30 文（可 24-45）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇柳三娘绣娘好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇卢杏花菜农好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 20 文（可 16-30）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇罗轻絮绣娘好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇孟九娘媒婆好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 24 文（可 19-36）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇沈砚舟铁匠好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 32 文（可 26-48）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇卫长庚更夫好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 16 文（可 13-24）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇邢破军捕快好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 26 文（可 21-39）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇",
+          "toast": "已雇佣 段五斗 做 屠户，日薪 30 文。",
+          "errors": []
+        }
+      }
+    },
+    {
+      "name": "真服务 首日日结进入账本（世界日/营收/净利/笔数）",
+      "ok": true,
+      "detail": "\n              \n                \n                  世界日营收进货工资\n                  税净利笔数说明\n                \n              \n              第 1 日0001-10当日无客流\n              1 日合计0001-10\n            "
+    },
+    {
+      "name": "真服务 进货走 UI 真调用（total 与库存前后来自服务端）",
+      "ok": true,
+      "detail": {
+        "request": {
+          "account_id": "w4shopops1106043526",
+          "verb": "restock",
+          "args": {
+            "item": "flatbread",
+            "qty": 2
+          },
+          "client_tick": 318
+        },
+        "response": {
+          "action": "restock",
+          "client_tick": 318,
+          "client_tick_ignored": true,
+          "confirm": false,
+          "data": {
+            "active_quests": [],
+            "active_quests_detail": [],
+            "archetype": "游侠",
+            "growth": {
+              "assets": {
+                "at": 0.0,
+                "level": 1,
+                "money": 18,
+                "name": "囊中羞涩",
+                "next_at": 600.0,
+                "next_name": "小有积蓄",
+                "next_unlock": "可开摊（本钱 300 文）",
+                "progress": 0.53,
+                "value": 318.0
+              },
+              "reputation": {
+                "at": 3.0,
+                "level": 2,
+                "name": "街坊熟人",
+                "next_at": 15.0,
+                "next_name": "小有名气",
+                "next_unlock": "行会引荐：可进出门派与商会内堂",
+                "progress": 0.833,
+                "value": 13.0
+              },
+              "skill": {
+                "at": 0.0,
+                "level": 1,
+                "name": "生手",
+                "next_at": 0.42,
+                "next_name": "手熟",
+                "next_unlock": "可独立开摊（手艺够撑起门面）",
+                "progress": 0.833,
+                "skill": "镖师",
+                "skills": {
+                  "镖师": 0.35
+                },
+                "value": 0.35
+              }
+            },
+            "home": "market",
+            "id": "player:w4shopops1106043526",
+            "inventory": {},
+            "location": "market",
+            "marriage": {
+              "daily_note": "",
+              "last_daily_tick": 0,
+              "since_tick": 0,
+              "spouse_id": "",
+              "spouse_name": "",
+              "status": "single"
+            },
+            "max_stamina": 100.0,
+            "name": "铺面客",
+            "nearby": [
+              {
+                "id": "duan_wudou",
+                "name": "段五斗",
+                "presence": "online",
+                "role": "屠户"
+              },
+              {
+                "id": "liu_sanniang",
+                "name": "柳三娘",
+                "presence": "online",
+                "role": "绣娘"
+              },
+              {
+                "id": "lu_xinghua",
+                "name": "卢杏花",
+                "presence": "online",
+                "role": "菜农"
+              },
+              {
+                "id": "luo_qingxu",
+                "name": "罗轻絮",
+                "presence": "online",
+                "role": "绣娘"
+              },
+              {
+                "id": "meng_jiuniang",
+                "name": "孟九娘",
+                "presence": "online",
+                "role": "媒婆"
+              },
+              {
+                "id": "player:u_demo",
+                "name": "陈捕快",
+                "presence": "offline",
+                "role": "visitor"
+              },
+              {
+                "id": "shen_yanzhou",
+                "name": "沈砚舟",
+                "presence": "online",
+                "role": "铁匠"
+              },
+              {
+                "id": "shi_gandang",
+                "name": "石敢当",
+                "presence": "online",
+                "role": "石匠"
+              },
+              {
+                "id": "wei_changgeng",
+                "name": "卫长庚",
+                "presence": "online",
+                "role": "更夫"
+              },
+              {
+                "id": "xing_pojun",
+                "name": "邢破军",
+                "presence": "online",
+                "role": "捕快"
+              }
+            ],
+            "ok": true,
+            "online": true,
+            "presence": "online",
+            "relations": [
+              {
+                "affection": 6.0,
+                "kind": "acquaintance",
+                "name": "段五斗",
+                "target": "duan_wudou",
+                "trust": 43.0
+              }
+            ],
+            "role": "镖师",
+            "sect": {
+              "in_sect": false,
+              "sect": null
+            },
+            "skills": {
+              "镖师": 0.35
+            },
+            "stamina": 100.0,
+            "tick": 319,
+            "today": {
+              "business": [],
+              "location": "market",
+              "location_name": "集市",
+              "next_action": "先接委托：铁匠铺代工",
+              "npcs": [
+                {
+                  "hint": "可打听委托",
+                  "id": "duan_wudou",
+                  "name": "段五斗",
+                  "role": "屠户"
+                },
+                {
+                  "hint": "可打听委托",
+                  "id": "liu_sanniang",
+                  "name": "柳三娘",
+                  "role": "绣娘"
+                },
+                {
+                  "hint": "可打听委托",
+                  "id": "lu_xinghua",
+                  "name": "卢杏花",
+                  "role": "菜农"
+                }
+              ],
+              "quests": [
+                {
+                  "giver_name": "石敢当",
+                  "id": "quest:commission_stonework:144",
+                  "name": "铁匠铺代工",
+                  "reward_money": 12
+                },
+                {
+                  "giver_name": "沈砚舟",
+                  "id": "quest:daily_smithy_bellows:144",
+                  "name": "【中】铁匠铺拉风箱",
+                  "reward_money": 15
+                },
+                {
+                  "giver_name": "柳三娘",
+                  "id": "quest:errand_silk_sample:144",
+                  "name": "送一匹绸样",
+                  "reward_money": 8
+                }
+              ],
+              "skills": [
+                {
+                  "current": 0.35,
+                  "hours_to_next": 28,
+                  "next_at": 0.42,
+                  "next_level": 2,
+                  "skill": "镖师"
+                }
+              ],
+              "tick": 325
+            },
+            "wallet": 18
+          },
+          "details": {},
+          "event_seq": 997,
+          "intent_id": "i:be6ccc119ac4a8988a5692a87846f6461c0882f0802faf0a3689700f0df0fe29",
+          "next_tick": 325,
+          "ok": true,
+          "player": "player:w4shopops1106043526",
+          "profile_version": 1,
+          "reason_text": "",
+          "reject_reason": "",
+          "status": "executed",
+          "tick": 319,
+          "verb": "restock"
+        },
+        "before": 0,
+        "after": 2,
+        "qty": 2
+      }
+    },
+    {
+      "name": "真服务 提现走 UI 真调用（店现前后来自服务端）",
+      "ok": true,
+      "detail": {
+        "request": {
+          "account_id": "w4shopops1106043526",
+          "verb": "withdraw",
+          "args": {
+            "qty": 10
+          },
+          "client_tick": 325
+        },
+        "response": {
+          "action": "withdraw",
+          "client_tick": 325,
+          "client_tick_ignored": true,
+          "confirm": false,
+          "data": {
+            "active_quests": [],
+            "active_quests_detail": [],
+            "archetype": "游侠",
+            "growth": {
+              "assets": {
+                "at": 0.0,
+                "level": 1,
+                "money": 28,
+                "name": "囊中羞涩",
+                "next_at": 600.0,
+                "next_name": "小有积蓄",
+                "next_unlock": "可开摊（本钱 300 文）",
+                "progress": 0.547,
+                "value": 328.0
+              },
+              "reputation": {
+                "at": 3.0,
+                "level": 2,
+                "name": "街坊熟人",
+                "next_at": 15.0,
+                "next_name": "小有名气",
+                "next_unlock": "行会引荐：可进出门派与商会内堂",
+                "progress": 0.833,
+                "value": 13.0
+              },
+              "skill": {
+                "at": 0.0,
+                "level": 1,
+                "name": "生手",
+                "next_at": 0.42,
+                "next_name": "手熟",
+                "next_unlock": "可独立开摊（手艺够撑起门面）",
+                "progress": 0.833,
+                "skill": "镖师",
+                "skills": {
+                  "镖师": 0.35
+                },
+                "value": 0.35
+              }
+            },
+            "home": "market",
+            "id": "player:w4shopops1106043526",
+            "inventory": {},
+            "location": "market",
+            "marriage": {
+              "daily_note": "",
+              "last_daily_tick": 0,
+              "since_tick": 0,
+              "spouse_id": "",
+              "spouse_name": "",
+              "status": "single"
+            },
+            "max_stamina": 100.0,
+            "name": "铺面客",
+            "nearby": [
+              {
+                "id": "duan_wudou",
+                "name": "段五斗",
+                "presence": "online",
+                "role": "屠户"
+              },
+              {
+                "id": "liu_sanniang",
+                "name": "柳三娘",
+                "presence": "online",
+                "role": "绣娘"
+              },
+              {
+                "id": "lu_xinghua",
+                "name": "卢杏花",
+                "presence": "online",
+                "role": "菜农"
+              },
+              {
+                "id": "luo_qingxu",
+                "name": "罗轻絮",
+                "presence": "online",
+                "role": "绣娘"
+              },
+              {
+                "id": "meng_jiuniang",
+                "name": "孟九娘",
+                "presence": "online",
+                "role": "媒婆"
+              },
+              {
+                "id": "player:u_demo",
+                "name": "陈捕快",
+                "presence": "offline",
+                "role": "visitor"
+              },
+              {
+                "id": "shen_yanzhou",
+                "name": "沈砚舟",
+                "presence": "online",
+                "role": "铁匠"
+              },
+              {
+                "id": "shi_gandang",
+                "name": "石敢当",
+                "presence": "online",
+                "role": "石匠"
+              },
+              {
+                "id": "wei_changgeng",
+                "name": "卫长庚",
+                "presence": "online",
+                "role": "更夫"
+              },
+              {
+                "id": "xing_pojun",
+                "name": "邢破军",
+                "presence": "online",
+                "role": "捕快"
+              }
+            ],
+            "ok": true,
+            "online": true,
+            "presence": "online",
+            "relations": [
+              {
+                "affection": 6.0,
+                "kind": "acquaintance",
+                "name": "段五斗",
+                "target": "duan_wudou",
+                "trust": 43.0
+              }
+            ],
+            "role": "镖师",
+            "sect": {
+              "in_sect": false,
+              "sect": null
+            },
+            "skills": {
+              "镖师": 0.35
+            },
+            "stamina": 100.0,
+            "tick": 325,
+            "today": {
+              "business": [],
+              "location": "market",
+              "location_name": "集市",
+              "next_action": "先接委托：铁匠铺代工",
+              "npcs": [
+                {
+                  "hint": "可打听委托",
+                  "id": "duan_wudou",
+                  "name": "段五斗",
+                  "role": "屠户"
+                },
+                {
+                  "hint": "可打听委托",
+                  "id": "liu_sanniang",
+                  "name": "柳三娘",
+                  "role": "绣娘"
+                },
+                {
+                  "hint": "可打听委托",
+                  "id": "lu_xinghua",
+                  "name": "卢杏花",
+                  "role": "菜农"
+                }
+              ],
+              "quests": [
+                {
+                  "giver_name": "石敢当",
+                  "id": "quest:commission_stonework:144",
+                  "name": "铁匠铺代工",
+                  "reward_money": 12
+                },
+                {
+                  "giver_name": "沈砚舟",
+                  "id": "quest:daily_smithy_bellows:144",
+                  "name": "【中】铁匠铺拉风箱",
+                  "reward_money": 15
+                },
+                {
+                  "giver_name": "柳三娘",
+                  "id": "quest:errand_silk_sample:144",
+                  "name": "送一匹绸样",
+                  "reward_money": 8
+                }
+              ],
+              "skills": [
+                {
+                  "current": 0.35,
+                  "hours_to_next": 28,
+                  "next_at": 0.42,
+                  "next_level": 2,
+                  "skill": "镖师"
+                }
+              ],
+              "tick": 331
+            },
+            "wallet": 28
+          },
+          "details": {},
+          "event_seq": 999,
+          "intent_id": "i:25d63dfefbf3f8e234f091113e1e1d2d4944786eb8b917549ba57dc5c6123805",
+          "next_tick": 331,
+          "ok": true,
+          "player": "player:w4shopops1106043526",
+          "profile_version": 1,
+          "reason_text": "",
+          "reject_reason": "",
+          "status": "executed",
+          "tick": 325,
+          "verb": "withdraw"
+        }
+      }
+    },
+    {
+      "name": "真服务 提现后世界日再次日结，账本追加一行",
+      "ok": true,
+      "detail": {
+        "first_days": 1,
+        "rows": 2,
+        "text": "\n              \n                \n                  世界日营收进货工资\n                  税净利笔数说明\n                \n              \n              第 1 日0001-10当日无客流第 2 日7321301+2115\n              2 日合计7321302+2015\n            "
+      }
+    },
+    {
+      "name": "真服务 辞退走 UI 真调用（欠薪仍计且从名单移除）",
+      "ok": true,
+      "detail": {
+        "request": {
+          "account_id": "w4shopops1106043526",
+          "verb": "dismiss",
+          "args": {
+            "target": "duan_wudou"
+          },
+          "client_tick": 453
+        },
+        "response": {
+          "action": "dismiss",
+          "client_tick": 453,
+          "client_tick_ignored": true,
+          "confirm": false,
+          "data": {
+            "active_quests": [],
+            "active_quests_detail": [],
+            "archetype": "游侠",
+            "growth": {
+              "assets": {
+                "at": 0.0,
+                "level": 1,
+                "money": 28,
+                "name": "囊中羞涩",
+                "next_at": 600.0,
+                "next_name": "小有积蓄",
+                "next_unlock": "可开摊（本钱 300 文）",
+                "progress": 0.547,
+                "value": 328.0
+              },
+              "reputation": {
+                "at": 15.0,
+                "level": 3,
+                "name": "小有名气",
+                "next_at": 40.0,
+                "next_name": "一方人物",
+                "next_unlock": "门派客卿：可收徒、可代掌门派事务",
+                "progress": 0.04,
+                "value": 16.0
+              },
+              "skill": {
+                "at": 0.0,
+                "level": 1,
+                "name": "生手",
+                "next_at": 0.42,
+                "next_name": "手熟",
+                "next_unlock": "可独立开摊（手艺够撑起门面）",
+                "progress": 0.833,
+                "skill": "镖师",
+                "skills": {
+                  "镖师": 0.35
+                },
+                "value": 0.35
+              }
+            },
+            "home": "market",
+            "id": "player:w4shopops1106043526",
+            "inventory": {
+              "flatbread": 1
+            },
+            "location": "market",
+            "marriage": {
+              "daily_note": "",
+              "last_daily_tick": 0,
+              "since_tick": 0,
+              "spouse_id": "",
+              "spouse_name": "",
+              "status": "single"
+            },
+            "max_stamina": 100.0,
+            "name": "铺面客",
+            "nearby": [
+              {
+                "id": "bai_lusheng",
+                "name": "白露生",
+                "presence": "online",
+                "role": "学究"
+              },
+              {
+                "id": "duan_wudou",
+                "name": "段五斗",
+                "presence": "online",
+                "role": "屠户"
+              },
+              {
+                "id": "liu_sanniang",
+                "name": "柳三娘",
+                "presence": "online",
+                "role": "绣娘"
+              },
+              {
+                "id": "lu_xinghua",
+                "name": "卢杏花",
+                "presence": "online",
+                "role": "菜农"
+              },
+              {
+                "id": "luo_qingxu",
+                "name": "罗轻絮",
+                "presence": "online",
+                "role": "绣娘"
+              },
+              {
+                "id": "meng_jiuniang",
+                "name": "孟九娘",
+                "presence": "online",
+                "role": "媒婆"
+              },
+              {
+                "id": "player:u_demo",
+                "name": "陈捕快",
+                "presence": "offline",
+                "role": "visitor"
+              },
+              {
+                "id": "shen_yanzhou",
+                "name": "沈砚舟",
+                "presence": "online",
+                "role": "铁匠"
+              },
+              {
+                "id": "wei_changgeng",
+                "name": "卫长庚",
+                "presence": "online",
+                "role": "更夫"
+              },
+              {
+                "id": "xing_pojun",
+                "name": "邢破军",
+                "presence": "online",
+                "role": "捕快"
+              }
+            ],
+            "ok": true,
+            "online": true,
+            "presence": "online",
+            "relations": [
+              {
+                "affection": 6.0,
+                "kind": "acquaintance",
+                "name": "段五斗",
+                "target": "duan_wudou",
+                "trust": 43.0
+              },
+              {
+                "affection": 3.0,
+                "kind": "friend",
+                "name": "邢破军",
+                "target": "xing_pojun",
+                "trust": 40.0
+              },
+              {
+                "affection": 3.0,
+                "kind": "friend",
+                "name": "邢破军",
+                "target": "xing_pojun",
+                "trust": 40.0
+              }
+            ],
+            "role": "镖师",
+            "sect": {
+              "in_sect": false,
+              "sect": null
+            },
+            "skills": {
+              "镖师": 0.35
+            },
+            "stamina": 100.0,
+            "tick": 453,
+            "today": {
+              "business": [],
+              "location": "market",
+              "location_name": "集市",
+              "next_action": "先接委托：捎一包喜糖到书院",
+              "npcs": [
+                {
+                  "hint": "可打听委托",
+                  "id": "bai_lusheng",
+                  "name": "白露生",
+                  "role": "学究"
+                },
+                {
+                  "hint": "可打听委托",
+                  "id": "duan_wudou",
+                  "name": "段五斗",
+                  "role": "屠户"
+                },
+                {
+                  "hint": "可打听委托",
+                  "id": "liu_sanniang",
+                  "name": "柳三娘",
+                  "role": "绣娘"
+                }
+              ],
+              "quests": [
+                {
+                  "giver_name": "孟九娘",
+                  "id": "quest:errand_market_sweet:434",
+                  "name": "捎一包喜糖到书院",
+                  "reward_money": 9
+                },
+                {
+                  "giver_name": "柳三娘",
+                  "id": "quest:errand_silk_sample:434",
+                  "name": "送一匹绸样",
+                  "reward_money": 8
+                },
+                {
+                  "giver_name": "柳三娘",
+                  "id": "quest:tutorial_silk_sample:434",
+                  "name": "【引导2/4】把绣样送到药铺苏掌柜手上",
+                  "reward_money": 12
+                }
+              ],
+              "skills": [
+                {
+                  "current": 0.35,
+                  "hours_to_next": 28,
+                  "next_at": 0.42,
+                  "next_level": 2,
+                  "skill": "镖师"
+                }
+              ],
+              "tick": 459
+            },
+            "wallet": 28
+          },
+          "details": {},
+          "event_seq": 1572,
+          "intent_id": "i:610a37472aeafd8a4a754f1062e8315adfd7e2f45533f804c07c40bb7aa68d11",
+          "next_tick": 459,
+          "ok": true,
+          "player": "player:w4shopops1106043526",
+          "profile_version": 1,
+          "reason_text": "",
+          "reject_reason": "",
+          "status": "executed",
+          "tick": 453,
+          "verb": "dismiss"
+        }
+      }
+    },
     {
       "name": "真服务 原因码全部中文（无原始 code）",
       "ok": true,
@@ -156,7 +4659,7 @@
         "overflow": 0,
         "scrollWidth": 375,
         "innerWidth": 375,
-        "ledgerScrollable": false,
+        "ledgerScrollable": true,
         "small": []
       }
     }
