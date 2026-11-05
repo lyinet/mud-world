@@ -13,9 +13,10 @@ on:
 permissions:
   contents: read
 
+# 并发组按 commit 隔离：master 上多任务并行 push 时，较早的 run 不被取消，
+# 每个 commit 都能留下完整的门禁结果（满足“任何一次 push 都自动验证”）。
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ github.sha }}
 
 env:
   PYTHONPATH: src

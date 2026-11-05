@@ -111,6 +111,18 @@
 
 ---
 
+## [CI] 2026-11-06 — 并发组按 SHA 隔离，避免并行任务互相取消
+
+- **改了什么**：`.github/workflows/ci.yml` 的 `concurrency.group` 加入 `${{ github.sha }}`，
+  并去掉 `cancel-in-progress: true`。
+- **为什么改**：本仓库有多个并行任务连续 push master，原先按 `ref` 分组会把前一次 run
+  直接取消；实测 `3423aa6`、`d398bf3` 的 run 均被后一次 push 取消，门禁结果不完整。
+- **验证方式**：本次 push 的 run 不再被后续 push 取消，两个 job 完整跑完；
+  run URL / 耗时 / passed-skipped-failed 见回报。
+- **commit**：`（见本提交）`
+
+---
+
 ## [文档] 2026-11-06 — 发布/回滚手册与提交规范
 
 - **改了什么**：
