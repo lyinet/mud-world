@@ -20,8 +20,10 @@
 | RTO（容器 400KB 备份，停服→服务可用） | **3.174s** | 停服 1.135s + restore/verify/apply 0.605s + 启动到可用 1.435s，见 §7-E |
 | 演练 A/B/C/D | 全部通过 | 原始输出见 §7 |
 | 演练 E（容器） | 通过 | 真实容器内备份/损坏/恢复，原始输出见 §7-E |
+| 异地副本（offsite） | 已实现并实测 | `tools/backup_offsite.sh`，远端取 sha256 逐项比对；见 §5.3 |
 
-一句话：**备份可在线执行、不阻塞写路径；恢复必须停服、先校验装回再起服。**
+一句话：**备份默认执行、失败即非零退出且 `unhealthy`；异地副本在远端取 sha256 校验；
+恢复必须停服、先校验装回再起服。**
 
 ---
 
@@ -186,58 +188,171 @@ BK_INTERVAL=10 BK_RUN=service scripts/backup_loop.sh
 | `BK_RUN` | `service` | `runs/<RUN_ID>` |
 | `BK_DIR` | `$BK_ROOT/backups` | 备份根目录 |
 | `BK_INTERVAL` | `21600` | 间隔秒数（6 小时） |
+| `BK_RETRIES` | `2` | 单轮失败重试次数（总尝试 = RETRIES+1） |
+| `BK_RETRY_DELAY` | `30` | 重试间隔秒 |
+| `BK_STARTUP_WAIT` | `300` | 首轮等源库出现的窗口（world 建库竞态） |
 | `BK_PYTHON` | `.venv/bin/python` 或 `python3` | 解释器 |
 
-收到 `TERM/INT` 时打印 `收到停止信号，退出` 并退出；单轮失败只记日志，下一轮继续。
+**失败语义（不再静默）**：单轮按 `BK_RETRIES` 重试；仍失败 → 写
+`last_backup_status.json`（`ok=false` + `stage` + `exit_code` + `error`）→ 打印原因 →
+`exit 1`。收到 `TERM/INT` 时打印 `收到停止信号，退出` 并退出 0（人工停服不算失败）。
 
 **实测循环漂移**（`BK_INTERVAL=10s`，小 run，SQLite copy 耗时 4–12ms）：
 备份目录时间戳 `17:36:18Z / 17:36:29Z / 17:36:40Z / 17:36:50Z / 17:37:00Z`，
 相邻间隔 `11s / 11s / 10s / 10s`，**漂移 ≤1s，不累积**。
 
-### 5.2 容器：compose `backup` profile（已选方案）
+### 5.2 容器：默认即备份（`docker compose up` 不带 profile）
 
 ```bash
 cd deploy
-docker compose --profile backup up -d        # Compose v2
-# 本机 legacy CLI 同样可用：
-docker-compose -f docker-compose.yml --profile backup up -d
+docker compose up -d --build        # 备份容器随主服务一起起来，不需要 --profile
 ```
 
-备份服务 `backup` 用同一镜像，`profiles: ["backup"]`，只挂
-`xkx-data:/app/runs` 与 `xkx-backups:/app/backups`，循环执行
-`tools/backup_snapshot.py`。主服务 `world` 不受影响。
+`backup` 服务是 **compose 默认服务**（`profiles` 已移除），只挂
+`xkx-w5-data:/app/runs` 与 `xkx-w5-backups:/app/backups`，运行
+`scripts/backup_loop.sh`。`restart: "no"`：失败后保持 `Exited(非零)` 等人工介入，
+不在坏盘上无限重启。
 
-**为什么选 profile 而不是 entrypoint 侧开关：**
+- **健康检查**：`deploy/backup_healthcheck.py` 读 `last_backup_status.json`，以下任一
+  判 `unhealthy`：文件缺失（一轮都没跑成）/ `ok=false` / 距今超过
+  `BK_INTERVAL × 2 + 600s`（进程卡死或未调度）。
+- **为什么保留独立容器而不是塞进 entrypoint**：世界重启不打断备份节奏；备份失败不会
+  混进世界容器的退出码/健康检查；职责单一，无需在 trap/wait 里管理子进程。
+- **启动顺序**：首次 `up` 时 `backup` 可能先于 `world` 建库，`BK_STARTUP_WAIT`
+  （默认 300s）会等 `events.sqlite` 出现；等不到仍 `exit 1`，不是吞错。
 
-- entrypoint 开关把备份塞进世界容器：世界重启会打断备份节奏；备份失败会混进
-  世界容器的退出码/健康检查；还要在 trap/wait 里额外管理一个子进程，踩坑面更大。
-- profile 是独立容器：备份崩了不影响世界，世界重启也不影响备份窗口；职责单一。
-- 宿主零依赖：不需要 cron/systemd，一条命令即可。
-- 代价：镜像必须重建（`deploy/Dockerfile` 已加 `COPY tools /app/tools`）；
-  `docker compose up` 不带 `--profile backup` 时不会启动备份容器（这是基于 profile 的预期行为）。
+**实测（2026-11-06，colima 29.5.2 / aarch64）**
 
-已做静态校验：`docker-compose -f deploy/docker-compose.yml --profile backup config`
-渲染出 `world` + `backup` 两个服务，卷映射与命令正确。
+```text
+$ docker-compose up -d          # 不带 --profile
+Creating xkx-world ... done
+Creating xkx-backup ... done
+$ docker ps --format '{{.Names}}\t{{.Status}}'
+xkx-world    Up 40 seconds (healthy)
+xkx-backup   Up 40 seconds (healthy)
+$ docker exec xkx-backup ls -la /app/backups
+drwx------ 2 app app 4096 … 20261105T181308Z
+-rw-r--r-- 1 app app 1560 … last_backup_status.json
+```
 
-**容器运行时演练已通过**（2026-11-06，colima 29.5.2 / aarch64，见 §7-E）：
-`world` 与 `backup` 同时在线，备份产物落在 `xkx-w5-backups` 卷上；容器内截断
-`events.sqlite` 后容器 `Exited (1)`，用备份恢复后 `healthy` + `/api/state` 200 + seq 连续。
-
-演练中发现并修复了 compose 配置的两个真实缺陷（都只影响 `backup` 服务）：
-
-1. **`command` 不会覆盖镜像 ENTRYPOINT**：镜像 ENTRYPOINT 是 `deploy/entrypoint.sh`，
-   compose 的 `command` 只替换 CMD。第一次运行时备份容器实际又拉起了一套 API+UI，
-   与 `world` 同时写同一个 `events.sqlite`，日志出现
-   `AMBIENT_ERROR ... UNIQUE constraint failed: events.seq`。
-   修复：`entrypoint: ["/bin/sh", "-c"]`，让 command 的循环成为容器内唯一进程。
-   **这也是「备份与主服务能否同时起」的答案**：修复后可以同时起（两者只在备份瞬间
-   共享一个读快照）；修复前不能，因为会双写。
-2. **继承的 HEALTHCHECK 恒为 unhealthy**：镜像的 HEALTHCHECK 检查 8020/8030，
-   备份容器没有 API/UI，必然失败。修复：`healthcheck: {disable: true}`。
+失败可见（只读备份卷 / 源库截断）的原始输出见 §7-F。
 
 若改用宿主机 cron/systemd 而不跑 backup 容器，等价方案是：
 `*/6 * * * * cd /path/world-sim && BK_RUN=service scripts/backup_loop.sh`，
-备份目录用宿主机卷或直接写到另一块盘（见 §9.1 的异地要求）。
+备份目录用宿主机卷或直接写到另一块盘（见 §5.3 异地要求）。
+
+### 5.3 异地副本：`tools/backup_offsite.sh`
+
+把**最新一份**备份推送到异机/异地，并在**远端**重新取 sha256 与 size，与本地
+`manifest.json` 的 `databases.<name>.sha256/size_bytes` 逐项比对。任一文件缺失、
+读取失败、sha256 或 size 不一致 → 非零退出。**不存在"只比对本地文件"的路径。**
+
+| 环境变量 | 默认 | 含义 |
+|---|---|---|
+| `XKX_OFFSITE_MODE` | `disabled` | `disabled` / `local` / `rsync` / `rclone` |
+| `XKX_OFFSITE_TARGET` | 空 | 目录（`local`，可写 `file://` 前缀）/ `user@host:/path`（`rsync`）/ remote 路径（`rclone`） |
+| `XKX_OFFSITE_REQUIRED` | `0` | `1` = 生产语义：未配置目标即失败（退出码 3） |
+| `XKX_OFFSITE_SSH_HOST` | 空 | `rsync` 模式远端主机（`TARGET` 只给路径时使用） |
+| `XKX_OFFSITE_SSH_OPTS` | `-o BatchMode=yes -o ConnectTimeout=10` | 额外 ssh 参数 |
+
+三种模式：
+
+```bash
+# a) 本机另一块盘 / NAS 挂载点（也可用它做演练）
+XKX_OFFSITE_MODE=local XKX_OFFSITE_TARGET=/mnt/offsite sh tools/backup_offsite.sh --backup-dir backups
+
+# b) rsync over ssh（镜像已自带 rsync + openssh-client）
+XKX_OFFSITE_MODE=rsync XKX_OFFSITE_SSH_HOST=backup-host \
+  XKX_OFFSITE_TARGET=/srv/xkx-backups sh tools/backup_offsite.sh --backup-dir backups
+
+# c) 对象存储（需 image/主机里有 rclone，并已 rclone config 配置 remote）
+XKX_OFFSITE_MODE=rclone XKX_OFFSITE_TARGET=s3:xkx-backups sh tools/backup_offsite.sh --backup-dir backups
+```
+
+**失败语义**：
+
+| 场景 | 退出码 | 输出 / 状态 |
+|---|---|---|
+| 未配置（`disabled`）| `0` | `{"ok": true, "offsite": "disabled", ...}`，状态文件里显式 `offsite=disabled` |
+| 未配置且 `XKX_OFFSITE_REQUIRED=1` | `3` | `{"ok": false, "error": "offsite_required_but_disabled"}` |
+| 推送失败（mkdir/cp/rsync/rclone） | `1` | `stage=push` + `error=*_failed` |
+| 远端校验失败（sha256/size 不一致、远端文件缺失） | `1` | `stage=verify`，逐文件列出 `sha256` / `remote_sha256` / 大小 |
+| 用法/配置错误（缺 `--backup-dir`、非法 mode） | `2` | `stage=config` |
+
+`scripts/backup_loop.sh` 每轮备份成功后都会调用本工具；**offsite 失败会让整个
+backup 容器 `exit 1`**，状态文件 `stage="offsite"`，容器转 `Exited(非零)`。
+
+运维复核（不推送，只核对远端已有副本）：`--verify-only`。
+
+```bash
+XKX_OFFSITE_MODE=local XKX_OFFSITE_TARGET=/mnt/offsite \
+  sh tools/backup_offsite.sh --backup-dir backups --verify-only
+```
+
+**实测（本地目录模拟异地，2026-11-06）**
+
+推送 → 远端校验通过：
+
+```text
+$ XKX_OFFSITE_MODE=local XKX_OFFSITE_TARGET=/tmp/xkx-offsite \
+    sh tools/backup_offsite.sh --backup-dir backups
+[offsite] 最新备份: 20261105T181943Z
+{"ok": true, "mode": "local", "target": "/tmp/xkx-offsite/20261105T181943Z", "offsite": "enabled",
+ "files": [{"name": "events.sqlite", "sha256": "d65cf12d…cbfb4", "remote_sha256": "d65cf12d…cbfb4",
+            "size_bytes": 32788480, "remote_size_bytes": 32788480, "verified": true},
+           {"name": "service.sqlite", "sha256": "910dcf93…93ad", "remote_sha256": "910dcf93…93ad",
+            "size_bytes": 45056, "remote_size_bytes": 45056, "verified": true}]}
+EXIT=0
+```
+
+远端被截断（4096 字节）→ 校验失败：
+
+```text
+$ XKX_OFFSITE_MODE=local XKX_OFFSITE_TARGET=/tmp/xkx-offsite \
+    sh tools/backup_offsite.sh --backup-dir backups --verify-only
+{"ok": false, … "stage": "verify",
+ "error": "events.sqlite: sha256 mismatch remote=310bbc65946b manifest=d65cf12da0fc",
+ "files": [{"name": "events.sqlite", "remote_sha256": "310bbc65…", "remote_size_bytes": 4096,
+            "verified": false}, …]}
+[offsite] 远端校验失败
+EXIT=1
+```
+
+远端文件缺失 → `remote_read_failed`：
+
+```text
+{"ok": false, … "stage": "verify",
+ "error": "events.sqlite: remote_read_failed (remote file missing: /tmp/xkx-offsite/20261105T181943Z/events.sqlite)"}
+EXIT=1
+```
+
+`scripts/backup_loop.sh` 接入后的两种语义：
+
+```text
+# 远端不可写（目标目录 500）
+[backup-loop] 备份成功（第 1 次，1072 字节结果）
+[backup-loop] 异地推送失败 exit=1：[offsite] mkdir: /tmp/xkx-ro/sub: Permission denied …
+[backup-loop] 异地推送失败，退出码 1，容器将进入 Exited(非零) 状态
+LOOP_EXIT=1
+状态文件: {"ok": false, "stage": "offsite", "exit_code": 1,
+           "error": "… Permission denied …", "offsite": {"ok": false, "stage": "push",
+           "error": "target_mkdir_failed"}}
+
+# 生产语义但未配置远端
+[backup-loop] 异地推送失败 exit=3：[offsite] XKX_OFFSITE_REQUIRED=1 但未配置异地目标
+LOOP_EXIT=1
+状态文件: {"ok": false, "stage": "offsite", "exit_code": 3,
+           "offsite": {"ok": false, "offsite": "disabled",
+           "error": "offsite_required_but_disabled"}}
+```
+
+**容器内的注意点**（实测）：
+
+- 镜像已装 `rsync` 与 `openssh-client`（`rclone` 未装，对象存储模式请用派生镜像或宿主执行）。
+- `local` 模式的目标若是 bind mount，宿主目录必须对容器内的 `uid 10001` 可写；
+  实测未授权时 `mkdir: Permission denied` → `stage=push` 退出 1（不会静默）。
+- `rsync` 模式需把私钥/known_hosts 以只读方式挂进容器，或使用 `ssh-agent`；
+  `BatchMode=yes` 禁止交互式口令，避免容器里挂起。
 
 ---
 
@@ -248,6 +363,7 @@ docker-compose -f docker-compose.yml --profile backup up -d
    docker compose stop world        # 或 kill API 进程
    ```
 2. **选备份**：看 `manifest.json` 的 `seq.max` / `created_at`，选故障前最近一份。
+   本地可用时优先用本地最新一份；本地丢失时才用异地副本（选哪份、怎么核对见 §9.2）。
 3. **先校验、再装回**：
    ```bash
    # 宿主机（备份在仓库根 backups/）
@@ -560,6 +676,73 @@ EXIT=2
 **结论：备份文件被截断 → 校验失败、退出码 2，且三项独立信号（sha256、size、integrity）
 同时报警，不会误装回。**
 
+### F. 备份失败不再静默（2026-11-06，colima 29.5.2 / aarch64）
+
+`F.1 默认部署真的备份`：`docker-compose up -d`（**不带任何 profile**）后，
+`xkx-world` 与 `xkx-backup` 均 `Up (healthy)`，备份卷出现新产物：
+
+```text
+$ docker ps --format '{{.Names}}\t{{.Status}}'
+xkx-backup   Up 23 seconds (healthy)
+xkx-world    Up 23 seconds (healthy)
+
+$ docker exec xkx-backup ls -la /app/backups | tail -3
+drwx------ 2 app app 4096 Nov  5 18:26 20261105T182613Z
+drwx------ 2 app app 4096 Nov  5 18:26 20261105T182656Z
+-rw-r--r-- 1 app app  957 Nov  5 18:26 last_backup_status.json
+
+$ docker logs xkx-backup | tail -3
+[backup-loop] root=/app run=service dir=/app/backups interval=21600s retries=2 python=/usr/local/bin/python3
+[backup-loop] 备份成功（第 1 次，1930 字节结果）
+[backup-loop] 本轮完成：{"backup_dir": "/app/backups/20261105T182656Z", …
+              "duration_ms": 816, "events": {"seq": {"count": 42, "contiguous": true, …}},
+              "offsite": {"ok": true, "offsite": "disabled", "mode": "disabled"}}
+```
+
+`F.2 备份目录只读 → 容器 Exited(1)`（`-v xkx-w5-backups:/app/backups:ro`）：
+
+```text
+$ docker ps -a --filter name=xkx-backup-ro --format '{{.Names}}\t{{.Status}}'
+xkx-backup-ro   Exited (1) 8 seconds ago
+$ docker inspect xkx-backup-ro --format 'status={{.State.Status}} exit_code={{.State.ExitCode}}'
+status=exited exit_code=1
+$ docker logs xkx-backup-ro | tail -4
+OSError: [Errno 30] Read-only file system: '/app/backups/status.7.tmp'
+[backup-loop] 写状态文件失败: /app/backups/last_backup_status.json
+[backup-loop] 备份连续失败 1 次，退出码 2，容器将进入 Exited(非零) 状态，等待人工介入
+```
+
+注意：目录只读时状态文件也写不进去，但**写失败本身会打日志且退出码仍非零**，
+不会出现"容器还 Up、状态文件却写成功"的假象。
+
+`F.3 源库损坏 → 重试后 Exited(1) + 状态文件 ok=false`（`events.sqlite` 截断到 4096 字节）：
+
+```text
+$ docker run … -e BK_RUN=bad -e BK_RETRIES=2 -e BK_RETRY_DELAY=2 … sh /app/scripts/backup_loop.sh
+[backup-loop] 备份失败 exit=1 第 1/2 次：[backup] events.sqlite 备份失败: DatabaseError: database disk image is malformed
+[backup-loop] 备份失败 exit=1 第 2/2 次：…
+[backup-loop] 备份失败 exit=1 第 3/2 次：…
+[backup-loop] 备份连续失败 3 次，退出码 1，容器将进入 Exited(非零) 状态，等待人工介入
+EXIT=1
+
+$ cat last_backup_status.json
+{"duration_ms": 4379, "error": "[backup] events.sqlite 备份失败: DatabaseError: database disk image is malformed",
+ "exit_code": 1, "generated_at": "2026-11-05T18:27:52Z", "host": "7b72ff1267fe",
+ "interval_seconds": 21600, "ok": false, "stage": "backup"}
+```
+
+`F.4 healthcheck 读到失败状态即判 unhealthy`：
+
+```text
+$ docker run --rm -v <失败状态目录>:/app/backups --entrypoint python xkx/world-sim:w5 /app/deploy/backup_healthcheck.py
+unhealthy: 最近一轮失败 stage=backup exit=1 error=… database disk image is malformed
+HEALTHCHECK_EXIT=1
+
+$ docker exec xkx-backup python /app/deploy/backup_healthcheck.py
+healthy: last_ok age=62s backup_dir=/app/backups/20261105T182656Z
+HEALTHCHECK_EXIT=0
+```
+
 ---
 
 ## 8. RPO / RTO（实测口径）
@@ -599,41 +782,49 @@ EXIT=2
 
 ## 9. 已知限制
 
-1. **备份与主库同盘（已接受，但带硬性补偿要求）**：容器里备份已拆到独立命名卷
+1. **备份与主库同盘（已由 offsite 副本补偿）**：容器里备份已拆到独立命名卷
    `xkx-w5-backups`（逻辑隔离，避免备份撑爆 `/app/runs`），但**两个卷仍在同一台宿主机、
-   同一块物理盘**；宿主机 `backups/` 同理。处置口径：
-   - **风险：接受**（P0 范围内的可接受风险，写进值守清单）。
-   - **补偿要求（上线前置）**：必须再加一份**异机/异地副本**，否则主机或磁盘损坏会
-     同时丢主库与备份。最小做法（任选其一，二选一即可）：
+   同一块物理盘**；宿主机 `backups/` 同理。处置：
+   - **已实现异机/异地副本**（§5.3 `tools/backup_offsite.sh`，每轮备份后自动推送，
+     远端取 sha256 逐项比对）。生产必须配置 `XKX_OFFSITE_REQUIRED=1`，缺配置即失败。
+   - **仍需人工确认的部分**：副本目标本身的可用性（NAS/远端主机/对象存储）不在本仓库
+     控制范围内；请把 offsite 目录纳入监控（磁盘水位、快照保留）。
+   - **验收**：异机副本与本地 `manifest.json` 的 `sha256` 一致（工具每次自动比对）；
+     每季度至少做一次"只从异地副本恢复"的演练。
+2. **恢复时用哪一份产物**：
+   - 首选**本地最新一份**（`backups/<name>/`，写入路径已验证）；本地不可用（主机/磁盘损坏）
+     才用异地副本。
+   - 用异地副本恢复前，**先把它拷回恢复机**，并核对 `manifest.json` 的 `sha256`：
      ```bash
-     # a) 同步到另一台机器（放到主机 A 的 crontab，每 6 小时）
-     rsync -az --delete /path/world-sim/backups/ backup-host:/srv/xkx-backups/
-
-     # b) 同步到对象存储（rclone 需先在备份机配置远端）
-     rclone sync /path/world-sim/backups/ s3:xkx-backups/
+     cp -a /mnt/offsite/<name> /tmp/restore-candidate
+     XKX_OFFSITE_MODE=local XKX_OFFSITE_TARGET=/mnt/offsite \
+       sh tools/backup_offsite.sh --backup-dir <本地备份根> --backup <name> --verify-only
+     .venv/bin/python tools/restore_verify.py --root . --backup-dir /tmp/restore-candidate
      ```
-     容器卷的做法：把 `xkx-w5-backups` 绑到宿主目录（`- /srv/xkx-backups:/app/backups`）
-     后再用上面的命令，或直接在宿主机 cron 里跑 `scripts/backup_loop.sh` 写宿主目录。
-   - **验收**：异机副本必须与本地 `manifest.json` 的 `sha256` 一致（`sha256sum` 比对）；
-     每季度至少做一次“只从异地副本恢复”的演练。
-2. **无加密**：备份包含 `service.sqlite`（密码哈希、令牌）。目录 `700`、文件 `600` 仅防同机其他用户；
-   拷离机器前应加密（如 `age`/`gpg`）。
-3. **state_hash 重放成本**：备份时会完整重放事件日志算 hash，耗时随事件数线性增长；
+   - 异地副本通常**没有更新的那份**（推送发生在备份成功之后），RPO 以本地为准；
+     若本地与异地命名不同，按 `manifest.created_at` 选最接近故障点且校验通过的一份。
+3. **无加密**：备份包含 `service.sqlite`（密码哈希、令牌）。目录 `700`、文件 `600` 仅防同机其他用户；
+   拷离机器前应加密（如 `age`/`gpg`）；异地目标的访问控制由存储侧负责。
+4. **state_hash 重放成本**：备份时会完整重放事件日志算 hash，耗时随事件数线性增长；
    当前 29.4k 事件占 2.5–6.3s 总耗时（SQLite copy 仅约 0.1–0.3s）。
-4. **内容包升级后的旧备份**：`content_hash` 不匹配时服务会拒绝启动（退出码 3）。
+5. **内容包升级后的旧备份**：`content_hash` 不匹配时服务会拒绝启动（退出码 3）。
    恢复旧备份必须同时恢复对应的 `content/`，或用新内容开新 run；工具会以退出码 2 拒绝装回。
-5. **service.sqlite 时点回滚**：恢复后备份之后注册的账号、签发的令牌失效，玩家需重新登录。
-6. **恢复必须停服**：工具只做文件装回，不检测端口占用；并发写会造成新旧库混写。
-7. **定时任务不做自动恢复演练**：轮转只保证备份存在；建议每周对最新一份跑一次
+6. **service.sqlite 时点回滚**：恢复后备份之后注册的账号、签发的令牌失效，玩家需重新登录。
+7. **恢复必须停服**：工具只做文件装回，不检测端口占用；并发写会造成新旧库混写。
+8. **定时任务不做自动恢复演练**：轮转只保证备份存在；建议每周对最新一份跑一次
    `restore_verify.py`（不带 `--apply-dir`），失败告警。
-8. **容器演练的边界**：容器演练里 `events.sqlite` 只有 445 条事件（400KB），所有容器内
+9. **容器演练的边界**：容器演练里 `events.sqlite` 只有 445 条事件（400KB），所有容器内
    数字（RTO 3.174s、备份 1.818s）都对应小体量；**线上体量请以宿主机 29MB 那组数字
    （RTO 6.510s、备份 2.46–6.29s）为准**，事件数上去后两者都会变长。
-9. **备份目录不能是符号链接**：`--backup-dir` 指向符号链接时工具直接拒绝；
-   轮转删除也会跳过任何含符号链接的备份目录。
-10. **BuildKit 缺失时的构建差异**：本机无 buildx，用 `DOCKER_BUILDKIT=0 docker build`
+10. **备份目录不能是符号链接**：`--backup-dir` 指向符号链接时工具直接拒绝；
+    轮转删除也会跳过任何含符号链接的备份目录。
+11. **BuildKit 缺失时的构建差异**：本机无 buildx，用 `DOCKER_BUILDKIT=0 docker build`
     构建镜像；`deploy/Dockerfile.dockerignore` 只在 BuildKit 下生效，legacy builder
     会把 `reports/`、`dist/` 等也送进构建上下文（镜像内容不受影响，只是上下文偏大）。
+12. **offsite 目标不在本仓库控制内**：工具只保证"推送到目标并在远端校验通过"；
+    目标端保留策略、访问控制、加密、以及"目标本身是否与主库同机房"需部署方确认。
+    对象存储的 sha256 依赖 rclone 对远端哈希的支持，个别后端取不到哈希会返回非零
+    （这是预期：宁可失败也不假装成功）。
 
 ---
 
@@ -649,4 +840,9 @@ EXIT=2
 | 备份耗时突然变长 | 事件数增长 / 磁盘慢 / 同时有大量写 | 看 `duration_ms` 与 `timing.backup_api_ms`，必要时扩备份频率 |
 | `prune.skipped` 出现 `symlink_refused` | 备份目录被替换成符号链接（可疑） | 人工检查，不要自动删除 |
 | 备份容器日志出现 `UNIQUE constraint failed: events.seq` / 同时有两个 `/api/service/info` | `backup` 服务的 `command` 没覆盖镜像 ENTRYPOINT，容器里又起了一套世界服务 | 确认 `deploy/docker-compose.yml` 的 `backup` 有 `entrypoint: ["/bin/sh","-c"]`；停掉备份容器，按 §6 恢复最近备份 |
-| 备份容器长期 `unhealthy` | 镜像 HEALTHCHECK 检查 8020/8030，备份容器没有 API/UI | 确认 `backup` 服务有 `healthcheck: {disable: true}` |
+| 备份容器 `Exited (1)`，日志 `Read-only file system: '/app/backups/...tmp'` | 备份卷/目录被挂成只读（或磁盘只读、写满） | 恢复写权限；确认 `docker exec xkx-backup touch /app/backups/probe` 可写 |
+| 备份容器 `unhealthy`，`unhealthy: 最近一轮失败 stage=…` | 当轮备份或 offsite 失败；详细原因在状态文件 | `docker exec xkx-backup cat /app/backups/last_backup_status.json` 看 `stage`/`exit_code`/`error` |
+| offsite `exit=1` + `stage=push` | 目标目录不可写 / rsync 目标不可达 / rclone remote 未配置 | 修目标可达性与权限；`local` 模式注意容器 uid 10001 对 bind mount 需可写 |
+| offsite `exit=1` + `stage=verify` + `sha256 mismatch` | 远端副本被篡改、截断，或推送中途失败留下残档 | 重新推送覆盖；若反复出现，检查链路（磁盘坏块 / 同步工具过滤规则） |
+| offsite `exit=3` + `offsite_required_but_disabled` | 配了 `XKX_OFFSITE_REQUIRED=1` 但没给 `XKX_OFFSITE_MODE/TARGET` | 补配置，或明确降级为 `REQUIRED=0`（不推荐用于生产） |
+| 备份容器 `unhealthy` 且 `缺少状态文件` | 首轮还没跑完（`start_period` 90s 内）或目录不可写 | 等 `start_period` 过；再查目录权限与日志 |

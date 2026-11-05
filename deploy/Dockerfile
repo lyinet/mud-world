@@ -33,6 +33,12 @@ WORKDIR /app
 COPY requirements.lock /app/requirements.lock
 RUN pip install --no-cache-dir -r /app/requirements.lock
 
+# 异地备份推送所需：rsync over ssh 是默认部署的主要模式，镜像必须自带这两个命令
+# （rclone 模式用于对象存储，体积较大，按需在派生镜像里安装，见 docs/BACKUP-RESTORE.md）。
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends rsync openssh-client \
+    && rm -rf /var/lib/apt/lists/*
+
 # 只复制运行必需资产；.env 永不进入镜像（另见 deploy/Dockerfile.dockerignore）。
 COPY src /app/src
 COPY content /app/content

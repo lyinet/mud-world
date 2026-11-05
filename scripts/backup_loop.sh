@@ -104,7 +104,7 @@ SOURCE="$ROOT/runs/$RUN_ID/events.sqlite"
 WAIT="${BK_STARTUP_WAIT:-300}"
 waited=0
 while [ ! -f "$SOURCE" ] && [ "$waited" -lt "$WAIT" ]; do
-  if [ "$waited" -eq 0 ]; then log "等待源库就绪: $SOURCE（最多 ${WAIT}s）"; fi
+  if [ "$waited" -eq 0 ]; then log "等待源库就绪: ${SOURCE}（最多 ${WAIT}s）"; fi
   slept 5
   waited=$((waited + 5))
 done
@@ -140,7 +140,7 @@ while :; do
 
   if [ "$rc" -ne 0 ]; then
     write_status 0 "$rc" backup "$err" "$DUR_MS" '{}' || log "写状态文件失败: $STATUS_FILE"
-    log "备份连续失败 ${attempt} 次，退出码 $rc，容器将进入 Exited(非零) 状态，等待人工介入"
+    log "备份连续失败 ${attempt} 次，退出码 ${rc}，容器将进入 Exited(非零) 状态，等待人工介入"
     rm -f "$BK_DIR/run.$$.json" "$BK_DIR/run.$$.err"
     exit 1
   fi
@@ -155,11 +155,11 @@ while :; do
     rm -f "$OS_JSON"
     if [ "$OSRC" -ne 0 ]; then
       err="$(tail -3 "$BK_DIR/offsite.$$.err" | tr '\n' ' ')"
-      log "异地推送失败 exit=$OSRC：$err"
+      log "异地推送失败 exit=${OSRC}：${err}"
       EXTRA=$(OFFSITE_JSON="$OFFSITE_JSON" "$PY" -c 'import json,os;print(json.dumps({"offsite": json.loads(os.environ["OFFSITE_JSON"])}))')
       write_status 0 "$OSRC" offsite "$err" "$DUR_MS" "$EXTRA" || log "写状态文件失败"
       rm -f "$OUT" "$BK_DIR/run.$$.err" "$BK_DIR/offsite.$$.err"
-      log "异地推送失败，退出码 $OSRC，容器将进入 Exited(非零) 状态"
+      log "异地推送失败，退出码 ${OSRC}，容器将进入 Exited(非零) 状态"
       exit 1
     fi
     rm -f "$BK_DIR/offsite.$$.err"

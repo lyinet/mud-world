@@ -119,6 +119,44 @@
 
 ---
 
+## [P0 数据安全] 2026-11-06 — 异机/异地备份副本（`tools/backup_offsite.sh`）
+
+- **改了什么**
+  - 新增 `tools/backup_offsite.sh`：把最新一份自生成备份推送到 `local` 目录 /
+    `rsync` over ssh / `rclone` remote，三选一由 `XKX_OFFSITE_MODE` 决定；
+    目标由 `XKX_OFFSITE_TARGET` 给出。
+    - **推送后必须在远端取 sha256 与 size**，与本地 `manifest.json` 的
+      `databases.<name>.sha256/size_bytes` 逐项比对；远端缺失/读取失败/不一致 →
+      退出码 1，输出 JSON 里带 `stage` 与逐文件 `remote_sha256`/`remote_size_bytes`。
+    - 无远端配置时输出 `offsite=disabled`（不假装成功）；`XKX_OFFSITE_REQUIRED=1`
+      （生产语义）缺失配置 → 退出码 3。
+    - 新增 `--verify-only`：不推送、只复核远端已有副本（运维定期核对 / 篡改检测）。
+  - `scripts/backup_loop.sh`：每轮备份成功后调用 offsite；失败写
+    `last_backup_status.json`（`stage="offsite"` + `exit_code` + `error`）并 `exit 1`。
+    同时修复失败分支里的真实 bug：`$OSRC：`（全角标点紧跟变量）在 macOS `/bin/sh`
+    （bash 3.2）下会被当成变量名的一部分，触发 `unbound variable` 并吞掉退出码；
+    已改为 `${OSRC}`（`$rc`、`$SOURCE` 同类位置一并加固）。
+  - `deploy/Dockerfile`：安装 `rsync` 与 `openssh-client`，让默认镜像具备
+    rsync over ssh 的异地推送能力（`rclone` 仍按需在派生镜像中安装）。
+  - `docs/BACKUP-RESTORE.md`：新增 §5.3（offsite 配置/失败语义/实测输出/容器注意点）、
+    §7-F（默认部署实测 + 只读卷 Exited(1) + 源库截断 exit 1 + healthcheck 判 unhealthy）、
+    §9.1/§9.2（offsite 已实现、恢复时该用哪份产物）、§10 故障行。
+- **为什么改**：此前"备份与主库同盘"只是文档里的"风险接受"，主机或磁盘损坏会同时
+  丢主库与备份；且没有远端校验的推送等于不知道副本是否可用。
+- **验证方式（本地另一目录模拟异地）**
+  - 推送 + 远端校验：`{"ok": true, "offsite": "enabled", … "verified": true}`，`EXIT=0`。
+  - 远端截断到 4096 字节：`stage=verify`、`sha256 mismatch remote=310bbc65… manifest=d65cf12d…`，`EXIT=1`。
+  - 远端文件删除：`remote_read_failed (remote file missing: …)`，`EXIT=1`。
+  - loop 接入：目标目录只读 → `LOOP_EXIT=1`，状态文件 `stage=offsite/exit_code=1`；
+    `XKX_OFFSITE_REQUIRED=1` 且未配置 → `exit_code=3`，同样 `LOOP_EXIT=1`。
+  - 容器内：`docker run … XKX_OFFSITE_MODE=local` 推送成功 `CTR_EXIT=0`；镜像内
+    `rsync 3.5.0` / `OpenSSH_10.0p2` 可用。
+- **未做**：未改 `src/wsim/api/**`、`actions/**`、`sim/**`、`ui/**`；
+  未回退 `deploy/Dockerfile` 的 version 元数据。
+- **commit**：`（见本提交）`。
+
+---
+
 ## [P0 数据安全] 2026-11-06 — 备份默认生效、失败不再静默、状态可观测
 
 - **改了什么**
