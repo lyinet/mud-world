@@ -34,6 +34,19 @@ from ..actions.player import (
     player_genesis_effects,
     player_status,
 )
+from ..actions.player_sect import (
+    ARREARS_EXPEL,
+    DISCIPLE_CAP,
+    DUES_DAILY,
+    STIPEND_DAILY,
+    PlayerExpelDiscipleAction,
+    PlayerFoundSectAction,
+    PlayerPayDisciplesAction,
+    PlayerRecruitDiscipleAction,
+    PlayerSectDepositAction,
+    PlayerSectWithdrawAction,
+    active_disciples,
+)
 from ..core.clock import TICKS_PER_DAY, TICKS_PER_HOUR, day_of
 from ..core.content import load_content
 from ..core.models import Intent
@@ -112,7 +125,26 @@ WRITE_ACTIONS: dict[str, str] = {
     "marriage/propose": "marriage_propose",
     "marriage_end": "marriage_end",
     "marriage/end": "marriage_end",
+    # 玩家门派：立派 / 收徒 / 逐出 / 日结 / 金库存取。
+    "found_sect": "found_sect",
+    "recruit_disciple": "recruit_disciple",
+    "expel_disciple": "expel_disciple",
+    "pay_disciples": "pay_disciples",
+    "sect_deposit": "sect_deposit",
+    "sect_withdraw": "sect_withdraw",
 }
+
+# 门派写动作：响应统一附带最新私有快照（details.sect，与 player.sect 同源）。
+_SECT_ACTIONS = frozenset(
+    {
+        "found_sect",
+        "recruit_disciple",
+        "expel_disciple",
+        "pay_disciples",
+        "sect_deposit",
+        "sect_withdraw",
+    }
+)
 
 # /api/player/action 的动词表：只接受客户端动词名，服务端映射为内部 action。
 ACTION_ALIASES: dict[str, str] = {
@@ -148,10 +180,16 @@ ACTION_ALIASES: dict[str, str] = {
     "marriage/propose": "marriage_propose",
     "marriage_end": "marriage_end",
     "marriage/end": "marriage_end",
+    "found_sect": "found_sect",
+    "recruit_disciple": "recruit_disciple",
+    "expel_disciple": "expel_disciple",
+    "pay_disciples": "pay_disciples",
+    "sect_deposit": "sect_deposit",
+    "sect_withdraw": "sect_withdraw",
 }
 
 # NPC 专属动作：玩家请求必须得到明确的“未开放”，而不是未知操作。
-PLAYER_UNIMPLEMENTED_VERBS = frozenset({"marry", "found_sect", "apprentice"})
+PLAYER_UNIMPLEMENTED_VERBS = frozenset({"marry", "apprentice"})
 
 FORBIDDEN_VERBS = frozenset(
     {"rob", "attack", "kill", "marry_force", "player_expel", "item_create", "mint", "set_field"}
@@ -255,7 +293,7 @@ REASON_TEXT: dict[str, str] = {
     "target_in_couple": "对方已有婚约或配偶。",
     "spouse_not_here": "你的配偶不在当前地点；和离需当面说清。",
     "bond_too_low": "你们的好感还不够；先多相处、多说话再提亲。",
-    "trust_too_low": "对方对你还不够信任；先建立信任再提亲。",
+    "trust_too_low": "对方对你还不够信任；先相处一段时间、建立信任再试。",
     "gift_missing": "你指定的信物不在背包里或数量不足。",
     "self_propose": "不能向自己求婚。",
     "not_married": "你当前没有配偶，无需和离。",
@@ -267,6 +305,40 @@ REASON_TEXT: dict[str, str] = {
     "account_missing": "玩家钱包账户不存在，已被回滚。",
     "effect_invalid": "操作违反世界规则，已被回滚。",
     "bad_args": "参数不完整或格式错误。",
+    # 玩家门派（契约见 docs/player-api.md §13）
+    "no_sect": "你还没有加入任何门派；先立派或拜入一个门派。",
+    "already_in_sect": "你已经在门派中，不能再立派；退出后才能另立门户。",
+    "not_sect_leader": "只有掌门（立派者）能做这件事。",
+    "sect_full": "收徒名额已满（上限 3 名）；先驱逐或等弟子离派。",
+    "insufficient_rep": "声望不足；立派与收徒都要求声望至少 20。",
+    "insufficient_funds": "钱不够完成这次门派操作（立派需 800 文）。",
+    "disciple_not_found": "门派名册里没有这名弟子。",
+    "favor_too_low": "对方对你的好感不足 30，不愿拜师。",
+    "arrears_too_high": "欠饷累计已达 30 文，弟子自动离派。",
+    "sect_not_found": "门派不存在或不是你创建的门派。",
+    "sect_name_taken": "这个名号已被别的门派用了。",
+    "sect_exists": "这个门派 id 已存在。",
+    "invalid_sect_name": "门派名号需 2–12 字。",
+    "wrong_location": "你必须身处门派驻地才能做这件事。",
+    "no_disciples": "门中暂无弟子，无需日结。",
+    "already_settled_today": "今日门派已日结过了，明日再来。",
+    "insufficient_treasury": "门派金库余额不足。",
+    "withdraw_over_cap": "单次最多提取 500 文。",
+    "treasury_reserve": "提取后金库须留 100 文保底。",
+    "target_not_disciple": "对方不是本门弟子。",
+    "target_in_sect": "对方已属别的门派。",
+    "target_is_player": "不能直接收玩家为徒；需玩家本人同意。",
+    "already_disciple": "对方已在本门名下。",
+    "skill_too_low": "对方根基太浅，或你的本事还不足以服众。",
+    "target_not_alive": "对方已不在人世。",
+    "target_not_found": "找不到这个人物。",
+    "self_recruit": "不能收自己为徒。",
+    "actor_not_alive": "你已不在人世，无法再做这件事。",
+    "not_together": "你与对方不在同一地点，收徒要当面。",
+    "bad_arg:sect_id": "门派 id 格式不合法。",
+    "bad_arg:amount": "金额必须是 1–10000 的整数。",
+    "bad_arg:name": "门派名号需 2–12 字。",
+    "bad_arg:day": "结算日必须是非负整数。",
 }
 
 
@@ -326,6 +398,10 @@ class WorldSession:
             str,
             tuple[dict[str, Any], dict[str, Any], dict[str, Any], list[dict[str, Any]]],
         ] = {}
+        # 任务读路径的有序缓存：按 state 对象身份失效（Writer 每次提交都替换 state），
+        # 同一版本状态下多个读请求只排一次序，避免每请求重复 O(n log n)。
+        self._quest_order_state: WorldState | None = None
+        self._quest_order: list = []
 
         self.content = load_content(self.root, allow_fixture=False, use_content=True)
         # 世界自走与玩家共用 content：feed 只认这批 NPC，玩家 ID 永不进入公共事件流。
@@ -342,6 +418,14 @@ class WorldSession:
         self.registry.register(SystemTickAction(self.content))
         # 玩家专属休息动词：只经 API 会话注册，不进入 NPC/系统动作链。
         self.registry.register(PlayerRestAction())
+        # 玩家门派动作：同样只在本会话注册。`found_sect` 覆盖同名 NPC 动作，
+        # 非玩家 actor 原样委托给 `business.FoundSectAction`，NPC 效果逐字节不变。
+        self.registry.register(PlayerFoundSectAction(self.content))
+        self.registry.register(PlayerRecruitDiscipleAction(self.content))
+        self.registry.register(PlayerExpelDiscipleAction(self.content))
+        self.registry.register(PlayerPayDisciplesAction(self.content))
+        self.registry.register(PlayerSectDepositAction(self.content))
+        self.registry.register(PlayerSectWithdrawAction(self.content))
         # 存档优先：已有事件日志时回放，绝不重新创世/重复发放初始资产。
         self.replayed = self.store.count() > 0
         if self.replayed:
@@ -407,6 +491,14 @@ class WorldSession:
     def state(self):
         """始终指向 Writer 的最新投影，避免 bootstrap/submit 替换后读到旧对象。"""
         return self.writer.state
+
+    def _sorted_quests(self) -> list:
+        """按 id 排序的任务投影缓存；state 对象被 Writer 替换时重排一次。"""
+        state = self.state
+        if state is not self._quest_order_state:
+            self._quest_order_state = state
+            self._quest_order = sorted(state.quests.values(), key=lambda q: q.id)
+        return self._quest_order
 
     # ------------------------------------------------------------------ read
     def status(self, account: str) -> dict[str, Any]:
@@ -507,6 +599,7 @@ class WorldSession:
                 "relations": view["relations"],
                 "active_quests": view["active_quests"],
                 "marriage": view["marriage"],
+                "sect": view["sect"],
             }
             location = location_view
             shop = shop_view
@@ -539,6 +632,7 @@ class WorldSession:
                 },
                 "player": player,
                 "marriage": view["marriage"],
+                "sect": view["sect"],
                 "location": location,
                 "shop": shop,
                 "present_npcs": present,
@@ -600,7 +694,7 @@ class WorldSession:
         """服务模式匿名读：只返回公共开放任务，不含奖励明细与任何人已接任务。"""
         rows: list[dict[str, Any]] = []
         with self.lock:
-            for quest in sorted(self.state.quests.values(), key=lambda q: q.id):
+            for quest in self._sorted_quests():
                 if quest.status != "open":
                     continue
                 row = self._quest_row(quest)
@@ -867,14 +961,86 @@ class WorldSession:
         view["growth"] = growth_view(self.state, self.content, pid)
         view["today"] = today
         view["marriage"] = self._marriage_view(pid)
+        view["sect"] = self._sect_view(pid)
         view["tick"] = self.state.tick
         view["ok"] = True
         return view
 
+    def _settled_today(self, pid: str, fac) -> bool:
+        from ..actions.player_sect import SETTLE_MARKER
+
+        marker = f"{SETTLE_MARKER}:{fac.id}:D{int(self.state.tick) // TICKS_PER_DAY}"
+        return any(marker in str(m.get("text", "")) for m in self.state.memories.get(pid, ()))
+
+    def _sect_arrears(self, fid: str, did: str) -> int:
+        total = 0
+        for debt in self.state.debts.values():
+            if debt.status != "active":
+                continue
+            if str(debt.id).startswith(f"debt:sect_stipend:{fid}:{did}"):
+                total += int(debt.amount)
+        return total
+
+    def _sect_view(self, pid: str) -> dict[str, Any]:
+        """门派私有快照：只随本人令牌返回。
+
+        匿名公共摘要里没有门派字段（`public_state` 只给 `sect_name`）；
+        这里包含门主、名册、金库与欠饷，供本人页面显示。
+        """
+        ent = self.state.entities.get(pid)
+        fac = self.state.factions.get(str(ent.faction or "")) if ent is not None else None
+        if fac is None:
+            return {"in_sect": False, "sect": None}
+        leader = fac.leader or fac.founder
+        role = "leader" if str(leader) == pid else "disciple"
+        disciples = []
+        for did in active_disciples(self.state, fac):
+            d = self.state.entities.get(did)
+            if d is None:
+                continue
+            disciples.append(
+                {
+                    "id": did,
+                    "name": d.name,
+                    "skill": round(
+                        max((float(v) for v in d.skills.values()), default=0.0), 4
+                    ),
+                    "presence": d.presence,
+                    "at_sect": d.location == fac.location,
+                    "arrears": self._sect_arrears(fac.id, did),
+                }
+            )
+        return {
+            "in_sect": True,
+            "sect": {
+                "id": fac.id.removeprefix("sect:"),
+                "faction_id": fac.id,
+                "name": fac.name,
+                "location": fac.location,
+                "location_name": self._loc_name(fac.location),
+                "role": role,
+                "leader": leader,
+                "leader_name": self._entity_name(leader),
+                "member_count": 1 + len(disciples),
+                "treasury": {
+                    "account": fac.treasury_account,
+                    "balance": int(self.state.account_balance(fac.treasury_account)),
+                },
+                "disciples": disciples,
+                "limits": {
+                    "disciple_cap": DISCIPLE_CAP,
+                    "dues_daily": DUES_DAILY,
+                    "stipend_daily": STIPEND_DAILY,
+                    "arrears_expel": ARREARS_EXPEL,
+                },
+                "settled_today": self._settled_today(pid, fac) if role == "leader" else None,
+            },
+        }
+
     def _quests_view(self, pid: str) -> dict[str, Any]:
         ent = self.state.entities.get(pid)
         open_rows = []
-        for quest in sorted(self.state.quests.values(), key=lambda q: q.id):
+        for quest in self._sorted_quests():
             if quest.status != "open":
                 continue
             row = self._quest_row(quest)
@@ -885,7 +1051,7 @@ class WorldSession:
             open_rows.append(row)
         active = [
             self._quest_row(quest)
-            for quest in sorted(self.state.quests.values(), key=lambda q: q.id)
+            for quest in self._sorted_quests()
             if quest.status == "accepted" and quest.acceptor == pid
         ]
         return {
@@ -1229,7 +1395,7 @@ class WorldSession:
         player = self.state.entities.get(pid)
         tick = int(self.state.tick)
         player_rep = reputation_points(self.state, pid) if player is not None else 0.0
-        for quest in sorted(self.state.quests.values(), key=lambda q: q.id):
+        for quest in self._sorted_quests():
             if quest.status == "open":
                 # 已过期残单（日界清理前的窗口）与发布人已不在的单，一律不下架展示。
                 if quest.deadline_tick and tick > quest.deadline_tick:
@@ -1770,6 +1936,38 @@ class WorldSession:
             return base
         if action == "marriage_end":
             return base
+        if action in (
+            "found_sect",
+            "recruit_disciple",
+            "expel_disciple",
+            "pay_disciples",
+            "sect_deposit",
+            "sect_withdraw",
+        ):
+            # sect_id 可省略：动作层缺省取本人门派，未入派返回 no_sect。
+            sid = str(payload.get("sect_id") or "").strip()
+            if sid:
+                base["sect_id"] = sid
+            if action == "found_sect":
+                ent = self.state.entities.get(pid)
+                base["at"] = str(payload.get("at") or (ent.location if ent is not None else ""))
+                name = str(payload.get("name") or "").strip()
+                if name:
+                    base["name"] = name
+                doctrine = str(payload.get("doctrine") or "").strip()
+                if doctrine:
+                    base["doctrine"] = doctrine[:60]
+                return base
+            if action in ("recruit_disciple", "expel_disciple"):
+                base["target"] = str(payload.get("target") or "").strip()
+                return base
+            if action == "pay_disciples":
+                day = payload.get("day")
+                if isinstance(day, int) and not isinstance(day, bool):
+                    base["day"] = day
+                return base
+            base["amount"] = payload.get("amount")
+            return base
         return base
 
     def _precheck_player_action(
@@ -2049,6 +2247,25 @@ class WorldSession:
                 report = dict(eff.get("data") or {})
                 details["report"] = report
                 details["days"] = list(report.get("days") or [])
+        if action in _SECT_ACTIONS and data.get("sect") is not None:
+            # 门派动作统一附带最新私有快照（与 player.sect 同源）。
+            details["sect"] = data["sect"]
+        if action == "pay_disciples" and event.outcome == "ok":
+            dues = 0
+            stipend = 0
+            leavers: list[dict[str, Any]] = []
+            for eff in event.effects or []:
+                op = eff.get("op")
+                ed = dict(eff.get("data") or {})
+                if op == "transfer" and ed.get("reason") == "sect_dues":
+                    dues += int(ed.get("amount") or 0)
+                elif op == "transfer" and ed.get("reason") == "sect_stipend":
+                    stipend += int(ed.get("amount") or 0)
+                elif op == "set_field" and ed.get("field") == "faction" and ed.get("value") is None:
+                    leavers.append(
+                        {"target": str(ed.get("entity")), "reason": "arrears_too_high"}
+                    )
+            details["settlement"] = {"dues": dues, "stipend": stipend, "leavers": leavers}
         return {
             "ok": event.outcome == "ok",
             "status": "executed" if event.outcome == "ok" else "rejected",

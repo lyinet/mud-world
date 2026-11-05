@@ -74,6 +74,13 @@ PLAYER_VERBS = frozenset(
         # 玩家婚姻：求婚与和离；NPC 裁决事件由服务端追加。
         "marriage_propose",
         "marriage_end",
+        # 玩家门派：立派 / 收徒 / 逐出 / 日结 / 金库存取（只由 API 会话注册）。
+        "found_sect",
+        "recruit_disciple",
+        "expel_disciple",
+        "pay_disciples",
+        "sect_deposit",
+        "sect_withdraw",
     }
 )
 

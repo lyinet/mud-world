@@ -187,18 +187,18 @@ def test_found_sect_transfers_and_faction():
     _assert_conserved(before, conservation(state))
 
 
-def test_found_sect_not_enough_money():
+def test_found_sect_insufficient_funds():
     state = seed(player_money=FOUNDING_COST - 1)
     action = PlayerFoundSectAction(None)
     intent = _intent(PLAYER, action, {"name": "五行道", "at": ACADEMY, "sect_id": SID})
-    assert _pre(action, state, intent) == ["not_enough_money"]
+    assert _pre(action, state, intent) == ["insufficient_funds"]
 
 
-def test_found_sect_reputation_too_low():
+def test_found_sect_insufficient_rep():
     state = seed(bonds=False)
     action = PlayerFoundSectAction(None)
     intent = _intent(PLAYER, action, {"name": "五行道", "at": ACADEMY, "sect_id": SID})
-    assert _pre(action, state, intent) == ["reputation_too_low"]
+    assert _pre(action, state, intent) == ["insufficient_rep"]
     assert MIN_REPUTATION == 20.0
 
 
@@ -316,7 +316,7 @@ def test_recruit_refusals_basics():
     # 非掌门：n1 已入派、同地点，但不是 leader/founder。
     _recruit(state, "n1")
     non_master = _intent("n1", action, {"sect_id": SID, "target": "n2"})
-    assert _pre(action, state, non_master) == ["not_sect_master"]
+    assert _pre(action, state, non_master) == ["not_sect_leader"]
 
     # 掌门离开驻地
     state.entities[PLAYER].location = MARKET
@@ -369,7 +369,7 @@ def test_recruit_refusals_target_state():
     state.relations.pop(f"{PLAYER}|n2|friend")
     state.relations.pop(f"n2|{PLAYER}|friend")
     assert _pre(action, state, _intent(PLAYER, action, {"sect_id": SID, "target": "n2"})) == [
-        "target_declined"
+        "favor_too_low"
     ]
 
     # 技能不足：目标 0.05
@@ -386,7 +386,7 @@ def test_recruit_refusals_target_state():
     ]
 
 
-def test_recruit_disciples_full():
+def test_recruit_sect_full():
     state = seed()
     _found(state)
     for nid in ("n1", "n2", "n3"):
@@ -394,7 +394,7 @@ def test_recruit_disciples_full():
     action = PlayerRecruitDiscipleAction(None)
     _bond(state, "n4")
     assert _pre(action, state, _intent(PLAYER, action, {"sect_id": SID, "target": "n4"})) == [
-        "disciples_full"
+        "sect_full"
     ]
     assert len([e for e in state.factions[FID].members if e.startswith("n")]) == DISCIPLE_CAP
 
@@ -412,7 +412,7 @@ def test_expel_disciple_refusals_and_success():
     _found(state)
     _recruit(state, "n1")
     assert _pre(action, state, _intent("n1", action, {"sect_id": SID, "target": "n2"})) == [
-        "not_sect_master"
+        "not_sect_leader"
     ]
     state.entities[PLAYER].location = MARKET
     assert _pre(action, state, _intent(PLAYER, action, {"sect_id": SID, "target": "n1"})) == [
@@ -420,7 +420,7 @@ def test_expel_disciple_refusals_and_success():
     ]
     state.entities[PLAYER].location = ACADEMY
     assert _pre(action, state, _intent(PLAYER, action, {"sect_id": SID, "target": "ghost"})) == [
-        "target_not_found"
+        "disciple_not_found"
     ]
     assert _pre(action, state, _intent(PLAYER, action, {"sect_id": SID, "target": PLAYER})) == [
         "self_recruit"
@@ -491,7 +491,7 @@ def test_pay_disciples_refusals():
     ]
     state.entities[PLAYER].location = ACADEMY
     assert _pre(action, state, _intent("n1", action, {"sect_id": SID}, tick=1)) == [
-        "not_sect_master"
+        "not_sect_leader"
     ]
     bad = _intent(PLAYER, action, {"sect_id": SID, "day": 9}, tick=500)
     with pytest.raises(Reject):
@@ -568,7 +568,7 @@ def test_sect_deposit_and_limits():
     _assert_conserved(before, conservation(state))
 
     too_much = _intent(PLAYER, action, {"sect_id": SID, "amount": 10000})
-    assert _pre(action, state, too_much) == ["not_enough_money"]
+    assert _pre(action, state, too_much) == ["insufficient_funds"]
     with pytest.raises(Reject):
         _pre(action, state, _intent(PLAYER, action, {"sect_id": SID, "amount": 0}))
 
@@ -607,7 +607,7 @@ def test_withdraw_refusals_other():
     ]
     _found(state)
     assert _pre(action, state, _intent("n1", action, {"sect_id": SID, "amount": 100})) == [
-        "not_sect_master"
+        "not_sect_leader"
     ]
     state.entities[PLAYER].location = MARKET
     assert _pre(action, state, _intent(PLAYER, action, {"sect_id": SID, "amount": 100})) == [
@@ -712,3 +712,56 @@ def test_writer_event_chain_transcript(tmp_path):
         if ef["op"] == "memory_add"
     ]
     assert any("欠饷" in t and "离派" in t for t in texts)
+
+
+# ---------- 拒绝码契约（docs/player-api.md §13） ----------
+
+
+def test_recruit_favor_and_trust_are_separate_codes():
+    state = seed()
+    _found(state)
+    action = PlayerRecruitDiscipleAction(None)
+    for a, b in ((PLAYER, "n2"), ("n2", PLAYER)):
+        rel = state.relations[f"{a}|{b}|friend"]
+        rel.affection = 45.0
+        rel.trust = 0.0
+    assert _pre(action, state, _intent(PLAYER, action, {"sect_id": SID, "target": "n2"})) == [
+        "trust_too_low"
+    ]
+    for a, b in ((PLAYER, "n2"), ("n2", PLAYER)):
+        rel = state.relations[f"{a}|{b}|friend"]
+        rel.affection = 0.0
+        rel.trust = 45.0
+    assert _pre(action, state, _intent(PLAYER, action, {"sect_id": SID, "target": "n2"})) == [
+        "favor_too_low"
+    ]
+
+
+def test_recruit_requires_master_reputation():
+    state = seed()
+    _found(state)
+    for rel_id in list(state.relations):
+        if PLAYER in rel_id.split("|"):
+            state.relations.pop(rel_id)
+    action = PlayerRecruitDiscipleAction(None)
+    assert _pre(action, state, _intent(PLAYER, action, {"sect_id": SID, "target": "n2"})) == [
+        "insufficient_rep"
+    ]
+
+
+def test_sect_id_defaults_to_actor_and_no_sect():
+    state = seed()
+    deposit = PlayerSectDepositAction(None)
+    withdraw = PlayerSectWithdrawAction(None)
+    # 未入派：省略 sect_id → no_sect；显式未知门派 → sect_not_found。
+    assert _pre(deposit, state, _intent(PLAYER, deposit, {"amount": 100})) == ["no_sect"]
+    assert _pre(withdraw, state, _intent(PLAYER, withdraw, {"amount": 100})) == ["no_sect"]
+    assert _pre(deposit, state, _intent(PLAYER, deposit, {"sect_id": "ghost", "amount": 100})) == [
+        "sect_not_found"
+    ]
+    _found(state)
+    # 掌门省略 sect_id 时默认本人门派。
+    assert _pre(deposit, state, _intent(PLAYER, deposit, {"amount": 100})) == []
+    _recruit(state, "n1")
+    # 弟子省略 sect_id 时同样解析到本派，但不是掌门。
+    assert _pre(deposit, state, _intent("n1", deposit, {"amount": 1})) == ["not_sect_leader"]

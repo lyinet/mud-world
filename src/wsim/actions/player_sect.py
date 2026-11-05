@@ -1,7 +1,10 @@
-"""玩家门派动作（P1）：立派 / 收徒 / 逐出 / 日结 / 存取款。
+"""玩家门派动作：立派 / 收徒 / 逐出 / 日结 / 存取款。
 
-本轮只提供可导入、可单测的动作类，不注册进 `actions/registry.py`、
-不改玩家动词白名单与 API 层。接线方式见 `specs/player-sect/tasks.md`。
+只由玩家 API 会话注册（`api/session.py`），不进入 `actions/registry.py` 的内置表，
+因此不改变 NPC/无玩家世界的确定性。`found_sect` 对非玩家 actor 原样委托
+`business.FoundSectAction`。接线契约见 `docs/player-api.md` §13。
+
+`sect_id` 可省略：缺省取 actor 当前门派（`entity.faction`），未入派返回 `no_sect`。
 
 资金纪律：所有金额只走 `transfer` / `debt_*`，不出现 `mint`；P1 也不 `burn`
 （注册费改为真实转入 `treasury:region`）。
@@ -90,6 +93,29 @@ def _default_sid(actor: str) -> str:
 
 def _faction(state: WorldState, sid: str) -> Faction | None:
     return state.factions.get(sect_faction_id(sid))
+
+
+def _resolve_sect(state: WorldState, intent: Intent) -> tuple[str, Faction | None, str]:
+    """解析目标门派：显式 `sect_id` 优先，缺省取 actor 的 `entity.faction`。
+
+    返回 `(sid, faction, reason)`；`reason` 非空表示应先拒绝。
+    "未入派" 与 "门派不存在" 分开：前者 `no_sect`，后者 `sect_not_found`。
+    """
+    raw = str(arg_str(intent, "sect_id", required=False) or "").strip()
+    if raw.startswith("sect:"):
+        raw = raw[5:]
+    if raw:
+        if not _SLUG.match(raw):
+            return "", None, "bad_arg:sect_id"
+        fac = _faction(state, raw)
+        return raw, fac, "" if fac is not None else "sect_not_found"
+    ent = require_entity(state, intent.actor)
+    faction = str(ent.faction or "")
+    if not faction.startswith("sect:"):
+        return "", None, "no_sect"
+    sid = faction[5:]
+    fac = _faction(state, sid)
+    return sid, fac, "" if fac is not None else "sect_not_found"
 
 
 def _is_master(fac: Faction, actor: str) -> bool:
@@ -196,9 +222,9 @@ class PlayerFoundSectAction(Action):
         if sect_faction_id(sid) in state.factions:
             return ["sect_exists"]
         if state.account_balance(wallet(ent.id)) < FOUNDING_COST:
-            return ["not_enough_money"]
+            return ["insufficient_funds"]
         if reputation_points(state, ent.id) < MIN_REPUTATION:
-            return ["reputation_too_low"]
+            return ["insufficient_rep"]
         return []
 
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
@@ -271,14 +297,15 @@ class PlayerRecruitDiscipleAction(Action):
 
     def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
         ent = require_entity(state, intent.actor)
-        sid = _sect_sid(intent)
-        fac = _faction(state, sid)
-        if fac is None:
-            return ["sect_not_found"]
+        sid, fac, reason = _resolve_sect(state, intent)
+        if reason:
+            return [reason]
         if not _is_master(fac, ent.id):
-            return ["not_sect_master"]
+            return ["not_sect_leader"]
         if ent.location != fac.location:
             return ["wrong_location"]
+        if reputation_points(state, ent.id) < MIN_REPUTATION:
+            return ["insufficient_rep"]
         target = arg_str(intent, "target")
         tgt = state.entities.get(target)
         if tgt is None:
@@ -294,17 +321,20 @@ class PlayerRecruitDiscipleAction(Action):
         if str(tgt.faction or "").startswith("sect:"):
             return ["already_disciple"] if tgt.faction == fac.id else ["target_in_sect"]
         if len(active_disciples(state, fac)) >= DISCIPLE_CAP:
-            return ["disciples_full"]
+            return ["sect_full"]
         aff, trust = _bond(state, ent.id, tgt.id)
-        if aff < MIN_AFFECTION or trust < MIN_TRUST:
-            return ["target_declined"]
+        if aff < MIN_AFFECTION:
+            return ["favor_too_low"]
+        if trust < MIN_TRUST:
+            return ["trust_too_low"]
         if max_skill(tgt) < MIN_TARGET_SKILL or max_skill(ent) < MIN_MASTER_SKILL:
             return ["skill_too_low"]
         return []
 
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
         ent = require_entity(state, intent.actor)
-        sid = _sect_sid(intent)
+        sid, fac, _ = _resolve_sect(state, intent)
+        assert fac is not None
         fid = sect_faction_id(sid)
         target = arg_str(intent, "target")
         tgt = require_entity(state, target)
@@ -366,18 +396,17 @@ class PlayerExpelDiscipleAction(Action):
 
     def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
         ent = require_entity(state, intent.actor)
-        sid = _sect_sid(intent)
-        fac = _faction(state, sid)
-        if fac is None:
-            return ["sect_not_found"]
+        sid, fac, reason = _resolve_sect(state, intent)
+        if reason:
+            return [reason]
         if not _is_master(fac, ent.id):
-            return ["not_sect_master"]
+            return ["not_sect_leader"]
         if ent.location != fac.location:
             return ["wrong_location"]
         target = arg_str(intent, "target")
         tgt = state.entities.get(target)
         if tgt is None:
-            return ["target_not_found"]
+            return ["disciple_not_found"]
         if tgt.id == ent.id:
             return ["self_recruit"]
         if str(tgt.faction or "") != fac.id:
@@ -386,8 +415,7 @@ class PlayerExpelDiscipleAction(Action):
 
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
         ent = require_entity(state, intent.actor)
-        sid = _sect_sid(intent)
-        fac = _faction(state, sid)
+        sid, fac, _ = _resolve_sect(state, intent)
         target = arg_str(intent, "target")
         tgt = require_entity(state, target)
         tick = int(intent.tick)
@@ -419,12 +447,11 @@ class PlayerPayDisciplesAction(Action):
 
     def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
         ent = require_entity(state, intent.actor)
-        sid = _sect_sid(intent)
-        fac = _faction(state, sid)
-        if fac is None:
-            return ["sect_not_found"]
+        sid, fac, reason = _resolve_sect(state, intent)
+        if reason:
+            return [reason]
         if not _is_master(fac, ent.id):
-            return ["not_sect_master"]
+            return ["not_sect_leader"]
         if ent.location != fac.location:
             return ["wrong_location"]
         day = self._day(intent)
@@ -437,8 +464,7 @@ class PlayerPayDisciplesAction(Action):
 
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
         ent = require_entity(state, intent.actor)
-        sid = _sect_sid(intent)
-        fac = _faction(state, sid)
+        sid, fac, _ = _resolve_sect(state, intent)
         assert fac is not None
         tick = int(intent.tick)
         day = self._day(intent)
@@ -575,23 +601,21 @@ class PlayerSectDepositAction(Action):
 
     def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
         ent = require_entity(state, intent.actor)
-        sid = _sect_sid(intent)
-        fac = _faction(state, sid)
-        if fac is None:
-            return ["sect_not_found"]
+        sid, fac, reason = _resolve_sect(state, intent)
+        if reason:
+            return [reason]
         if not _is_master(fac, ent.id):
-            return ["not_sect_master"]
+            return ["not_sect_leader"]
         if ent.location != fac.location:
             return ["wrong_location"]
         amount = self._amount(intent)
         if state.account_balance(wallet(ent.id)) < amount:
-            return ["not_enough_money"]
+            return ["insufficient_funds"]
         return []
 
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
         ent = require_entity(state, intent.actor)
-        sid = _sect_sid(intent)
-        fac = _faction(state, sid)
+        sid, fac, _ = _resolve_sect(state, intent)
         assert fac is not None
         amount = self._amount(intent)
         tick = int(intent.tick)
@@ -622,12 +646,11 @@ class PlayerSectWithdrawAction(Action):
 
     def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
         ent = require_entity(state, intent.actor)
-        sid = _sect_sid(intent)
-        fac = _faction(state, sid)
-        if fac is None:
-            return ["sect_not_found"]
+        sid, fac, reason = _resolve_sect(state, intent)
+        if reason:
+            return [reason]
         if not _is_master(fac, ent.id):
-            return ["not_sect_master"]
+            return ["not_sect_leader"]
         if ent.location != fac.location:
             return ["wrong_location"]
         amount = self._amount(intent)
@@ -642,8 +665,7 @@ class PlayerSectWithdrawAction(Action):
 
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
         ent = require_entity(state, intent.actor)
-        sid = _sect_sid(intent)
-        fac = _faction(state, sid)
+        sid, fac, _ = _resolve_sect(state, intent)
         assert fac is not None
         amount = self._amount(intent)
         tick = int(intent.tick)
