@@ -428,3 +428,54 @@ run `hire-e2e`；content_hash `7ec670c1`。
   同样按 `(地点, 买主, 世界日)` 轮转）。玩家店现金 ≥ `sell_price` 时，
   NPC 的余货会进入 `biz.stock`，玩家可转卖——这就是“进货”的来源。
 
+
+## 11. 玩家经营动作：补货 / 定价 / 辞退 / 提现 / 看账
+
+五个动作都在 `actions/business.py`，经 `actions/player.py` 的 `PLAYER_VERBS` 放行，
+`api/session.py` 只新增白名单、别名、`_args` 透传和 `shop_report` 的 `details.report`
+透传（**不改任何既有视图字段**，W1 的 `8ff784e` 结构保持不变）。
+
+| 动作 | 参数 | 语义 | 拒绝码 |
+|---|---|---|---|
+| `restock` | `item`, `qty`(1–50), `from`(可选) | 从区域公账批发（单价 `sell_price`=基准 60%）或从**同地点另一家店**买（单价=对方当店价），走真实 `transfer`，货 `item_create(reason=restock)`（买店库存则 `item_move`）；返回单价/总价/库存前后 | `no_shop` / `not_shop_owner` / `wrong_location` / `unknown_item` / `bad_arg:qty` / `bad_arg:item` / `insufficient_shop_cash` / `no_supply` |
+| `set_price` | `item`, `price` | 设定本店该货售价，限制在 `content.item_price` 的 ±20%（`SHOP_PRICE_BAND=0.20`）；`price<=0` 恢复基准价；超出返回 `price_out_of_range`。当店价用于成交、买主比价、NPC 购买倾向 | `no_shop` / `not_shop_owner` / `unknown_item` / `bad_arg:price` / `price_out_of_range` |
+| `dismiss` | `target` | 解除雇工契约（`shop_dismiss`：移出 employees/positions、清 `employed_at`、清未来工资记录）；**已产生的欠薪债务保留**（`debt:wage:<shop>:<npc>` 仍 active） | `no_shop` / `not_shop_owner` / `employee_not_found` / `not_employed` |
+| `withdraw` | `qty` | 店现 → 玩家钱包，真实 `transfer(reason=withdraw)`，不得超过店现 | `no_shop` / `not_shop_owner` / `bad_arg:qty` / `insufficient_shop_cash` / `not_enough_money` |
+| `shop_report` | 无 | 只读：最近 7 个世界日的 `{day,revenue,restock,wage,tax,net_profit,tx,customers}` + 店现 + 价格覆盖；不写任何状态 | `no_shop` / `not_shop_owner` |
+
+### 11.1 真实服务样例（`/tmp/xkx-branch-livee`，ambient，事件 seq）
+
+| 动作 | 成功 | 拒绝 |
+|---|---|---|
+| `restock` | seq 793，`transfer(restock)` + `item_create(reason=restock)` + `audit_log(shop_restock)` | seq 4135 `rejected:bad_arg:qty`（qty=999） |
+| `set_price` | seq 127，`shop_price{business,item,price}` | seq 4141 `rejected:price_out_of_range`（超出 ±20%） |
+| `dismiss` | seq 4151，`shop_dismiss`（欠薪债务仍在） | seq 4153 `rejected:not_employed` |
+| `withdraw` | seq 4149，`transfer(reason=withdraw)` | seq 4145 `rejected:insufficient_shop_cash`（**钱不够**） |
+| `shop_report` | 11 次，`shop_report` 只读事件 + `details.report` | 见下（**不是店主**） |
+
+"不是店主"两类拒绝都用真实服务跑过：
+- 主 run 里 alt 账号 `restock` → seq 4159 `rejected:no_shop`；
+- 独立短程服务 `/tmp/xkx-reject-live` 里同一无店账号依次跑五个动作 →
+  seq 9/11/13/15/17 全部 `rejected:no_shop`。
+- `not_shop_owner` 是 `ent.business` 指向别人店铺时的数据漂移保护码；
+  正常游玩没有"转让店铺"接口，线上可观测的是 `no_shop`，该分支由
+  `tests/test_shop_operations.py::test_restock_rejects_poor_shop_and_non_owner` 覆盖。
+
+### 11.2 `shop_report` 与事件库对账
+
+主 run 报告 day5–day11 与 `events.sqlite` 的 `shop_history` 行逐字段一致
+（`day / revenue / restock / wage / tax / net_profit / tx / customers`），
+7 行见 [shop-profitability.md](shop-profitability.md) 第 1 节。
+
+## 12. 定价如何影响成交
+
+- `shop_price(content, state, biz, item)`：有 `price_overrides` 用当店价，否则用
+  `content.item_price`（受供需上下限约束）。
+- `selling_shops(..., content=...)` 先筛**同货最低价**的卖家，再在同价卖家中按
+  `(地点, 物品, 买主, 世界日)` 稳定散列轮转；`business_selling` 同样。
+- 因此**同地点两家店不同价时，买主选便宜的那家**（单测
+  `test_buyer_picks_cheaper_shop_when_prices_differ`）；贵的店当天可能 0 成交，
+  但会体现在 `shop_report` 的 `tx/revenue` 下降，不会静默。
+- NPC 专程进店的概率随档位/在店雇工上升（`shop_attraction`）：
+  `stall 0.32 / storefront 0.45 / branch 0.55`，每名在店雇工 +0.12，封顶 0.80。
+- 盈利性与盈亏平衡表见 [shop-profitability.md](shop-profitability.md)。

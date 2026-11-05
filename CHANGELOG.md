@@ -9,6 +9,60 @@
 
 ---
 
+## [功能] 2026-11-05 — 玩家经营五动作 + 盈利性验证（动作集 `3d0ceab`）
+
+- **改了什么**
+  - `actions/business.py`：新增 `restock` / `set_price` / `dismiss` / `withdraw` /
+    `shop_report`。`restock` 从区域公账（批发价 = 基准 60%）或同地点他店（当店价）
+    真实 `transfer` 进货，`item_create/item_move(reason=restock)`，返回单价/总价/
+    库存前后；`set_price` 限基准价 ±20%，`price<=0` 恢复基准；`dismiss` 解除契约、
+    清空未来工资记录但**保留已产生的欠薪债务**；`withdraw` 店现→钱包、不得超店现；
+    `shop_report` 只读返回最近 7 日 `{revenue,restock,wage,tax,net_profit,tx,customers}`。
+  - 日结行新增 `tx/customers`；雇工产出按技能（技能 ≥0.5 产出 2 件）；
+    新增 `shop_attraction`（stall 0.32 / storefront 0.45 / branch 0.55，
+    每名在店出勤雇工 +0.12，封顶 0.80）。
+  - `actions/common.py`：`shop_price()` 与按当店价的 `selling_shops`（先筛最低价卖家，
+    同价再按稳定散列轮转）；`actions/commerce.py` 买入按当店价成交。
+  - `sim/intent.py`：专程进店概率按档位/在店雇工；NPC 每日两篮（口粮 + 耐用品），
+    仅在检测到玩家店时启用；无玩家世界走旧分支。
+  - `world/state.py`：`Business.price_overrides/day_history`（非空才序列化）+
+    运行期 `day_customers`；`world/effects.py` 新增 `shop_dismiss/shop_price/
+    shop_history/shop_report` 与日结重置。
+  - `api/session.py`：仅新增 5 个动作的白名单 / 别名 / `_args` 与 `shop_report` 的
+    `details.report`+`details.days` 透传（W4 的 UI 读 `details.days`），
+    `withdraw` 兼容 UI 的 `amount` 键；**不改任何既有视图结构**（W1 `8ff784e`）。
+  - `docs/shop-operations.md` 新增第 11–12 节（五动作语义/拒绝码/真实服务样例、
+    定价与买主比价）；新增 `docs/shop-profitability.md`（10 日流水、三档盈亏平衡表、
+    NPC 侧对照、门禁与守恒）。
+- **为什么改**
+  旧账下分号 3 雇工日固定 70 文、客流 5–10 人/日，结构性亏损，开店等于交税；
+  且玩家没有补货/定价/辞退/提现/看账手段，只能干等。
+- **验证**
+  - `pytest`：573 passed, 18 skipped；1 项上游既有失败 `test_determinism_lint`
+    （`177749d` 的 `wsim/admin/audit.py`、`secrets.py` 使用 `time.time`，与本轮无关，
+    已在上游基线 `177749d` 复现）。本轮的 `tests/test_shop_operations.py` 27 项全过，
+    覆盖五动作成功/拒绝、同地点两家店买便宜的、7 日报告、技能产出、API 白名单。
+  - 无玩家 2 日 golden（seed42）：基线 `21f107a` 与当前 `state_final
+    009076f0…` / `event_final 02d5f812…` 逐字节一致（`state_final.json`
+    sha256 `91605d57…`、`events.jsonl` sha256 `1958e73b…`，两份 735 行）。
+  - 无玩家 10 日（seed42，`content_hash 7ec670c1…`）：`events 3084`、
+    `state_final 68b05948…`、`event_final 73026568…`、K1 `62/91 = 68.13%`，
+    与基线逐项一致（旧基线不 skip、无新基线）。
+  - 真实服务（ambient，分号 3000 文 + 3 雇工，+20% 定价）连续 10 日：
+    营收 2134 / 进货 385 / 工资 272 / 税 100 / 净利 **+1377**；day4/5/6
+    连续为正（+130/+255/+466），满足硬条件。
+  - 同 seed 玩家店世界两次运行 `events 3090` 与 `state_final/event_final/K1`
+    完全一致；真实服务事件回放 `conservation delta=0`
+    （`sum(accounts)=50128 = minted 51350 − burned 1222`）。
+  - 玩家店成交占比 3.97%（24/604，<10%）；NPC 侧合计 547→580（+6.0%）、
+    NPC `buy` 114→177（+55.3%）、NPC 店零售营收 2375→4036（+69.9%），
+    属新增客流而非转移。
+- **本笔 commit**：动作集 `3d0ceab`（已推送 `origin/shop-operations`）；
+  盈利验证文档与 CHANGELOG 为本笔。
+
+---
+
+
 ## [W4 店铺经营 UI] 2026-11-06 — 进货 / 定价 / 辞退 / 提现 / 7 日账本（mock 验收）
 
 - **改了什么**

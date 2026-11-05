@@ -611,6 +611,10 @@ def test_player_api_exposes_shop_actions():
     assert WorldSession._args(
         None, "withdraw", "player:u_demo", "u_demo", {"qty": 5},
     )["qty"] == 5
+    # UI 侧传 amount，后端也要收（_args 只做键名兼容，不改动作语义）。
+    assert WorldSession._args(
+        None, "withdraw", "player:u_demo", "u_demo", {"amount": 5},
+    )["qty"] == 5
 
 
 def test_player_api_exposes_recruit_with_shop_semantics():

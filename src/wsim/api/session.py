@@ -1664,7 +1664,8 @@ class WorldSession:
             base["target"] = str(payload.get("target") or "")
             return base
         if action == "withdraw":
-            base["qty"] = payload.get("qty")
+            # UI 侧用 amount，后端动作用 qty；两种键都收，缺省取 qty。
+            base["qty"] = payload.get("qty", payload.get("amount"))
             return base
         if action == "shop_report":
             return base
@@ -2031,7 +2032,10 @@ class WorldSession:
                     details["reply"] = str(m.get("text", "")).removeprefix("我答：")
             elif eff.get("op") == "shop_report":
                 # 新增的只读透传：不改任何既有视图字段，只给 shop_report 动作附带 7 日账。
-                details["report"] = dict(eff.get("data") or {})
+                # W4 的 UI 读 details.days，同时保留 details.report（含店现/价格覆盖）。
+                report = dict(eff.get("data") or {})
+                details["report"] = report
+                details["days"] = list(report.get("days") or [])
         return {
             "ok": event.outcome == "ok",
             "status": "executed" if event.outcome == "ok" else "rejected",
