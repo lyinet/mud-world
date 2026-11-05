@@ -9,6 +9,28 @@
 
 ---
 
+## [修复] 2026-11-05 — 容器默认开启世界自走，与 `./start.sh` 对齐
+
+- **改了什么**：`deploy/entrypoint.sh` 与 `deploy/docker-compose.yml` 原先没有注入
+  `XKX_AMBIENT`，容器默认 `ambient=stopped`；现在默认 `XKX_AMBIENT=1`、
+  `XKX_AMBIENT_CPU=70`、`XKX_AMBIENT_SPEED=1`，与 `./start.sh` 一致，
+  `XKX_AMBIENT=0` 仍可显式关闭。`docs/OPS-RUNBOOK.md` §1.2 与
+  `docs/RELEASE-NOTES-p3l.md` §4 同步改为「容器默认自走，可 0 关闭」。
+- **为什么**：对外承诺是“一条命令就是活世界”，容器默认静止与之矛盾。
+  此修正发生在 `delivery-p3l` tag（`d01ba9b`）**之后**，tag 未移动，交付包需按本提交重打。
+- **验证方式**：全新卷、无任何环境变量 `docker-compose up -d --no-build` →
+  容器 `Up (healthy)`，`/api/health` 返回
+  `ambient=running / ambient_tick=1 / tick=1 / ambient_speed=1.0`，10 秒后
+  `ambient_tick=3`（推进）；`/api/world/feed?limit=8` 返回 6 条真实 NPC 事件
+  （`曹半仙` move/quest_accept/work、`石敢当` move/quest_accept）。
+  全新卷 `XKX_AMBIENT=0` → `ambient=stopped / ambient_tick=null /
+  ambient_reason=status_file_missing / tick=0`，`feed` 为 `{"events":[],"tick":0}`；
+  同一容器内 register/login/enter/`/api/player/state` 全部 200 且 `ok=true`
+  （初始资产 300 文，tick 6→12），玩家功能不受影响。
+- **commit**：`dcbcea5`
+
+---
+
 ## [功能] 2026-11-05 — 世界接线：自走与玩家同一个世界、同一本账
 
 - **改了什么**：取消自走独立子进程与独立 `runs/<RUN_ID>/ambient/events.sqlite`。
