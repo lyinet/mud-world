@@ -233,9 +233,7 @@ cleanup() {
   [ "$CLEANED" -eq 1 ] && return 0
   CLEANED=1
   trap - INT TERM EXIT
-  # 先收自走（它会读世界、写事件），再收前端与 API，避免半截写入。
-  stop_one "$AMBIENT_PID" "世界自走"
-  AMBIENT_PID=""
+  # 自走与 API 同进程：随 API 退出即停，无需单独收割。
   stop_one "$UI_PID" "前端"
   UI_PID=""
   stop_one "$API_PID" "API"
@@ -261,7 +259,11 @@ trap cleanup EXIT
 
 # ---------------------------------------------------------------- 7. API
 log "启动 wsim.api -> $API_BASE"
-PYTHONPATH="$ROOT/src" PYTHONUNBUFFERED=1 "$PY" -m wsim.api \
+PYTHONPATH="$ROOT/src" PYTHONUNBUFFERED=1 \
+  XKX_AMBIENT="$AMBIENT_ENABLED" \
+  XKX_AMBIENT_SPEED="$AMBIENT_SPEED" \
+  XKX_AMBIENT_CPU="$AMBIENT_CPU_PCT" \
+  "$PY" -m wsim.api \
   --root "$ROOT" --run "$RUN_ID" --port "$API_PORT" >"$API_LOG" 2>&1 &
 API_PID=$!
 
@@ -316,29 +318,25 @@ if ! wait_http "$API_BASE/api/player/state?account_id=u_demo" 1 "$API_PID" 160; 
 fi
 log "健康检查: API 200 (GET /api/player/state)"
 
-# ---------------------------------------------------------------- 7b. 世界自走（默认开启）
+# ---------------------------------------------------------------- 7b. 世界自走（与 API 同进程）
 ambient_ready() {
-  local f="$ROOT/runs/$RUN_ID/ambient/ambient_status.json"
-  [ -f "$f" ] || return 1
-  "$PY" - "$f" <<'PY' 2>/dev/null
+  # 自走不再是独立子进程：读 /api/health 的 ambient 字段（同一个世界 tick）。
+  local code
+  code="$(curl -sS -o "$BODY_FILE" -w '%{http_code}' "$API_BASE/api/health" 2>/dev/null || echo 000)"
+  [ "$code" = "200" ] || return 1
+  "$PY" - "$BODY_FILE" <<'PY' 2>/dev/null
 import json
 import sys
 
 data = json.load(open(sys.argv[1], encoding="utf-8"))
-state = data.get("state")
-tick = data.get("tick")
+state = data.get("ambient")
+tick = data.get("ambient_tick")
 raise SystemExit(0 if state in ("running", "paused") and isinstance(tick, int) else 1)
 PY
 }
 
 if [ "$AMBIENT_ENABLED" = "1" ]; then
-  log "启动世界自走（默认开启，XKX_AMBIENT=0 可关闭）: speed=${AMBIENT_SPEED}x cpu<=${AMBIENT_CPU_PCT}%"
-  PYTHONPATH="$ROOT/src" PYTHONUNBUFFERED=1 "$PY" "$ROOT/tools/ambient_run.py" \
-    --run-id ambient --out "$ROOT/runs/$RUN_ID" \
-    --speed "$AMBIENT_SPEED" --max-cpu-pct "$AMBIENT_CPU_PCT" \
-    --parent-pid $$ --indefinite >>"$AMBIENT_LOG" 2>&1 &
-  AMBIENT_PID=$!
-  log "世界自走已在后台独立启动（不阻塞前端）"
+  log "世界自走随 API 同进程启动（同一 Writer / 同一份 events.sqlite）: speed=${AMBIENT_SPEED}x cpu<=${AMBIENT_CPU_PCT}%"
 else
   log "世界自走已关闭（XKX_AMBIENT=0）：世界不会后台推进，仅实时会话"
 fi
@@ -392,7 +390,7 @@ if [ "$AMBIENT_ENABLED" = "1" ]; then
   ambient_seen=0
   i=0
   while [ "$i" -lt 16 ]; do
-    if ! kill -0 "$AMBIENT_PID" 2>/dev/null; then
+    if ! kill -0 "$API_PID" 2>/dev/null; then
       break
     fi
     if ambient_ready; then
@@ -403,10 +401,10 @@ if [ "$AMBIENT_ENABLED" = "1" ]; then
     i=$((i + 1))
   done
   if [ "$ambient_seen" = "1" ]; then
-    log "自走就绪: runs/$RUN_ID/ambient（/api/health ambient=running）"
+    log "自走就绪: /api/health ambient=running（与玩家同一份 events.sqlite）"
   else
-    log "警告: 世界自走未就绪（进程可能已退出）；API/前端继续提供；日志: $AMBIENT_LOG"
-    tail -n 15 "$AMBIENT_LOG" 2>/dev/null | sed 's/^/[ambient] /' || true
+    log "警告: 世界自走未就绪；API/前端继续提供；日志: $API_LOG"
+    tail -n 15 "$API_LOG" 2>/dev/null | sed 's/^/[api] /' || true
   fi
 fi
 
@@ -435,11 +433,6 @@ while :; do
   if ! kill -0 "$UI_PID" 2>/dev/null; then
     log "玩家前端进程已退出，停止 API"
     exit 1
-  fi
-  if [ -n "$AMBIENT_PID" ] && ! kill -0 "$AMBIENT_PID" 2>/dev/null; then
-    log "警告: 世界自走进程已退出；API/前端继续提供，自走日志: $AMBIENT_LOG"
-    wait "$AMBIENT_PID" 2>/dev/null || true
-    AMBIENT_PID=""
   fi
   sleep 0.5
 done
