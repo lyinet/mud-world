@@ -12,6 +12,8 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
+from .clock import now_utc
+
 SENSITIVE_KEY_RE = re.compile(
     r"(api[_-]?key|access[_-]?token|refresh[_-]?token|token|secret|password|passwd|"
     r"authorization|credential)",
@@ -71,13 +73,11 @@ def append(
     at: float | None = None,
 ) -> None:
     """写一条审计；调用方负责事务提交。"""
-    import time
-
     conn.execute(
         "INSERT INTO admin_audit(at, who, action, key, before_json, after_json, detail_json)"
         " VALUES (?, ?, ?, ?, ?, ?, ?)",
         (
-            float(time.time() if at is None else at),
+            float(now_utc() if at is None else at),
             str(who or "unknown"),
             str(action),
             str(key),

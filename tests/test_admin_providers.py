@@ -106,7 +106,7 @@ def test_chain_order_fields_and_secret(db_path: Path, master: str) -> None:
     assert chain[0].slot == "dialogue"
     assert chain[0].max_retries == 0
     assert chain[0].extra_body == ({"enable_thinking": False},)
-    assert providers.masked_key("relay-a", db_path=db_path) == "sk-r…ay-a"
+    assert providers.masked_key("relay-a", db_path=db_path) == "sk-r****ay-a"
     assert providers.has_key("relay-a", db_path=db_path) is True
     assert providers.capabilities_status()["quest_gen"] == "stub"
     assert "无 model 调用" in providers.capabilities_evidence()["quest_gen"]
@@ -275,3 +275,143 @@ def test_test_provider_master_key_missing_after_secret_exists(
     monkeypatch.setattr(providers, "_CACHE", cache)
     with pytest.raises(secrets.MasterKeyMissing):
         providers.test_provider("relay-a", cache=cache)
+
+
+def test_capability_report_config_states(db_path: Path, master: str, use_db) -> None:
+    _add_provider(db_path, "relay-a", model="mock-model")
+    providers._CACHE.invalidate()
+    empty = providers.capability_report(db_path=db_path, cache=providers._CACHE)
+    assert empty["dialogue"]["status"] == "unconfigured"
+    assert empty["dialogue"]["provider"] == ""
+    assert empty["dialogue"]["last_check_at"] is None
+    assert empty["quest_gen"]["status"] == "stub"
+    assert empty["quest_gen"]["last_check_at"] is None
+    assert empty["quest_gen"]["source"] == "stub"
+    assert providers.capabilities_status(db_path=db_path, cache=providers._CACHE)["quest_gen"] == "stub"
+
+    _route(db_path, "dialogue", "relay-a", ["relay-b"])
+    _route(db_path, "quest_gen", "relay-a")
+    providers._CACHE.invalidate()
+    report = providers.capability_report(db_path=db_path, cache=providers._CACHE)
+    assert report["dialogue"]["status"] == "unverified"
+    assert report["dialogue"]["source"] == "config"
+    assert report["dialogue"]["provider"] == "relay-a"
+    assert report["dialogue"]["model"] == "mock-model"
+    assert report["dialogue"]["fallback"] == ["relay-b"]
+    assert report["dialogue"]["last_check_at"] is None
+    # stub 能力即使配了路由也恒为 stub。
+    assert report["quest_gen"]["status"] == "stub"
+    assert report["quest_gen"]["provider"] == "relay-a"
+
+
+def test_record_result_active_and_throttle(db_path: Path, master: str, use_db) -> None:
+    _add_provider(db_path, "relay-a", model="mock-model")
+    _route(db_path, "dialogue", "relay-a")
+    providers._CACHE.invalidate()
+
+    providers.record_result(
+        "dialogue",
+        provider_id="relay-a",
+        model="mock-model",
+        ok=True,
+        latency_ms=123.4,
+        db_path=db_path,
+        now=1000.0,
+    )
+    entry = providers.capability_report(db_path=db_path, cache=providers._CACHE)["dialogue"]
+    assert entry["status"] == "active"
+    assert entry["source"] == "real_call"
+    assert entry["last_check_at"] == 1000.0
+    assert entry["last_check_at_iso"] == "1970-01-01T00:16:40Z"
+    assert entry["latency_ms"] == 123.4
+    assert entry["provider"] == "relay-a"
+    assert entry["model"] == "mock-model"
+    assert entry["last_served_by"] == {
+        "provider": "relay-a",
+        "model": "mock-model",
+        "fallback_used": False,
+    }
+    assert providers.capabilities_status(db_path=db_path, cache=providers._CACHE)["dialogue"] == "active"
+
+    # 同状态 5 秒内节流：last_check_at 不变。
+    providers.record_result(
+        "dialogue",
+        provider_id="relay-a",
+        model="mock-model",
+        ok=True,
+        latency_ms=999.0,
+        db_path=db_path,
+        now=1002.0,
+    )
+    entry = providers.capability_report(db_path=db_path, cache=providers._CACHE)["dialogue"]
+    assert entry["last_check_at"] == 1000.0
+    assert entry["latency_ms"] == 123.4
+
+    providers.record_result(
+        "dialogue",
+        provider_id="relay-a",
+        model="mock-model",
+        ok=True,
+        latency_ms=50.0,
+        db_path=db_path,
+        now=1006.0,
+    )
+    entry = providers.capability_report(db_path=db_path, cache=providers._CACHE)["dialogue"]
+    assert entry["last_check_at"] == 1006.0
+    assert entry["latency_ms"] == 50.0
+
+
+def test_record_result_degraded_error_and_fallback(
+    db_path: Path, master: str, use_db
+) -> None:
+    _add_provider(db_path, "relay-a")
+    _add_provider(db_path, "relay-b", model="mock-b")
+    _route(db_path, "dialogue", "relay-a", ["relay-b"])
+    providers._CACHE.invalidate()
+
+    providers.record_result(
+        "dialogue",
+        provider_id="relay-b",
+        model="mock-b",
+        ok=True,
+        latency_ms=50.0,
+        fallback_used=True,
+        db_path=db_path,
+        now=2000.0,
+    )
+    entry = providers.capability_report(db_path=db_path, cache=providers._CACHE)["dialogue"]
+    assert entry["status"] == "active"
+    assert entry["provider"] == "relay-b"
+    assert entry["last_served_by"]["fallback_used"] is True
+
+    # 状态变化立即写，即使仍在 5 秒窗口内。
+    providers.record_result(
+        "dialogue",
+        provider_id="relay-b",
+        model="mock-b",
+        ok=False,
+        latency_ms=55.5,
+        error="http_500",
+        db_path=db_path,
+        now=2002.0,
+    )
+    entry = providers.capability_report(db_path=db_path, cache=providers._CACHE)["dialogue"]
+    assert entry["status"] == "degraded"
+    assert entry["last_check_at"] == 2002.0
+    assert entry["error"] == "http_500"
+    assert entry["http_status"] == 500
+    assert entry["latency_ms"] == 55.5
+    assert providers.capabilities_status(db_path=db_path, cache=providers._CACHE)["dialogue"] == "degraded"
+
+
+def test_record_result_ignores_unmapped_slot(db_path: Path, master: str, use_db) -> None:
+    _add_provider(db_path, "relay-a")
+    providers._CACHE.invalidate()
+    providers.record_result(
+        "intent",
+        provider_id="relay-a",
+        ok=True,
+        db_path=db_path,
+        now=3000.0,
+    )
+    assert settings.RuntimeStore(db_path).all() == {}

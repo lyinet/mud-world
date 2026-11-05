@@ -151,7 +151,8 @@ def test_auth_required_and_login(db_path: Path, env, tmp_path: Path) -> None:
     assert payload["world"]["ambient_speed"] == 1
     assert payload["hot"]["ambient_speed"] is False
     assert payload["capabilities_status"]["validation"] == "stub"
-    assert payload["capabilities_status"]["dialogue"] == "active"
+    assert "dialogue" in payload["capabilities_status"]
+    assert payload["capabilities_status"]["dialogue"] != "active"
     assert "sim/self_goal.py" in payload["capabilities_evidence"]["self_goal"]
 
 
@@ -204,12 +205,12 @@ def test_provider_crud_test_and_masked_key(db_path: Path, env, tmp_path: Path) -
             )
             assert status == 200, payload
             assert payload["has_key"] is True
-            assert payload["key_masked"] == "sk-v…alue"
+            assert payload["key_masked"] == "sk-v****alue"
             assert "api_key" not in payload
 
             status, listing = call(httpd, "GET", "/api/admin/providers", token=token)
             assert status == 200
-            assert listing["providers"][0]["key_masked"] == "sk-v…alue"
+            assert listing["providers"][0]["key_masked"] == "sk-v****alue"
 
             status, result = call(httpd, "POST", "/api/admin/providers/relay-a/test", token=token)
             assert status == 200
@@ -237,6 +238,7 @@ def test_change_key_and_audit_masking(db_path: Path, env, tmp_path: Path) -> Non
         base = f"http://127.0.0.1:{relay.server_address[1]}/v1"
         with admin_server(db_path, tmp_path) as (_app, httpd):
             token = login(httpd)
+            _, before = call(httpd, "GET", "/api/admin/settings", token=token)
             call(httpd, "PUT", "/api/admin/providers/relay-a",
                  {"base_url": base, "model": "mock-model", "api_key": "sk-old-key-0001"}, token)
             call(httpd, "PUT", "/api/admin/settings",
@@ -246,8 +248,12 @@ def test_change_key_and_audit_masking(db_path: Path, env, tmp_path: Path) -> Non
             assert client.complete("s", "u") == "pong"
             assert relay.calls[-1]["auth"] == "Bearer sk-old-key-0001"
 
+            _, rotated = call(httpd, "GET", "/api/admin/settings", token=token)
             call(httpd, "PUT", "/api/admin/providers/relay-a",
                  {"api_key": "sk-new-key-0002"}, token)
+            _, after_rotate = call(httpd, "GET", "/api/admin/settings", token=token)
+            # 密文不在 admin_settings，必须靠版本号让主服务快照失效。
+            assert after_rotate["version"] > rotated["version"] > before["version"]
             providers._CACHE.invalidate()
             assert client.complete("s", "u") == "pong"
             assert relay.calls[-1]["auth"] == "Bearer sk-new-key-0002"
@@ -260,7 +266,7 @@ def test_change_key_and_audit_masking(db_path: Path, env, tmp_path: Path) -> Non
             actions = {row["action"] for row in payload["records"]}
             assert {"provider.put", "secret.put", "settings.update"} <= actions
             secret_rows = [row for row in payload["records"] if row["action"] == "secret.put"]
-            assert secret_rows[0]["after"]["api_key"] == "sk-n…0002"
+            assert secret_rows[0]["after"]["api_key"] == "sk-n****0002"
 
 
 def test_killswitch_blocks_calls(db_path: Path, env, tmp_path: Path) -> None:
@@ -339,7 +345,120 @@ def test_overview_reports_runtime(db_path: Path, env, tmp_path: Path) -> None:
     assert payload["llm"]["calls"] == 7
     assert payload["runtime"]["ambient_speed"] == 2.0
     assert payload["runtime"]["configured"]["ambient_speed"] == 1
+    assert payload["runtime"]["world_state"]["ambient_speed"]["effective_value"] == 2.0
+    assert payload["runtime"]["player_pid"] is None
     assert payload["health"]["ambient_state"] == "running"
+
+
+def _write_ambient_status(root: Path, payload: dict) -> None:
+    path = root / "runs" / "test" / "ambient" / "ambient_status.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+
+def test_world_state_observes_without_faking_hot_apply(
+    db_path: Path, env, tmp_path: Path
+) -> None:
+    _write_ambient_status(
+        tmp_path,
+        {
+            "pid": 1001,
+            "speed": 1.0,
+            "cpu": {"limit": 0.7},
+            "updated_at": "2026-11-06T10:00:00Z",
+        },
+    )
+    with admin_server(db_path, tmp_path) as (_app, httpd):
+        token = login(httpd)
+        status, payload = call(
+            httpd, "PUT", "/api/admin/settings", {"world": {"ambient_speed": 2}}, token
+        )
+        assert status == 200
+        state = payload["world_state"]["ambient_speed"]
+        assert state["value"] == 2
+        assert state["effective_value"] == 1.0
+        assert state["applied"] is False
+        assert state["restart_required"] is True
+        assert state["source"] == "ambient_status.json"
+
+        status, settings_payload = call(httpd, "GET", "/api/admin/settings", token=token)
+        assert status == 200
+        state = settings_payload["world_state"]["ambient_speed"]
+        assert state["value"] == 2
+        assert state["effective_value"] == 1.0
+        assert state["applied"] is False
+
+        env_path = tmp_path / "runs" / "test" / "admin_env.sh"
+        assert env_path.exists()
+        assert "XKX_AMBIENT_SPEED=2" in env_path.read_text(encoding="utf-8")
+        assert "XKX_AMBIENT_CPU=70" in env_path.read_text(encoding="utf-8")
+
+
+def test_world_state_applied_after_player_pid_changes(
+    db_path: Path, env, tmp_path: Path
+) -> None:
+    _write_ambient_status(
+        tmp_path,
+        {
+            "pid": 1001,
+            "speed": 1.0,
+            "cpu": {"limit": 0.7},
+            "updated_at": "2026-11-06T10:00:00Z",
+        },
+    )
+    with admin_server(db_path, tmp_path) as (app, httpd):
+        token = login(httpd)
+        call(httpd, "PUT", "/api/admin/settings", {"world": {"ambient_speed": 2}}, token)
+        _write_ambient_status(
+            tmp_path,
+            {
+                "pid": 2002,
+                "speed": 2.0,
+                "cpu": {"limit": 0.7},
+                "updated_at": "2026-11-06T10:05:00Z",
+            },
+        )
+        status, payload = call(httpd, "GET", "/api/admin/settings", token=token)
+    assert status == 200
+    state = payload["world_state"]["ambient_speed"]
+    assert state["value"] == 2
+    assert state["effective_value"] == 2.0
+    assert state["applied"] is True
+    assert app.runtime.get("world_pid") == 2002
+
+
+def test_providers_routing_view_and_key_metadata(
+    db_path: Path, env, tmp_path: Path
+) -> None:
+    with admin_server(db_path, tmp_path) as (_app, httpd):
+        token = login(httpd)
+        status, payload = call(
+            httpd,
+            "PUT",
+            "/api/admin/providers/relay-a",
+            {
+                "name": "中转站A",
+                "base_url": "http://127.0.0.1:9/v1",
+                "model": "mock-model",
+                "api_key": "sk-value-01",
+            },
+            token,
+        )
+        assert status == 200
+        assert payload["key_masked"] == "sk-v****e-01"
+        status, listing = call(httpd, "GET", "/api/admin/providers", token=token)
+    assert status == 200
+    assert "routing_view" in listing
+    assert "capabilities" in listing
+    assert set(listing["routing_view"]["dialogue"]) == {
+        "provider", "model", "fallback", "status", "last_served_by",
+    }
+    row = listing["providers"][0]
+    assert row["key_length"] == len("sk-value-01")
+    assert row["key_created_at"] is not None and row["key_created_at"].endswith("Z")
+    assert row["key_updated_at"] is not None and row["key_updated_at"].endswith("Z")
+    assert row["key_last_used_at"] is None
+    assert row["key_masked"] == "sk-v****e-01"
 
 
 def test_login_rate_limit(db_path: Path, env, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -378,7 +497,7 @@ def test_config_survives_admin_restart(db_path: Path, env, tmp_path: Path) -> No
     reopened = server.AdminApp(db_path, root=tmp_path, run="test")
     payload = reopened.get_settings()
     assert payload["world"]["ambient_speed"] == 5
-    assert reopened.list_providers()[0]["key_masked"] == "sk-p…t-01"
+    assert reopened.list_providers()[0]["key_masked"] == "sk-p****t-01"
     assert reopened.store.version() >= 2
 
 

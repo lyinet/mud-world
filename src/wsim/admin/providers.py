@@ -10,15 +10,24 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 import threading
 import time
 from dataclasses import dataclass, replace
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
-from .settings import DEFAULT_SETTINGS, deep_merge, default_settings, resolve_db_path
+from .settings import (
+    DEFAULT_SETTINGS,
+    RuntimeStore,
+    deep_merge,
+    default_settings,
+    resolve_db_path,
+)
 from . import secrets
+from .clock import now_utc
 
 CAPABILITIES = (
     "dialogue",
@@ -30,11 +39,11 @@ CAPABILITIES = (
     "validation",
 )
 
-# 依据真实调用点填写；stub 必须如实标 stub（见 docs/ADMIN-CONSOLE.md）。
-CAPABILITY_STATUS: dict[str, str] = {
-    "dialogue": "active",
-    "strategy": "active",
-    "night_batch": "active",
+# 能力实现类型：llm 需要真实调用后才可判定状态；stub 为确定性实现。
+CAPABILITY_KIND: dict[str, str] = {
+    "dialogue": "llm",
+    "strategy": "llm",
+    "night_batch": "llm",
     "self_goal": "stub",
     "quest_gen": "stub",
     "persona_gen": "stub",
@@ -82,12 +91,215 @@ class Killswitch(AdminProviderError):
     code = "llm_killswitch"
 
 
-def capabilities_status() -> dict[str, str]:
-    return dict(CAPABILITY_STATUS)
+def capabilities_status(
+    db_path: str | Path | None = None, cache: SnapshotCache | None = None
+) -> dict[str, str]:
+    """与 `capability_report()` 同源，保持扁平 `{capability: status}` 兼容。"""
+    return {
+        capability: str(entry.get("status") or "unconfigured")
+        for capability, entry in capability_report(db_path=db_path, cache=cache).items()
+    }
 
 
 def capabilities_evidence() -> dict[str, str]:
     return dict(CAPABILITY_EVIDENCE)
+
+
+_HTTP_STATUS_RE = re.compile(r"^http_(\d{3})$")
+
+
+def _iso_utc(timestamp: Any) -> str | None:
+    try:
+        value = float(timestamp or 0.0)
+    except (TypeError, ValueError):
+        return None
+    if value <= 0:
+        return None
+    return datetime.fromtimestamp(value, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _touch_if_due(db_path: Path, provider_id: str, at: float) -> None:
+    """真实调用成功后回写 last_used_at；仅在命中 provider 且距上次 ≥60s 时写。"""
+    try:
+        conn = sqlite3.connect(str(db_path), timeout=5.0)
+        try:
+            row = conn.execute(
+                "SELECT last_used_at FROM admin_secrets WHERE id = ?", (str(provider_id),)
+            ).fetchone()
+        finally:
+            conn.close()
+    except sqlite3.Error:
+        return
+    if row is None:
+        return
+    try:
+        last_used = float(row[0] or 0.0)
+    except (TypeError, ValueError):
+        last_used = 0.0
+    if at - last_used < 60:
+        return
+    secrets.SecretStore(db_path).touch(str(provider_id), at=at)
+
+
+def record_result(
+    slot: str,
+    *,
+    provider_id: str = "",
+    model: str = "",
+    ok: bool = False,
+    latency_ms: float = 0.0,
+    error: str = "",
+    http_status: int | None = None,
+    fallback_used: bool = False,
+    db_path: str | Path | None = None,
+    now: float | None = None,
+) -> None:
+    """真实调用结束后写 `capability:<name>`；任何异常都静默，不拖垮主服务。"""
+    try:
+        capability = SLOT_CAPABILITY.get(str(slot))
+        if not capability:
+            return
+        path = Path(db_path) if db_path else resolve_db_path()
+        at = float(now_utc() if now is None else now)
+        runtime = RuntimeStore(path)
+        status = "active" if ok else "degraded"
+        old = runtime.get(f"capability:{capability}")
+        if isinstance(old, dict) and str(old.get("status") or "") == status:
+            try:
+                last_check = float(old.get("last_check_at") or 0.0)
+            except (TypeError, ValueError):
+                last_check = 0.0
+            # 状态未变：5 秒内最多写一次。
+            if at - last_check < 5:
+                if provider_id:
+                    _touch_if_due(path, str(provider_id), at)
+                return
+        if http_status is None:
+            match = _HTTP_STATUS_RE.match(str(error or ""))
+            http_status = int(match.group(1)) if match else None
+        record = {
+            "status": status,
+            "ok": bool(ok),
+            "last_check_at": at,
+            "last_check_at_iso": _iso_utc(at),
+            "latency_ms": round(float(latency_ms or 0.0), 1),
+            "error": str(error) or None,
+            "http_status": int(http_status) if http_status is not None else None,
+            "provider_id": str(provider_id or ""),
+            "model": str(model or ""),
+            "fallback_used": bool(fallback_used),
+            "slot": str(slot),
+        }
+        runtime.set(f"capability:{capability}", record, now=at)
+        if provider_id:
+            _touch_if_due(path, str(provider_id), at)
+    except Exception:  # noqa: BLE001 - 遥测失败不得影响主服务
+        return
+
+
+def _fallback_report_entry(capability: str) -> dict[str, Any]:
+    status = "stub" if CAPABILITY_KIND.get(capability) == "stub" else "unconfigured"
+    return {
+        "status": status,
+        "last_check_at": None,
+        "last_check_at_iso": None,
+        "latency_ms": None,
+        "error": None,
+        "http_status": None,
+        "provider": "",
+        "model": "",
+        "fallback": [],
+        "last_served_by": None,
+        "source": "stub" if status == "stub" else "config",
+        "evidence": CAPABILITY_EVIDENCE.get(capability, ""),
+    }
+
+
+def capability_report(
+    db_path: str | Path | None = None, cache: SnapshotCache | None = None
+) -> dict[str, dict[str, Any]]:
+    """能力状态唯一来源：配置（stub/unconfigured/unverified）+ 真实调用记录。"""
+    try:
+        snapshot_cache = cache or _CACHE
+        snapshot = snapshot_cache.get()
+        path = Path(db_path) if db_path else snapshot_cache.db_path
+        runtime = RuntimeStore(path)
+        providers_map = {
+            str(item.get("id")): item
+            for item in (snapshot.get("providers") or [])
+            if isinstance(item, dict) and item.get("id")
+        }
+        routing = snapshot.get("routing")
+        if not isinstance(routing, dict):
+            routing = {}
+        report: dict[str, dict[str, Any]] = {}
+        for capability in CAPABILITIES:
+            route_ids = _ids_for_route(routing.get(capability))
+            primary = route_ids[0] if route_ids else ""
+            entry = providers_map.get(primary) if primary else None
+            primary_model = str(entry.get("model") or "") if isinstance(entry, dict) else ""
+            base: dict[str, Any] = {
+                "status": "",
+                "last_check_at": None,
+                "last_check_at_iso": None,
+                "latency_ms": None,
+                "error": None,
+                "http_status": None,
+                "provider": primary,
+                "model": primary_model,
+                "fallback": route_ids[1:],
+                "last_served_by": None,
+                "source": "",
+                "evidence": CAPABILITY_EVIDENCE.get(capability, ""),
+            }
+            if CAPABILITY_KIND.get(capability) == "stub":
+                base.update({"status": "stub", "source": "stub"})
+                report[capability] = base
+                continue
+            if not route_ids:
+                base.update(
+                    {
+                        "status": "unconfigured",
+                        "source": "config",
+                        "provider": "",
+                        "model": "",
+                        "fallback": [],
+                    }
+                )
+                report[capability] = base
+                continue
+            record = runtime.get(f"capability:{capability}")
+            if not isinstance(record, dict):
+                base.update({"status": "unverified", "source": "config"})
+                report[capability] = base
+                continue
+            status = str(record.get("status") or "")
+            if status not in ("active", "degraded"):
+                status = "unverified"
+            served_provider = str(record.get("provider_id") or primary)
+            served_model = str(record.get("model") or primary_model)
+            base.update(
+                {
+                    "status": status,
+                    "source": "real_call" if status in ("active", "degraded") else "config",
+                    "last_check_at": record.get("last_check_at"),
+                    "last_check_at_iso": record.get("last_check_at_iso"),
+                    "latency_ms": record.get("latency_ms"),
+                    "error": record.get("error"),
+                    "http_status": record.get("http_status"),
+                    "provider": served_provider,
+                    "model": served_model,
+                    "last_served_by": {
+                        "provider": served_provider,
+                        "model": served_model,
+                        "fallback_used": bool(record.get("fallback_used")),
+                    },
+                }
+            )
+            report[capability] = base
+        return report
+    except Exception:  # noqa: BLE001 - 管理 API 不能因遥测读失败而 500
+        return {capability: _fallback_report_entry(capability) for capability in CAPABILITIES}
 
 
 def _read_snapshot(db_path: Path) -> tuple[int, dict[str, Any]]:
@@ -124,7 +336,8 @@ class SnapshotCache:
     ):
         self._fixed_path = Path(db_path) if db_path else None
         self.max_age_s = max(1.0, float(max_age_s))
-        self._clock = clock or time.monotonic
+        # 仅用于快照节流的时间差，不进入世界状态；perf_counter 不受系统时钟回拨影响。
+        self._clock = clock or time.perf_counter
         self._lock = threading.Lock()
         self._version = -1
         self._settings = default_settings()

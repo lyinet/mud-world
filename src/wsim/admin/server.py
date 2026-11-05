@@ -25,6 +25,7 @@ from . import __version__, audit
 from . import providers as provider_registry
 from . import secrets as secret_store
 from . import settings
+from .clock import now_utc
 
 SESSION_TTL_S = 24 * 3600
 LOGIN_WINDOW_S = 300
@@ -59,6 +60,31 @@ def _file_size(path: Path) -> int:
         return 0
 
 
+def _env_number(value: Any) -> str:
+    """把配置数值写成 shell 友好的形式（整数不带 `.0`）。"""
+    if isinstance(value, bool):
+        return "1" if value else "0"
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+    if number.is_integer():
+        return str(int(number))
+    return repr(number)
+
+
+def _world_applied(value: Any, effective: Any) -> bool:
+    """只有 `effective_value` 真实存在且与配置值相等才算已生效。"""
+    if effective is None:
+        return False
+    if isinstance(value, bool) or isinstance(effective, bool):
+        return bool(value) == bool(effective)
+    try:
+        return float(value) == float(effective)
+    except (TypeError, ValueError):
+        return value == effective
+
+
 class AdminApp:
     """路由层的业务实现；与 HTTP handler 解耦，便于单测直接调用。"""
 
@@ -74,17 +100,26 @@ class AdminApp:
         settings.init_schema(self.db_path)
         self.root = Path(root).resolve()
         self.run = str(run or os.environ.get("XKX_RUN") or "player-demo")
-        self.clock = clock or time.time
+        self.clock = clock or now_utc
         self.started_at = float(self.clock())
         self.store = settings.SettingsStore(self.db_path, now_fn=self.clock)
         self.secrets = secret_store.SecretStore(self.db_path)
         self.snapshot = provider_registry.SnapshotCache(self.db_path)
         self.provider_test_cache = self.snapshot
+        self.runtime = settings.RuntimeStore(self.db_path, now_fn=self.clock)
+        self.player_status_path = self.run_dir / "ambient" / "ambient_status.json"
+        self.reconcile_world_state()
+        if not self.env_bridge_path.exists():
+            self._write_env_bridge()
 
     # ------------------------------------------------------------ 路径
     @property
     def run_dir(self) -> Path:
         return self.root / "runs" / self.run
+
+    @property
+    def env_bridge_path(self) -> Path:
+        return self.run_dir / "admin_env.sh"
 
     # ------------------------------------------------------------ 登录/会话
     def login(self, token: str, ip: str) -> dict[str, Any]:
@@ -149,34 +184,154 @@ class AdminApp:
             conn.close()
 
     # ------------------------------------------------------------ settings
+    def reconcile_world_state(self) -> dict[str, dict[str, Any]]:
+        """配置值与运行观测的双值契约（D1/D5）：不伪造热改。
+
+        - `value` 永远是当前配置；`effective_value` 只来自 `ambient_status.json` 或保持原值。
+        - `applied` 只在观测值与配置值相等时为 true；写成功本身绝不置 true。
+        - `world_pid` 仅作为“玩家进程是否重启”的可观测证据，不改变上述判定。
+        """
+        state = settings.default_world_state()
+        stored = self.runtime.get("world_state", {})
+        if isinstance(stored, dict):
+            for key in settings.WORLD_KEYS:
+                item = stored.get(key)
+                if isinstance(item, dict):
+                    state[key].update(item)
+        state = {key: state[key] for key in settings.WORLD_KEYS}
+
+        status = self._read_json(self.player_status_path)
+        observed: dict[str, Any] = {}
+        speed = status.get("speed")
+        if isinstance(speed, (int, float)) and not isinstance(speed, bool):
+            observed["ambient_speed"] = speed
+        cpu = status.get("cpu")
+        limit = cpu.get("limit") if isinstance(cpu, dict) else None
+        if isinstance(limit, (int, float)) and not isinstance(limit, bool):
+            scaled = round(float(limit) * 100.0, 1)
+            observed["ambient_cpu"] = int(scaled) if scaled.is_integer() else scaled
+        observed_at = status.get("updated_at")
+
+        config = self.store.get_section("world")
+        for key in settings.WORLD_KEYS:
+            entry = state[key]
+            entry["value"] = config.get(key, entry.get("value"))
+            entry["restart_required"] = True
+            if key in observed:
+                entry["effective_value"] = observed[key]
+                entry["source"] = "ambient_status.json"
+                entry["observed_at"] = observed_at
+            else:
+                entry["source"] = "none"
+                entry["observed_at"] = None
+            entry["applied"] = _world_applied(entry.get("value"), entry.get("effective_value"))
+
+        pid = status.get("pid")
+        if pid is not None and pid != self.runtime.get("world_pid"):
+            self.runtime.set("world_pid", pid)
+        self.runtime.set("world_state", state)
+        return state
+
     def get_settings(self) -> dict[str, Any]:
         payload = self.store.get_all()
         payload["version"] = self.store.version()
         payload["hot"] = settings.hot_map()
         payload["hot_notes"] = settings.hot_notes()
-        payload["capabilities_status"] = provider_registry.capabilities_status()
+        payload["world_state"] = self.reconcile_world_state()
+        report = self.capability_report_view()
+        payload["capabilities"] = report
+        payload["capabilities_status"] = {
+            capability: str(item.get("status") or "unconfigured")
+            for capability, item in report.items()
+        }
         payload["capabilities_evidence"] = provider_registry.capabilities_evidence()
+        stamps = [
+            float(item["last_check_at"])
+            for item in report.values()
+            if item.get("last_check_at") is not None
+        ]
+        payload["capabilities_last_check_at"] = max(stamps) if stamps else None
+        payload["env_bridge"] = str(self.env_bridge_path)
         return payload
 
     def put_settings(self, patch: dict[str, Any], who: str) -> dict[str, Any]:
         result = self.store.update(patch, who=who, action="settings.update")
-        return {
+        self.snapshot.invalidate()
+        response: dict[str, Any] = {
             "ok": True,
             "version": result["version"],
             "requires_restart": result["requires_restart"],
             "changed": result["changed"],
-            "settings": self.get_settings(),
         }
+        if set(result["changed"]) & set(settings.WORLD_KEYS):
+            self.reconcile_world_state()
+            self._write_env_bridge()
+            response["world_state"] = self.reconcile_world_state()
+        response["settings"] = self.get_settings()
+        return response
+
+    def _write_env_bridge(self) -> Path:
+        """原子生成 `<run>/admin_env.sh`；只含世界参数，不含任何 key/token。"""
+        path = self.env_bridge_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        world = self.store.get_section("world")
+        content = "\n".join(
+            [
+                "# generated by wsim.admin; world parameters only, no secrets",
+                "export XKX_AMBIENT=1",
+                f"export XKX_AMBIENT_SPEED={_env_number(world.get('ambient_speed'))}",
+                f"export XKX_AMBIENT_CPU={_env_number(world.get('ambient_cpu'))}",
+                "",
+            ]
+        )
+        tmp = path.with_name(path.name + ".tmp")
+        tmp.write_text(content, encoding="utf-8")
+        os.replace(tmp, path)
+        os.chmod(path, 0o644)
+        return path
 
     # ------------------------------------------------------------ providers
+    def capability_report_view(self) -> dict[str, dict[str, Any]]:
+        return provider_registry.capability_report(self.db_path, cache=self.snapshot)
+
+    def routing_view(self) -> dict[str, dict[str, Any]]:
+        report = self.capability_report_view()
+        return {
+            capability: {
+                "provider": str(item.get("provider") or ""),
+                "model": str(item.get("model") or ""),
+                "fallback": list(item.get("fallback") or []),
+                "status": str(item.get("status") or ""),
+                "last_served_by": item.get("last_served_by"),
+            }
+            for capability, item in report.items()
+        }
+
     def provider_view(self, entry: dict[str, Any]) -> dict[str, Any]:
         row = {key: value for key, value in entry.items() if key != "api_key"}
         provider_id = str(row.get("id") or "")
         has = self.secrets.has(provider_id)
-        masked = self.secrets.masked(provider_id) if has else ""
+        meta: dict[str, Any] = {
+            "masked": "",
+            "length": 0,
+            "created_at": None,
+            "updated_at": None,
+            "last_used_at": None,
+        }
+        if has:
+            try:
+                meta = self.secrets.meta(provider_id)
+            except secret_store.MasterKeyMissing:
+                # 读取容忍：明文不可解时仍返回行，但不 503、不泄露。
+                pass
+        masked = str(meta.get("masked") or "")
         row["has_key"] = has
         row["key_masked"] = masked
         row["key_readable"] = bool(masked)
+        row["key_length"] = int(meta.get("length") or 0)
+        row["key_created_at"] = meta.get("created_at")
+        row["key_updated_at"] = meta.get("updated_at")
+        row["key_last_used_at"] = meta.get("last_used_at")
         return row
 
     def list_providers(self) -> list[dict[str, Any]]:
@@ -213,6 +368,16 @@ class AdminApp:
         self.store.update(
             {"providers": entries}, who=who, action="provider.put", key=provider_id
         )
+        if "api_key" in body:
+            # 密文不在 admin_settings 里，必须显式递增版本，主服务才会重载快照换新 key。
+            self.store.bump_version(
+                "providers",
+                who=who,
+                action="provider.key_rotate",
+                key=provider_id,
+                detail={"key_masked": secret_store.mask_secret(api_key), "length": len(api_key)},
+            )
+        self.snapshot.invalidate()
         return self.provider_view(current)
 
     def delete_provider(self, provider_id: str, who: str) -> dict[str, Any]:
@@ -257,7 +422,8 @@ class AdminApp:
         }
 
     def overview(self) -> dict[str, Any]:
-        ambient = self._read_json(self.run_dir / "ambient" / "ambient_status.json")
+        ambient = self._read_json(self.player_status_path)
+        world_state = self.reconcile_world_state()
         events = self._events_stats()
         cost = self._llm_cost()
         return {
@@ -293,6 +459,16 @@ class AdminApp:
                     "ambient_speed": self.store.get_section("world").get("ambient_speed"),
                     "ambient_cpu": self.store.get_section("world").get("ambient_cpu"),
                 },
+                "world_state": {
+                    key: {
+                        "value": item.get("value"),
+                        "effective_value": item.get("effective_value"),
+                        "applied": bool(item.get("applied")),
+                        "restart_required": bool(item.get("restart_required")),
+                    }
+                    for key, item in world_state.items()
+                },
+                "player_pid": self.runtime.get("world_pid"),
                 "note": "配置面与运行面可能不同；world.* 当前只在玩家 API 启动时读取",
             },
             "uptime_s": round(float(self.clock()) - self.started_at, 1),
@@ -478,7 +654,15 @@ class AdminHandler(BaseHTTPRequestHandler):
         elif method == "PUT" and path == "/api/admin/settings":
             self._send(HTTPStatus.OK, app.put_settings(body, who))
         elif method == "GET" and path == "/api/admin/providers":
-            self._send(HTTPStatus.OK, {"ok": True, "providers": app.list_providers()})
+            self._send(
+                HTTPStatus.OK,
+                {
+                    "ok": True,
+                    "providers": app.list_providers(),
+                    "routing_view": app.routing_view(),
+                    "capabilities": app.capability_report_view(),
+                },
+            )
         elif method == "GET" and path == "/api/admin/audit":
             limit = 100
             try:

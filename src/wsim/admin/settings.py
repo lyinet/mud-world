@@ -12,14 +12,15 @@ import copy
 import json
 import os
 import sqlite3
-import time
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
 from . import audit
+from .clock import now_utc
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 SECTIONS = ("world", "llm", "providers", "routing")
+OBSERVED_WORLD_KEYS = ("ambient_speed", "ambient_cpu")
 
 DEFAULT_SETTINGS: dict[str, Any] = {
     "world": {
@@ -49,6 +50,8 @@ DEFAULT_SETTINGS: dict[str, Any] = {
         )
     },
 }
+
+WORLD_KEYS = tuple(DEFAULT_SETTINGS["world"])
 
 # hot=True 表示主服务无需重启即可生效；False 必须重启（或尚未接线）。
 HOT: dict[str, bool] = {
@@ -91,7 +94,9 @@ CREATE TABLE IF NOT EXISTS admin_secrets (
     id TEXT PRIMARY KEY,
     ciphertext BLOB NOT NULL,
     nonce BLOB NOT NULL,
+    created_at REAL NOT NULL DEFAULT 0,
     updated_at REAL NOT NULL,
+    last_used_at REAL NOT NULL DEFAULT 0,
     updated_by TEXT NOT NULL DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS admin_audit (
@@ -115,6 +120,11 @@ CREATE TABLE IF NOT EXISTS admin_login_failures (
     failed_at REAL NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_admin_login_failures ON admin_login_failures(ip, failed_at);
+CREATE TABLE IF NOT EXISTS admin_runtime (
+    key TEXT PRIMARY KEY,
+    value_json TEXT NOT NULL,
+    updated_at REAL NOT NULL
+);
 """
 
 
@@ -155,19 +165,115 @@ def connect(path: str | Path, readonly: bool = False) -> sqlite3.Connection:
 
 
 def init_schema(path: str | Path) -> None:
-    """幂等创表；重复调用不破坏已有数据。"""
+    """幂等建表/迁移；重复调用不破坏已有数据、不重复 ALTER。"""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(path), timeout=5.0)
     try:
-        version = int(conn.execute("PRAGMA user_version").fetchone()[0] or 0)
-        if version >= SCHEMA_VERSION:
-            return
+        # 始终执行建表脚本：老库（user_version >= 版本）也可能缺 admin_runtime。
         conn.executescript(_SCHEMA)
+        columns = {
+            str(row[1]) for row in conn.execute("PRAGMA table_info(admin_secrets)").fetchall()
+        }
+        if "created_at" not in columns:
+            conn.execute(
+                "ALTER TABLE admin_secrets ADD COLUMN created_at REAL NOT NULL DEFAULT 0"
+            )
+        if "last_used_at" not in columns:
+            conn.execute(
+                "ALTER TABLE admin_secrets ADD COLUMN last_used_at REAL NOT NULL DEFAULT 0"
+            )
+        # v1 老行没有 created_at：用 updated_at 回填；已是非 0 的行不重复写。
+        conn.execute("UPDATE admin_secrets SET created_at = updated_at WHERE created_at = 0")
         conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
         conn.commit()
     finally:
         conn.close()
+
+
+def default_world_state() -> dict[str, dict[str, Any]]:
+    """每个 world 键的运行观测契约（D1/D5）；默认全部“待重启生效”。"""
+    out: dict[str, dict[str, Any]] = {}
+    for key, value in DEFAULT_SETTINGS["world"].items():
+        out[key] = {
+            "value": copy.deepcopy(value),
+            "effective_value": None,
+            "applied": False,
+            "restart_required": True,
+            "source": "none",
+            "observed_at": None,
+            "note": HOT_NOTES.get(key, ""),
+        }
+    return out
+
+
+class RuntimeStore:
+    """`admin_runtime` 读写：运行态与配置分表，绝不改 `admin_settings.version`。"""
+
+    def __init__(self, path: str | Path, now_fn: Callable[[], float] | None = None):
+        self.path = Path(path)
+        self.now = now_fn or now_utc
+
+    def _conn(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(str(self.path), timeout=5.0)
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    def get(self, key: str, default: Any = None) -> Any:
+        conn = self._conn()
+        try:
+            row = conn.execute(
+                "SELECT value_json FROM admin_runtime WHERE key = ?", (str(key),)
+            ).fetchone()
+        except sqlite3.Error:
+            return default
+        finally:
+            conn.close()
+        if row is None:
+            return default
+        try:
+            return json.loads(str(row[0]))
+        except (TypeError, ValueError):
+            return default
+
+    def set(self, key: str, value: Any, now: float | None = None) -> None:
+        conn = self._conn()
+        try:
+            conn.execute(
+                "INSERT OR REPLACE INTO admin_runtime(key, value_json, updated_at) VALUES (?, ?, ?)",
+                (
+                    str(key),
+                    json.dumps(value, sort_keys=True, ensure_ascii=False),
+                    float(self.now() if now is None else now),
+                ),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def delete(self, key: str) -> None:
+        conn = self._conn()
+        try:
+            conn.execute("DELETE FROM admin_runtime WHERE key = ?", (str(key),))
+            conn.commit()
+        finally:
+            conn.close()
+
+    def all(self) -> dict[str, Any]:
+        conn = self._conn()
+        try:
+            rows = conn.execute("SELECT key, value_json FROM admin_runtime").fetchall()
+        except sqlite3.Error:
+            return {}
+        finally:
+            conn.close()
+        out: dict[str, Any] = {}
+        for row in rows:
+            try:
+                out[str(row[0])] = json.loads(str(row[1]))
+            except (TypeError, ValueError):
+                continue
+        return out
 
 
 def deep_merge(base: Any, patch: Any) -> Any:
@@ -200,8 +306,13 @@ def requires_restart(fields: Iterable[str]) -> list[str]:
     return sorted({str(f) for f in fields if not HOT.get(str(f), False)})
 
 
-def hot_map() -> dict[str, Any]:
-    return {key: {"hot": bool(value), "note": HOT_NOTES.get(key, "")} for key, value in HOT.items()}
+def hot_map() -> dict[str, bool]:
+    """扁平布尔表，供前端直观展示；说明见 `hot_notes()`。"""
+    return {key: bool(value) for key, value in HOT.items()}
+
+
+def hot_notes() -> dict[str, str]:
+    return {key: HOT_NOTES.get(key, "") for key in HOT}
 
 
 class SettingsStore:
@@ -209,7 +320,7 @@ class SettingsStore:
 
     def __init__(self, path: str | Path, now_fn: Callable[[], float] | None = None):
         self.path = Path(path)
-        self.now = now_fn or time.time
+        self.now = now_fn or now_utc
         init_schema(self.path)
 
     # ---------------------------------------------------------------- 读
@@ -336,6 +447,53 @@ class SettingsStore:
                 "changed": sorted(set(changed_fields)),
                 "noop": False,
             }
+        except Exception:
+            try:
+                conn.execute("ROLLBACK")
+            except sqlite3.Error:
+                pass
+            raise
+        finally:
+            conn.close()
+
+    def bump_version(
+        self,
+        section: str = "providers",
+        *,
+        who: str = "admin",
+        action: str = "provider.key_rotate",
+        key: str = "",
+        detail: dict[str, Any] | None = None,
+    ) -> int:
+        """只递增版本号并写审计，不改配置值。
+
+        用于 key 轮换：密文在 `admin_secrets`，不进 `admin_settings`，但主服务
+        必须感知到快照失效。审计里只放掩码。
+        """
+        conn = self._conn()
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            current = int(
+                conn.execute("SELECT MAX(version) FROM admin_settings").fetchone()[0] or 0
+            )
+            new_version = current + 1
+            conn.execute(
+                "UPDATE admin_settings SET version = ?, updated_at = ?, updated_by = ?"
+                " WHERE key = ?",
+                (new_version, float(self.now()), str(who), str(section)),
+            )
+            audit.append(
+                conn,
+                who=who,
+                action=action,
+                key=key or section,
+                before=None,
+                after=None,
+                detail=detail or {},
+                at=float(self.now()),
+            )
+            conn.execute("COMMIT")
+            return new_version
         except Exception:
             try:
                 conn.execute("ROLLBACK")

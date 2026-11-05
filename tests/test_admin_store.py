@@ -52,6 +52,7 @@ def test_schema_is_idempotent(tmp_path: Path) -> None:
         "admin_audit",
         "admin_sessions",
         "admin_login_failures",
+        "admin_runtime",
     } <= tables
 
 
@@ -87,8 +88,8 @@ def test_hot_keys_and_requires_restart() -> None:
     assert settings.requires_restart(["global_enabled"]) == []
     assert settings.requires_restart(["ambient_speed", "providers"]) == ["ambient_speed"]
     hot = settings.hot_map()
-    assert hot["ambient_speed"]["hot"] is False
-    assert "重启" in hot["ambient_speed"]["note"]
+    assert hot["ambient_speed"] is False
+    assert "重启" in settings.hot_notes()["ambient_speed"]
 
 
 def test_update_rejects_unknown_keys(db_path: Path) -> None:
@@ -129,9 +130,9 @@ def test_audit_records_and_mask(db_path: Path) -> None:
     finally:
         conn.close()
     latest = audit.list_records(db_path, limit=1)[0]
-    assert latest["after"]["api_key"] == "sk-z…zzzz"
-    assert latest["before"]["api_key"] == "sk-a…mnop"
-    assert latest["detail"]["token"] == "supe…alue"
+    assert latest["after"]["api_key"] == "sk-z****zzzz"
+    assert latest["before"]["api_key"] == "sk-a****mnop"
+    assert latest["detail"]["token"] == "supe****alue"
     raw = json.dumps(latest, ensure_ascii=False)
     assert "sk-abcdefghijklmnop" not in raw
     assert "super-secret-token-value" not in raw
@@ -142,8 +143,8 @@ def test_secret_roundtrip_and_mask(db_path: Path, master: str) -> None:
     plain = "sk-" + "A1b2C3d4E5f6"
     store.put("relay-a", plain, who="ops")
     assert store.get("relay-a") == plain
-    assert store.masked("relay-a") == "sk-A…E5f6"
-    assert secrets.mask_secret(plain) == "sk-A…E5f6"
+    assert store.masked("relay-a") == "sk-A****E5f6"
+    assert secrets.mask_secret(plain) == "sk-A****E5f6"
     assert secrets.mask_secret("short") == "*****"
     assert store.has("relay-a") is True
     store.delete("relay-a")
@@ -226,3 +227,111 @@ def test_api_key_never_persisted_in_settings(db_path: Path) -> None:
     )
     raw = db_path.read_bytes()
     assert b"sk-should-not-persist" not in raw
+
+
+def test_init_migrates_v1_schema(tmp_path: Path) -> None:
+    path = tmp_path / "service.sqlite"
+    conn = sqlite3.connect(str(path))
+    try:
+        conn.executescript(
+            """
+            CREATE TABLE admin_secrets (
+                id TEXT PRIMARY KEY,
+                ciphertext BLOB NOT NULL,
+                nonce BLOB NOT NULL,
+                updated_at REAL NOT NULL,
+                updated_by TEXT NOT NULL DEFAULT ''
+            );
+            """
+        )
+        conn.execute(
+            "INSERT INTO admin_secrets(id, ciphertext, nonce, updated_at, updated_by)"
+            " VALUES ('relay-a', x'00', x'00', 123.5, 'ops')"
+        )
+        conn.execute("PRAGMA user_version = 1")
+        conn.commit()
+    finally:
+        conn.close()
+
+    settings.init_schema(path)
+    settings.init_schema(path)  # 重复调用幂等
+
+    conn = sqlite3.connect(str(path))
+    try:
+        columns = {str(row[1]) for row in conn.execute("PRAGMA table_info(admin_secrets)")}
+        version = int(conn.execute("PRAGMA user_version").fetchone()[0])
+        row = conn.execute(
+            "SELECT created_at, last_used_at FROM admin_secrets WHERE id = 'relay-a'"
+        ).fetchone()
+        tables = {
+            str(item[0])
+            for item in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='admin_runtime'"
+            )
+        }
+    finally:
+        conn.close()
+    assert {"created_at", "last_used_at"} <= columns
+    assert version == 2
+    assert row == (123.5, 0.0)
+    assert tables == {"admin_runtime"}
+    settings.RuntimeStore(path).set("world_state", {"ambient_speed": {"value": 1}})
+
+
+def test_runtime_store_does_not_touch_settings_version(db_path: Path) -> None:
+    runtime = settings.RuntimeStore(db_path, now_fn=lambda: 1000.0)
+    runtime.set("world_state", {"ambient_speed": {"value": 2}})
+    assert runtime.get("world_state")["ambient_speed"]["value"] == 2
+    assert runtime.get("missing", {"fallback": True}) == {"fallback": True}
+    assert set(runtime.all()) == {"world_state"}
+    runtime.delete("world_state")
+    assert runtime.get("world_state") is None
+
+    # 运行态不得把配置版本号推高。
+    assert settings.SettingsStore(db_path).version() == 0
+    assert settings.default_world_state()["ambient_speed"]["effective_value"] is None
+
+
+def test_secret_meta_and_touch(
+    db_path: Path, master: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    store = secrets.SecretStore(db_path)
+    plain = "sk-abcdefghijklmnop"
+    store.put("relay-a", plain, who="ops")
+    meta = store.meta("relay-a")
+    assert meta["has"] is True
+    assert meta["masked"] == "sk-a****mnop"
+    assert meta["length"] == len(plain)
+    assert meta["created_at"] is not None and meta["created_at"].endswith("Z")
+    assert meta["updated_at"] is not None and meta["updated_at"].endswith("Z")
+    assert meta["last_used_at"] is None  # 0 视为未使用
+    assert plain not in json.dumps(meta, ensure_ascii=False)
+
+    store.touch("relay-a", at=1700000000.0)
+    assert store.meta("relay-a")["last_used_at"] == "2023-11-14T22:13:20Z"
+
+    # 改 key 保留 created_at / last_used_at。
+    created = store.meta("relay-a")["created_at"]
+    store.put("relay-a", "sk-second-key-12345", who="ops")
+    after = store.meta("relay-a")
+    assert after["created_at"] == created
+    assert after["last_used_at"] == "2023-11-14T22:13:20Z"
+    assert after["masked"] == "sk-s****2345"
+
+    # 密文损坏：has 仍为真，但掩码/长度退化为空，不冒泡。
+    conn = sqlite3.connect(str(db_path))
+    try:
+        conn.execute("UPDATE admin_secrets SET ciphertext = x'00' WHERE id = 'relay-a'")
+        conn.commit()
+    finally:
+        conn.close()
+    broken = store.meta("relay-a")
+    assert broken["has"] is True
+    assert broken["masked"] == ""
+    assert broken["length"] == 0
+
+    store.touch("missing-provider", at=1.0)  # 无行：静默忽略
+
+    monkeypatch.delenv(secrets.MASTER_KEY_ENV, raising=False)
+    with pytest.raises(secrets.MasterKeyMissing):
+        store.meta("relay-a")

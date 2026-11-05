@@ -559,7 +559,9 @@ class ProviderClient:
         self.last_fallback = False
         total_attempts = 0
         last_error: dict[str, Any] | None = None
+        last_cfg: ProviderConfig | None = None
         for index, cfg in enumerate(chain):
+            last_cfg = cfg
             if index > 0:
                 self._stat(fallbacks=1)
             result = self._run_config(cfg, system, user, call_started)
@@ -572,6 +574,7 @@ class ProviderClient:
                 if index > 0:
                     # 记录最终生效配置，供遥测/审计读取（slot 不变）。
                     self.config = cfg
+                self._report_capability(result, cfg)
                 return result
             last_error = result
         if last_error is None:  # pragma: no cover - chain 至少有一项
@@ -581,7 +584,27 @@ class ProviderClient:
         last_error["attempt_latency_s"] = (
             float(last_error.get("attempt_latency_s") or 0.0) or last_error["latency_s"]
         )
+        self._report_capability(last_error, last_cfg or self.config)
         return last_error
+
+    def _report_capability(self, result: dict[str, Any], cfg: ProviderConfig) -> None:
+        """把真实调用结果回写管理面；回放/遥测失败一律静默。"""
+        if self.replay:
+            return
+        try:
+            from ..admin import providers as admin_providers
+
+            admin_providers.record_result(
+                cfg.slot,
+                provider_id=str(getattr(cfg, "provider_id", "")),
+                model=str(cfg.model),
+                ok=result.get("error") is None,
+                latency_ms=float(result.get("latency_s") or 0.0) * 1000,
+                error=str(result.get("error_kind") or ""),
+                fallback_used=bool(result.get("fallback")),
+            )
+        except Exception:  # noqa: BLE001 - 管理面遥测不得影响主服务
+            pass
 
     def _config_chain(self) -> tuple[list[ProviderConfig], str]:
         """返回 (配置链, 阻断码)。管理面不可用时一律沿用现有配置。"""

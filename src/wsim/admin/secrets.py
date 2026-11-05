@@ -3,7 +3,7 @@
 - 主密钥只来自环境变量 `XKX_SECRET_KEY`（32 字节 base64）；缺失/长度不对抛
   `MasterKeyMissing`，调用方必须返回 503 `master_key_missing`。
 - 绝不明文回退：没有主密钥时 provider 只能用环境变量里的 key。
-- 掩码规则：`前4…后4`（不足 9 位全星号）；响应/日志/审计只允许掩码。
+- 掩码规则：`前4****后4`（不足 9 位全星号）；响应/日志/审计只允许掩码。
 """
 from __future__ import annotations
 
@@ -11,12 +11,13 @@ import base64
 import binascii
 import os
 import sqlite3
-import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from .clock import now_utc
+
 MASTER_KEY_ENV = "XKX_SECRET_KEY"
-MASK_ELLIPSIS = "…"
 
 
 class MasterKeyMissing(RuntimeError):
@@ -95,8 +96,19 @@ def decrypt(ciphertext: bytes, nonce: bytes, env: dict[str, str] | None = None) 
 def mask_secret(value: Any) -> str:
     text = str(value or "")
     if len(text) < 9:
-        return "*" * len(text) if text else ""
-    return f"{text[:4]}{MASK_ELLIPSIS}{text[-4:]}"
+        return "*" * len(text)
+    return f"{text[:4]}****{text[-4:]}"
+
+
+def _iso_utc(timestamp: Any) -> str | None:
+    """0/None 视为“未发生”；否则转 UTC ISO（秒级）。"""
+    try:
+        value = float(timestamp or 0.0)
+    except (TypeError, ValueError):
+        return None
+    if value <= 0:
+        return None
+    return datetime.fromtimestamp(value, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 class SecretStore:
@@ -121,16 +133,18 @@ class SecretStore:
 
     def put(self, secret_id: str, plaintext: str, who: str = "admin") -> None:
         ciphertext, nonce = encrypt(str(plaintext), self.env)
+        now = now_utc()
         conn = self._conn()
         try:
             conn.execute("BEGIN IMMEDIATE")
             conn.execute(
-                "INSERT INTO admin_secrets(id, ciphertext, nonce, updated_at, updated_by)"
-                " VALUES (?, ?, ?, ?, ?)"
+                "INSERT INTO admin_secrets"
+                "(id, ciphertext, nonce, created_at, updated_at, last_used_at, updated_by)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?)"
                 " ON CONFLICT(id) DO UPDATE SET ciphertext = excluded.ciphertext,"
                 " nonce = excluded.nonce, updated_at = excluded.updated_at,"
                 " updated_by = excluded.updated_by",
-                (str(secret_id), ciphertext, nonce, time.time(), str(who)),
+                (str(secret_id), ciphertext, nonce, now, now, 0.0, str(who)),
             )
             conn.execute("COMMIT")
         except Exception:
@@ -138,6 +152,59 @@ class SecretStore:
             raise
         finally:
             conn.close()
+
+    def meta(self, secret_id: str) -> dict[str, Any]:
+        """只回掩码与元数据；明文永不外泄。无主密钥时原样抛 `MasterKeyMissing`。"""
+        result: dict[str, Any] = {
+            "has": False,
+            "masked": "",
+            "length": 0,
+            "created_at": None,
+            "updated_at": None,
+            "last_used_at": None,
+        }
+        conn = self._conn()
+        try:
+            row = conn.execute(
+                "SELECT ciphertext, nonce, created_at, updated_at, last_used_at"
+                " FROM admin_secrets WHERE id = ?",
+                (str(secret_id),),
+            ).fetchone()
+        finally:
+            conn.close()
+        if row is None:
+            return result
+        result["has"] = True
+        result["created_at"] = _iso_utc(row[2])
+        result["updated_at"] = _iso_utc(row[3])
+        result["last_used_at"] = _iso_utc(row[4])
+        try:
+            plain = decrypt(bytes(row[0]), bytes(row[1]), self.env)
+        except MasterKeyMissing:
+            raise
+        except (ValueError, TypeError, KeyError):
+            return result
+        result["masked"] = mask_secret(plain)
+        result["length"] = len(plain)
+        return result
+
+    def touch(self, secret_id: str, at: float | None = None) -> None:
+        """更新 last_used_at；不抛异常（无行则忽略）。"""
+        try:
+            conn = self._conn()
+            try:
+                conn.execute(
+                    "UPDATE admin_secrets SET last_used_at = ? WHERE id = ?",
+                    (
+                        float(now_utc() if at is None else at),
+                        str(secret_id),
+                    ),
+                )
+                conn.commit()
+            finally:
+                conn.close()
+        except Exception:  # noqa: BLE001 - 遥测写失败不得影响主调用
+            return
 
     def get(self, secret_id: str) -> str:
         conn = self._conn()
