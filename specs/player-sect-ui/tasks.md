@@ -12,4 +12,4 @@
 - [x] T10 `tools/ui_check_real_sect.py`：真服务 立派 → 收徒 → 派俸；挣钱链路复用；拒绝如实标 `blocked_*`；证据 `reports/w5-sect/`。实跑 25 项 / 0 失败、672.5s。
 - [x] T11 回归：`node --check`、`--only sect`（21/21）、全量 `ui_check.py`（176/176）、真服务脚本（25/25）。
 - [x] T12 文档与提交：`PLAYER-GUIDE`、`CHANGELOG`，显式 pathspec 提交并推送（`c6c7023`）。
-- [ ] T13 分三次回报：三种角色视角、真服务脚本、全量回归。
+- [x] T13 分三次回报：三种角色视角、真服务脚本、全量回归（见最终回报）。
