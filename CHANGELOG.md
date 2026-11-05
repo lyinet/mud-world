@@ -34,9 +34,7 @@
     顺序 `/api/player/state` 0.92 ms → 1.02 ms；顺序 `/api/state` 0.31 ms → 0.40 ms；
     50 并发 `/api/player/state` 123.64 ms → 123.84 ms；50 并发 `/api/state` 31.87 ms → 35.80 ms
     （并发世界态绝对值受机器负载影响较大，多次运行波动明显）。
-- **commit**：`（见本轮 SHA-C）`
-
----
+- **commit**：`8ff784e`
 
 ---
 
@@ -149,7 +147,7 @@
 - **为什么改**：审计中 `insufficient_stamina` 出现 38 次且没有恢复手段，是硬死胡同。
 - **验证方式**：`tests/test_player_commerce.py` 新增 4 条（客栈恢复与 tick、野外减半、
   非法 hours/押镖中拒绝、委托截止打断）；真实服务 `rest` 证据见本轮回报。
-- **commit**：`（见本轮 SHA-B）`
+- **commit**：`7bf9702`
 
 ---
 
@@ -172,7 +170,7 @@
   4 粗布（货值 100）只 +89（净亏 11），且运费由 `treasury:region` 兜底。
 - **验证方式**：`tests/test_player_commerce.py` 新增/更新 5 条（空货拒、低运费拒、
   无付款人拒、成功结算三方钱包、3 连单 treasury 净流入）；真实服务验收证据见本轮回报。
-- **commit**：`（见本轮 SHA-A）`
+- **commit**：`b7c6cfb`
 
 ---
 
