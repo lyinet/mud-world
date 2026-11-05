@@ -9,9 +9,9 @@
 - **当前 HEAD**：已不含该 key；仅存在于上述两个历史提交中。
 - **仓库可见性**：**PRIVATE**，仅持有人本人可读。
 - **历史未改写**：改写（`filter-repo` / `filter-branch` / 重新初始化）会移动
-  **全部 15 个已发布 tag**（`delivery-p2`、`delivery-p2.1`、`delivery-p2.2`、`delivery-p3a`–`delivery-p3l`；
-  本地另有未推送的 `p2b-baseline`），破坏版本与交付证据的可追溯性，
-  因此本轮不做 rebase / filter / 强推。
+  **全部 16 个 tag**（15 个交付 tag：`delivery-p2`、`delivery-p2.1`、`delivery-p2.2`、
+  `delivery-p3a`–`delivery-p3l`，外加 `p2b-baseline`；均已推送，与 `origin` 同名 tag 指向同一对象），
+  破坏版本与交付证据的可追溯性，因此本轮不做 rebase / filter / 强推。
 - **现状（风险接受）**：签发方**尚未轮换**该 key；它是持有人本机日常使用的网关 key，
   轮换会直接打断其工作，而仓库为私有且仅本人可读，当前收益接近于零。
   **风险由持有人明确接受**，不要求轮换、不禁止其本机继续使用。
@@ -26,7 +26,7 @@
 
 未使用 `filter-repo`、`filter-branch` 或重新初始化来清除该提交内容，原因：
 
-1. 改写会移动**全部 tag** 指向（`delivery-p2` 至 `delivery-p3l` 等交付里程碑，共 15 个已发布），
+1. 改写会移动**全部 tag** 指向（`delivery-p2` 至 `delivery-p3l` 等交付里程碑，共 16 个，均已推送），
    破坏版本与交付证据的可追溯性；
 2. 交付报告与 `CHANGELOG.md` 中大量数字以 commit 短哈希为锚点，改写后全部失效；
 3. 当前处置为“已知风险 + 触发条件”（见第 1 节）：仓库保持 private、不新增协作者、
