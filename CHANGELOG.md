@@ -9,6 +9,43 @@
 
 ---
 
+## [功能] 2026-11-06 — 管理控制台后端（`src/wsim/admin`）
+
+- **改了什么**
+  - 新增独立管理服务 `python -m wsim.admin`（默认 `127.0.0.1:8031`，不挂玩家端口）：
+    `POST /api/admin/login`（24h 会话、失败 10 次/5 分钟锁 15 分钟）、
+    `GET /api/admin/overview`、`GET/PUT /api/admin/settings`、
+    `GET /api/admin/providers` + `PUT/DELETE /api/admin/providers/{id}`、
+    `POST /api/admin/providers/{id}/test`（`max_tokens=1`）、
+    `GET /api/admin/audit`、`POST /api/admin/llm/killswitch`。
+  - 配置落 `service.sqlite`：`admin_settings` / `admin_secrets` / `admin_audit` /
+    `admin_sessions` / `admin_login_failures` / `admin_runtime`（schema v2，幂等迁移）。
+  - key 用 AES-256-GCM 加密（优先 `cryptography`，缺失时内置实现，NIST 向量已测）；
+    主密钥仅来自 `XKX_SECRET_KEY`，未配置时保存 key 返回 503 `master_key_missing`；
+    响应/日志/审计只出现 `前4****后4` 掩码与长度/创建/最后使用时间。
+  - `world` 参数不做假热更：`world_state` 返回 `value/effective_value/applied/restart_required`；
+    重启玩家进程（`ambient_status.json` 的 `pid` 变化）并观测到新值后才置 `applied=true`；
+    生成 `<run>/admin_env.sh` 环境桥。`hot` 只覆盖 `llm.global_enabled`/`providers`/`routing`。
+  - `capabilities_status` 四态（`stub`/`unconfigured`/`unverified`/`active`/`degraded`）
+    只由真实调用回写，启动不探活；与 `routing_view`（provider/model/fallback/last_served_by）同源。
+  - `agent/provider.py` 按槽位从 DB 快照解析 provider（5 秒节流），DB → 环境变量 → `llm_not_configured`；
+    不改调用方签名；真实调用结果回写能力状态；killswitch 直接拒绝。
+  - 管理面墙钟收敛到 `src/wsim/admin/clock.py::now_utc()`（审计/遥测专用），
+    不进入世界状态、事件序列与 `content_hash`。
+- **为什么改**：上线需要一个可审计、可回滚、带总闸的运营入口，且 key 不能明文落盘；
+  同时不能把“写进内存变量并回 200”伪装成热更新。
+- **验证方式**
+  - 两进程 + 本地 mock 中转站真实验收：改 `ambient_speed 1→2` 后 `applied=false`、
+    `effective_value=1.0`；`source admin_env.sh` 重启玩家进程后 `pid 3281→3541`、`applied=true`。
+    mock `test` 成功（`latency_ms=29.3`）与坏 `base_url` 失败；真实 dialogue 调用到达 mock；
+    429 → 第二 provider 成功（`stats.fallbacks=1`）；轮换 key 后 mock 只收到新 key；
+    日志/审计/DB 字节 grep 明文 0 命中；无主密钥 503；killswitch 后 mock 调用数不变；
+    重启管理服务后配置与能力状态仍在。
+  - `PYTHONPATH=src .venv/bin/python -m pytest -q`：642 项收集，全量退出码 0（17 skipped）。
+- **commit**：`add4075`
+
+---
+
 ## [功能] 2026-11-05 — 玩家经营五动作 + 盈利性验证（动作集 `3d0ceab`）
 
 - **改了什么**
