@@ -133,3 +133,82 @@ K3 只作诊断，**不设 pass/fail**，不能当作目标完成率证据；对
 - `scripts/selfcheck.sh` 4/4 PASS；包内 `pytest` **321 passed, 8 skipped**
   （8 条 skip = 显式保留的旧基线，不是删测试）；
 - 玩家闭环（进入 → 移动 → 对话 → 接任务 → 交付 / 开摊 → 刷新保留）在干净解包环境实测通过。
+
+## 12. 内容层零成交物品（已定位、未修）
+
+> **口径**：10 天 / seed 42 / 开启 `scaleup_w3` 扩展包（`content_hash = 3fd99946…`）。
+> 委托公平轮转落地后，零成交物品由 **6 件降到 4 件**：`wheat_flour`、`wood_board`
+> 因对应 `procure_wheat_flour` / `clear_book_wood` 委托能被接单并消耗而恢复成交；
+> 下列 4 件仍为零成交。本轮只做定位与建议，**一件不改**。
+
+4 件物品的判定入口都是 `src/wsim/sim/intent.py` 的消费倾向 `_propensity_buy()`，
+其硬性条件为：只遍历 NPC **当前所在地**的店铺（`state.business_at(loc)`）、
+库存需 `≥ 3`、排除 `food / drink / service / meal` 四类、
+要求 **`price × 3 ≤ cash`** 且 `cash ≥ 120`，`treasury_guard` 期间整体暂停。
+任一条件不满足就不会生成 `buy`。
+
+### 12.1 盐灯（一盏）`salt_lamp`
+
+- **类目与价格**：`luxury`，`base_price = 300`，挂在盐仓 `salt_depot` 的货架上。
+- **零成交机制**：购买候选只来自“当前所在地”的店铺；`salt_depot` 不是任何 NPC 的
+  上工地点或日常目的地，没有 NPC 会顺路站到盐仓，因此候选集里根本不会出现这件货。
+  叠加 luxury 门槛 `300 × 3 = 900` 文现金——**不是买不起**（10 天口径下现金 ≥ 900 的
+  NPC 有 32 人），而是**没人到得了柜台**。
+- **引用它的委托**：`inquiry_salt_lamp`（`category: inquiry`），
+  `offer: []` / `want: []` / `money_delta: 0` 的零价值问价，交付时不动货物、不动钱，
+  所以“被引用”不会转化为成交。
+- **最小修法（建议）**：给盐仓挂到一条**已有**日委托的 `target_location`（只改内容侧
+  地点/委托指向，不动物价与库存），让 NPC 的日常路径能覆盖盐仓；不要改 `base_price`。
+
+### 12.2 盐秤（一杆）`salt_scale`
+
+- **类目与价格**：`tool`，`base_price = 58`，同样只在盐仓出售。
+- **零成交机制**：与盐灯同一个位置闸门——候选集只取当前所在地，盐仓无人到访。
+  价格门槛 `58 × 3 = 174` 文，10 天口径下现金 ≥ 174 的 NPC 有 58 人，
+  所以**既不是价格问题也不是现金问题**，是可达性问题。
+- **引用它的委托**：`debt_hu_chen`（`category: debt_collection`，不可重复），
+  `offer: []` / `want: []` + `money_delta: 60` / `settlement: remit_to_giver 60`：
+  这条委托只搬**钱**（讨回工钱并上交），`target_item` 仅是叙事锚点，
+  不产生任何物品交接或 `trade` 成交。
+- **最小修法（建议）**：与盐灯同批解决可达性（内容侧挂到已有日委托路径）；
+  若希望它真的成交流转，需要在该委托的 `intent_args` 里给出非空 `offer` / `want`
+  以形成物品交换——两者都会动内容，冻结期内不做。
+
+### 12.3 药匣（一只）`rare_herb_box`
+
+- **类目与价格**：`luxury`，`base_price = 540`，挂在药山 `herb_hills`。
+- **零成交机制**：双重闸门叠加。① 位置：只有在药山做消费倾向判定的 NPC 才看得到它；
+  ② 门槛 `540 × 3 = 1620` 文现金，10 天口径下 60 个 NPC 里只有 **7 人**达标。
+  必须“现金够 + 人恰在药山”同时成立，实际样本为 0。
+- **引用它的委托**：`inquiry_herb_box`（`category: inquiry`），
+  `offer: []` / `want: []` / `money_delta: 0`，问价不成交，零金额。
+- **最小修法（建议）**：luxury 类目不要沿用统一的 `price × 3 ≤ cash`，
+  改为按类目给一个固定缓冲（例如 `price + 缓冲`）再判现金——这是经济判定改动；
+  或者让药山进入某条已有日委托的路径。两条都动内容/判定，冻结期内不做。
+
+### 12.4 更楼夜巡（一夜）`service_night_watch`
+
+- **类目与价格**：`service`，`base_price = 3`，挂在更楼 `night_watch`。
+- **零成交机制**：`_propensity_buy()` 明确把 `service` 与 `food / drink / meal`
+  一起排除在消费倾向之外，**无论多便宜都不会生成购买**；3 文的单价也不构成门槛。
+  当前引擎没有“夜间服务购买”分支，服务类物品只能作为其他系统的输入，不能自售。
+- **引用它的委托**：`errand_night_watch_report`（`category: errand`），
+  `offer: []` / `want: []` / `money_delta: 0`，只是把夜巡帖交到捕快手里，
+  既不下单也不付夜巡钱，`service_night_watch` 仅作为 `target_item` 叙事标签。
+  （`item_catalog.yaml` 里该物品的 `quest_refs` 即源于此。）
+- **最小修法（建议）**：给服务类补一个独立的夜间购买/消耗分支（例如夜巡时段向更楼
+  买一夜），或让该 errand 的 `money_delta > 0` 并带非空 `offer` / `want` 真正下单。
+  两者都动经济判定或内容，冻结期内不做。
+
+### 12.5 口径说明：`inquiry_*` 与“被引用 ≠ 活跃”
+
+- 所有 `inquiry_*` 模板都是**零价值问价**：`offer: []` / `want: []` / `money_delta: 0`，
+  **永远不会产生任何成交事件**。因此 `item_catalog.yaml` 里的 `quest_refs`
+  只表示“有委托提到过这件物品”，**不等于该物品活跃**。
+- 衡量内容覆盖时，应把 **`quest_refs`（引用覆盖）单独计入**，与成交率分开统计；
+  不能拿成交率当唯一指标，也不能用“被任务引用”反推“物品已盘活”。
+- **本轮不做修法，原因**：以上任何一条最小修法都要动 `content/**`
+  （委托 / 地点 / 物品定义）或 `_propensity_buy()` 的经济判定，会让
+  `content_hash`（关闭态 `7ec670c1c83c7b99e9bee35f84602bd7a68ef22126b29c9003529809b2c3d53f`）
+  与全部 golden 基线（V2/V3、经济流量、`state_final`）再漂一次。
+  冻结期内不接受，留待解冻后单独一轮，并按基线迁移纪律处理。
