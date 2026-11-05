@@ -9,6 +9,27 @@
 
 ---
 
+## [安全 P1] 2026-11-06 — 容器健康检查改为真探活（`deploy/healthcheck.py`）
+
+- **改了什么**
+  - `deploy/healthcheck.py` 不再只判断“两个 200”：新增 `/api/health` 真实探活——
+    必须 HTTP 200、`ok is true`、`storage.events_ok is true`、`storage.disk_free_mb`
+    不低于阈值（`XKX_HEALTHCHECK_MIN_DISK_MB`，默认 50MB）；任一失败 `exit 1`。
+  - 保留 `/api/service/info` 与前端 `/api/health` 的基础可达性检查。
+- **为什么改**
+  - 原实现只探 200：即使 `/api/health` 已因磁盘将满 / 写者停滞 / 事件库不可读返回
+    `ok=false`，容器仍判定健康、不会重启，属于“假健康”。
+- **验证**
+  - `tests/test_w1_healthcheck_probe.py`：`ok=false`、`events_ok=false`、`disk_free_mb`
+    低于阈值三组均 `exit 1`；健康组合 `exit 0`。
+  - 真服务实测（API 18020 + stub 前端 18030）：
+    - `XKX_DISK_MIN_FREE_PCT=100` → `/api/health` 503，`healthcheck` 打印
+      `FAIL api /api/health -> HTTPError: HTTP Error 503: Service Unavailable`，`exit=1`。
+    - 默认阈值 → `/api/health` 200，`PASS api /api/health -> ok=true events_ok=true
+      disk_free_mb=1154190.0`，`exit=0`。
+- **边界**：该文件位于 `deploy/`（按任务要求单独一笔提交并点名），未触碰
+  `ui/**`、`content/**`、`actions/**`，也未改 `deploy/` 之外的部署逻辑。
+
 ## [功能] 2026-11-06 — 管理控制台后端（`src/wsim/admin`）
 
 - **改了什么**
