@@ -17,9 +17,9 @@
 
 | 档位 | 品类与数量 | 进货成本 | 可雇人数 |
 | --- | --- | --- | --- |
-| stall | flatbread 6 / noodle 4 / rice 3 | 按 sell_price 计 | 1 |
-| storefront | 摊档 + coarse_cloth 4 / cleaver 2 / needle 2 | 按 sell_price 计 | 2 |
-| branch | 摊档 + coarse_cloth 6 / cleaver 3 / needle 3 / wound_powder 3 / mugwort 3 | 按 sell_price 计 | 3 |
+| stall | flatbread 6 / noodle 4 / rice 3（共 13 件） | 按 sell_price 计 | 1 |
+| storefront | flatbread 10 / noodle 8 / rice 6 + coarse_cloth 4 / cleaver 2 / needle 2（共 32 件） | 按 sell_price 计 | 2 |
+| branch | flatbread 14 / noodle 10 / rice 8 + coarse_cloth 6 / cleaver 3 / needle 3 / wound_powder 3 / mugwort 3（共 50 件） | 按 sell_price 计 | 3 |
 
 - 初始库存以 `item_create(reason=initial_stock)` 计入 `items_created`，可被审计追溯。
 - 没有赠送：档位不额外白送库存，也不产生 `mint`。后续补货同样走 `treasury:region` 进货
