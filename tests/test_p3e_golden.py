@@ -328,6 +328,41 @@ DIALOGUE_GOLDEN_MILESTONE_V5 = {
     "dialogue_calls": 65,
 }
 
+# P4 里程碑基线 v6（2026-11-05，多跳寻路 + 移动/动作同 tick + 原地一跳不拦截）：
+# 每段行程按确定性 BFS 最短路逐跳执行，并携带 dest 作为漂移自愈锚点；
+# 最后一个 move 与紧随其后的动作共用同一 tick（先移动后动作）；
+# 跨日段上工前补一次同 tick 通勤 move（dest 自愈，已在工位即 0 步空操作）；
+# 前面的跳已自愈抵达终点后，剩余“原地一跳”按 0 步成功，不再触发 not_adjacent 重规划。
+# 2 天世界 692→791 events：sell 967→584、buy 793→657、burned 81→72、
+# business_cash 12816→13058、blocked 8→5、pruned 4→2，state/event 哈希显式变化。
+# 旧 V3/V4/V5 基线原样保留并 skip。
+PATHFINDING_BASELINE_REASON = (
+    "多跳寻路改为确定性 BFS 逐跳 + dest 漂移自愈，最后一步移动与后续动作共用 tick，"
+    "跨日段上工前补同 tick 通勤移动（dest 自愈，已在工位即 0 步），"
+    "且“原地一跳”（前面的跳已自愈到达终点）按 0 步成功、不再当作 not_adjacent 拦截："
+    "2 天世界 692→791 events（sell 967→584 / buy 793→657 / burned 81→72 / "
+    "business_cash 12816→13058 / blocked 8→5 / pruned 4→2），"
+    "NPC 不再因移动落空而原地空转、按原计划上工与买卖，成交与燃烧节奏随之改变；"
+    "state/event 哈希变化；旧 V3/V4/V5 基线原样保留。"
+)
+GOLDEN_MILESTONE_V6 = {
+    "events_total": 791,
+    "state_final": "03b784697bf9de1c2db60d0925f11ebde4d3d956e2e7a188842e4c760915b8c7",
+    "event_final": "3be92716396b88d086571e40968581806549240ecaf6a13ca2debd7c317c16e4",
+    "sell_in": 584,
+    "buy_out": 657,
+    "burned": 72,
+    "business_cash": 13058,
+    "precondition_blocked": 5,
+    "precondition_pruned": 2,
+}
+DIALOGUE_GOLDEN_MILESTONE_V6 = {
+    "events_total": 791,
+    "state_final": "e4a6b5f7ee645331ac281a69891e0ff7f28bb220eb2f8668489b7e774b99a626",
+    "event_final": "e98e395ad6647a264f9ec615c502f73a11a84d2a9cdbe8d7d2af80c5abf64367",
+    "dialogue_calls": 65,
+}
+
 
 def _run_two_day(tmp_path: Path, run_id: str, *, dialogue: bool):
     env_keys = ("LLM_BASE_URL", "LLM_API_KEY", "LLM_MODEL", "WSIM_DIALOGUE")
@@ -749,6 +784,7 @@ def test_p4_milestone_v4_dialogue_enabled_fake_run_is_golden(tmp_path):
     )
 
 
+@pytest.mark.skip(reason="多跳寻路/移动同 tick 改变 NPC 行动顺序与成交节奏；V5 原值保留，迁移到 V6")
 def test_p4_milestone_v5_deterministic_2d_fake_run_is_golden(tmp_path):
     """P4 v5 基线：开店经营闭环后的 2 天世界（692 events）。"""
     summary = _run_two_day(tmp_path, "golden-milestone-v5", dialogue=False)
@@ -779,6 +815,7 @@ def test_p4_milestone_v5_deterministic_2d_fake_run_is_golden(tmp_path):
     assert len(blocked_file.read_text(encoding="utf-8").splitlines()) == GOLDEN_MILESTONE_V5["precondition_blocked"]
 
 
+@pytest.mark.skip(reason="多跳寻路/移动同 tick 改变 NPC 行动顺序与成交节奏；V5 dialogue 原值保留，迁移到 V6")
 def test_p4_milestone_v5_dialogue_enabled_fake_run_is_golden(tmp_path):
     """P4 v5 基线（dialogue 开启路径）：开店闭环后的 692 events。"""
     summary = _run_two_day(tmp_path, "golden-milestone-dialogue-v5", dialogue=True)
@@ -794,4 +831,52 @@ def test_p4_milestone_v5_dialogue_enabled_fake_run_is_golden(tmp_path):
         "P4 里程碑 v5 dialogue 基线漂移（golden_milestone_dialogue_v5, actual）："
         + json.dumps(drift, ensure_ascii=False)
         + "；原因: " + SHOP_BASELINE_REASON
+    )
+
+
+def test_p4_milestone_v6_deterministic_2d_fake_run_is_golden(tmp_path):
+    """P4 v6 基线：多跳寻路 + 移动/动作同 tick 后的 2 天世界（787 events）。"""
+    summary = _run_two_day(tmp_path, "golden-milestone-v6", dialogue=False)
+    cf = summary["economy"]["cashflow"]
+    got = {
+        "events_total": summary["events"]["total"],
+        "state_final": summary["hashes"]["state_final"],
+        "event_final": summary["hashes"]["event_final"],
+        "sell_in": cf["inflow_by_reason"].get("sell", 0),
+        "buy_out": cf["outflow_by_reason"].get("buy", 0),
+        "burned": summary["economy"]["burned_total"],
+        "business_cash": summary["economy"]["business_cash_now"],
+        "precondition_blocked": summary["precondition_blocked"]["total"],
+        "precondition_pruned": summary["precondition_pruned"]["total"],
+    }
+    drift = {k: (GOLDEN_MILESTONE_V6[k], got[k])
+             for k in GOLDEN_MILESTONE_V6 if got[k] != GOLDEN_MILESTONE_V6[k]}
+    assert not drift, (
+        "P4 里程碑 v6 基线漂移（golden_milestone_v6, actual）："
+        + json.dumps(drift, ensure_ascii=False)
+        + "；原因: " + PATHFINDING_BASELINE_REASON
+    )
+
+    pruned_file = tmp_path / "golden-milestone-v6" / "pruned.jsonl"
+    blocked_file = tmp_path / "golden-milestone-v6" / "blocked.jsonl"
+    assert pruned_file.exists() and blocked_file.exists(), "缺少全量拦截记录导出"
+    assert len(pruned_file.read_text(encoding="utf-8").splitlines()) == GOLDEN_MILESTONE_V6["precondition_pruned"]
+    assert len(blocked_file.read_text(encoding="utf-8").splitlines()) == GOLDEN_MILESTONE_V6["precondition_blocked"]
+
+
+def test_p4_milestone_v6_dialogue_enabled_fake_run_is_golden(tmp_path):
+    """P4 v6 基线（dialogue 开启路径）：765 events，dialogue 调用数不变。"""
+    summary = _run_two_day(tmp_path, "golden-milestone-dialogue-v6", dialogue=True)
+    got = {
+        "events_total": summary["events"]["total"],
+        "state_final": summary["hashes"]["state_final"],
+        "event_final": summary["hashes"]["event_final"],
+        "dialogue_calls": summary["llm"]["dialogue_async"]["calls"],
+    }
+    drift = {k: (DIALOGUE_GOLDEN_MILESTONE_V6[k], got[k])
+             for k in DIALOGUE_GOLDEN_MILESTONE_V6 if got[k] != DIALOGUE_GOLDEN_MILESTONE_V6[k]}
+    assert not drift, (
+        "P4 里程碑 v6 dialogue 基线漂移（golden_milestone_dialogue_v6, actual）："
+        + json.dumps(drift, ensure_ascii=False)
+        + "；原因: " + PATHFINDING_BASELINE_REASON
     )

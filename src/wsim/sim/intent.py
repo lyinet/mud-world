@@ -525,14 +525,24 @@ class Planner:
         end: int,
         reason: str,
     ) -> tuple[str, int]:
+        hops = 0
         for hop in path_between(state, loc, dest):
             if cursor >= end:
                 break
             before = cursor
-            cursor = self._add(intents, npc, "move", {"to": hop}, cursor, end, reason)
+            # dest 是最终目的地：玩家动作会跨 tick 丢弃途中意图，
+            # MoveAction 可据此从“实际所在地”重算剩余路线，避免半途落空。
+            cursor = self._add(
+                intents, npc, "move", {"to": hop, "dest": dest}, cursor, end, reason
+            )
             if cursor == before:
                 break
             loc = hop
+            hops += 1
+        if hops:
+            # 最后一个移动与紧随其后的动作（上工/吃饭/买卖）共用同一 tick：
+            # 同一 tick 内按入队顺序先移动后动作，动作落点必然已到达。
+            return loc, cursor - 1
         return loc, cursor
 
     # ---------- 计划 ----------
@@ -611,10 +621,31 @@ class Planner:
             if work_loc and can_work:
                 loc, cursor = self._move(state, intents, npc, loc, work_loc, cursor, seg_end, reason("去上工"))
                 if loc == work_loc and cursor < seg_end:
-                    before = cursor
-                    cursor = self._add(intents, npc, "work", self._work_args(employer, loc, 8), cursor, seg_end, reason(work_note))
-                    if cursor != before:
-                        cash += self._net_wage(ent, gross)
+                    work_tick = cursor
+                    if day > day_of(start_tick):
+                        # 跨日段：计划起点在前一日，计划里对 loc 的假设已隔了一整天——
+                        # 护送抵达等系统瞬移、以及玩家一次推进 6 tick 时调度器丢弃途中
+                        # 移动意图，都会让计划里的 loc 变成假设。这里再排一次同 tick 的
+                        # 通勤移动（dest 自愈：从实际所在地补足路线，已在工位即 0 步空
+                        # 操作），与 work 同 tick 且入队在前：要么一起被丢、要么一起执行，
+                        # 不会出现“人没到、work 照落”的空转。
+                        advanced = self._add(
+                            intents, npc, "move",
+                            {"to": work_loc, "dest": work_loc},
+                            work_tick, seg_end, reason("到工位"),
+                        )
+                        if advanced == work_tick:
+                            work_tick = -1  # 体力不足：移动没排上，本次不上工
+                        else:
+                            cursor = advanced
+                    if work_tick >= 0:
+                        before = cursor
+                        cursor = self._add(
+                            intents, npc, "work", self._work_args(employer, loc, 8),
+                            work_tick, seg_end, reason(work_note),
+                        )
+                        if cursor != before:
+                            cash += self._net_wage(ent, gross)
             else:
                 # 无雇主或雇主现金不足：留在原地练手艺；攒门派注册费的人优先去挣现钱。
                 note = "雇主现金不足，先练手艺" if work_loc else "没有雇主，练手艺"
@@ -1504,6 +1535,7 @@ class MockReasoner(Reasoner):
         self._last_reject: dict[str, str] = {}
         # 玩家-NPC 婚后日常去重：记录每个 NPC 已经陪伴过的世界日。
         self._spouse_day: dict[str, int] = {}
+        self._intent_seq = 0
         self.goal_policy = goal_policy
         # 目标承诺窗口的起点（决策 tick）；没有记录时回退到目标的 created_tick。
         self._goal_selected_tick: dict[str, int] = {}
@@ -1834,7 +1866,7 @@ class MockReasoner(Reasoner):
                 calls=1,
                 persona_tokens=prompt.persona_tokens,
             )
-        return intents
+        return self._tag(intents)
 
     # ---- 目标切换策略（承诺窗口 / 滞回 / 留痕）--------------------------------
 
@@ -2210,7 +2242,7 @@ class MockReasoner(Reasoner):
                 Intent(
                     actor=npc,
                     verb="move",
-                    args={"to": dest},
+                    args={"to": dest, "dest": dest},
                     tick=tick,
                     source="mock_reasoner",
                     reason=f"规则桩：顺路去{dest}",
@@ -2273,4 +2305,23 @@ class MockReasoner(Reasoner):
                 "actions": [intent.verb],
             }
         )
-        return [intent]
+        return self._tag([intent])
+
+    def _tag(self, intents: list[Intent]) -> list[Intent]:
+        """给一次决策产出的意图打上独立 intent_id。
+
+        Writer 按 (actor, tick, verb, args, reason) 去重以保证幂等；但玩家动作会一次
+        跨多个 tick，旧计划里被推迟到同一 tick 的“同形动作”与新计划的重合时，会被
+        误当作重复提交而吞掉（表现为 NPC 明明该走却没走、紧随的 work 落空）。
+        按决策序号加前缀后：不同计划的同形动作各自生效，同一计划重复提交仍幂等。
+        """
+        if not intents:
+            return intents
+        self._intent_seq += 1
+        token = f"p:{self._intent_seq}"
+        # 只给 move 打独立 id：移动可重入（同地再走一次即 0 步空操作），
+        # 而 work/trade/sell 等重复提交必须保持幂等，避免被两份计划各执行一次。
+        return [
+            replace(it, intent_id=f"{token}:{idx}") if not it.intent_id and it.verb == "move" else it
+            for idx, it in enumerate(intents)
+        ]

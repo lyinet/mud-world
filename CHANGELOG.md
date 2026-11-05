@@ -9,6 +9,61 @@
 
 ---
 
+## [修复] 2026-11-05 — 店铺日结按实际出勤（缺勤 0 工资 0 产出）
+
+- **改了什么**
+  - `actions/business.py`：`build_shop_settlements` 新增出勤判定——结算日
+    `[day*144, (day+1)*144)` 内该雇工有带 `employer=shop:player:*` 的 `work` 事件（且记忆带
+    “工资本日由日结发放”标记）记 `present`，否则记 `absent`；`wage=0`、`output_qty=0`、
+    不产生欠薪债，行内带 `absent`/`present_count`。
+  - `shop_settlement_effects`：缺勤行写 `system_shop_settle` 明细
+    “某雇工当日未到店，工资0文、产出0件”，并给店主、雇工各写一条记忆后跳过计薪/产出。
+  - 新增 `settled_day_of(tick)`：headless 在当日最后一 tick、shared/ambient 在新日首个 tick
+    结算，统一推断被结算的世界日，两条路径判定一致。
+  - `actions/system.py`：日界把 `intent.tick` 传给结算，保证按真实结算日判定出勤。
+  - 测试：`tests/test_shop_operations.py` 新增缺勤用例（1 出勤 1 缺勤 → 只发 1 份工资、
+    产出 1 件、无缺勤者债务、店主记忆含“当日未到店”）。
+- **为什么改**：旧日结不看雇工是否到店，“人没来、工资照发、产出照给”，账与事实不符。
+- **验证方式**
+  - 真实 `wsim.api` + ambient 3 世界日（run `live-attend`）：每天都有
+    `employer=shop:player:u_live` 的出工事件（day0 85/119、day1 194/276、day2 323/357/398），
+    日结 tick 153/289/432 按出勤计薪（18 / 13+欠 5 / 18），产出各 1 件。
+  - 缺勤场景（run `live-absent`，日界前签约、雇工当日未到店）：日结 tick 154 明细
+    “严守一当日未到店，工资0文、产出0件”+ 雇工记忆，`wage=[]`、`output=[]`、`debt=[]`；
+    day1 出工后正常发 18；day2 现金不足发 11、欠薪债 7（欠薪语义不变）。
+  - 欠薪债语义不变：只有出勤且现金不足才 `debt_create/increase`。
+  - `content_hash` 关闭 `7ec670c1…` / 开启 `3fd99946…` 未变；`llm_calls=0`。
+
+## [修复] 2026-11-05 — NPC 多跳寻路（最短路逐跳 + 移动/动作同 tick）
+
+- **改了什么**
+  - `sim/intent.py`：`Planner._move` 改为按 `path_between`（地点邻接图的确定性 BFS）产出整条
+    最短路，按 tick 逐跳发 `move`，每跳 `args={"to": 本跳落点, "dest": 最终目的地}`；返回
+    `cursor - 1`，让最后一个移动与紧随的 `work`/`consume`/买卖同 tick、先移动后动作。
+    跨日段上工前补一次同 tick 通勤 `move(dest=工位)`（已在工位即 0 步空操作）。
+  - `actions/basic.py`：`MoveAction` 按 `dest` 从**实际所在地**重算剩余最短路一次补足；
+    已到终点时的“原地一跳”/陈旧一跳按 0 步成功（不扣体力、不写记忆），不再报 `not_adjacent`。
+  - `sim/intent.py` 给每次决策产出的 `move` 打独立 `intent_id`：玩家动作一次推进 6 tick 后，
+    旧计划的同形 move 会被 `Writer` 按 `(actor,tick,verb,args,reason)` 去重吞掉，
+    导致“新计划该走却没走、紧随的 work 落空”；不同计划各自生效，同一计划重复提交仍幂等。
+  - 测试：新增 `tests/test_move_pathfinding.py`（6 条：路径确定性、漂移自愈、无 dest 仍拒绝、
+    陈旧一跳 0 步、原地一跳 0 步、末跳与 work 同 tick）；`tests/test_p3e_golden.py` 新增
+    V6 基线（791 events / `03b78469…` / `3be92716…`），旧 V5 基线原样保留并 skip。
+- **为什么改**：NPC 移动只支持相邻一跳，跨地点行程（客栈→药铺需经集市）全部
+  `move:not_adjacent` 失败，计划落空、看起来在动其实原地空转；`work` 随之
+  `not_at_workplace`。这是全世界所有 NPC 的全局行为 bug。
+- **验证方式**
+  - 10 世界日 headless（seed 42、真实 content、`content_hash 7ec670c1`）对照干净 master：
+    事件 2822→3084；`blocked` 46→21、`pruned` 11→4；`move:not_adjacent` 1→**0**、
+    `work:not_at_workplace` 3→**0**、`work:insufficient_stamina` 4→**0**；
+    `consume:item_not_available` 16→5；NPC 覆盖 31→31；K1 62/91 = 68.13%（护栏 63.13%，
+    未破）；到达分布 ferry 119→130、escort_agency 62→69、academy 143→147，
+    `ferry`/`escort_agency`/`pharmacy`/`smithy` 出现此前 10 日从未到过的 NPC。
+  - 同 seed 两次 2 天 golden：`state_final`/`event_final` 逐字节一致。
+  - 真实 `wsim.api` + ambient 3 世界日：`move:not_adjacent` = 0、`work:not_at_workplace` = 0；
+    雇工每日出工（tick 85/119、194/276、323/357/398）。
+  - `content_hash` 关闭 `7ec670c1…` / 开启 `3fd99946…` 未变；`llm_calls=0`。
+
 ## [功能] 2026-11-05 — 玩家婚姻闭环：求婚、确定性裁决、婚后日常、和离
 
 - **改了什么**
@@ -87,6 +142,7 @@
 - **commit**：`（见本轮 SHA-A）`
 
 ---
+
 
 ## [功能] 2026-11-05 — 玩家商业与经营面板（买/卖/现吃/开店/雇人/押镖）
 

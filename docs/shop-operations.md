@@ -246,3 +246,138 @@ run `hire-e2e`；content_hash `7ec670c1`。
 - 对账：`accounts_sum=47241 = minted 47450 − burned 209`（`delta=0`），`escrow_total=0`。
 
 
+
+## 8. NPC 多跳寻路（全 NPC 生效，不只是雇工）
+
+> 对应改动：`sim/intent.py` 的 `Planner._move`、`actions/basic.py` 的 `MoveAction`。
+> 旧行为：日程只把目的地当成“相邻一跳”发出去，跨地点行程一律 `move:not_adjacent` 落空，
+> 世界看起来在动、实际原地空转。
+
+### 8.1 改法
+
+- **最短路逐跳**：`Planner._move` 用 `actions/common.py::path_between`（地点邻接图上的确定性
+  BFS，邻接表顺序固定、平局按地点 id 排序）产出整条路线，按 tick 逐跳发 `move`；
+  禁止随机游走。
+- **每跳带 `dest`**：`args={"to": 这一跳的落点, "dest": 最终目的地}`。玩家动作会一次推进
+  6 tick，途中意图被调度器丢弃后，`MoveAction` 用 `dest` 从**实际所在地**重算剩余最短路
+  并一次补足，不再 `not_adjacent`。
+- **移动先于动作**：`_move` 返回 `cursor - 1`，最后一个移动与紧随其后的 `work`/`consume`/买卖
+  共用同一 tick；同 tick 按入队顺序执行（先移动后动作），动作落点必然已到达。
+- **跨日段补通勤**：计划跨日时，计划里对所在地的假设已隔了一整天；护送抵达等系统瞬移、
+  玩家跳 tick 丢意图都会让 `work` 落在人不在的工位。跨日段上工前再排一次同 tick 的
+  `move(to=work_loc, dest=work_loc)`：与 `work` 同 tick 且入队在前，二者要么一起被丢、
+  要么一起执行；已在工位时是 0 步空操作（不扣体力、不写记忆）。
+- **陈旧一跳**：已在最终目的地时，剩下的 `to` 在别处的陈旧一跳按 0 步成功，不报 `not_adjacent`。
+- **确定性**：路线只由邻接图与 BFS 决定；同 seed 两次 `state_final`/`event_final` 逐字节一致。
+
+### 8.2 10 个世界日对照（headless、seed 42、真实 content、`npc_limit=0`）
+
+改动前基线取自 `origin/master` 的干净工作树，改动后在 HEAD + 本改动的工作树；两者
+`content_hash` 均为 `7ec670c1`。
+
+| 指标 | 改动前 | 改动后 |
+| --- | --- | --- |
+| 事件总数 | 2822 | 3084 |
+| `precondition_blocked` / `pruned` | 46 / 11 | 21 / 4 |
+| `move:not_adjacent` | 1 | **0** |
+| `work:not_at_workplace` | 3 | **0** |
+| `work:insufficient_stamina` | 4 | **0** |
+| `consume:item_not_available` | 16 | 5 |
+| NPC 覆盖人数（有事件的活动实体） | 31 | 31 |
+| K1（规则臂，判定/在范围内的） | 62/91 = 68.13% | 62/91 = 68.13% |
+| `state_final`（10 日） | `bb939b4b…` | `68b05948…` |
+| `event_final`（10 日） | `65278147…` | `73026568…` |
+
+地点到达分布（`move` 的 `set_location.to` 计数）：
+
+| 地点 | 改动前 | 改动后 | 变化 |
+| --- | --- | --- | --- |
+| ferry | 119 | 130 | +11 |
+| escort_agency | 62 | 69 | +7 |
+| academy | 143 | 147 | +4 |
+| inn | 203 | 205 | +2 |
+| pharmacy | 56 | 57 | +1 |
+| market | 272 | 266 | −6 |
+| smithy | 61 | 52 | −9 |
+| temple | 121 | 120 | −1 |
+| teahouse | 2 | 2 | 0 |
+
+**此前到不了、现在能到的重点地点（按 NPC 维度）**：`ferry` 新增
+`hua_jieyu`/`ming_chabo`/`xie_tingyun`，`escort_agency` 新增 `ruan_xiaoluo`，
+`pharmacy` 新增 `jiang_tingyu`/`qin_wangchuan`/`wei_changgeng`，
+`smithy` 新增 `cao_banxian`/`ruan_xiaoluo` —— 这些 NPC 在改动前 10 个世界日从未到过对应地点
+（到访总人次下降的 `smithy`/`temple` 见下方归因）。
+
+**归因（世界事件量变化是预期内的）**：
+- `move` +181：跨日段上工前的同 tick 通勤移动（多数为 0 步空操作），换来 `work` 真的落到工位。
+- `work` +16、`consume` +25、`buy` +6、`sell` +11、`trade` +6、`quest_deliver` +7、
+  `quest_accept` +5：原计划不再因移动落空中断，NPC 按自己的日程走完，买卖/交付随之发生。
+- `cultivate` −1：原先“走不到”而改练手艺的兜底少了。
+- `blocked` 46→21：`work:insufficient_stamina`（4）与 `work:not_at_workplace`（3）归零，
+  `consume:item_not_available` 16→5（到店后真的买到了），任务类拦截随行程完成而减少。
+- `smithy`/`temple` 到访下降：这两处此前集中了“移动失败后原地兜底”的落点，寻路修好后
+  兜底减少；`ferry`/`escort_agency` 等远端地点因此增加。
+
+### 8.3 真实服务验收（`wsim.api` + ambient，3 个世界日）
+
+- 雇工 `yan_shouyi`（`employer=shop:player:u_live`）三个世界日每天都出工：
+  tick 85/119（day0）、194/276（day1）、323/357/398（day2），全部 `at=temple outcome=ok`。
+- 日结 tick 153/289/432 均按出勤计薪（18 / 13+欠 5 / 18）。
+- `ambient_summary.blocked`：`move:not_adjacent` = **0**、`work:not_at_workplace` = **0**；
+  残余拦截仅 `consume:item_not_available`、`trade:*`、`quest_deliver:*`、`join_sect:*` 等。
+- 经受住“持续玩家 move 跳 tick”压力场景（每 2s 推 6 tick）：`move:not_adjacent` = 0。
+- `content_hash`：关闭 `7ec670c1…`、开启 `XKX_CONTENT_PACKS=scaleup_w3` `3fd99946…`，均未变；
+  全程 0 次模型调用（`llm_calls=0`）。
+
+## 9. 日结按实际出勤（缺勤 0 工资 0 产出）
+
+> 对应改动：`actions/business.py::build_shop_settlements` / `shop_settlement_effects`。
+> 旧行为：日结不看雇工当天是否到店，人没来也照发工资、照给产出。
+
+### 9.1 口径
+
+- **出勤判定**：结算日 `[day*144, (day+1)*144)` 内存在该雇工带
+  `employer=shop:player:*` 的 `work` 事件（雇工出工时会写一条“工资本日由日结发放”的记忆，
+  日结按该标记 + tick 落在当日判定），记 `present`。
+- **缺勤**：当日无出工 → `wage=0`、`output_qty=0`、**不产生欠薪债**；
+  结算行带 `absent=[雇工 id]`、`present_count`；
+  `system_shop_settle` 明细写“某雇工当日未到店，工资0文、产出0件”，
+  同时给店主与雇工各写一条记忆。
+- **欠薪语义不变**：出勤但当日现金不足才欠薪（`creditor=雇工、debtor=店铺`，
+  `note=unpaid_wage`），由既有 `system_debts` 补付。
+- **结算日归一**：headless 在当日最后一 tick（143/287…）结算，shared/ambient 在新日首个
+  tick（144/150…）结算，`settled_day_of(tick)` 统一推断成“被结算的那个世界日”，
+  两种路径判定出勤的天数一致。
+- 兼容：`build_shop_settlements(content, state)` 不传 tick 的旧调用保持“视为出勤”，
+  只影响测试与历史脚本；真实日界一律传 `intent.tick`。
+
+### 9.2 真实服务验收（`wsim.api` + ambient，seed 42）
+
+**A. 正常出勤（3 个世界日，run `live-attend`）**
+
+| 世界日 | 出工事件（tick/at/employer） | 日结 | 工资 | 产出 |
+| --- | --- | --- | --- | --- |
+| day0 | 85 temple `shop:player:u_live`；119 同左 | 153 | 18 | 1 炊饼 |
+| day1 | 194、276 均 temple `shop:player:u_live`（另有 153 pharmacy `employer=null` 的短工） | 289 | 13 + 欠薪债 5 | 1 |
+| day2 | 323、357、398 均 temple `shop:player:u_live` | 432 | 18 | 1 |
+
+- 三个世界日每天都有 `employer=shop:player:*` 的出工事件，日结全部按出勤计薪；
+  day1 店现不足只付 13、欠 5（欠薪债语义保持）。
+
+**B. 缺勤（run `live-absent`：日界前签约 + 持续玩家 move 跳 tick）**
+
+| 项目 | 结果 |
+| --- | --- |
+| day0 出工事件 | 无（签约 tick 141 在日界前，雇工当日没到店） |
+| day0 日结 tick 154 | 明细 `["严守一当日未到店，工资0文、产出0件", "当日未到店（庙前香摊），日结工资0文、产出0件", "…营收15文…工资0文…"]`；`wage=[]`、`output=[]`、`debt=[]` |
+| day1 日结 tick 294 | 出工 154/238/273 → 工资 18、产出 1 件 |
+| day2 日结 tick 434 | 出工 315，店现不足 → 工资 11、欠薪债 7（`unpaid_wage`） |
+
+- 该 run 同时是压力场景（每 2s 玩家动作推进 6 tick）：`move:not_adjacent` = 0、
+  `work:not_at_workplace` = 0，`llm_calls=0`。
+
+### 9.3 单测
+
+- `tests/test_shop_operations.py::test_settlement_absent_pays_zero_and_records`：
+  当日 1 人出勤、1 人缺勤 → `present_count=1`、`absent=[缺勤者]`、工资只发 1 份、
+  `output_qty=1`、净利守恒；apply 后缺勤者无债务、店主记忆含“当日未到店”。

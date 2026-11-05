@@ -18,6 +18,7 @@ from .common import (
     income_tax,
     max_skill,
     memory,
+    path_between,
     payment_with_shortfall,
     require_entity,
     skill_for,
@@ -34,30 +35,68 @@ class MoveAction(Action):
     def __init__(self, content):
         self.content = content
 
+    def _step(self, state: WorldState, ent, intent: Intent) -> tuple[str | None, int]:
+        """返回（落点，步数）。
+
+        正常情况按计划的相邻一跳移动；跨 tick 丢意图会让实际位置偏离计划，
+        此时按 `dest`（最终目的地）从**实际所在地**重算最短路并一次补足，
+        保证动作（上工/吃饭等）开始前确实到达目的地，同时不再产生
+        `not_adjacent` 空转。
+        """
+        to = arg_str(intent, "to")
+        dest = arg_str(intent, "dest", required=False)
+        loc = state.locations.get(ent.location)
+        if loc is None or to not in state.locations:
+            return None, 0
+        if to in loc.get("exits", []):
+            return to, 1
+        if to == ent.location:
+            # 跨 tick 丢意图后，前面的跳可能已按 dest 自愈、提前到达终点，
+            # 剩余的“最后一跳”就变成原地一跳。它不是非法移动，按 0 步成功消除空转。
+            if dest and dest != ent.location and dest in state.locations:
+                route = path_between(state, ent.location, dest)
+                if route:
+                    return dest, len(route)
+            return to, 0
+        if dest and dest == ent.location:
+            # 已经站在最终目的地：剩下的陈旧一跳作废，按 0 步成功。
+            return to, 0
+        if dest and dest in state.locations:
+            route = path_between(state, ent.location, dest)
+            if route:
+                return dest, len(route)
+        return None, 0
+
     def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
         ent = require_entity(state, intent.actor)
         to = arg_str(intent, "to")
-        loc = state.locations.get(ent.location)
-        if loc is None:
+        dest = arg_str(intent, "dest", required=False)
+        if to not in state.locations or (dest and dest not in state.locations):
             return ["unknown_location"]
-        if to not in state.locations:
+        if state.locations.get(ent.location) is None:
             return ["unknown_location"]
-        if to not in loc.get("exits", []):
+        step, steps = self._step(state, ent, intent)
+        if step is None:
             return ["not_adjacent"]
         cost = float(self.content.economy.get("stamina_move", 5))
-        if ent.stamina < cost:
+        if ent.stamina < cost * steps:
             return ["insufficient_stamina"]
         return []
 
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
         ent = require_entity(state, intent.actor)
-        to = arg_str(intent, "to")
+        step, steps = self._step(state, ent, intent)
+        if step is None:
+            raise Reject("not_adjacent")
         cost = float(self.content.economy.get("stamina_move", 5))
+        if steps == 0:
+            # 原地一跳：已在此地，不扣体力、不写记忆，避免“看起来在动”的空转事件。
+            return []
         return [
-            Effect("set_location", {"entity": ent.id, "to": to}),
-            Effect("stamina", {"entity": ent.id, "delta": -cost}),
+            Effect("set_location", {"entity": ent.id, "to": step}),
+            Effect("stamina", {"entity": ent.id, "delta": -cost * steps}),
             Effect("set_field", {"entity": ent.id, "field": "last_action_tick", "value": intent.tick}),
-            *memory(state, ent.id, intent.tick, f"移动到 {to}", 0.1),
+            *memory(state, ent.id, intent.tick, f"移动到 {step}", 0.1),
         ]
 
 
