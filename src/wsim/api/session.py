@@ -6,6 +6,8 @@
 """
 from __future__ import annotations
 
+import json
+import os
 import threading
 import time
 from pathlib import Path
@@ -34,6 +36,7 @@ from ..core.content import load_content
 from ..core.models import Intent
 from ..mcp.gateway import MCPGateway, GatewayError
 from ..sim.genesis import build_genesis
+from ..sim.scheduler import AmbientConfig, AmbientScheduler
 from ..world.state import WorldState
 from ..world.store import EventStore
 from ..world.writer import Writer
@@ -101,6 +104,22 @@ ACTION_ALIASES: dict[str, str] = {
 
 FORBIDDEN_VERBS = frozenset(
     {"rob", "attack", "kill", "marry_force", "player_expel", "item_create", "mint", "set_field"}
+)
+
+# `/api/world/feed` 的固定上限与“重要事件”动词白名单（公共信息，不含玩家私有数据）。
+WORLD_FEED_LIMIT_MAX = 50
+WORLD_FEED_IMPORTANT_VERBS = frozenset(
+    {
+        "marry",
+        "open_shop",
+        "found_sect",
+        "join_sect",
+        "apprentice",
+        "recruit",
+        "escort",
+        "quest_deliver",
+        "breakthrough",
+    }
 )
 
 REASON_TEXT: dict[str, str] = {
@@ -202,6 +221,11 @@ class WorldSession:
         self._last_active: dict[str, float] = {}
 
         self.content = load_content(self.root, allow_fixture=False, use_content=True)
+        # 世界自走与玩家共用 content：feed 只认这批 NPC，玩家 ID 永不进入公共事件流。
+        self.npc_limit = int(npc_limit or 0)
+        self._npc_ids = frozenset(str(n["id"]) for n in self.content.npcs)
+        self.ambient: AmbientScheduler | None = None
+        self._ambient_thread: threading.Thread | None = None
         npcs = sorted(self.content.npcs, key=lambda n: n["id"])
         if npc_limit:
             npcs = npcs[:npc_limit]
@@ -429,6 +453,100 @@ class WorldSession:
                 "next_since_tick": int(self.state.tick),
                 "messages": [],
             }
+
+    def world_feed(self, limit: Any = 20) -> dict[str, Any]:
+        """`GET /api/world/feed`：最近的世界事件摘要（公共、只读、匿名可读）。
+
+        只含 NPC 的自主/剧情事件；字段固定为
+        `tick / actor / verb / place / summary / important`，
+        不含任何玩家私有状态（钱包、背包、任务、对话）。
+        """
+        try:
+            n = int(limit)
+        except (TypeError, ValueError):
+            n = 20
+        n = max(1, min(WORLD_FEED_LIMIT_MAX, n))
+        with self.lock:
+            rows = self.store.conn.execute(
+                "SELECT seq,tick,actor,verb,args FROM events "
+                "WHERE outcome='ok' AND actor != 'system' AND actor NOT LIKE 'player:%' "
+                "AND verb NOT LIKE 'system%' ORDER BY seq DESC LIMIT ?",
+                (n * 10,),
+            ).fetchall()
+            events: list[dict[str, Any]] = []
+            for _seq, tick, actor, verb, raw_args in rows:
+                actor = str(actor)
+                verb = str(verb)
+                if actor not in self._npc_ids:
+                    continue
+                try:
+                    args = json.loads(raw_args) if isinstance(raw_args, str) else (raw_args or {})
+                except json.JSONDecodeError:
+                    args = {}
+                if not isinstance(args, dict):
+                    args = {}
+                ent = self.state.entities.get(actor)
+                place_id = str(ent.location) if ent is not None else ""
+                place = self._loc_name(place_id) if place_id else ""
+                events.append(
+                    {
+                        "tick": int(tick),
+                        "actor": str(ent.name) if ent is not None else actor,
+                        "verb": verb,
+                        "place": place,
+                        "summary": self._feed_summary(actor, verb, args, place),
+                        "important": verb in WORLD_FEED_IMPORTANT_VERBS,
+                    }
+                )
+                if len(events) >= n:
+                    break
+            events.reverse()
+            return {
+                "ok": True,
+                "tick": int(self.state.tick),
+                "limit": n,
+                "events": events,
+            }
+
+    def _entity_name(self, ent_id: str) -> str:
+        ent = self.state.entities.get(str(ent_id))
+        return str(ent.name) if ent is not None else str(ent_id)
+
+    def _feed_summary(self, actor: str, verb: str, args: dict[str, Any], place: str) -> str:
+        """一句中文短句，≤40 字；只描述公共可见行为。"""
+        name = self._entity_name(actor)
+        at = place or "此地"
+        target = str(args.get("target") or "")
+        target_name = self._entity_name(target) if target else ""
+        to_name = self._loc_name(str(args.get("to"))) if args.get("to") else ""
+        if verb == "move":
+            text = f"动身前往{to_name}" if to_name else "换了去处"
+        elif verb == "cultivate":
+            skill = str(args.get("skill") or "")
+            text = f"在{at}修炼{skill}" if skill else f"在{at}静心修炼"
+        elif verb == "work":
+            text = f"在{at}做工"
+        elif verb in ("buy", "sell", "trade"):
+            text = f"在{at}做买卖"
+        elif verb == "talk":
+            text = f"与{target_name}交谈" if target_name else "与人交谈"
+        elif verb == "marry":
+            text = f"在{at}成婚"
+        elif verb == "open_shop":
+            text = f"在{at}开了铺子"
+        elif verb == "join_sect":
+            text = f"加入了{str(args.get('sect') or '门派')}"
+        elif verb == "escort":
+            text = f"押镖前往{to_name or '外地'}"
+        elif verb == "quest_accept":
+            text = "接下一份委托"
+        elif verb == "quest_deliver":
+            text = "交了一份委托"
+        elif verb == "consume":
+            text = f"在{at}歇脚"
+        else:
+            text = f"{name}在{at}活动"
+        return text[:40]
 
     def _faction_name(self, ent) -> str:
         faction = self.state.factions.get(str(ent.faction or ""))
@@ -1134,5 +1252,82 @@ class WorldSession:
             "data": data,
         }
 
+    # ------------------------------------------------------------------ ambient
+    def start_ambient(
+        self,
+        *,
+        speed: float = 1.0,
+        cpu_ratio: float = 0.70,
+    ) -> AmbientScheduler:
+        """在同一进程、同一把写锁、同一份 events.sqlite 上启动世界自走。
+
+        注入的是本会话已有的 Writer/EventStore/registry，绝不再建第二个写者；
+        NPC 事件与玩家事件因此落在同一条 seq 序列里。
+        """
+        if self.ambient is not None:
+            return self.ambient
+        cfg = AmbientConfig(
+            out_dir=self.run_dir / "ambient",
+            run_id=self.run_id,
+            seed=self.seed,
+            npc_limit=self.npc_limit,
+            speed=speed,
+            max_cpu_ratio=cpu_ratio,
+            parent_pid=None,
+            llm_enabled=False,
+            llm_max_calls=0,
+            start_tick=int(self.state.tick),
+        )
+        scheduler = AmbientScheduler(
+            self.root,
+            cfg,
+            content=self.content,
+            writer=self.writer,
+            store=self.store,
+            registry=self.registry,
+            lock=self.lock,
+        )
+        self.ambient = scheduler
+        self._ambient_thread = scheduler.start_background()
+        return scheduler
+
+    def start_ambient_from_env(self) -> dict[str, Any] | None:
+        """仅当 `XKX_AMBIENT` 为真时启动；默认不启动，保持旧行为。"""
+        raw = str(os.environ.get("XKX_AMBIENT", "0")).strip().lower()
+        if raw in ("", "0", "false", "off", "no"):
+            return None
+        try:
+            speed = float(os.environ.get("XKX_AMBIENT_SPEED") or 1.0)
+        except ValueError:
+            speed = 1.0
+        try:
+            pct = float(os.environ.get("XKX_AMBIENT_CPU") or 70.0)
+        except ValueError:
+            pct = 70.0
+        try:
+            cpu_ratio = max(0.0, min(1.0, pct / 100.0))
+            scheduler = self.start_ambient(speed=speed, cpu_ratio=cpu_ratio)
+        except Exception as exc:  # 自走起不来不能拖死玩家 API
+            return {"ok": False, "ambient": "error", "error": f"{type(exc).__name__}: {exc}"}
+        return {
+            "ok": True,
+            "ambient": "running",
+            "ambient_tick": int(self.state.tick),
+            "ambient_speed": scheduler.speed,
+            "ambient_cpu_ratio": float(scheduler.cfg.max_cpu_ratio),
+        }
+
+    def stop_ambient(self) -> None:
+        scheduler = self.ambient
+        if scheduler is None:
+            return
+        scheduler.stop(source="api_shutdown")
+        thread = self._ambient_thread
+        if thread is not None and thread.is_alive():
+            thread.join(timeout=2.0)
+        self._ambient_thread = None
+
     def close(self) -> None:
+        # 先收自走（它会写世界），再关 sqlite，避免半截写入。
+        self.stop_ambient()
         self.store.close()

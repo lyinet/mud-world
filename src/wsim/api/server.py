@@ -44,6 +44,7 @@ _AUTH_ME = "/api/auth/me"
 _RECONNECT_ROUTE = "/api/player/reconnect"
 _SERVICE_INFO = "/api/service/info"
 _HEALTH = "/api/health"
+_WORLD_FEED = "/api/world/feed"
 _INTENTS_PREFIX = "/api/player/intents/"
 
 # 席位/额度类业务拒绝：用 429 明确表达“不是服务端 500”。
@@ -137,7 +138,8 @@ def _ambient_health_payload(session: WorldSession) -> dict[str, Any]:
             return base
     return {
         "ambient": state,
-        "ambient_tick": data.get("tick"),
+        # 自走与玩家共用同一份事件日志：running/paused 时以世界 tick 为准。
+        "ambient_tick": int(session.state.tick),
         "ambient_last_tick_at": str(data.get("last_tick_at") or ""),
         "ambient_reason": str(data.get("reason") or ""),
         "ambient_pid": pid,
@@ -260,6 +262,10 @@ class _Handler(BaseHTTPRequestHandler):
                     **_ambient_health_payload(session),
                 },
             )
+            return
+        if path == _WORLD_FEED:
+            # 公共世界事件流：匿名可读（service/legacy 两种模式相同），不含玩家私有状态。
+            self._send(200, session.world_feed(query.get("limit", "20")))
             return
         if path == _AUTH_ME:
             row, err = self._resolve_token()

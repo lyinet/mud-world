@@ -75,6 +75,9 @@ def main(argv: list[str] | None = None) -> int:
     server = create_server(
         session, args.host, args.port, accounts=accounts, auth_required=auth_required
     )
+    # 世界自走与玩家在同一进程、同一 Writer、同一份 events.sqlite；
+    # XKX_AMBIENT=0 时不启动，行为与旧版一致。
+    ambient_info = session.start_ambient_from_env()
     host, port = server.server_address
     print(
         json.dumps(
@@ -86,6 +89,7 @@ def main(argv: list[str] | None = None) -> int:
                 "tick": session.state.tick,
                 "auth_required": auth_required,
                 "auth_mode": args.auth,
+                "ambient": (ambient_info or {}).get("ambient", "stopped"),
                 "docs": "docs/player-api.md",
             },
             ensure_ascii=False,
