@@ -622,3 +622,35 @@ WAL 异常或磁盘满时：先停服，保留 `events.sqlite`/`-wal`/`-shm` 原
   刚启动时以进程启动时刻为基准，不会因旧库 mtime 误判。
 - 任一不满足 → `ok=false` + **HTTP 503**；既有键保持不变，只新增 `storage` / `world`。
 
+
+---
+
+## 11. 审计日志轮转与内存上限（2026-11-06）
+
+**审计文件** `runs/<RUN_ID>/mcp_audit.jsonl` 是按大小轮转的：
+
+- 默认 **100MB / 保留 5 份**：活动文件 + `.1`…`.5`（`.5` 最旧，共 6 个文件上限）。
+- 轮转由后台线程 `audit-rotate` 执行；写入路径只做 append + 计数，不等待改名/删除。
+  轮转瞬间写入的新行可能落在 `.1`，**不会丢行**。
+- 配置：`XKX_AUDIT_MAX_BYTES`（默认 `104857600`；`0` 关闭轮转）、
+  `XKX_AUDIT_BACKUPS`（默认 `5`）、`XKX_AUDIT_MEMORY_MAX`（进程内缓存条数，默认 `4096`）。
+
+**无界内存结构上限**（长跑进程不再线性增长）：
+
+| 结构 | 位置 | 环境变量 | 默认 |
+|---|---|---|---|
+| 审计记录缓存 | `mcp/audit.py` `records` | `XKX_AUDIT_MEMORY_MAX` | 4096 条（deque） |
+| writer 幂等缓存 | `world/writer.py` `_seen` | `XKX_WRITER_SEEN_MAX` | 20000 条（OrderedDict） |
+| 请求回看缓存 | `api/session.py` `requests` / `intents` | `XKX_RECENT_INTENTS_MAX` | 4096 个请求（意图索引最多 2×） |
+
+实测（全默认 100MB）：连续写入 `357430` 条后触发轮转；
+
+```
+max_bytes=104857600 backups=5 memory_max=4096
+records_written=357430 rotation_count=1 records_kept=4096
+-rw-r--r--  1 lyinet wheel  104857790 mcp_audit.jsonl.1
+-rw-r--r--  1 lyinet wheel       4410 mcp_audit.jsonl
+```
+
+运维动作：`.1`…`.5` 可直接归档或删除；`service.sqlite` 的 `audit_log`（登录锁定/解锁/吊销）
+是另一套审计，不受此轮转影响。

@@ -6,6 +6,9 @@
 """
 from __future__ import annotations
 
+import os
+from collections import OrderedDict
+
 from ..core.canonical import hash_obj
 from ..core.clock import day_of
 from ..core.models import Effect, Event, Intent, Reject
@@ -15,19 +18,40 @@ from .state import WorldState
 from .store import EventStore
 
 
+def _env_int(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    if raw is None or str(raw).strip() == "":
+        return default
+    try:
+        return max(1, int(raw))
+    except (TypeError, ValueError):
+        return default
+
+
 def intent_id_for(actor: str, tick: int, verb: str, args: dict, reason: str = "") -> str:
     return "i:" + hash_obj({"actor": actor, "tick": tick, "verb": verb, "args": args, "reason": reason})
 
 
 class Writer:
-    def __init__(self, state: WorldState, store: EventStore, registry, seed: int):
+    def __init__(
+        self, state: WorldState, store: EventStore, registry, seed: int, seen_max: int | None = None
+    ):
         self.state = state
         self.store = store
         self.registry = registry
         self.seed = seed
-        self._seen: dict[str, Event] = {}
+        # 幂等缓存只保留最近 N 个 intent：旧 key 淘汰后重放会走正常校验，
+        # 不改变事件语义；上限防止长时间运行时内存无界增长。
+        self.seen_max = _env_int("XKX_WRITER_SEEN_MAX", 20_000) if seen_max is None else max(1, int(seen_max))
+        self._seen: OrderedDict[str, Event] = OrderedDict()
         self._player_ticks: dict[str, int] = {}
         self.committed_intents = 0
+
+    def _remember(self, iid: str, event: Event) -> None:
+        self._seen[iid] = event
+        self._seen.move_to_end(iid)
+        while len(self._seen) > self.seen_max:
+            self._seen.popitem(last=False)
 
     def bootstrap(self, effects: list[Effect], tick: int = 0, verb: str = "genesis") -> Event:
         """系统引导事件（世界从空状态建立）。仍然经过事件日志。"""
@@ -123,7 +147,7 @@ class Writer:
         )
         self.store.append(event)
         self.state = trial
-        self._seen[iid] = event
+        self._remember(iid, event)
         self.committed_intents += 1
         return event
 
@@ -148,5 +172,5 @@ class Writer:
             source=intent.source,
         )
         self.store.append(event)
-        self._seen[iid] = event
+        self._remember(iid, event)
         return event

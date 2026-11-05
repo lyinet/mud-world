@@ -11,6 +11,7 @@ import math
 import os
 import threading
 import time
+from collections import OrderedDict
 from pathlib import Path
 from typing import Any, Callable
 
@@ -306,8 +307,11 @@ class WorldSession:
         self.spawn = spawn
         self.tick_step = tick_step
         self.lock = threading.RLock()
-        self.requests: dict[str, dict[str, Any]] = {}
-        self.intents: dict[str, dict[str, Any]] = {}
+        # 请求/意图回看缓存：只保留最近 N 次写请求，防止长跑进程内存无界增长。
+        # 淘汰后仍可通过事件日志重新查到（见 `intent()` 的回退分支）。
+        self._recent_max = max(1, int(os.environ.get("XKX_RECENT_INTENTS_MAX") or 4096))
+        self.requests: OrderedDict[str, dict[str, Any]] = OrderedDict()
+        self.intents: OrderedDict[str, dict[str, Any]] = OrderedDict()
         # 在线状态只看玩家自己的 wall-clock 活跃时间，绝不看全局 tick（并发下世界日会被压缩）。
         self._presence_clock = presence_clock or time.monotonic
         self._presence_active = max(0.0, float(presence_active_seconds))
@@ -1303,9 +1307,18 @@ class WorldSession:
             response.setdefault("status", "executed" if response.get("ok") else "rejected")
             if cache_key:
                 self.requests[cache_key] = response
+                self.requests.move_to_end(cache_key)
                 self.intents[request_id] = response
+                self.intents.move_to_end(request_id)
                 if response.get("intent_id"):
-                    self.intents[str(response["intent_id"])] = response
+                    intent_id = str(response["intent_id"])
+                    self.intents[intent_id] = response
+                    self.intents.move_to_end(intent_id)
+                while len(self.requests) > self._recent_max:
+                    old_key, _ = self.requests.popitem(last=False)
+                    self.intents.pop(old_key.split(":", 1)[-1], None)
+                while len(self.intents) > self._recent_max * 2:
+                    self.intents.popitem(last=False)
             return response
 
     def resume(

@@ -39,6 +39,46 @@
   - 全量 `pytest`：653 collected（635 passed / 18 skipped），退出码 0。
 - **commit**：见本条目所在提交。
 
+## [安全 P0] 2026-11-06 — 审计日志按大小轮转 + 无界内存结构全部加上限
+
+- **改了什么**
+  - `mcp/audit.py`：`mcp_audit.jsonl` 默认 **100MB 轮转、保留 5 份**（活动文件 + `.1`…`.5`），
+    可用 `XKX_AUDIT_MAX_BYTES` / `XKX_AUDIT_BACKUPS` 覆盖；轮转在后台线程 `audit-rotate`
+    执行，写路径只 append + 计数，**不等待改名/删除**；进程内 `records` 改为
+    `deque(maxlen=XKX_AUDIT_MEMORY_MAX)`（默认 4096 条）。
+  - `world/writer.py`：幂等缓存 `_seen` 改为 `OrderedDict` + 上限
+    `XKX_WRITER_SEEN_MAX`（默认 20000），淘汰最旧 intent；旧 key 淘汰后重放走正常校验，
+    事件语义不变。
+  - `api/session.py`：请求回看 `requests` / `intents` 改为 `OrderedDict` + 上限
+    `XKX_RECENT_INTENTS_MAX`（默认 4096 个请求，意图索引最多 2×）；淘汰后仍可从事件日志
+    回查（`intent()` 原有回退分支）。该文件仅动初始化与 `perform()` 两处，未覆盖其他
+    会话的店铺动作 hunk。
+- **为什么改**：740B/事件的审计文件在 150 席满载下约 43GB/天，且三处缓存随运行时长线性增长。
+- **验证**
+  - 单测：`tests/test_w1_audit_rotation.py`（轮转保留/备份份数上限/内存上限/env 配置/
+    轮转不阻塞写路径）、`tests/test_w1_bounded_memory.py`（writer 与 session 上限不越界）。
+  - 默认 100MB 轮转实测：
+
+    ```text
+    max_bytes=104857600 backups=5 memory_max=4096
+    records_written=357430 rotation_count=1 records_kept=4096
+    -rw-r--r-- 1 lyinet wheel 104857790 mcp_audit.jsonl.1
+    -rw-r--r-- 1 lyinet wheel      4410 mcp_audit.jsonl
+    ```
+  - 60 分钟 soak（audit 持续写入 + session 每 100ms 一次写请求，每分钟采样 RSS）：
+
+    ```text
+    采样 60 次，窗口 3540s；audit 写入 675147 条，轮转 1 次
+    RSS(kB) 首次/最小/最大/末次 = 41632 / 16432 / 41632 / 17216
+    RSS(kB) @5min=24384  @30min=19728  @59min=17216
+    各缓存峰值长度：audit_records=4096 requests=4096 intents=4097
+    -rw-r--r-- 1 lyinet wheel 104857798 mcp_audit.jsonl.1
+    -rw-r--r-- 1 lyinet wheel  85853628 mcp_audit.jsonl
+    ```
+
+    结论：三项缓存均在第一次采样前到达上限并保持不变；RSS 从启动峰值 41.6MB
+    回落到 17.2MB，60 分钟窗口内**单调收敛**，无泄漏趋势。
+
 ## [安全 P1] 2026-11-06 — 容器健康检查改为真探活（`deploy/healthcheck.py`）
 
 - **改了什么**
