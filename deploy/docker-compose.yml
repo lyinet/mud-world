@@ -42,6 +42,33 @@ services:
       retries: 5
       start_period: 20s
 
+  # 可选 profile：只做定时在线备份，不提供 API/UI。
+  #   cd deploy && docker compose --profile backup up -d
+  # 选择 profile 而不是 entrypoint 开关的理由与 RPO/RTO 见 docs/BACKUP-RESTORE.md。
+  backup:
+    image: xkx/world-sim:w5
+    container_name: xkx-backup
+    profiles: ["backup"]
+    command:
+      - /bin/sh
+      - -c
+      - >-
+        while true; do
+        python /app/tools/backup_snapshot.py --root /app --run "${RUN_ID:-service}" --backup-dir /app/backups || true;
+        sleep "${BK_INTERVAL:-21600}";
+        done
+    environment:
+      RUN_ID: "${RUN_ID:-service}"
+      BK_INTERVAL: "${BK_INTERVAL:-21600}"
+      # 备份产物独立卷；不放数据卷里，避免备份撑爆 /app/runs。
+      PYTHONPATH: "/app/src"
+    volumes:
+      - xkx-data:/app/runs
+      - xkx-backups:/app/backups
+    restart: unless-stopped
+
 volumes:
   xkx-data:
     name: xkx-w5-data
+  xkx-backups:
+    name: xkx-w5-backups
