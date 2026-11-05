@@ -481,6 +481,9 @@ class Planner:
         self._stamina = 100.0
         # quest_id -> 上次尝试 tick（避免同一任务反复被拒）
         self._quest_attempt: dict[str, int] = {}
+        # template_id -> 上次被接单的 tick：开放任务按最久未服务优先轮转，
+        # 避免 procure_* / teach_* 这类前缀靠后的模板被字典序永久压尾。
+        self._quest_served: dict[str, int] = {}
         # 因金库缓冲不足而延后的开店次数（由 MockReasoner 汇总到 summary）。
         self.postponed_open_shop = 0
         # 自提案独立额度：实际排上的自目标动作数 / 因当天没空位而放弃的次数。
@@ -579,6 +582,11 @@ class Planner:
             if day > day_of(start_tick):
                 self._stamina = min(100.0, self._stamina + recover)
 
+            # 任务优先：接单 -> 执行（交付由 headless 在动作成功后推进）。
+            # 放在上工之前：清早 NPC 与发起人多半都在驻地，接单离规划时刻更近，
+            # 避免“计划时发起人还在、执行时已走开”的 not_at_giver 静默失败。
+            loc, cursor, cash = self._quest_step(state, intents, npc, loc, cursor, seg_end, cash, memo)
+
             employer = self._employer(state, ent)
             work_loc = employer.location if employer is not None else ""
             gross = self._gross_wage(ent)
@@ -611,9 +619,6 @@ class Planner:
 
             # 午饭（一天一顿，减少无效往返；晚饭取消）
             loc, cursor, cash = self._meal(state, intents, npc, loc, cursor, seg_end, cash, "午饭")
-
-            # 任务优先：接单 -> 执行（交付由 headless 在动作成功后推进）
-            loc, cursor, cash = self._quest_step(state, intents, npc, loc, cursor, seg_end, cash, memo)
 
             # 消费倾向：有余钱就买一件非口粮品，钱回流店铺；
             # 正在攒注册费的发起人不做可选消费，否则永远差最后几百文。
@@ -754,10 +759,10 @@ class Planner:
         # 押镖单独立占位：不占普通任务的并发额度，避免长期被采购/跑腿挤掉。
         escort_accepted = [q for q in accepted if q.verb == "escort"]
         errand_accepted = [q for q in accepted if q.verb != "escort"]
-        open_quests = [
-            q for q in sorted(state.quests.values(), key=lambda q: q.id)
-            if q.status == "open"
-        ]
+        # 公平轮转：先服务最久没被接过的模板，平局再按 quest id 稳定排序。
+        # 未服务过的模板用 -1 哨兵，保证它们整体排在已服务模板之前。
+        open_quests = [q for q in state.quests.values() if q.status == "open"]
+        open_quests.sort(key=lambda q: (self._quest_served.get(q.template_id, -1), q.id))
         if (len(errand_accepted) >= limit and len(escort_accepted) >= escort_limit) or memo.get(
             "quest_look"
         ):
@@ -796,6 +801,7 @@ class Planner:
             if cursor - last < TICKS_PER_DAY:
                 continue
             self._quest_attempt[q.id] = cursor
+            self._quest_served[q.template_id] = cursor
             cursor = self._add(
                 intents, npc, "quest_accept", {"quest": q.id, "quest_verb": q.verb}, cursor, end,
                 f"在{giver.name}处接下任务「{q.template_id}」",
