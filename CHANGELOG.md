@@ -38,6 +38,45 @@
 
 ---
 
+## [功能] 2026-11-05 — 世界动态中文动作映射 + 服务模式真后端复验
+
+- **改了什么**
+  - `ui/player/app.js` 集中 `FEED_VERB_TEXT`：`move→赶路`、`work→上工`、
+    `quest_accept→接单`、`quest_deliver→交单`、`trade→买卖`、`talk→交谈`、
+    `cultivate→修炼`、`open_shop→开店`、`join_sect→入门`、`escort→押镖` 等；
+    未知动词一律「有事发生」。摘要缺省时用中文动作兜底，摘要里混入
+    `[a-z_]+` 内部动词时逐词替换，玩家侧不再出现 `move` / `quest_accept` 之类原文。
+  - `tools/ui_check.py` 新增 4 条断言：空摘要按 verb 映射、未知动词兜底且不漏英文、
+    摘要混入内部动词同样替换、整份渲染文本不含 `[a-z_]+`；mock feed 事件改用
+    真服务同款内部动词（`work/trade/talk/move/cultivate`）。
+  - 新增 `tools/ui_check_real_feed.py`：真 `wsim.api --auth on` + 真
+    `service.sqlite` + `XKX_AMBIENT=1`（2x）自走 + 真 `ui/player/server.py` 代理，
+    浏览器走真代理注册/登录/进入，60 秒窗口逐秒累积玩家实际看到的事件。
+- **为什么**：后端 `verb` 是内部英文动词，契约要求玩家视角不得出现；
+  此前的服务模式截图是「真代理 + mock 上游」，不算端到端。
+- **验证方式**
+  - `python3 tools/ui_check.py`：**86 checks / 0 failed**（feed 17 条全过）。
+  - `python3 tools/ui_check_proxy.py`：**12 checks / 0 failed**（mock 上游回归）。
+  - `python3 tools/ui_check_real_feed.py`：**12 checks / 0 failed**（真后端）：
+    匿名/登录态 `/api/world/feed` 均 200，顶层 `{ok,tick,limit,events}`、每项 6 公共字段、
+    正文无 `wallet/items/skills/...`；feed `tick=29` 与 `/api/health.ambient_tick=29` 一致；
+    60 秒内 UI 出现 20 条、窗口累计 46 条真实 NPC 事件（演员 严守一/蒋听雨/金满仓/陆九斤，
+    非 mock 名单），当前/相邻地点命中「药铺」；feed 请求 7 次、间隔稳定 8.0s、全部匿名；
+    刷新后仍 20 条；`events.sqlite` 内 NPC 事件 43 条。
+  - 干净 HEAD（`c2014a8` 的 `git archive`）：pytest **439 passed / 12 skipped**；
+    `scripts/selfcheck.sh` **4/4 PASS**。
+  - 证据 `reports/w4-feed/feed-service-real.png`、`feed-service-real-reload.png`、
+    `real-feed-service.json`（原始匿名/登录态 JSON + 请求节流记录）。
+- **与 mock 版本的真实差异**（UI 已兼容，非缺陷）
+  - 真后端 `events` 按 tick **升序**返回，UI 侧统一倒序；mock 直接倒序。
+  - 真后端 `verb` 是内部动词、`summary` 是中文短语；mock 事件同样改成内部动词回归，
+    摘要为空时才展示映射后的中文动作。
+  - 真后端一屏 20 条、`important` 数量随自走变化；mock 固定 5 条、2 条 important。
+  - 真后端 feed 与 health 的 `ambient_tick` 同一世界；mock 无自走。
+- **commit**：`e5eea9c`。
+
+---
+
 ## [功能] 2026-11-05 — 玩家侧「世界动态」feed
 
 - **改了什么**：`ui/player` 中栏新增默认可见的「世界动态」区块，读
