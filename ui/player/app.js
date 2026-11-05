@@ -26,8 +26,13 @@
     quests: (account) => getJSON(
       '/api/player/quests?account_id=' + encodeURIComponent(account || ''),
       true
-    )
+    ),
+    /* 世界动态是公共事件：匿名可读，故意不带令牌，避免与登录/刷新链路互相牵制。 */
+    feed: (limit) => getJSON('/api/world/feed?limit=' + encodeURIComponent(String(limit || 20)), false)
   };
+
+  const FEED_LIMIT = 20;
+  const FEED_INTERVAL_MS = 8000;
 
   /* 原因码映射：前端只认 reject_reason，中文文案由这里兜底。
      未知码仍会显示服务端 reason_text；两者都没有时走通用兜底。 */
@@ -101,7 +106,8 @@
     bad_args: '参数不完整或格式错误。',
     'bad_arg:money_delta': '金额参数必须是整数。',
     intent_not_found: '没有找到这个请求；请刷新后重试。',
-    readonly_mode: '只读模式不支持该动作；请用可写模式启动。'
+    readonly_mode: '只读模式不支持该动作；请用可写模式启动。',
+    world_important: '你所在或相邻的地点出现了重要动静；留意「世界动态」。'
   };
 
   const AUTH_KEY = 'ws_auth_v1';
@@ -122,6 +128,14 @@
     selected: null,
     busy: false,
     pollTimer: null,
+    feedTimer: null,
+    feed: {
+      rows: [],
+      failed: false,
+      loaded: false,
+      inflight: false,
+      announced: {}   // tick|summary -> true，重要动静只提示一次
+    },
     log: [],
     sinceTick: 0,
     seenMessages: {},
@@ -1144,6 +1158,8 @@
     showEntry(false);
     if (state.st) render(state.st);
     maybeStartGuide();
+    // 进入世界后立刻对齐一次世界动态，让「附近重要动静」不必等到下个轮询。
+    loadFeed();
   }
 
   /* ------------------------------------------------------------- 场景渲染 */
@@ -1479,13 +1495,103 @@
       const node = document.createElement('div');
       node.className = 'log-item ' + row.kind;
       const tag = row.kind === 'proposal' ? '提案 · 待执行'
-        : row.kind === 'rejected' ? '被拒' : '你';
+        : row.kind === 'rejected' ? '被拒'
+          : row.kind === 'world' ? '世界动态' : '你';
       node.innerHTML = '<div class="log-meta"><span>' +
         escapeHtml(row.meta || '') + '</span><span class="tag">' + escapeHtml(tag) + '</span></div>' +
         '<div>' + escapeHtml(row.text || '') + '</div>';
       box.appendChild(node);
     });
     box.scrollTop = 0;
+  }
+
+  /* ------------------------------------------------------------- 世界动态 */
+  /* 后端契约（GET /api/world/feed?limit=20）：最近世界事件数组，字段
+     tick/actor/verb/place/summary/important。这里对包装形状做兼容解析：
+     裸数组或 {events|feed|items|rows} 都接受。 */
+  function parseFeed(payload) {
+    const raw = Array.isArray(payload) ? payload
+      : (payload && (payload.events || payload.feed || payload.items || payload.rows)) || [];
+    if (!Array.isArray(raw)) return [];
+    return raw.filter(function (x) { return x && typeof x === 'object'; })
+      .map(function (x) {
+        return {
+          tick: Number(x.tick) || 0,
+          actor: String(x.actor || ''),
+          verb: String(x.verb || ''),
+          place: String(x.place || ''),
+          summary: String(x.summary || ''),
+          important: !!x.important
+        };
+      })
+      .filter(function (x) { return x.summary || (x.actor && x.verb); })
+      .sort(function (a, b) { return b.tick - a.tick; })
+      .slice(0, FEED_LIMIT);
+  }
+
+  function renderFeed() {
+    const list = el('feedList');
+    if (!list) return;
+    const rows = state.feed.rows || [];
+    const atTop = list.scrollTop <= 1;
+    const prevHeight = list.scrollHeight;
+    if (rows.length) {
+      list.innerHTML = rows.map(function (r) {
+        const line = '· [' + r.tick + '] ' + (r.actor || '某处') +
+          (r.place ? ' 在 ' + r.place : '') + '：' + (r.summary || '');
+        return '<div class="feed-row' + (r.important ? ' important' : '') +
+          '" data-feed-tick="' + escapeHtml(r.tick) + '" data-feed-important="' +
+          (r.important ? '1' : '0') + '">' + escapeHtml(line) + '</div>';
+      }).join('');
+    } else {
+      list.innerHTML = '<div class="feed-empty">' +
+        (state.feed.loaded ? '世界暂时安静' : '正在听世界的动静…') + '</div>';
+    }
+    // 固定高度容器：用户停在顶部时跟随最新一条；滚动到下方时不因新条目插入而跳动。
+    if (atTop) list.scrollTop = 0;
+    else list.scrollTop += list.scrollHeight - prevHeight;
+    el('feedCount').textContent = String(rows.length);
+    const status = el('feedStatus');
+    status.textContent = '世界暂时安静';
+    status.classList.toggle('hidden', !state.feed.failed);
+  }
+
+  /* 重要动静只用现有提示体系（toast + 本地操作记录），不新造弹层/原因码通道。 */
+  function announceFeed(rows) {
+    const loc = (state.st || {}).location || {};
+    if (!loc.name) return;
+    const near = {};
+    near[loc.name] = true;
+    (loc.exits || []).forEach(function (x) { if (x && x.name) near[x.name] = true; });
+    rows.forEach(function (r) {
+      if (!r.important || !near[r.place]) return;
+      const key = String(r.tick) + '|' + r.summary;
+      if (state.feed.announced[key]) return;
+      state.feed.announced[key] = true;
+      const text = '附近动静：' + (r.summary || (r.actor + '在' + r.place));
+      toast(text, false);
+      pushLog('world', text, '原因码 world_important · tick ' + r.tick);
+    });
+  }
+
+  async function loadFeed() {
+    if (state.feed.inflight) return;
+    state.feed.inflight = true;
+    try {
+      const data = await API.feed(FEED_LIMIT);
+      state.feed.rows = parseFeed(data);
+      state.feed.failed = false;
+      state.feed.loaded = true;
+      renderFeed();
+      announceFeed(state.feed.rows);
+    } catch (err) {
+      // 降级：feed 失败不弹红字、不写错误历史、不动主状态，只显示「世界暂时安静」。
+      state.feed.failed = true;
+      state.feed.loaded = true;
+      renderFeed();
+    } finally {
+      state.feed.inflight = false;
+    }
   }
 
   /* ------------------------------------------------------------- 任务板 */
@@ -1923,6 +2029,10 @@
       }
       if (state.st) render(state.st);
       if (restored) maybeStartGuide();
+      // 世界动态与登录态无关：匿名、只读降级都能读；独立节流，不参与主状态刷新。
+      loadFeed();
+      clearInterval(state.feedTimer);
+      state.feedTimer = setInterval(loadFeed, FEED_INTERVAL_MS);
       clearInterval(state.pollTimer);
       state.pollTimer = setInterval(async function () {
         await refreshHealth();
@@ -1959,6 +2069,16 @@
         const acct = account == null ? (state.session && state.session.accountId) : account;
         return API.state(acct);
       },
+      feedState: function () {
+        return {
+          rows: state.feed.rows.length,
+          failed: !!state.feed.failed,
+          announced: Object.keys(state.feed.announced).length,
+          important: state.feed.rows.filter(function (r) { return r.important; }).length,
+          topTick: state.feed.rows.length ? state.feed.rows[0].tick : null
+        };
+      },
+      refreshFeed: function () { return loadFeed(); },
       authState: function () {
         return {
           mode: state.auth.mode,

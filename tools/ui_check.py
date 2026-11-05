@@ -63,6 +63,21 @@ NPCS = {
                   "doing": "招呼客人", "location": "teahouse", "presence": "在场"}],
 }
 
+# 世界动态固定样本：市集/药铺（玩家当前地点与相邻地点）各一条 important，
+# 茶楼一条普通事件，用于验证强调样式与「附近动静」提示。
+FEED_EVENTS = [
+    {"tick": 37, "actor": "王铁匠", "verb": "打铁", "place": "药铺",
+     "summary": "王铁匠在药铺修好一口药碾。", "important": True},
+    {"tick": 34, "actor": "刘三娘", "verb": "理货", "place": "市集",
+     "summary": "刘三娘在市集清点新到的粗布。", "important": True},
+    {"tick": 31, "actor": "茶楼老板", "verb": "沏茶", "place": "茶楼",
+     "summary": "茶楼老板给客人续了三壶茶。", "important": False},
+    {"tick": 28, "actor": "更夫", "verb": "巡街", "place": "市集",
+     "summary": "更夫敲着梆子走过市集。", "important": False},
+    {"tick": 25, "actor": "药铺掌柜", "verb": "晒药", "place": "药铺",
+     "summary": "药铺掌柜把陈皮摊在竹匾里。", "important": False},
+]
+
 
 AUTH_ERROR_TEXT = {
     "auth_bad_username": "用户名需为 3-32 位小写字母、数字、下划线或连字符。",
@@ -96,6 +111,9 @@ class MockWorld:
         self.rotate_count = 0
         self.force_401 = 0
         self.write_auth_headers = []
+        self.feed_calls = 0
+        self.feed_headers = []
+        self.feed_extra = []
 
     # ---------------------------------------------------------------- accounts
     def _new_account(self, account_id, display_name, archetype, created):
@@ -189,6 +207,23 @@ class MockWorld:
                 },
                 "online_players": [],
             }
+
+    def feed(self, limit=20):
+        try:
+            cap = max(1, min(int(limit or 20), 50))
+        except (TypeError, ValueError):
+            cap = 20
+        with self.lock:
+            rows = [dict(r) for r in FEED_EVENTS] + [dict(r) for r in self.feed_extra]
+        rows.sort(key=lambda r: -int(r.get("tick") or 0))
+        return {"ok": True, "events": rows[:cap]}
+
+    def push_feed(self, tick, summary, important=False, place="市集"):
+        with self.lock:
+            self.feed_extra.append({
+                "tick": int(tick), "actor": "更夫", "verb": "巡街",
+                "place": place, "summary": summary, "important": bool(important),
+            })
 
     def act(self, account_id, verb, args, client_tick):
         with self.lock:
@@ -384,8 +419,24 @@ class Handler(SimpleHTTPRequestHandler):
                 return
             self._json(200, st)
             return
+        if path == "/api/world/feed":
+            q = parse_qs(urlsplit(self.path).query)
+            self.world.feed_calls += 1
+            self.world.feed_headers.append(self.headers.get("Authorization") or "")
+            self._json(200, self.world.feed((q.get("limit") or ["20"])[0]))
+            return
         if path == "/api/player/messages":
             self._json(200, {"ok": True, "rows": []})
+            return
+        if path == "/__check/feed_push":
+            q = parse_qs(urlsplit(self.path).query)
+            self.world.push_feed(
+                (q.get("tick") or ["40"])[0],
+                (q.get("summary") or ["更夫在街上敲了一声梆子。"])[0],
+                (q.get("important") or ["0"])[0] in ("1", "true"),
+                (q.get("place") or ["市集"])[0],
+            )
+            self._json(200, {"ok": True, "rows": len(self.world.feed()["events"])})
             return
         if path == "/api/player/intents":
             self._json(404, {"ok": False, "reason": "intent_not_found"})
@@ -647,6 +698,137 @@ def capture(page, name, results, extra=None):
     return extra
 
 
+FEED_EVIDENCE = ROOT / "reports" / "w4-feed"
+
+
+def feed_capture(page, name, results, extra=None):
+    FEED_EVIDENCE.mkdir(parents=True, exist_ok=True)
+    path = FEED_EVIDENCE / (name + ".png")
+    page.screenshot(path=str(path))
+    if extra is not None:
+        extra["screenshot"] = str(path.relative_to(ROOT))
+    return extra
+
+
+def feed_snapshot(page):
+    return page.evaluate("""() => {
+      const list = document.getElementById('feedList');
+      const block = document.getElementById('worldFeed');
+      const rows = Array.from(document.querySelectorAll('#feedList .feed-row'));
+      const cs = getComputedStyle(list);
+      const status = document.getElementById('feedStatus');
+      return {
+        blockVisible: !!(block && block.getBoundingClientRect().height > 0),
+        count: rows.length, feedRows: (window.__XKX.feedState() || {}).rows,
+        ticks: rows.map(r => Number(r.getAttribute('data-feed-tick'))),
+        important: rows.filter(r => r.getAttribute('data-feed-important') === '1').length,
+        texts: rows.map(r => r.textContent.trim()),
+        height: Math.round(list.getBoundingClientRect().height),
+        overflowY: cs.overflowY, scrollHeight: list.scrollHeight, clientHeight: list.clientHeight,
+        scrollWidth: document.documentElement.scrollWidth,
+        inFold: !!block.closest('.block.foldable'), hasFoldBtn: !!block.querySelector('.fold-btn'),
+        announced: (window.__XKX.feedState() || {}).announced || 0,
+        logWorld: document.querySelectorAll('#log .log-item.world').length,
+        toast: (document.getElementById('toast') || {}).textContent || '',
+        errors: document.querySelectorAll('#errorList .error-item').length,
+        money: (document.getElementById('stMoney') || {}).textContent || '',
+        placeholder: (list.querySelector('.feed-empty') || {}).textContent || '',
+        statusHidden: status ? status.classList.contains('hidden') : true,
+        statusText: status ? status.textContent : ''
+      };
+    }""")
+
+
+def run_feed(browser, base, results, world):
+    """世界动态：默认可见、倒序、固定高度、单独节流、失败降级、附近重要动静提示。"""
+    ctx = browser.new_context(viewport={"width": 1280, "height": 900})
+    page = ctx.new_page()
+    try:
+        page.goto(base + "/?ui_check=1")
+        enter_world(page, "u_feed_desktop", "看戏客")
+        # 跳过新手引导，避免提示层遮住世界动态区域
+        page.evaluate("""() => { const b = document.getElementById('guideSkip'); if (b) b.click(); }""")
+        page.wait_for_function(
+            "() => document.getElementById('guideLayer').classList.contains('hidden')", timeout=8000)
+        page.wait_for_function("() => window.__XKX.feedState().rows >= 5", timeout=15000)
+        page.wait_for_function("() => window.__XKX.feedState().announced >= 2", timeout=8000)
+        view = feed_snapshot(page)
+        results.add("feed 默认可见（不在折叠组内）",
+                    view["blockVisible"] and not view["inFold"] and not view["hasFoldBtn"], view)
+        results.add("feed 20 条上限内、样本 5 条全渲染",
+                    view["count"] == 5 and view["feedRows"] == 5, view)
+        results.add("feed 按 tick 倒序", view["ticks"] == sorted(view["ticks"], reverse=True),
+                    view["ticks"])
+        results.add("feed 每行格式 · [tick] actor 在 place：summary",
+                    all(re.match(r"^· \[\d+\] .+ 在 .+：", t) for t in view["texts"]),
+                    view["texts"])
+        results.add("feed important 使用强调样式", view["important"] == 2 and
+                    "important" in page.evaluate(
+                        "() => document.querySelector('#feedList .feed-row.important') ? 'important' : ''"),
+                    {"important": view["important"]})
+        results.add("feed 请求匿名、不带 Authorization",
+                    bool(world.feed_calls) and all(h == "" for h in world.feed_headers),
+                    {"feed_calls": world.feed_calls})
+        results.add("feed 附近 important 走现有提示体系（toast + 操作记录）",
+                    view["announced"] >= 2 and view["logWorld"] >= 1,
+                    {"announced": view["announced"], "logWorld": view["logWorld"],
+                     "toast": view["toast"]})
+        feed_capture(page, "feed-desktop", results, view)
+
+        # 固定高度容器 + 滚动锚定：用户滚到下方时插入新条目不应跳动
+        # 先补几条让列表真正溢出（5 条时固定高度仍未满）
+        page.evaluate("""() => Promise.all([40, 41, 42].map(t =>
+            fetch('/__check/feed_push?tick=' + t + '&summary=' +
+                  encodeURIComponent('街上有人走过。')).then(r => r.json())))""")
+        page.evaluate("() => window.__XKX.refreshFeed()")
+        page.wait_for_function("() => window.__XKX.feedState().rows >= 8", timeout=8000)
+        results.add("feed 列表溢出时固定高度内滚动",
+                    page.evaluate("() => { const l = document.getElementById('feedList');"
+                                  "return l.scrollHeight > l.clientHeight; }"), {})
+        page.evaluate("""() => { const l = document.getElementById('feedList'); l.scrollTop = l.scrollHeight; }""")
+        before = page.evaluate("""() => { const l = document.getElementById('feedList');
+            return {top: l.scrollTop, height: l.scrollHeight}; }""")
+        page.evaluate("""() => fetch('/__check/feed_push?tick=43&important=0&summary=' +
+            encodeURIComponent('更夫在西街敲了一声梆子。')).then(r => r.json())""")
+        page.evaluate("() => window.__XKX.refreshFeed()")
+        page.wait_for_function("() => window.__XKX.feedState().rows >= 9", timeout=8000)
+        after = page.evaluate("""() => { const l = document.getElementById('feedList');
+            return {top: l.scrollTop, height: l.scrollHeight}; }""")
+        delta = after["height"] - before["height"]
+        results.add("feed 下滚阅读时插入新条目不跳动",
+                    before["top"] > 0 and abs(after["top"] - (before["top"] + delta)) <= 2,
+                    {"before": before, "after": after, "delta": delta})
+
+        # 在顶部时跟随最新
+        page.evaluate("""() => { const l = document.getElementById('feedList'); l.scrollTop = 0; }""")
+        page.evaluate("""() => fetch('/__check/feed_push?tick=45&important=1&summary=' +
+            encodeURIComponent('一队镖车进了市集。')).then(r => r.json())""")
+        page.evaluate("() => window.__XKX.refreshFeed()")
+        page.wait_for_function("() => window.__XKX.feedState().rows >= 7", timeout=8000)
+        top = page.evaluate("() => document.getElementById('feedList').scrollTop")
+        results.add("feed 停在顶部时自动跟随最新一条", top == 0, {"scrollTop": top})
+        results.add("feed important 新事件仍会提示",
+                    page.evaluate("() => window.__XKX.feedState().announced") >= 3,
+                    {"announced": page.evaluate("() => window.__XKX.feedState().announced")})
+
+        # 失败降级：不弹红字、不动主状态，只显示「世界暂时安静」
+        baseline = feed_snapshot(page)
+        page.route("**/api/world/feed*", lambda route: route.abort())
+        page.evaluate("() => window.__XKX.refreshFeed()")
+        page.wait_for_function("() => window.__XKX.feedState().failed === true", timeout=8000)
+        failed = feed_snapshot(page)
+        results.add("feed 失败显示「世界暂时安静」占位",
+                    (not failed["statusHidden"] and "世界暂时安静" in failed["statusText"]) or
+                    "世界暂时安静" in failed["placeholder"], failed)
+        results.add("feed 失败不弹红字、不写错误历史、主状态不变",
+                    failed["errors"] == baseline["errors"] and failed["money"] == baseline["money"],
+                    {"errors": [baseline["errors"], failed["errors"]],
+                     "money": [baseline["money"], failed["money"]]})
+        page.unroute("**/api/world/feed*")
+    finally:
+        ctx.close()
+
+
 def wait_money(page, expected):
     page.wait_for_function("""(expected) => {
       const node = document.getElementById('stMoney');
@@ -881,6 +1063,29 @@ def run_mobile(browser, base, results):
                  done["groups"] >= 4 and done["growth"] == 3, done)
     results.must("移动 无横向滚动", done["scrollWidth"] <= 375, done["scrollWidth"])
     capture(page, "mobile-complete", results, {"snapshot": done})
+
+    # 世界动态：移动端默认可见、固定高度、不挤压主线、不被底部浮层遮挡
+    page.wait_for_function("() => window.__XKX.feedState().rows >= 5", timeout=10000)
+    feed = feed_snapshot(page)
+    page.evaluate("""() => document.getElementById('worldFeed')
+        .scrollIntoView({block: 'center'})""")
+    page.wait_for_timeout(150)
+    hit = page.evaluate("""() => {
+      const l = document.getElementById('feedList');
+      const r = l.getBoundingClientRect();
+      const n = document.elementFromPoint(r.left + r.width / 2, r.top + 20);
+      return {inside: !!(n && n.closest('#worldFeed')), bottom: Math.round(r.bottom),
+              innerHeight: window.innerHeight, scrollWidth: document.documentElement.scrollWidth,
+              quests: document.querySelectorAll('#questList .quest').length};
+    }""")
+    results.add("移动 世界动态默认可见且固定高度（≤200px）",
+                 feed["blockVisible"] and feed["count"] >= 5 and feed["height"] <= 200, feed)
+    results.add("移动 世界动态不被底部安全区/浮层遮挡",
+                 hit["inside"] and hit["bottom"] <= hit["innerHeight"], hit)
+    results.add("移动 世界动态无横向溢出、主线任务仍渲染",
+                 hit["scrollWidth"] <= 375 and done["quests"] >= 0, hit)
+    feed_capture(page, "feed-mobile", results, {"feed": feed, "hit": hit})
+
     EVIDENCE_DIR.joinpath("mobile-summary.json").write_text(
         json.dumps(done, ensure_ascii=False, indent=2), encoding="utf-8")
     ctx.close()
@@ -1148,7 +1353,8 @@ def run_auth(browser, base, results):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--serve", action="store_true", help="只启动 mock 服务")
-    ap.add_argument("--only", default="", help="desktop|mobile|keyboard|auth|reasons|regression，逗号分隔")
+    ap.add_argument("--only", default="",
+                    help="desktop|mobile|keyboard|auth|reasons|regression|feed，逗号分隔")
     ap.add_argument("--auth", action="store_true", help="--serve 时启用鉴权模式")
     args = ap.parse_args()
 
@@ -1176,6 +1382,8 @@ def main():
             try:
                 if not only or "reasons" in only:
                     run_reasons(browser, base, results)
+                if not only or "feed" in only:
+                    run_feed(browser, base, results, world)
                 if not only or "desktop" in only:
                     run_desktop(browser, base, results)
                 if not only or "mobile" in only:
@@ -1197,6 +1405,22 @@ def main():
         httpd.shutdown()
 
     results.dump(EVIDENCE_DIR / "checks.json")
+
+    # 世界动态专项证据（reports/w4-feed）：桌面 + 移动端检查与匿名性
+    feed_rows = [r for r in results.rows
+                 if r["name"].startswith("feed ") or r["name"].startswith("移动 世界动态")]
+    if feed_rows:
+        FEED_EVIDENCE.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "checks": feed_rows,
+            "failed": sum(1 for r in feed_rows if not r["ok"]),
+            "feed_calls": world.feed_calls,
+            "authorization_headers": world.feed_headers,
+            "screenshots": ["reports/w4-feed/feed-desktop.png",
+                            "reports/w4-feed/feed-mobile.png"],
+        }
+        FEED_EVIDENCE.joinpath("feed-checks.json").write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     failed = [r for r in results.rows if not r["ok"]]
     print("\n%d checks, %d failed; evidence: %s" % (len(results.rows), len(failed), EVIDENCE_DIR))
     if failed:

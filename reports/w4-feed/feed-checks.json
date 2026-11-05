@@ -1,0 +1,323 @@
+{
+  "checks": [
+    {
+      "name": "feed 默认可见（不在折叠组内）",
+      "ok": true,
+      "detail": {
+        "blockVisible": true,
+        "count": 5,
+        "feedRows": 5,
+        "ticks": [
+          37,
+          34,
+          31,
+          28,
+          25
+        ],
+        "important": 2,
+        "texts": [
+          "· [37] 王铁匠 在 药铺：王铁匠在药铺修好一口药碾。",
+          "· [34] 刘三娘 在 市集：刘三娘在市集清点新到的粗布。",
+          "· [31] 茶楼老板 在 茶楼：茶楼老板给客人续了三壶茶。",
+          "· [28] 更夫 在 市集：更夫敲着梆子走过市集。",
+          "· [25] 药铺掌柜 在 药铺：药铺掌柜把陈皮摊在竹匾里。"
+        ],
+        "height": 168,
+        "overflowY": "auto",
+        "scrollHeight": 168,
+        "clientHeight": 168,
+        "scrollWidth": 1280,
+        "inFold": false,
+        "hasFoldBtn": false,
+        "announced": 2,
+        "logWorld": 2,
+        "toast": "附近动静：刘三娘在市集清点新到的粗布。",
+        "errors": 0,
+        "money": "300 文",
+        "placeholder": "",
+        "statusHidden": true,
+        "statusText": "世界暂时安静",
+        "screenshot": "reports/w4-feed/feed-desktop.png"
+      }
+    },
+    {
+      "name": "feed 20 条上限内、样本 5 条全渲染",
+      "ok": true,
+      "detail": {
+        "blockVisible": true,
+        "count": 5,
+        "feedRows": 5,
+        "ticks": [
+          37,
+          34,
+          31,
+          28,
+          25
+        ],
+        "important": 2,
+        "texts": [
+          "· [37] 王铁匠 在 药铺：王铁匠在药铺修好一口药碾。",
+          "· [34] 刘三娘 在 市集：刘三娘在市集清点新到的粗布。",
+          "· [31] 茶楼老板 在 茶楼：茶楼老板给客人续了三壶茶。",
+          "· [28] 更夫 在 市集：更夫敲着梆子走过市集。",
+          "· [25] 药铺掌柜 在 药铺：药铺掌柜把陈皮摊在竹匾里。"
+        ],
+        "height": 168,
+        "overflowY": "auto",
+        "scrollHeight": 168,
+        "clientHeight": 168,
+        "scrollWidth": 1280,
+        "inFold": false,
+        "hasFoldBtn": false,
+        "announced": 2,
+        "logWorld": 2,
+        "toast": "附近动静：刘三娘在市集清点新到的粗布。",
+        "errors": 0,
+        "money": "300 文",
+        "placeholder": "",
+        "statusHidden": true,
+        "statusText": "世界暂时安静",
+        "screenshot": "reports/w4-feed/feed-desktop.png"
+      }
+    },
+    {
+      "name": "feed 按 tick 倒序",
+      "ok": true,
+      "detail": [
+        37,
+        34,
+        31,
+        28,
+        25
+      ]
+    },
+    {
+      "name": "feed 每行格式 · [tick] actor 在 place：summary",
+      "ok": true,
+      "detail": [
+        "· [37] 王铁匠 在 药铺：王铁匠在药铺修好一口药碾。",
+        "· [34] 刘三娘 在 市集：刘三娘在市集清点新到的粗布。",
+        "· [31] 茶楼老板 在 茶楼：茶楼老板给客人续了三壶茶。",
+        "· [28] 更夫 在 市集：更夫敲着梆子走过市集。",
+        "· [25] 药铺掌柜 在 药铺：药铺掌柜把陈皮摊在竹匾里。"
+      ]
+    },
+    {
+      "name": "feed important 使用强调样式",
+      "ok": true,
+      "detail": {
+        "important": 2
+      }
+    },
+    {
+      "name": "feed 请求匿名、不带 Authorization",
+      "ok": true,
+      "detail": {
+        "feed_calls": 3
+      }
+    },
+    {
+      "name": "feed 附近 important 走现有提示体系（toast + 操作记录）",
+      "ok": true,
+      "detail": {
+        "announced": 2,
+        "logWorld": 2,
+        "toast": "附近动静：刘三娘在市集清点新到的粗布。"
+      }
+    },
+    {
+      "name": "feed 列表溢出时固定高度内滚动",
+      "ok": true,
+      "detail": {}
+    },
+    {
+      "name": "feed 下滚阅读时插入新条目不跳动",
+      "ok": true,
+      "detail": {
+        "before": {
+          "top": 58,
+          "height": 226
+        },
+        "after": {
+          "top": 87,
+          "height": 255
+        },
+        "delta": 29
+      }
+    },
+    {
+      "name": "feed 停在顶部时自动跟随最新一条",
+      "ok": true,
+      "detail": {
+        "scrollTop": 0
+      }
+    },
+    {
+      "name": "feed important 新事件仍会提示",
+      "ok": true,
+      "detail": {
+        "announced": 3
+      }
+    },
+    {
+      "name": "feed 失败显示「世界暂时安静」占位",
+      "ok": true,
+      "detail": {
+        "blockVisible": true,
+        "count": 10,
+        "feedRows": 10,
+        "ticks": [
+          45,
+          43,
+          42,
+          41,
+          40,
+          37,
+          34,
+          31,
+          28,
+          25
+        ],
+        "important": 3,
+        "texts": [
+          "· [45] 更夫 在 市集：一队镖车进了市集。",
+          "· [43] 更夫 在 市集：更夫在西街敲了一声梆子。",
+          "· [42] 更夫 在 市集：街上有人走过。",
+          "· [41] 更夫 在 市集：街上有人走过。",
+          "· [40] 更夫 在 市集：街上有人走过。",
+          "· [37] 王铁匠 在 药铺：王铁匠在药铺修好一口药碾。",
+          "· [34] 刘三娘 在 市集：刘三娘在市集清点新到的粗布。",
+          "· [31] 茶楼老板 在 茶楼：茶楼老板给客人续了三壶茶。",
+          "· [28] 更夫 在 市集：更夫敲着梆子走过市集。",
+          "· [25] 药铺掌柜 在 药铺：药铺掌柜把陈皮摊在竹匾里。"
+        ],
+        "height": 168,
+        "overflowY": "auto",
+        "scrollHeight": 285,
+        "clientHeight": 168,
+        "scrollWidth": 1280,
+        "inFold": false,
+        "hasFoldBtn": false,
+        "announced": 3,
+        "logWorld": 3,
+        "toast": "附近动静：一队镖车进了市集。",
+        "errors": 0,
+        "money": "300 文",
+        "placeholder": "",
+        "statusHidden": false,
+        "statusText": "世界暂时安静"
+      }
+    },
+    {
+      "name": "feed 失败不弹红字、不写错误历史、主状态不变",
+      "ok": true,
+      "detail": {
+        "errors": [
+          0,
+          0
+        ],
+        "money": [
+          "300 文",
+          "300 文"
+        ]
+      }
+    },
+    {
+      "name": "移动 世界动态默认可见且固定高度（≤200px）",
+      "ok": true,
+      "detail": {
+        "blockVisible": true,
+        "count": 10,
+        "feedRows": 10,
+        "ticks": [
+          45,
+          43,
+          42,
+          41,
+          40,
+          37,
+          34,
+          31,
+          28,
+          25
+        ],
+        "important": 3,
+        "texts": [
+          "· [45] 更夫 在 市集：一队镖车进了市集。",
+          "· [43] 更夫 在 市集：更夫在西街敲了一声梆子。",
+          "· [42] 更夫 在 市集：街上有人走过。",
+          "· [41] 更夫 在 市集：街上有人走过。",
+          "· [40] 更夫 在 市集：街上有人走过。",
+          "· [37] 王铁匠 在 药铺：王铁匠在药铺修好一口药碾。",
+          "· [34] 刘三娘 在 市集：刘三娘在市集清点新到的粗布。",
+          "· [31] 茶楼老板 在 茶楼：茶楼老板给客人续了三壶茶。",
+          "· [28] 更夫 在 市集：更夫敲着梆子走过市集。",
+          "· [25] 药铺掌柜 在 药铺：药铺掌柜把陈皮摊在竹匾里。"
+        ],
+        "height": 148,
+        "overflowY": "auto",
+        "scrollHeight": 285,
+        "clientHeight": 148,
+        "scrollWidth": 375,
+        "inFold": false,
+        "hasFoldBtn": false,
+        "announced": 3,
+        "logWorld": 3,
+        "toast": "引导完成：你已经走完「看推荐 → 接单 → 移动 → 交付」。",
+        "errors": 0,
+        "money": "312 文",
+        "placeholder": "",
+        "statusHidden": true,
+        "statusText": "世界暂时安静"
+      }
+    },
+    {
+      "name": "移动 世界动态不被底部安全区/浮层遮挡",
+      "ok": true,
+      "detail": {
+        "inside": true,
+        "bottom": 522,
+        "innerHeight": 812,
+        "scrollWidth": 375,
+        "quests": 1
+      }
+    },
+    {
+      "name": "移动 世界动态无横向溢出、主线任务仍渲染",
+      "ok": true,
+      "detail": {
+        "inside": true,
+        "bottom": 522,
+        "innerHeight": 812,
+        "scrollWidth": 375,
+        "quests": 1
+      }
+    }
+  ],
+  "failed": 0,
+  "feed_calls": 18,
+  "authorization_headers": [
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
+  ],
+  "screenshots": [
+    "reports/w4-feed/feed-desktop.png",
+    "reports/w4-feed/feed-mobile.png"
+  ]
+}

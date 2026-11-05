@@ -33,10 +33,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from ui_check import (  # noqa: E402
     EVIDENCE_DIR,
+    FEED_EVIDENCE,
     QUEST,
     MockWorld,
     Results,
     auth_error,
+    feed_snapshot,
     wait_app,
 )
 
@@ -120,6 +122,10 @@ class UpstreamHandler(BaseHTTPRequestHandler):
         if path == "/api/service/info":
             self._json(200, {"ok": True, "auth_required": True, "tick": 12,
                              "run": "proxy-check", "profile_version": 1})
+            return
+        if path == "/api/world/feed":
+            # 世界动态是公共事件，匿名可读；服务模式 mock 上游同样不要求令牌。
+            self._json(200, self.mock.world.feed((q.get("limit") or ["20"])[0]))
             return
         if path == "/api/auth/me":
             identity, err, _ = self._identity()
@@ -397,6 +403,20 @@ def run_proxy(browser, base: str, mock: ServiceMock, results: Results) -> dict:
     }""")
     results.must("服务模式 刷新后仍按令牌取数（钱包不消失）",
                  after["money"] == 300 and after["t"]["hasAccess"], after)
+
+    # 世界动态：经真实代理匿名读取，服务模式同样可见
+    page.evaluate("""() => { const b = document.getElementById('guideSkip'); if (b) b.click(); }""")
+    page.wait_for_function(
+        "() => document.getElementById('guideLayer').classList.contains('hidden')", timeout=8000)
+    page.wait_for_function("() => window.__XKX.feedState().rows >= 5", timeout=10000)
+    feed = feed_snapshot(page)
+    results.must("服务模式 经代理世界动态匿名可读（5 条、倒序）",
+                 feed["count"] == 5 and feed["ticks"] == sorted(feed["ticks"], reverse=True),
+                 {"count": feed["count"], "ticks": feed["ticks"]})
+    results.must("服务模式 世界动态 important 强调样式", feed["important"] == 2,
+                 {"important": feed["important"]})
+    FEED_EVIDENCE.mkdir(parents=True, exist_ok=True)
+    page.screenshot(path=str(FEED_EVIDENCE / "feed-service.png"))
 
     ctx.close()
     return {"reads": list(mock.reads), "writes": list(mock.writes)}

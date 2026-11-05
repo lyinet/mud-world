@@ -349,6 +349,59 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 .search-row:hover { background: var(--paper-3); }
 .search-row small { color: var(--muted); }
 
+/* ---------------------------------------------------------------- 世界动态 */
+/* 默认可见（不参与 initFolds 折叠）；固定高度独立滚动，避免挤压主线操作。 */
+.feed-block {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  border-top: 1px solid var(--line-soft);
+  padding-top: 10px;
+}
+.feed-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid var(--line-soft);
+  padding-bottom: 7px;
+}
+.feed-head h2 {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 16px;
+  letter-spacing: .08em;
+  font-weight: 700;
+}
+.feed-list {
+  height: 168px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-right: 2px;
+  overscroll-behavior: contain;
+}
+.feed-row {
+  border-left: 3px solid transparent;
+  padding: 3px 0 3px 7px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+.feed-row.important {
+  border-left-color: var(--gold);
+  background: #fbf2e1;
+  color: var(--ink);
+  font-weight: 600;
+  border-radius: 0 7px 7px 0;
+  padding: 4px 6px 4px 9px;
+}
+.feed-empty { color: var(--muted); font-size: 12px; padding: 8px 2px; }
+.feed-status { color: var(--muted); font-size: 11px; }
+.feed-status.hidden { display: none; }
+
 /* ---------------------------------------------------------------- log */
 .log {
   flex: 1;
@@ -737,6 +790,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   .guide-skip { display: inline-flex; align-items: center; }
   .toast { top: 112px; }
   .error-dock { right: 10px; bottom: 10px; }
+  /* 世界动态：移动端更矮，留在正常文档流内，不会被底部安全区/浮层盖住 */
+  .feed-list { height: 148px; }
+  .feed-block { padding-bottom: env(safe-area-inset-bottom, 0px); }
 }
 
 /* 世界回应（/api/player/messages 轮询结果） */

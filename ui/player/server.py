@@ -1191,6 +1191,45 @@ def readonly_intent(view: WorldView, intent_id: str) -> dict[str, Any]:
     }
 
 
+READONLY_FEED_IMPORTANT = {"quest_accept", "quest_deliver", "trade", "open_shop", "join_sect"}
+
+
+def readonly_feed(view: WorldView, limit: Any = 20) -> dict[str, Any]:
+    """只读降级态的世界动态：从本地回放的 events 合成公共事件，不暴露玩家私有数据。"""
+    try:
+        cap = max(1, min(int(limit or 20), 50))
+    except (TypeError, ValueError):
+        cap = 20
+    rows: list[dict[str, Any]] = []
+    try:
+        events = list(getattr(view, "events", []) or [])
+    except Exception:  # noqa: BLE001 - 降级路径任何异常都只返回空 feed
+        events = []
+    for row in reversed(events):
+        actor = str(row.get("actor") or "")
+        verb = str(row.get("verb") or "")
+        if not actor or actor.startswith("player:") or verb.startswith("system_"):
+            continue
+        ent = view.state.entities.get(actor) if view.state is not None else None
+        name = str(getattr(ent, "name", "") or actor)
+        args = row.get("args") or {}
+        place_raw = str(args.get("at") or args.get("location") or
+                        getattr(ent, "location", "") or "")
+        place = view._loc_name(place_raw) if place_raw else ""
+        verb_label = str(row.get("verb_label") or verb)
+        rows.append({
+            "tick": int(row.get("tick") or 0),
+            "actor": name,
+            "verb": verb_label,
+            "place": place,
+            "summary": f"{name}在{place}{verb_label}。",
+            "important": verb in READONLY_FEED_IMPORTANT,
+        })
+        if len(rows) >= cap:
+            break
+    return {"ok": True, "readonly": True, "tick": view.tick, "events": rows}
+
+
 def readonly_messages(view: WorldView, account: str, since_tick: Any = 0) -> dict[str, Any]:
     try:
         since = max(0, int(since_tick or 0))
@@ -1446,7 +1485,7 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/health":
                 self._health()
                 return
-            if path.startswith("/api/player/"):
+            if path.startswith("/api/player/") or path == "/api/world/feed":
                 self._read(path, query)
                 return
             if path in ("/api/auth/me", "/api/service/info", "/api/state"):
@@ -1514,6 +1553,8 @@ class Handler(BaseHTTPRequestHandler):
             payload = readonly_messages(view, account, (query.get("since_tick") or ["0"])[0])
         elif path.startswith("/api/player/intents/"):
             payload = readonly_intent(view, unquote(path[len("/api/player/intents/"):]))
+        elif path == "/api/world/feed":
+            payload = readonly_feed(view, (query.get("limit") or ["20"])[0])
         else:
             self._json(404, {"ok": False, "reason": "not_supported", "message": "只读模式只支持 state/messages/intents。"})
             return

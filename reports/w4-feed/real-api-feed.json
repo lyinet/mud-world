@@ -1,0 +1,32 @@
+{
+  "stamp": "1105085454",
+  "legacy_run": "w4-feed-legacy-1105085454",
+  "service_run": "w4-feed-service-1105085454",
+  "legacy_api_feed": {
+    "status": 200,
+    "body": "{\"events\": [{\"actor\": \"曹半仙\", \"important\": false, \"place\": \"药铺\", \"summary\": \"动身前往药铺\", \"tick\": 1, \"verb\": \"move\"}, {\"actor\": \"石敢当\", \"important\": false, \"place\": \"镖局\", \"summary\": \"动身前往镖局\", \"tick\": 1, \"verb\": \"move\"}], \"limit\": 20, \"ok\": true, \"tick\": 1}"
+  },
+  "legacy_proxy_feed": {
+    "status": 200,
+    "body": "{\"events\": [{\"actor\": \"曹半仙\", \"important\": false, \"place\": \"药铺\", \"summary\": \"动身前往药铺\", \"tick\": 1, \"verb\": \"move\"}, {\"actor\": \"石敢当\", \"important\": false, \"place\": \"镖局\", \"summary\": \"动身前往镖局\", \"tick\": 1, \"verb\": \"move\"}], \"limit\": 20, \"ok\": true, \"tick\": 1}"
+  },
+  "service_api_feed": {
+    "status": 200,
+    "body": "{\"events\": [{\"actor\": \"曹半仙\", \"important\": false, \"place\": \"城隍庙\", \"summary\": \"动身前往药铺\", \"tick\": 1, \"verb\": \"move\"}, {\"actor\": \"石敢当\", \"important\": false, \"place\": \"客栈\", \"summary\": \"动身前往镖局\", \"tick\": 1, \"verb\": \"move\"}, {\"actor\": \"曹半仙\", \"important\": false, \"place\": \"城隍庙\", \"summary\": \"接下一份委托\", \"tick\": 2, \"verb\": \"quest_accept\"}, {\"actor\": \"石敢当\", \"important\": false, \"place\": \"客栈\", \"summary\": \"动身前往河渡\", \"t"
+  },
+  "ui": {
+    "feed": {
+      "rows": 12,
+      "failed": false,
+      "announced": 0,
+      "important": 1,
+      "topTick": 12
+    },
+    "placeholder": "",
+    "status": "世界暂时安静",
+    "statusHidden": true,
+    "mode": "legacy",
+    "place": "集市"
+  },
+  "screenshot": "reports/w4-feed/feed-real-legacy-quiet.png"
+}
