@@ -28,6 +28,37 @@ from .common import (
 from .registry import Action
 
 
+# 押镖托管桶：货物在发单时从背包扣出，以 `escrow:<镖单id>:<物品>` 为键存进
+# 镖局 business.stock。这个键不是内容包里的真实物品，所有买卖 / NPC 采购路径
+# 都只认 content.items，所以不会被当成商品买走；`business.stock` 本身落盘，
+# 所以托管在账上看得见、可回放。
+ESCROW_PREFIX = "escrow:"
+
+
+def _escrow_account(oid: str) -> str:
+    return f"{ESCROW_PREFIX}{oid}"
+
+
+def _escrow_key(oid: str, item: str) -> str:
+    return f"{_escrow_account(oid)}:{item}"
+
+
+def _escrow_prefix(oid: str) -> str:
+    return f"{_escrow_account(oid)}:"
+
+
+def _escrow_tokens(state: WorldState, oid: str) -> list[tuple[str, str, int]]:
+    """返回 (持有商业体 id, 真实物品 id, 数量)；按 id 排序保证回放稳定。"""
+    prefix = _escrow_prefix(oid)
+    out: list[tuple[str, str, int]] = []
+    for bid in sorted(state.businesses):
+        biz = state.businesses[bid]
+        for key, qty in sorted(biz.stock.items()):
+            if key.startswith(prefix) and int(qty) > 0:
+                out.append((bid, key[len(prefix):], int(qty)))
+    return out
+
+
 def _route_path(intent: Intent) -> list[str]:
     raw = intent.args.get("route")
     if not isinstance(raw, list) or len(raw) < 2:
@@ -67,6 +98,14 @@ class EscortAction(Action):
                 return ["route_not_adjacent"]
         if ent.escort_id is not None:
             return ["already_on_escort"]
+        # 真实货物：必须是内容包物品、数量合法、背包里确实持有。
+        cargo_item = str(intent.args.get("cargo_item") or "")
+        if cargo_item:
+            if cargo_item not in self.content.items:
+                return ["item_not_available"]
+            qty = arg_int(intent, "cargo_qty", 1, minimum=1, maximum=10000)
+            if int(ent.inventory.get(cargo_item, 0)) < qty:
+                return ["item_missing"]
         cargo = arg_int(intent, "cargo_value", 100, minimum=100, maximum=100000)
         fee = arg_int(intent, "fee", 0, minimum=1, maximum=100000)
         agency = escort_business(state, route[0])
@@ -174,7 +213,125 @@ class EscortAction(Action):
                 0.5,
             ),
         ]
+        if cargo_item:
+            # 发单即托管：背包真实货物 -> escrow:<镖单id>:<物品> 托管桶（镖局库存）。
+            # 两条效果与镖单同事务；任一条失败整笔回滚，不会出现“只扣货没开单”。
+            account = _escrow_account(oid)
+            effects.insert(
+                2,
+                Effect(
+                    "item_consume",
+                    {
+                        "owner": ent.id,
+                        "item": cargo_item,
+                        "qty": cargo_qty,
+                        "reason": "escort_cargo_escrow",
+                        "order": oid,
+                        "escrow_account": account,
+                        "movement": "player->escrow",
+                    },
+                ),
+            )
+            effects.insert(
+                3,
+                Effect(
+                    "item_create",
+                    {
+                        "owner": agency.id,
+                        "item": _escrow_key(oid, cargo_item),
+                        "qty": cargo_qty,
+                        "reason": "escort_cargo_escrow",
+                        "order": oid,
+                        "escrow_account": account,
+                        "movement": "player->escrow",
+                    },
+                ),
+            )
         return effects
+
+
+def _escrow_settle_effects(state: WorldState, order, oid: str) -> list[Effect]:
+    """结算托管桶：成功送达即离场；失败原量退回承运人背包。
+
+    返回空列表表示这条镖单没有托管货物（NPC 与旧 intent），调用方的事件序列
+    逐字节不变。承运人实体不存在时只销毁托管并写明 orphaned，避免“隐形口袋”。
+    """
+    tokens = _escrow_tokens(state, oid)
+    if not tokens:
+        return []
+    account = _escrow_account(oid)
+    out: list[Effect] = []
+    if order.success:
+        ratio = max(0.0, float(order.cargo_loss_ratio))
+        for bid, item, qty in tokens:
+            key = _escrow_key(oid, item)
+            lost = min(qty, int(round(qty * ratio))) if ratio > 0 else 0
+            if lost > 0:
+                out.append(
+                    Effect(
+                        "item_consume",
+                        {
+                            "owner": bid,
+                            "item": key,
+                            "qty": lost,
+                            "reason": "escort_cargo_loss",
+                            "order": oid,
+                            "escrow_account": account,
+                            "movement": "escrow->loss",
+                        },
+                    )
+                )
+            rest = qty - lost
+            if rest > 0:
+                out.append(
+                    Effect(
+                        "item_consume",
+                        {
+                            "owner": bid,
+                            "item": key,
+                            "qty": rest,
+                            "reason": "escort_cargo_deliver",
+                            "order": oid,
+                            "escrow_account": account,
+                            "movement": "escrow->delivery",
+                        },
+                    )
+                )
+        return out
+    target = str(order.carrier or "")
+    holder = target if target in state.entities else ""
+    reason = "escort_cargo_return" if holder else "escort_cargo_orphaned"
+    for bid, item, qty in tokens:
+        out.append(
+            Effect(
+                "item_consume",
+                {
+                    "owner": bid,
+                    "item": _escrow_key(oid, item),
+                    "qty": qty,
+                    "reason": reason,
+                    "order": oid,
+                    "escrow_account": account,
+                    "movement": "escrow->player" if holder else "escrow->void",
+                },
+            )
+        )
+        if holder:
+            out.append(
+                Effect(
+                    "item_create",
+                    {
+                        "owner": holder,
+                        "item": item,
+                        "qty": qty,
+                        "reason": reason,
+                        "order": oid,
+                        "escrow_account": account,
+                        "movement": "escrow->player",
+                    },
+                )
+            )
+    return out
 
 
 class SystemEscortArriveAction(Action):
@@ -193,6 +350,7 @@ class SystemEscortArriveAction(Action):
             carrier = state.entities.get(order.carrier or "")
             if carrier is None or carrier.status != "alive":
                 effects.append(Effect("escort_settle", {"id": oid}))
+                effects.extend(_escrow_settle_effects(state, order, oid))
                 continue
             agency = escort_business(state, order.origin) or escort_business(state)
             cut = order.agency_cut if order.route_id else float(cfg.get("agency_cut", 0.30))
@@ -242,6 +400,7 @@ class SystemEscortArriveAction(Action):
                         0.7,
                     )
                 )
+            effects.extend(_escrow_settle_effects(state, order, oid))
             effects.extend(
                 [
                     Effect("escort_settle", {"id": oid}),

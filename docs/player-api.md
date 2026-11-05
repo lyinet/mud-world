@@ -338,6 +338,12 @@ PYTHONPATH=src python3 -m wsim.api --run player-demo --seed-account alice --port
 - `player.wallet.items[]` 在原 `item/name/qty` 之外新增 `price`、`sell_price`。
 - `escort_orders[]`：本人押镖单（`id`/`origin`/`destination`/`cargo_value`/`fee`/`deposit`/
   `status`/`arrive_tick`/`success` 等），供 UI 展示进度。
+- `escrow[]`（2026-11-05 押镖托管）：`{account, holder, holder_name, item, qty}`。
+  每张在途镖单的托管货物逐桶可见，`account = "escrow:" + 镖单 id`；
+  `escrow_total` 是托管总件数。送达/失败结算后该镖单的桶归零。
+- `reconciliation`：`accounts_sum`、`minted_total`、`burned_total`、`net_issued`、
+  `delta = accounts_sum - net_issued`（应恒为 0），以及 `escrow_accounts`、`escrow_items`。
+  托管是物品科目，单列展示，不混进货币等式；但绝不允许出现“隐形口袋”。
 
 `buy_limit`/`sell_limit` 已综合“单笔最多 20 件、店铺库存/现金、玩家钱包/持有量”。
 这些字段均为增量；原有键与语义不变，匿名公共摘要白名单也不含这些新字段。
@@ -396,9 +402,17 @@ PYTHONPATH=src python3 -m wsim.api --run player-demo --seed-account alice --port
 - `escort`：`route` 必须首尾相邻可走且 `route[0] == 当前位置`；`cargo` 给真实物品
   （服务端按 `item_price * qty` 折算 `cargo_value`，写入 `escort_order_create.cargo_item/cargo_qty`）。
   `fee` 是镖银，到达后由镖局/委托方公账支付，扣除抽成与交易税，写 `escort_settle` 事件；
-  玩家被传送到 `route[-1]`。`cargo` 必须是玩家背包里真实持有的物品：数量不足返回
-  `item_missing`，不会放行空头镖单；押镖期间货物随镖师移动、不从背包扣除（引擎尚无独立
-  收货人账户），闭环由到达结算事件与镖银入账完成。
+  玩家被传送到 `route[-1]`。
+  **发单即托管**：受理成功时立刻从背包扣出 `cargo`，转入镖局库存里的命名托管桶
+  `escrow:<镖单id>:<item>`，并写两条可审计事件（`item_consume` + `item_create`，
+  `reason=escort_cargo_escrow`，带 `order` / `escrow_account` / `movement=player->escrow`）。
+  背包数量不足返回 `item_missing`，未知物品返回 `item_not_available`。
+  **结算**：送达 → 托管桶 `item_consume`（`reason=escort_cargo_deliver`；若触发货损风险事件，
+  先按比例 `escort_cargo_loss`），货物按既有模型离场（收货方入库/销毁，不注入店铺库存），
+  镖费照旧入钱包；取消/超时/失败 → `item_consume` + `item_create` 把货物**原量退回**玩家背包
+  （`reason=escort_cargo_return`）。承运人实体不存在时才走 `escort_cargo_orphaned`（可解释销毁）。
+  **不可重复**：发单后背包不再持有该批货，同一批货连续发第二单会返回 `item_missing`；
+  押镖中 `leave` 只改在线状态，托管桶继续可见，到期结算按上述成功/失败路径收口，不蒸发也不双份。
 - NPC 专属动作 `marry` / `found_sect` / `apprentice` 统一返回
   `not_implemented_for_player`（reason_text=“这个玩法还没对玩家开放。”），不再回 `unknown_action`。
 

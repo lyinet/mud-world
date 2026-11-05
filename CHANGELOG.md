@@ -9,6 +9,44 @@
 
 ---
 
+## [修复] 2026-11-05 — 押镖货物托管：发单即扣货、送达离场、失败原量退回、托管进对账
+
+- **改了什么**
+  - `EscortAction` 受理带 `cargo_item/cargo_qty` 的镖单时，立即 `item_consume` 玩家背包并
+    `item_create` 到镖局库存的命名托管桶 `escrow:<镖单id>:<item>`；两条效果与镖单同事务，
+    带 `reason=escort_cargo_escrow` / `order` / `escrow_account` / `movement=player->escrow`。
+  - 受边界约束不改 `world/state.py`/`world/effects.py`：托管件数落在 `business.stock`，
+    结算时按 `escrow:<镖单id>:` 前缀扫描。`escrow:` 键不是 `content.items` 中的真实物品，
+    已逐条核对店铺买卖、NPC 采购、food/cheapest_food、`_shop_view`/`_location_view`，
+    不会被当成商品买走。
+  - `SystemEscortArriveAction`：送达 → `item_consume(reason=escort_cargo_deliver)`，
+    有货损风险事件时先按比例 `escort_cargo_loss`；按既有模型离场（收货方入库/销毁），
+    不向任何店铺注入库存。失败/超时/承运人离线但实体存在 →
+    `item_consume + item_create` 原量退回背包（`escort_cargo_return`）；仅当实体缺失才
+    `escort_cargo_orphaned`。无 cargo 的 NPC/旧 intent 镖单事件序列逐字节不变。
+  - `EscortAction.preconditions` 增加 `item_not_available` / `item_missing` 与数量校验；
+    同一批货连续发第二单直接拒绝。
+  - `/api/player/state` 新增 `escrow[]` / `escrow_total` / `reconciliation`
+    （`accounts_sum`、`minted_total`、`burned_total`、`net_issued`、`delta`、
+    `escrow_accounts`、`escrow_items`），托管不再是隐形口袋。
+  - `docs/player-api.md` 押镖段同步改写。
+- **为什么**：消费开闸验收发现押镖只把 cargo 写进事件、不扣背包，同一批货可反复开单拿镖银，
+  属于经济复制而非延迟结算。
+- **验证方式**
+  - `tests/test_player_commerce.py` 新增/加强 3 条：成功全流程（背包 7→1、托管 6 件、
+    送达托管归零、背包不再有货、钱包 +89=91−2）、失败退回（7→1→7、钱包不变、托管归零）、
+    连续两单第二单 `item_missing`；另加押镖中 `leave` 不蒸发不双份。
+  - 干净 HEAD 实测证据 `/tmp/escort_escrow_evidence.json`：成功/失败/重复/离线四场景的
+    事件序列（`item_consume+item_create(escort_cargo_escrow)` →
+    `item_consume(escort_cargo_deliver)` 或 `item_consume+item_create(escort_cargo_return)`）、
+    背包与钱包快照、`conservation_error=0`、`escrow_total=0`。
+  - 50 并发 `buy` 前置拒绝 P95 **8.84ms**（上限 50ms）；`player_state` P95 94.84ms
+    （同口径干净 HEAD 基线 123.26ms 未劣化）。
+  - 干净 HEAD 全量 pytest：**473 tests / 457 passed / 16 skipped**；`scripts/selfcheck.sh`
+    **4/4 PASS**。
+  - 基线：NPC-only golden 不含玩家 cargo 镖单，事件构成不变，V4 数值不改。
+- **commit**：见本条对应的押镖托管提交。
+
 ## [功能] 2026-11-05 — 开店经营闭环：初始库存、店铺雇佣、独立日结、自雇不记债
 
 - **改了什么**

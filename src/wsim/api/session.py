@@ -362,6 +362,31 @@ class WorldSession:
         with self.lock:
             return self._quests_view(pid)
 
+    def _escrow_view(self) -> tuple[list[dict[str, Any]], int]:
+        """托管桶视图：把 business.stock 里的 `escrow:<镖单id>:<item>` 键摊平。
+
+        托管货物真实落在镖局库存里，不是隐形口袋；这里只做只读投影，
+        供对账页直接看到“哪张镖单、多少钱、在谁手里”。
+        """
+        rows: list[dict[str, Any]] = []
+        for bid in sorted(self.state.businesses):
+            biz = self.state.businesses[bid]
+            for key, qty in sorted(biz.stock.items()):
+                if int(qty) <= 0 or not key.startswith("escrow:"):
+                    continue
+                account, _, item = key.rpartition(":")
+                rows.append(
+                    {
+                        "account": account,
+                        "holder": biz.id,
+                        "holder_name": biz.name,
+                        "item": item,
+                        "qty": int(qty),
+                    }
+                )
+        rows.sort(key=lambda r: (r["account"], r["item"], r["holder"]))
+        return rows, sum(int(r["qty"]) for r in rows)
+
     def player_state(self, account: str) -> dict[str, Any]:
         """`GET /api/player/state`：冻结结构的只读快照。"""
         account = str(account or "").strip().lower()
@@ -429,12 +454,30 @@ class WorldSession:
             present = self._present_view(pid, ent.location)
             online = self._online_players_view(pid)
             quest_board = self._quest_board_view(pid, ent.location)
+            escrow_rows, escrow_total = self._escrow_view()
+            minted = int(self.state.minted_total)
+            burned = int(self.state.burned_total)
+            accounts_sum = sum(int(v) for v in self.state.accounts.values())
             return {
                 "ok": True,
                 "profile_version": PROFILE_VERSION,
                 "account_id": account,
                 "tick": int(self.state.tick),
                 "endowment_total": int(self.state.endowment_total),
+                # 托管（物品科目）：逐桶可见，结束时必须归零或写明 orphaned。
+                "escrow": escrow_rows,
+                "escrow_total": escrow_total,
+                # 对账（货币科目）：accounts_sum 必须等于 minted - burned；
+                # 托管件数单列，不混进货币等式，但绝不允许“看不见”。
+                "reconciliation": {
+                    "accounts_sum": accounts_sum,
+                    "minted_total": minted,
+                    "burned_total": burned,
+                    "net_issued": minted - burned,
+                    "delta": accounts_sum - (minted - burned),
+                    "escrow_accounts": len({str(r["account"]) for r in escrow_rows}),
+                    "escrow_items": escrow_total,
+                },
                 "player": player,
                 "location": location,
                 "shop": shop,
