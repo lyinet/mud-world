@@ -9,6 +9,46 @@
 
 ---
 
+## [功能] 2026-11-05 — 玩家婚姻闭环：求婚、确定性裁决、婚后日常、和离
+
+- **改了什么**
+  - 新增 `actions/marriage.py`：`marriage_propose / marriage_accept / marriage_reject /
+    marriage / marriage_end / spouse_time` 六个动作；NPC 裁决为纯规则（好感度/信任/
+    配偶/地点/信物/聘礼），零模型调用。接受阈值 60/30；缺口 5–20 进入 3 世界日
+    `courtship`；低于门槛按 `bond_too_low` / `trust_too_low` 拒绝。
+  - `world/state.py` 新增 `WorldState.marriages`，只在至少一方是玩家时写入，空置不进哈希。
+  - `world/effects.py` 新增 `marriage_meta` 原子 effect；`marriage` 仍复用既有 `marry`。
+  - `api/session.py` 白名单/别名/`_args`/只读前置校验/`marriage` 快照；成功求婚由服务端
+    自动追加 `marriage_accept → marriage`，事件链 seq 连号；拒绝写 `marriage_reject`。
+  - `sim/intent.py`：婚后日常放在 `MockReasoner.decide` 入口（不是 `Planner.plan`）。
+    内容目标耗尽后 `choose` 返回 None、`plan` 不会被调用，挂在 plan 里的日常永远不触发；
+    现在每个世界日对“配偶是玩家”的 NPC 至少一次先 move 到玩家所在地点再 `spouse_time`，
+    同 tick 内按队列顺序执行；NPC-NPC 婚姻与无玩家世界不走该分支。
+  - `actions/social.py`：`TalkAction` 对配偶返回确定性专属台词（按世界日轮换）。
+  - `audit/report.py` 将婚姻相关内核动词登记为 `ENGINE_ONLY_ALLOWED`，不改内容包。
+  - 文档：`docs/player-api.md` 新增婚姻动作、状态字段、原因码、多事件 seq 说明；
+    `specs/player-marriage/` 含规格、任务与验收证据。
+  - 明确非范围：共同财产/聘礼分割；和离不退款、不铸币。
+- **为什么改**：NPC 早能结婚，玩家 `marry` 恒返回 `not_implemented_for_player`；
+  “世界活着”必须有玩家可参与的婚姻闭环，且婚后要能看到可观测的日常行为变化。
+- **验证**
+  - 无玩家 headless 基线（seed 42 / 2 日 / 12 NPC）：state_final
+    `91ca6236…9d6d`、event_final `eb139d4f…0181`，与实现前逐字节一致（279 事件，
+    `specs/player-marriage/evidence/hashes.json`）。
+  - 新测试 7 条：裁决边界、完整事件链、聘礼守恒、拒绝原因、求处中间态、
+    “无内容目标仍每日 spouse_time”、同 seed 两次 state/event 哈希一致。
+  - 全量 `python -m pytest -o addopts="" -q`：488 passed / 16 skipped / 0 failed；
+    `./scripts/selfcheck.sh` 4/4 PASS（见 `evidence/pytest.txt`、`evidence/selfcheck.txt`）。
+  - 真实服务（`wsim.api --auth off`，run `pm-accept-1`）+ ambient 4x：
+    拒绝样例 tick 11/11/17（`not_enough_money` / `gift_missing` / `bond_too_low`）；
+    求婚 tick 1026 成功（聘礼 50 文 + 炊饼 1，钱包 300→250）；
+    婚后第 15/16/17 世界日 `spouse_time` tick 2204/2312/2479（首日带炊饼，
+    `seq` 4332/4388/4473）；重婚拒绝 tick 2485 `already_married`（钱包 240 不变）；
+    和离 tick 2485（双方 spouse 清空、关系 ended，钱包 240 不变）；
+    对账 `accounts_sum 46059 = minted 47750 − burned 1691`、`delta=0`，seq 1..4478 连续
+    （`evidence/acceptance.json`）。
+- **commit**：player-marriage 系列提交（spec / 实现修正 / 测试 / 文档与证据各自成笔）。
+
 ## [功能] 2026-11-05 — 玩家 `rest`：按小时恢复体力
 
 - **改了什么**

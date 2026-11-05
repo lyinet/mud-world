@@ -255,7 +255,23 @@ PYTHONPATH=src python3 -m wsim.api --run player-demo --seed-account alice --port
     "relations": [
       {"target": "liu_sanniang", "name": "柳三娘", "kind": "acquaintance", "affection": 1.0, "trust": 40.5}
     ],
-    "active_quests": []
+    "active_quests": [],
+    "marriage": {
+      "status": "single",
+      "spouse_id": "",
+      "spouse_name": "",
+      "since_tick": 0,
+      "last_daily_tick": 0,
+      "daily_note": ""
+    }
+  },
+  "marriage": {
+    "status": "single",
+    "spouse_id": "",
+    "spouse_name": "",
+    "since_tick": 0,
+    "last_daily_tick": 0,
+    "daily_note": ""
   },
   "location": {
     "id": "inn",
@@ -393,6 +409,8 @@ PYTHONPATH=src python3 -m wsim.api --run player-demo --seed-account alice --port
 | `consume` | `consume` | `item`（可选，默认最便宜食物）、`qty` | 先向店铺买，再消耗；恢复体力 |
 | `escort` | `escort` | `route`（地点列表或逗号分隔）或 `route_id`；`cargo`（`{item,qty}` 或 item id）或 `cargo_value`；`fee` | 押镖；起点必须是当前位置 |
 | `rest` | `rest` | `hours`（1-8，默认 4） | 休息恢复体力；按地点分级（客栈/住处/镇内/野外），押镖或临近委托截止时拒绝 |
+| `marriage_propose` / `marriage/propose` | `marriage_propose` | `target`（NPC id）、`gift_money`（可选，整数）、`gift_item`（可选）、`gift_qty`（可选，1-20，默认 1） | 向同地点 NPC 求婚；NPC 按确定性规则裁决，成功时服务端追加 accept/marriage 事件 |
+| `marriage_end` / `marriage/end` | `marriage_end` | 无 | 与同地点配偶和离；双方 `spouse` 清空、关系置 ended |
 
 #### 4.2.1 消费类动作与原因码
 
@@ -435,6 +453,45 @@ PYTHONPATH=src python3 -m wsim.api --run player-demo --seed-account alice --port
   押镖中 `leave` 只改在线状态，托管桶继续可见，到期结算按上述成功/失败路径收口，不蒸发也不双份。
 - NPC 专属动作 `marry` / `found_sect` / `apprentice` 统一返回
   `not_implemented_for_player`（reason_text=“这个玩法还没对玩家开放。”），不再回 `unknown_action`。
+  玩家婚姻改用 `marriage_propose` / `marriage_end`，下方单独说明。
+
+#### 4.2.2 玩家婚姻（2026-11-05 新增）
+
+- `marriage_propose`：只能向**同地点、活着、无配偶**的 NPC 求婚。玩家已有配偶返回
+  `already_married`，对方有配偶/婚约返回 `target_in_couple`。
+- 聘礼钱 `gift_money` 通过真实 `transfer` 从玩家钱包转入 NPC 钱包，不 `mint`；
+  信物 `gift_item`/`gift_qty` 通过 `item_move` 转入 NPC 背包。**拒绝或“再处处看”时不转账、不扣物品。**
+- NPC 裁决规则（零模型、纯确定性，门槛与判定依据写入 `marriage_propose` 事件）：
+  - 接受：好感 ≥ 60 且信任 ≥ 30；
+  - 再处处看：好感 40–55（缺口 5–20）且信任 ≥ 30，或信任 20–29 且好感 ≥ 40；
+    状态为 `courtship`，有效 3 个世界日；
+  - 拒绝：信任 < 20 → `trust_too_low`；好感 < 40 或好感 56–59（缺口 1–4）→ `bond_too_low`。
+- 成功事件链：`marriage_propose → marriage_accept → marriage → system_tick`；
+  拒绝：`marriage_propose → marriage_reject → system_tick`；
+  求处：`marriage_propose → system_tick`。`event_seq` 连号，逐条可见。
+- `marriage` 事件落库后：双方 `spouse` 双向写入、关系类型为 `marriage`、
+  双方记忆写入，`state.marriage.since_tick` 冻结为成婚 tick。
+- 婚后：配偶 NPC 每个世界日至少一次移动到玩家所在地点并执行 `spouse_time`
+  （带饭/提醒缴租/问候）；玩家 `talk` 配偶时返回配偶专属台词；快照更新
+  `last_daily_tick` / `daily_note`。
+- 和离：`marriage_end` 需双方同地点；双方 `spouse=null`、婚姻关系 `status=ended`。
+  **共同财产/聘礼分割不在本轮范围**：聘礼视为已赠予，和离不退款、不铸币，货币守恒不变。
+- 重婚：已有配偶再求婚固定返回 `already_married`；和离后可再次求婚。
+
+玩家婚姻前置原因码：
+
+| 场景 | `reject_reason` |
+|---|---|
+| 不同地点 | `not_together` |
+| 玩家已有配偶 | `already_married` |
+| 和离时配偶不在同地点 | `spouse_not_here` |
+| 好感不足 | `bond_too_low` |
+| 信任不足 | `trust_too_low` |
+| 信物不在背包/数量不足 | `gift_missing` |
+| 聘礼钱不足 | `not_enough_money` |
+| 对方已有配偶/婚约 | `target_in_couple` |
+| 向自己求婚 | `self_propose` |
+| 和离时没有配偶 | `not_married` |
 
 玩家消费类动作的六类前置原因码（GET 状态里的价格字段可直接用于预判）：
 
@@ -488,6 +545,9 @@ PYTHONPATH=src python3 -m wsim.api --run player-demo --seed-account alice --port
   1. **动作事件**：`player_enter` / `move` / `talk` / …（响应里的 `event_seq` 就是这一条）；
   2. **`system_tick` 事件**：把世界钟推进到 `next_tick`，本身无状态变更（no-op）。
 - 所以连续两次写动作的 `event_seq` 差是 `2`。被拒绝的动作也是“reject 事件 + `system_tick`”，同样是 `+2`。
+- **婚姻是唯一的多事件链**：成功求婚一次写 `marriage_propose / marriage_accept / marriage / system_tick`
+  四条，`event_seq` 差 `+4`；拒绝 `+3`；求处 `+2`；和离 `+2`。响应顶层的 `event_seq`
+  指向最终动作事件（成功求婚指向 `marriage`，拒绝指向 `marriage_reject`）。
 - **运行中新账号的第一次 `enter` 是 +3**：`player_enter` → `player_endowment`（一次性发放）→ `system_tick`。第二次写动作起恢复 `+2`。
 - 响应只返回动作事件的 `event_seq`；`system_tick` / `player_endowment` 的 seq 不放在顶层。`player_endowment` 的 seq 在 `details.endowment.event_seq`。要核对整条链请直接读 `events.sqlite` 或用 `tools/replay.py`。
 
@@ -607,7 +667,7 @@ curl -s 'http://127.0.0.1:8848/api/world/feed?limit=5'
 | `unknown_action` | 未知操作；可用操作见 docs/player-api.md。 |
 | `not_implemented_for_player` | 这个玩法还没对玩家开放。 |
 | `forbidden_verb` | 该操作在本阶段不开放（伤害/抢掠/强迫婚配等不可逆动作被禁用）。 |
-| `not_enough_money` | 你的钱不够（买入价含交易税）。 |
+| `not_enough_money` | 你的钱不够完成当前操作。 |
 | `item_not_available` | 这件物品不在当前内容包里。 |
 | `item_missing` | 你背包里没有足够的这件物品。 |
 | `not_here` | 你不在这个交易地点。 |
@@ -670,6 +730,18 @@ curl -s 'http://127.0.0.1:8848/api/world/feed?limit=5'
 | `hostile` | 对方对你敌对，拒绝交易。 |
 | `role_not_allowed` | 你的身份不允许该操作。 |
 | `player_cap_reached` | 本区域玩家席位已满，暂时无法创建新账号。 |
+| `already_married` | 你已有配偶；和离后才能再谈婚嫁。 |
+| `target_in_couple` | 对方已有婚约或配偶。 |
+| `spouse_not_here` | 你的配偶不在当前地点；和离需当面说清。 |
+| `bond_too_low` | 你们的好感还不够；先多相处、多说话再提亲。 |
+| `trust_too_low` | 对方对你还不够信任；先建立信任再提亲。 |
+| `gift_missing` | 你指定的信物不在背包里或数量不足。 |
+| `self_propose` | 不能向自己求婚。 |
+| `not_married` | 你当前没有配偶，无需和离。 |
+| `spouse_not_alive` | 你的配偶已不在人世。 |
+| `target_not_npc` | 本轮只开放玩家向 NPC 求婚。 |
+| `target_not_player` | 配偶目标必须是玩家。 |
+| `spouse_offline` | 配偶不在线，今日的陪伴暂缓。 |
 | `endowment_already_granted` | 该账号已经领取过初始资产，不能重复领取。 |
 | `endowment_cap_reached` | 本区域初始资产发放总额已达上限；请联系运维。 |
 | `account_missing` | 玩家钱包账户不存在，已被回滚。 |
