@@ -9,6 +9,50 @@
 
 ---
 
+## [功能] 2026-11-05 — 玩家消费类动作开闸：buy/sell/consume/escort 与价格可见
+
+- **改了什么**：`api/session.py` 的玩家动词白名单/别名放行 `buy`、`sell`、`consume`、`escort`，
+  `_args` 补齐 `item`、`qty`、`from`/`to`、`with_npc`、`route`/`route_id`、`cargo`/`cargo_qty`/
+  `cargo_value`、`fee`，语义全部复用既有 `BuyAction`/`SellAction`/`ConsumeAction`/`EscortAction`。
+  前置失败改成可读原因码：`not_enough_money`、`item_not_available`、`item_missing`、`not_here`、
+  `shop_closed`、`not_a_merchant`；NPC 专属 `marry`/`found_sect`/`apprentice` 统一返回
+  `not_implemented_for_player`（前端可渲染“这个玩法还没开放”）。`state` 只增不改地新增
+  `location.services_detail[]`（`price`/`sell_price`/`stock`/`buy_limit`/`sell_limit`）、顶层 `shop`
+  （`buy`/`sell` 两侧价与上限）、`player.wallet.items[].price/sell_price`、`escort_orders[]`；
+  既有 `services`（item id 数组）与其它键语义不动。押镖 `cargo` 必须是玩家背包里真实持有的物品
+  （不足给 `item_missing`），`escort_order_create` 记 `cargo_item/cargo_qty`，`cargo_value` 由
+  `item_price*qty` 折算；到期由 API 提交 `system_escort_arrive`，写 `escort_settle` 与镖银 transfer。
+  价格与钱包/地点/店铺视图按 tick 缓存，避免并发读重复扫全城供需（见下方 P95）。
+- **为什么**：可玩性审计实测玩家 `buy`/`sell`/`consume`/`escort` 全是 `unknown_action`，
+  商品价格表存在但玩家不可达，镖师也只能靠“押镖类委托”交单；UI 也拿不到价格。
+- **验证方式**
+  - 真服务（`wsim.api --auth off`，`XKX_AMBIENT=0`，seed 42）：`buy flatbread` 300→297、
+    背包 3→4；`consume` 297→294、体力 80→100、事件含 `item_consume`；`sell` 294→296、背包 3；
+    `buy raw_silk` 296→235、`burn transaction_tax=1`。
+  - 负面路径实测：`not_enough_money`/`item_not_available`/`item_missing`/`not_here`/
+    `not_a_merchant`/`not_implemented_for_player`，押镖空头货物也回 `item_missing`。
+  - 押镖闭环：`route_market_short`、`cargo=coarse_cloth×6`（先在集市买入，值 150）、`fee=130`；
+    镖单 `active→done`，tick 216 到达集市，钱包 81→170（`transfer escort_fee=91` 自
+    `treasury:region`，再扣 1+1 交易税）；结算事件含 `escort_settle`。
+  - 采购委托：4 单初始（`tutorial_first_buy`/`procure_mugwort`/`daily_inn_millet`/
+    `daily_ferry_rope`）各自新世界实测 accept→buy→deliver 全成功；同世界连续完成 4 单后推进一天，
+    声望门槛满足，`procure_charcoal` 出现并 accept→buy→deliver 成功（**未改任务数值**）。
+  - 不变量：回放 643 事件 `seq` 1..643 连续；`conservation_error=0`，
+    `accounts_sum 47746 = minted 47750 - burned 4`；每个买卖事件的钱/货方向与快照逐条一致。
+  - 50 客户端并发（50 线程 ×250 请求）：`GET /api/state` P95 **6.43ms**（干净 HEAD 6.52ms，
+    对照历史 22.6ms 未劣化）；`GET /api/player/state` P95 **91.69ms**（干净 HEAD 123.26ms）；
+    `talk` 写 P95 **206.48ms**（干净 HEAD 211.35ms）；`buy` 前置拒绝 P95 **32.28ms**
+    （干净 HEAD 9.88ms：现在会写可审计的 reject 事件，吞吐 2573 rps，非读写路径劣化）。
+  - 基线：旧 V3 期望值原样保留并 `skip`，新建 V4；本改动只动 API/只读 state，2 天 headless
+    世界不执行玩家 API 动作，实跑与 V3 逐项相同：**693 events / sell 967 / buy 793 / burned 81 /
+    business_cash 12599 / blocked 8 / pruned 4**，`state_final a8aecf44…` / `event_final ba66bb4d…`
+    不变（`content_hash 7ec670c1…`）；V4 是显式迁移基线，没有改旧数字。
+  - 计数：干净 HEAD `d70999c` + 本提交 pytest **447 passed / 14 skipped**；`scripts/selfcheck.sh`
+    **4/4 PASS**。
+- **commit**：`240e5a8`。
+
+---
+
 ## [修复] 2026-11-05 — 容器默认开启世界自走，与 `./start.sh` 对齐
 
 - **改了什么**：`deploy/entrypoint.sh` 与 `deploy/docker-compose.yml` 原先没有注入
