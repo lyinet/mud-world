@@ -1,0 +1,109 @@
+# world-sim CI 门禁：任何 push 到 master 与 pull_request 都自动验证。
+# 设计边界：
+# - 只跑离线用例；LLM 相关测试一律走 tools/fake_llm_server.py（127.0.0.1），不访问外网。
+# - pytest 与 selfcheck 拆成两个并行 job，避免一条链路串行拖到 15 分钟以上。
+# - 失败时把 reports/ 与 reports/ci/*.log 上传为 artifact，便于定位。
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONPATH: src
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  tests:
+    name: pytest + 内容校验 + 开启态 2 日冒烟
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 Python 3.11（缓存 pip）
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements.lock
+
+      - name: 安装锁定依赖
+        run: python -m pip install -r requirements.lock
+
+      - name: 创建 CI 报告目录
+        run: mkdir -p reports/ci
+
+      - name: 单元测试（超时 15 分钟）
+        timeout-minutes: 15
+        run: python -m pytest -q 2>&1 | tee reports/ci/pytest.log
+
+      - name: 内容校验（关闭态）
+        run: python content/validate_content.py 2>&1 | tee reports/ci/validate-content-off.log
+
+      - name: 内容校验（开启态 XKX_CONTENT_PACKS=scaleup_w3）
+        env:
+          XKX_CONTENT_PACKS: scaleup_w3
+        run: python content/validate_content.py 2>&1 | tee reports/ci/validate-content-pack.log
+
+      - name: 2 日 headless 冒烟（开启态，禁用 LLM）
+        env:
+          XKX_CONTENT_PACKS: scaleup_w3
+        run: |
+          set -o pipefail
+          python sim/run_headless.py --days 2 --seed 42 --npc 0 \
+            --out "$RUNNER_TEMP/xkx-smoke" --run-id ci-w3-2d 2>&1 | tee reports/ci/headless-2d.log
+
+      - name: 失败时上传 reports/ 与失败日志
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-tests-failure-${{ github.run_id }}
+          path: reports/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  selfcheck:
+    name: scripts/selfcheck.sh（framework + 玩家闭环）
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 Python 3.11（缓存 pip）
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements.lock
+
+      - name: 安装锁定依赖
+        run: python -m pip install -r requirements.lock
+
+      - name: 创建 CI 报告目录
+        run: mkdir -p reports/ci
+
+      - name: 运行 ./scripts/selfcheck.sh
+        timeout-minutes: 15
+        run: ./scripts/selfcheck.sh 2>&1 | tee reports/ci/selfcheck.log
+
+      - name: 失败时上传 reports/ 与失败日志
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-selfcheck-failure-${{ github.run_id }}
+          path: reports/
+          if-no-files-found: ignore
+          retention-days: 7

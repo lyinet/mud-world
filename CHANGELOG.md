@@ -9,6 +9,26 @@
 
 ---
 
+## [CI] 2026-11-06 — GitHub Actions 门禁：pytest / selfcheck / 内容校验 / 开启态 2 日冒烟
+
+- **改了什么**：新增 `.github/workflows/ci.yml`，在 push 到 `master` 与 `pull_request` 时并行跑两个 job：
+  - `tests`：Python 3.11 + `PYTHONPATH=src`，`python -m pytest -q`（step 超时 15 分钟）；
+    关闭态与 `XKX_CONTENT_PACKS=scaleup_w3` 开启态各跑一次 `content/validate_content.py`；
+    再用 `sim/run_headless.py --days 2 --seed 42 --npc 0` 跑开启态 2 日无头冒烟（不启用 LLM）。
+  - `selfcheck`：跑 `./scripts/selfcheck.sh`（内容校验 + pytest + framework + 玩家闭环）。
+  - pip 依赖用 `actions/setup-python` 的 pip 缓存（按 `requirements.txt` / `requirements.lock` 命中）；
+    失败时把 `reports/`（含 `reports/ci/*.log`）上传为 artifact，保留 7 天。
+- **为什么改**：上线前 P1：任何一次 push 都必须自动验证，不能只靠本地手动跑；
+  CI 与本地用同一套离线用例，LLM 测试走 `tools/fake_llm_server.py`，不访问外网、零模型调用。
+- **验证方式**：本地 `python -m pytest -q`（536 passed / 18 skipped，工作区含并行任务改动）；
+  `./scripts/selfcheck.sh` 4/4 PASS（内容校验 / pytest / framework 6/6 / 玩家闭环）；
+  `content/validate_content.py` 关闭态与 `scaleup_w3` 开启态均 PASS；
+  开启态 2 日冒烟 `events=1612`、`npc=60`、`content_hash=3fd99946…`、`illegal_rate=0.0`；
+  GitHub Actions 首跑由本次 push 触发，run URL 与耗时见提交回报。
+- **commit**：`（见本提交）`
+
+---
+
 ## [P0 数据安全] 2026-11-06 — 在线备份 / 恢复校验 / 轮转 / 定时
 
 - **改了什么**
