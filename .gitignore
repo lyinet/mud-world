@@ -17,6 +17,9 @@ dist/
 **/token.txt
 **/*.token
 reports/**/token*
+# 凭证/令牌类检查产物（reports 下仍有交付证据，不做整目录忽略）
+reports/**/token*.txt
+reports/**/*-check.txt
 # 本地自动推送日志
 .git/push.log
 # 交付证据里的 run 目录需要入库，供干净 clone 直接事件回放。

@@ -52,3 +52,8 @@
    tag 与历史改写规则见第 2 节。
 5. **演练令牌即时失效**：演练结束应删除对应 `service.sqlite` 的 `sessions` 行（`DELETE FROM sessions;`），
    不依赖 TTL 自然过期。
+6. **已入库的会话证据（2026-11-05 处置）**：`reports/w5/crash-drill/token-check.txt` 曾于 `9c76cde`
+   入库，内容为 `/api/auth/me` 响应，含一次性 `session_id`（`s:e1cb5106…`）、账号名与 `account_id`，
+   **不含 Bearer 本体**。该文件已于本次从 HEAD 删除；此前的历史提交中仍可检出，**未改写历史**。
+   对应会话在压测后已清理，`session_id` 是一次性会话标识，不是长期凭证，也不可用于重新认证。
+   同类“检查结果”文件按第 1–4 款处理，默认不入库。
