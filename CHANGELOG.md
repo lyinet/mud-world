@@ -9,6 +9,29 @@
 
 ---
 
+## [修复] 2026-11-05 — 押镖经济：必须带货 + 委托方真实付款 + 净赚门槛
+
+- **改了什么**
+  - `actions/escort.py`：玩家 `escort` 必须带真实货物，空货一律 `item_missing`（precheck 先拒，
+    只写 reject 事件，treasury 零支出）；运费从**目的地收货 NPC 的真实钱包**垫付
+    （`payer_total = fee + int(fee × agency_cut)`，开单即转入运费托管账户
+    `escrow:<镖单id>:fee:<payer>`），找不到付得起的委托方返回 `no_payer_funds`，不垫付、不 mint。
+  - 运费门槛 `fee ≥ max(20, ceil(1.15 × cargo_value))` 且 `fee − cargo_value − tax > 0`
+    （`cargo_value = item_price × qty`，buy 口径），否则 `fee_too_low`。
+  - 结算：成功时托管运费 → 玩家 `fee`、→ 镖局 `agency_cut`，货物 `escort_delivered`
+    （托管离场 + 入委托方背包）；失败时 `escort_cargo_return` 原量退货、
+    `escort_fee_refund` 运费原额退回委托方（玩家不收款）。`escort_settle` 事件带
+    `payer / cargo_value / fee / tax / gross / net_profit / agency_cut`，`net_profit = fee − cargo_value − tax`。
+  - `api/session.py`：`_precheck_player_action` 增加空货、门槛、净收益与委托方资金校验；
+    新增 `no_payer_funds` 原因码文案。NPC/公账旧订单事件体逐字节不变。
+- **为什么改**：第二轮审计实测空货单 tick 1309→1457 +91 文未扣货（等于印钞），
+  4 粗布（货值 100）只 +89（净亏 11），且运费由 `treasury:region` 兜底。
+- **验证方式**：`tests/test_player_commerce.py` 新增/更新 5 条（空货拒、低运费拒、
+  无付款人拒、成功结算三方钱包、3 连单 treasury 净流入）；真实服务验收证据见本轮回报。
+- **commit**：`（见本轮 SHA-A）`
+
+---
+
 ## [功能] 2026-11-05 — 玩家商业与经营面板（买/卖/现吃/开店/雇人/押镖）
 
 - **改了什么**

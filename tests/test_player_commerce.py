@@ -12,12 +12,22 @@ from pathlib import Path
 
 import pytest
 
-from wsim.actions.common import wallet
+from wsim.actions.common import transaction_tax, wallet
+from wsim.actions.escort import resolve_payer
 from wsim.api.session import WorldSession
 from wsim.audit.conservation import conservation
 
 ROOT = Path(__file__).resolve().parents[1]
 ACCOUNT = "u_demo"
+
+
+def _fee_account(oid: str, payer: str) -> str:
+    return f"escrow:{oid}:fee:{payer}"
+
+
+def _escort_payer(s: WorldSession, oid: str) -> str:
+    prefix = f"escrow:{oid}:fee:"
+    return next((a[len(prefix) :] for a in sorted(s.state.accounts) if a.startswith(prefix)), "")
 
 
 @pytest.fixture()
@@ -190,22 +200,29 @@ def test_npc_only_verbs_return_not_implemented_for_player(session: WorldSession)
 
 
 def test_escort_closed_loop_records_cargo_route_fee_and_settles(session: WorldSession) -> None:
+    session.content.escort_routes["route_market_short"]["risk_loss_prob"] = 0.0
+    session.content.escort_routes["route_market_short"]["risk_events"] = []
     _enter(session)
     pid = session._pid(ACCOUNT)
-    # 货物是真实物品：先在集市买 6 匹粗布，再押出去（背包不够会被 item_missing 拦下）。
+    # 货物是真实物品：先在集市买 3 匹粗布（自带 1 匹，4 匹货值 100 文），再押出去。
     _walk(session, ACCOUNT, "market")
-    buy = session.action(ACCOUNT, "buy", {"item": "coarse_cloth", "qty": 6})
+    buy = session.action(ACCOUNT, "buy", {"item": "coarse_cloth", "qty": 3})
     assert buy["ok"], buy
-    assert session.state.entities[pid].inventory["coarse_cloth"] == 7
+    assert session.state.entities[pid].inventory["coarse_cloth"] == 4
     _walk(session, ACCOUNT, "escort_agency")
     money0 = session.state.account_balance(wallet(pid))
+    destination = "market"
+    payer = resolve_payer(session.state, destination, 130, 0.30)
+    assert payer, "集市必须有付得起运费的委托方"
+    payer_money0 = session.state.account_balance(wallet(payer))
+    treasury0 = session.state.account_balance("treasury:region")
 
     resp = session.action(
         ACCOUNT,
         "escort",
         {
             "route": ["escort_agency", "smithy", "market"],
-            "cargo": {"item": "coarse_cloth", "qty": 6},
+            "cargo": {"item": "coarse_cloth", "qty": 4},
             "fee": 130,
         },
     )
@@ -213,9 +230,10 @@ def test_escort_closed_loop_records_cargo_route_fee_and_settles(session: WorldSe
     order = [o for o in session.player_state(ACCOUNT)["escort_orders"] if o["status"] == "active"][0]
     assert order["origin"] == "escort_agency"
     assert order["destination"] == "market"
-    assert order["cargo_value"] == 150  # 粗布 25 文 × 6 件
+    assert order["cargo_value"] == 100  # 粗布 25 文 × 4 件（buy 口径）
     assert order["fee"] == 130
     assert order["route_id"] == "route_market_short"
+    assert _escort_payer(session, order["id"]) == payer
     create = [e for e in session.store.read_all() if e.verb == "escort"][-1]
     assert create.args["route"] == ["escort_agency", "smithy", "market"]
     order_effect = next(
@@ -223,54 +241,83 @@ def test_escort_closed_loop_records_cargo_route_fee_and_settles(session: WorldSe
         if eff["op"] == "escort_order_create"
     )["data"]
     assert order_effect["cargo_item"] == "coarse_cloth"
-    assert order_effect["cargo_qty"] == 6
-    assert order_effect["cargo_value"] == 150
+    assert order_effect["cargo_qty"] == 4
+    assert order_effect["cargo_value"] == 100
+    # 运费来自委托方真实钱包（130 + 30% 抽成 = 169），进入托管账户，不走 treasury。
+    fee_transfer = next(
+        eff for eff in create.effects
+        if eff["op"] == "transfer" and eff["data"].get("reason") == "escort_fee_escrow"
+    )["data"]
+    assert fee_transfer["src"] == wallet(payer)
+    assert fee_transfer["amount"] == 169
+    assert session.state.account_balance(wallet(payer)) == payer_money0 - 169
+    assert session.state.account_balance("treasury:region") == treasury0
     # 发单即托管：背包立刻扣货，托管桶在账上可见，事件带 reason/order/account。
-    assert session.state.entities[pid].inventory["coarse_cloth"] == 1
+    assert session.state.entities[pid].inventory.get("coarse_cloth", 0) == 0
     state_now = session.player_state(ACCOUNT)
     oid = order["id"]
-    assert state_now["escrow_total"] == 6
+    assert state_now["escrow_total"] == 4
     assert {r["account"] for r in state_now["escrow"]} == {f"escrow:{oid}"}
     escrow_row = state_now["escrow"][0]
     assert escrow_row["item"] == "coarse_cloth"
-    assert escrow_row["qty"] == 6
+    assert escrow_row["qty"] == 4
     escrow_effects = [
         eff for eff in create.effects if eff["data"].get("reason") == "escort_cargo_escrow"
     ]
     assert [eff["op"] for eff in escrow_effects] == ["item_consume", "item_create"]
     assert escrow_effects[0]["data"]["owner"] == pid
-    assert escrow_effects[0]["data"]["qty"] == 6
+    assert escrow_effects[0]["data"]["qty"] == 4
     assert escrow_effects[0]["data"]["movement"] == "player->escrow"
     assert escrow_effects[1]["data"]["item"] == f"escrow:{oid}:coarse_cloth"
     assert escrow_effects[1]["data"]["escrow_account"] == f"escrow:{oid}"
     _assert_seq_contiguous(session)
 
-    # 144 tick 后到达：镖局/委托方出镖银，玩家到账并扣交易税，写入 settle 事件。
+    # 144 tick 后到达：委托方托管运费分给玩家与镖局，玩家到账并扣交易税。
     for _ in range(24):
         session._advance()
     state = session.player_state(ACCOUNT)
     assert state["escort_orders"][0]["status"] == "done"
     assert state["escort_orders"][0]["success"] is True
     assert state["player"]["location"] == "market"
-    assert session.state.account_balance(wallet(pid)) == money0 + 91 - 2  # 130×0.7，税 1/1 分摊
-    # 送达即离场：托管归零，背包不再有这 6 匹（不会出现第二份货）。
-    assert session.state.entities[pid].inventory["coarse_cloth"] == 1
+    tax = transaction_tax(session.content, 130)
+    assert session.state.account_balance(wallet(pid)) == money0 + 130 - tax
+    # 送达即离场：托管归零，背包不再有这 4 匹（不会出现第二份货）。
+    assert session.state.entities[pid].inventory.get("coarse_cloth", 0) == 0
     assert state["escrow"] == [] and state["escrow_total"] == 0
     assert state["reconciliation"]["delta"] == 0
     assert state["reconciliation"]["escrow_items"] == 0
     settle = [e for e in session.store.read_all() if e.verb == "system_escort_arrive"][-1]
-    assert any(eff["op"] == "escort_settle" for eff in settle.effects)
+    settle_payload = next(eff for eff in settle.effects if eff["op"] == "escort_settle")["data"]
+    assert settle_payload["payer"] == payer
+    assert settle_payload["cargo_value"] == 100
+    assert settle_payload["fee"] == 130
+    assert settle_payload["tax"] == tax
+    assert settle_payload["agency_cut"] == 39
+    assert settle_payload["net_profit"] == 130 - 100 - tax  # > 0
     deliver = [
         eff for eff in settle.effects
-        if eff["data"].get("reason") == "escort_cargo_deliver"
+        if eff["data"].get("reason") == "escort_delivered"
     ]
-    assert [eff["data"]["qty"] for eff in deliver] == [6]
-    assert any(
-        eff["op"] == "transfer"
-        and eff["data"]["reason"] == "escort_fee"
-        and eff["data"]["src"] == "treasury:region"
-        for eff in settle.effects
-    )
+    assert [eff["op"] for eff in deliver] == ["item_consume", "item_create"]
+    assert deliver[0]["data"]["qty"] == 4
+    assert deliver[0]["data"]["movement"] == "escrow->consignor"
+    assert deliver[1]["data"]["owner"] == payer
+    assert deliver[1]["data"]["qty"] == 4
+    # 运费付款与镖局抽成：全部来自托管账户，treasury 只进不出。
+    pay = next(
+        eff for eff in settle.effects
+        if eff["op"] == "transfer" and eff["data"].get("reason") == "escort_fee_pay"
+    )["data"]
+    assert pay["src"] == _fee_account(order["id"], payer) and pay["amount"] == 130
+    cut = next(
+        eff for eff in settle.effects
+        if eff["op"] == "transfer" and eff["data"].get("reason") == "escort_agency_cut"
+    )["data"]
+    assert cut["amount"] == 39 and cut["dst"] == "treasury:region"
+    to_treasury = int(round(tax * float(session.content.economy["taxes"]["transaction_treasury_share"])))
+    assert session.state.account_balance("treasury:region") == treasury0 + 39 + to_treasury
+    assert session.state.account_balance(wallet(payer)) == payer_money0 - 169
+    assert session.state.account_balance(_fee_account(order["id"], payer)) == 0
     cons = conservation(session.state)
     assert cons["conservation_error"] == 0
     assert cons["burned_total"] >= 1
@@ -326,7 +373,8 @@ def test_procurement_quest_can_be_completed_after_buy_enabled(session: WorldSess
     _assert_seq_contiguous(session)
 
 
-def _buy_cloth(session: WorldSession, qty: int = 6) -> None:
+def _buy_cloth(session: WorldSession, qty: int = 3) -> None:
+    """自带 1 匹，再买 qty 匹；默认 4 匹（货值 100，运费 130 满足 1.15 倍门槛）。"""
     _walk(session, ACCOUNT, "market")
     buy = session.action(ACCOUNT, "buy", {"item": "coarse_cloth", "qty": qty})
     assert buy["ok"], buy
@@ -339,7 +387,7 @@ def _start_escort(session: WorldSession) -> dict:
         "escort",
         {
             "route": ["escort_agency", "smithy", "market"],
-            "cargo": {"item": "coarse_cloth", "qty": 6},
+            "cargo": {"item": "coarse_cloth", "qty": 4},
             "fee": 130,
         },
     )
@@ -353,30 +401,45 @@ def test_escort_failure_returns_full_cargo_and_escrow_goes_to_zero(session: Worl
     _enter(session)
     pid = session._pid(ACCOUNT)
     _buy_cloth(session)
-    assert session.state.entities[pid].inventory["coarse_cloth"] == 7
+    assert session.state.entities[pid].inventory["coarse_cloth"] == 4
     money0 = session.state.account_balance(wallet(pid))
+    payer = resolve_payer(session.state, "market", 130, 0.30)
+    payer_money0 = session.state.account_balance(wallet(payer))
     order = _start_escort(session)
     oid = order["id"]
+    assert session.state.account_balance(wallet(payer)) == payer_money0 - 169
 
-    # 开单后：背包 7 -> 1，托管 6 件在账上。
-    assert session.state.entities[pid].inventory["coarse_cloth"] == 1
-    assert session.player_state(ACCOUNT)["escrow_total"] == 6
-    assert [r["qty"] for r in session.player_state(ACCOUNT)["escrow"]] == [6]
+    # 开单后：背包 4 -> 0，托管 4 件在账上。
+    assert session.state.entities[pid].inventory.get("coarse_cloth", 0) == 0
+    assert session.player_state(ACCOUNT)["escrow_total"] == 4
+    assert [r["qty"] for r in session.player_state(ACCOUNT)["escrow"]] == [4]
 
     for _ in range(24):
         session._advance()
     state = session.player_state(ACCOUNT)
     assert state["escort_orders"][0]["status"] == "failed"
     assert state["escort_orders"][0]["success"] is False
-    # 原量退回：背包 1 -> 7，托管归零，镖费未发（失败单没有收入）。
-    assert session.state.entities[pid].inventory["coarse_cloth"] == 7
+    # 原量退回：背包 0 -> 4，托管归零，镖费未发（失败单没有收入）。
+    assert session.state.entities[pid].inventory["coarse_cloth"] == 4
     assert state["escrow"] == [] and state["escrow_total"] == 0
     assert session.state.account_balance(wallet(pid)) == money0
+    # 失败对称：运费原额退回委托方，委托方钱包净变化为 0。
+    assert session.state.account_balance(wallet(payer)) == payer_money0
     settle = [e for e in session.store.read_all() if e.verb == "system_escort_arrive"][-1]
+    settle_payload = next(eff for eff in settle.effects if eff["op"] == "escort_settle")["data"]
+    assert settle_payload["fee"] == 0 and settle_payload["tax"] == 0
+    assert settle_payload["net_profit"] == 0 and settle_payload["cargo_returned"] is True
+    refund = next(
+        eff for eff in settle.effects
+        if eff["op"] == "transfer" and eff["data"].get("reason") == "escort_fee_refund"
+    )["data"]
+    assert refund["src"] == _fee_account(oid, payer) and refund["amount"] == 169
+    assert refund["dst"] == wallet(payer)
     returns = [eff for eff in settle.effects if eff["data"].get("reason") == "escort_cargo_return"]
     assert [eff["op"] for eff in returns] == ["item_consume", "item_create"]
-    assert returns[0]["data"]["qty"] == 6 and returns[0]["data"]["movement"] == "escrow->player"
-    assert returns[1]["data"]["owner"] == pid and returns[1]["data"]["qty"] == 6
+    assert returns[0]["data"]["qty"] == 4 and returns[0]["data"]["movement"] == "escrow->player"
+    assert returns[1]["data"]["owner"] == pid and returns[1]["data"]["qty"] == 4
+    assert not any(eff["data"].get("reason") == "escort_fee_pay" for eff in settle.effects)
     cons = conservation(session.state)
     assert cons["conservation_error"] == 0
     assert state["reconciliation"]["delta"] == 0
@@ -390,15 +453,15 @@ def test_second_escort_on_same_cargo_is_rejected_item_missing(session: WorldSess
     money0 = session.state.account_balance(wallet(pid))
     order = _start_escort(session)
     oid = order["id"]
-    assert session.state.entities[pid].inventory["coarse_cloth"] == 1
-    assert session.player_state(ACCOUNT)["escrow_total"] == 6
+    assert session.state.entities[pid].inventory.get("coarse_cloth", 0) == 0
+    assert session.player_state(ACCOUNT)["escrow_total"] == 4
 
     second = session.action(
         ACCOUNT,
         "escort",
         {
             "route": ["escort_agency", "smithy", "market"],
-            "cargo": {"item": "coarse_cloth", "qty": 6},
+            "cargo": {"item": "coarse_cloth", "qty": 4},
             "fee": 130,
         },
     )
@@ -410,10 +473,148 @@ def test_second_escort_on_same_cargo_is_rejected_item_missing(session: WorldSess
         if any(eff["op"] == "escort_order_create" for eff in e.effects)
     ]
     assert len(creates) == 1
-    assert session.player_state(ACCOUNT)["escrow_total"] == 6
+    assert session.player_state(ACCOUNT)["escrow_total"] == 4
     assert {r["account"] for r in session.player_state(ACCOUNT)["escrow"]} == {f"escrow:{oid}"}
-    assert session.state.entities[pid].inventory["coarse_cloth"] == 1
+    assert session.state.entities[pid].inventory.get("coarse_cloth", 0) == 0
     assert session.state.account_balance(wallet(pid)) == money0
+    _assert_seq_contiguous(session)
+
+
+def test_escort_requires_cargo_and_writes_auditable_reject(session: WorldSession) -> None:
+    """空货押镖 = 白拿镖银：一律 item_missing，且 treasury 零支出。"""
+    _enter(session)
+    _walk(session, ACCOUNT, "escort_agency")
+    treasury0 = session.state.account_balance("treasury:region")
+    resp = session.action(
+        ACCOUNT,
+        "escort",
+        {"route": ["escort_agency", "smithy", "market"], "fee": 130},
+    )
+    assert not resp["ok"], resp
+    assert resp["reject_reason"] == "item_missing", resp
+    reject = [e for e in session.store.read_all() if e.verb == "escort"][-1]
+    assert reject.reason == "rejected:item_missing"
+    assert reject.args.get("reason") == "item_missing"
+    assert session.state.account_balance("treasury:region") == treasury0
+    assert not any(
+        eff["op"] in ("transfer", "mint", "burn", "escort_order_create")
+        for eff in reject.effects
+    )
+    _assert_seq_contiguous(session)
+
+
+def test_escort_fee_below_cargo_threshold_is_rejected(session: WorldSession) -> None:
+    """fee < 货值 × 1.15：拒单，避免带货净亏。"""
+    _enter(session)
+    _walk(session, ACCOUNT, "market")
+    buy = session.action(ACCOUNT, "buy", {"item": "coarse_cloth", "qty": 3})
+    assert buy["ok"], buy
+    _walk(session, ACCOUNT, "escort_agency")
+    treasury0 = session.state.account_balance("treasury:region")
+    resp = session.action(
+        ACCOUNT,
+        "escort",
+        {
+            "route": ["escort_agency", "smithy", "market"],
+            "cargo": {"item": "coarse_cloth", "qty": 4},
+            "fee": 114,
+        },
+    )
+    assert not resp["ok"], resp
+    assert resp["reject_reason"] == "fee_too_low", resp
+    assert session.state.account_balance("treasury:region") == treasury0
+    assert session.state.entities[session._pid(ACCOUNT)].inventory["coarse_cloth"] == 4
+    _assert_seq_contiguous(session)
+
+
+def test_escort_without_solvent_consignor_is_rejected(session: WorldSession) -> None:
+    """委托方现金不足：no_payer_funds，不垫付、不产生任何转账。"""
+    _enter(session)
+    _walk(session, ACCOUNT, "market")
+    buy = session.action(ACCOUNT, "buy", {"item": "coarse_cloth", "qty": 3})
+    assert buy["ok"], buy
+    _walk(session, ACCOUNT, "escort_agency")
+    dest_npcs = [
+        e.id for e in session.state.entities.values()
+        if not e.id.startswith("player:") and e.location == "market"
+    ]
+    assert dest_npcs
+    for npc in dest_npcs:
+        session.state.accounts[wallet(npc)] = 0
+    treasury0 = session.state.account_balance("treasury:region")
+    resp = session.action(
+        ACCOUNT,
+        "escort",
+        {
+            "route": ["escort_agency", "smithy", "market"],
+            "cargo": {"item": "coarse_cloth", "qty": 4},
+            "fee": 130,
+        },
+    )
+    assert not resp["ok"], resp
+    assert resp["reject_reason"] == "no_payer_funds", resp
+    reject = [e for e in session.store.read_all() if e.verb == "escort"][-1]
+    assert reject.reason == "rejected:no_payer_funds"
+    assert session.state.account_balance("treasury:region") == treasury0
+    assert session.state.entities[session._pid(ACCOUNT)].inventory["coarse_cloth"] == 4
+    _assert_seq_contiguous(session)
+
+
+def test_three_consecutive_escorts_keep_treasury_net_inflow(session: WorldSession) -> None:
+    """连续 3 单：每单运费来自委托方，treasury 只有抽成/税流入，绝不净流出。"""
+    session.content.escort_routes["route_market_short"]["risk_loss_prob"] = 0.0
+    session.content.escort_routes["route_market_short"]["risk_events"] = []
+    _enter(session)
+    pid = session._pid(ACCOUNT)
+    session.state.entities[pid].inventory["coarse_cloth"] = 12
+    treasury = "treasury:region"
+    runs = []
+    for _ in range(3):
+        _walk(session, ACCOUNT, "escort_agency")
+        treasury0 = session.state.account_balance(treasury)
+        payer = resolve_payer(session.state, "market", 130, 0.30)
+        assert payer
+        payer0 = session.state.account_balance(wallet(payer))
+        resp = session.action(
+            ACCOUNT,
+            "escort",
+            {
+                "route": ["escort_agency", "smithy", "market"],
+                "cargo": {"item": "coarse_cloth", "qty": 4},
+                "fee": 130,
+            },
+        )
+        assert resp["ok"], resp
+        assert session.state.account_balance(wallet(payer)) == payer0 - 169
+        assert session.state.account_balance(treasury) == treasury0
+        for _ in range(24):
+            session._advance()
+        order = session.state.escorts[sorted(session.state.escorts)[-1]]
+        assert order.status == "done"
+        flows = [
+            eff["data"]
+            for e in session.store.read_all()
+            if e.verb == "system_escort_arrive"
+            for eff in e.effects
+            if eff["op"] == "transfer" and eff["data"].get("order") == order.id
+        ]
+        assert all(flow["src"] != treasury for flow in flows), flows
+        assert any(flow["dst"] == treasury for flow in flows), flows
+        assert session.state.account_balance(treasury) > treasury0
+        runs.append(
+            {
+                "order": order.id,
+                "payer": payer,
+                "payer_delta": session.state.account_balance(wallet(payer)) - payer0,
+                "treasury_delta": session.state.account_balance(treasury) - treasury0,
+            }
+        )
+        assert order.success, "三连单默认线路允许风险，测试数据不足以允许失败"
+    assert all(run["treasury_delta"] > 0 for run in runs), runs
+    assert session.state.entities[pid].inventory.get("coarse_cloth", 0) == 0
+    assert session.player_state(ACCOUNT)["reconciliation"]["delta"] == 0
+    cons = conservation(session.state)
+    assert cons["conservation_error"] == 0
     _assert_seq_contiguous(session)
 
 
@@ -423,20 +624,20 @@ def test_escort_cargo_survives_leave_and_timeout_without_duplication(session: Wo
     pid = session._pid(ACCOUNT)
     _buy_cloth(session)
     order = _start_escort(session)
-    assert session.state.entities[pid].inventory["coarse_cloth"] == 1
-    assert session._escrow_view()[1] == 6
+    assert session.state.entities[pid].inventory.get("coarse_cloth", 0) == 0
+    assert session._escrow_view()[1] == 4
 
     # 押镖中退出：只改在线状态，货仍在托管桶里（不蒸发）。
     leave = session.action(ACCOUNT, "leave")
     assert leave["ok"] is True
-    assert session.state.entities[pid].inventory["coarse_cloth"] == 1
-    assert session._escrow_view()[1] == 6
+    assert session.state.entities[pid].inventory.get("coarse_cloth", 0) == 0
+    assert session._escrow_view()[1] == 4
     assert session.state.escorts[order["id"]].status == "active"
 
     # 到期结算失败：托管原量回到（已离线的）玩家背包；不增发第二份。
     for _ in range(24):
         session._advance()
     assert session.state.escorts[order["id"]].status == "failed"
-    assert session.state.entities[pid].inventory["coarse_cloth"] == 7
+    assert session.state.entities[pid].inventory["coarse_cloth"] == 4
     assert session._escrow_view()[1] == 0
     _assert_seq_contiguous(session)

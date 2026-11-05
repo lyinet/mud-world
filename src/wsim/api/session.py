@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import threading
 import time
@@ -40,6 +41,7 @@ from ..sim.scheduler import AmbientConfig, AmbientScheduler
 from ..world.state import WorldState
 from ..world.store import EventStore
 from ..world.writer import Writer
+from ..actions.escort import resolve_payer, route_meta
 from ..actions.registry import build_registry
 from ..actions.common import (
     business_selling,
@@ -215,6 +217,7 @@ REASON_TEXT: dict[str, str] = {
     "fee_too_high": "镖银超过这条线路的最高标准。",
     "no_escort_agency": "起点没有镖局，不能接镖。",
     "agency_insufficient_cash": "镖局现金不足以支付这单镖银。",
+    "no_payer_funds": "目的地委托方现金不足，无法支付这单镖银；请换一条线路或降低镖银。",
     "bad_arg:route": "路线格式错误；请给地点 id 列表或 route_id。",
     "bad_arg:cargo_qty": "货物数量必须是 1-100 的整数。",
     "bad_arg:cargo_value": "货值必须是整数。",
@@ -1706,21 +1709,37 @@ class WorldSession:
             if self.state.account_balance(wallet_account(pid)) < cost + transaction_tax(self.content, cost):
                 return "not_enough_money"
             return ""
-        # escort：起点必须是当前位置；货物必须是内容包里的真实物品。
+        # escort：起点必须是当前位置；玩家必须带货，运费必须由目的地委托方真实钱包支付。
         route = args.get("route")
         if isinstance(route, list) and len(route) >= 2 and str(route[0]) != ent.location:
             return "not_here"
         cargo_item = str(args.get("cargo_item") or "")
-        if cargo_item:
-            if cargo_item not in self.content.items:
-                return "item_not_available"
-            qty = args.get("cargo_qty")
-            if isinstance(qty, bool) or not isinstance(qty, int) or not (1 <= qty <= 100):
-                return "bad_arg:cargo_qty"
-            # 押镖货物必须是玩家背包里的真实物品：没有就先给出 item_missing，
-            # 而不是放行一张空头镖单。
-            if int(ent.inventory.get(cargo_item, 0)) < qty:
-                return "item_missing"
+        if not cargo_item:
+            return "item_missing"
+        if cargo_item not in self.content.items:
+            return "item_not_available"
+        qty = args.get("cargo_qty")
+        if isinstance(qty, bool) or not isinstance(qty, int) or not (1 <= qty <= 100):
+            return "bad_arg:cargo_qty"
+        # 押镖货物必须是玩家背包里的真实物品：没有就先给出 item_missing，
+        # 而不是放行一张空头镖单。
+        if int(ent.inventory.get(cargo_item, 0)) < qty:
+            return "item_missing"
+        cargo_value = self.content.item_price(cargo_item, self.state) * qty
+        fee = args.get("fee")
+        if isinstance(fee, int) and not isinstance(fee, bool):
+            # 净赚门槛：fee 覆盖货值 1.15 倍且扣税后仍为正。
+            floor = max(20, int(math.ceil(cargo_value * 1.15)))
+            if fee < floor or fee - cargo_value - transaction_tax(self.content, fee) <= 0:
+                return "fee_too_low"
+            if not isinstance(route, list) or len(route) < 2:
+                return "bad_arg:route"
+            meta = route_meta(self.content, str(args.get("route_id") or ""), route)
+            cut = float(
+                (meta or {}).get("agency_cut", (self.content.economy.get("escort") or {}).get("agency_cut", 0.30))
+            )
+            if not resolve_payer(self.state, str(route[-1]), fee, cut):
+                return "no_payer_funds"
         return ""
 
     def _buy_limit(self, pid: str, unit_price: int, stock: int) -> int:

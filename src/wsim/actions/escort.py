@@ -9,6 +9,8 @@
 """
 from __future__ import annotations
 
+import math
+
 from ..core.clock import TICKS_PER_DAY, TICKS_PER_HOUR
 from ..core.models import Effect, Intent, Reject
 from ..world.state import WorldState
@@ -66,16 +68,61 @@ def _route_path(intent: Intent) -> list[str]:
     return [str(x) for x in raw]
 
 
+def route_meta(content, route_id: str, path: list[str] | None) -> dict | None:
+    """按 route_id 或路径精确匹配内容包线路；匹配不上返回 None。"""
+    if route_id and str(route_id) in content.escort_routes:
+        return content.escort_routes[str(route_id)]
+    if path:
+        for route in content.escort_routes.values():
+            if [str(x) for x in (route.get("route") or [])] == path:
+                return route
+    return None
+
+
 def resolve_route(content, intent: Intent) -> dict | None:
     """按 route_id 或路径精确匹配内容包线路；匹配不上返回 None。"""
-    rid = intent.args.get("route_id")
-    if rid and str(rid) in content.escort_routes:
-        return content.escort_routes[str(rid)]
-    path = _route_path(intent)
-    for route in content.escort_routes.values():
-        if [str(x) for x in (route.get("route") or [])] == path:
-            return route
-    return None
+    return route_meta(content, str(intent.args.get("route_id") or ""), _route_path(intent))
+
+
+def _is_player(ent) -> bool:
+    return str(ent.id).startswith("player:")
+
+
+def payer_amount(fee: int, cut: float) -> int:
+    """委托方应付总额：报价镖银 + 镖局抽成（抽成由委托方承担，玩家实收全额 fee）。"""
+    return int(fee) + int(int(fee) * float(cut))
+
+
+def resolve_payer(state: WorldState, destination: str, fee: int, cut: float) -> str:
+    """目的地收货 NPC 中，按（余额降序、id 升序）取第一个付得起这单的。
+
+    这是玩家镖单唯一合法的付款人；找不到就拒单（no_payer_funds），绝不由 treasury 垫付。
+    """
+    need = payer_amount(fee, cut)
+    candidates = sorted(
+        (
+            ent
+            for ent in state.entities.values()
+            if not _is_player(ent) and str(ent.location) == str(destination)
+        ),
+        key=lambda ent: (-state.account_balance(wallet(ent.id)), str(ent.id)),
+    )
+    for ent in candidates:
+        if state.account_balance(wallet(ent.id)) >= need:
+            return str(ent.id)
+    return ""
+
+
+def _fee_escrow_account(oid: str, payer: str) -> str:
+    return f"{ESCROW_PREFIX}{oid}:fee:{payer}"
+
+
+def _fee_escrow_payer(state: WorldState, oid: str) -> str:
+    prefix = _fee_escrow_account(oid, "")
+    for account in sorted(state.accounts):
+        if account.startswith(prefix):
+            return account[len(prefix) :]
+    return ""
 
 
 class EscortAction(Action):
@@ -98,22 +145,39 @@ class EscortAction(Action):
                 return ["route_not_adjacent"]
         if ent.escort_id is not None:
             return ["already_on_escort"]
-        # 真实货物：必须是内容包物品、数量合法、背包里确实持有。
+        player = _is_player(ent)
+        # 真实货物：玩家必须带货（空货 = 白拿镖银）；NPC/system 旧 intent 不受影响。
         cargo_item = str(intent.args.get("cargo_item") or "")
+        if player and not cargo_item:
+            return ["item_missing"]
+        cargo = arg_int(intent, "cargo_value", 100, minimum=100, maximum=100000)
         if cargo_item:
             if cargo_item not in self.content.items:
                 return ["item_not_available"]
             qty = arg_int(intent, "cargo_qty", 1, minimum=1, maximum=10000)
             if int(ent.inventory.get(cargo_item, 0)) < qty:
                 return ["item_missing"]
-        cargo = arg_int(intent, "cargo_value", 100, minimum=100, maximum=100000)
+            if player:
+                # 货值按 buy 价重算，避免客户端用低值货冒充高值单。
+                cargo = self.content.item_price(cargo_item, state) * qty
         fee = arg_int(intent, "fee", 0, minimum=1, maximum=100000)
+        meta = resolve_route(self.content, intent)
+        cfg = self.content.economy.get("escort") or {}
+        cut = float(meta.get("agency_cut", 0.30)) if meta is not None else float(cfg.get("agency_cut", 0.30))
+        if player and cargo_item:
+            # 净赚门槛：fee 覆盖货值 1.15 倍，且 fee - 货值 - tax 必须为正。
+            floor = max(20, int(math.ceil(cargo * 1.15)))
+            if fee < floor or fee - cargo - transaction_tax(self.content, fee) <= 0:
+                return ["fee_too_low"]
         agency = escort_business(state, route[0])
         if agency is None:
             return ["no_escort_agency"]
-        if state.account_balance(agency.cash_account) < fee:
+        if player and cargo_item:
+            # 委托方（目的地收货 NPC）必须付得起这单；找不到就拒，不垫付。
+            if not resolve_payer(state, route[-1], fee, cut):
+                return ["no_payer_funds"]
+        elif state.account_balance(agency.cash_account) < fee:
             return ["agency_insufficient_cash"]
-        meta = resolve_route(self.content, intent)
         if meta is not None:
             if cargo < int(meta.get("cargo_value_min", 100)):
                 return ["cargo_too_low"]
@@ -130,13 +194,33 @@ class EscortAction(Action):
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
         ent = require_entity(state, intent.actor)
         route = _route_path(intent)
+        player = _is_player(ent)
+        cargo_item = str(intent.args.get("cargo_item") or "")
+        if player and not cargo_item:
+            raise Reject("item_missing")
         cargo = arg_int(intent, "cargo_value", 100, minimum=100, maximum=100000)
+        cargo_qty = (
+            arg_int(intent, "cargo_qty", 1, minimum=1, maximum=10000) if cargo_item else 0
+        )
+        if cargo_item and player:
+            cargo = self.content.item_price(cargo_item, state) * cargo_qty
         fee = arg_int(intent, "fee", 0, minimum=1, maximum=100000)
         agency = escort_business(state, route[0])
         if agency is None:
             raise Reject("no_escort_agency")
         meta = resolve_route(self.content, intent)
         cfg = self.content.economy.get("escort") or {}
+        payer = ""
+        if player and cargo_item:
+            floor = max(20, int(math.ceil(cargo * 1.15)))
+            if fee < floor or fee - cargo - transaction_tax(self.content, fee) <= 0:
+                raise Reject("fee_too_low")
+            cut_guess = float(meta.get("agency_cut", 0.30)) if meta is not None else float(
+                cfg.get("agency_cut", 0.30)
+            )
+            payer = resolve_payer(state, route[-1], fee, cut_guess)
+            if not payer:
+                raise Reject("no_payer_funds")
         if meta is not None:
             duration = int(meta.get("duration_days", 1)) * TICKS_PER_DAY
             risk = float(meta.get("risk_loss_prob", 0.15))
@@ -168,11 +252,6 @@ class EscortAction(Action):
                     break
 
         oid = f"escort:{ent.id}:{intent.tick}"
-        # 玩家可传真实货物（item + qty）；不传时事件体与旧世界逐字节一致。
-        cargo_item = str(intent.args.get("cargo_item") or "")
-        cargo_qty = (
-            arg_int(intent, "cargo_qty", 1, minimum=1, maximum=10000) if cargo_item else 0
-        )
         order_payload = {
             "id": oid,
             "origin": route[0],
@@ -185,33 +264,40 @@ class EscortAction(Action):
         if cargo_item:
             order_payload["cargo_item"] = cargo_item
             order_payload["cargo_qty"] = cargo_qty
+        start_args = {
+            "id": oid,
+            "carrier": ent.id,
+            "success": success,
+            "arrive_tick": intent.tick + duration + delay,
+            "route_id": route_id,
+            "agency_cut": cut,
+            "fee_penalty": fee_penalty,
+            "cargo_loss_ratio": cargo_loss,
+            "risk_event": risk_event,
+            "risk_stamina": stamina_penalty,
+        }
+        if payer:
+            # 玩家 cargo 单才有委托方字段；NPC/旧 intent 事件体逐字节不变。
+            start_args.update(
+                {
+                    "payer": payer,
+                    "cargo_value": cargo,
+                    "fee": fee,
+                    "payer_total": payer_amount(fee, cut),
+                }
+            )
+        note = f"接下{route[0]}->{route[-1]}的镖单（{route_id or 'global'}），镖银{fee}文"
+        if payer:
+            note += f"，运费由{payer}垫付{payer_amount(fee, cut)}文"
+        if risk_event:
+            note += f"，风险事件{risk_event}"
+        if fallback:
+            note += "，回退全局费率"
         effects = [
             Effect("escort_order_create", order_payload),
-            Effect(
-                "escort_start",
-                {
-                    "id": oid,
-                    "carrier": ent.id,
-                    "success": success,
-                    "arrive_tick": intent.tick + duration + delay,
-                    "route_id": route_id,
-                    "agency_cut": cut,
-                    "fee_penalty": fee_penalty,
-                    "cargo_loss_ratio": cargo_loss,
-                    "risk_event": risk_event,
-                    "risk_stamina": stamina_penalty,
-                },
-            ),
+            Effect("escort_start", start_args),
             Effect("set_field", {"entity": ent.id, "field": "last_action_tick", "value": intent.tick}),
-            *memory(
-                state,
-                ent.id,
-                intent.tick,
-                f"接下{route[0]}->{route[-1]}的镖单（{route_id or 'global'}），镖银{fee}文"
-                + (f"，风险事件{risk_event}" if risk_event else "")
-                + ("，回退全局费率" if fallback else ""),
-                0.5,
-            ),
+            *memory(state, ent.id, intent.tick, note, 0.5),
         ]
         if cargo_item:
             # 发单即托管：背包真实货物 -> escrow:<镖单id>:<物品> 托管桶（镖局库存）。
@@ -247,10 +333,32 @@ class EscortAction(Action):
                     },
                 ),
             )
+        if payer:
+            # 运费由委托方真实钱包垫付进托管账户：开单即付款，失败原额退回，
+            # 成功时再分给承运人（fee）与镖局（cut）。全程只有转账，无 mint。
+            fee_account = _fee_escrow_account(oid, payer)
+            effects.extend(
+                [
+                    Effect("create_account", {"account": fee_account, "balance": 0}),
+                    Effect(
+                        "transfer",
+                        {
+                            "src": wallet(payer),
+                            "dst": fee_account,
+                            "amount": payer_amount(fee, cut),
+                            "reason": "escort_fee_escrow",
+                            "order": oid,
+                            "payer": payer,
+                        },
+                    ),
+                ]
+            )
         return effects
 
 
-def _escrow_settle_effects(state: WorldState, order, oid: str) -> list[Effect]:
+def _escrow_settle_effects(
+    state: WorldState, order, oid: str, consignor: str = ""
+) -> list[Effect]:
     """结算托管桶：成功送达即离场；失败原量退回承运人背包。
 
     返回空列表表示这条镖单没有托管货物（NPC 与旧 intent），调用方的事件序列
@@ -283,6 +391,7 @@ def _escrow_settle_effects(state: WorldState, order, oid: str) -> list[Effect]:
                 )
             rest = qty - lost
             if rest > 0:
+                # 成功送达：货离开托管，交给目的地委托方；委托方缺失时只记录送达。
                 out.append(
                     Effect(
                         "item_consume",
@@ -290,13 +399,28 @@ def _escrow_settle_effects(state: WorldState, order, oid: str) -> list[Effect]:
                             "owner": bid,
                             "item": key,
                             "qty": rest,
-                            "reason": "escort_cargo_deliver",
+                            "reason": "escort_delivered",
                             "order": oid,
                             "escrow_account": account,
-                            "movement": "escrow->delivery",
+                            "movement": "escrow->consignor" if consignor else "escrow->delivery",
                         },
                     )
                 )
+                if consignor:
+                    out.append(
+                        Effect(
+                            "item_create",
+                            {
+                                "owner": consignor,
+                                "item": item,
+                                "qty": rest,
+                                "reason": "escort_delivered",
+                                "order": oid,
+                                "escrow_account": account,
+                                "movement": "escrow->consignor",
+                            },
+                        )
+                    )
         return out
     target = str(order.carrier or "")
     holder = target if target in state.entities else ""
@@ -334,6 +458,29 @@ def _escrow_settle_effects(state: WorldState, order, oid: str) -> list[Effect]:
     return out
 
 
+def _refund_fee_escrow(state: WorldState, oid: str, payer: str) -> list[Effect]:
+    """把运费托管账户余额原额退回委托方（失败退货 / 承运人缺失）。"""
+    if not payer:
+        return []
+    account = _fee_escrow_account(oid, payer)
+    balance = state.account_balance(account)
+    if balance <= 0:
+        return []
+    return [
+        Effect(
+            "transfer",
+            {
+                "src": account,
+                "dst": wallet(payer),
+                "amount": balance,
+                "reason": "escort_fee_refund",
+                "order": oid,
+                "payer": payer,
+            },
+        )
+    ]
+
+
 class SystemEscortArriveAction(Action):
     verb = "system_escort_arrive"
 
@@ -348,40 +495,126 @@ class SystemEscortArriveAction(Action):
             if order.status != "active" or order.arrive_tick > intent.tick:
                 continue
             carrier = state.entities.get(order.carrier or "")
+            fee_payer = _fee_escrow_payer(state, oid)
             if carrier is None or carrier.status != "alive":
+                effects.extend(_refund_fee_escrow(state, oid, fee_payer))
                 effects.append(Effect("escort_settle", {"id": oid}))
                 effects.extend(_escrow_settle_effects(state, order, oid))
                 continue
             agency = escort_business(state, order.origin) or escort_business(state)
             cut = order.agency_cut if order.route_id else float(cfg.get("agency_cut", 0.30))
+            tax_amount = 0
+            settle_payload: dict = {"id": oid}
             if order.success:
                 net_fee = max(1, order.fee - order.fee_penalty)
-                share = max(1, net_fee - int(net_fee * cut))
-                if agency is not None:
-                    effects.extend(
-                        payment_with_shortfall(
-                            state,
-                            agency.id,
-                            carrier.id,
-                            share,
-                            debt_id=f"debt:escort:{oid}",
-                            created_tick=intent.tick,
-                            note="escort_fee",
+                if fee_payer:
+                    # 玩家 cargo 单：运费来自委托方托管账户。玩家拿全额（扣风险罚金），
+                    # 镖局拿抽成，余额（罚金/取整）退回委托方；全程无 mint。
+                    cut_amount = int(net_fee * cut)
+                    fee_account = _fee_escrow_account(oid, fee_payer)
+                    effects.append(
+                        Effect(
+                            "transfer",
+                            {
+                                "src": fee_account,
+                                "dst": wallet(carrier.id),
+                                "amount": net_fee,
+                                "reason": "escort_fee_pay",
+                                "order": oid,
+                                "payer": fee_payer,
+                            },
                         )
                     )
-                    tax = transaction_tax(self.content, share)
+                    if cut_amount > 0:
+                        if agency is not None:
+                            effects.append(
+                                Effect(
+                                    "transfer",
+                                    {
+                                        "src": fee_account,
+                                        "dst": agency.cash_account,
+                                        "amount": cut_amount,
+                                        "reason": "escort_agency_cut",
+                                        "order": oid,
+                                        "payer": fee_payer,
+                                    },
+                                )
+                            )
+                        else:
+                            effects.append(
+                                Effect(
+                                    "transfer",
+                                    {
+                                        "src": fee_account,
+                                        "dst": wallet(fee_payer),
+                                        "amount": cut_amount,
+                                        "reason": "escort_fee_refund",
+                                        "order": oid,
+                                        "payer": fee_payer,
+                                    },
+                                )
+                            )
+                    leftover = state.account_balance(fee_account) - net_fee - cut_amount
+                    if leftover > 0:
+                        effects.append(
+                            Effect(
+                                "transfer",
+                                {
+                                    "src": fee_account,
+                                    "dst": wallet(fee_payer),
+                                    "amount": leftover,
+                                    "reason": "escort_fee_refund",
+                                    "order": oid,
+                                    "payer": fee_payer,
+                                },
+                            )
+                        )
+                    tax_amount = transaction_tax(self.content, net_fee)
                     bal = state.account_balance(wallet(carrier.id))
-                    if state.account_balance(agency.cash_account) >= share:
-                        tax = min(tax, bal + share)
-                    else:
-                        tax = min(tax, bal + min(share, state.account_balance(agency.cash_account)))
-                    if tax > 0:
-                        effects.extend(tax_split_effects(self.content, wallet(carrier.id), tax))
+                    tax_amount = min(tax_amount, bal + net_fee)
+                    if tax_amount > 0:
+                        effects.extend(tax_split_effects(self.content, wallet(carrier.id), tax_amount))
+                    settle_payload = {
+                        "id": oid,
+                        "payer": fee_payer,
+                        "cargo_value": order.cargo_value,
+                        "fee": net_fee,
+                        "tax": tax_amount,
+                        "gross": net_fee,
+                        "net_profit": net_fee - order.cargo_value - tax_amount,
+                        "agency_cut": cut_amount,
+                    }
+                else:
+                    share = max(1, net_fee - int(net_fee * cut))
+                    if agency is not None:
+                        effects.extend(
+                            payment_with_shortfall(
+                                state,
+                                agency.id,
+                                carrier.id,
+                                share,
+                                debt_id=f"debt:escort:{oid}",
+                                created_tick=intent.tick,
+                                note="escort_fee",
+                            )
+                        )
+                        tax_amount = transaction_tax(self.content, share)
+                        bal = state.account_balance(wallet(carrier.id))
+                        if state.account_balance(agency.cash_account) >= share:
+                            tax_amount = min(tax_amount, bal + share)
+                        else:
+                            tax_amount = min(
+                                tax_amount,
+                                bal + min(share, state.account_balance(agency.cash_account)),
+                            )
+                        if tax_amount > 0:
+                            effects.extend(tax_split_effects(self.content, wallet(carrier.id), tax_amount))
                 effects.extend(goal_progress(
                     state, carrier.id, "escort", 1.0, intent.tick,
                     goal_id=explicit_goal_id(intent),
                 ))
-                note = f"镖单{oid}送达，得银{share}文"
+                paid = net_fee if fee_payer else share
+                note = f"镖单{oid}送达，得银{paid}文"
                 if order.risk_event:
                     note += f"（风险事件 {order.risk_event}，扣{order.fee_penalty}文"
                     if order.cargo_loss_ratio:
@@ -389,6 +622,19 @@ class SystemEscortArriveAction(Action):
                     note += "）"
                 effects.extend(memory(state, carrier.id, intent.tick, note, 0.6))
             else:
+                if fee_payer:
+                    # 失败对称：货原量退回承运人，运费原额退回委托方（玩家不收款）。
+                    effects.extend(_refund_fee_escrow(state, oid, fee_payer))
+                    settle_payload = {
+                        "id": oid,
+                        "payer": fee_payer,
+                        "cargo_value": order.cargo_value,
+                        "fee": 0,
+                        "quoted_fee": order.fee,
+                        "tax": 0,
+                        "net_profit": 0,
+                        "cargo_returned": True,
+                    }
                 effects.extend(memory(state, carrier.id, intent.tick, f"镖单{oid}途中失手", 0.8))
             if order.cargo_loss_ratio > 0:
                 effects.extend(
@@ -400,10 +646,10 @@ class SystemEscortArriveAction(Action):
                         0.7,
                     )
                 )
-            effects.extend(_escrow_settle_effects(state, order, oid))
+            effects.extend(_escrow_settle_effects(state, order, oid, consignor=fee_payer))
             effects.extend(
                 [
-                    Effect("escort_settle", {"id": oid}),
+                    Effect("escort_settle", settle_payload),
                     Effect("set_location", {"entity": carrier.id, "to": order.destination}),
                     Effect(
                         "stamina",

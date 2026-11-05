@@ -399,18 +399,31 @@ PYTHONPATH=src python3 -m wsim.api --run player-demo --seed-account alice --port
 - `buy`：`from` 缺省为当前位置；扣 `price*qty + 交易税`，货进背包，钱进店铺公账。
 - `sell`：`to` 缺省为当前位置；货出背包，`sell_price*qty` 从店铺公账进钱包。
 - `consume`：先按买入规则成交，再消耗 `qty` 件并恢复体力/饱腹；净效果是“钱少、食物不增”。
-- `escort`：`route` 必须首尾相邻可走且 `route[0] == 当前位置`；`cargo` 给真实物品
-  （服务端按 `item_price * qty` 折算 `cargo_value`，写入 `escort_order_create.cargo_item/cargo_qty`）。
-  `fee` 是镖银，到达后由镖局/委托方公账支付，扣除抽成与交易税，写 `escort_settle` 事件；
-  玩家被传送到 `route[-1]`。
+- `escort`：`route` 必须首尾相邻可走且 `route[0] == 当前位置`；**玩家必须带货**，
+  `cargo` 给真实物品（服务端按 `item_price * qty` 折算 `cargo_value`，写入
+  `escort_order_create.cargo_item/cargo_qty`）。空货一律 `item_missing`，并写一条
+  `reason=item_missing` 的 reject 事件，不产生任何 treasury 支出。
+  **运费门槛**：`fee ≥ max(20, ceil(1.15 × cargo_value))` 且
+  `fee − cargo_value − transaction_tax(fee) > 0`，否则 `fee_too_low`（避免带货净亏）。
+  **真实付款人**：`fee` 由目的地收货 NPC（委托方，按余额降序/id 升序取第一个付得起者）
+  的**真实钱包**垫付；委托方现金不足返回 `no_payer_funds`，不垫付、不 mint。
+  只有显式公账委托（intent 带 `payer=treasury:region` 且非玩家来源）才允许 treasury 付款，
+  事件会带 `payer=treasury:region` 区分。委托方承担镖局抽成：
+  `payer_total = fee + int(fee × agency_cut)`。
   **发单即托管**：受理成功时立刻从背包扣出 `cargo`，转入镖局库存里的命名托管桶
-  `escrow:<镖单id>:<item>`，并写两条可审计事件（`item_consume` + `item_create`，
-  `reason=escort_cargo_escrow`，带 `order` / `escrow_account` / `movement=player->escrow`）。
+  `escrow:<镖单id>:<item>`（`reason=escort_cargo_escrow`）；
+  同时 `create_account` + `transfer` 把 `payer_total` 从委托方钱包转入运费托管账户
+  `escrow:<镖单id>:fee:<payer>`（`reason=escort_fee_escrow`）。两项都是同事务内真实转账。
   背包数量不足返回 `item_missing`，未知物品返回 `item_not_available`。
-  **结算**：送达 → 托管桶 `item_consume`（`reason=escort_cargo_deliver`；若触发货损风险事件，
-  先按比例 `escort_cargo_loss`），货物按既有模型离场（收货方入库/销毁，不注入店铺库存），
-  镖费照旧入钱包；取消/超时/失败 → `item_consume` + `item_create` 把货物**原量退回**玩家背包
-  （`reason=escort_cargo_return`）。承运人实体不存在时才走 `escort_cargo_orphaned`（可解释销毁）。
+  **结算（成功）**：运费托管账户 → 玩家 `fee`（`escort_fee_pay`）、→ 镖局 `cut`
+  （`escort_agency_cut`）；交易税从玩家钱包分流。货物：货损部分 `escort_cargo_loss`，
+  其余 `escort_delivered`（托管离场 + 写入委托方背包，`movement=escrow->consignor`）。
+  `escort_settle` 事件同时给出 `payer / cargo_value / fee / tax / gross / net_profit / agency_cut`，
+  其中 `net_profit = fee − cargo_value − tax > 0`。
+  **结算（失败/取消/超时）**：`escort_cargo_return` 把货物**原量退回**玩家背包，
+  `escort_fee_refund` 把运费托管余额**原额退回**委托方（玩家不收款）；
+  `escort_settle` 给出 `fee=0 / tax=0 / net_profit=0 / cargo_returned=true` 与 `quoted_fee`。
+  承运人实体不存在时才走 `escort_cargo_orphaned`（可解释销毁）。
   **不可重复**：发单后背包不再持有该批货，同一批货连续发第二单会返回 `item_missing`；
   押镖中 `leave` 只改在线状态，托管桶继续可见，到期结算按上述成功/失败路径收口，不蒸发也不双份。
 - NPC 专属动作 `marry` / `found_sect` / `apprentice` 统一返回
@@ -598,10 +611,11 @@ curl -s 'http://127.0.0.1:8848/api/world/feed?limit=5'
 | `already_on_escort` | 你正在押镖，不能同时接第二单。 |
 | `cargo_too_low` | 货值低于这条线路的最低承运要求。 |
 | `cargo_too_high` | 货值超过这条线路的最高承运额度。 |
-| `fee_too_low` | 镖银低于这条线路的最低标准。 |
+| `fee_too_low` | 镖银低于门槛：需 ≥ 线路下限、≥ 货值 1.15 倍，且扣税后净收益为正。 |
 | `fee_too_high` | 镖银超过这条线路的最高标准。 |
 | `no_escort_agency` | 起点没有镖局，不能接镖。 |
-| `agency_insufficient_cash` | 镖局现金不足以支付这单镖银。 |
+| `agency_insufficient_cash` | 镖局现金不足以支付这单镖银（仅 NPC/公账订单）。 |
+| `no_payer_funds` | 目的地委托方现金不足，无法支付这单镖银；换线路或降低镖银。 |
 | `bad_arg:route` | 路线格式错误；请给地点 id 列表或 route_id。 |
 | `bad_arg:cargo_qty` | 货物数量必须是 1-100 的整数。 |
 | `bad_arg:cargo_value` | 货值必须是整数。 |
