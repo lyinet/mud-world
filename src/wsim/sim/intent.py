@@ -631,25 +631,8 @@ class Planner:
             # 午饭（一天一顿，减少无效往返；晚饭取消）
             loc, cursor, cash = self._meal(state, intents, npc, loc, cursor, seg_end, cash, "午饭")
 
-            # 婚后日常：配偶是玩家时，每天至少一次到玩家身边问候/带饭。
-            # 只在玩家-NPC 婚姻生效，NPC-NPC 与无玩家世界完全不走该分支。
-            spouse_id = str(ent.spouse or "")
-            if spouse_id.startswith("player:") and cursor < seg_end:
-                spouse = state.entities.get(spouse_id)
-                if spouse is not None and spouse.status == "alive" and spouse.presence != "offline":
-                    loc, cursor = self._move(
-                        state, intents, npc, loc, spouse.location, cursor, seg_end, reason("回家陪家人")
-                    )
-                    if loc == spouse.location and cursor < seg_end:
-                        cursor = self._add(
-                            intents,
-                            npc,
-                            "spouse_time",
-                            {"target": spouse_id},
-                            cursor,
-                            seg_end,
-                            reason("陪家人过日子"),
-                        )
+            # 婚后日常不在这里排期：内容目标耗尽后 plan 根本不会被调用，
+            # 因此由 `MockReasoner.decide` 入口的 `_spouse_visit` 负责每日陪伴。
 
             # 消费倾向：有余钱就买一件非口粮品，钱回流店铺；
             # 正在攒注册费的发起人不做可选消费，否则永远差最后几百文。
@@ -1519,6 +1502,8 @@ class MockReasoner(Reasoner):
         self._planned_through: dict[str, int] = {}
         self._variant: dict[str, int] = {}
         self._last_reject: dict[str, str] = {}
+        # 玩家-NPC 婚后日常去重：记录每个 NPC 已经陪伴过的世界日。
+        self._spouse_day: dict[str, int] = {}
         self.goal_policy = goal_policy
         # 目标承诺窗口的起点（决策 tick）；没有记录时回退到目标的 created_tick。
         self._goal_selected_tick: dict[str, int] = {}
@@ -1574,6 +1559,64 @@ class MockReasoner(Reasoner):
             self.selector.strategy_book = book
             self.selector.strategy_mode = True
 
+    def _spouse_visit(self, state: WorldState, npc: str, tick: int) -> list[Intent]:
+        """婚后日常：配偶是玩家时，每天至少一次走到玩家身边陪伴。
+
+        放在 `decide` 入口而不是 `Planner.plan`，因为内容目标耗尽后
+        `choice is None` 会直接返回空计划——若挂在 plan 里，已婚 NPC 反而
+        永远不会产生日常行为。本分支只依赖婚姻状态，不依赖目标选择，也不
+        读写 `_planned_through`。无玩家婚姻的世界不会进入该分支。
+        """
+        ent = state.entities.get(npc)
+        if ent is None or ent.status != "alive":
+            return []
+        spouse_id = str(ent.spouse or "")
+        if not spouse_id.startswith("player:"):
+            return []
+        day = day_of(tick)
+        if self._spouse_day.get(npc) == day:
+            return []
+        spouse = state.entities.get(spouse_id)
+        if spouse is None or spouse.status != "alive" or spouse.presence == "offline":
+            return []
+        if spouse.spouse != npc:
+            return []
+        key = f"{npc}|{spouse_id}" if npc <= spouse_id else f"{spouse_id}|{npc}"
+        rec = state.marriages.get(key)
+        if rec is None or rec.get("status") != "married":
+            return []
+        # last_daily_tick=0 表示“婚后还没陪伴过”（世界 tick 0 只可能是开局）。
+        last_daily = int(rec.get("last_daily_tick", 0))
+        if last_daily > 0 and last_daily // TICKS_PER_DAY == day:
+            return []
+
+        self._spouse_day[npc] = day
+        reason = f"{ent.name}：回家陪家人过日子"
+        intents: list[Intent] = []
+        if spouse.location and ent.location != spouse.location:
+            for hop in path_between(state, ent.location, spouse.location):
+                intents.append(
+                    Intent(
+                        actor=npc,
+                        verb="move",
+                        args={"to": hop},
+                        tick=tick,
+                        source="planner",
+                        reason=reason,
+                    )
+                )
+        intents.append(
+            Intent(
+                actor=npc,
+                verb="spouse_time",
+                args={"target": spouse_id},
+                tick=tick,
+                source="planner",
+                reason=reason,
+            )
+        )
+        return intents
+
     def decide(
         self,
         npc_state: dict[str, Any],
@@ -1587,6 +1630,11 @@ class MockReasoner(Reasoner):
 
         if state is None or content is None or self.selector is None or self.planner is None:
             return self._legacy(npc, npc_state, tick)
+
+        # 婚后日常优先于内容计划：即使无可用内容目标（choice is None），也照常陪伴。
+        spouse_intents = self._spouse_visit(state, npc, tick)
+        if spouse_intents:
+            return spouse_intents
 
         if self._planned_through.get(npc, -1) > tick:
             return []
