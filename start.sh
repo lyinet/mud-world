@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 首发一键启动：准备 venv/依赖 -> 生成 2 日种子世界 -> 起 API + 前端。
+# 首发一键启动：准备 venv/依赖 -> 生成 2 日种子世界 -> 起 API + 前端 + 世界自走。
 # 兼容 macOS 自带 bash 3.2。
 #
 # 用法:
@@ -8,7 +8,10 @@
 #   RUN_ID=my-demo ./start.sh
 #
 # 可选:
-#   SKIP_SEED=1 ./start.sh     # 跳过种子世界生成（只玩实时会话）
+#   SKIP_SEED=1 ./start.sh          # 跳过种子世界生成（只玩实时会话）
+#   XKX_AMBIENT=0 ./start.sh        # 关闭后台世界自走（行为与旧版一致）
+#   XKX_AMBIENT_CPU=70 ./start.sh   # 自走 CPU 上限百分比（默认 70）
+#   XKX_AMBIENT_SPEED=1 ./start.sh  # 自走倍率 1/2/4（默认 1x）
 set -u
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -71,6 +74,10 @@ if [ "${SKIP_SEED:-0}" != "1" ]; then
   printf '\n'
 fi
 
-# ---------------------------------------------------------------- 两个服务
-log "启动 API + 玩家前端 ..."
+# ---------------------------------------------------------------- 三个服务
+if [ "${XKX_AMBIENT:-1}" = "0" ]; then
+  log "启动 API + 玩家前端（世界自走已关闭：XKX_AMBIENT=0）..."
+else
+  log "启动 API + 玩家前端 + 世界自走（XKX_AMBIENT=${XKX_AMBIENT:-1}，0 可关闭）..."
+fi
 exec "$ROOT/scripts/demo.sh"

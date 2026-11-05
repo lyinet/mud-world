@@ -26,17 +26,28 @@ API_HOST="${API_HOST:-127.0.0.1}"
 UI_HOST="${UI_HOST:-127.0.0.1}"
 RUN_ID="${RUN_ID:-player-demo}"
 UI_RUN="${UI_RUN:-}"
+# 世界自走默认开启；XKX_AMBIENT=0 关闭，行为与本版本之前一致。
+AMBIENT_ENABLED="${XKX_AMBIENT:-1}"
+case "$AMBIENT_ENABLED" in
+  1|true|on|yes) AMBIENT_ENABLED=1 ;;
+  0|false|off|no|"") AMBIENT_ENABLED=0 ;;
+  *) printf '[demo] 错误: XKX_AMBIENT 只接受 1/0（收到 %s）\n' "$AMBIENT_ENABLED" >&2; exit 1 ;;
+esac
+AMBIENT_CPU_PCT="${XKX_AMBIENT_CPU:-70}"
+AMBIENT_SPEED="${XKX_AMBIENT_SPEED:-1}"
 
 API_BASE="http://$API_HOST:$API_PORT"
 UI_BASE="http://$UI_HOST:$UI_PORT"
 API_PID=""
 UI_PID=""
+AMBIENT_PID=""
 SIGNAL="TERM"
 CLEANED=0
 UI_PROXY=0
 WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/wsim-demo.XXXXXX" 2>/dev/null || true)"
 API_LOG="${WORK_DIR:-/tmp}/api.log"
 UI_LOG="${WORK_DIR:-/tmp}/ui.log"
+AMBIENT_LOG="${WORK_DIR:-/tmp}/ambient.log"
 BODY_FILE="${WORK_DIR:-/tmp}/body.json"
 
 log() { printf '[demo] %s\n' "$*"; }
@@ -84,6 +95,42 @@ if [ -f "$ROOT/runs/$RUN_ID/events.sqlite" ]; then
   RUN_ID="$NEW_RUN_ID"
 fi
 log "API run: runs/$RUN_ID"
+
+# 日志落 runs/<RUN_ID>/logs，退出后保留，便于审计“默认自走确实在跑”。
+LOG_DIR="$ROOT/runs/$RUN_ID/logs"
+mkdir -p "$LOG_DIR" 2>/dev/null || die "无法创建日志目录: $LOG_DIR"
+API_LOG="$LOG_DIR/api.log"
+UI_LOG="$LOG_DIR/ui.log"
+AMBIENT_LOG="$LOG_DIR/ambient.log"
+: >"$API_LOG" 2>/dev/null || true
+: >"$UI_LOG" 2>/dev/null || true
+: >"$AMBIENT_LOG" 2>/dev/null || true
+log "日志: $LOG_DIR/{api,ui,ambient}.log"
+
+AMBIENT_CPU_RATIO=""
+if [ "$AMBIENT_ENABLED" = "1" ]; then
+  AMBIENT_CPU_RATIO="$("$PY" -c '
+import sys
+try:
+    pct = float(sys.argv[1])
+except ValueError:
+    print("bad"); raise SystemExit(0)
+if not (0 < pct <= 100):
+    print("bad"); raise SystemExit(0)
+print(f"{pct / 100.0:.2f}")
+' "$AMBIENT_CPU_PCT")"
+  [ "$AMBIENT_CPU_RATIO" != "bad" ] || die "XKX_AMBIENT_CPU 必须是 0–100 的百分比（收到 $AMBIENT_CPU_PCT）"
+  case "$AMBIENT_SPEED" in
+    1|2|4) ;;
+    *) die "XKX_AMBIENT_SPEED 只支持 1/2/4（收到 $AMBIENT_SPEED）" ;;
+  esac
+  # 同一 run 已有自走世界时不静默追加：整体改名保留旧数据，再起新世界。
+  if [ -e "$ROOT/runs/$RUN_ID/ambient" ]; then
+    AMBIENT_ARCHIVE="$ROOT/runs/$RUN_ID/ambient.$(date +%Y%m%d-%H%M%S)-$$"
+    mv "$ROOT/runs/$RUN_ID/ambient" "$AMBIENT_ARCHIVE" || die "无法归档旧自走目录: $AMBIENT_ARCHIVE"
+    log "旧自走目录已归档: ${AMBIENT_ARCHIVE#$ROOT/}"
+  fi
+fi
 
 # ---------------------------------------------------------------- 5. 前端模式
 if grep -q "/api/player" "$ROOT/ui/player/server.py" 2>/dev/null; then
@@ -168,6 +215,8 @@ stop_one() {
   else
     log "$label 已退出"
   fi
+  # 收割子进程，避免 kill -0 命中僵尸后残留。
+  wait "$pid" 2>/dev/null || true
   return 0
 }
 
@@ -184,6 +233,9 @@ cleanup() {
   [ "$CLEANED" -eq 1 ] && return 0
   CLEANED=1
   trap - INT TERM EXIT
+  # 先收自走（它会读世界、写事件），再收前端与 API，避免半截写入。
+  stop_one "$AMBIENT_PID" "世界自走"
+  AMBIENT_PID=""
   stop_one "$UI_PID" "前端"
   UI_PID=""
   stop_one "$API_PID" "API"
@@ -212,7 +264,6 @@ log "启动 wsim.api -> $API_BASE"
 PYTHONPATH="$ROOT/src" PYTHONUNBUFFERED=1 "$PY" -m wsim.api \
   --root "$ROOT" --run "$RUN_ID" --port "$API_PORT" >"$API_LOG" 2>&1 &
 API_PID=$!
-disown "$API_PID" 2>/dev/null || true
 
 http_json_ok() {
   local url="$1"
@@ -265,6 +316,33 @@ if ! wait_http "$API_BASE/api/player/state?account_id=u_demo" 1 "$API_PID" 160; 
 fi
 log "健康检查: API 200 (GET /api/player/state)"
 
+# ---------------------------------------------------------------- 7b. 世界自走（默认开启）
+ambient_ready() {
+  local f="$ROOT/runs/$RUN_ID/ambient/ambient_status.json"
+  [ -f "$f" ] || return 1
+  "$PY" - "$f" <<'PY' 2>/dev/null
+import json
+import sys
+
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+state = data.get("state")
+tick = data.get("tick")
+raise SystemExit(0 if state in ("running", "paused") and isinstance(tick, int) else 1)
+PY
+}
+
+if [ "$AMBIENT_ENABLED" = "1" ]; then
+  log "启动世界自走（默认开启，XKX_AMBIENT=0 可关闭）: speed=${AMBIENT_SPEED}x cpu<=${AMBIENT_CPU_PCT}%"
+  PYTHONPATH="$ROOT/src" PYTHONUNBUFFERED=1 "$PY" "$ROOT/tools/ambient_run.py" \
+    --run-id ambient --out "$ROOT/runs/$RUN_ID" \
+    --speed "$AMBIENT_SPEED" --max-cpu-pct "$AMBIENT_CPU_PCT" \
+    --parent-pid $$ --indefinite >>"$AMBIENT_LOG" 2>&1 &
+  AMBIENT_PID=$!
+  log "世界自走已在后台独立启动（不阻塞前端）"
+else
+  log "世界自走已关闭（XKX_AMBIENT=0）：世界不会后台推进，仅实时会话"
+fi
+
 # ---------------------------------------------------------------- 8. 前端
 if [ "$UI_PROXY" = "1" ]; then
   log "启动玩家前端（反代模式）-> $UI_BASE (upstream $API_BASE)"
@@ -276,7 +354,6 @@ else
     --readonly --run "$UI_RUN" --port "$UI_PORT" --host "$UI_HOST" >"$UI_LOG" 2>&1 &
 fi
 UI_PID=$!
-disown "$UI_PID" 2>/dev/null || true
 
 if ! wait_http "$UI_BASE/api/health" 0 "$UI_PID" 160; then
   code="$(curl -sS -o "$BODY_FILE" -w '%{http_code}' "$UI_BASE/api/health" 2>/dev/null || echo 000)"
@@ -310,10 +387,35 @@ PY
   log "健康检查: 前端已连上 API (mode=live, upstream_ok=true)"
 fi
 
+# 前端就绪后再确认 ambient 状态，避免自走启动拖慢首屏。
+if [ "$AMBIENT_ENABLED" = "1" ]; then
+  ambient_seen=0
+  i=0
+  while [ "$i" -lt 16 ]; do
+    if ! kill -0 "$AMBIENT_PID" 2>/dev/null; then
+      break
+    fi
+    if ambient_ready; then
+      ambient_seen=1
+      break
+    fi
+    sleep 0.25
+    i=$((i + 1))
+  done
+  if [ "$ambient_seen" = "1" ]; then
+    log "自走就绪: runs/$RUN_ID/ambient（/api/health ambient=running）"
+  else
+    log "警告: 世界自走未就绪（进程可能已退出）；API/前端继续提供；日志: $AMBIENT_LOG"
+    tail -n 15 "$AMBIENT_LOG" 2>/dev/null | sed 's/^/[ambient] /' || true
+  fi
+fi
+
 # ---------------------------------------------------------------- 9. 就绪
 log "API:  $API_BASE  (run=runs/$RUN_ID)"
 log "前端: $UI_BASE/  ($UI_MODE)"
-log "打开 $UI_BASE/ 查看；Ctrl-C 同时停止两个服务"
+log "自走: $(if [ "$AMBIENT_ENABLED" = 1 ]; then printf '开启（/api/health 查看 ambient_tick）'; else printf '关闭'; fi)"
+log "日志: $LOG_DIR"
+log "打开 $UI_BASE/ 查看；Ctrl-C 同时停止三个进程"
 if [ -s "$API_LOG" ]; then
   head -n 2 "$API_LOG" | sed 's/^/[api] /'
 fi
@@ -333,6 +435,11 @@ while :; do
   if ! kill -0 "$UI_PID" 2>/dev/null; then
     log "玩家前端进程已退出，停止 API"
     exit 1
+  fi
+  if [ -n "$AMBIENT_PID" ] && ! kill -0 "$AMBIENT_PID" 2>/dev/null; then
+    log "警告: 世界自走进程已退出；API/前端继续提供，自走日志: $AMBIENT_LOG"
+    wait "$AMBIENT_PID" 2>/dev/null || true
+    AMBIENT_PID=""
   fi
   sleep 0.5
 done
