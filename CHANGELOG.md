@@ -9,6 +9,44 @@
 
 ---
 
+## [修复] 2026-11-05 — NPC 进玩家店消费：营收恒 0 的机制修复
+
+- **改了什么**
+  - `actions/common.py`：新增 `is_player_business` / `stable_slot`（FNV-1a 32 位，纯函数）/
+    `player_market_active` / `business_order` / `selling_shops`；`business_selling` 改为
+    “同货卖家轮转”，`business_with_cash` 直接轮转店铺。轮转键为
+    `(地点, 物品, 买主, 世界日)`，无 `random`、无墙钟；该地点无玩家店时返回原顺序。
+  - `actions/basic.py` `ConsumeAction`、`actions/commerce.py` `BuyAction` / `SellAction`：
+    卖家/买家解析传 `salt=intent.actor` 与 `day_of(intent.tick)`，玩家店与 NPC 店同权。
+  - `sim/intent.py` `_propensity_buy`：玩家市场开启后按“同货卖家”决定买谁的，
+    食物可作口粮购买（与午饭 `consume` 分开记账），库存门槛降为 1 件；
+    新增 `_player_shop_trip`：午饭后在 ≤2 跳的玩家店按 `(npc, 世界日)` 稳定散列
+    （约 32% 的日子）专程进店买一件。
+  - 无玩家店的世界完全走旧分支（顺序、门槛、排除口粮都不变）。
+- **为什么改**
+  - 旧 `state.business_at()` 按 id 升序，`biz:*` 恒排在 `shop:player:*` 前；同 item 全店同价，
+    平局时 `business_selling` / `cheapest_food` / `_propensity_buy` 总选 NPC 店 →
+    玩家店营收恒 0；`_propensity_buy` 还整体排除 food 且要求 `qty>=3`，摊位无货可卖。
+- **验证方式**
+  - `tests/test_player_shop_customers.py`（7 例）：轮转覆盖玩家店且 NPC 店仍占首位、
+    同货份额分配、最后一件可卖、口粮可买、专程 move+buy 同 tick、NPC 卖货给玩家店、
+    无玩家店选取与旧算法一致。
+  - 10 日 seed42（无玩家店）对照 `2bd5c16`：`events 3084`、`state_final 68b05948…`、
+    `event_final 73026568…`、`content_hash 7ec670c1…`、K1 `62/91=68.13%` 全部一致。
+  - 10 日 seed42（集市注入玩家店面）：`buy` 156（NPC 141 / 玩家 12）、`consume` 318（NPC 313 / 玩家 5）、
+    `sell` 123（NPC 118 / 玩家 5）；NPC 店合计 572 笔（基线 547 笔），未被挤死；
+    玩家店 10 日营收 65 文（day0 30、day1 30、day5 5）。
+  - 同 seed 玩家店世界两跑：`events 3257`、`state_final 6af9fb93…`、`event_final ad9f5287…` 一致。
+  - 真实服务 3 日（ambient 4x，集市摊位 + 雇 1 人，`llm_calls=0`）：
+    day3 营收 23 / 7 笔、day4 营收 8 / 2 笔、day5 营收 5 / 1 笔，日均 >0；
+    买主含 liu_sanniang / wei_changgeng / gu_qingya / lu_xinghua / shi_gandang / duan_wudou，
+    其中 flatbread 既有 `consume`（午饭）也有 `buy`（添置口粮）。
+  - 全量 `pytest`：524 collected / 18 skipped / 0 failed（旧 V3/V4/V5 golden 保持 skip，
+    V6 无玩家店世界未漂移）。
+- **commit**：`（见本提交）`（`content_hash` 关闭态 `7ec670c1…`，开 `scaleup_w3` 未改）
+
+---
+
 ## [功能] 2026-11-05 — 玩家婚姻 UI：求婚入口、配偶栏、和离与配偶对话标记
 
 - **改了什么**

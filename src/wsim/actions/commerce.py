@@ -1,6 +1,7 @@
 """交易动词：buy / sell / trade（复式记账，货币只转移或销毁，不增发）。"""
 from __future__ import annotations
 
+from ..core.clock import day_of
 from ..core.models import Effect, Intent, Reject
 from ..world.state import WorldState
 from .common import (
@@ -54,7 +55,7 @@ class BuyAction(Action):
             return ["wrong_location"]
         if item not in self.content.items:
             return ["unknown_item"]
-        seller = business_selling(state, ent.location, item)
+        seller = business_selling(state, ent.location, item, salt=ent.id, day=day_of(intent.tick))
         if seller is None:
             return ["item_not_available"]
         price = self.content.item_price(item, state) * qty
@@ -67,7 +68,7 @@ class BuyAction(Action):
         ent = require_entity(state, intent.actor)
         item = arg_str(intent, "item")
         qty = arg_int(intent, "qty", 1, minimum=1, maximum=20)
-        seller = business_selling(state, ent.location, item)
+        seller = business_selling(state, ent.location, item, salt=ent.id, day=day_of(intent.tick))
         if seller is None:
             raise Reject("item_not_available")
         price = self.content.item_price(item, state) * qty
@@ -101,7 +102,7 @@ class SellAction(Action):
         if ent.inventory.get(item, 0) < qty:
             return ["item_not_held"]
         revenue = sell_price(self.content, item, state) * qty
-        buyer = business_with_cash(state, ent.location, revenue)
+        buyer = business_with_cash(state, ent.location, revenue, salt=ent.id, day=day_of(intent.tick))
         if buyer is None:
             return ["no_buyer_cash"]
         return []
@@ -111,7 +112,7 @@ class SellAction(Action):
         item = arg_str(intent, "item")
         qty = arg_int(intent, "qty", 1, minimum=1, maximum=20)
         revenue = sell_price(self.content, item, state) * qty
-        buyer = business_with_cash(state, ent.location, revenue)
+        buyer = business_with_cash(state, ent.location, revenue, salt=ent.id, day=day_of(intent.tick))
         if buyer is None:
             raise Reject("no_buyer_cash")
         tax = transaction_tax(self.content, revenue)
