@@ -81,4 +81,4 @@
 - [x] `CHANGELOG.md` 追加条目
 - [x] 两进程真实验收 1–8；缺失项如实标注
 - [x] `pytest` 全量（642 collected，退出码 0，17 skipped）
-- [ ] 提交 ⑤ 并 push
+- [x] 提交 ⑤ 并 push（`97b0ad6`，`d8c644c..97b0ad6`）
