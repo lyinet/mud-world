@@ -1,73 +1,34 @@
 # player-sect 任务分解
 
-## P1 动作层（本笔实现）
+## P1 动作层（已完成）
 
 | # | 任务 | 产物 | 验收 |
 |---|---|---|---|
-| 1 | 立派动作 | `src/wsim/actions/player_sect.py::PlayerFoundSectAction` | 800 文拆成 200 注册费（→官仓）+ 600 启动金（→门派金库）；声望 20；已有 `sect:` 拒绝；NPC 调用走原 `FoundSectAction` 分支 |
-| 2 | 收徒动作 | `PlayerRecruitDiscipleAction` | 好感/信任 30、目标技能 0.2、掌门技能 0.4、名册 <3；拒绝码 `target_declined` / `disciples_full` 等 |
-| 3 | 逐出动作 | `PlayerExpelDiscipleAction` | 只有掌门、只逐本门弟子；清理 `faction` / `master` / 双向关系 |
+| 1 | 立派动作 | `src/wsim/actions/player_sect.py::PlayerFoundSectAction` | 800 文拆成 200 注册费（→官仓）+ 600 启动金（→门派金库）；声望 20；已有 `sect:` 拒 `already_in_sect`；钱/声望不足 `insufficient_funds` / `insufficient_rep`；NPC 调用走原 `FoundSectAction` 分支 |
+| 2 | 收徒动作 | `PlayerRecruitDiscipleAction` | 好感/信任 30、目标技能 0.2、掌门技能 0.4、名册 <3；拒绝码 `favor_too_low` / `trust_too_low` / `skill_too_low` / `sect_full` 等 |
+| 3 | 逐出动作 | `PlayerExpelDiscipleAction` | 只有掌门、只逐本门弟子；`disciple_not_found` / `target_not_disciple`；清理 `faction` / `master` / 双向关系 |
 | 4 | 门派日结 | `PlayerPayDisciplesAction` | 会费真实入账；俸禄真实出账；不足转债务；欠饷 ≥30 文当日离派；同日幂等 |
 | 5 | 存入/提取 | `PlayerSectDepositAction` / `PlayerSectWithdrawAction` | 提取单次 ≤500、留 100 保底；全部真实 `transfer` |
 | 6 | 单测 | `tests/test_player_sect_actions.py` | 门槛、拒绝码逐条、守恒、事件链、确定性 |
 
-## 接线（不属于本笔提交，由主线会话执行）
+## API 接线（2026-11-06 已完成）
 
-动作类可导入即用；下面按文件给出插入点（行号为当前工作区的近似位置，落笔时以符号名为准）。
+实际落点与最初草案不同：门派动作**不进 `actions/registry.py`**，只在 `WorldSession` 注册，
+以保证无玩家世界的确定性；`found_sect` 对非玩家 actor 委托 NPC 动作。
 
-### 1. `src/wsim/actions/registry.py`
+| # | 文件 | 完成内容 |
+|---|---|---|
+| 1 | `src/wsim/actions/player.py` | `PLAYER_VERBS` 追加六个门派动词 |
+| 2 | `src/wsim/api/session.py` | ① `WorldSession.__init__` 注册六个 `Player*Action`；② `WRITE_ACTIONS` + `ACTION_ALIASES` 六个映射；③ `PLAYER_UNIMPLEMENTED_VERBS` 移除 `found_sect`；④ `REASON_TEXT` 门派码中文；⑤ `_args` 逐动作校验（`sect_id` 可省略）；⑥ `_sect_view` 私有快照 + `player.sect` / 顶层 `sect`；⑦ `_response` 追加 `details.sect` 与 `details.settlement` |
+| 3 | `tests/test_player_sect_api.py` | 真实 HTTP：本人令牌 / 跨账号 403 / 匿名边界 / 拒绝码 / 立派收徒日结整链 / 守恒 |
+| 4 | `docs/player-api.md` §13 | 对外契约与拒绝码全表；§3.3 私有状态；§7 错误码 |
+| 5 | `specs/player-sect/checklist.md` | B/C 两节逐项勾选 |
 
-- 第 44 行 `from .business import FoundSectAction, OpenShopAction` 之后新增：
-  ```python
-  from .player_sect import (
-      PlayerExpelDiscipleAction,
-      PlayerFoundSectAction,
-      PlayerPayDisciplesAction,
-      PlayerRecruitDiscipleAction,
-      PlayerSectDepositAction,
-      PlayerSectWithdrawAction,
-  )
-  ```
-- 第 106 行把 `reg.register(FoundSectAction(content))` 替换为
-  `reg.register(PlayerFoundSectAction(content))`（玩家分支是新增语义，非玩家分支原样委托给
-  `FoundSectAction`，NPC 行为逐字节不变）。
-- 在第 106 行之后追加：
-  ```python
-  reg.register(PlayerRecruitDiscipleAction())
-  reg.register(PlayerExpelDiscipleAction())
-  reg.register(PlayerPayDisciplesAction())
-  reg.register(PlayerSectDepositAction())
-  reg.register(PlayerSectWithdrawAction())
-  ```
+## NPC 侧（P1 之外，未做）
 
-### 2. `src/wsim/actions/player.py`
-
-- 第 45–72 行 `PLAYER_VERBS` 增加：
-  `"found_sect"`、`"recruit_disciple"`、`"expel_disciple"`、`"pay_disciples"`、
-  `"sect_deposit"`、`"sect_withdraw"`。
-
-### 3. `src/wsim/api/session.py`
-
-- 第 142 行 `PLAYER_UNIMPLEMENTED_VERBS` 删除 `"found_sect"`（保留 `marry` / `apprentice`）。
-- 第 78–108 行 `WRITE_ACTIONS` 增加六个客户端动词 → 内部 verb 的映射（同名即可）。
-- 第 111–139 行 `ACTION_ALIASES` 同步增加六个动词。
-- 第 1590 行 `_args` 增加六个分支：
-  - `found_sect`：`name`、`at`（缺省实体所在地）、`doctrine`、`sect_id`
-  - `recruit_disciple` / `expel_disciple`：`sect_id`、`target`
-  - `pay_disciples`：`sect_id`、`day`（缺省由动作层算）
-  - `sect_deposit` / `sect_withdraw`：`sect_id`、`amount`
-- 第 164–264 行 `REASON_TEXT` 追加 `spec.md §6` 的 30 条中文文案。
-- 第 698–701 行 `_feed_summary` 增加 `found_sect` / `recruit_disciple` / `expel_disciple` /
-  `pay_disciples` 的中文摘要分支。
-- 第 620–666 行 `world_feed`：当前 SQL 与循环排除 `player:%`；门派事件要进公共动态，
-  需单独放行 `verb in SECTION_FEED_VERBS` 的玩家事件（只输出摘要，不带金额/成员细节）。
-
-### 4. `src/wsim/sim/intent.py`（P1 之外的 NPC 侧）
-
-- 第 60、74–75 行动作标签：`found_sect` / `join_sect` 已有，可补 `recruit_disciple` / `pay_disciples`。
-- 第 1156 行 `_recruit_target` 之后增加弟子日常分支：在驻地修炼、外出跑委托、日界回驻地。
-- 第 1313 行 `gain_status` / `join_sect` 分支之后，增加「已有门派且为掌门」的日结调度
-  （建议由 `system_*` 日界动作统一触发，避免玩家离线被扣款）。
+- `sim/intent.py` 弟子日常分支（驻地修炼 / 外出 / 日界回驻地），见 spec §5。
+- 日界系统动作统一触发门派日结，避免玩家离线被扣款。
+- 公共 feed：本轮不开放玩家门派事件（私有状态）；如要公开，只放名号摘要。
 
 ## P2（只写目标，不实现）
 

@@ -5,10 +5,11 @@
 本轮把「玩家门派」从只有 `join_sect`（入会）扩展到「立派 / 收徒 / 会费 / 金库 / 逐出」，
 作为玩家侧最后一块核心玩法。
 
-- **本轮只做设计规格 + P1 动作层**，不接线注册表、不改 API 白名单、不跑真实服务。
+- 动作层 P1 已实现并有单测；**2026-11-06 已接入玩家 HTTP API**（`docs/player-api.md` §13）。
 - **不做**：门派产业、门派间关系/冲突、玩家间门派战、官职任命动作（均列入 P2）。
 - **不改**：`content/**`、`src/wsim/world/state.py`、`src/wsim/world/effects.py`、
-  `src/wsim/actions/registry.py`、`src/wsim/actions/player.py`、`src/wsim/api/session.py`。
+  `src/wsim/actions/registry.py`（门派动作只在 `WorldSession` 注册）。
+  `src/wsim/actions/player.py` 只追加 `PLAYER_VERBS`，`src/wsim/api/session.py` 只做增量。
 - **零模型调用**；动作层用纯函数 `preconditions` + `effects` 证明事件链与货币守恒。
 
 ### 0.1 现状（已核实）
@@ -18,8 +19,8 @@
 | NPC 立派语义 | [business.py](file:///Users/lyinet/projects/XKX/world-sim/src/wsim/actions/business.py#L468-L556) `FoundSectAction` | 门槛 `min_money 2000 + registration_fee 500 = 2500`、`min_reputation 40`、`min_members 5`、`min_relation_value 30`；注册费 `burn`，启动金 `transfer` 到 `treasury:sect:<id>` |
 | NPC 入会 | [social.py](file:///Users/lyinet/projects/XKX/world-sim/src/wsim/actions/social.py#L351-L406) `JoinSectAction` | 同地点、未入别的门派、会费真实 `transfer` |
 | NPC 招揽 | [social.py](file:///Users/lyinet/projects/XKX/world-sim/src/wsim/actions/social.py#L409-L470) `RecruitAction` | 只建 `sworn` 关系，不建立弟子/门派职位；`min_members 5` 靠真实招揽凑 |
-| 玩家白名单 | [player.py](file:///Users/lyinet/projects/XKX/world-sim/src/wsim/actions/player.py#L45-L72) `PLAYER_VERBS` | 只有 `join_sect`；`found_sect` / `apprentice` / `marry` 未开放 |
-| 未开放码 | [session.py](file:///Users/lyinet/projects/XKX/world-sim/src/wsim/api/session.py#L142) `PLAYER_UNIMPLEMENTED_VERBS` | 玩家调 `found_sect` 返回 `not_implemented_for_player` |
+| 玩家白名单 | [player.py](file:///Users/lyinet/projects/XKX/world-sim/src/wsim/actions/player.py#L45-L72) `PLAYER_VERBS` | `join_sect` + 六个门派动词；`apprentice` / `marry` 仍未开放 |
+| 未开放码 | [session.py](file:///Users/lyinet/projects/XKX/world-sim/src/wsim/api/session.py) `PLAYER_UNIMPLEMENTED_VERBS` | 只剩 `marry` / `apprentice`；`found_sect` 已接入 |
 | 内容数据 | [sects.yaml](file:///Users/lyinet/projects/XKX/world-sim/content/sects.yaml) | 3 个 NPC 门派模板；有 `dues / min_reputation / min_members / min_money / registration_fee / founding_cost`；**无**职位、弟子、门派等级、产业定义 |
 | 经济参数 | [economy.yaml](file:///Users/lyinet/projects/XKX/world-sim/content/economy.yaml#L129-L135) `sect` | `min_money 2000`、`founding_cost 2500`、`min_members 5`、`min_reputation 40`、`min_relation_value 30`、`registration_fee 500` |
 | 玩家初始资金 | [player.py](file:///Users/lyinet/projects/XKX/world-sim/src/wsim/actions/player.py#L32) | `STARTING_MONEY = 300` |
@@ -27,7 +28,7 @@
 | 声望公式 | [common.py](file:///Users/lyinet/projects/XKX/world-sim/src/wsim/actions/common.py#L350-L366) `reputation_points` | `3×完成委托 + 0.5×好感 + 10×（有组织/产业）` |
 | 状态模型 | [state.py](file:///Users/lyinet/projects/XKX/world-sim/src/wsim/world/state.py#L158-L178) `Faction` | 只有 `id/name/location/founder/treasury_account/members/leader`，**没有** doctrine/level/office 字段 |
 | effect 原语 | [effects.py](file:///Users/lyinet/projects/XKX/world-sim/src/wsim/world/effects.py#L44-L91) | 有 `transfer / create_faction / faction_join / add_disciple / set_field / debt_*`；**没有 `faction_leave`** |
-| 世界动态 | [session.py](file:///Users/lyinet/projects/XKX/world-sim/src/wsim/api/session.py#L148-L162) | `WORLD_FEED_IMPORTANT_VERBS` 含 `found_sect`，但 feed SQL 明确排除 `actor LIKE 'player:%'`，玩家门派事件当前**进不了公共 feed** |
+| 世界动态 | [session.py](file:///Users/lyinet/projects/XKX/world-sim/src/wsim/api/session.py) | `WORLD_FEED_IMPORTANT_VERBS` 含 `found_sect`，但 feed SQL 明确排除 `actor LIKE 'player:%'`；本轮**不**放行玩家门派事件（成员/金库属私有状态，公共侧只透出 `sect_name`） |
 
 ## 1. 立派（`found_sect`）
 
@@ -86,8 +87,8 @@ P1 弟子上限固定 3，因此实际恒为 1 级；升级动作与费用见 §
   5. `invalid_sect_name`：名号去空白后不在 2–12 字
   6. `sect_name_taken`：任一 `Faction.name` 同名
   7. `sect_exists`：`sect:<sid>` 已存在
-  8. `not_enough_money`：钱包 < 800
-  9. `reputation_too_low`：`reputation_points < 20`
+  8. `insufficient_funds`：钱包 < 800
+  9. `insufficient_rep`：`reputation_points < 20`
 - 效果（全部真实账户操作，无 `mint` / 无 `burn`）：
   1. `create_account treasury:sect:<sid>`（0 文）
   2. `transfer 200` 钱包 → `treasury:region`，`reason=sect_registration_fee`
@@ -114,18 +115,22 @@ P1 弟子上限固定 3，因此实际恒为 1 级；升级动作与费用见 §
 | 掌门声望 | **≥ 20** | 与立派门槛一致；立派后自然满足 |
 | 同地点 | 目标与掌门同地点，且掌门在驻地 | 收徒是面对面行为 |
 | 未入他派 | 目标 `faction` 非 `sect:` | 不挖角；同派内已在名册返回 `already_disciple` |
-| 名册 | 活跃弟子 **< 3** | P1 1 级门派上限；见 `disciples_full` |
+| 名册 | 活跃弟子 **< 3** | P1 1 级门派上限；见 `sect_full` |
 
-不满足好感/信任/技能时统一返回 **`target_declined`**（对玩家是「对方婉拒」），
-不写转账、不写关系、不产生任何状态变化。
+不满足好感/信任时返回**分码**：`favor_too_low`（好感 < 30）与 `trust_too_low`（信任 < 30），
+前端可分别提示「多相处」和「建立信任」；技能不足返回 `skill_too_low`。
+拒绝时不写转账、不写关系、不产生任何状态变化。
 
 ### 2.2 收徒动作契约
 
-- 参数：`{sect_id, target}`
+- 参数：`{target, sect_id?}`
+  - `sect_id` 可省略：缺省取掌门当前门派（`entity.faction`）；未入派返回 `no_sect`。
+    已接入 API 后从 `docs/player-api.md` §13 调用。
   - 会费/俸禄在 P1 固定为 5 / 10 文/日（模块常量），不接收覆盖参数；只写入记忆，不落库。
-- 前置：`sect_not_found` → `not_sect_master` → `wrong_location` → `target_not_found` →
-  `target_not_alive` → `self_recruit` → `target_is_player` → `not_together` →
-  `target_in_sect` / `already_disciple` → `disciples_full` → `target_declined` → `skill_too_low`
+- 前置：`bad_arg:sect_id` / `no_sect` / `sect_not_found` → `not_sect_leader` → `wrong_location` →
+  `insufficient_rep` → `target_not_found` → `target_not_alive` → `self_recruit` →
+  `target_is_player` → `not_together` → `already_disciple` / `target_in_sect` →
+  `sect_full` → `favor_too_low` → `trust_too_low` → `skill_too_low`
 - 效果：
   1. `faction_join {entity: target, faction: fid}`
   2. `add_disciple {master, disciple}`
@@ -137,10 +142,10 @@ P1 弟子上限固定 3，因此实际恒为 1 级；升级动作与费用见 §
 
 ### 2.3 弟子每日行为（`pay_disciples` 作为 P1 日结替身）
 
-P1 没有日界系统动作（不允许改 `registry.py` / `session.py`），因此把「门派日结」
-收敛为掌门可调用的 `pay_disciples`：
+P1 没有日界系统动作，因此把「门派日结」收敛为掌门可调用的 `pay_disciples`；
+2026-11-06 起该动作已接入玩家 API（`docs/player-api.md` §13），由掌门显式调用：
 
-- 参数：`{sect_id, day?}`
+- 参数：`{day?, sect_id?}`
 - `day` 缺省 = `tick // TICKS_PER_DAY`；同一天重复调用返回 `already_settled_today`
   （以掌门记忆里的 `门派日结:<fid>:D<day>` 标记判定）。
 - 对每名活跃弟子（按 id 升序、确定性）：
@@ -171,14 +176,14 @@ P1 没有日界系统动作（不允许改 `registry.py` / `session.py`），因
 - **欠薪债务保留**（门派仍欠弟子），不因离派而消失
 - **名册口径**：`Faction.members` 没有移除原语，会保留历史成员；
   权威「活跃弟子」= `fac.members` 中 `Entity.faction == fid` 且 `alive` 的实体。
-  这样离派者不会继续占 `disciples_full` 名额，也不会被日结重复计费。
-  接线阶段建议补 `faction_leave` 原语一次性清理 `members`（见 §10）。
+  这样离派者不会继续占 `sect_full` 名额，也不会被日结重复计费。
+  当前 API 接线按该口径计算名额，未新增 `faction_leave` 原语。
 
 ### 2.5 逐出（`expel_disciple`）
 
-- 参数：`{sect_id, target}`
-- 前置：`sect_not_found` / `not_sect_master` / `wrong_location` (掌门须在驻地) /
-  `target_not_found` / `self_recruit` / `target_not_disciple`
+- 参数：`{target, sect_id?}`（`sect_id` 缺省取本人门派，未入派 `no_sect`）
+- 前置：`no_sect` / `sect_not_found` / `not_sect_leader` / `wrong_location`（掌门须在驻地）/
+  `disciple_not_found` / `self_recruit` / `target_not_disciple`
 - 效果：同 §2.4 的实体与关系清理 + 双向记忆；不退款、不补偿、不 `mint`。
 
 ## 3. 职位与治理
@@ -189,7 +194,7 @@ P1 没有日界系统动作（不允许改 `registry.py` / `session.py`），因
 | 长老 | **P2** | ✅（上限内） | ✅ 仅「保底以上 30%」 | ❌ | 需要 `appoint_office` 动作与存储字段 |
 | 执事 | **P2** | ❌ | ✅ 仅存入，不可提取 | ✅ | 负责收会费/记账 |
 
-- P1 的 `not_sect_master` 判定：`Faction.leader == actor or Faction.founder == actor`。
+- P1 的 `not_sect_leader` 判定：`Faction.leader == actor or Faction.founder == actor`。
 - 任命/罢免动作 `appoint_office` **不在 P1**（动作清单只有六个）；长老/执事只做设计，
   实现需要 `world/state.py` 增加 `Faction.offices: dict[str, str]` 或独立 `sect_offices`。
 - 权限原则：**钱与名册分离**——能收徒的人不一定能提款；提取永远需要掌门，
@@ -252,7 +257,7 @@ assert after["conservation_error"] == 0
 | `quests` | 日结时为每名弟子发一条「门派委托」（`giver=掌门`、`args.sect=<fid>`、`args.duty=sect_quest`）；奖励从门派金库 `transfer`，不发新钱。P2 增加 `content/quests.yaml` 门派专属模板与 `sect_reputation` 奖励 | `actions/quests.py` / `sim/intent.py` |
 | `business` | P2：门派可开产业，`Business.owner=<fid>`、`cash_account=treasury:sect:<sid>`、雇工可为本门弟子；营收进金库，日结并入 `pay_disciples` | `actions/business.py` / `world/effects.py` |
 | `intent.py` | NPC 弟子的日计划加入门派活动：在驻地 `cultivate`、按技能外出 `escort`/`work`、日界回驻地；掌门不在时不自动日结（避免玩家离线被扣钱） | `sim/intent.py` 的 `DAILY_PLAN`/目标分支 |
-| `feed` | 门派事件进世界动态：`found_sect`、`recruit_disciple`、`expel_disciple`、`pay_disciples`（仅摘要，不含金额明细）。当前 feed SQL 排除 `player:%`，需为门派事件开一条公共投影（`actor=player:` 但 `verb` 在白名单时输出） | `api/session.py` `world_feed` / `_feed_summary` |
+| `feed` | 门派事件进世界动态：**本轮不开放**。feed SQL 排除 `player:%`，而门派成员/金库属私有状态，公共侧只透出 `sect_name`；如需公开摘要，须新开白名单且只带名号，不带金额与成员细节 | `api/session.py` `world_feed` / `_feed_summary` |
 | `goals` | 立派推进 `faction` 目标 1.0；收徒可推进 0.1/人（P1 已保留 `goal_progress` 调用位） | `actions/common.py` `goal_progress` |
 | `debt_audit` | 欠饷/欠会费进入既有债务审计；离派不销债 | `audit/debt_audit.py` |
 
@@ -262,26 +267,29 @@ assert after["conservation_error"] == 0
 |---|---|---|
 | `unknown_actor` | 操作者不存在。 | 全部 |
 | `actor_not_alive` | 操作者已不在人世。 | 全部 |
-| `not_enough_money` | 你的钱不够；立派需 800 文（注册费 200 + 启动金 600）。 | `found_sect` / `sect_deposit` |
-| `reputation_too_low` | 声望不足 20，江湖上还没人认你的名号。 | `found_sect` / `recruit_disciple` |
-| `already_in_sect` | 你已在一家门派中；先退出原门派才能另立门户。 | `found_sect` |
+| `no_sect` | 你还没有加入任何门派；先立派或拜入一个门派。 | 收徒/逐出/日结/存取款 |
+| `already_in_sect` | 你已经在门派中，不能再立派；退出后才能另立门户。 | `found_sect` |
+| `insufficient_funds` | 钱不够完成这次门派操作（立派需 800 文）。 | `found_sect` / `sect_deposit` |
+| `insufficient_rep` | 声望不足；立派与收徒都要求声望至少 20。 | `found_sect` / `recruit_disciple` |
 | `sect_not_found` | 门派不存在或不是你创建的门派。 | 收徒/逐出/日结/存取款 |
-| `not_sect_master` | 只有掌门能做这件事。 | 收徒/逐出/日结/存取款 |
-| `target_declined` | 对方婉拒了：好感或信任还不到位。 | `recruit_disciple` |
-| `disciples_full` | 门派弟子已满（草创期最多 3 名）。 | `recruit_disciple` |
+| `not_sect_leader` | 只有掌门（立派者）能做这件事。 | 收徒/逐出/日结/存取款 |
+| `favor_too_low` | 对方对你的好感不足 30，不愿拜师。 | `recruit_disciple` |
+| `trust_too_low` | 对方对你还不够信任；先相处一段时间、建立信任再试。 | `recruit_disciple` |
+| `sect_full` | 收徒名额已满（上限 3 名）；先驱逐或等弟子离派。 | `recruit_disciple` |
 | `wrong_location` | 你必须身处门派驻地才能做这件事。 | 收徒/逐出/日结/存取款 |
 | `unknown_location` | 驻地不存在。 | `found_sect` |
 | `invalid_sect_name` | 门派名号需 2–12 字。 | `found_sect` |
 | `sect_name_taken` | 这个名号已被别的门派用了。 | `found_sect` |
 | `sect_exists` | 这个门派 id 已存在。 | `found_sect` |
-| `target_not_found` | 找不到这个人物。 | 收徒/逐出 |
-| `target_not_alive` | 对方已不在人世。 | 收徒 |
+| `target_not_found` | 找不到这个人物。 | `recruit_disciple` |
+| `target_not_alive` | 对方已不在人世。 | `recruit_disciple` |
 | `target_is_player` | 不能直接收玩家为徒；需玩家本人同意。 | `recruit_disciple` |
 | `not_together` | 你与对方不在同一地点，收徒要当面。 | `recruit_disciple` |
 | `self_recruit` | 不能收自己为徒。 | 收徒/逐出 |
 | `target_in_sect` | 对方已属别的门派。 | `recruit_disciple` |
 | `already_disciple` | 对方已在本门名下。 | `recruit_disciple` |
 | `skill_too_low` | 对方根基太浅，或你的本事还不足以服众。 | `recruit_disciple` |
+| `disciple_not_found` | 门派名册里没有这名弟子。 | `expel_disciple` |
 | `target_not_disciple` | 对方不是本门弟子。 | `expel_disciple` |
 | `no_disciples` | 门中暂无弟子，无需日结。 | `pay_disciples` |
 | `already_settled_today` | 今日门派已日结过了。 | `pay_disciples` |
@@ -291,12 +299,16 @@ assert after["conservation_error"] == 0
 | `bad_arg:sect_id` | 门派 id 格式不合法。 | 全部 |
 | `bad_arg:amount` | 金额必须是 1–10000 的整数。 | 存取款 |
 | `bad_arg:day` | 结算日必须是非负整数。 | `pay_disciples` |
+| `arrears_too_high` | 欠饷累计已达 30 文，弟子自动离派。 | `pay_disciples`（`details.settlement.leavers`） |
 
-接线时以上文案写入 `api/session.py` 的 `REASON_TEXT`；动作层只返回码。
+`arrears_too_high` 不是拒绝码，而是日结成功事件里弟子离派的**原因标记**；
+出现在 `details.settlement.leavers[].reason`，同时伴随 `set_field faction=null`。
 
-## 7. 验收标准（真实服务链路；P1 用单测等价证明）
+以上文案已写入 `api/session.py` 的 `REASON_TEXT`；动作层只返回码。
 
-目标事件链（每步一条事件，`seq` 连号）：
+## 7. 验收标准（真实服务链路 + 单测等价证明）
+
+目标事件链（每步一条事件，`seq` 连号；已接入 API，可经 `/api/player/action` 实跑）：
 
 1. `found_sect`
    - args：`name=五行道`、`at=academy`、`doctrine=…`、`sect_id=wuxing`
@@ -328,7 +340,7 @@ P2 验收（只写目标，不实现）：
 
 | 期 | 范围 | 本轮状态 |
 |---|---|---|
-| **P1** | `found_sect`、`recruit_disciple`、`expel_disciple`、`pay_disciples`、`sect_deposit`、`sect_withdraw`；立派/收徒门槛、会费、俸禄、欠饷离派、金库上限、原因码 | **实现动作层 + 单测**，不接线 |
+| **P1** | `found_sect`、`recruit_disciple`、`expel_disciple`、`pay_disciples`、`sect_deposit`、`sect_withdraw`；立派/收徒门槛、会费、俸禄、欠饷离派、金库上限、原因码 | **动作层 + 单测 + API 接线已完成**（2026-11-06） |
 | **P2** | 门派产业（店铺/镖线/药铺）、门派等级升级、门派专属委托模板、门派声望、门派间结盟/冲突、长老/执事任命 | **仅设计目标**，不实现 |
 
 ## 9. 本轮不变量
@@ -337,8 +349,13 @@ P2 验收（只写目标，不实现）：
 - 所有金额只经 `transfer` / `debt_*`；不出现 `mint` / `burn`。
 - 拒绝只由 `preconditions` 返回码决定，`apply` 不二次校验余额（预算在 `apply` 内一次算清）。
 - 不新增/修改 `Faction` 字段；doctrine/level/office 的持久化限制已在 §1.3 明说。
-- 不触碰其他会话正在改的 `registry.py` / `player.py` / `session.py`。
+- 门派动作**只经 `WorldSession` 注册**，不进入 `actions/registry.py` 内置表；
+  无玩家世界不执行门派分支，2 日 golden 与既有基线逐字节一致。
+- 私有状态（成员关系、弟子名单、金库余额）只在本人令牌的 `/api/player/state` 返回；
+  匿名公共摘要只含 `sect_name`。
 
-## 10. 接线清单（由主线会话执行，本轮不改）
+## 10. 接线状态（2026-11-06 已由主线会话完成）
 
-见 `tasks.md` 的「接线（不属于本笔提交）」一节，逐文件给出插入点。
+`WRITE_ACTIONS` / `ACTION_ALIASES` / `_args` / `REASON_TEXT` / `_status_view`
+只在 `api/session.py` 做增量追加；六个动作在 `WorldSession.__init__` 注册。
+逐项完成状态见 `tasks.md` 与 `checklist.md` C 节，对外契约见 `docs/player-api.md` §13。

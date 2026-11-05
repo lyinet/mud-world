@@ -9,6 +9,41 @@
 
 ---
 
+## [玩家 API] 2026-11-06 — 门派动作接入 `/api/player/action`（六个写动词 + 私有状态 + 拒绝码成体系）
+
+- **改了什么**
+  - `src/wsim/api/session.py` 只做增量：`WorldSession.__init__` 注册六个 `Player*Action`（只在会话内，
+    不进 `actions/registry.py`）、`WRITE_ACTIONS` / `ACTION_ALIASES` 各加六项、`PLAYER_UNIMPLEMENTED_VERBS`
+    移除 `found_sect`、`_args` 逐动作校验（`sect_id` 可省略）、`REASON_TEXT` 补全门派码中文、
+    `_sect_view` 私有快照（门主/名册/金库/欠饷/`settled_today`）与 `details.sect` / `details.settlement`。
+  - `src/wsim/actions/player_sect.py`：拒绝码统一为契约码（`no_sect` / `not_sect_leader` / `sect_full` /
+    `insufficient_rep` / `insufficient_funds` / `disciple_not_found` / `favor_too_low` / `trust_too_low`），
+    新增 `_resolve_sect`（显式 `sect_id` 优先，缺省取 `entity.faction`）。
+  - `src/wsim/actions/player.py`：`PLAYER_VERBS` 追加六个门派动词。
+  - 文档：`docs/player-api.md` §13 由“未开放”改为真实契约（§3.3 私有状态、§4.2.3 动词、§7 码表）；
+    `specs/player-sect/{spec,tasks,checklist}.md` 同步码名与接线状态。
+- **为什么改**：动作层已实现但玩家调不到，等于功能未上线；同时把“成员/弟子/金库”这类私有状态挡在匿名公共摘要之外。
+- **验证方式**
+  - `pytest tests/test_player_sect_actions.py tests/test_player_sect_api.py` → **30 passed**。
+  - 真实 HTTP 服务（`create_server` + `AccountStore`，run `sect-accept`，seed 42）整链实跑，关键 `seq`：
+    `19 found_sect`（ops `transfer:sect_registration_fee` / `transfer:sect_endowment` / `create_faction`）→
+    `28/30/36 recruit_disciple` → `42/44/46 sect_withdraw/sect_deposit` → `54 pay_disciples`
+    （`dues=15/stipend=30`）→ `356 debt_create` / `406/456 debt_increase` / `506 set_field faction=null`
+    （`leavers=[fang_cunxin, arrears_too_high]`）→ `508 expel_disciple`。
+  - 拒绝路径真实输出（同一次实跑）：`no_sect`(7) / `insufficient_funds`(9) / `insufficient_rep`(11) /
+    `already_in_sect`(21) / `not_sect_leader`(26) / `favor_too_low`(32) / `trust_too_low`(34) /
+    `sect_full`(38) / `disciple_not_found`(40) / `withdraw_over_cap`(48) / `treasury_reserve`(50) /
+    `insufficient_treasury`(52) / `already_settled_today`(56)，全部带中文 `reason_text`。
+  - 权限：同一玩家跨账号写 → HTTP **403 `auth_account_mismatch`**；匿名 `/state` 只有 `sect_name`，
+    不含 `sect` / `player` / 弟子名单 / 金库。
+  - 守恒与确定性：整链 `reconciliation.delta = 0`；`accounts_sum = minted_total = 47650`、
+    `burned_total = 0`、`conservation_error = 0`；`pytest tests/test_p3e_golden.py tests/test_reproducibility.py`
+    → 5 passed / 11 skipped（无玩家 2 日基线未漂移）。
+  - 验收造场（如实记录）：为跨过 800 文立派门槛注入一笔 `mint 2000`（计入 `minted_total`），
+    并预置 4 名 NPC 的 40 好感 / 50 信任与同地点；其余动作全部走真实 HTTP 与事件。
+- **content_hash**：未记录。
+- **commit**：见本条目所在提交。
+
 ## [压测] 2026-11-06 — 120 分钟 soak 实测：正确性全过，但内存线性增长、P95 漂移 32.6 倍，不能连续跑 30 天
 
 - **改了什么**：新增 `docs/SOAK-RESULTS.md` 与 `reports/soak/soak-20261106-015816/**`
