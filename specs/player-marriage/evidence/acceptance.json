@@ -1,0 +1,618 @@
+{
+  "baseline": {
+    "tick": 2321,
+    "day": 16,
+    "wallet": 240,
+    "items": [
+      {
+        "item": "coarse_cloth",
+        "name": "粗布（一匹）",
+        "price": 25,
+        "qty": 1,
+        "sell_price": 15
+      },
+      {
+        "item": "flatbread",
+        "name": "炊饼",
+        "price": 3,
+        "qty": 3,
+        "sell_price": 2
+      }
+    ],
+    "location": "market",
+    "present_npcs": [
+      "bai_lusheng",
+      "jin_mancang",
+      "liu_sanniang",
+      "lu_xinghua",
+      "luo_qingxu",
+      "meng_jiuniang",
+      "shi_gandang",
+      "wei_changgeng",
+      "xing_pojun",
+      "zhuo_bufan"
+    ],
+    "marriage": {
+      "daily_note": "柳三娘把家里收拾好了，说等你回来就歇着。",
+      "last_daily_tick": 2312,
+      "since_tick": 1026,
+      "spouse_id": "liu_sanniang",
+      "spouse_name": "柳三娘",
+      "status": "married"
+    },
+    "reconciliation": {
+      "accounts_sum": 46073,
+      "burned_total": 1677,
+      "delta": 0,
+      "escrow_accounts": 0,
+      "escrow_items": 0,
+      "minted_total": 47750,
+      "net_issued": 46073
+    },
+    "note": "服务已重启加载婚后日常修复；前半段（拒绝/提好感/求婚/成婚）从同一 events.sqlite 还原。"
+  },
+  "history": {
+    "rejections": [
+      {
+        "seq": 18,
+        "tick": 11,
+        "actor": "player:pmmain",
+        "outcome": "rejected",
+        "reason_code": "not_enough_money",
+        "args": {
+          "account": "pmmain",
+          "reason": "not_enough_money"
+        }
+      },
+      {
+        "seq": 19,
+        "tick": 11,
+        "actor": "player:pmmain",
+        "outcome": "rejected",
+        "reason_code": "gift_missing",
+        "args": {
+          "account": "pmmain",
+          "reason": "gift_missing"
+        }
+      },
+      {
+        "seq": 23,
+        "tick": 17,
+        "actor": "duan_wudou",
+        "outcome": "rejected",
+        "reason_code": "bond_too_low",
+        "args": {
+          "player": "player:pmmain",
+          "reason_code": "bond_too_low",
+          "target": "duan_wudou"
+        }
+      }
+    ],
+    "proposal_and_marriage": [
+      {
+        "seq": 2973,
+        "tick": 1026,
+        "actor": "player:pmmain",
+        "verb": "marriage_propose",
+        "outcome": "ok",
+        "reason": "",
+        "args": {
+          "account_id": "pmmain",
+          "gift_item": "flatbread",
+          "gift_money": 50,
+          "gift_qty": 1,
+          "player_id": "player:pmmain",
+          "target": "liu_sanniang"
+        },
+        "effects": [
+          {
+            "data": {
+              "a": "player:pmmain",
+              "b": "liu_sanniang",
+              "decision": "accept",
+              "gift_item": "flatbread",
+              "gift_money": 50,
+              "gift_qty": 1,
+              "proposal_tick": 1026,
+              "reason_code": "accepted",
+              "status": "proposed",
+              "thresholds": {
+                "affection_accept": 60.0,
+                "affection_floor": 40.0,
+                "courtship_gap_max": 20,
+                "courtship_gap_min": 5,
+                "trust_accept": 30.0,
+                "trust_floor": 20.0
+              }
+            },
+            "op": "marriage_meta"
+          }
+        ]
+      },
+      {
+        "seq": 2974,
+        "tick": 1026,
+        "actor": "liu_sanniang",
+        "verb": "marriage_accept",
+        "outcome": "ok",
+        "reason": "",
+        "args": {
+          "player": "player:pmmain",
+          "proposal_tick": 1026,
+          "target": "liu_sanniang"
+        },
+        "effects": [
+          {
+            "data": {
+              "a": "player:pmmain",
+              "b": "liu_sanniang",
+              "decision": "accept",
+              "reason_code": "accepted",
+              "status": "accepted"
+            },
+            "op": "marriage_meta"
+          }
+        ]
+      },
+      {
+        "seq": 2975,
+        "tick": 1026,
+        "actor": "system",
+        "verb": "marriage",
+        "outcome": "ok",
+        "reason": "",
+        "args": {
+          "a": "player:pmmain",
+          "b": "liu_sanniang",
+          "gift_item": "flatbread",
+          "gift_money": 50,
+          "gift_qty": 1,
+          "proposal_tick": 1026
+        },
+        "effects": [
+          {
+            "data": {
+              "amount": 50,
+              "dst": "wallet:liu_sanniang",
+              "reason": "marriage_dowry",
+              "src": "wallet:player:pmmain"
+            },
+            "op": "transfer"
+          },
+          {
+            "data": {
+              "dst": "liu_sanniang",
+              "item": "flatbread",
+              "qty": 1,
+              "src": "player:pmmain"
+            },
+            "op": "item_move"
+          },
+          {
+            "data": {
+              "a": "player:pmmain",
+              "b": "liu_sanniang"
+            },
+            "op": "marry"
+          },
+          {
+            "data": {
+              "a": "player:pmmain",
+              "b": "liu_sanniang",
+              "decision": "accept",
+              "gift_item": "flatbread",
+              "gift_money": 50,
+              "gift_qty": 1,
+              "proposal_tick": 1026,
+              "reason_code": "married",
+              "since_tick": 1026,
+              "status": "married",
+              "thresholds": {
+                "affection_accept": 60.0,
+                "affection_floor": 40.0,
+                "courtship_gap_max": 20,
+                "courtship_gap_min": 5,
+                "trust_accept": 30.0,
+                "trust_floor": 20.0
+              }
+            },
+            "op": "marriage_meta"
+          }
+        ]
+      }
+    ],
+    "courtship_days": [
+      {
+        "day": 0,
+        "first_tick": 11,
+        "talks": 7,
+        "targets": {
+          "duan_wudou": 1,
+          "liu_sanniang": 6
+        }
+      },
+      {
+        "day": 1,
+        "first_tick": 144,
+        "talks": 6,
+        "targets": {
+          "liu_sanniang": 6
+        }
+      },
+      {
+        "day": 2,
+        "first_tick": 288,
+        "talks": 6,
+        "targets": {
+          "liu_sanniang": 6
+        }
+      },
+      {
+        "day": 3,
+        "first_tick": 432,
+        "talks": 6,
+        "targets": {
+          "liu_sanniang": 6
+        }
+      },
+      {
+        "day": 4,
+        "first_tick": 576,
+        "talks": 6,
+        "targets": {
+          "liu_sanniang": 6
+        }
+      },
+      {
+        "day": 5,
+        "first_tick": 720,
+        "talks": 6,
+        "targets": {
+          "liu_sanniang": 6
+        }
+      },
+      {
+        "day": 6,
+        "first_tick": 864,
+        "talks": 6,
+        "targets": {
+          "liu_sanniang": 6
+        }
+      },
+      {
+        "day": 7,
+        "first_tick": 1008,
+        "talks": 3,
+        "targets": {
+          "liu_sanniang": 3
+        }
+      }
+    ],
+    "talk_target_counts": {
+      "player:pmmain|duan_wudou": 1,
+      "player:pmmain|liu_sanniang": 45
+    }
+  },
+  "daily": [
+    {
+      "day": 15,
+      "tick": 2204,
+      "actor": "liu_sanniang",
+      "reason": "柳三娘：回家陪家人过日子",
+      "note": "柳三娘给你带了炊饼，让你趁热吃。",
+      "items_moved": [
+        {
+          "dst": "player:pmmain",
+          "item": "flatbread",
+          "qty": 1,
+          "src": "liu_sanniang"
+        }
+      ],
+      "seq": 4332
+    },
+    {
+      "day": 16,
+      "tick": 2312,
+      "actor": "liu_sanniang",
+      "reason": "柳三娘：回家陪家人过日子",
+      "note": "柳三娘把家里收拾好了，说等你回来就歇着。",
+      "items_moved": [],
+      "seq": 4388
+    },
+    {
+      "day": 17,
+      "tick": 2479,
+      "actor": "liu_sanniang",
+      "reason": "柳三娘：回家陪家人过日子",
+      "note": "柳三娘午后去了市集，说晚上等你一起吃饭。",
+      "items_moved": [],
+      "seq": 4473
+    }
+  ],
+  "talk_replies": [
+    {
+      "tick": 2321,
+      "day": 16,
+      "ok": true,
+      "reply": "我把沈砚的换洗衣裳叠在柜头了，出门别又忘了带伞。"
+    },
+    {
+      "tick": 2327,
+      "day": 16,
+      "ok": true,
+      "reply": "我把沈砚的换洗衣裳叠在柜头了，出门别又忘了带伞。"
+    },
+    {
+      "tick": 2479,
+      "day": 17,
+      "ok": true,
+      "reply": "沈砚，米缸见底了，今日该缴租，你回来顺路去一趟。"
+    }
+  ],
+  "already_married": {
+    "tick": 2485,
+    "ok": false,
+    "reject_reason": "already_married",
+    "wallet_before": 240,
+    "wallet_after": 240,
+    "marriage_after": {
+      "daily_note": "柳三娘午后去了市集，说晚上等你一起吃饭。",
+      "last_daily_tick": 2479,
+      "since_tick": 1026,
+      "spouse_id": "liu_sanniang",
+      "spouse_name": "柳三娘",
+      "status": "married"
+    }
+  },
+  "divorce": {
+    "tick": 2485,
+    "ok": true,
+    "reject_reason": "",
+    "wallet_before": 240,
+    "wallet_after": 240,
+    "marriage_after": {
+      "daily_note": "",
+      "last_daily_tick": 0,
+      "since_tick": 0,
+      "spouse_id": "",
+      "spouse_name": "",
+      "status": "single"
+    },
+    "events": [
+      {
+        "seq": 4477,
+        "tick": 2485,
+        "actor": "player:pmmain",
+        "verb": "marriage_end",
+        "outcome": "ok",
+        "reason": "",
+        "effects": [
+          {
+            "data": {
+              "entity": "player:pmmain",
+              "field": "spouse",
+              "value": null
+            },
+            "op": "set_field"
+          },
+          {
+            "data": {
+              "entity": "liu_sanniang",
+              "field": "spouse",
+              "value": null
+            },
+            "op": "set_field"
+          },
+          {
+            "data": {
+              "a": "player:pmmain",
+              "b": "liu_sanniang",
+              "kind": "marriage",
+              "status": "ended"
+            },
+            "op": "relation_upsert"
+          },
+          {
+            "data": {
+              "a": "liu_sanniang",
+              "b": "player:pmmain",
+              "kind": "marriage",
+              "status": "ended"
+            },
+            "op": "relation_upsert"
+          },
+          {
+            "data": {
+              "a": "player:pmmain",
+              "b": "liu_sanniang",
+              "decision": "ended",
+              "ended_tick": 2485,
+              "reason_code": "marriage_end",
+              "status": "ended"
+            },
+            "op": "marriage_meta"
+          }
+        ]
+      }
+    ]
+  },
+  "audit": {
+    "tick": 2491,
+    "wallet": 240,
+    "items": [
+      {
+        "item": "coarse_cloth",
+        "name": "粗布（一匹）",
+        "price": 25,
+        "qty": 1,
+        "sell_price": 15
+      },
+      {
+        "item": "flatbread",
+        "name": "炊饼",
+        "price": 3,
+        "qty": 3,
+        "sell_price": 2
+      }
+    ],
+    "reconciliation": {
+      "accounts_sum": 46059,
+      "burned_total": 1691,
+      "delta": 0,
+      "escrow_accounts": 0,
+      "escrow_items": 0,
+      "minted_total": 47750,
+      "net_issued": 46059
+    },
+    "spouse_after_divorce": {
+      "daily_note": "",
+      "last_daily_tick": 0,
+      "since_tick": 0,
+      "spouse_id": "",
+      "spouse_name": "",
+      "status": "single"
+    },
+    "seq_first": 1,
+    "seq_last": 4478,
+    "seq_count": 4478,
+    "seq_contiguous": true,
+    "verbs": {
+      "apprentice": 10,
+      "buy": 209,
+      "consume": 321,
+      "cultivate": 177,
+      "debt_settle": 11,
+      "escort": 12,
+      "found_sect": 2,
+      "genesis": 1,
+      "genesis_player": 1,
+      "join_sect": 13,
+      "marriage": 1,
+      "marriage_accept": 1,
+      "marriage_end": 1,
+      "marriage_propose": 5,
+      "marriage_reject": 1,
+      "move": 1670,
+      "open_shop": 10,
+      "player_endowment": 1,
+      "player_enter": 3,
+      "player_heartbeat": 55,
+      "quest_accept": 146,
+      "quest_deliver": 133,
+      "recruit": 4,
+      "sell": 186,
+      "spouse_time": 3,
+      "system_debts": 17,
+      "system_escort_arrive": 12,
+      "system_goal": 169,
+      "system_living": 527,
+      "system_maintenance": 17,
+      "system_milestone": 17,
+      "system_quest_fail": 17,
+      "system_quest_post": 18,
+      "system_recover": 17,
+      "system_tick": 110,
+      "talk": 49,
+      "trade": 224,
+      "work": 307
+    },
+    "marriage_events": [
+      {
+        "seq": 18,
+        "tick": 11,
+        "actor": "player:pmmain",
+        "verb": "marriage_propose",
+        "outcome": "rejected",
+        "reason": "rejected:not_enough_money"
+      },
+      {
+        "seq": 19,
+        "tick": 11,
+        "actor": "player:pmmain",
+        "verb": "marriage_propose",
+        "outcome": "rejected",
+        "reason": "rejected:gift_missing"
+      },
+      {
+        "seq": 22,
+        "tick": 17,
+        "actor": "player:pmmain",
+        "verb": "marriage_propose",
+        "outcome": "ok",
+        "reason": ""
+      },
+      {
+        "seq": 23,
+        "tick": 17,
+        "actor": "duan_wudou",
+        "verb": "marriage_reject",
+        "outcome": "rejected",
+        "reason": "rejected:bond_too_low"
+      },
+      {
+        "seq": 2973,
+        "tick": 1026,
+        "actor": "player:pmmain",
+        "verb": "marriage_propose",
+        "outcome": "ok",
+        "reason": ""
+      },
+      {
+        "seq": 2974,
+        "tick": 1026,
+        "actor": "liu_sanniang",
+        "verb": "marriage_accept",
+        "outcome": "ok",
+        "reason": ""
+      },
+      {
+        "seq": 2975,
+        "tick": 1026,
+        "actor": "system",
+        "verb": "marriage",
+        "outcome": "ok",
+        "reason": ""
+      },
+      {
+        "seq": 4332,
+        "tick": 2204,
+        "actor": "liu_sanniang",
+        "verb": "spouse_time",
+        "outcome": "ok",
+        "reason": "柳三娘：回家陪家人过日子"
+      },
+      {
+        "seq": 4388,
+        "tick": 2312,
+        "actor": "liu_sanniang",
+        "verb": "spouse_time",
+        "outcome": "ok",
+        "reason": "柳三娘：回家陪家人过日子"
+      },
+      {
+        "seq": 4473,
+        "tick": 2479,
+        "actor": "liu_sanniang",
+        "verb": "spouse_time",
+        "outcome": "ok",
+        "reason": "柳三娘：回家陪家人过日子"
+      },
+      {
+        "seq": 4476,
+        "tick": 2485,
+        "actor": "player:pmmain",
+        "verb": "marriage_propose",
+        "outcome": "rejected",
+        "reason": "rejected:already_married"
+      },
+      {
+        "seq": 4477,
+        "tick": 2485,
+        "actor": "player:pmmain",
+        "verb": "marriage_end",
+        "outcome": "ok",
+        "reason": ""
+      }
+    ]
+  }
+}

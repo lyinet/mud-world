@@ -1,0 +1,36 @@
+{
+  "same_seed": 42,
+  "runs": [
+    {
+      "run": 0,
+      "ok": true,
+      "decision": "accept",
+      "event_seq": 10,
+      "state_hash": "aa5bd2aa721caaa0b774328f8e152a065fc1f235cb23a395bf1780fdf1458bf0",
+      "event_hash": "1ee6cc57ee1c70fc9b1fabe89c3487cdc315f4858ac686221391fd74a5a84ac5",
+      "marriage_verbs": [
+        "marriage_propose",
+        "marriage_accept",
+        "marriage"
+      ]
+    },
+    {
+      "run": 1,
+      "ok": true,
+      "decision": "accept",
+      "event_seq": 10,
+      "state_hash": "aa5bd2aa721caaa0b774328f8e152a065fc1f235cb23a395bf1780fdf1458bf0",
+      "event_hash": "1ee6cc57ee1c70fc9b1fabe89c3487cdc315f4858ac686221391fd74a5a84ac5",
+      "marriage_verbs": [
+        "marriage_propose",
+        "marriage_accept",
+        "marriage"
+      ]
+    }
+  ],
+  "identical": true,
+  "why_safe": [
+    "裁决只依赖 state 中的好感/信任/配偶/地点与内容包阈值，无随机与模型调用",
+    "同一 seed + 同一事件链 → state/event 哈希逐字节一致"
+  ]
+}

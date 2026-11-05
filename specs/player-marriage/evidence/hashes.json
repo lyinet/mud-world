@@ -1,0 +1,29 @@
+{
+  "purpose": "无玩家参与世界必须逐字节不变：实现前基线 vs 实现后同命令重跑",
+  "command": "PYTHONPATH=src python3 sim/run_headless.py --days 2 --seed 42 --npc 12 --out <dir> --run-id <id>",
+  "seed": 42,
+  "days": 2,
+  "npc_count": 12,
+  "content_hash": "7ec670c1c83c7b99e9bee35f84602bd7a68ef22126b29c9003529809b2c3d53f",
+  "before": {
+    "commit": "f1f15a7",
+    "out": "/tmp/wsim-base/before",
+    "events_total": 279,
+    "state_final": "91ca62360b0a25e2e97375458c8a379946ab17be2bf760630ec29576fe399d6d",
+    "event_final": "eb139d4fb4c0cc041ed1142e610f0f782dd0e7eb0ef56ce307cf057f37d70181"
+  },
+  "after": {
+    "commit": "3bf7df7",
+    "out": "/tmp/wsim-after3/after/after3",
+    "events_total": 279,
+    "state_final": "91ca62360b0a25e2e97375458c8a379946ab17be2bf760630ec29576fe399d6d",
+    "event_final": "eb139d4fb4c0cc041ed1142e610f0f782dd0e7eb0ef56ce307cf057f37d70181"
+  },
+  "identical": true,
+  "why_safe": [
+    "state.marriages 为空时 to_dict 不输出键，状态哈希不受新字段影响",
+    "MockReasoner._spouse_visit 仅在 entity.spouse 以 player: 开头且婚姻生效时产出 move/spouse_time；NPC-NPC 婚姻与无玩家世界不进入该分支",
+    "婚姻动作全部登记在 ENGINE_ONLY_ALLOWED 或按需放行，不影响无玩家事件链",
+    "content_hash 不变：content/** 未改动"
+  ]
+}

@@ -1,0 +1,8 @@
+命令：./scripts/selfcheck.sh
+结果：exit=0
+总结: selfcheck PASS（4 项全部通过）
+逐项：
+- [PASS] 内容包校验 content/validate_content.py
+- [PASS] 单元测试 pytest
+- [PASS] 框架验收 tools/framework_check.py（临时副本，不写 runs/）
+- [PASS] 玩家闭环（wsim.api + ui/player + HTTP 动作）

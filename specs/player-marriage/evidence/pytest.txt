@@ -1,0 +1,4 @@
+命令：python -m pytest -o addopts="" -q
+结果：488 passed, 16 skipped in 153.31s (0:02:33)
+失败：0
+说明：-o addopts="" 是为了覆盖 pyproject 里的 -q，保留汇总行；工作区包含并行分支的商业/休息改动。
