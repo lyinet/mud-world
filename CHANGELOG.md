@@ -9,6 +9,28 @@
 
 ---
 
+## [工具] 2026-11-06 — 新增长跑稳定性测试 `tools/soak_test.py`（真实服务子进程 + 50 并发 + 30s 采样 + 优雅停机/重启校验）
+
+- **改了什么**
+  - 新增 `tools/soak_test.py`（仅标准库 + 复用 `tools/load_test.py` 的虚拟玩家与校验函数）：
+    以 `python -m wsim.api --auth off --run <id>` 起**真实服务子进程**并带 `XKX_AMBIENT=1`；
+    50 并发、每 2s 一动作、时长可配（默认 7200s）；每 30s 采一行写
+    `reports/soak/<run>/samples.jsonl`（RSS/CPU/事件数/DB 体积/world tick/窗口请求与错误数/读写 P50-P95-P99）。
+  - 结束时写 `summary.json`：首末 10 分钟 P95 对照、RSS 线性回归（`ru_maxrss` 高水位与 ps 采样两套）、
+    DB 增长（MB/h 与条/h）、错误率、seq 连续性、钱包守恒、`integrity_check`、SIGTERM 停机耗时、
+    同目录重启的状态重建耗时与 `state_match`、7/30/90 天外推、逐项验收结论。
+  - 服务进程内每 ~300s 做一次 gc 普查（`gc.get_objects()` 计数 + 关键结构尺寸），经 `PYTHONPATH`
+    注入报告目录内的 `sitecustomize.py`，**不改源码**；另有 `--mode heap`（进程内 `tracemalloc`）用于泄漏定位。
+- **为什么改**：需要回答“能否连续跑一个月不崩/不变慢/不涨内存”，此前没有可复现的长跑工具；
+  工具必须可重复、可审计，且不触碰 `src/`、`ui/`、`content/`、`deploy/`。
+- **验证方式**
+  - 4 轮 5 分钟预检（20/50 玩家）修正口径：错误分类、超时、macOS `ru_maxrss` 字节换算、
+    事件体积公式、重启指纹（子服务 `ambient=False` 冻结状态回放）。
+  - 120 分钟正式跑：`soak-20261106-015816`（239,305 请求 / 239,207 事件 / 0 崩溃）；
+    数据与结论见 `docs/SOAK-RESULTS.md`（本工具提交后再提交结果文档）。
+  - 全程零模型调用。
+- **commit**：见本条目所在提交。
+
 ## [部署] 2026-11-06 — 管理控制台纳入默认部署，放到反代后面（独立路径 + 双层鉴权）
 
 - **改了什么**
