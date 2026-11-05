@@ -40,10 +40,16 @@ def main() -> int:
     ap.add_argument("--out", default=str(ROOT / "runs" / "w2"))
     ap.add_argument("--minutes", type=float, help="真实运行时长（配速模式）")
     ap.add_argument("--ticks", type=int, help="固定 tick 数（不配速模式）")
+    ap.add_argument("--indefinite", action="store_true", help="常驻运行直到信号/父进程退出")
     ap.add_argument("--speed", type=float, default=1.0, choices=(1.0, 2.0, 4.0))
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--npc-limit", type=int, default=0)
-    ap.add_argument("--max-cpu", type=float, default=0.85, help="CPU/墙钟比例上限")
+    ap.add_argument("--max-cpu", type=float, default=None, help="CPU/墙钟比例上限（0–1）")
+    ap.add_argument("--max-cpu-pct", type=float, default=None, help="CPU 上限百分比（默认 70）")
+    ap.add_argument("--parent-pid", type=int, help="父进程 PID；父进程消失时自动停止")
+    ap.add_argument("--cpu-pause-after", type=float, default=2.0, help="持续超限多少秒后暂停")
+    ap.add_argument("--cpu-resume-below", type=float, default=0.35, help="恢复线（比例）")
+    ap.add_argument("--cpu-resume-after", type=float, default=2.0, help="低于恢复线持续多少秒后恢复")
     ap.add_argument("--summary-every", type=int, default=6, help="摘要间隔（默认 6 ticks = 1 游戏小时）")
     ap.add_argument("--llm-max-calls", type=int, default=0, help="LLM 硬上限；默认 0（纯规则）")
     ap.add_argument("--control-file", help="轮询该 JSON 控制文件（pause/resume/step/speed/stop）")
@@ -54,8 +60,10 @@ def main() -> int:
     ap.add_argument("--overwrite", action="store_true")
     args = ap.parse_args()
 
-    if args.minutes is None and args.ticks is None:
-        ap.error("必须给出 --minutes 或 --ticks")
+    if args.minutes is None and args.ticks is None and not args.indefinite:
+        ap.error("必须给出 --minutes、--ticks 或 --indefinite")
+    if args.indefinite and args.ticks is not None:
+        ap.error("--indefinite 与 --ticks 不能同时给出")
     if (args.enter_at_tick or args.leave_at_tick) and args.ticks is None:
         ap.error("玩家进出场景仅支持 --ticks 模式")
 
@@ -66,13 +74,29 @@ def main() -> int:
             return 2
         shutil.rmtree(out_dir)
 
+    if args.max_cpu is not None and args.max_cpu_pct is not None:
+        ap.error("--max-cpu 与 --max-cpu-pct 只能给一个")
+    if args.max_cpu_pct is not None:
+        max_cpu = max(0.0, min(1.0, float(args.max_cpu_pct) / 100.0))
+    elif args.max_cpu is not None:
+        max_cpu = max(0.0, min(1.0, float(args.max_cpu)))
+    elif args.ticks is not None:
+        # 快跑验收模式没有真实配速，CPU 护栏会把它误判为过载；默认关闭。
+        max_cpu = 0.0
+    else:
+        max_cpu = 0.70
+
     cfg = AmbientConfig(
         out_dir=out_dir,
         run_id=args.run_id,
         seed=args.seed,
         npc_limit=args.npc_limit,
         speed=args.speed,
-        max_cpu_ratio=args.max_cpu,
+        max_cpu_ratio=max_cpu,
+        cpu_pause_after_s=max(0.0, args.cpu_pause_after),
+        cpu_resume_below_ratio=max(0.0, args.cpu_resume_below),
+        cpu_resume_after_s=max(0.0, args.cpu_resume_after),
+        parent_pid=args.parent_pid,
         llm_enabled=False,
         llm_max_calls=max(0, args.llm_max_calls),
         summary_every_ticks=args.summary_every,
@@ -125,6 +149,10 @@ def main() -> int:
         "event_hash": summary["event_hash"],
         "elapsed_s": summary["elapsed_s"],
         "cpu_guard_sleeps": summary["cpu_guard_sleeps"],
+        "cpu_pauses": summary["cpu_pauses"],
+        "cpu_resumes": summary["cpu_resumes"],
+        "cpu_ratio_limit": summary["cpu_ratio_limit"],
+        "status_file": summary["status_file"],
         "error": summary.get("error"),
     }
     print("AMBIENT_RESULT " + json.dumps(result, ensure_ascii=False, sort_keys=True))

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import heapq
 import json
+import os
 import time
 import traceback
 from collections import Counter
@@ -53,8 +54,19 @@ class AmbientConfig:
     speed: float = 1.0
     # 真实时间每 1 秒推进多少 tick（1x 基准）。
     ticks_per_second_1x: float = TICKS_PER_SECOND_1X
-    # CPU 护栏：单进程 CPU/墙钟 比例上限，默认 0.85（不吃满一核）。
-    max_cpu_ratio: float = 0.85
+    # CPU 护栏：单进程 CPU/墙钟 比例上限，默认 70%（不吃满一核）。
+    max_cpu_ratio: float = 0.70
+    # 采样窗口（秒）：窗口内原始 CPU 比超过上限先补睡降速。
+    cpu_sample_s: float = 0.25
+    # 持续超限多久后暂停自走，避免拖死服务端。
+    cpu_pause_after_s: float = 2.0
+    # 恢复线：暂停期间比例低于该值并持续 cpu_resume_after_s 秒后自动恢复。
+    cpu_resume_below_ratio: float = 0.35
+    cpu_resume_after_s: float = 2.0
+    # 父进程看护：父进程消失时自走随之停止（start.sh 收口用）。
+    parent_pid: int | None = None
+    # 状态文件；默认 <out_dir>/ambient_status.json。
+    status_file: Path | None = None
     # 成本模型：默认规则驱动，零 LLM。
     llm_enabled: bool = False
     llm_max_calls: int = 0
@@ -202,6 +214,19 @@ class AmbientScheduler:
         self._wall_total = 0.0
         self._guard_wall_acc = 0.0
         self._guard_cpu_acc = 0.0
+        # CPU 护栏升级：持续超限暂停 + 自动恢复。
+        self._cpu_paused = False
+        self._cpu_over_s = 0.0
+        self._cpu_pauses = 0
+        self._cpu_resumes = 0
+        self._resume_wall_acc = 0.0
+        self._resume_cpu_acc = 0.0
+        self._resume_ok_s = 0.0
+        self._pause_reason = ""
+        self._stop_reason = ""
+        self._last_tick_at = self._now_iso()
+        self._status_written_at = 0.0
+        self._next_parent_check = self.clock()
         self._control_seq = 0
 
         self._events_total = 0
@@ -230,6 +255,9 @@ class AmbientScheduler:
         self._final: dict[str, Any] | None = None
 
         self.out_dir.mkdir(parents=True, exist_ok=True)
+        self.status_path = (
+            Path(cfg.status_file) if cfg.status_file else self.out_dir / "ambient_status.json"
+        )
         self._audit_fh = (self.out_dir / "ambient.jsonl").open("a", encoding="utf-8")
         self._progress_fh = (self.out_dir / "ambient_progress.jsonl").open("a", encoding="utf-8")
         self._summary_fh = (self.out_dir / "ambient_summaries.jsonl").open("a", encoding="utf-8")
@@ -278,6 +306,7 @@ class AmbientScheduler:
             f"[{stamp(0)}] ambient_boot npcs={len(self.npc_ids)} locations={len(self.content.locations)} "
             f"seed={cfg.seed} content={self.content.content_hash[:12]} speed={self.speed:g}x"
         )
+        self._write_status("running")
 
     # ---------------------------------------------------------------- 基础设施
     def _log_line(self, text: str) -> None:
@@ -288,6 +317,65 @@ class AmbientScheduler:
     def _write_json(self, name: str, payload: dict[str, Any]) -> None:
         path = self.out_dir / name
         path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
+
+    def _now_iso(self) -> str:
+        # 状态文件需要人类可读墙钟时间；用 clock_gettime，避免确定性 lint 禁止的调用。
+        epoch = time.clock_gettime(time.CLOCK_REALTIME)
+        return time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime(epoch))
+
+    def _write_status(self, state: str, reason: str = "") -> None:
+        """原子写 ambient_status.json：API/UI 只读它，不碰世界状态。"""
+        self._status_written_at = self.clock()
+        payload = {
+            "ok": state in ("running", "paused"),
+            "run_id": self.cfg.run_id,
+            "pid": os.getpid(),
+            "state": state,
+            "reason": reason,
+            "tick": int(self.tick),
+            "last_tick_at": self._last_tick_at,
+            "updated_at": self._now_iso(),
+            "speed": self.speed,
+            "npc_count": len(self.npc_ids),
+            "events_total": self._events_total,
+            "npc_events_total": self._npc_events_total,
+            "active_npcs": len(self._active_npcs),
+            "verbs": len(self._verb_counts),
+            "llm_calls": self.cost.calls,
+            "parent_pid": self.cfg.parent_pid,
+            "cpu": {
+                "ratio_avg": self._avg_cpu_ratio(),
+                "limit": float(self.cfg.max_cpu_ratio),
+                "throttles": int(self._cpu_guard_sleeps),
+                "throttled_s": round(self._cpu_guard_slept_s, 3),
+                "pauses": int(self._cpu_pauses),
+                "resumes": int(self._cpu_resumes),
+            },
+        }
+        tmp = self.status_path.with_name(self.status_path.name + ".tmp")
+        try:
+            tmp.write_text(
+                json.dumps(payload, ensure_ascii=False, sort_keys=True), encoding="utf-8"
+            )
+            os.replace(tmp, self.status_path)
+        except OSError as exc:
+            self._log_line(f"[{stamp(self.tick)}] ambient_status_write_failed {type(exc).__name__}: {exc}")
+
+    def _maybe_status_heartbeat(self) -> None:
+        if self.clock() - self._status_written_at >= 1.0:
+            self._write_status("paused" if self.paused else "running", self._pause_reason)
+
+    def _parent_gone(self) -> bool:
+        pid = self.cfg.parent_pid
+        if not pid:
+            return False
+        try:
+            os.kill(int(pid), 0)
+        except ProcessLookupError:
+            return True
+        except (PermissionError, OverflowError, ValueError):
+            return False
+        return False
 
     def _record_event(self, ev: Event) -> None:
         if ev.seq <= self._last_seq:
@@ -492,6 +580,8 @@ class AmbientScheduler:
         # 世界时钟与事件日志同源：tick 不参与状态哈希，只用于玩家写操作校验。
         self.writer.state.tick = t
         self._write_progress(t)
+        self._last_tick_at = self._now_iso()
+        self._write_status("paused" if self.paused else "running", self._pause_reason)
         if self.cfg.summary_every_ticks > 0 and t % self.cfg.summary_every_ticks == 0:
             self._write_summary(t)
 
@@ -572,22 +662,32 @@ class AmbientScheduler:
         self._window_npcs = set()
 
     # ---------------------------------------------------------------- 控制面
-    def pause(self, source: str = "api") -> None:
+    def pause(self, source: str = "api", reason: str = "") -> None:
         if self.paused:
             return
         self.paused = True
-        self._record_control("pause", source)
-        self._log_line(f"[{stamp(self.tick)}] ambient_pause tick={self.tick}")
+        self._pause_reason = reason
+        self._record_control("pause", source, {"reason": reason} if reason else None)
+        self._log_line(
+            f"[{stamp(self.tick)}] ambient_pause tick={self.tick} source={source}"
+            + (f" reason={reason}" if reason else "")
+        )
+        self._write_status("paused", reason)
 
     def resume(self, source: str = "api") -> None:
         if not self.paused:
             return
         self.paused = False
+        self._pause_reason = ""
+        self._cpu_paused = False
+        self._cpu_over_s = 0.0
+        self._resume_ok_s = 0.0
         self._auto_resume_at = None
         self._anchor_tick = self.tick
         self._anchor_time = self.clock()
         self._record_control("resume", source)
-        self._log_line(f"[{stamp(self.tick)}] ambient_resume tick={self.tick}")
+        self._log_line(f"[{stamp(self.tick)}] ambient_resume tick={self.tick} source={source}")
+        self._write_status("running")
 
     def set_speed(self, speed: float, source: str = "api") -> None:
         self.speed = _nearest_speed(speed)
@@ -610,7 +710,9 @@ class AmbientScheduler:
 
     def stop(self, source: str = "api") -> None:
         self.stopped = True
+        self._stop_reason = source
         self._record_control("stop", source)
+        self._write_status("stopped", source)
 
     def _record_control(self, command: str, source: str, extra: dict[str, Any] | None = None) -> None:
         self._control_seq += 1
@@ -675,6 +777,7 @@ class AmbientScheduler:
         self.sleeper(min(0.25, max(0.002, remain)))
 
     def _cpu_guard(self, tick_wall: float, tick_cpu: float) -> None:
+        """超过阈值先补睡降速；持续超限则暂停自走，而不是拖死服务端。"""
         if tick_wall <= 0:
             return
         self._wall_total += tick_wall
@@ -682,10 +785,11 @@ class AmbientScheduler:
         # 按时间窗评估，避免配速空闲把「忙时 CPU 比例」误算成整进程占用。
         self._guard_wall_acc += tick_wall
         self._guard_cpu_acc += max(0.0, tick_cpu)
-        if self._guard_wall_acc < 0.25:
+        if self._guard_wall_acc < max(0.01, float(self.cfg.cpu_sample_s)):
             return
         ratio = self._guard_cpu_acc / self._guard_wall_acc
         limit = float(self.cfg.max_cpu_ratio)
+        elapsed = self._guard_wall_acc
         if limit > 0 and ratio > limit:
             need = max(0.0, self._guard_cpu_acc / limit - self._guard_wall_acc)
             if need > 0:
@@ -693,8 +797,50 @@ class AmbientScheduler:
                 self._cpu_guard_sleeps += 1
                 self._cpu_guard_slept_s += need
                 self._wall_total += need
+                elapsed += need
+            self._cpu_over_s += elapsed
+            if (
+                not self.paused
+                and not self.stopped
+                and self.cfg.cpu_pause_after_s > 0
+                and self._cpu_over_s >= float(self.cfg.cpu_pause_after_s)
+            ):
+                self._cpu_paused = True
+                self._cpu_pauses += 1
+                self._log_line(
+                    f"[{stamp(self.tick)}] cpu_guard_pause ratio={ratio:.3f} "
+                    f"limit={limit:.2f} over_s={self._cpu_over_s:.2f}"
+                )
+                self.pause(source="cpu_guard", reason="cpu_ratio_over_limit")
+        else:
+            self._cpu_over_s = 0.0
         self._guard_wall_acc = 0.0
         self._guard_cpu_acc = 0.0
+
+    def _cpu_pause_watch(self, wall: float, cpu: float) -> None:
+        """暂停期间低频采样；低于恢复线并持续足够久后自动恢复。"""
+        if not self._cpu_paused or wall <= 0:
+            return
+        self._resume_wall_acc += wall
+        self._resume_cpu_acc += max(0.0, cpu)
+        if self._resume_wall_acc < max(0.01, float(self.cfg.cpu_sample_s)):
+            return
+        ratio = self._resume_cpu_acc / self._resume_wall_acc
+        if ratio <= float(self.cfg.cpu_resume_below_ratio):
+            self._resume_ok_s += self._resume_wall_acc
+            if self._resume_ok_s >= float(self.cfg.cpu_resume_after_s):
+                self._cpu_paused = False
+                self._cpu_resumes += 1
+                self._log_line(
+                    f"[{stamp(self.tick)}] cpu_guard_resume ratio={ratio:.3f} "
+                    f"limit={float(self.cfg.max_cpu_ratio):.2f} after_s={self._resume_ok_s:.2f}"
+                )
+                self._resume_ok_s = 0.0
+                self.resume(source="cpu_guard")
+        else:
+            self._resume_ok_s = 0.0
+        self._resume_wall_acc = 0.0
+        self._resume_cpu_acc = 0.0
 
     def _avg_cpu_ratio(self) -> float:
         if self._wall_total <= 0:
@@ -706,6 +852,9 @@ class AmbientScheduler:
         for _ in range(max(0, int(n))):
             self._tick_with_guard()
             if self._max_reached():
+                break
+            if self._cpu_paused:
+                # 快跑模式没有真实墙钟可恢复；交由 start()/外部恢复。
                 break
         return self.tick
 
@@ -732,16 +881,32 @@ class AmbientScheduler:
         self._anchor_time = self.clock()
         while not self.stopped:
             self._poll_control()
-            if deadline is not None and self.clock() >= deadline:
+            now = self.clock()
+            if now >= self._next_parent_check:
+                self._next_parent_check = now + 0.5
+                if self._parent_gone():
+                    self._log_line(
+                        f"[{stamp(self.tick)}] ambient_parent_gone pid={self.cfg.parent_pid}"
+                    )
+                    self.stop(source="parent_gone")
+                    break
+            if deadline is not None and now >= deadline:
                 break
             if self._max_reached():
                 break
             if self.paused:
-                if self._auto_resume_at is not None and self.clock() >= self._auto_resume_at:
+                if self._cpu_paused:
+                    w0 = self.clock()
+                    c0 = self.cpu_clock()
+                    self.sleeper(0.05)
+                    self._cpu_pause_watch(self.clock() - w0, self.cpu_clock() - c0)
+                    self._maybe_status_heartbeat()
+                elif self._auto_resume_at is not None and now >= self._auto_resume_at:
                     self.resume(source="auto_resume")
                 else:
                     self.sleeper(0.05)
-                    continue
+                    self._maybe_status_heartbeat()
+                continue
             if (
                 pause_at_tick is not None
                 and not pause_done
@@ -883,8 +1048,13 @@ class AmbientScheduler:
             ),
             "cpu_ratio_proc": proc_ratio,
             "cpu_ratio_tick_avg": self._avg_cpu_ratio(),
+            "cpu_ratio_limit": float(self.cfg.max_cpu_ratio),
             "cpu_guard_sleeps": self._cpu_guard_sleeps,
             "cpu_guard_slept_s": round(self._cpu_guard_slept_s, 3),
+            "cpu_pauses": self._cpu_pauses,
+            "cpu_resumes": self._cpu_resumes,
+            "parent_pid": self.cfg.parent_pid,
+            "status_file": str(self.status_path),
             "summaries": len(self._summaries),
             "progress_records": self._processed,
             "state_hash": state_hash(self.writer.state),
@@ -913,6 +1083,9 @@ class AmbientScheduler:
             row["error"] = self._error
         self._final = row
         self._write_json("ambient_summary.json", row)
+        self._write_status(
+            "stopped", "error" if self._error else (self._stop_reason or "finished")
+        )
         self._close()
         return row
 
@@ -926,6 +1099,7 @@ class AmbientScheduler:
         }
         self._error = payload
         self._write_json("ambient_error.json", payload)
+        self._write_status("stopped", f"error:{phase}")
         self._log_line(
             f"[{stamp(self.tick)}] AMBIENT_ERROR phase={phase} {payload['error']} (see ambient_error.json)"
         )
