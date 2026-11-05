@@ -55,6 +55,11 @@ PLAYER_VERBS = frozenset(
         "join_sect",
         "quest_accept",
         "quest_deliver",
+        # 消费类动作：语义由 BuyAction / SellAction / ConsumeAction / EscortAction 提供。
+        "buy",
+        "sell",
+        "consume",
+        "escort",
     }
 )
 

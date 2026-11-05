@@ -41,7 +41,15 @@ from ..world.state import WorldState
 from ..world.store import EventStore
 from ..world.writer import Writer
 from ..actions.registry import build_registry
-from ..actions.common import reputation_points
+from ..actions.common import (
+    business_selling,
+    business_with_cash,
+    cheapest_food,
+    reputation_points,
+    sell_price,
+    transaction_tax,
+    wallet as wallet_account,
+)
 from .event_tail import EventTail
 from .growth import growth_view, today_view
 from .persistence import replay_into, verify_content_hash
@@ -76,6 +84,11 @@ WRITE_ACTIONS: dict[str, str] = {
     "work": "work",
     "open_shop": "open_shop",
     "join_sect": "join_sect",
+    # 消费类动作：复用 BuyAction / SellAction / ConsumeAction / EscortAction。
+    "buy": "buy",
+    "sell": "sell",
+    "consume": "consume",
+    "escort": "escort",
     # 统一动作入口使用的下划线别名（与 /api/player/quest/accept 等价）。
     "quest_accept": "quest_accept",
     "quest_deliver": "quest_deliver",
@@ -100,7 +113,14 @@ ACTION_ALIASES: dict[str, str] = {
     "quest/accept": "quest/accept",
     "quest_deliver": "quest/deliver",
     "quest/deliver": "quest/deliver",
+    "buy": "buy",
+    "sell": "sell",
+    "consume": "consume",
+    "escort": "escort",
 }
+
+# NPC 专属动作：玩家请求必须得到明确的“未开放”，而不是未知操作。
+PLAYER_UNIMPLEMENTED_VERBS = frozenset({"marry", "found_sect", "apprentice"})
 
 FORBIDDEN_VERBS = frozenset(
     {"rob", "attack", "kill", "marry_force", "player_expel", "item_create", "mint", "set_field"}
@@ -165,6 +185,32 @@ REASON_TEXT: dict[str, str] = {
     "target_insufficient_money": "对方的钱不够支付这笔差额。",
     "hostile": "对方对你敌对，拒绝交易。",
     "bad_arg:money_delta": "金额参数必须是整数。",
+    # 玩家消费类动作的专属原因码（与 NPC 引擎码分开，语义见 docs/player-api.md）。
+    "not_enough_money": "你的钱不够（买入价含交易税）。",
+    "item_not_available": "这件物品不在当前内容包里。",
+    "item_missing": "你背包里没有足够的这件物品。",
+    "not_here": "你不在这个交易地点。",
+    "shop_closed": "这里没有店铺，不能买卖。",
+    "not_a_merchant": "这里的店铺不做这件货的买卖。",
+    "not_implemented_for_player": "这个玩法还没对玩家开放。",
+    # 押镖参数与前置。
+    "not_at_origin": "你不在镖单的起点。",
+    "route_not_adjacent": "押镖路线不连续；只能沿相邻地点逐段走。",
+    "already_on_escort": "你正在押镖，不能同时接第二单。",
+    "cargo_too_low": "货值低于这条线路的最低承运要求。",
+    "cargo_too_high": "货值超过这条线路的最高承运额度。",
+    "fee_too_low": "镖银低于这条线路的最低标准。",
+    "fee_too_high": "镖银超过这条线路的最高标准。",
+    "no_escort_agency": "起点没有镖局，不能接镖。",
+    "agency_insufficient_cash": "镖局现金不足以支付这单镖银。",
+    "bad_arg:route": "路线格式错误；请给地点 id 列表或 route_id。",
+    "bad_arg:cargo_qty": "货物数量必须是 1-100 的整数。",
+    "bad_arg:cargo_value": "货值必须是整数。",
+    "bad_arg:fee": "镖银必须是整数。",
+    "bad_arg:item": "物品参数不合法。",
+    "bad_arg:qty": "数量参数不合法（1-20 的整数）。",
+    "bad_arg:from": "交易地点参数不合法。",
+    "bad_arg:to": "交易地点参数不合法。",
     "role_not_allowed": "你的身份不允许该操作。",
     "player_cap_reached": "本区域玩家席位已满，暂时无法创建新账号。",
     "endowment_already_granted": "该账号已经领取过初始资产，不能重复领取。",
@@ -219,6 +265,12 @@ class WorldSession:
         self._presence_active = max(0.0, float(presence_active_seconds))
         self._presence_offline = max(self._presence_active, float(presence_offline_seconds))
         self._last_active: dict[str, float] = {}
+        # 价格缓存按 tick 失效（tick 不变则库存/供需不变，读快照无需重复扫全城）。
+        self._price_tick = -1
+        self._price_cache: dict[str, int] = {}
+        # 同一 tick 内钱包/地点/店铺视图不变（库存与钱只会随写动作推进 tick 而变）。
+        self._view_tick = -1
+        self._view_cache: dict[str, tuple[dict[str, Any], dict[str, Any], dict[str, Any]]] = {}
 
         self.content = load_content(self.root, allow_fixture=False, use_content=True)
         # 世界自走与玩家共用 content：feed 只认这批 NPC，玩家 ID 永不进入公共事件流。
@@ -331,6 +383,22 @@ class WorldSession:
             prof = self.state.players[pid]
             ent = self.state.entities[pid]
             now = self._presence_clock()
+            # 一次快照内按物品缓存成交价：内容层的供需乘数会扫全城库存，
+            # 同一物品在 wallet/location/shop 三处重复取价会让并发读成倍变慢。
+            prices: dict[str, tuple[int, int]] = {}
+            tick = int(self.state.tick)
+            if tick != self._view_tick:
+                self._view_cache.clear()
+                self._view_tick = tick
+            cached_views = self._view_cache.get(pid)
+            if cached_views is None:
+                cached_views = (
+                    self._wallet_view(pid, prices),
+                    self._location_view(ent.location, pid, prices),
+                    self._shop_view(pid, ent.location, prices),
+                )
+                self._view_cache[pid] = cached_views
+            wallet_view, location_view, shop_view = cached_views
             player = {
                 "entity_id": pid,
                 "account_id": account,
@@ -351,12 +419,13 @@ class WorldSession:
                 "last_intent_tick": int(prof.last_intent_tick),
                 "endowed": bool(prof.endowed),
                 "endowed_tick": int(prof.endowed_tick),
-                "wallet": self._wallet_view(pid),
+                "wallet": wallet_view,
                 "skills": {k: round(float(v), 4) for k, v in sorted(ent.skills.items())},
                 "relations": view["relations"],
                 "active_quests": view["active_quests"],
             }
-            location = self._location_view(ent.location)
+            location = location_view
+            shop = shop_view
             present = self._present_view(pid, ent.location)
             online = self._online_players_view(pid)
             quest_board = self._quest_board_view(pid, ent.location)
@@ -368,7 +437,13 @@ class WorldSession:
                 "endowment_total": int(self.state.endowment_total),
                 "player": player,
                 "location": location,
+                "shop": shop,
                 "present_npcs": present,
+                "escort_orders": [
+                    order.to_dict()
+                    for order in sorted(self.state.escorts.values(), key=lambda o: (o.created_tick, o.id))
+                    if str(order.carrier or "") == pid
+                ],
                 "quest_board": quest_board,
                 "online_players": online,
                 # 兼容旧 /api/player/status 的扁平字段，前端可逐步迁移。
@@ -744,20 +819,54 @@ class WorldSession:
         row = (self.content.items or {}).get(item_id) or {}
         return str(row.get("name") or item_id)
 
-    def _wallet_view(self, pid: str) -> dict[str, Any]:
+    def _item_prices(self, prices: dict[str, tuple[int, int]] | None, item: str) -> tuple[int, int]:
+        """一次读取内的成交价缓存：`(买入价, 卖出价)`，未知物品给 (0, 0)。
+
+        供需乘数会扫全城库存，而同一个 tick 内只读快照不会改变库存，
+        因此按 tick 缓存，tick 变化（任何写动作都会推进 tick）即失效。
+        """
+        if item not in self.content.items:
+            return (0, 0)
+        tick = int(self.state.tick)
+        if tick != self._price_tick:
+            self._price_cache.clear()
+            self._price_tick = tick
+        buy = self._price_cache.get(item)
+        if buy is None:
+            buy = int(self.content.item_price(item, self.state))
+            self._price_cache[item] = buy
+        ratio = float(self.content.economy.get("sell_ratio", 0.6))
+        pair = (buy, max(1, int(round(buy * ratio))))
+        if prices is not None:
+            prices[item] = pair
+        return pair
+
+    def _wallet_view(self, pid: str, prices: dict[str, tuple[int, int]] | None = None) -> dict[str, Any]:
         from ..actions.common import wallet as wallet_of
 
         ent = self.state.entities[pid]
         return {
             "money": int(self.state.account_balance(wallet_of(pid))),
             "items": [
-                {"item": item, "name": self._item_name(item), "qty": int(qty)}
+                {
+                    "item": item,
+                    "name": self._item_name(item),
+                    "qty": int(qty),
+                    # 只加不改：原 item/name/qty 语义不变，价格供 UI 直接展示。
+                    "price": self._item_prices(prices, item)[0],
+                    "sell_price": self._item_prices(prices, item)[1],
+                }
                 for item, qty in sorted(ent.inventory.items())
                 if int(qty) > 0
             ],
         }
 
-    def _location_view(self, loc_id: str) -> dict[str, Any]:
+    def _location_view(
+        self,
+        loc_id: str,
+        pid: str = "",
+        prices: dict[str, tuple[int, int]] | None = None,
+    ) -> dict[str, Any]:
         row = (self.content.locations or {}).get(loc_id) or {}
         exits = []
         for nxt in sorted(str(x) for x in (row.get("exits") or [])):
@@ -768,12 +877,116 @@ class WorldSession:
                     "exists": nxt in self.state.locations,
                 }
             )
+        services = sorted(str(x) for x in (row.get("services") or []))
+        # 一次地点快照只扫一遍本地点商业体：逐件调 business_selling 会重复扫全城。
+        stock_by_item: dict[str, Any] = {}
+        for biz in self.state.business_at(loc_id):
+            for item, qty in biz.stock.items():
+                if int(qty) > 0 and item not in stock_by_item:
+                    stock_by_item[item] = biz
+        detail = []
+        for item in services:
+            if item not in self.content.items:
+                detail.append(
+                    {
+                        "item": item, "name": item, "category": "",
+                        "price": 0, "sell_price": 0, "tax": 0,
+                        "stock": 0, "available": False, "business": "",
+                        "business_name": "", "buy_limit": 0, "sell_limit": 0,
+                    }
+                )
+                continue
+            unit_price, unit_sell = self._item_prices(prices, item)
+            biz = stock_by_item.get(item)
+            stock = int(biz.stock.get(item, 0)) if biz is not None else 0
+            detail.append(
+                {
+                    "item": item,
+                    "name": self._item_name(item),
+                    "category": str((self.content.items.get(item) or {}).get("category", "")),
+                    "price": unit_price,
+                    "sell_price": unit_sell,
+                    "tax": int(transaction_tax(self.content, unit_price)),
+                    "stock": stock,
+                    "available": biz is not None,
+                    "business": biz.id if biz is not None else "",
+                    "business_name": biz.name if biz is not None else "",
+                    "buy_limit": self._buy_limit(pid, unit_price, stock) if pid and biz else 0,
+                    "sell_limit": self._sell_limit(pid, item, unit_sell, loc_id) if pid else 0,
+                }
+            )
         return {
             "id": loc_id,
             "name": str(row.get("name") or loc_id),
             "description": str(row.get("description") or ""),
             "exits": exits,
-            "services": sorted(str(x) for x in (row.get("services") or [])),
+            # 原字段保持不变（仍是 item id 列表）；价格与买卖上限走并列的新字段。
+            "services": services,
+            "services_detail": detail,
+        }
+
+    def _shop_view(
+        self,
+        pid: str,
+        loc_id: str,
+        prices: dict[str, tuple[int, int]] | None = None,
+    ) -> dict[str, Any]:
+        """当前地点的买卖面板：价格、库存、可买/可卖上限（只读派生）。"""
+        ent = self.state.entities.get(pid)
+        businesses = self.state.business_at(loc_id)
+        buy_rows = []
+        seen: set[str] = set()
+        for biz in businesses:
+            for item, qty in sorted(biz.stock.items()):
+                if int(qty) <= 0 or item in seen or item not in self.content.items:
+                    continue
+                seen.add(item)
+                unit_price = self._item_prices(prices, item)[0]
+                tax = int(transaction_tax(self.content, unit_price))
+                buy_rows.append(
+                    {
+                        "item": item,
+                        "name": self._item_name(item),
+                        "category": str((self.content.items.get(item) or {}).get("category", "")),
+                        "price": unit_price,
+                        "tax": tax,
+                        "total": unit_price + tax,
+                        "stock": int(qty),
+                        "business": biz.id,
+                        "business_name": biz.name,
+                        "buy_limit": self._buy_limit(pid, unit_price, int(qty)),
+                    }
+                )
+        sell_rows = []
+        if ent is not None:
+            for item, qty in sorted(ent.inventory.items()):
+                if int(qty) <= 0 or item not in self.content.items:
+                    continue
+                unit_sell = self._item_prices(prices, item)[1]
+                sell_rows.append(
+                    {
+                        "item": item,
+                        "name": self._item_name(item),
+                        "category": str((self.content.items.get(item) or {}).get("category", "")),
+                        "qty": int(qty),
+                        "price": self._item_prices(prices, item)[0],
+                        "sell_price": unit_sell,
+                        "sell_limit": self._sell_limit(pid, item, unit_sell, loc_id),
+                    }
+                )
+        return {
+            "location": loc_id,
+            "businesses": [
+                {
+                    "id": biz.id,
+                    "name": biz.name,
+                    "kind": biz.kind,
+                    "cash": int(self.state.account_balance(biz.cash_account)),
+                }
+                for biz in businesses
+            ],
+            "buy": buy_rows,
+            "sell": sell_rows,
         }
 
     def _present_view(self, pid: str, loc_id: str) -> list[dict[str, Any]]:
@@ -983,6 +1196,8 @@ class WorldSession:
         if not ACCOUNT_RE.match(account):
             return self._reject_early(account, action, "bad_account", tick)
         pid = self._pid(account)
+        if action in PLAYER_UNIMPLEMENTED_VERBS:
+            return self._reject_early(account, action, "not_implemented_for_player", tick)
         verb = WRITE_ACTIONS.get(action)
         if verb is None:
             return self._reject_early(account, action, "unknown_action", tick)
@@ -1008,6 +1223,11 @@ class WorldSession:
                 return self._reject_early(account, action, "role_not_allowed", tick)
 
         args = self._args(action, pid, account, payload)
+        # 玩家可读原因码：用现有内容/状态助手做只读前置判定，命中即写 reject 事件；
+        # 未命中仍交给原动作执行（不复制任何交易效果）。
+        reason = self._precheck_player_action(action, pid, args, tick)
+        if reason:
+            return self._reject_early(account, action, reason, tick)
         intent = Intent(actor=pid, verb=verb, args=args, tick=tick, source="player")
         created = prof is None
         event = self._submit(intent)
@@ -1128,7 +1348,163 @@ class WorldSession:
             base["target"] = str(payload.get("target") or (ent.location if ent is not None else ""))
             base["dues"] = payload.get("dues", 0)
             return base
+        if action == "buy":
+            base["item"] = str(payload.get("item") or "")
+            base["qty"] = payload.get("qty", 1)
+            if payload.get("from") is not None:
+                base["from"] = str(payload.get("from") or "")
+            return base
+        if action == "sell":
+            base["item"] = str(payload.get("item") or "")
+            base["qty"] = payload.get("qty", 1)
+            if payload.get("to") is not None:
+                base["to"] = str(payload.get("to") or "")
+            return base
+        if action == "consume":
+            item = payload.get("item")
+            if isinstance(item, str) and item.strip():
+                base["item"] = item.strip()
+            base["qty"] = payload.get("qty", 1)
+            return base
+        if action == "escort":
+            route = payload.get("route")
+            route_id = str(payload.get("route_id") or "").strip()
+            if route is None and route_id:
+                meta = (self.content.escort_routes or {}).get(route_id) or {}
+                route = list(meta.get("route") or [])
+            elif isinstance(route, str):
+                route = [x.strip() for x in route.split(",") if x.strip()]
+            base["route"] = route
+            if route_id:
+                base["route_id"] = route_id
+            cargo = payload.get("cargo")
+            if isinstance(cargo, dict):
+                item = str(cargo.get("item") or "").strip()
+                qty = cargo.get("qty", 1)
+            elif isinstance(cargo, str) and cargo.strip():
+                item = cargo.strip()
+                qty = payload.get("cargo_qty", 1)
+            else:
+                item = ""
+                qty = 1
+            if item:
+                base["cargo_item"] = item
+                base["cargo_qty"] = qty
+                valid_qty = isinstance(qty, int) and not isinstance(qty, bool) and qty >= 1
+                if item in self.content.items and valid_qty:
+                    base["cargo_value"] = self.content.item_price(item, self.state) * qty
+                else:
+                    base["cargo_value"] = payload.get("cargo_value", 0)
+            else:
+                base["cargo_value"] = payload.get("cargo_value", 100)
+            base["fee"] = payload.get("fee", 0)
+            return base
         return base
+
+    def _precheck_player_action(
+        self, action: str, pid: str, args: dict[str, Any], tick: int
+    ) -> str:
+        """玩家消费类动作的只读前置校验，返回可读原因码（空串表示交给动作层）。
+
+        语义与 BuyAction / SellAction / ConsumeAction / EscortAction 的前置一致，
+        只读 content / state，不产生任何效果或半写。
+        """
+        if action not in ("buy", "sell", "consume", "escort"):
+            return ""
+        ent = self.state.entities.get(pid)
+        if ent is None:
+            return ""
+        if action == "buy":
+            item = str(args.get("item") or "")
+            if not item or item not in self.content.items:
+                return "item_not_available" if item else ""
+            at = str(args.get("from") or ent.location)
+            if at != ent.location:
+                return "not_here"
+            qty = args.get("qty", 1)
+            if isinstance(qty, bool) or not isinstance(qty, int) or not (1 <= qty <= 20):
+                return ""
+            seller = business_selling(self.state, ent.location, item)
+            if seller is None:
+                return "not_a_merchant" if self.state.business_at(ent.location) else "shop_closed"
+            cost = self.content.item_price(item, self.state) * qty
+            if self.state.account_balance(wallet_account(pid)) < cost + transaction_tax(self.content, cost):
+                return "not_enough_money"
+            return ""
+        if action == "sell":
+            item = str(args.get("item") or "")
+            if not item or item not in self.content.items:
+                return "item_not_available" if item else ""
+            at = str(args.get("to") or ent.location)
+            if at != ent.location:
+                return "not_here"
+            qty = args.get("qty", 1)
+            if isinstance(qty, bool) or not isinstance(qty, int) or not (1 <= qty <= 20):
+                return ""
+            if int(ent.inventory.get(item, 0)) < qty:
+                return "item_missing"
+            revenue = sell_price(self.content, item, self.state) * qty
+            if business_with_cash(self.state, ent.location, revenue) is None:
+                return "not_a_merchant" if self.state.business_at(ent.location) else "shop_closed"
+            return ""
+        if action == "consume":
+            qty = args.get("qty", 1)
+            if isinstance(qty, bool) or not isinstance(qty, int) or qty < 1:
+                return ""
+            item = str(args.get("item") or "")
+            if item and item not in self.content.items:
+                return "item_not_available"
+            if not item:
+                item = cheapest_food(self.content, ent.location, self.state) or ""
+            if not item:
+                return "not_a_merchant" if self.state.business_at(ent.location) else "shop_closed"
+            if business_selling(self.state, ent.location, item) is None:
+                return "not_a_merchant" if self.state.business_at(ent.location) else "shop_closed"
+            cost = self.content.item_price(item, self.state) * qty
+            if self.state.account_balance(wallet_account(pid)) < cost + transaction_tax(self.content, cost):
+                return "not_enough_money"
+            return ""
+        # escort：起点必须是当前位置；货物必须是内容包里的真实物品。
+        route = args.get("route")
+        if isinstance(route, list) and len(route) >= 2 and str(route[0]) != ent.location:
+            return "not_here"
+        cargo_item = str(args.get("cargo_item") or "")
+        if cargo_item:
+            if cargo_item not in self.content.items:
+                return "item_not_available"
+            qty = args.get("cargo_qty")
+            if isinstance(qty, bool) or not isinstance(qty, int) or not (1 <= qty <= 100):
+                return "bad_arg:cargo_qty"
+            # 押镖货物必须是玩家背包里的真实物品：没有就先给出 item_missing，
+            # 而不是放行一张空头镖单。
+            if int(ent.inventory.get(cargo_item, 0)) < qty:
+                return "item_missing"
+        return ""
+
+    def _buy_limit(self, pid: str, unit_price: int, stock: int) -> int:
+        """可买上限：库存、单笔 20 件、含税可负担三者取小。"""
+        limit = min(max(0, int(stock)), 20)
+        money = self.state.account_balance(wallet_account(pid))
+        while limit > 0:
+            cost = unit_price * limit
+            if cost + transaction_tax(self.content, cost) <= money:
+                break
+            limit -= 1
+        return limit
+
+    def _sell_limit(self, pid: str, item: str, unit_price: int, location: str) -> int:
+        """可卖上限：持有量、单笔 20 件、本地店铺现金三者取小。"""
+        ent = self.state.entities.get(pid)
+        if ent is None or item not in self.content.items:
+            return 0
+        limit = min(int(ent.inventory.get(item, 0)), 20)
+        cash = max(
+            (self.state.account_balance(biz.cash_account) for biz in self.state.business_at(location)),
+            default=0,
+        )
+        while limit > 0 and unit_price * limit > cash:
+            limit -= 1
+        return limit
 
     def _submit(self, intent: Intent):
         data = {"actor": intent.actor, "verb": intent.verb, "args": intent.args,
@@ -1175,6 +1551,20 @@ class WorldSession:
             Intent(actor="system", verb="system_tick", args=args, tick=tick, source="system")
         )
         self.tail.observe(event)
+        # 玩家押镖闭环：仅当有玩家镖单到期时才补一条到达结算，不改变无镖单世界的 seq。
+        if self._player_escort_due(tick):
+            settle = self.writer.submit(
+                Intent(actor="system", verb="system_escort_arrive", args={}, tick=tick, source="system")
+            )
+            self.tail.observe(settle)
+
+    def _player_escort_due(self, tick: int) -> bool:
+        return any(
+            order.status == "active"
+            and int(order.arrive_tick) <= int(tick)
+            and str(order.carrier or "").startswith("player:")
+            for order in self.state.escorts.values()
+        )
 
     def _mark_offline(self, pid: str, tick: int) -> None:
         """把静置超宽限期的玩家落成离线事件（可回放），供下次重连走 resume/enter。"""

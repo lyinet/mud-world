@@ -129,19 +129,25 @@ class EscortAction(Action):
                     break
 
         oid = f"escort:{ent.id}:{intent.tick}"
+        # 玩家可传真实货物（item + qty）；不传时事件体与旧世界逐字节一致。
+        cargo_item = str(intent.args.get("cargo_item") or "")
+        cargo_qty = (
+            arg_int(intent, "cargo_qty", 1, minimum=1, maximum=10000) if cargo_item else 0
+        )
+        order_payload = {
+            "id": oid,
+            "origin": route[0],
+            "destination": route[-1],
+            "cargo_value": cargo,
+            "fee": fee,
+            "deposit": max(1, fee),
+            "created_tick": intent.tick,
+        }
+        if cargo_item:
+            order_payload["cargo_item"] = cargo_item
+            order_payload["cargo_qty"] = cargo_qty
         effects = [
-            Effect(
-                "escort_order_create",
-                {
-                    "id": oid,
-                    "origin": route[0],
-                    "destination": route[-1],
-                    "cargo_value": cargo,
-                    "fee": fee,
-                    "deposit": max(1, fee),
-                    "created_tick": intent.tick,
-                },
-            ),
+            Effect("escort_order_create", order_payload),
             Effect(
                 "escort_start",
                 {

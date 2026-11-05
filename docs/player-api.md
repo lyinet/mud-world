@@ -325,6 +325,23 @@ PYTHONPATH=src python3 -m wsim.api --run player-demo --seed-account alice --port
 - `quest_board.rows` 只含 `status=open`；`active` 只含“本人已接”的任务。
 - `acceptable` / `can_accept_here` 已综合：发布人在场、任务未过期、本人未押镖、本人活跃任务 < 2。
 
+### 3.1 价格、买卖上限与押镖单（2026-11-05 只增不改）
+
+`location.services` **仍是 item id 字符串列表**，语义不变。新增并列字段：
+
+- `location.services_detail[]`：每个服务/商品一行，字段
+  `item`、`name`、`category`、`price`（单件买入价，不含税）、`sell_price`（单件收购价）、
+  `tax`（单件交易税）、`stock`（当前店铺库存）、`available`（当前地点是否有货）、
+  `business` / `business_name`、`buy_limit`、`sell_limit`。
+- 顶层 `shop`：`{location, businesses[], buy[], sell[]}`。`buy[]` 行额外带
+  `total = price + tax`；`sell[]` 行带 `qty` 与 `sell_limit`。
+- `player.wallet.items[]` 在原 `item/name/qty` 之外新增 `price`、`sell_price`。
+- `escort_orders[]`：本人押镖单（`id`/`origin`/`destination`/`cargo_value`/`fee`/`deposit`/
+  `status`/`arrive_tick`/`success` 等），供 UI 展示进度。
+
+`buy_limit`/`sell_limit` 已综合“单笔最多 20 件、店铺库存/现金、玩家钱包/持有量”。
+这些字段均为增量；原有键与语义不变，匿名公共摘要白名单也不含这些新字段。
+
 ---
 
 ## 4. `POST /api/player/action`
@@ -365,6 +382,40 @@ PYTHONPATH=src python3 -m wsim.api --run player-demo --seed-account alice --port
 | `trade` | `trade` | `target`、`offer`（`[{item,qty}]`）、`want`、`money_delta` | 公平闸门：价值比 0.70（好感≥60 时 0.50） |
 | `quest_accept` / `quest/accept` | `quest_accept` | `quest`（任务 id） | 必须在发布人所在地点；最多同时 2 个任务 |
 | `quest_deliver` / `quest/deliver` | `quest_deliver` | `quest` | 必须到达目标地点/发布人处；奖励从发布人钱包转账 |
+| `buy` | `buy` | `item`、`qty`（默认 1，1-20）、`from`（可选，默认当前位置） | 向本地店铺买入；扣“货款+交易税”，货入背包 |
+| `sell` | `sell` | `item`、`qty`（默认 1，1-20）、`to`（可选，默认当前位置） | 向本地店铺卖出；出货，货款入钱包 |
+| `consume` | `consume` | `item`（可选，默认最便宜食物）、`qty` | 先向店铺买，再消耗；恢复体力 |
+| `escort` | `escort` | `route`（地点列表或逗号分隔）或 `route_id`；`cargo`（`{item,qty}` 或 item id）或 `cargo_value`；`fee` | 押镖；起点必须是当前位置 |
+
+#### 4.2.1 消费类动作与原因码
+
+- 四个动作复用既有 `BuyAction` / `SellAction` / `ConsumeAction` / `EscortAction`，不另起交易逻辑。
+- `buy`：`from` 缺省为当前位置；扣 `price*qty + 交易税`，货进背包，钱进店铺公账。
+- `sell`：`to` 缺省为当前位置；货出背包，`sell_price*qty` 从店铺公账进钱包。
+- `consume`：先按买入规则成交，再消耗 `qty` 件并恢复体力/饱腹；净效果是“钱少、食物不增”。
+- `escort`：`route` 必须首尾相邻可走且 `route[0] == 当前位置`；`cargo` 给真实物品
+  （服务端按 `item_price * qty` 折算 `cargo_value`，写入 `escort_order_create.cargo_item/cargo_qty`）。
+  `fee` 是镖银，到达后由镖局/委托方公账支付，扣除抽成与交易税，写 `escort_settle` 事件；
+  玩家被传送到 `route[-1]`。`cargo` 必须是玩家背包里真实持有的物品：数量不足返回
+  `item_missing`，不会放行空头镖单；押镖期间货物随镖师移动、不从背包扣除（引擎尚无独立
+  收货人账户），闭环由到达结算事件与镖银入账完成。
+- NPC 专属动作 `marry` / `found_sect` / `apprentice` 统一返回
+  `not_implemented_for_player`（reason_text=“这个玩法还没对玩家开放。”），不再回 `unknown_action`。
+
+玩家消费类动作的六类前置原因码（GET 状态里的价格字段可直接用于预判）：
+
+| 场景 | `reject_reason` |
+|---|---|
+| 余额（含税）不足 | `not_enough_money` |
+| 物品不在内容包 | `item_not_available` |
+| 卖出/交付时背包数量不足 | `item_missing` |
+| `from`/`to`/押镖起点与当前位置不符 | `not_here` |
+| 当前地点没有任何店铺 | `shop_closed` |
+| 有店铺但不卖/不收该物品 | `not_a_merchant` |
+| NPC 专属玩法 | `not_implemented_for_player` |
+
+押镖另有 `route_not_adjacent`、`already_on_escort`、`cargo_too_low/high`、`fee_too_low/high`、
+`no_escort_agency`、`agency_insufficient_cash`，语义不变，均已补 `reason_text`。
 
 不可逆动词（`rob`、`attack`、`kill`、`marry_force`、`player_expel`、`item_create`、`mint`、`set_field`）**不在本轮开放**；命中返回 `forbidden_verb` 并附人话原因。
 
@@ -520,7 +571,29 @@ curl -s 'http://127.0.0.1:8848/api/world/feed?limit=5'
 | `missing_account` | 缺少账号；请先创建账号再进入世界。 |
 | `bad_account` | 账号格式不合法（3-32 位小写字母、数字、下划线或连字符）。 |
 | `unknown_action` | 未知操作；可用操作见 docs/player-api.md。 |
+| `not_implemented_for_player` | 这个玩法还没对玩家开放。 |
 | `forbidden_verb` | 该操作在本阶段不开放（伤害/抢掠/强迫婚配等不可逆动作被禁用）。 |
+| `not_enough_money` | 你的钱不够（买入价含交易税）。 |
+| `item_not_available` | 这件物品不在当前内容包里。 |
+| `item_missing` | 你背包里没有足够的这件物品。 |
+| `not_here` | 你不在这个交易地点。 |
+| `shop_closed` | 这里没有店铺，不能买卖。 |
+| `not_a_merchant` | 这里的店铺不做这件货的买卖。 |
+| `not_at_origin` | 你不在镖单的起点。 |
+| `route_not_adjacent` | 押镖路线不连续；只能沿相邻地点逐段走。 |
+| `already_on_escort` | 你正在押镖，不能同时接第二单。 |
+| `cargo_too_low` | 货值低于这条线路的最低承运要求。 |
+| `cargo_too_high` | 货值超过这条线路的最高承运额度。 |
+| `fee_too_low` | 镖银低于这条线路的最低标准。 |
+| `fee_too_high` | 镖银超过这条线路的最高标准。 |
+| `no_escort_agency` | 起点没有镖局，不能接镖。 |
+| `agency_insufficient_cash` | 镖局现金不足以支付这单镖银。 |
+| `bad_arg:route` | 路线格式错误；请给地点 id 列表或 route_id。 |
+| `bad_arg:cargo_qty` | 货物数量必须是 1-100 的整数。 |
+| `bad_arg:cargo_value` | 货值必须是整数。 |
+| `bad_arg:fee` | 镖银必须是整数。 |
+| `bad_arg:item` | 物品参数不合法。 |
+| `bad_arg:qty` | 数量参数不合法（1-20 的整数）。 |
 | `player_not_entered` | 你还没有进入世界；请先调用 /api/player/enter。 |
 | `player_offline` | 你已离线；请重新进入世界后再操作。 |
 | `already_offline` | 你已经是离线状态。 |

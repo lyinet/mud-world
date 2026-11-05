@@ -32,6 +32,14 @@ P4 里程碑基线 v3（2026-11-05，任务公平轮转 + 接单提前）：
   拦截计数 blocked 11→8、pruned 2→4，state/event 哈希显式变化。
 - 旧 GOLDEN_MILESTONE_V2 / DIALOGUE_GOLDEN_MILESTONE_V2 原样保留并显式 skip；
   新基线见 GOLDEN_MILESTONE_V3 / DIALOGUE_GOLDEN_MILESTONE_V3。
+
+P3F 里程碑基线 v4（2026-11-05，玩家消费类动作开闸）：
+- 本次只改 HTTP/API 入口与只读 state（放行 buy/sell/consume/escort、补原因码与价格字段），
+  不改 NPC 动作前置、不改调度、不改 content；2 天 headless 世界不执行玩家 API 动作，
+  实跑与 V3 逐项完全相同（693 events / sell 967 / buy 793 / burned 81 /
+  business_cash 12599 / blocked 8 / pruned 4，state/event 哈希不变），即**零漂移**。
+- 旧 V3 基线值原样保留并显式 skip，新基线见 GOLDEN_MILESTONE_V4 /
+  DIALOGUE_GOLDEN_MILESTONE_V4；V4 是本 HEAD 上同值的显式复核基线，不是改旧数字。
 """
 from __future__ import annotations
 
@@ -241,6 +249,31 @@ GOLDEN_MILESTONE_V3 = {
     "precondition_pruned": 4,
 }
 DIALOGUE_GOLDEN_MILESTONE_V3 = {
+    "events_total": 693,
+    "state_final": "22d415077f26873dcb1fd26c1b94ac4efd3ba8b8035ce43ce8c0fefddcee01b9",
+    "event_final": "b7ded604509b24579eab66771c88f4bdfad9d049fc827994dbb6b07f6472049e",
+    "dialogue_calls": 65,
+}
+
+# P3F 里程碑基线 v4（2026-11-05，玩家消费类动作开闸，非静默改旧基线）：
+# 只改 API 入口/只读 state，2 天 headless NPC 行为不变；实跑与 V3 逐项相同（零漂移）。
+PLAYER_COMMERCE_BASELINE_REASON = (
+    "玩家消费类动作开闸只改 API 入口与只读 state，不改 NPC 动作前置、调度与 content；"
+    "2 天 headless 世界实跑与 V3 逐项相同（693 events、经济流量/拦截计数/状态哈希零漂移），"
+    "V4 为同 HEAD 的显式复核基线，旧 V3 数值原样保留。"
+)
+GOLDEN_MILESTONE_V4 = {
+    "events_total": 693,
+    "state_final": "a8aecf44c5dc845782eefda10789ac3a937424438720d56ef72cfeb29035efe4",
+    "event_final": "ba66bb4db27f974b2f81833399bc40ed312e1a4e752da38c83efa3c087a8833d",
+    "sell_in": 967,
+    "buy_out": 793,
+    "burned": 81,
+    "business_cash": 12599,
+    "precondition_blocked": 8,
+    "precondition_pruned": 4,
+}
+DIALOGUE_GOLDEN_MILESTONE_V4 = {
     "events_total": 693,
     "state_final": "22d415077f26873dcb1fd26c1b94ac4efd3ba8b8035ce43ce8c0fefddcee01b9",
     "event_final": "b7ded604509b24579eab66771c88f4bdfad9d049fc827994dbb6b07f6472049e",
@@ -568,6 +601,7 @@ def test_p4_milestone_v2_dialogue_enabled_fake_run_is_golden(tmp_path):
     )
 
 
+@pytest.mark.skip(reason="玩家消费类动作开闸后基线迁移到 GOLDEN_MILESTONE_V4（同值零漂移复核），见文件头说明")
 def test_p4_milestone_v3_deterministic_2d_fake_run_is_golden(tmp_path):
     """P4 v3 基线：任务公平轮转 + 接单提前后的 2 天世界（693 events）。"""
     summary = _run_two_day(tmp_path, "golden-milestone-v3", dialogue=False)
@@ -598,6 +632,7 @@ def test_p4_milestone_v3_deterministic_2d_fake_run_is_golden(tmp_path):
     assert len(blocked_file.read_text(encoding="utf-8").splitlines()) == GOLDEN_MILESTONE_V3["precondition_blocked"]
 
 
+@pytest.mark.skip(reason="玩家消费类动作开闸后 dialogue 基线迁移到 DIALOGUE_GOLDEN_MILESTONE_V4（同值零漂移复核），见文件头说明")
 def test_p4_milestone_v3_dialogue_enabled_fake_run_is_golden(tmp_path):
     """P4 v3 基线（dialogue 开启路径）：事件数不变，state/event hash 显式漂移。"""
     summary = _run_two_day(tmp_path, "golden-milestone-dialogue-v3", dialogue=True)
@@ -613,4 +648,52 @@ def test_p4_milestone_v3_dialogue_enabled_fake_run_is_golden(tmp_path):
         "P4 里程碑 v3 dialogue 基线漂移（golden_milestone_dialogue_v3, actual）："
         + json.dumps(drift, ensure_ascii=False)
         + "；原因: " + ROTATION_BASELINE_REASON
+    )
+
+
+def test_p4_milestone_v4_deterministic_2d_fake_run_is_golden(tmp_path):
+    """P4 v4 基线：玩家消费类动作开闸后的 2 天世界（与 V3 同值，零漂移）。"""
+    summary = _run_two_day(tmp_path, "golden-milestone-v4", dialogue=False)
+    cf = summary["economy"]["cashflow"]
+    got = {
+        "events_total": summary["events"]["total"],
+        "state_final": summary["hashes"]["state_final"],
+        "event_final": summary["hashes"]["event_final"],
+        "sell_in": cf["inflow_by_reason"].get("sell", 0),
+        "buy_out": cf["outflow_by_reason"].get("buy", 0),
+        "burned": summary["economy"]["burned_total"],
+        "business_cash": summary["economy"]["business_cash_now"],
+        "precondition_blocked": summary["precondition_blocked"]["total"],
+        "precondition_pruned": summary["precondition_pruned"]["total"],
+    }
+    drift = {k: (GOLDEN_MILESTONE_V4[k], got[k])
+             for k in GOLDEN_MILESTONE_V4 if got[k] != GOLDEN_MILESTONE_V4[k]}
+    assert not drift, (
+        "P4 里程碑 v4 基线漂移（golden_milestone_v4, actual）："
+        + json.dumps(drift, ensure_ascii=False)
+        + "；原因: " + PLAYER_COMMERCE_BASELINE_REASON
+    )
+
+    pruned_file = tmp_path / "golden-milestone-v4" / "pruned.jsonl"
+    blocked_file = tmp_path / "golden-milestone-v4" / "blocked.jsonl"
+    assert pruned_file.exists() and blocked_file.exists(), "缺少全量拦截记录导出"
+    assert len(pruned_file.read_text(encoding="utf-8").splitlines()) == GOLDEN_MILESTONE_V4["precondition_pruned"]
+    assert len(blocked_file.read_text(encoding="utf-8").splitlines()) == GOLDEN_MILESTONE_V4["precondition_blocked"]
+
+
+def test_p4_milestone_v4_dialogue_enabled_fake_run_is_golden(tmp_path):
+    """P4 v4 基线（dialogue 开启路径）：与 V3 同值（零漂移复核）。"""
+    summary = _run_two_day(tmp_path, "golden-milestone-dialogue-v4", dialogue=True)
+    got = {
+        "events_total": summary["events"]["total"],
+        "state_final": summary["hashes"]["state_final"],
+        "event_final": summary["hashes"]["event_final"],
+        "dialogue_calls": summary["llm"]["dialogue_async"]["calls"],
+    }
+    drift = {k: (DIALOGUE_GOLDEN_MILESTONE_V4[k], got[k])
+             for k in DIALOGUE_GOLDEN_MILESTONE_V4 if got[k] != DIALOGUE_GOLDEN_MILESTONE_V4[k]}
+    assert not drift, (
+        "P4 里程碑 v4 dialogue 基线漂移（golden_milestone_dialogue_v4, actual）："
+        + json.dumps(drift, ensure_ascii=False)
+        + "；原因: " + PLAYER_COMMERCE_BASELINE_REASON
     )
