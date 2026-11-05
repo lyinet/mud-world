@@ -12,9 +12,10 @@ from __future__ import annotations
 import re
 
 from ..agent.dialogue import PLAYER_NAME
+from ..core.clock import TICKS_PER_HOUR
 from ..core.models import Effect, Intent, Reject
 from ..world.state import WorldState
-from .common import wallet
+from .common import arg_int, wallet
 from .registry import Action
 
 ACCOUNT_RE = re.compile(r"^[a-z0-9_-]{3,32}$")
@@ -62,6 +63,8 @@ PLAYER_VERBS = frozenset(
         "sell",
         "consume",
         "escort",
+        # 休息：按小时恢复体力（客栈 > 住处 > 镇内 > 野外），押镖/临近委托截止时拒绝。
+        "rest",
         # 玩家婚姻：求婚与和离；NPC 裁决事件由服务端追加。
         "marriage_propose",
         "marriage_end",
@@ -355,6 +358,86 @@ class PlayerHeartbeatAction(Action):
         tick = int(intent.tick)
         return [
             Effect("player_presence", {"id": pid, "presence": "online", "tick": tick}),
+            Effect("set_field", {"entity": pid, "field": "last_action_tick", "value": tick}),
+        ]
+
+
+REST_HOURS_DEFAULT = 4
+REST_HOURS_MAX = 8
+# 体力恢复速率（每 tick）：客栈有客房，住处次之，镇内有铺面，野外再减半。
+REST_RATE_INN = 2.0
+REST_RATE_HOME = 1.5
+REST_RATE_TOWN = 0.5
+REST_RATE_WILD = 0.25
+
+
+def rest_rate(state: WorldState, location: str, home: str) -> float:
+    loc = state.locations.get(location) or {}
+    services = loc.get("services") or []
+    if "service_room" in services:
+        return REST_RATE_INN
+    if location and location == home:
+        return REST_RATE_HOME
+    if any(str(biz.location) == location for biz in state.businesses.values()):
+        return REST_RATE_TOWN
+    return REST_RATE_WILD
+
+
+def _on_active_escort(state: WorldState, pid: str) -> bool:
+    return any(
+        str(order.carrier or "") == pid and order.status == "active"
+        for order in state.escorts.values()
+    )
+
+
+def _quest_interrupts_rest(state: WorldState, pid: str, hours: int, tick: int) -> bool:
+    """休息窗口跨过已接委托的截止 tick：先做完委托再休息，避免白白睡掉一单。"""
+    window = int(hours) * TICKS_PER_HOUR
+    for quest in state.quests.values():
+        if (
+            quest.acceptor == pid
+            and quest.status == "accepted"
+            and tick < int(quest.deadline_tick) <= tick + window
+        ):
+            return True
+    return False
+
+
+class PlayerRestAction(Action):
+    """休息：按小时恢复体力，押镖中或会误掉委托截止时拒绝。"""
+
+    verb = "rest"
+
+    def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
+        pid = _player_id(intent)
+        if not pid:
+            return ["missing_player_id"]
+        prof = state.players.get(pid)
+        if prof is None or pid not in state.entities:
+            return ["player_not_entered"]
+        if not prof.online:
+            return ["player_offline"]
+        try:
+            hours = arg_int(intent, "hours", REST_HOURS_DEFAULT, minimum=1, maximum=REST_HOURS_MAX)
+        except Reject:
+            return ["bad_arg:hours"]
+        if _on_active_escort(state, pid):
+            return ["cannot_rest_while_escorting"]
+        if _quest_interrupts_rest(state, pid, hours, int(intent.tick)):
+            return ["cannot_rest_now"]
+        return []
+
+    def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
+        pid = _player_id(intent)
+        if not pid:
+            raise Reject("missing_player_id")
+        hours = arg_int(intent, "hours", REST_HOURS_DEFAULT, minimum=1, maximum=REST_HOURS_MAX)
+        ent = state.entities[pid]
+        rate = rest_rate(state, str(ent.location), str(ent.home or ""))
+        delta = float(int(hours) * TICKS_PER_HOUR) * rate
+        tick = int(intent.tick)
+        return [
+            Effect("stamina", {"entity": pid, "delta": delta, "reason": "rest", "hours": int(hours)}),
             Effect("set_field", {"entity": pid, "field": "last_action_tick", "value": tick}),
         ]
 

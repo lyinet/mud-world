@@ -27,12 +27,13 @@ from ..actions.player import (
     RUNTIME_ENDOWMENT_SOURCE,
     STARTING_ITEMS,
     STARTING_MONEY,
+    PlayerRestAction,
     SystemTickAction,
     activity_stage,
     player_genesis_effects,
     player_status,
 )
-from ..core.clock import TICKS_PER_DAY, day_of
+from ..core.clock import TICKS_PER_DAY, TICKS_PER_HOUR, day_of
 from ..core.content import load_content
 from ..core.models import Intent
 from ..mcp.gateway import MCPGateway, GatewayError
@@ -93,6 +94,8 @@ WRITE_ACTIONS: dict[str, str] = {
     "sell": "sell",
     "consume": "consume",
     "escort": "escort",
+    # 休息：按小时恢复体力（客栈/住处/镇内/野外分级）。
+    "rest": "rest",
     # 统一动作入口使用的下划线别名（与 /api/player/quest/accept 等价）。
     "quest_accept": "quest_accept",
     "quest_deliver": "quest_deliver",
@@ -127,6 +130,7 @@ ACTION_ALIASES: dict[str, str] = {
     "sell": "sell",
     "consume": "consume",
     "escort": "escort",
+    "rest": "rest",
     "marriage_propose": "marriage_propose",
     "marriage/propose": "marriage_propose",
     "marriage_end": "marriage_end",
@@ -219,6 +223,9 @@ REASON_TEXT: dict[str, str] = {
     "agency_insufficient_cash": "镖局现金不足以支付这单镖银。",
     "no_payer_funds": "目的地委托方现金不足，无法支付这单镖银；请换一条线路或降低镖银。",
     "bad_arg:route": "路线格式错误；请给地点 id 列表或 route_id。",
+    "bad_arg:hours": "休息时长必须是 1-8 的整数（小时）。",
+    "cannot_rest_while_escorting": "你正在押镖行程中，不能休息；先送达或等镖单收口。",
+    "cannot_rest_now": "休息会错过已接委托的截止时间；先交付委托再休息。",
     "bad_arg:cargo_qty": "货物数量必须是 1-100 的整数。",
     "bad_arg:cargo_value": "货值必须是整数。",
     "bad_arg:fee": "镖银必须是整数。",
@@ -314,6 +321,8 @@ class WorldSession:
         self.registry = build_registry(self.content, seed)
         # 日界结算并入 system_tick（见 SystemTickAction）；此处把动作实例换成带 content 的版本。
         self.registry.register(SystemTickAction(self.content))
+        # 玩家专属休息动词：只经 API 会话注册，不进入 NPC/系统动作链。
+        self.registry.register(PlayerRestAction())
         # 存档优先：已有事件日志时回放，绝不重新创世/重复发放初始资产。
         self.replayed = self.store.count() > 0
         if self.replayed:
@@ -1377,7 +1386,13 @@ class WorldSession:
                     )
                 )
         if advance:
-            self._advance()
+            # 休息按小时消耗世界钟（1 小时 = TICKS_PER_HOUR tick）；其它动作仍是 tick_step。
+            step = None
+            if action == "rest" and event.outcome == "ok":
+                hours = event.args.get("hours")
+                if isinstance(hours, int) and not isinstance(hours, bool):
+                    step = hours * TICKS_PER_HOUR
+            self._advance(step)
         data = self._status_view(pid) if event.outcome == "ok" else {}
         response = self._response(event, data, action, pid)
         response["next_tick"] = self.state.tick
@@ -1601,6 +1616,9 @@ class WorldSession:
                 base["cargo_value"] = payload.get("cargo_value", 100)
             base["fee"] = payload.get("fee", 0)
             return base
+        if action == "rest":
+            base["hours"] = payload.get("hours", 4)
+            return base
         if action == "marriage_propose":
             base["target"] = str(payload.get("target") or "").strip()
             money = payload.get("gift_money", 0)
@@ -1793,11 +1811,12 @@ class WorldSession:
             raise RuntimeError(f"event_missing_after_apply:{seq}")
         return event
 
-    def _advance(self) -> None:
-        if self.tick_step <= 0:
+    def _advance(self, step: int | None = None) -> None:
+        step = int(step or self.tick_step)
+        if step <= 0:
             return
-        tick = int(self.state.tick) + int(self.tick_step)
-        args: dict[str, Any] = {"step": int(self.tick_step)}
+        tick = int(self.state.tick) + step
+        args: dict[str, Any] = {"step": step}
         if day_of(tick) != day_of(int(self.state.tick)):
             # 日界结算合并进这一条 system_tick 事件（体力回复 → 过期委托下架 → 补发）。
             # 改前每个世界日额外写 5 条（presence/recover/quest_fail/quest_post/tick）；

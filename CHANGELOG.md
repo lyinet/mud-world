@@ -9,6 +9,22 @@
 
 ---
 
+## [功能] 2026-11-05 — 玩家 `rest`：按小时恢复体力
+
+- **改了什么**
+  - `actions/player.py` 新增 `PlayerRestAction`（`rest`）：`hours` 1-8（默认 4，非法 `bad_arg:hours`）；
+    体力按地点分级恢复——客栈（`service_room`）2.0/tick、住处 1.5/tick、镇内 0.5/tick、野外 0.25/tick；
+    动作推进 `hours × 6` tick，写 `stamina`（`reason=rest`）与 `last_action_tick`。
+  - 前置：押镖行程中 `cannot_rest_while_escorting`；休息窗口会跨过已接委托截止 tick
+    返回 `cannot_rest_now`。`api/session.py` 放行动词、解析 `hours`、`_advance(step)` 支持按小时推进，
+    并补三条原因码文案。
+- **为什么改**：审计中 `insufficient_stamina` 出现 38 次且没有恢复手段，是硬死胡同。
+- **验证方式**：`tests/test_player_commerce.py` 新增 4 条（客栈恢复与 tick、野外减半、
+  非法 hours/押镖中拒绝、委托截止打断）；真实服务 `rest` 证据见本轮回报。
+- **commit**：`（见本轮 SHA-B）`
+
+---
+
 ## [修复] 2026-11-05 — 押镖经济：必须带货 + 委托方真实付款 + 净赚门槛
 
 - **改了什么**

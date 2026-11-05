@@ -14,6 +14,8 @@ import pytest
 
 from wsim.actions.common import transaction_tax, wallet
 from wsim.actions.escort import resolve_payer
+from wsim.core.clock import TICKS_PER_HOUR
+from wsim.world.state import Quest
 from wsim.api.session import WorldSession
 from wsim.audit.conservation import conservation
 
@@ -616,6 +618,98 @@ def test_three_consecutive_escorts_keep_treasury_net_inflow(session: WorldSessio
     cons = conservation(session.state)
     assert cons["conservation_error"] == 0
     _assert_seq_contiguous(session)
+
+
+def test_rest_recovers_stamina_hourly_at_inn(session: WorldSession) -> None:
+    """客栈休息：2 小时 = 12 tick × 2.0/tick = +24 体力，并推进 12 tick。"""
+    _enter(session)
+    pid = session._pid(ACCOUNT)
+    _walk(session, ACCOUNT, "inn")
+    session.state.entities[pid].stamina = 20.0
+    tick0 = int(session.state.tick)
+    resp = session.action(ACCOUNT, "rest", {"hours": 2})
+    assert resp["ok"], resp
+    assert session.state.entities[pid].stamina == 44.0
+    assert int(session.state.tick) == tick0 + 2 * TICKS_PER_HOUR
+    event = [e for e in session.store.read_all() if e.verb == "rest"][-1]
+    assert event.args["hours"] == 2
+    stamina_eff = next(eff for eff in event.effects if eff["op"] == "stamina")
+    assert stamina_eff["data"]["delta"] == 24.0
+    assert stamina_eff["data"]["reason"] == "rest"
+    _assert_seq_contiguous(session)
+
+
+def test_rest_is_slower_in_the_wild(session: WorldSession) -> None:
+    """野外（无商业体）恢复 0.25/tick，是客栈的 1/8。"""
+    _enter(session)
+    pid = session._pid(ACCOUNT)
+    # 当前内容包每个地点都有商业体；这里临时清空码头商业体来模拟野外。
+    wild = "ferry"
+    session.state.businesses = {
+        bid: biz for bid, biz in session.state.businesses.items() if biz.location != wild
+    }
+    session.state.entities[pid].location = wild
+    session.state.entities[pid].stamina = 20.0
+    tick0 = int(session.state.tick)
+    resp = session.action(ACCOUNT, "rest", {"hours": 2})
+    assert resp["ok"], resp
+    assert session.state.entities[pid].stamina == 23.0  # 12 tick × 0.25
+    assert int(session.state.tick) == tick0 + 2 * TICKS_PER_HOUR
+
+
+def test_rest_rejects_bad_hours_and_active_escort(session: WorldSession) -> None:
+    _enter(session)
+    pid = session._pid(ACCOUNT)
+    _walk(session, ACCOUNT, "inn")
+    bad = session.action(ACCOUNT, "rest", {"hours": 9})
+    assert not bad["ok"] and bad["reject_reason"] == "bad_arg:hours", bad
+    assert not any(e.verb == "rest" and e.outcome == "ok" for e in session.store.read_all())
+    # 押镖途中：明确拒绝，体力与 tick 都不变。
+    session.content.escort_routes["route_market_short"]["risk_loss_prob"] = 0.0
+    session.content.escort_routes["route_market_short"]["risk_events"] = []
+    session.state.entities[pid].inventory["coarse_cloth"] = 4
+    _walk(session, ACCOUNT, "escort_agency")
+    resp = session.action(
+        ACCOUNT,
+        "escort",
+        {"route": ["escort_agency", "smithy", "market"], "cargo": {"item": "coarse_cloth", "qty": 4}, "fee": 130},
+    )
+    assert resp["ok"], resp
+    stamina0 = session.state.entities[pid].stamina
+    blocked = session.action(ACCOUNT, "rest", {"hours": 2})
+    assert not blocked["ok"], blocked
+    assert blocked["reject_reason"] == "cannot_rest_while_escorting", blocked
+    reject = [e for e in session.store.read_all() if e.verb == "rest"][-1]
+    assert reject.reason == "rejected:cannot_rest_while_escorting"
+    assert session.state.entities[pid].stamina == stamina0
+    _assert_seq_contiguous(session)
+
+
+def test_rest_rejects_when_quest_deadline_would_be_missed(session: WorldSession) -> None:
+    _enter(session)
+    pid = session._pid(ACCOUNT)
+    _walk(session, ACCOUNT, "inn")
+    tick = int(session.state.tick)
+    session.state.quests["quest:test-rest"] = Quest(
+        id="quest:test-rest",
+        template_id="tpl",
+        giver="jin_mancang",
+        acceptor=pid,
+        target_npc="jin_mancang",
+        target_location="market",
+        verb="talk",
+        args={},
+        reward_money=20,
+        reward_relation=0.0,
+        deadline_tick=tick + 6,  # 1 小时内到期
+        status="accepted",
+    )
+    resp = session.action(ACCOUNT, "rest", {"hours": 2})
+    assert not resp["ok"], resp
+    assert resp["reject_reason"] == "cannot_rest_now", resp
+    reject = [e for e in session.store.read_all() if e.verb == "rest"][-1]
+    assert reject.reason == "rejected:cannot_rest_now"
+    assert not any(eff["op"] == "stamina" for eff in reject.effects)
 
 
 def test_escort_cargo_survives_leave_and_timeout_without_duplication(session: WorldSession) -> None:

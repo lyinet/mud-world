@@ -392,13 +392,20 @@ PYTHONPATH=src python3 -m wsim.api --run player-demo --seed-account alice --port
 | `sell` | `sell` | `item`、`qty`（默认 1，1-20）、`to`（可选，默认当前位置） | 向本地店铺卖出；出货，货款入钱包 |
 | `consume` | `consume` | `item`（可选，默认最便宜食物）、`qty` | 先向店铺买，再消耗；恢复体力 |
 | `escort` | `escort` | `route`（地点列表或逗号分隔）或 `route_id`；`cargo`（`{item,qty}` 或 item id）或 `cargo_value`；`fee` | 押镖；起点必须是当前位置 |
+| `rest` | `rest` | `hours`（1-8，默认 4） | 休息恢复体力；按地点分级（客栈/住处/镇内/野外），押镖或临近委托截止时拒绝 |
 
 #### 4.2.1 消费类动作与原因码
 
-- 四个动作复用既有 `BuyAction` / `SellAction` / `ConsumeAction` / `EscortAction`，不另起交易逻辑。
+- 消费类复用既有 `BuyAction` / `SellAction` / `ConsumeAction` / `EscortAction`，不另起交易逻辑；
+  `rest` 由 `PlayerRestAction` 提供。
 - `buy`：`from` 缺省为当前位置；扣 `price*qty + 交易税`，货进背包，钱进店铺公账。
 - `sell`：`to` 缺省为当前位置；货出背包，`sell_price*qty` 从店铺公账进钱包。
 - `consume`：先按买入规则成交，再消耗 `qty` 件并恢复体力/饱腹；净效果是“钱少、食物不增”。
+- `rest`：`hours` 小时 × `TICKS_PER_HOUR`（6）tick，体力按地点分级恢复：
+  客栈（`service_room`）2.0/tick、住处（`home`）1.5/tick、镇内（有商业体）0.5/tick、
+  野外（无商业体）0.25/tick；动作本身推进 `hours × 6` tick。
+  押镖中返回 `cannot_rest_while_escorting`；休息窗口会跨过已接委托截止 tick 返回 `cannot_rest_now`；
+  `hours` 非 1-8 整数返回 `bad_arg:hours`。
 - `escort`：`route` 必须首尾相邻可走且 `route[0] == 当前位置`；**玩家必须带货**，
   `cargo` 给真实物品（服务端按 `item_price * qty` 折算 `cargo_value`，写入
   `escort_order_create.cargo_item/cargo_qty`）。空货一律 `item_missing`，并写一条
@@ -616,6 +623,9 @@ curl -s 'http://127.0.0.1:8848/api/world/feed?limit=5'
 | `no_escort_agency` | 起点没有镖局，不能接镖。 |
 | `agency_insufficient_cash` | 镖局现金不足以支付这单镖银（仅 NPC/公账订单）。 |
 | `no_payer_funds` | 目的地委托方现金不足，无法支付这单镖银；换线路或降低镖银。 |
+| `cannot_rest_while_escorting` | 押镖行程中不能休息；先送达或等镖单收口。 |
+| `cannot_rest_now` | 休息会跨过已接委托的截止 tick；先交付委托再休息。 |
+| `bad_arg:hours` | 休息时长必须是 1-8 的整数（小时）。 |
 | `bad_arg:route` | 路线格式错误；请给地点 id 列表或 route_id。 |
 | `bad_arg:cargo_qty` | 货物数量必须是 1-100 的整数。 |
 | `bad_arg:cargo_value` | 货值必须是整数。 |
