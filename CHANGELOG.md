@@ -9,6 +9,40 @@
 
 ---
 
+## [安全 P0/P1] 2026-11-06 — HTTP 指标端点 `GET /api/metrics`（Prometheus 文本）
+
+- **改了什么**
+  - 新增 `src/wsim/api/metrics.py`：进程内 `HttpMetrics` 累加器与 Prometheus 0.0.4 渲染。
+    counter：`xkx_http_requests_total{path,code}`、`xkx_http_rejections_total{code}`、
+    `xkx_events_total`、`xkx_ambient_paused_total`、`xkx_llm_calls_total`；
+    gauge：`xkx_world_tick`、`xkx_players_online`、`xkx_db_bytes{file}`；
+    histogram：`xkx_http_request_duration_seconds{path}`，分桶
+    `0.005/0.01/0.025/0.05/0.1/0.25/0.5/1.0/+Inf`。
+  - `src/wsim/api/server.py`：`do_GET`/`do_POST` 包一层 `perf_counter` 计时并在出口记账；
+    `_send` 对 `ok=false` 响应采集业务原因码；新增 `_handle_metrics` 与 `_send_text`；
+    `create_server` 新增 `metrics_public` / `metrics_token`（默认按绑定地址推断：
+    回环匿名可抓，非回环无 `XKX_METRICS_TOKEN` 一律 404）。
+  - `docs/HTTP-METRICS.md`：指标清单、鉴权矩阵、Prometheus 抓取配置与实测数据。
+  - 采集不进入写事务、不持有会话锁；唯一锁只保护内存 dict，临界区无 IO。
+- **为什么改**：上线前 P0/P1 需要可观测性；没有指标就无法做容量与故障判断。纯新增端点，
+  不改任何既有响应。
+- **验证方式**
+  - `python -m pytest`：`536 passed, 18 skipped`（全量，含本笔新增
+    `tests/test_w1_metrics.py` 6 项：Prometheus 行格式正则校验、未授权 404、
+    token 闸门、public 忽略 token、路径归一化、直方图累积桶）。
+  - `/api/metrics` 自身延迟（顺序 300 次）：
+    `{"phase": "sequential", "n": 300, "p50_ms": 0.405, "p95_ms": 1.395, "p99_ms": 2.801, "max_ms": 3.571}`
+    → P95 = 1.395ms（要求 < 10ms）。
+  - 50 并发 10s 抓 `/api/metrics`：`requests=25921, rps=2161.1, errors=21, p50=2.545ms`
+    （并发排队 P95 55.3ms，与 `/api/state` 同口径压测同量级，非端点自身成本）。
+  - `/api/state` 50 并发 30s，同口径前后对照：
+    基线 HEAD `p95=43.09ms, requests=?, errors=25`；加指标后两次
+    `p95=52.91ms (78686 req, 2517.9 rps, errors=31)` 与
+    `p95=37.45ms (98615 req, 3142.5 rps, errors=13)`，落在基线同一波动区间内。
+- **commit**：`（见本提交）`
+
+---
+
 ## [CI] 2026-11-06 — GitHub Actions 门禁：pytest / selfcheck / 内容校验 / 开启态 2 日冒烟
 
 - **改了什么**：新增 `.github/workflows/ci.yml`，在 push 到 `master` 与 `pull_request` 时并行跑两个 job：

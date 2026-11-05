@@ -5,6 +5,7 @@ Bearer 令牌校验；不存在“配置存在但仍可匿名写”的旁路。
 """
 from __future__ import annotations
 
+import hmac
 import json
 import os
 import threading
@@ -15,6 +16,7 @@ from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
 from .auth import AccountStore, error_payload
+from .metrics import HttpMetrics
 from .session import WorldSession
 
 _GET_ROUTES = {
@@ -46,6 +48,7 @@ _SERVICE_INFO = "/api/service/info"
 _HEALTH = "/api/health"
 _WORLD_FEED = "/api/world/feed"
 _INTENTS_PREFIX = "/api/player/intents/"
+_METRICS = "/api/metrics"
 
 # 席位/额度类业务拒绝：用 429 明确表达“不是服务端 500”。
 _CAPACITY_CODES = frozenset({"player_cap_reached", "endowment_cap_reached"})
@@ -68,6 +71,26 @@ def _ambient_status_path(session: WorldSession) -> Path:
     if raw:
         return Path(raw)
     return Path(session.run_dir) / "ambient" / "ambient_status.json"
+
+
+def _ambient_counts(session: WorldSession) -> tuple[int, int]:
+    """ambient_status.json 的累计计数：(暂停次数, LLM 调用数)；缺失/损坏都按 0。"""
+    try:
+        data = json.loads(_ambient_status_path(session).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return 0, 0
+    if not isinstance(data, dict):
+        return 0, 0
+    cpu = data.get("cpu") if isinstance(data.get("cpu"), dict) else {}
+    try:
+        paused = int(cpu.get("pauses") or 0)
+    except (TypeError, ValueError):
+        paused = 0
+    try:
+        calls = int(data.get("llm_calls") or 0)
+    except (TypeError, ValueError):
+        calls = 0
+    return max(0, paused), max(0, calls)
 
 
 def _ambient_health_payload(session: WorldSession) -> dict[str, Any]:
@@ -164,9 +187,24 @@ class _Handler(BaseHTTPRequestHandler):
 
     # ------------------------------------------------------------- primitives
     def _send(self, status: int, payload: dict[str, Any]) -> None:
+        self._status_code = int(status)
+        metrics = getattr(self.server, "metrics", None)  # type: ignore[attr-defined]
+        if metrics is not None and isinstance(payload, dict) and payload.get("ok") is False:
+            code = str(payload.get("reject_reason") or payload.get("code") or "")
+            if code:
+                metrics.rejection(code)
         body = json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _send_text(self, status: int, text: str, content_type: str) -> None:
+        self._status_code = int(status)
+        body = text.encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -229,10 +267,22 @@ class _Handler(BaseHTTPRequestHandler):
 
     # ------------------------------------------------------------------- GET
     def do_GET(self) -> None:  # noqa: N802
+        """把每次 GET 的耗时/状态码计入内存指标；不进入任何写事务。"""
+        started = time.perf_counter()
+        self._status_code = 200
+        try:
+            self._do_GET()
+        finally:
+            self._observe(started)
+
+    def _do_GET(self) -> None:
         session = self._session()
         path = self._path()
         query = self._query()
         account = query.get("account_id", "")
+        if path == _METRICS:
+            self._handle_metrics()
+            return
         if path == _HEALTH:
             # 只加不改：现有键（ok/mode/readonly/profile_version/upstream_ok）语义保持，
             # ambient 字段为新增，供 start.sh / 前端探活判断后台自走是否在推进。
@@ -337,6 +387,69 @@ class _Handler(BaseHTTPRequestHandler):
         payload.setdefault("profile_version", 1)
         self._send(200, payload)
 
+    # ---------------------------------------------------------------- metrics
+    def _observe(self, started: float) -> None:
+        metrics = getattr(self.server, "metrics", None)  # type: ignore[attr-defined]
+        if metrics is None:
+            return
+        try:
+            path = self._path()
+        except Exception:
+            path = "/"
+        metrics.observe(
+            path, int(getattr(self, "_status_code", 0) or 0), time.perf_counter() - started
+        )
+
+    def _metrics_allowed(self) -> bool:
+        """默认只在绑定回环地址时开放；否则必须带正确的 XKX_METRICS_TOKEN。"""
+        public = bool(getattr(self.server, "metrics_public", True))  # type: ignore[attr-defined]
+        if public:
+            return True
+        token = str(getattr(self.server, "metrics_token", "") or "")  # type: ignore[attr-defined]
+        if not token:
+            return False
+        supplied = self._bearer() or str(self.headers.get("X-Metrics-Token") or "")
+        return bool(supplied) and hmac.compare_digest(supplied, token)
+
+    def _handle_metrics(self) -> None:
+        metrics = getattr(self.server, "metrics", None)  # type: ignore[attr-defined]
+        if metrics is None:
+            metrics = HttpMetrics()
+        if not self._metrics_allowed():
+            # 不暴露端点存在：与未知路由同形。
+            self._send(
+                404,
+                {
+                    "ok": False,
+                    "reject_reason": "unknown_action",
+                    "reason_text": "未知接口；可用接口见 docs/player-api.md。",
+                },
+            )
+            return
+        session = self._session()
+        accounts = self._accounts()
+        db_sizes: dict[str, int] = {}
+        for label, raw in (
+            ("events.sqlite", str(getattr(session.store, "path", "") or "")),
+            ("service.sqlite", str(getattr(accounts, "path", "") or "") if accounts else ""),
+        ):
+            if not raw or raw == ":memory:":
+                continue
+            try:
+                db_sizes[label] = int(Path(raw).stat().st_size)
+            except OSError:
+                db_sizes[label] = 0
+        paused, llm_calls = _ambient_counts(session)
+        text = metrics.render(
+            world_tick=int(session.state.tick),
+            events_total=int(session.store.count()),
+            players_online=sum(1 for p in session.state.players.values() if getattr(p, "online", False)),
+            ambient_paused_total=paused,
+            llm_calls=llm_calls,
+            db_sizes=db_sizes,
+        )
+        self._send_text(200, text, "text/plain; version=0.0.4; charset=utf-8")
+
     def _read_identity(self) -> tuple[str | None, str | None]:
         """读请求的令牌身份：service 模式校验，legacy 模式完全不解析。
 
@@ -356,6 +469,15 @@ class _Handler(BaseHTTPRequestHandler):
 
     # ------------------------------------------------------------------ POST
     def do_POST(self) -> None:  # noqa: N802
+        """把每次 POST 的耗时/状态码计入内存指标；不进入任何写事务。"""
+        started = time.perf_counter()
+        self._status_code = 200
+        try:
+            self._do_POST()
+        finally:
+            self._observe(started)
+
+    def _do_POST(self) -> None:
         path = self._path()
         auth_route = _AUTH_ROUTES.get(path)
         if auth_route is not None:
@@ -513,11 +635,21 @@ def create_server(
     port: int = 0,
     accounts: AccountStore | None = None,
     auth_required: bool = False,
+    metrics_public: bool | None = None,
+    metrics_token: str | None = None,
 ) -> ThreadingHTTPServer:
     server = ThreadingHTTPServer((host, int(port)), _Handler)
     server.session = session  # type: ignore[attr-defined]
     server.accounts = accounts  # type: ignore[attr-defined]
     server.auth_required = bool(auth_required)  # type: ignore[attr-defined]
+    server.metrics = HttpMetrics()  # type: ignore[attr-defined]
+    # 默认只有回环绑定才允许匿名抓取；非回环必须配置 XKX_METRICS_TOKEN。
+    if metrics_public is None:
+        metrics_public = host in ("127.0.0.1", "::1", "localhost")
+    server.metrics_public = bool(metrics_public)  # type: ignore[attr-defined]
+    if metrics_token is None:
+        metrics_token = os.environ.get("XKX_METRICS_TOKEN", "")
+    server.metrics_token = str(metrics_token or "")  # type: ignore[attr-defined]
     server.daemon_threads = True
     return server
 
