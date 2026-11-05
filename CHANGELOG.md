@@ -19,11 +19,15 @@
   - 触发条件：仓库转为公开、新增协作者、或任何 CI/外部服务获授权拉取该仓库时，
     **必须在放行前完成轮换**，并把完成时间补记在 SECURITY.md §1。
   - §2–§4 同步改写口径；§5“凭证纪律”（禁止提交 token/key、`.gitignore` 规则）不变。
+  - 同口径同步到 `docs/GIT-WORKFLOW.md` §8：去掉“发现泄漏先吊销/轮换”的硬性要求，
+    保留“禁止提交凭据”与 `.gitignore` 规则；注明远程 15 个已发布 tag、本地保留但未推送的
+    `p2b-baseline`；轮换仅在转公开 / 新增协作者 / CI 或外部服务获授权拉取时成为放行前置。
 - **为什么改**：该 key 是持有人本机日常网关 key，仓库私有且仅本人可读；轮换会直接打断工作，
   当前收益接近零，故由持有人接受风险，仅保留触发条件作为硬闸门。
 - **验证方式**：`git diff` 通读无 key 原文（只写提交哈希与文件名）；
-  `git show --stat` 仅 `SECURITY.md` 与 `CHANGELOG.md` 两份文件。
-- **commit**：本条目所在提交（`SECURITY.md` + `CHANGELOG.md`）。
+  `SECURITY.md`、`CHANGELOG.md`、`docs/GIT-WORKFLOW.md` 三处口径逐条比对一致
+  （均为“已知风险 + 风险接受 + 触发条件”，无“必须吊销”的相反表述）。
+- **commit**：`337446b`（`SECURITY.md` + `CHANGELOG.md`）、`0258f15`（`docs/GIT-WORKFLOW.md`）。
 
 ---
 
