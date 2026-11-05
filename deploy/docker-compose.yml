@@ -49,14 +49,20 @@ services:
     image: xkx/world-sim:w5
     container_name: xkx-backup
     profiles: ["backup"]
+    # 镜像 ENTRYPOINT 是 deploy/entrypoint.sh（会拉起 API+UI）。compose 的 command
+    # 只覆盖 CMD，不覆盖 ENTRYPOINT；不显式改 entrypoint 就会在备份容器里再起一套
+    # 世界服务，两个进程同时写同一个 events.sqlite，实测报
+    # `UNIQUE constraint failed: events.seq`。必须覆盖成纯 shell 循环。
+    entrypoint: ["/bin/sh", "-c"]
     command:
-      - /bin/sh
-      - -c
       - >-
         while true; do
         python /app/tools/backup_snapshot.py --root /app --run "${RUN_ID:-service}" --backup-dir /app/backups || true;
         sleep "${BK_INTERVAL:-21600}";
         done
+    # 该容器不含 API/UI，禁用镜像继承的 HEALTHCHECK（默认检查 8020/8030，恒 unhealthy）。
+    healthcheck:
+      disable: true
     environment:
       RUN_ID: "${RUN_ID:-service}"
       BK_INTERVAL: "${BK_INTERVAL:-21600}"
