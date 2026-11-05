@@ -291,7 +291,8 @@
     "talk_target_counts": {
       "player:pmmain|duan_wudou": 1,
       "player:pmmain|liu_sanniang": 45
-    }
+    },
+    "rejections_wallet": 300
   },
   "daily": [
     {
@@ -614,5 +615,17 @@
         "reason": ""
       }
     ]
+  },
+  "wallet_trace": {
+    "account": "wallet:player:pmmain",
+    "replay": "events.sqlite 全量 effect（mint/burn/transfer）重放",
+    "start_tick_5": 300,
+    "before_proposal": 300,
+    "after_marriage": 250,
+    "after_daily_days": 240,
+    "before_divorce": 240,
+    "after_divorce": 240,
+    "final": 240,
+    "note": "求婚聘礼 50 文由 marriage 事件 transfer 支付；此后两次 trade 各花 5 文；婚内与和离均未铸币、未退款。"
   }
 }
