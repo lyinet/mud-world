@@ -124,6 +124,8 @@ if has_player_shop(self.writer.state):
 | 玩家店铺（`owner=player:<account>`） | 契约成立即出工；偿付判断只看**玩家钱包余额 + 店铺当日营收**，不套 2000 文储备 | 仍然出工，日结记“店铺欠雇工”的欠薪债 |
 
 - 玩家店铺的日薪取契约 `employee_wages`（不再用岗位市场价），日程里的 `work` 发生在店铺地点。
+- 玩家店铺的 `work` 参数额外带 `employer=shop:player:<account>`，事件可归因到具体店铺；
+  NPC 雇主的 `work` 参数保持 `{at, hours}`，所以无玩家雇佣的世界事件哈希逐字节不变。
 - 签约会把 `Entity.employed_at` 指向玩家店铺，雇工离开原 workplace 属于正常调动；
   日程保证他确实到新店铺上工，而不是“两边都不去”。
 - 计划文案会区分“上工糊口”与“上工糊口（店主现金紧，工资走欠薪）”，便于日志审计。
@@ -180,6 +182,9 @@ run `hire-e2e`；content_hash `7ec670c1`。
 - 现实差异：真实 HEAD 的 `STARTING_MONEY=300`（演示副本曾是 6000）。因此本轮没有
   预置资金，玩家先卖掉随身粗布/炊饼（+21）、打短工（+33）凑到 354 文，在 **temple**
   开 `stall`（开店 + 初始库存共 345 文，钱包余 9 文）；店现完全来自顾客消费，无 mint。
+  地点级事实：`open_shop` 事件 tick 194 `at=temple`，即玩家店铺 **`shop:player:u_demo` @ temple**，
+  因此后面的 `work at=temple` 是玩家店铺所在地点（不是“回原工作地”）；该批旧事件没有
+  `employer` 字段，W1 合入后按 7.3 的口径复跑即可看到 `employer=shop:player:u_demo`。
 - 雇工：tick 326 通过 HTTP `recruit` 签约 `yan_shouyi`（岗位庙祝、日薪 18），
   `shop_hire` 效果落库，`employed_at=shop:player:u_demo`。
 - 行程：tick 333/362（签约当天）、439/473/515、576/607/640、720，均
@@ -196,5 +201,29 @@ run `hire-e2e`；content_hash `7ec670c1`。
 - 店铺现金全程由 temple 的 NPC 顾客消费入账（`buy/consume` 的 `transfer` 到
   `cash:shop:player:u_demo`），没有外部注资；工资三天各 18 文均实付。
 - 欠薪场景（店现/钱包不足）已在 7.1 的引擎自走中验证：仍然出工、日结走
-  店铺欠雇工的活动债；HTTP 放行合并后可用同一脚本复跑。
+  店铺欠雇工的活动债；HTTP 放行合并后可用同一脚本复跑。同一 run 在 day6 日界也真实出现过
+  一次部分欠薪：日薪 18 只付 9，`debt_create=9`（`creditor=yan_shouyi`），雇工随后仍到店。
+
+## 7.3 地点级证据：`work` 事件的 employer 归因（引擎自走）
+
+环境：真实代码 + 真实 content，seed 42，`AmbientScheduler` 自走 3×144 ticks；玩家店铺
+`shop:player:u1` @ **market**、owner `player:u1`、`employees=['yan_shouyi']`、契约日薪 18。
+雇工原 workplace 是 temple，签约后 `employed_at=shop:player:u1`。
+
+- 首次上工：tick 32 `work`，`args={'at': 'market', 'employer': 'shop:player:u1', 'hours': 8}`，
+  `outcome=ok`；apply 后雇工 `location=market`（不在原 workplace temple）。
+- day0 关键行程（逐条）：tick 28 `sell at=ferry` → tick 30 `move inn` → tick 31 `move market`
+  → **tick 32 `work at=market employer=shop:player:u1`** → tick 33 `consume` → tick 34
+  `move academy` → tick 36 `move temple`。可见“去上工”是移动到玩家店铺所在地点，
+  `employer` 明确指向玩家店铺，而不是 market 里的 NPC 摊位。
+- 3 日全部出工：day0 tick 32/75/113、day1 158/200/239、day2 289/318，均
+  `work at=market employer=shop:player:u1 outcome=ok`。
+- 同地点可见性：tick 32 玩家 `state` 的 `location=market`，同地点 `nearby` 含
+  `{"id":"yan_shouyi","name":"严守一","role":"庙祝","location":"market","presence":"online"}`。
+- `talk` 原始事件：tick 32，`actor=player:u1`、`verb=talk`、`args={target: yan_shouyi,
+  message: 今日辛苦了}`、`outcome=ok`（不是 `not_together`），效果含 `memory_add`、
+  `relation_upsert`（affection +2）、`talk_ledger`。
+- 日结：tick 143/287/431 各 `wage=18 → wallet:yan_shouyi`、`tax=10`、`output=cleaver×1`；
+  产出与工资都归到 `shop:player:u1` 的账上。
+- 无玩家雇佣对照：V5 golden 继续通过，state `0ee1f724…` / event `6a919efe…` 逐字节不变。
 

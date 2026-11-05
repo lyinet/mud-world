@@ -612,7 +612,7 @@ class Planner:
                 loc, cursor = self._move(state, intents, npc, loc, work_loc, cursor, seg_end, reason("去上工"))
                 if loc == work_loc and cursor < seg_end:
                     before = cursor
-                    cursor = self._add(intents, npc, "work", {"at": loc, "hours": 8}, cursor, seg_end, reason(work_note))
+                    cursor = self._add(intents, npc, "work", self._work_args(employer, loc, 8), cursor, seg_end, reason(work_note))
                     if cursor != before:
                         cash += self._net_wage(ent, gross)
             else:
@@ -696,6 +696,17 @@ class Planner:
             and employer.owner
             and str(employer.owner).startswith("player:")
         )
+
+    def _work_args(self, employer, at: str, hours: int) -> dict:
+        """work 参数：玩家店铺额外带 `employer`，让事件能归因到具体店铺。
+
+        NPC 雇主的 work 参数保持原样（只有 at/hours），无玩家雇佣的世界
+        事件哈希逐字节不变。
+        """
+        args = {"at": at, "hours": hours}
+        if self._employer_is_player(employer):
+            args["employer"] = employer.id
+        return args
 
     def _wage_for_employment(self, employer, ent) -> int:
         """雇工的实际日薪：玩家店铺优先读契约日薪，其余沿用岗位市场价。"""
@@ -1237,7 +1248,7 @@ class Planner:
                                              reason(f"加班凑{cost}文注册费"))
                     if loc == employer.location and cursor < end:
                         cursor = self._add(
-                            intents, npc, "work", {"at": loc, "hours": 4},
+                            intents, npc, "work", self._work_args(employer, loc, 4),
                             cursor, end, reason(f"加班凑{cost}文注册费"),
                         )
                         cash += int(round(int(round(self._wage_for_employment(employer, ent) * 4 / 8.0)) * 0.9))
@@ -1449,7 +1460,11 @@ class Planner:
                 )
         # 2) 当地有雇主 → 短工
         if ent.employed_at and ent.employed_at in state.businesses and state.businesses[ent.employed_at].location == loc:
-            return Intent(actor=npc, verb="work", args={"at": loc, "hours": 4}, tick=tick, source="planner", reason=reason)
+            employer = state.businesses[ent.employed_at]
+            return Intent(
+                actor=npc, verb="work", args=self._work_args(employer, loc, 4),
+                tick=tick, source="planner", reason=reason,
+            )
         # 3) 兜底：就地修炼，不空转
         return Intent(
             actor=npc,

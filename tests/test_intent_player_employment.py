@@ -89,8 +89,18 @@ def test_player_employer_schedule_commutes_to_shop_and_works(real_content, world
     assert "market" in moves, "雇工必须先走到玩家店铺所在地"
     work = _work_intents(intents)
     assert work and work[0].args.get("at") == "market", "雇工必须在玩家店铺上工"
+    # 地点与 market 里的其他摊位同名，必须靠 employer 归因到玩家店铺。
+    assert work[0].args.get("employer") == SHOP_ID
     # 契约日薪 18 < NPC 雇主的 2000 文储备要求；玩家雇主不套用该规则。
     assert planner._wage_for_employment(world.businesses[SHOP_ID], ent) == 18
+
+
+def test_npc_employer_work_args_stay_unchanged(real_content, world):
+    """NPC 雇主的 work 参数保持 {at, hours}，无玩家雇佣的世界事件不变。"""
+    _, intents = _plan(world, real_content)
+    work = _work_intents(intents)
+    assert work, "原雇主现金充足时应照常排整班"
+    assert set(work[0].args) == {"at", "hours"}
 
 
 def test_player_employer_works_even_when_shop_cash_is_zero(real_content, world):
@@ -195,9 +205,10 @@ def test_three_day_hired_world_pays_wages_and_is_deterministic(real_content, tmp
             e for e in events
             if e.actor == EMPLOYEE and e.verb == "work"
             and e.args.get("at") == "market"
+            and e.args.get("employer") == SHOP_ID
             and e.tick // TICKS_PER_DAY == day
         ]
-        assert work, f"day{day} 雇工没有到玩家店铺上工"
+        assert work, f"day{day} 雇工没有到玩家店铺上工（需带 employer={SHOP_ID}）"
     settles = [e for e in events if e.verb == "system_shop_settle"]
     assert len(settles) == 3
     for event in settles:

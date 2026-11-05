@@ -9,6 +9,22 @@
 
 ---
 
+## [修复] 2026-11-05 — work 事件补 employer 归因：玩家店铺出工可审计
+
+- **改了什么**
+  - `sim/intent.py` 为玩家店铺生成的 `work` 意图附带 `employer=shop:player:<account>`，
+    覆盖常规整班、`found_sect` 加班、同地点短工三处；事件里能直接看出“为谁工作”，
+    不再只靠地点猜测（雇工原 workplace 与玩家店铺可能同处一地）。
+  - NPC 雇主的 `work` 参数保持 `{at, hours}`，无玩家雇佣的世界不受影响。
+- **验证**
+  - 地点级证据（`shop:player:u1` @ market，原 workplace=temple）：tick 32
+    `work at=market employer=shop:player:u1 outcome=ok`，雇工 apply 后 `location=market`；
+    day0 行程 tick 31 `move market` → tick 32 `work` → tick 36 `move temple`。
+  - 玩家同地点 `state` 的 `nearby` 含 `yan_shouyi`；`talk` 原始事件 `outcome=ok`
+    （非 `not_together`），见 `docs/shop-operations.md` 7.3。
+  - 新增 1 条测试（NPC 雇主 `work` 参数仍为 `{at, hours}`），雇工测试改为断言每次
+    出工都带 `employer`；无玩家雇佣的 V5 基线继续通过（`0ee1f724…` / `6a919efe…`）。
+
 ## [修复] 2026-11-05 — 玩家店铺雇工进入日程：契约即出工，欠薪仍到店
 
 - **改了什么**
