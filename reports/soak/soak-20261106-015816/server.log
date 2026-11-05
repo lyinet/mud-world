@@ -1,0 +1,11 @@
+
+# ---- 2026-11-05T17:58:16+00:00 launch (soak) pid_placeholder cmd=/Users/lyinet/projects/XKX/world-sim/.venv/bin/python -m wsim.api --root /Users/lyinet/projects/XKX/world-sim --run soak-20261106-015816 --auth off --port 60737 --seed 42
+[D01 00:00] ambient_boot npcs=31 locations=9 seed=42 content=7ec670c1c83c speed=1x
+{"ok": true, "run_dir": "/Users/lyinet/projects/XKX/world-sim/runs/soak-20261106-015816", "listen": "http://127.0.0.1:60737", "profile_version": 1, "tick": 0, "auth_required": false, "auth_mode": "off", "ambient": "running", "docs": "docs/player-api.md"}
+# ready pid=77953 spawn_to_health_s=0.437
+# ---- 2026-11-05T19:58:54+00:00 stopped rc=0 shutdown_s=31.241 (SIGTERM 正常退出)
+
+# ---- 2026-11-05T19:58:57+00:00 launch (restart) pid_placeholder cmd=/Users/lyinet/projects/XKX/world-sim/.venv/bin/python -m wsim.api --root /Users/lyinet/projects/XKX/world-sim --run soak-20261106-015816 --auth off --port 49565 --seed 42
+{"ok": true, "run_dir": "/Users/lyinet/projects/XKX/world-sim/runs/soak-20261106-015816", "listen": "http://127.0.0.1:49565", "profile_version": 1, "tick": 717462, "auth_required": false, "auth_mode": "off", "world": "existing", "allow_new_world": false, "ambient": "stopped", "docs": "docs/player-api.md"}
+# ready pid=47623 spawn_to_health_s=15.755
+# ---- 2026-11-05T19:59:13+00:00 stopped rc=0 shutdown_s=0.613 (SIGTERM 正常退出)

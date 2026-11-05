@@ -1,0 +1,514 @@
+{
+  "schema": "soak-report/v1",
+  "run_id": "soak-20261106-015816",
+  "started_at": "2026-11-05T17:58:16+00:00",
+  "finished_at": "2026-11-05T19:59:13+00:00",
+  "config": {
+    "duration_s": 7200.0,
+    "duration_actual_s": 7205.85,
+    "players": 50,
+    "think_time_s": 2.0,
+    "sample_interval_s": 30.0,
+    "warmup_s": 600.0,
+    "ambient": true,
+    "ambient_cpu_pct": 70.0,
+    "auth": "off",
+    "service_cmd": "python -m wsim.api --auth off --run soak-20261106-015816 --port 60737"
+  },
+  "service": {
+    "pid": 77953,
+    "port": 60737,
+    "run_dir": "/Users/lyinet/projects/XKX/world-sim/runs/soak-20261106-015816",
+    "report_dir": "/Users/lyinet/projects/XKX/world-sim/reports/soak/soak-20261106-015816",
+    "spawn_to_health_s": 0.437
+  },
+  "players": {
+    "started": 50,
+    "entered": 50,
+    "cycles": 119728,
+    "player_errors": 0,
+    "cycles_per_second": 16.615
+  },
+  "totals": {
+    "requests": 239305,
+    "ok": 213097,
+    "errors": 201,
+    "http_5xx": 0,
+    "http_401": 0,
+    "capacity_rejections": 0,
+    "business_rejections": 26007,
+    "error_rate_pct": 0.084,
+    "rejections_by_code": {
+      "quest_expired": 2674,
+      "quest_not_accepted_by_actor": 211,
+      "quest_not_open": 23122
+    },
+    "error_samples": [
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>",
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>",
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>",
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>",
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>",
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>",
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>",
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>",
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>",
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>",
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>",
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>",
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>",
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>",
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>",
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>",
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>",
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>",
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>",
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>",
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>",
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>",
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>",
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>",
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>",
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>",
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>",
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>",
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>",
+      "GET /api/state: URLError: <urlopen error [Errno 60] Operation timed out>"
+    ]
+  },
+  "resources": {
+    "rss": {
+      "baseline_mb": 39.61,
+      "warmup_start_mb": 168.95,
+      "end_mb": 9.61,
+      "peak_sampled_mb": 1313.28,
+      "warmup_s": 600.0,
+      "warm_mean_mb": 573.42,
+      "slope_mb_per_hour": 223.5946,
+      "growth_pct_per_hour": 38.993,
+      "peak_slope_mb_per_hour": 695.644,
+      "peak_growth_pct_per_hour": 121.315,
+      "r2": 0.1603,
+      "samples": 233
+    },
+    "cpu": {
+      "mean_pct": 81.67,
+      "peak_pct": 97.23,
+      "total_seconds": 5882.94
+    }
+  },
+  "db": {
+    "start_bytes": 4988408,
+    "end_bytes": 228028208,
+    "start_events": 957,
+    "end_events": 239207,
+    "warmup_start_bytes": 30654088,
+    "warmup_start_events": 28061,
+    "slope_mb_per_hour": 106.075,
+    "slope_mb_per_hour_incl_warmup": 109.88,
+    "slope_rows_per_hour": 119056.2,
+    "r2_db": 0.9834,
+    "r2_rows": 0.9877,
+    "wal_bytes_at_end": 4177712,
+    "events_per_mb": 1100.0
+  },
+  "latency": {
+    "window_span_s": 600.0,
+    "window_10m": {
+      "first": {
+        "read": {
+          "count": 13954,
+          "p50": 16.742,
+          "p95": 238.798,
+          "p99": 782.376,
+          "mean": 59.621,
+          "max": 1820.779
+        },
+        "write": {
+          "count": 14004,
+          "p50": 33.051,
+          "p95": 245.444,
+          "p99": 707.285,
+          "mean": 74.552,
+          "max": 1825.511
+        }
+      },
+      "last": {
+        "read": {
+          "count": 4658,
+          "p50": 2469.647,
+          "p95": 7790.038,
+          "p99": 10625.611,
+          "mean": 3090.461,
+          "max": 13979.428
+        },
+        "write": {
+          "count": 4467,
+          "p50": 751.49,
+          "p95": 5942.965,
+          "p99": 10223.557,
+          "mean": 1496.248,
+          "max": 14340.795
+        }
+      },
+      "p95_ratio": {
+        "read": 32.622,
+        "write": 24.213
+      }
+    },
+    "overall": {
+      "read": {
+        "count": 119728,
+        "p50": 236.248,
+        "p95": 2727.122,
+        "p99": 5534.46,
+        "mean": 609.123,
+        "max": 13979.428
+      },
+      "write": {
+        "count": 119577,
+        "p50": 225.511,
+        "p95": 1128.966,
+        "p99": 3165.071,
+        "mean": 389.592,
+        "max": 14340.795
+      }
+    },
+    "tail_requests": 9125,
+    "tail_errors": 194
+  },
+  "invariants": {
+    "verify": {
+      "run_dir": "/Users/lyinet/projects/XKX/world-sim/runs/soak-20261106-015816",
+      "db_exists": true,
+      "ok": true,
+      "errors": [],
+      "integrity_check": "ok",
+      "event_count": 239207,
+      "seq": {
+        "first": 1,
+        "last": 239207,
+        "count": 239207,
+        "distinct": 239207,
+        "contiguous": true
+      },
+      "wallet": {
+        "accounts": 92,
+        "sum_balance": 62450,
+        "minted_total": 62450,
+        "burned_total": 0,
+        "expected_sum": 62450,
+        "delta": 0,
+        "transfers": 1266
+      },
+      "negative_rows": [],
+      "half_write_rows": [],
+      "genesis_events": 2,
+      "genesis_ok_events": 1,
+      "outcomes": {
+        "ok": 213200,
+        "rejected": 26007
+      }
+    },
+    "seq_contiguous": true,
+    "seq_first": 1,
+    "seq_last": 239207,
+    "seq_count": 239207,
+    "wallet_delta": 0,
+    "integrity_check": "ok"
+  },
+  "shutdown": {
+    "signal": "SIGTERM",
+    "exit_code": 0,
+    "shutdown_s": 31.241,
+    "note": "SIGTERM 正常退出"
+  },
+  "restart": {
+    "started": true,
+    "recovery_s": 15.755,
+    "pre_events": 239207,
+    "post_events": 239207,
+    "pre_seq_last": 239207,
+    "post_seq_last": 239207,
+    "seq_ok": true,
+    "pre_tick": 717462,
+    "post_tick": 717462,
+    "state_match": true,
+    "state_diff": null,
+    "restart_exit": {
+      "signal": "SIGTERM",
+      "exit_code": 0,
+      "shutdown_s": 0.613,
+      "note": "SIGTERM 正常退出"
+    }
+  },
+  "memory_profile": {
+    "probe_rows": 22,
+    "window_s": [
+      600.0,
+      6922.0
+    ],
+    "gc_objects": {
+      "first": 343857,
+      "last": 2747999,
+      "per_hour": 1369015.0
+    },
+    "allocatedblocks": {
+      "first": 1703453,
+      "last": 13602832
+    },
+    "maxrss_peak_mb": {
+      "first": 161.44,
+      "last": 1356.06,
+      "slope_mb_per_hour": 695.644
+    },
+    "structures": {
+      "AmbientScheduler.ambient._online_players": {
+        "first": 50,
+        "last": 50,
+        "delta": 0,
+        "per_hour": 0.0
+      },
+      "AmbientScheduler.ambient.npc_ids": {
+        "first": 31,
+        "last": 31,
+        "delta": 0,
+        "per_hour": 0.0
+      },
+      "AmbientScheduler.ambient.npcs": {
+        "first": 31,
+        "last": 31,
+        "delta": 0,
+        "per_hour": 0.0
+      },
+      "WorldSession.session._last_active": {
+        "first": 50,
+        "last": 50,
+        "delta": 0,
+        "per_hour": 0.0
+      },
+      "WorldSession.session._price_cache": {
+        "first": 9,
+        "last": 9,
+        "delta": 0,
+        "per_hour": 0.0
+      },
+      "WorldSession.session._view_cache": {
+        "first": 2,
+        "last": 1,
+        "delta": -1,
+        "per_hour": -0.6
+      },
+      "WorldSession.state.accounts": {
+        "first": 92,
+        "last": 92,
+        "delta": 0,
+        "per_hour": 0.0
+      },
+      "WorldSession.state.businesses": {
+        "first": 38,
+        "last": 38,
+        "delta": 0,
+        "per_hour": 0.0
+      },
+      "WorldSession.state.debts": {
+        "first": 13,
+        "last": 13,
+        "delta": 0,
+        "per_hour": 0.0
+      },
+      "WorldSession.state.entities": {
+        "first": 82,
+        "last": 82,
+        "delta": 0,
+        "per_hour": 0.0
+      },
+      "WorldSession.state.factions": {
+        "first": 9,
+        "last": 9,
+        "delta": 0,
+        "per_hour": 0.0
+      },
+      "WorldSession.state.goals": {
+        "first": 31,
+        "last": 31,
+        "delta": 0,
+        "per_hour": 0.0
+      },
+      "WorldSession.state.items_created": {
+        "first": 41,
+        "last": 41,
+        "delta": 0,
+        "per_hour": 0.0
+      },
+      "WorldSession.state.locations": {
+        "first": 9,
+        "last": 9,
+        "delta": 0,
+        "per_hour": 0.0
+      },
+      "WorldSession.state.memories": {
+        "first": 57,
+        "last": 57,
+        "delta": 0,
+        "per_hour": 0.0
+      },
+      "WorldSession.state.players": {
+        "first": 51,
+        "last": 51,
+        "delta": 0,
+        "per_hour": 0.0
+      },
+      "WorldSession.state.quest_stats": {
+        "first": 27,
+        "last": 27,
+        "delta": 0,
+        "per_hour": 0.0
+      },
+      "WorldSession.state.quests": {
+        "first": 257,
+        "last": 874,
+        "delta": 617,
+        "per_hour": 351.3
+      },
+      "WorldSession.state.relations": {
+        "first": 591,
+        "last": 624,
+        "delta": 33,
+        "per_hour": 18.8
+      },
+      "WorldSession.state.talk_ledger": {
+        "first": 7,
+        "last": 7,
+        "delta": 0,
+        "per_hour": 0.0
+      }
+    },
+    "types_top_growth": [
+      {
+        "type": "dict",
+        "first": 159846,
+        "last": 1264716,
+        "delta": 1104870
+      },
+      {
+        "type": "AuditRecord",
+        "first": 55323,
+        "last": 471160,
+        "delta": 415837
+      },
+      {
+        "type": "list",
+        "first": 35755,
+        "last": 329463,
+        "delta": 293708
+      },
+      {
+        "type": "Event",
+        "first": 27621,
+        "last": 235770,
+        "delta": 208149
+      },
+      {
+        "type": "Intent",
+        "first": 27663,
+        "last": 235610,
+        "delta": 207947
+      },
+      {
+        "type": "_AdminToken",
+        "first": 13831,
+        "last": 117790,
+        "delta": 103959
+      },
+      {
+        "type": "Relation",
+        "first": 1851,
+        "last": 26673,
+        "delta": 24822
+      },
+      {
+        "type": "Quest",
+        "first": 723,
+        "last": 25342,
+        "delta": 24619
+      },
+      {
+        "type": "ReferenceType",
+        "first": 1659,
+        "last": 6466,
+        "delta": 4807
+      },
+      {
+        "type": "Entity",
+        "first": 278,
+        "last": 3558,
+        "delta": 3280
+      },
+      {
+        "type": "PlayerProfile",
+        "first": 0,
+        "last": 2200,
+        "delta": 2200
+      },
+      {
+        "type": "Business",
+        "first": 0,
+        "last": 1672,
+        "delta": 1672
+      }
+    ]
+  },
+  "checks": {
+    "rss_growth_lt_5pct_per_hour": false,
+    "p95_drift_read_lt_1_3": false,
+    "p95_drift_write_lt_1_3": false,
+    "zero_errors": false,
+    "zero_5xx": true,
+    "seq_contiguous": true,
+    "wallet_delta_zero": true,
+    "integrity_ok": true,
+    "sigterm_graceful": true,
+    "restart_state_match": true
+  },
+  "extrapolation": {
+    "basis": {
+      "db_mb_per_hour": 106.075,
+      "rows_per_hour": 119056.2,
+      "rss_mb_per_hour": 223.5946,
+      "end_db_mb": 217.5,
+      "end_events": 239207,
+      "end_rss_mb": 9.61
+    },
+    "horizons": [
+      {
+        "horizon": "7d",
+        "days": 7,
+        "events_total": 20240648,
+        "db_mb": 18038.1,
+        "db_gb": 17.62,
+        "rss_mb": 37573.5,
+        "rss_gb": 36.69
+      },
+      {
+        "horizon": "30d",
+        "days": 30,
+        "events_total": 85959671,
+        "db_mb": 76591.5,
+        "db_gb": 74.8,
+        "rss_mb": 160997.7,
+        "rss_gb": 157.22
+      },
+      {
+        "horizon": "90d",
+        "days": 90,
+        "events_total": 257400599,
+        "db_mb": 229339.5,
+        "db_gb": 223.96,
+        "rss_mb": 482973.9,
+        "rss_gb": 471.65
+      }
+    ]
+  },
+  "passed": false
+}

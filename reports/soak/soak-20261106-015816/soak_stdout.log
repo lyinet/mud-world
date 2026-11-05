@@ -1,0 +1,40 @@
+[soak] run=soak-20261106-015816 duration=7200.0s players=50 port=60737
+[soak] report=/Users/lyinet/projects/XKX/world-sim/reports/soak/soak-20261106-015816
+[soak] t=305s rss=101.14MB cpu=59.79% events=14071 db=16.586MB tick=42054 read_p95=131.04ms write_p95=143.503ms err=0
+[soak] t=610s rss=168.95MB cpu=72.31% events=28061 db=29.234MB tick=84018 read_p95=492.783ms write_p95=456.208ms err=0
+[soak] t=916s rss=231.7MB cpu=78.89% events=41509 db=41.562MB tick=124368 read_p95=599.778ms write_p95=674.555ms err=0
+[soak] t=1221s rss=286.69MB cpu=80.07% events=52979 db=52.054MB tick=158778 read_p95=1214.697ms write_p95=1255.989ms err=0
+[soak] t=1527s rss=352.42MB cpu=86.22% events=65981 db=64.718MB tick=197784 read_p95=320.727ms write_p95=320.388ms err=0
+[soak] t=1804s rss=418.5MB cpu=88.06% events=77421 db=75.668MB tick=232098 read_p95=271.483ms write_p95=272.394ms err=0
+[soak] t=2110s rss=475.28MB cpu=91.13% events=89850 db=87.457MB tick=269388 read_p95=578.64ms write_p95=593.641ms err=0
+[soak] t=2416s rss=536.19MB cpu=89.94% events=101621 db=98.129MB tick=304698 read_p95=899.574ms write_p95=994.491ms err=0
+[soak] t=2723s rss=595.55MB cpu=86.62% events=112937 db=107.875MB tick=338646 read_p95=1260.527ms write_p95=1149.804ms err=0
+[soak] t=3029s rss=656.36MB cpu=89.32% events=124119 db=117.855MB tick=372192 read_p95=1026.789ms write_p95=1045.456ms err=0
+[soak] t=3307s rss=717.5MB cpu=89.61% events=135000 db=127.656MB tick=404838 read_p95=912.801ms write_p95=951.965ms err=0
+[soak] t=3613s rss=780.39MB cpu=89.09% events=145925 db=137.304MB tick=437610 read_p95=1275.31ms write_p95=1012.11ms err=0
+[soak] t=3921s rss=551.83MB cpu=91.04% events=156773 db=146.972MB tick=470154 read_p95=1252.187ms write_p95=1073.328ms err=0
+[soak] t=4200s rss=861.66MB cpu=90.07% events=166593 db=155.937MB tick=499614 read_p95=1198.113ms write_p95=867.093ms err=0
+[soak] t=4509s rss=960.89MB cpu=89.9% events=176741 db=164.902MB tick=530058 read_p95=1685.29ms write_p95=899.405ms err=0
+[soak] t=4822s rss=384.88MB cpu=88.32% events=187149 db=174.012MB tick=561282 read_p95=1667.39ms write_p95=1024.835ms err=0
+[soak] t=5100s rss=512.67MB cpu=87.86% events=196084 db=182.078MB tick=588090 read_p95=1707.204ms write_p95=986.427ms err=0
+[soak] t=5410s rss=254.45MB cpu=74.67% events=205196 db=189.976MB tick=615426 read_p95=4708.322ms write_p95=3605.958ms err=0
+[soak] t=5722s rss=1189.62MB cpu=74.66% events=211768 db=195.465MB tick=635142 read_p95=4843.766ms write_p95=3685.322ms err=0
+[soak] t=6001s rss=556.92MB cpu=77.19% events=216984 db=199.652MB tick=650790 read_p95=4259.048ms write_p95=3407.54ms err=0
+[soak] t=6319s rss=623.56MB cpu=84.08% events=223887 db=205.156MB tick=671496 read_p95=4176.018ms write_p95=1372.402ms err=0
+[soak] t=6628s rss=496.56MB cpu=71.97% events=230831 db=210.801MB tick=692334 read_p95=6601.478ms write_p95=5448.339ms err=2
+[soak] t=6915s rss=566.14MB cpu=74.25% events=235532 db=214.609MB tick=None read_p95=5307.415ms write_p95=5356.13ms err=0
+[soak] load finished after 7174.6s, stopping players
+[soak] invariants: ok=True errors=[]
+[soak] restart check: re-launching same run dir (ambient off)
+[soak] summary -> /Users/lyinet/projects/XKX/world-sim/reports/soak/soak-20261106-015816/summary.json
+[soak] check rss_growth_lt_5pct_per_hour: FAIL
+[soak] check p95_drift_read_lt_1_3: FAIL
+[soak] check p95_drift_write_lt_1_3: FAIL
+[soak] check zero_errors: FAIL
+[soak] check zero_5xx: PASS
+[soak] check seq_contiguous: PASS
+[soak] check wallet_delta_zero: PASS
+[soak] check integrity_ok: PASS
+[soak] check sigterm_graceful: PASS
+[soak] check restart_state_match: PASS
+[soak] overall: FAIL
