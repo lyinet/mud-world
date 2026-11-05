@@ -119,6 +119,40 @@
 
 ---
 
+## [部署 门 3] 2026-11-06 — TLS 终止与反向代理（nginx），后端只留内网
+
+- **改了什么**
+  - 新增 `deploy/nginx/xkx.conf`：`80 → 308 https://…`（保留方法与请求体）、
+    `443` TLS 终止（TLSv1.2/1.3）、`X-Real-IP` / `X-Forwarded-For` /
+    `X-Forwarded-Proto` / `X-Forwarded-Host` 透传、`client_max_body_size 8k`
+    （与后端 `_MAX_BODY_BYTES=8*1024` 一致）、`/healthz` 明文放行不记日志、
+    `/api/health` 单独放行、`server_tokens off`、读超时 30s 对齐后端。
+  - 新增 `deploy/gen_selfsigned_cert.sh`：生成自签证书（SAN `localhost` /
+    `127.0.0.1` / `::1`），仅用于演练；生产同名替换运维签发证书。
+  - `deploy/docker-compose.yml`：新增 `proxy` 服务（`nginx:1.27-alpine`，
+    `depends_on world healthy`，80/443 可 `PUBLIC_HTTP_PORT`/`PUBLIC_HTTPS_PORT` 覆盖）；
+    `world` 增加 `expose 8020/8030`，宿主发布仍仅 `127.0.0.1`，公网只能经 proxy。
+  - `.gitignore`：忽略 `deploy/nginx/certs/`（证书与私钥不入库）。
+  - `docs/OPS-RUNBOOK.md`：新增 §1.4「对外入口与 TLS」，含部署形态表、选 nginx 的
+    理由、起用步骤、路由/安全策略表、自签握手与 `/api/state` 200、308 跳转、
+    XFF 回显上游实测、8KB 上限对齐实测、限流粒度说明与故障排查表。
+- **为什么改**：门 3 要求公网入口具备 TLS 终止、强制跳转、来源头透传与和后端一致的
+  请求体限制；同时后端不得直接暴露公网。选 nginx 是因为需要精确的 8KB 上限与
+  探活放行语义，且证书来自自有 CA（无需 ACME）。
+- **验证方式（自签，colima 29.5.2）**
+  - `openssl s_client` 握手成功（`subject=CN=localhost`，SAN 含 `127.0.0.1`）。
+  - `curl -sk https://127.0.0.1/api/state?account_id=tlsgate3 -H "Authorization: Bearer …"`
+    → `CODE=200`、`ok=true`、`location=market`（注册/登录/进入世界均走 HTTPS）。
+  - `curl http://127.0.0.1/...` → `308` + `Location: https://…`（POST 同样 308）。
+  - `X-Forwarded-For/Proto/Host/X-Real-IP` 在回显上游容器里逐项确认到达。
+  - 9KB 请求：proxy 413、直连后端 413（同为 8KB 上限）；7KB 到达后端（401）。
+  - `netstat`：`*.80/*.443` 对外，`127.0.0.1.8020/.8030` 仅回环；局域网 IP 访问 8020 被拒。
+- **未做**：未改 `src/wsim/api/**`（后端不信任 XFF 导致的限流粒度为文档说明，非本门改动）；
+  未回退 `deploy/Dockerfile` 的 version 元数据。
+- **commit**：`（见本提交）`。
+
+---
+
 ## [P0 数据安全] 2026-11-06 — 异机/异地备份副本（`tools/backup_offsite.sh`）
 
 - **改了什么**

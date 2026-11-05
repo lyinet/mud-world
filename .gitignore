@@ -14,6 +14,8 @@ dist/
 .env.local
 *.pem
 *.key
+# 反向代理的本地自签证书（由 deploy/gen_selfsigned_cert.sh 生成，不入库）
+deploy/nginx/certs/
 # 演练/压测产物中的凭证默认不入库（令牌只允许留摘要）
 **/token.txt
 **/*.token

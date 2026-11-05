@@ -43,7 +43,8 @@ docker compose ps
 docker compose logs -f --tail=100 world
 ```
 
-- API `8020`、前端 `8030` 映射到宿主同端口（可用 `API_PORT` / `UI_PORT` 覆盖）。
+- API `8020`、前端 `8030` **只绑宿主回环**（`127.0.0.1`），不对公网暴露；
+  外部访问统一走 `proxy`（nginx，TLS 终止在 80/443），见 §1.4。
 - 存档在命名卷 `xkx-w5-data` 的 `/app/runs/<RUN_ID>/`，同时包含 `events.sqlite` 与 `service.sqlite`。
 - 容器以非 root（uid 10001）运行；镜像构建上下文通过 `deploy/Dockerfile.dockerignore` 排除 `.env`。
 - 校验镜像确实没有密钥：
@@ -79,6 +80,130 @@ docker run --rm --entrypoint sh xkx/world-sim:w5 -c 'env | grep -Ei "api[_-]?key
 
 - `0` 正常退出；`2` 端口/参数错误；`3` **内容 hash 不符**（拒绝启动，不写任何事件）。
 
+### 1.4 对外入口与 TLS（反向代理，门 3）
+
+**部署形态：后端只在内网/容器网络，公网只碰 proxy。**
+
+| 组件 | 监听 | 暴露范围 |
+|---|---|---|
+| `xkx-proxy`（nginx 1.27） | 容器 `80`/`443` → 宿主 `${PUBLIC_HTTP_PORT:-80}` / `${PUBLIC_HTTPS_PORT:-443}` | 公网唯一入口 |
+| `xkx-world`（API + 前端） | 容器 `8020` / `8030`，宿主发布仅 `127.0.0.1` | 仅本机调试；容器网络内由 proxy 访问 |
+| `xkx-backup` | 仅容器网络 | 不对外 |
+
+实测（`netstat` + 跨机访问）：
+
+```text
+$ netstat -an -f inet | grep LISTEN | grep -E '\.(80|443|8020|8030) '
+tcp4  0 0  *.443       *.*  LISTEN     ← proxy 对外
+tcp4  0 0  *.80        *.*  LISTEN     ← proxy 对外（只做 308）
+tcp4  0 0  127.0.0.1.8020  *.*  LISTEN  ← 仅回环
+tcp4  0 0  127.0.0.1.8030  *.*  LISTEN  ← 仅回环
+
+$ curl -m 3 http://192.168.31.119:8020/api/service/info
+curl: (7) Failed to connect … （局域网访问被拒绝，符合预期）
+$ curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8020/api/service/info
+200
+```
+
+**为什么选 nginx（而不是 caddy）**：
+
+1. 需要把请求体上限严格对齐后端 8KB，并在同一层放行探活路径；
+   `client_max_body_size` + `location` 语义直接，`nginx -t` 可静态校验。
+2. 证书来自运维自有 CA/自签，不需要 ACME 域名校验；caddy 的自动 HTTPS 优势用不上。
+3. 生产普及度高，排障资料多。
+
+**起用**：
+
+```bash
+cd deploy
+./gen_selfsigned_cert.sh              # 仅演练：生成 deploy/nginx/certs/xkx.crt|key
+# 生产：把运维签发的证书按同名放进去（不入库，deploy/nginx/certs/ 已在 .gitignore）
+
+docker compose up -d                  # world + backup + proxy 一起起
+docker compose ps                     # xkx-proxy 应为 healthy
+docker exec xkx-proxy nginx -t        # 配置语法校验
+```
+
+证书替换后：`docker compose restart proxy`（nginx 启动时读证书，不热加载）。
+
+**路由与安全策略**（`deploy/nginx/xkx.conf`）：
+
+| 项 | 配置 | 说明 |
+|---|---|---|
+| HTTP→HTTPS | `return 308 https://$host$request_uri` | 308 保留方法与请求体（POST 不会退化成 GET） |
+| 探活放行 | `location = /healthz`（80/443 均有） | 明文可用、`access_log off`，供容器 HEALTHCHECK/LB |
+| 请求体上限 | `client_max_body_size 8k` | 与后端 `_MAX_BODY_BYTES = 8*1024` 一致 |
+| 头部/读超时 | `client_header_timeout 15s`、`proxy_read_timeout 30s` | 与 `XKX_REQUEST_TIMEOUT` 默认 30s 对齐 |
+| 来源头 | `X-Real-IP`、`X-Forwarded-For $proxy_add_x_forwarded_for`、`X-Forwarded-Proto $scheme`、`X-Forwarded-Host` | 见下方实测 |
+| 隐藏版本 | `server_tokens off` | 不回显 nginx 版本 |
+
+**实测（自签，2026-11-06）**
+
+```text
+$ echo | openssl s_client -connect 127.0.0.1:443 -servername localhost | openssl x509 -noout -subject -ext subjectAltName
+subject=CN = localhost, O = XKX-DEV
+X509v3 Subject Alternative Name:
+    DNS:localhost, IP Address:127.0.0.1, IP Address:0:0:0:0:0:0:0:1
+
+$ curl -sk -w '%{http_code}\n' https://127.0.0.1/api/service/info
+{"ambient": "running", … "auth_required": true, "ok": true, "run": "service", "tick": 84}
+200
+
+# 注册 → 登录 → 进入世界 → 取状态，全走 HTTPS
+$ curl -sk -X POST -d '{"username":"tlsgate3","password":"…"}' https://127.0.0.1/api/auth/register
+{"account_id": "tlsgate3", "created": true, "ok": true, "username": "tlsgate3"}
+$ curl -sk -H "Authorization: Bearer $TOKEN" 'https://127.0.0.1/api/state?account_id=tlsgate3'
+HTTPS /api/state -> CODE=200
+ok= True account= tlsgate3 location= market
+
+# HTTP 跳转
+$ curl -s -o /dev/null -D - http://127.0.0.1/api/state?account_id=tlsgate3
+HTTP/1.1 308 Permanent Redirect
+Location: https://127.0.0.1/api/state?account_id=tlsgate3
+```
+
+`X-Forwarded-*` 是否真的到达后端（用同一组指令指向回显上游实测，避免"只写在配置里"）：
+
+```text
+$ curl -sk https://127.0.0.1:9443/probe?x=1
+{"ok": true}
+$ docker logs xkx-echo
+{"path": "/probe?x=1", "headers": {"Host": "127.0.0.1", "X-Real-IP": "172.18.0.1",
+ "X-Forwarded-For": "172.18.0.1", "X-Forwarded-Proto": "https", "X-Forwarded-Host": "127.0.0.1"}}
+```
+
+请求体上限对齐：
+
+```text
+$ curl -sk -o /dev/null -w '%{http_code}\n' -X POST --data-binary @9KB.json https://127.0.0.1/api/auth/login
+413                    ← nginx 先拒
+$ curl -s -o /dev/null -w '%{http_code}\n' -X POST --data-binary @9KB.json http://127.0.0.1:8020/api/auth/login
+413                    ← 后端同为 8KB 上限，直连也拒
+$ curl -sk -o /dev/null -w '%{http_code}\n' -X POST --data-binary @7KB.json https://127.0.0.1/api/auth/login
+401                    ← 未超限，正常到达后端
+```
+
+**限流粒度（重要，未改代码）**：后端 `_client_ip()` 取 TCP 对端地址，且**不信任**
+`X-Forwarded-For`（`src/wsim/api/server.py`）。经 proxy 后所有请求的对端 IP 都是 proxy
+容器地址，因此登录失败限流、按 IP 的审计会**退化为全局限流**。本门不改 `src/wsim/api/**`，
+处置：
+
+- 单机/单入口部署可接受（等于"全局失败预算"），发生误锁时用
+  `accounts.clear_login_locks()` 解锁（见 §5）。
+- 若要按真实客户端限流，需后端改为在可信代理后读取 XFF（属于 API 域，另立任务）。
+- 因此**不要把 proxy 直接暴露到不可信网络而不加额外限流/WAF**；公网部署建议在
+  proxy 前再加一层按 IP 的连接/请求速率限制。
+
+**故障排查**：
+
+| 现象 | 原因 | 处置 |
+|---|---|---|
+| `xkx-proxy` 起不来，日志 `cannot load certificate` | 证书缺失/文件名不符/权限 | 跑 `deploy/gen_selfsigned_cert.sh`，确认 `xkx.crt`/`xkx.key` 存在且 `644`/`600` |
+| 443 握手成功但 `/api/*` 502 | world 未 healthy 或服务名解析失败 | `docker compose ps`、`docker logs xkx-world`；确认 upstream 为 `world:8020` |
+| 浏览器提示证书不受信任 | 自签证书 | 演练预期；生产换正式证书 |
+| 大请求返回 nginx 的 413 HTML 而非 API JSON | 请求体 > 8KB 在 proxy 层被拒 | 预期行为（阈值与后端一致）；客户端应按 8KB 控制 |
+| 所有客户端共享登录失败计数 | 后端按 TCP 对端限流且不读 XFF | 见上"限流粒度"；单入口下按全局预算处理 |
+
 ---
 
 ## 2. 升级
@@ -106,8 +231,12 @@ docker compose logs -f world   # 看到 [player-ui] mode=live 与 API 监听
 # 宿主机（仓库根）
 .venv/bin/python tools/backup_snapshot.py --root . --run service
 
-# 容器内（容器已带 tools/；等价于 backup profile 的循环动作）
+# 容器内（镜像已带 tools/；等价于 backup 容器每轮的循环动作）
 docker exec xkx-world python /app/tools/backup_snapshot.py --root /app --run service
+
+# 异地副本（推送后在远端取 sha256 与 manifest 逐项比对）
+XKX_OFFSITE_MODE=rsync XKX_OFFSITE_SSH_HOST=backup-host XKX_OFFSITE_TARGET=/srv/xkx-backups \
+  sh tools/backup_offsite.sh --backup-dir backups
 ```
 
 产物在 `backups/<UTC 时间戳>/`（`events.sqlite`、`service.sqlite`、`manifest.json`）。
