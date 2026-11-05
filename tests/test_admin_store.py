@@ -53,6 +53,7 @@ def test_schema_is_idempotent(tmp_path: Path) -> None:
         "admin_sessions",
         "admin_login_failures",
         "admin_runtime",
+        "admin_usage",
     } <= tables
 
 
@@ -72,7 +73,8 @@ def test_defaults_and_deep_merge(db_path: Path) -> None:
     )
     assert result["version"] == 1
     assert result["changed"] == ["ambient_speed", "per_capability_daily_tokens"]
-    assert result["requires_restart"] == ["ambient_speed", "per_capability_daily_tokens"]
+    # 预算键已在真实调用点接线，属于 hot；世界参数仍需重启。
+    assert result["requires_restart"] == ["ambient_speed"]
 
     merged = store.get_all()
     assert merged["world"]["ambient_speed"] == 3
@@ -266,15 +268,16 @@ def test_init_migrates_v1_schema(tmp_path: Path) -> None:
         tables = {
             str(item[0])
             for item in conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='admin_runtime'"
+                "SELECT name FROM sqlite_master WHERE type='table'"
+                " AND name IN ('admin_runtime', 'admin_usage')"
             )
         }
     finally:
         conn.close()
     assert {"created_at", "last_used_at"} <= columns
-    assert version == 2
+    assert version == settings.SCHEMA_VERSION
     assert row == (123.5, 0.0)
-    assert tables == {"admin_runtime"}
+    assert tables == {"admin_runtime", "admin_usage"}
     settings.RuntimeStore(path).set("world_state", {"ambient_speed": {"value": 1}})
 
 

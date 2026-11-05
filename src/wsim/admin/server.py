@@ -251,6 +251,7 @@ class AdminApp:
             if item.get("last_check_at") is not None
         ]
         payload["capabilities_last_check_at"] = max(stamps) if stamps else None
+        payload["budget"] = self.budget_view()
         payload["env_bridge"] = str(self.env_bridge_path)
         return payload
 
@@ -293,6 +294,10 @@ class AdminApp:
     # ------------------------------------------------------------ providers
     def capability_report_view(self) -> dict[str, dict[str, Any]]:
         return provider_registry.capability_report(self.db_path, cache=self.snapshot)
+
+    def budget_view(self) -> dict[str, Any]:
+        """今日已用 / 上限 / 剩余；自然日（UTC），与拦截同源。"""
+        return provider_registry.budget_summary(self.db_path, cache=self.snapshot)
 
     def routing_view(self) -> dict[str, dict[str, Any]]:
         report = self.capability_report_view()
@@ -426,6 +431,7 @@ class AdminApp:
         world_state = self.reconcile_world_state()
         events = self._events_stats()
         cost = self._llm_cost()
+        budget = self.budget_view()
         return {
             "ok": True,
             "health": {
@@ -448,6 +454,15 @@ class AdminApp:
                 "calls": int(ambient.get("llm_calls", 0) or 0),
                 "cost_usd": cost.get("cost_usd"),
                 "cost_source": cost.get("source"),
+            },
+            "budget": {
+                "day": budget.get("day"),
+                "timezone": budget.get("timezone"),
+                "daily_budget_usd": budget.get("daily_budget_usd"),
+                "used_usd": budget.get("used_usd"),
+                "remaining_usd": budget.get("remaining_usd"),
+                "used_tokens": budget.get("used_tokens"),
+                "denied": budget.get("denied"),
             },
             "backup": {"last_at": _iso(self._last_backup_at()), "dir": str(self._backup_dir())},
             "runtime": {
@@ -663,6 +678,8 @@ class AdminHandler(BaseHTTPRequestHandler):
                     "capabilities": app.capability_report_view(),
                 },
             )
+        elif method == "GET" and path == "/api/admin/budget":
+            self._send(HTTPStatus.OK, app.budget_view())
         elif method == "GET" and path == "/api/admin/audit":
             limit = 100
             try:

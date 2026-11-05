@@ -18,7 +18,7 @@ from typing import Any, Callable, Iterable
 from . import audit
 from .clock import now_utc
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 SECTIONS = ("world", "llm", "providers", "routing")
 OBSERVED_WORLD_KEYS = ("ambient_speed", "ambient_cpu")
 
@@ -62,8 +62,8 @@ HOT: dict[str, bool] = {
     "starting_money": False,
     "quest_floor_enabled": False,
     "global_enabled": True,
-    "daily_budget_usd": False,
-    "per_capability_daily_tokens": False,
+    "daily_budget_usd": True,
+    "per_capability_daily_tokens": True,
     "providers": True,
     "routing": True,
 }
@@ -76,8 +76,8 @@ HOT_NOTES: dict[str, str] = {
     "starting_money": "主服务当前无运行期读取点",
     "quest_floor_enabled": "主服务当前无运行期读取点",
     "global_enabled": "provider 快照 ≤5s 生效（killswitch）",
-    "daily_budget_usd": "预算由 sim/headless.py 的 BudgetGuard 读 config/llm.yaml，未接 admin",
-    "per_capability_daily_tokens": "同上，未接 admin",
+    "daily_budget_usd": "真实调用前按自然日（UTC）累计拦截；≤0 表示不限",
+    "per_capability_daily_tokens": "按能力位自然日 token 上限（输入+输出）；≤0 表示不限",
     "providers": "provider 快照 ≤5s 生效",
     "routing": "provider 快照 ≤5s 生效",
 }
@@ -124,6 +124,18 @@ CREATE TABLE IF NOT EXISTS admin_runtime (
     key TEXT PRIMARY KEY,
     value_json TEXT NOT NULL,
     updated_at REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS admin_usage (
+    day TEXT NOT NULL,
+    capability TEXT NOT NULL,
+    provider_id TEXT NOT NULL DEFAULT '',
+    calls INTEGER NOT NULL DEFAULT 0,
+    tokens_in INTEGER NOT NULL DEFAULT 0,
+    tokens_out INTEGER NOT NULL DEFAULT 0,
+    cost_usd REAL NOT NULL DEFAULT 0,
+    denied INTEGER NOT NULL DEFAULT 0,
+    updated_at REAL NOT NULL,
+    PRIMARY KEY (day, capability, provider_id)
 );
 """
 
@@ -274,6 +286,125 @@ class RuntimeStore:
             except (TypeError, ValueError):
                 continue
         return out
+
+
+class UsageStore:
+    """`admin_usage` 读写：按 自然日 + 能力位 + provider 累加用量与拒绝次数。
+
+    - 只增不改其它表；不影响 `admin_settings.version`。
+    - 库不存在时读返回空、写直接跳过（没有管理配置就没有预算闸）。
+    """
+
+    def __init__(self, path: str | Path, now_fn: Callable[[], float] | None = None):
+        self.path = Path(path)
+        self.now = now_fn or now_utc
+
+    def rows(self, day: str) -> list[dict[str, Any]]:
+        if not self.path.exists():
+            return []
+        uri = f"file:{self.path.as_posix()}?mode=ro"
+        conn = sqlite3.connect(uri, uri=True, timeout=5.0)
+        try:
+            result = conn.execute(
+                "SELECT day, capability, provider_id, calls, tokens_in, tokens_out,"
+                " cost_usd, denied, updated_at FROM admin_usage WHERE day = ?",
+                (str(day),),
+            ).fetchall()
+        finally:
+            conn.close()
+        return [
+            {
+                "day": str(row[0]),
+                "capability": str(row[1]),
+                "provider_id": str(row[2]),
+                "calls": int(row[3] or 0),
+                "tokens_in": int(row[4] or 0),
+                "tokens_out": int(row[5] or 0),
+                "cost_usd": float(row[6] or 0.0),
+                "denied": int(row[7] or 0),
+                "updated_at": float(row[8] or 0.0),
+            }
+            for row in result
+        ]
+
+    def add(
+        self,
+        day: str,
+        capability: str,
+        provider_id: str,
+        *,
+        tokens_in: int = 0,
+        tokens_out: int = 0,
+        cost_usd: float = 0.0,
+        calls: int = 1,
+        now: float | None = None,
+    ) -> None:
+        if not self.path.exists():
+            return
+        conn = sqlite3.connect(str(self.path), timeout=5.0)
+        try:
+            conn.execute(
+                "INSERT INTO admin_usage"
+                "(day, capability, provider_id, calls, tokens_in, tokens_out, cost_usd,"
+                " denied, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)"
+                " ON CONFLICT(day, capability, provider_id) DO UPDATE SET"
+                " calls = admin_usage.calls + excluded.calls,"
+                " tokens_in = admin_usage.tokens_in + excluded.tokens_in,"
+                " tokens_out = admin_usage.tokens_out + excluded.tokens_out,"
+                " cost_usd = admin_usage.cost_usd + excluded.cost_usd,"
+                " updated_at = excluded.updated_at",
+                (
+                    str(day),
+                    str(capability),
+                    str(provider_id),
+                    int(calls),
+                    int(tokens_in),
+                    int(tokens_out),
+                    float(cost_usd),
+                    float(self.now() if now is None else now),
+                ),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def add_denial(
+        self,
+        day: str,
+        capability: str,
+        provider_id: str,
+        *,
+        now: float | None = None,
+    ) -> int:
+        """记一次拒绝，返回该 (day, capability, provider) 之前的拒绝次数。"""
+        if not self.path.exists():
+            return 0
+        conn = sqlite3.connect(str(self.path), timeout=5.0)
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute(
+                "SELECT denied FROM admin_usage WHERE day = ? AND capability = ? AND provider_id = ?",
+                (str(day), str(capability), str(provider_id)),
+            ).fetchone()
+            previous = int(row[0] or 0) if row else 0
+            conn.execute(
+                "INSERT INTO admin_usage"
+                "(day, capability, provider_id, calls, tokens_in, tokens_out, cost_usd,"
+                " denied, updated_at) VALUES (?, ?, ?, 0, 0, 0, 0, 1, ?)"
+                " ON CONFLICT(day, capability, provider_id) DO UPDATE SET"
+                " denied = admin_usage.denied + 1, updated_at = excluded.updated_at",
+                (str(day), str(capability), str(provider_id), float(self.now() if now is None else now)),
+            )
+            conn.execute("COMMIT")
+            return previous
+        except Exception:
+            try:
+                conn.execute("ROLLBACK")
+            except sqlite3.Error:
+                pass
+            raise
+        finally:
+            conn.close()
 
 
 def deep_merge(base: Any, patch: Any) -> Any:
@@ -549,9 +680,23 @@ class SettingsStore:
                 raise AdminValidationError("unknown_llm_key:" + ",".join(unknown))
             if "global_enabled" in llm and not isinstance(llm["global_enabled"], bool):
                 raise AdminValidationError("global_enabled_not_bool")
+            budget = llm.get("daily_budget_usd")
+            if budget is not None:
+                if isinstance(budget, bool) or not isinstance(budget, (int, float)):
+                    raise AdminValidationError("daily_budget_usd_not_number")
+                if float(budget) < 0:
+                    raise AdminValidationError("daily_budget_usd_negative")
             tokens = llm.get("per_capability_daily_tokens")
-            if tokens is not None and not isinstance(tokens, dict):
-                raise AdminValidationError("per_capability_daily_tokens_not_object")
+            if tokens is not None:
+                if not isinstance(tokens, dict):
+                    raise AdminValidationError("per_capability_daily_tokens_not_object")
+                for capability, value in tokens.items():
+                    if capability not in DEFAULT_SETTINGS["routing"]:
+                        raise AdminValidationError(f"unknown_capability:{capability}")
+                    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                        raise AdminValidationError(
+                            f"per_capability_daily_tokens_invalid:{capability}"
+                        )
         if "providers" in patch and not isinstance(patch["providers"], list):
             raise AdminValidationError("providers_not_list")
         if "routing" in patch:

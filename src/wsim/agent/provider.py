@@ -564,11 +564,21 @@ class ProviderClient:
             last_cfg = cfg
             if index > 0:
                 self._stat(fallbacks=1)
+            denial = self._budget_denial(cfg)
+            if denial is not None:
+                # 预算拒绝发生在任何网络请求之前；继续走降级链，不中断 tick。
+                denial["attempts"] = total_attempts
+                denial["fallback"] = index > 0
+                denial["provider_id"] = str(getattr(cfg, "provider_id", ""))
+                self._stat(errors_by_kind=denial["error_kind"])
+                last_error = denial
+                continue
             result = self._run_config(cfg, system, user, call_started)
             total_attempts += int(result.pop("_attempts", 1))
             result["attempts"] = total_attempts
             result["fallback"] = index > 0
             result["provider_id"] = str(getattr(cfg, "provider_id", ""))
+            self._record_usage(cfg, result, system, user)
             if result["error"] is None:
                 self.last_fallback = index > 0
                 if index > 0:
@@ -586,6 +596,55 @@ class ProviderClient:
         )
         self._report_capability(last_error, last_cfg or self.config)
         return last_error
+
+    def _budget_denial(self, cfg: ProviderConfig) -> dict[str, Any] | None:
+        """调用前预算闸门；只读管理库，失败一律放行。回放不检查。"""
+        if self.replay:
+            return None
+        try:
+            from ..admin import providers as admin_providers
+
+            decision = admin_providers.check_budget(
+                cfg.slot, provider_id=str(getattr(cfg, "provider_id", ""))
+            )
+        except Exception:  # noqa: BLE001 - 管理面不可用时不得阻断主服务
+            return None
+        if bool(decision.get("allowed", True)):
+            return None
+        try:
+            admin_providers.record_budget_denial(decision, slot=cfg.slot)
+        except Exception:  # noqa: BLE001 - 审计失败不影响拒绝本身
+            pass
+        code = str(decision.get("code") or "budget_exhausted")
+        return {
+            "text": "", "usage": {}, "latency_s": 0.0, "attempt_latency_s": 0.0,
+            "attempts": 0, "error_kind": code, "error": ProviderUnavailable(code),
+            "thinking_disabled_by": "none", "thinking_param_ignored": False,
+            "fallback": False, "provider_id": "", "budget": decision,
+        }
+
+    def _record_usage(
+        self,
+        cfg: ProviderConfig,
+        result: dict[str, Any],
+        system: str,
+        user: str,
+    ) -> None:
+        """真实调用后累计自然日用量；失败静默，不拖慢主服务。"""
+        if self.replay:
+            return
+        try:
+            from ..admin import providers as admin_providers
+
+            admin_providers.record_usage(
+                cfg.slot,
+                provider_id=str(getattr(cfg, "provider_id", "")),
+                usage=result.get("usage"),
+                prompt_chars=len(system) + len(user),
+                output_chars=len(str(result.get("text") or "")),
+            )
+        except Exception:  # noqa: BLE001
+            return
 
     def _report_capability(self, result: dict[str, Any], cfg: ProviderConfig) -> None:
         """把真实调用结果回写管理面；回放/遥测失败一律静默。"""

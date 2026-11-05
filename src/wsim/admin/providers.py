@@ -26,6 +26,7 @@ from .settings import (
     default_settings,
     resolve_db_path,
 )
+from . import budget as budget_gate
 from . import secrets
 from .clock import now_utc
 
@@ -89,6 +90,93 @@ class NotConfigured(AdminProviderError):
 
 class Killswitch(AdminProviderError):
     code = "llm_killswitch"
+
+
+def check_budget(
+    slot: str,
+    *,
+    provider_id: str = "",
+    db_path: str | Path | None = None,
+    cache: SnapshotCache | None = None,
+    now: float | None = None,
+) -> dict[str, Any]:
+    """真实调用前的预算检查；未纳入管理面的槽位（如 intent/admin_test）直接放行。"""
+    capability = SLOT_CAPABILITY.get(str(slot))
+    if not capability:
+        return {
+            "allowed": True,
+            "code": "",
+            "capability": "",
+            "provider_id": str(provider_id or "env"),
+            "day": "",
+            "timezone": budget_gate.TIMEZONE,
+            "used_usd": 0.0,
+            "limit_usd": 0.0,
+            "used_tokens": 0,
+            "token_limit": 0,
+            "check_error": "slot_not_mapped",
+        }
+    cache = cache or _CACHE
+    return budget_gate.check(
+        capability,
+        provider_id=provider_id,
+        db_path=db_path or cache.db_path,
+        snapshot=cache.get(),
+        now=now,
+    )
+
+
+def record_usage(
+    slot: str,
+    *,
+    provider_id: str = "",
+    usage: dict[str, Any] | None = None,
+    prompt_chars: int = 0,
+    output_chars: int = 0,
+    db_path: str | Path | None = None,
+    cache: SnapshotCache | None = None,
+    now: float | None = None,
+) -> dict[str, Any] | None:
+    """真实调用结束后累计当日用量；未映射槽位不记账。"""
+    capability = SLOT_CAPABILITY.get(str(slot))
+    if not capability:
+        return None
+    cache = cache or _CACHE
+    return budget_gate.record_call(
+        capability,
+        provider_id=provider_id,
+        usage=usage,
+        prompt_chars=prompt_chars,
+        output_chars=output_chars,
+        db_path=db_path or cache.db_path,
+        now=now,
+    )
+
+
+def record_budget_denial(
+    decision: dict[str, Any],
+    *,
+    slot: str = "",
+    db_path: str | Path | None = None,
+    cache: SnapshotCache | None = None,
+    now: float | None = None,
+) -> None:
+    cache = cache or _CACHE
+    budget_gate.record_denial(
+        decision, slot=slot, db_path=db_path or cache.db_path, now=now
+    )
+
+
+def budget_summary(
+    db_path: str | Path | None = None,
+    *,
+    cache: SnapshotCache | None = None,
+    now: float | None = None,
+) -> dict[str, Any]:
+    cache = cache or _CACHE
+    return budget_gate.summary(
+        db_path=db_path or cache.db_path, snapshot=cache.get(), now=now
+    )
 
 
 def capabilities_status(
@@ -212,6 +300,13 @@ def _fallback_report_entry(capability: str) -> dict[str, Any]:
         "last_served_by": None,
         "source": "stub" if status == "stub" else "config",
         "evidence": CAPABILITY_EVIDENCE.get(capability, ""),
+        "budget": {
+            "day": None,
+            "timezone": budget_gate.TIMEZONE,
+            "used_tokens": 0,
+            "token_limit": 0,
+            "remaining_tokens": None,
+        },
     }
 
 
@@ -232,12 +327,17 @@ def capability_report(
         routing = snapshot.get("routing")
         if not isinstance(routing, dict):
             routing = {}
+        try:
+            budget_data = budget_gate.summary(db_path=path, snapshot=snapshot)
+        except Exception:  # noqa: BLE001 - 预算展示失败不得影响能力状态
+            budget_data = {"day": None, "tokens": {}}
         report: dict[str, dict[str, Any]] = {}
         for capability in CAPABILITIES:
             route_ids = _ids_for_route(routing.get(capability))
             primary = route_ids[0] if route_ids else ""
             entry = providers_map.get(primary) if primary else None
             primary_model = str(entry.get("model") or "") if isinstance(entry, dict) else ""
+            token_info = budget_data.get("tokens", {}).get(capability) or {}
             base: dict[str, Any] = {
                 "status": "",
                 "last_check_at": None,
@@ -251,6 +351,13 @@ def capability_report(
                 "last_served_by": None,
                 "source": "",
                 "evidence": CAPABILITY_EVIDENCE.get(capability, ""),
+                "budget": {
+                    "day": budget_data.get("day"),
+                    "timezone": budget_gate.TIMEZONE,
+                    "used_tokens": int(token_info.get("used") or 0),
+                    "token_limit": int(token_info.get("limit") or 0),
+                    "remaining_tokens": token_info.get("remaining"),
+                },
             }
             if CAPABILITY_KIND.get(capability) == "stub":
                 base.update({"status": "stub", "source": "stub"})
