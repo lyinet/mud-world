@@ -65,16 +65,18 @@ NPCS = {
 
 # 世界动态固定样本：市集/药铺（玩家当前地点与相邻地点）各一条 important，
 # 茶楼一条普通事件，用于验证强调样式与「附近动静」提示。
+# verb 用后端真实内部动词（move / work / trade …），summary 仍是中文短语，
+# 与真服务返回形状一致；UI 必须把 verb 映射成中文、且正文不出现英文下划线词。
 FEED_EVENTS = [
-    {"tick": 37, "actor": "王铁匠", "verb": "打铁", "place": "药铺",
+    {"tick": 37, "actor": "王铁匠", "verb": "work", "place": "药铺",
      "summary": "王铁匠在药铺修好一口药碾。", "important": True},
-    {"tick": 34, "actor": "刘三娘", "verb": "理货", "place": "市集",
+    {"tick": 34, "actor": "刘三娘", "verb": "trade", "place": "市集",
      "summary": "刘三娘在市集清点新到的粗布。", "important": True},
-    {"tick": 31, "actor": "茶楼老板", "verb": "沏茶", "place": "茶楼",
+    {"tick": 31, "actor": "茶楼老板", "verb": "talk", "place": "茶楼",
      "summary": "茶楼老板给客人续了三壶茶。", "important": False},
-    {"tick": 28, "actor": "更夫", "verb": "巡街", "place": "市集",
+    {"tick": 28, "actor": "更夫", "verb": "move", "place": "市集",
      "summary": "更夫敲着梆子走过市集。", "important": False},
-    {"tick": 25, "actor": "药铺掌柜", "verb": "晒药", "place": "药铺",
+    {"tick": 25, "actor": "药铺掌柜", "verb": "cultivate", "place": "药铺",
      "summary": "药铺掌柜把陈皮摊在竹匾里。", "important": False},
 ]
 
@@ -218,10 +220,10 @@ class MockWorld:
         rows.sort(key=lambda r: -int(r.get("tick") or 0))
         return {"ok": True, "events": rows[:cap]}
 
-    def push_feed(self, tick, summary, important=False, place="市集"):
+    def push_feed(self, tick, summary, important=False, place="市集", verb="move"):
         with self.lock:
             self.feed_extra.append({
-                "tick": int(tick), "actor": "更夫", "verb": "巡街",
+                "tick": int(tick), "actor": "更夫", "verb": verb,
                 "place": place, "summary": summary, "important": bool(important),
             })
 
@@ -429,12 +431,14 @@ class Handler(SimpleHTTPRequestHandler):
             self._json(200, {"ok": True, "rows": []})
             return
         if path == "/__check/feed_push":
-            q = parse_qs(urlsplit(self.path).query)
+            # keep_blank_values：允许 summary= 传空串，用来验证 verb→中文兜底。
+            q = parse_qs(urlsplit(self.path).query, keep_blank_values=True)
             self.world.push_feed(
                 (q.get("tick") or ["40"])[0],
                 (q.get("summary") or ["更夫在街上敲了一声梆子。"])[0],
                 (q.get("important") or ["0"])[0] in ("1", "true"),
                 (q.get("place") or ["市集"])[0],
+                (q.get("verb") or ["move"])[0],
             )
             self._json(200, {"ok": True, "rows": len(self.world.feed()["events"])})
             return
@@ -810,6 +814,41 @@ def run_feed(browser, base, results, world):
         results.add("feed important 新事件仍会提示",
                     page.evaluate("() => window.__XKX.feedState().announced") >= 3,
                     {"announced": page.evaluate("() => window.__XKX.feedState().announced")})
+
+        # 内部动词 → 中文动作：空摘要走映射表，未知动词走「有事发生」，
+        # 摘要里混入内部动词也要替换，且整份渲染文本不得出现 [a-z_]+。
+        page.evaluate("""() => Promise.all([
+            fetch('/__check/feed_push?tick=50&verb=move&summary=&place=' +
+                  encodeURIComponent('药铺')).then(r => r.json()),
+            fetch('/__check/feed_push?tick=51&verb=quest_accept&summary=&place=' +
+                  encodeURIComponent('市集')).then(r => r.json()),
+            fetch('/__check/feed_push?tick=52&verb=odd_job&summary=&place=' +
+                  encodeURIComponent('茶楼')).then(r => r.json()),
+            fetch('/__check/feed_push?tick=53&verb=move&summary=move&place=' +
+                  encodeURIComponent('市集')).then(r => r.json())
+        ])""")
+        page.evaluate("() => window.__XKX.refreshFeed()")
+        page.wait_for_function("() => window.__XKX.feedState().rows >= 14", timeout=8000)
+        mapped = page.evaluate("""() => {
+          const byTick = {};
+          document.querySelectorAll('#feedList .feed-row').forEach(function (r) {
+            byTick[r.getAttribute('data-feed-tick')] = r.textContent.trim();
+          });
+          return {lines: byTick,
+                  all: Array.from(document.querySelectorAll('#feedList .feed-row'))
+                         .map(function (r) { return r.textContent.trim(); })};
+        }""")
+        results.add("feed 空摘要按 verb 映射中文动作（move→赶路、quest_accept→接单）",
+                    mapped["lines"].get("50", "").endswith("赶路") and
+                    mapped["lines"].get("51", "").endswith("接单"), mapped["lines"])
+        results.add("feed 未知动词兜底「有事发生」且不漏原始英文",
+                    mapped["lines"].get("52", "").endswith("有事发生") and
+                    "odd_job" not in mapped["lines"].get("52", ""), mapped["lines"])
+        results.add("feed 摘要混入内部动词同样替换（move→赶路）",
+                    mapped["lines"].get("53", "").endswith("赶路"), mapped["lines"])
+        results.add("feed 渲染文本不含内部英文动词（[a-z_]+）",
+                    all(not re.search(r"[a-z_]+", t) for t in mapped["all"]),
+                    mapped["all"])
 
         # 失败降级：不弹红字、不动主状态，只显示「世界暂时安静」
         baseline = feed_snapshot(page)

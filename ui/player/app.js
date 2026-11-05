@@ -34,6 +34,31 @@
   const FEED_LIMIT = 20;
   const FEED_INTERVAL_MS = 8000;
 
+  /* 后端 feed 的 verb 是内部动词（move / quest_accept / open_shop …）。
+     玩家侧只走这张表：集中映射成中文动作；表里没有的一律「有事发生」，
+     绝不把原始英文/下划线动词漏到界面上。 */
+  const FEED_VERB_TEXT = {
+    move: '赶路', work: '上工', cultivate: '修炼', buy: '采买', sell: '卖货',
+    trade: '买卖', talk: '交谈', marry: '成婚', open_shop: '开店', shop_open: '开店',
+    join_sect: '入门', escort: '押镖', quest_accept: '接单', quest_deliver: '交单',
+    consume: '歇脚', rest: '歇息', eat: '进食', patrol: '巡街'
+  };
+  const FEED_VERB_FALLBACK = '有事发生';
+
+  function feedVerbLabel(verb) {
+    return FEED_VERB_TEXT[String(verb == null ? '' : verb).trim().toLowerCase()] || FEED_VERB_FALLBACK;
+  }
+
+  /* 摘要缺省时用中文动作兜底；摘要里若混入内部动词，逐词替换成中文动作，
+     未知词落到「有事发生」，保证玩家看到的正文里没有英文内部动词。 */
+  function feedBody(row) {
+    const raw = String((row && row.summary) || '').trim();
+    if (!raw) return feedVerbLabel(row && row.verb);
+    return raw.replace(/[a-z][a-z_]*/g, function (word) {
+      return FEED_VERB_TEXT[word] || FEED_VERB_FALLBACK;
+    });
+  }
+
   /* 原因码映射：前端只认 reject_reason，中文文案由这里兜底。
      未知码仍会显示服务端 reason_text；两者都没有时走通用兜底。 */
   const REASON_TEXT = {
@@ -1538,7 +1563,7 @@
     if (rows.length) {
       list.innerHTML = rows.map(function (r) {
         const line = '· [' + r.tick + '] ' + (r.actor || '某处') +
-          (r.place ? ' 在 ' + r.place : '') + '：' + (r.summary || '');
+          (r.place ? ' 在 ' + r.place : '') + '：' + feedBody(r);
         return '<div class="feed-row' + (r.important ? ' important' : '') +
           '" data-feed-tick="' + escapeHtml(r.tick) + '" data-feed-important="' +
           (r.important ? '1' : '0') + '">' + escapeHtml(line) + '</div>';

@@ -1,0 +1,781 @@
+{
+  "meta": {
+    "run_id": "w4-feed-service-1105092053",
+    "api": "http://127.0.0.1:60962",
+    "proxy": "http://127.0.0.1:60963",
+    "service_sqlite": "/Users/lyinet/projects/XKX/world-sim/runs/w4-feed-service-1105092053/service.sqlite",
+    "events_sqlite": "/Users/lyinet/projects/XKX/world-sim/runs/w4-feed-service-1105092053/events.sqlite",
+    "ambient_speed": "2",
+    "observe_seconds": 60.0,
+    "head": "c2014a8837c149fca8f5db436443043ea95f9908",
+    "started_at": "2026-11-05 09:20:53",
+    "npc_events_in_sqlite": 43
+  },
+  "anonymous_feed": {
+    "status": 200,
+    "body": {
+      "events": [
+        {
+          "actor": "严守一",
+          "important": false,
+          "place": "河渡",
+          "summary": "动身前往河渡",
+          "tick": 24,
+          "verb": "move"
+        },
+        {
+          "actor": "蒋听雨",
+          "important": false,
+          "place": "河渡",
+          "summary": "动身前往铁匠铺",
+          "tick": 25,
+          "verb": "move"
+        },
+        {
+          "actor": "陆九斤",
+          "important": false,
+          "place": "河渡",
+          "summary": "在河渡做工",
+          "tick": 25,
+          "verb": "work"
+        },
+        {
+          "actor": "严守一",
+          "important": false,
+          "place": "河渡",
+          "summary": "接下一份委托",
+          "tick": 25,
+          "verb": "quest_accept"
+        },
+        {
+          "actor": "蒋听雨",
+          "important": false,
+          "place": "河渡",
+          "summary": "在河渡做工",
+          "tick": 26,
+          "verb": "work"
+        },
+        {
+          "actor": "陆九斤",
+          "important": false,
+          "place": "河渡",
+          "summary": "动身前往河渡",
+          "tick": 26,
+          "verb": "move"
+        },
+        {
+          "actor": "严守一",
+          "important": false,
+          "place": "河渡",
+          "summary": "动身前往镖局",
+          "tick": 26,
+          "verb": "move"
+        },
+        {
+          "actor": "金满仓",
+          "important": false,
+          "place": "客栈",
+          "summary": "动身前往客栈",
+          "tick": 26,
+          "verb": "move"
+        },
+        {
+          "actor": "蒋听雨",
+          "important": false,
+          "place": "河渡",
+          "summary": "动身前往镖局",
+          "tick": 27,
+          "verb": "move"
+        },
+        {
+          "actor": "陆九斤",
+          "important": false,
+          "place": "河渡",
+          "summary": "在河渡歇脚",
+          "tick": 27,
+          "verb": "consume"
+        },
+        {
+          "actor": "金满仓",
+          "important": false,
+          "place": "客栈",
+          "summary": "动身前往河渡",
+          "tick": 27,
+          "verb": "move"
+        },
+        {
+          "actor": "蒋听雨",
+          "important": false,
+          "place": "河渡",
+          "summary": "动身前往河渡",
+          "tick": 28,
+          "verb": "move"
+        },
+        {
+          "actor": "陆九斤",
+          "important": false,
+          "place": "河渡",
+          "summary": "在河渡做买卖",
+          "tick": 28,
+          "verb": "buy"
+        },
+        {
+          "actor": "严守一",
+          "important": false,
+          "place": "河渡",
+          "summary": "动身前往河渡",
+          "tick": 28,
+          "verb": "move"
+        },
+        {
+          "actor": "金满仓",
+          "important": false,
+          "place": "客栈",
+          "summary": "接下一份委托",
+          "tick": 28,
+          "verb": "quest_accept"
+        },
+        {
+          "actor": "严守一",
+          "important": false,
+          "place": "河渡",
+          "summary": "在河渡做买卖",
+          "tick": 28,
+          "verb": "sell"
+        },
+        {
+          "actor": "蒋听雨",
+          "important": true,
+          "place": "河渡",
+          "summary": "交了一份委托",
+          "tick": 29,
+          "verb": "quest_deliver"
+        },
+        {
+          "actor": "陆九斤",
+          "important": false,
+          "place": "河渡",
+          "summary": "陆九斤在河渡活动",
+          "tick": 29,
+          "verb": "debt_settle"
+        },
+        {
+          "actor": "严守一",
+          "important": true,
+          "place": "河渡",
+          "summary": "交了一份委托",
+          "tick": 29,
+          "verb": "quest_deliver"
+        },
+        {
+          "actor": "金满仓",
+          "important": false,
+          "place": "客栈",
+          "summary": "动身前往客栈",
+          "tick": 29,
+          "verb": "move"
+        }
+      ],
+      "limit": 20,
+      "ok": true,
+      "tick": 29
+    }
+  },
+  "token_feed": {
+    "status": 200,
+    "body": {
+      "events": [
+        {
+          "actor": "严守一",
+          "important": false,
+          "place": "河渡",
+          "summary": "动身前往河渡",
+          "tick": 24,
+          "verb": "move"
+        },
+        {
+          "actor": "蒋听雨",
+          "important": false,
+          "place": "河渡",
+          "summary": "动身前往铁匠铺",
+          "tick": 25,
+          "verb": "move"
+        },
+        {
+          "actor": "陆九斤",
+          "important": false,
+          "place": "河渡",
+          "summary": "在河渡做工",
+          "tick": 25,
+          "verb": "work"
+        },
+        {
+          "actor": "严守一",
+          "important": false,
+          "place": "河渡",
+          "summary": "接下一份委托",
+          "tick": 25,
+          "verb": "quest_accept"
+        },
+        {
+          "actor": "蒋听雨",
+          "important": false,
+          "place": "河渡",
+          "summary": "在河渡做工",
+          "tick": 26,
+          "verb": "work"
+        },
+        {
+          "actor": "陆九斤",
+          "important": false,
+          "place": "河渡",
+          "summary": "动身前往河渡",
+          "tick": 26,
+          "verb": "move"
+        },
+        {
+          "actor": "严守一",
+          "important": false,
+          "place": "河渡",
+          "summary": "动身前往镖局",
+          "tick": 26,
+          "verb": "move"
+        },
+        {
+          "actor": "金满仓",
+          "important": false,
+          "place": "客栈",
+          "summary": "动身前往客栈",
+          "tick": 26,
+          "verb": "move"
+        },
+        {
+          "actor": "蒋听雨",
+          "important": false,
+          "place": "河渡",
+          "summary": "动身前往镖局",
+          "tick": 27,
+          "verb": "move"
+        },
+        {
+          "actor": "陆九斤",
+          "important": false,
+          "place": "河渡",
+          "summary": "在河渡歇脚",
+          "tick": 27,
+          "verb": "consume"
+        },
+        {
+          "actor": "金满仓",
+          "important": false,
+          "place": "客栈",
+          "summary": "动身前往河渡",
+          "tick": 27,
+          "verb": "move"
+        },
+        {
+          "actor": "蒋听雨",
+          "important": false,
+          "place": "河渡",
+          "summary": "动身前往河渡",
+          "tick": 28,
+          "verb": "move"
+        },
+        {
+          "actor": "陆九斤",
+          "important": false,
+          "place": "河渡",
+          "summary": "在河渡做买卖",
+          "tick": 28,
+          "verb": "buy"
+        },
+        {
+          "actor": "严守一",
+          "important": false,
+          "place": "河渡",
+          "summary": "动身前往河渡",
+          "tick": 28,
+          "verb": "move"
+        },
+        {
+          "actor": "金满仓",
+          "important": false,
+          "place": "客栈",
+          "summary": "接下一份委托",
+          "tick": 28,
+          "verb": "quest_accept"
+        },
+        {
+          "actor": "严守一",
+          "important": false,
+          "place": "河渡",
+          "summary": "在河渡做买卖",
+          "tick": 28,
+          "verb": "sell"
+        },
+        {
+          "actor": "蒋听雨",
+          "important": true,
+          "place": "河渡",
+          "summary": "交了一份委托",
+          "tick": 29,
+          "verb": "quest_deliver"
+        },
+        {
+          "actor": "陆九斤",
+          "important": false,
+          "place": "河渡",
+          "summary": "陆九斤在河渡活动",
+          "tick": 29,
+          "verb": "debt_settle"
+        },
+        {
+          "actor": "严守一",
+          "important": true,
+          "place": "河渡",
+          "summary": "交了一份委托",
+          "tick": 29,
+          "verb": "quest_deliver"
+        },
+        {
+          "actor": "金满仓",
+          "important": false,
+          "place": "客栈",
+          "summary": "动身前往客栈",
+          "tick": 29,
+          "verb": "move"
+        }
+      ],
+      "limit": 20,
+      "ok": true,
+      "tick": 29
+    }
+  },
+  "health": {
+    "status": 200,
+    "body": {
+      "ambient": "running",
+      "ambient_last_tick_at": "2026-11-05T09:22:04+0800",
+      "ambient_pid": 10459,
+      "ambient_reason": "",
+      "ambient_speed": 2.0,
+      "ambient_tick": 29,
+      "mode": "live",
+      "ok": true,
+      "profile_version": 1,
+      "readonly": false,
+      "run": "w4-feed-service-1105092053",
+      "tick": 29,
+      "upstream_ok": true
+    }
+  },
+  "ui": {
+    "first": {
+      "rows": 20,
+      "texts": [
+        "· [27] 蒋听雨 在 镖局：动身前往镖局",
+        "· [27] 陆九斤 在 河渡：在河渡歇脚",
+        "· [27] 金满仓 在 河渡：动身前往河渡",
+        "· [26] 蒋听雨 在 镖局：在镖局做工",
+        "· [26] 陆九斤 在 河渡：动身前往河渡",
+        "· [26] 严守一 在 镖局：动身前往镖局",
+        "· [26] 金满仓 在 河渡：动身前往客栈",
+        "· [25] 蒋听雨 在 镖局：动身前往铁匠铺",
+        "· [25] 陆九斤 在 河渡：在河渡做工",
+        "· [25] 严守一 在 镖局：接下一份委托",
+        "· [24] 蒋听雨 在 镖局：动身前往镖局",
+        "· [24] 陆九斤 在 河渡：押镖前往外地",
+        "· [24] 严守一 在 镖局：动身前往河渡",
+        "· [23] 蒋听雨 在 镖局：接下一份委托",
+        "· [23] 陆九斤 在 河渡：接下一份委托",
+        "· [23] 严守一 在 镖局：动身前往客栈",
+        "· [22] 蒋听雨 在 镖局：动身前往河渡",
+        "· [22] 陆九斤 在 河渡：动身前往镖局",
+        "· [21] 蒋听雨 在 镖局：动身前往客栈",
+        "· [21] 陆九斤 在 河渡：动身前往河渡"
+      ],
+      "ticks": [
+        27,
+        27,
+        27,
+        26,
+        26,
+        26,
+        26,
+        25,
+        25,
+        25,
+        24,
+        24,
+        24,
+        23,
+        23,
+        23,
+        22,
+        22,
+        21,
+        21
+      ],
+      "places": [
+        "镖局",
+        "河渡",
+        "河渡",
+        "镖局",
+        "河渡",
+        "镖局",
+        "河渡",
+        "镖局",
+        "河渡",
+        "镖局",
+        "镖局",
+        "河渡",
+        "镖局",
+        "镖局",
+        "河渡",
+        "镖局",
+        "镖局",
+        "河渡",
+        "镖局",
+        "河渡"
+      ],
+      "important": 1,
+      "feedState": {
+        "rows": 20,
+        "failed": false,
+        "announced": 0,
+        "important": 1,
+        "topTick": 27
+      },
+      "statusText": "世界暂时安静",
+      "statusHidden": true,
+      "location_name": "集市",
+      "exits": [
+        "书院",
+        "客栈",
+        "药铺",
+        "铁匠铺",
+        "茶棚"
+      ],
+      "errors": 0
+    },
+    "reloaded": {
+      "rows": 20,
+      "texts": [
+        "· [29] 蒋听雨 在 河渡：交了一份委托",
+        "· [29] 陆九斤 在 河渡：陆九斤在河渡活动",
+        "· [29] 严守一 在 河渡：交了一份委托",
+        "· [29] 金满仓 在 客栈：动身前往客栈",
+        "· [28] 蒋听雨 在 河渡：动身前往河渡",
+        "· [28] 陆九斤 在 河渡：在河渡做买卖",
+        "· [28] 严守一 在 河渡：动身前往河渡",
+        "· [28] 金满仓 在 客栈：接下一份委托",
+        "· [28] 严守一 在 河渡：在河渡做买卖",
+        "· [27] 蒋听雨 在 河渡：动身前往镖局",
+        "· [27] 陆九斤 在 河渡：在河渡歇脚",
+        "· [27] 金满仓 在 客栈：动身前往河渡",
+        "· [26] 蒋听雨 在 河渡：在河渡做工",
+        "· [26] 陆九斤 在 河渡：动身前往河渡",
+        "· [26] 严守一 在 河渡：动身前往镖局",
+        "· [26] 金满仓 在 客栈：动身前往客栈",
+        "· [25] 蒋听雨 在 河渡：动身前往铁匠铺",
+        "· [25] 陆九斤 在 河渡：在河渡做工",
+        "· [25] 严守一 在 河渡：接下一份委托",
+        "· [24] 严守一 在 河渡：动身前往河渡"
+      ],
+      "ticks": [
+        29,
+        29,
+        29,
+        29,
+        28,
+        28,
+        28,
+        28,
+        28,
+        27,
+        27,
+        27,
+        26,
+        26,
+        26,
+        26,
+        25,
+        25,
+        25,
+        24
+      ],
+      "places": [
+        "河渡",
+        "河渡",
+        "河渡",
+        "客栈",
+        "河渡",
+        "河渡",
+        "河渡",
+        "客栈",
+        "河渡",
+        "河渡",
+        "河渡",
+        "客栈",
+        "河渡",
+        "河渡",
+        "河渡",
+        "客栈",
+        "河渡",
+        "河渡",
+        "河渡",
+        "河渡"
+      ],
+      "important": 2,
+      "feedState": {
+        "rows": 20,
+        "failed": false,
+        "announced": 0,
+        "important": 2,
+        "topTick": 29
+      },
+      "statusText": "世界暂时安静",
+      "statusHidden": true,
+      "location_name": "集市",
+      "exits": [
+        "书院",
+        "客栈",
+        "药铺",
+        "铁匠铺",
+        "茶棚"
+      ],
+      "errors": 0
+    },
+    "seen_places": [
+      "城隍庙",
+      "河渡",
+      "药铺",
+      "镖局"
+    ],
+    "seen_rows": 46
+  },
+  "feed_requests": [
+    {
+      "gap_s": null
+    },
+    {
+      "gap_s": 8.0
+    },
+    {
+      "gap_s": 8.0
+    },
+    {
+      "gap_s": 8.0
+    },
+    {
+      "gap_s": 8.01
+    },
+    {
+      "gap_s": 8.0
+    },
+    {
+      "gap_s": 8.0
+    }
+  ],
+  "feed_responses": [
+    {
+      "status": 200
+    },
+    {
+      "status": 200
+    },
+    {
+      "status": 200
+    },
+    {
+      "status": 200
+    },
+    {
+      "status": 200
+    },
+    {
+      "status": 200
+    },
+    {
+      "status": 200
+    },
+    {
+      "status": 200
+    },
+    {
+      "status": 200
+    },
+    {
+      "status": 200
+    }
+  ],
+  "results": [
+    {
+      "name": "服务模式真后端 feed 非空且来自真实自走世界",
+      "ok": true,
+      "detail": {
+        "events": 20,
+        "actors": [
+          "严守一",
+          "蒋听雨",
+          "金满仓",
+          "陆九斤"
+        ],
+        "non_mock_actors": [
+          "严守一",
+          "蒋听雨",
+          "金满仓",
+          "陆九斤"
+        ]
+      }
+    },
+    {
+      "name": "真 API 顶层 {ok,tick,limit,events}、每项 6 公共字段",
+      "ok": true,
+      "detail": {
+        "keys": [
+          "events",
+          "limit",
+          "ok",
+          "tick"
+        ],
+        "event_keys": [
+          "actor",
+          "important",
+          "place",
+          "summary",
+          "tick",
+          "verb"
+        ]
+      }
+    },
+    {
+      "name": "匿名可读、正文无玩家私有字段",
+      "ok": true,
+      "detail": {
+        "status": 200
+      }
+    },
+    {
+      "name": "登录态 feed 仍只有公共字段（无玩家私有状态）",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "events": 20
+      }
+    },
+    {
+      "name": "feed tick 与 health ambient_tick 同一世界",
+      "ok": true,
+      "detail": {
+        "feed_tick": 29,
+        "ambient_tick": 29,
+        "health_ambient": "running"
+      }
+    },
+    {
+      "name": "UI 60 秒内至少 5 条 NPC 事件、倒序、important 样式存在",
+      "ok": true,
+      "detail": {
+        "rows": 20,
+        "important": 1
+      }
+    },
+    {
+      "name": "60 秒窗口内至少 1 条事件在当前或相邻地点",
+      "ok": true,
+      "detail": {
+        "near": [
+          "书院",
+          "客栈",
+          "茶棚",
+          "药铺",
+          "铁匠铺",
+          "集市"
+        ],
+        "seen_places": [
+          "城隍庙",
+          "河渡",
+          "药铺",
+          "镖局"
+        ],
+        "matched": [
+          "药铺"
+        ],
+        "seen_rows": 46
+      }
+    },
+    {
+      "name": "feed 单独 8 秒节流（60 秒内请求数不刷爆）",
+      "ok": true,
+      "detail": {
+        "requests": 7,
+        "gaps": [
+          8.0,
+          8.0,
+          8.0,
+          8.01,
+          8.0,
+          8.0
+        ],
+        "long_gaps": 6
+      }
+    },
+    {
+      "name": "feed 请求匿名（不带 Authorization）",
+      "ok": true,
+      "detail": {
+        "with_auth": 0
+      }
+    },
+    {
+      "name": "渲染文本不出现 [a-z_]+ 内部动词（中文映射生效）",
+      "ok": true,
+      "detail": {
+        "raw_verbs": [
+          "buy",
+          "consume",
+          "debt_settle",
+          "move",
+          "quest_accept",
+          "quest_deliver",
+          "sell",
+          "work"
+        ],
+        "sample": [
+          "· [27] 蒋听雨 在 镖局：动身前往镖局",
+          "· [27] 陆九斤 在 河渡：在河渡歇脚",
+          "· [27] 金满仓 在 河渡：动身前往河渡",
+          "· [26] 蒋听雨 在 镖局：在镖局做工",
+          "· [26] 陆九斤 在 河渡：动身前往河渡"
+        ]
+      }
+    },
+    {
+      "name": "feed 失败/静默不弹红字（观察窗内错误数不变）",
+      "ok": true,
+      "detail": {
+        "errors": 0,
+        "feedState": {
+          "rows": 20,
+          "failed": false,
+          "announced": 0,
+          "important": 1,
+          "topTick": 27
+        }
+      }
+    },
+    {
+      "name": "刷新后 feed 仍有真实事件、不丢",
+      "ok": true,
+      "detail": {
+        "rows": 20,
+        "tick": 29
+      }
+    }
+  ],
+  "screenshots": [
+    "feed-service-real.png",
+    "feed-service-real-reload.png"
+  ]
+}
