@@ -47,7 +47,7 @@
     按钮禁用「今日已结算」；匿名页无假数据；移动端 `scrollWidth - innerWidth = 0`。证据
     `reports/w5-sect/real-sect.json` 与 14 张截图。
   - `python3 tools/ui_check.py`（全量）：**176/176 通过、0 失败**（原基线 155 + 门派 21）。
-- **commit 短哈希**：见本条目所在提交（含本文档）。
+- **commit 短哈希**：`c6c7023`。
 
 ---
 
