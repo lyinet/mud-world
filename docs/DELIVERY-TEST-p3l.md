@@ -218,3 +218,107 @@ OUT=/tmp/p3l-crash-drill RUN=p3l-crash-drill XKX_AMBIENT=1 deploy/crash_drill.sh
 本文件与 `docs/RELEASE-NOTES-p3l.md` 随文档提交进入包内；`src/`、`content/`、`ui/`、
 `config/`、`scripts/`、`deploy/`（除 `README.md`）、`start.sh` 与 `d01ba9b` 逐字节一致。
 最终包体积与两个 SHA256 以 `dist/p3l-SHA256.txt` 为准；tag `delivery-p3l` 指向 `d01ba9b`。
+
+## 9. v3 重打（2026-11-05）
+
+### 9.1 为什么重打
+
+v2 包（§2.3）**容器默认不自走**：从 `deploy/` 直接 `docker-compose up -d` 后
+`/api/health` 的 `ambient=stopped`，要活世界必须显式注入 `XKX_AMBIENT=1`。
+这与 `./start.sh` 的默认行为不一致，属于部署缺口。
+
+tag `delivery-p3l`（`d01ba9b`）之后 master 新增两个提交，把容器默认行为对齐到 `./start.sh`：
+
+| 提交 | 内容 |
+| --- | --- |
+| `dcbcea5` | `fix(deploy): 容器默认开启世界自走，透传 70% CPU 护栏与 1x 配速` |
+| `7881432` | `docs(changelog): 记录容器默认自走修正（dcbcea5）` |
+
+v3 包从 `7881432` + 本次文档提交重打，**tag `delivery-p3l` 保持指向 `d01ba9b`，未移动**。
+
+### 9.2 `d01ba9b`（tag）与 `7881432` 的差异
+
+`git diff --name-status d01ba9b..7881432` 只有 7 个文件：
+
+| 文件 | 说明 |
+| --- | --- |
+| `deploy/entrypoint.sh` | +4 行：`XKX_AMBIENT=${XKX_AMBIENT:-1}`、`XKX_AMBIENT_CPU=${...:-70}`、`XKX_AMBIENT_SPEED=${...:-1}` |
+| `deploy/docker-compose.yml` | +4 行：同名三个 environment 默认值 |
+| `deploy/README.md` | 说明容器默认自走、如何用 `XKX_AMBIENT=0` 关闭 |
+| `CHANGELOG.md` | 记录该修正 |
+| `docs/OPS-RUNBOOK.md` | 补充默认自走说明 |
+| `docs/DELIVERY-TEST-p3l.md` | 新增（v2 实测，即 §1–§8） |
+| `docs/RELEASE-NOTES-p3l.md` | 新增 |
+
+**运行文件与 tag 逐字节一致**：`src/`、`content/`、`ui/`、`config/`、`scripts/`、
+`start.sh` 在 `d01ba9b` 与 `7881432` 间无任何差异；变化仅在 `deploy/**`（3 个部署/说明文件）
+与文档（`CHANGELOG.md`、`docs/**`）。v3 相对 v2 包因此只影响容器默认行为，不影响本地
+`./start.sh`、服务模式、内容与 API 行为。
+
+### 9.3 必测：全新卷 + 不传任何环境变量（本轮唯一重点）
+
+```bash
+cd <解包目录>/world-sim/deploy
+docker-compose -f docker-compose.yml -f <fresh-volume-override.yml> up -d --build
+# override 仅改容器名/端口/卷名，确保挂全新卷，不覆盖既有 xkx-w5-data；
+# 未传入 XKX_AMBIENT / XKX_AMBIENT_CPU / XKX_AMBIENT_SPEED
+```
+
+| 项 | 结果 |
+| --- | --- |
+| 容器 | `p3l-v3-world`，卷 `p3l-v3-data-fresh`（**全新空卷**，`/app/runs`） |
+| 健康 | `Up (healthy)`，`FailingStreak=0` |
+| 环境变量来源 | `docker inspect` 中 `XKX_AMBIENT=1`、`XKX_AMBIENT_CPU=70`、`XKX_AMBIENT_SPEED=1` 均为 **compose/entrypoint 默认值**，启动命令未传任何 ambient 变量 |
+
+`/api/health`（T0，首轮）：
+
+```json
+{"ambient": "running", "ambient_last_tick_at": "2026-11-05T02:22:01+0000", "ambient_pid": 8, "ambient_reason": "", "ambient_speed": 1.0, "ambient_tick": 7, "mode": "live", "ok": true, "profile_version": 1, "readonly": false, "run": "service", "tick": 7, "upstream_ok": true}
+```
+
+6 秒后（T1）：
+
+```json
+{"ambient": "running", "ambient_last_tick_at": "2026-11-05T02:22:06+0000", "ambient_pid": 8, "ambient_reason": "", "ambient_speed": 1.0, "ambient_tick": 8, "mode": "live", "ok": true, "profile_version": 1, "readonly": false, "run": "service", "tick": 8, "upstream_ok": true}
+```
+
+持续观测（同一容器）：
+
+```json
+{"ambient": "running", "ambient_tick": 27, "mode": "live", "ok": true, "tick": 27, "ambient_speed": 1.0, "ambient_last_tick_at": "2026-11-05T02:23:59+0000", ...}
+{"ambient": "running", "ambient_tick": 28, "mode": "live", "ok": true, "tick": 28, "ambient_speed": 1.0, "ambient_last_tick_at": "2026-11-05T02:24:05+0000", ...}
+```
+
+`/api/world/feed?limit=3`（`tick=8`）前 3 条真实 NPC 事件：
+
+```json
+{"actor": "石敢当", "important": true, "place": "镖局", "summary": "交了一份委托", "tick": 7, "verb": "quest_deliver"}
+{"actor": "曹半仙", "important": false, "place": "客栈", "summary": "在客栈歇脚", "tick": 8, "verb": "consume"}
+{"actor": "石敢当", "important": false, "place": "镖局", "summary": "动身前往镖局", "tick": 8, "verb": "move"}
+```
+
+结论：**全新卷 + 不传环境变量**即可 `healthy`、`ambient=running`、`ambient_tick` 持续推进、
+feed 有真实 NPC 事件；v2 的“容器默认不自走”边界已消除。
+
+### 9.4 冒烟
+
+在 v3 最终解包目录执行：
+
+| 项 | 结果 |
+| --- | --- |
+| 文件数 | **537**（与 v2 相同，仅文档内容变化） |
+| `find . -name 'token*'` | **0** 条输出 |
+| `GET /api/state` | **200** |
+| `GET /` | **200**（12,997 B，`<title>入世 · 世界门面</title>`） |
+| 包根 `README.md` 首行 | `# XKX / world-sim 对外试玩包（p3l）` |
+| `deploy/service.yaml` | 不在包内 |
+
+### 9.5 v1 / v2 / v3 记录与哈希
+
+- **v1**（`102a312` 候选包，`/tmp/xkx-p3l-build`）：因含 `reports/w5/crash-drill/token-check.txt` **不可交付**。
+- **v2**（`b0204e2` 构建树、代码 `d01ba9b`）：§1–§8 的全部实测记录即基于 v2 包；
+  其中 §2.3 / §7 的“容器默认不自走”仅描述 v2，已被 §9.3 取代。
+- **v3**（本次，代码 `7881432`）：仅在上表 `deploy/**` 与文档上不同于 tag。
+
+三版 tar/zip 的字节数与 SHA256 对照见 `dist/p3l-SHA256.txt`（含 v1/v2/v3 对应关系）。
+本文件随包，无法自指包哈希，故 §9 不写包自身哈希；以该外部文件为准。
