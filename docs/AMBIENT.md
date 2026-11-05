@@ -1,20 +1,30 @@
 # 世界自走（后台 NPC 调度器）
 
-> 目标：玩家不在场时世界也按虚拟时钟继续走。调度器独立于 HTTP，默认纯规则、零 LLM。
-> 从 W3 起，`./start.sh` **默认**同时拉起 API、前端与自走；`XKX_AMBIENT=0` 可显式关闭。
+> 目标：玩家不在场时世界也按虚拟时钟继续走。调度器默认纯规则、零 LLM。
+> 从 W3 起 `./start.sh` **默认**开启；W4 起自走与玩家**同进程、同一份 `events.sqlite`、同一个 Writer**，
+> 玩家在游戏里能看到 NPC 在同一世界里活着。`XKX_AMBIENT=0` 可显式关闭。
 
 ## 1. 架构边界
 
 - 入口模块：[`src/wsim/sim/scheduler.py`](../src/wsim/sim/scheduler.py)
-- 运行器：[`tools/ambient_run.py`](../tools/ambient_run.py)
+- 独立运行器：[`tools/ambient_run.py`](../tools/ambient_run.py)（离线/验收用，自带世界）
 - 验收器：[`tools/ambient_accept.py`](../tools/ambient_accept.py)
 - 复用既有引擎：`WorldState` / `EventStore` / `Writer` / `MockReasoner` / `LODScheduler`。
   调度器只回答「什么 tick 唤醒谁」，所有世界写入仍走 `Writer`，事件仍是唯一事实源。
-- 单进程内循环 + 最小堆，不引入线程/进程/消息队列。
 
-真实时钟只用于三件事：配速、CPU 护栏、观测耗时。世界状态、事件、hash 全部只由
-`tick`、事件与 PRNG(seed/seq/salt) 决定；`time.time` / `monotonic` 在 `src/wsim` 内
-仍由 `tests/test_determinism_lint.py` 静态禁止（本模块用 `perf_counter` 仅配速）。
+### 单写者（W4 起）
+
+- 服务模式不再起独立的 ambient 子进程。`WorldSession.start_ambient()` 把**本会话已有的**
+  `Writer` / `EventStore` / `registry` 注入 `AmbientScheduler(writer=…, store=…, registry=…, lock=…)`，
+  自走在后台线程里逐 tick 运行。
+- 单写者靠**同一把 `WorldSession.lock`** 保证：每个 tick 的全部写入都在
+  `with session.lock:` 内完成；玩家写路径（`perform` → `propose_intent` → `Writer.submit`）
+  用的是同一把 `RLock`。因此两条路径串行、单事务、`seq` 连续，不存在两个 Writer 同时写。
+- 共享模式下 `AmbientScheduler` **不再**创世、不再新建 `events.sqlite`、也不关闭共享 store
+  （`_owns_store=False`）。`runs/<RUN_ID>/ambient/` 只放调度器自己的审计/进度/状态文件。
+- 同一世界时钟：世界 tick 的唯一事实源是 `Writer.state.tick`。玩家动作仍按原语义推进 6 tick；
+  自走只从当前世界 tick 往后推一格，玩家跨过的 tick **不补跑**（排队中的旧意图直接丢弃/归并到当前 tick），
+  所以不存在双倍走时。
 
 ## 2. 首发默认启动（一条命令）
 
@@ -25,17 +35,35 @@ XKX_AMBIENT_CPU=70 ./start.sh
 XKX_AMBIENT_SPEED=2 ./start.sh
 ```
 
-- 启动顺序：API 健康检查通过后，ambient 在后台独立启动（最多等 10s 确认状态文件，
-  超时只告警，不阻塞 API/前端）。
-- 进程日志：`runs/<RUN_ID>/logs/{api,ui,ambient}.log`，退出后保留。
-- 第一次启动时若 `runs/<RUN_ID>/ambient` 已存在，会整体改名为
-  `ambient.<时间戳>.<pid>` 保留旧数据，绝不静默追加创世事件。
-- 退出：`Ctrl-C` / `TERM` 先收 ambient，再收前端与 API，全部 `wait` 收割；无僵尸。
-- ambient 意外退出只告警，API/前端继续服务；ambient 带 `--parent-pid $$`，
-  start.sh 消失时自走随即停止。
-- 可观测：`GET /api/health` 与 `GET /api/service/info` 新增
+- 启动顺序：API 先就绪；自走由 API 进程内启动（`XKX_AMBIENT=1` 注入），
+  `demo.sh` 轮询 `/api/health` 的 `ambient=running` 确认，最多 4s，超时只告警、不阻塞前端。
+- 进程日志：`runs/<RUN_ID>/logs/{api,ui}.log` + `runs/<RUN_ID>/ambient/ambient*.jsonl`。
+- 退出：`Ctrl-C` / `TERM` 关闭 API 时 `WorldSession.close()` 先 `stop_ambient()` 并 join 线程，
+  再关 sqlite；无僵尸、无半写。
+- 自走线程异常/退出只影响自走本身，API/前端继续服务；状态与错误落在
+  `ambient_status.json` / `ambient_error.json`。
+- 可观测：`GET /api/health` 与 `GET /api/service/info` 的
   `ambient / ambient_tick / ambient_last_tick_at / ambient_reason / ambient_pid / ambient_speed`；
   原键（`ok/mode/readonly/profile_version/upstream_ok` 等）值语义不变。
+  **`ambient_tick` 在 running/paused 时直接取世界 tick**，不再是隔壁世界的时钟。
+
+### 玩家可见的世界事件流
+
+`GET /api/world/feed?limit=20`（`limit` 1–50，默认 20）——公共只读，服务模式与 legacy 模式都匿名可读。
+返回 `{"ok": true, "tick": <世界 tick>, "limit": n, "events": [...]}`，每条固定字段：
+
+| 字段 | 含义 |
+|---|---|
+| `tick` | 事件发生时的世界 tick |
+| `actor` | NPC 名（玩家 ID 永不出现） |
+| `verb` | 动作（`system*` 与玩家事件已过滤） |
+| `place` | 该 NPC 当前所在地名 |
+| `summary` | 一句中文短句，≤40 字 |
+| `important` | 是否里程碑类事件（婚配/开店/入派/押镖/交付等） |
+
+`place` 取的是读取时的当前地点，用于「NPC 此刻在我附近」的判定；接口不返回钱包、背包、
+任务、对话等任何玩家私有状态。
+
 
 ## 3. 启动 / 暂停 / 恢复 / 单步 / 倍率
 

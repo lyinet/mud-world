@@ -474,6 +474,42 @@ PYTHONPATH=src python3 -m wsim.api --run player-demo --seed-account alice --port
 
 ---
 
+## 6.1 `GET /api/world/feed?limit=20`（公共世界事件流）
+
+只读、匿名可读（服务模式与 legacy 模式相同），不含任何玩家私有状态。
+
+- `limit`：1–50，默认 20；越界自动收敛。
+- 响应：`{"ok": true, "tick": <世界tick>, "limit": n, "events": [...]}`，
+  `events` 按时间升序（旧→新）。
+- 每条事件字段固定为 6 个：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `tick` | int | 事件发生时的世界 tick |
+| `actor` | str | NPC 名（玩家 ID 永不出现） |
+| `verb` | str | 动作名（`system*` 与玩家事件已过滤） |
+| `place` | str | 该 NPC 当前所在地名 |
+| `summary` | str | 一句中文短句，≤40 字 |
+| `important` | bool | 婚配/开店/入派/押镖/交付等里程碑类为 `true` |
+
+```bash
+curl -s 'http://127.0.0.1:8848/api/world/feed?limit=5'
+```
+
+```json
+{
+  "ok": true,
+  "tick": 24,
+  "limit": 5,
+  "events": [
+    {"tick": 21, "actor": "石敢当", "verb": "move", "place": "集市", "summary": "动身前往集市", "important": false},
+    {"tick": 22, "actor": "曹半仙", "verb": "cultivate", "place": "城隍庙", "summary": "在城隍庙静心修炼", "important": false}
+  ]
+}
+```
+
+---
+
 ## 7. 错误码表（拒绝原因枚举）
 
 > 前端必须优先展示 `reason_text`，`reject_reason` 只用于分支判断。

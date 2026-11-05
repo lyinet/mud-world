@@ -9,6 +9,35 @@
 
 ---
 
+## [功能] 2026-11-05 — 世界接线：自走与玩家同一个世界、同一本账
+
+- **改了什么**：取消自走独立子进程与独立 `runs/<RUN_ID>/ambient/events.sqlite`。
+  `WorldSession.start_ambient()` 把本会话已有的 `Writer` / `EventStore` / `registry` 注入
+  `AmbientScheduler(writer=…, store=…, registry=…, lock=…)`，由 `WorldSession.lock`
+  （同一把 `RLock`）串行化玩家写路径与每个自走 tick：单 Writer、单事务、`seq` 连续。
+  共享模式不再创世、不再新建/关闭事件库；`runs/<RUN_ID>/ambient/` 只保留调度器审计与状态文件。
+  自走只从 `Writer.state.tick` 往后推一格；玩家动作仍推进 6 tick，跨过的 tick 不补跑，
+  排队中的旧意图直接丢弃或归并到当前 tick，日界结算改由“日变更”触发一次，避免双倍走时。
+  新增匿名只读 `GET /api/world/feed?limit=20`（服务/legacy 模式均可），固定字段
+  `tick/actor/verb/place/summary/important`，过滤 `player:` 与 `system_*`，不返回任何玩家私有状态。
+  `/api/health` 的 `ambient_tick` 在 running/paused 时直接取同一世界 tick。
+  `start.sh` 仍默认开启；`XKX_AMBIENT=0` 不启动线程，行为与旧版一致。
+- **为什么**：上一波自走写的是隔壁世界，玩家在游戏里看不到 NPC 在动，
+  health 里的 `ambient_tick` 是另一个世界的时钟——等于没活。
+- **验证方式**：真服务 `XKX_AMBIENT=1`，玩家 `enter` 后 60s（tick 1→18），
+  `/api/world/feed?limit=20` 返回 14 条，其中 tick≥9 的 12 条；
+  玩家所在地 `集市` 有 8 条（含 `石敢当 work/sell/buy`），另有 `城隍庙` 的
+  `曹半仙 join_sect`（important）。时钟一致性：玩家 `cultivate` 动作 +6 tick，
+  随后 12s 自走 +1 tick（无双倍）。300 tick 对照：离线 NPC 自主事件 891，
+  在线 970（108.9%，≥80% 门槛）。50 并发压测 30s：11,542 请求 / 0 error / 0 5xx，
+  `GET /api/state` **P95 22.579ms**（对照 29.3ms，未劣化）；同一 run 11,504 事件
+  `seq` 1..11504 连续且去重，钱包 delta 0，半写 0。headless 确定性基线不变：
+  同 seed 两次 `state_final`/`event_final` 哈希一致（693 events，P4 v3 golden）。
+  `pytest` **439 passed / 12 skipped / 0 failed**；`scripts/selfcheck.sh` **4/4 PASS**。
+- **commit**：`e9f8047`（scheduler）、`1f2e64f`（api）、`53f62d9`（start.sh）。
+
+---
+
 ## [功能] 2026-11-05 — 玩家侧「世界动态」feed
 
 - **改了什么**：`ui/player` 中栏新增默认可见的「世界动态」区块，读
