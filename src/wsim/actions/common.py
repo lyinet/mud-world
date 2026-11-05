@@ -234,16 +234,34 @@ def business_order(state: WorldState, location: str, salt: str = "", day: int = 
     return biz[slot:] + biz[:slot]
 
 
+def shop_price(content, state: WorldState, biz: Business | None, item: str) -> int:
+    """当店售价：店主 `price_overrides` 优先，否则内容包基准价（含供需乘数）。
+
+    只读，不写 state；无覆盖时与 `content.item_price(item, state)` 完全一致，
+    保证旧世界/未定价店铺的价格逐字节不变。
+    """
+    if biz is not None:
+        override = getattr(biz, "price_overrides", {}).get(item)
+        if isinstance(override, int) and not isinstance(override, bool) and override > 0:
+            return override
+    return content.item_price(item, state)
+
+
 def selling_shops(
-    state: WorldState, location: str, item: str, salt: str = "", day: int = 0
+    state: WorldState, location: str, item: str, salt: str = "", day: int = 0,
+    content=None,
 ) -> list[Business]:
     """同地点所有有货的店，按“同货同价”公平顺序排列。
 
-    只有该 item 的卖家中出现玩家店时才轮转：键 `(地点, 物品, 买主, 世界日)`
-    让玩家店与 NPC 店在**同一件货**上长期各占约 1/N，平局公平且完全确定性。
-    没有玩家店（或没给 salt）时保持 `business_at` 原顺序，无玩家世界逐字节不变。
+    传 `content` 时先筛掉更贵的卖家（同货不同价时买主选便宜的）；
+    在同价卖家中只有出现玩家店时才按 `(地点, 物品, 买主, 世界日)` 轮转，
+    让玩家店与 NPC 店长期各占约 1/N。缺省 `content=None` 保持旧顺序与旧轮转，
+    无玩家世界逐字节不变。
     """
     sellers = [b for b in state.business_at(location) if b.stock.get(item, 0) > 0]
+    if content is not None and sellers:
+        cheapest = min(shop_price(content, state, b, item) for b in sellers)
+        sellers = [b for b in sellers if shop_price(content, state, b, item) == cheapest]
     if not salt or len(sellers) < 2 or not any(is_player_business(b) for b in sellers):
         return sellers
     slot = stable_slot(f"{location}|{item}|{salt}|{day}", len(sellers))
@@ -251,9 +269,10 @@ def selling_shops(
 
 
 def business_selling(
-    state: WorldState, location: str, item: str, salt: str = "", day: int = 0
+    state: WorldState, location: str, item: str, salt: str = "", day: int = 0,
+    content=None,
 ) -> Business | None:
-    sellers = selling_shops(state, location, item, salt, day)
+    sellers = selling_shops(state, location, item, salt, day, content=content)
     return sellers[0] if sellers else None
 
 
