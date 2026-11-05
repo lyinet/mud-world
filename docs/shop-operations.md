@@ -1,0 +1,140 @@
+# 店铺经营闭环（开店 → 雇佣 → 日结）
+
+> 对应改动：`open_shop` 初始库存、玩家店铺 `recruit`、独立日界事件 `system_shop_settle`、
+> 自雇工资口径。基线以 HEAD `48b512f` 为参照，content_hash 未变。
+
+## 1. 初始库存：钱从玩家出，货进店铺
+
+`open_shop` 一次完成两笔真实转账（均为 `transfer`，不 `mint`）：
+
+| 流向 | 收款方 | reason | 金额 |
+| --- | --- | --- | --- |
+| 铺面费 | 当前地点第一个商业体的公账（无商业体时用组织金库） | `shop_rent` | 档位价：摊 300 / 店 1200 / 分号 3000 |
+| 初始库存 | `treasury:region`（区域公账） | `shop_stock` | 按 `sell_price`（零售价 60%）× 数量 |
+
+- 库存单价来自既有内容包 `items` 与 `sell_ratio`，不新造价格、不改既有数值。
+- 库存明细（`SHOP_INITIAL_STOCK`，只取内容包里真实存在的物品）：
+
+| 档位 | 品类与数量 | 进货成本 | 可雇人数 |
+| --- | --- | --- | --- |
+| stall | flatbread 6 / noodle 4 / rice 3 | 按 sell_price 计 | 1 |
+| storefront | 摊档 + coarse_cloth 4 / cleaver 2 / needle 2 | 按 sell_price 计 | 2 |
+| branch | 摊档 + coarse_cloth 6 / cleaver 3 / needle 3 / wound_powder 3 / mugwort 3 | 按 sell_price 计 | 3 |
+
+- 初始库存以 `item_create(reason=initial_stock)` 计入 `items_created`，可被审计追溯。
+- 没有赠送：档位不额外白送库存，也不产生 `mint`。后续补货同样走 `treasury:region` 进货
+  （本轮未新增独立补货动作，补货路径与开店一致）。
+- 前置：钱包必须同时覆盖铺面费 + 进货成本，否则 `insufficient_money`，不会出现“扣了钱没货”。
+
+## 2. 雇佣契约
+
+玩家 `recruit` 带 `shop`/`position`/`wage` 时走店铺雇佣；不带这些参数时保持原门派招揽语义。
+
+请求示例：
+
+```json
+{"verb": "recruit", "args": {"target": "yan_shouyi", "shop": "shop:player:u_demo",
+                             "position": "庙祝", "wage": 18}}
+```
+
+前置（失败写可读原因码，拒绝事件照常落库）：
+
+| 原因码 | 含义 |
+| --- | --- |
+| `not_shop_owner` / `no_shop` | 不是店主或店铺不存在 |
+| `wrong_location` / `target_not_at_shop` | 店主或目标不在店铺地点 |
+| `shop_full` | 超过档位可雇人数（1/2/3） |
+| `relation_too_low` | 双向好感 < 6 |
+| `skill_too_low` | 目标最高技能 < 0.15 |
+| `wage_too_low` / `wage_too_high` | 日薪超出岗位市场价的 0.8–1.5 倍 |
+| `unknown_position` | 岗位不在 `economy.wages_daily` |
+| `self_recruit` | 不能雇自己 |
+
+成功写入 `shop_hire` 效果：`Business.employees` / `employee_wages` / `employee_positions`，
+`Entity.employed_at = 店铺`（若原雇主是另一家店，会从原名册摘除），并给双方写记忆。
+
+## 3. 日结：独立事件 `system_shop_settle`
+
+日界调度在 `system_maintenance` 之后发出独立事件（不并入 `system_debts`）：
+
+```
+营收   = 当日顾客 buy/consume 进入店铺公账的金额（transfer reason=buy|consume）
+进货   = 当日店铺公账付给卖方的金额（transfer reason=sell）
+工资   = Σ 雇工契约日薪（先付工资，现金不足记欠薪）
+税     = 月租 / 30（至少 1 文），现金不足的部分结转到次日（tax_arrears）
+净利   = 营收 - 进货 - 工资 - 税
+```
+
+- 工资：按雇工 id 升序逐人支付；付不出的部分记为“店铺欠雇工”的债
+  （`creditor=雇工、debtor=店铺`，`note=unpaid_wage`），由既有 `system_debts` 用店铺现金补付；
+  旧债已结清后再欠会开带 tick 的新 id，避免 id 冲突。
+- 税：先工资后税；当日现金不足的税不 burn，写入运行期 `tax_arrears` 结转到次日，
+  仍由下一次 `system_shop_settle` 补缴（不混入 `system_debts`）。
+- 雇工产出：每个有效雇工每日 `item_create(reason=shop_output)` 1 件（档位首个库存品），
+  计入店铺库存，可继续售卖。
+- 可读性：给店主写一条记忆（营收/进货/工资/税/净利；亏损追加“亏损，店主需补足”；
+  欠税追加“欠税 N 文结转次日”），给雇工写“出工 + 日结工资”记忆。
+- 事件本身含全部效果：`transfer`（工资）、`burn`（个税与日摊税）、`debt_create/increase`（欠薪）、
+  `item_create`（产出）、`memory_add`（账本摘要），可按 seq 逐笔对账。
+- 结算后 `shop_day_close` 清零当日 `day_revenue/day_restock` 并结转 `tax_arrears`；
+  这些是运行期字段，不进 `to_dict()`，没有玩家店铺的旧世界 state hash 不变。
+
+## 4. 自雇口径（玩家在自己的店里打工）
+
+**在自己的店里干活不发工资，收益从店铺销售来。**
+
+实现上 `work` 识别“店主自雇”（`Entity.business` 就是当前店铺，或与店铺签了日结合约）：
+
+- `received = 0`，不产生 `transfer`，也**不生成任何债务**（尤其不再出现“自己欠自己”）；
+- 只结算体力与技能，并写记忆“店主自雇，工资记0文（店主收益走分红）”；
+- 店铺收益通过日结净利进入店铺公账，玩家可后续从店铺分红/提现（本轮不新增提现动作）。
+
+## 5. 调度器与 headless 的最小改动
+
+`sim/scheduler.py` 只在 `_day_end` 的系统动作元组之后增加一处条件守卫：
+
+```python
+from ..actions.business import has_player_shop
+...
+if has_player_shop(self.writer.state):
+    self._emit_system(
+        Intent("system", "system_shop_settle", {"day": day}, tick, "system")
+    )
+```
+
+`sim/headless.py` 用同一判断（`has_player_shop`）在日界发出同一事件，口径一致。
+
+- 守卫只做一件事：世界里存在 `owner` 以 `player:` 开头的店铺才 emit。
+- 无店铺世界不发该事件，日界事件序列与改动前逐字节一致（测试对整份事件列表序列化后比对哈希）。
+- 调度循环、配速、时钟、护栏、`_day_end` 其它步骤顺序均未改动。
+- 不在调度侧挡掉的非法结算仍会按 `Writer.submit` 既有语义写 rejected 事件（保持可审计性）；
+  本事件的 `preconditions` 用 `no_player_shop` 兜底，避免手工误发。
+
+## 6. 已知限制
+
+- 雇工的**自主日程**仍走既有 `sim/intent.py`：它要求雇主公账现金 ≥ 日薪 + 储备（2000 文）
+  才会主动去店里上工。小店现金未达标时，雇工在日结层按契约出工/产出/领薪，
+  但个人行动不会显示“到店干活”（本轮按边界不改 `intent.py`）。
+- 日结只统计店铺公账上的 `buy/consume` 与 `sell` 流水；玩家私下的物品转移不计营收。
+- 欠薪由 `system_debts` 在次日日界补付；补付不重复计入当日净利（成本已在欠薪当日计提）。
+
+## 7. 验收记录（真实服务 3 个世界日，run `shop-demo-v7`）
+
+参考 commit：`48b512f` + 本改动；content_hash `7ec670c1`；seed 42；真实 `wsim.api` + ambient。
+下表取雇工入职后的 day2–day4（每个世界日恰好一条 `system_shop_settle`）：
+
+| 世界日 | 营收 | 进货 | 工资(应付/实付/欠) | 税(应付/实付) | 净利 | 雇工产出 | 日末库存 | 日末店铺现金 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| day2 | 65 | 0 | 18/18/0 | 10/10 | +37 | 1 | 39 件 | 45 |
+| day3 | 59 | 0 | 18/18/0 | 10/10 | +31 | 1 | 35 件 | 76 |
+| day4 | 210 | 0 | 18/18/0 | 10/10 | +182 | 1 | 28 件 | 258 |
+
+- day0（开店当日）营收 0、无雇工，日摊税 10 结转欠税；day1 营收 46、工资 18、税实付 20
+  （10 当期 + 10 补缴 day0 欠税），净利 +18。
+- 雇工 `yan_shouyi`：雇佣前在庙里“上工糊口”；雇佣后 `employed_at=shop:player:u_demo`，
+  每日领 18 文（个税 1 文 burn），但受 `intent.py` 的雇主要求（现金 ≥ 日薪 + 2000 储备）限制，
+  小店现金未达标前不会主动到店上工（见第 6 节）。
+- 自雇：`work` 事件只有体力/技能/记忆效果，`transfer` 与 `debt_create` 均为 0。
+- 不变量：3,203 条事件 seq 连续 1..3203；`conservation_error=0`；
+  `minted_total=53150`、`burned_total=1175`、`accounts_sum=51975`（= minted − burned）；
+  玩家钱包 2550 = 6000 − 3000 铺面费 − 450 进货，未从自雇拿到工资。

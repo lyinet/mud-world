@@ -144,8 +144,10 @@ class WorkAction(Action):
         if biz.location != ent.location:
             raise Reject("not_at_workplace")
         gross = max(1, int(round(self.content.wage_for(ent.role) * hours / 8.0)))
+        employed_by_self = ent.business is not None and ent.business == bid
+        settled_daily = ent.id in biz.employee_wages
         employer_cash = state.account_balance(biz.cash_account)
-        received = min(gross, employer_cash)
+        received = 0 if (employed_by_self or settled_daily) else min(gross, employer_cash)
         tax = income_tax(self.content, received)
         wallet_bal = state.account_balance(wallet(ent.id))
         tax = min(tax, wallet_bal + received)
@@ -154,18 +156,28 @@ class WorkAction(Action):
         skill = skill_for(self.content, ent.role)
 
         effects: list[Effect] = []
-        effects.extend(
-            payment_with_shortfall(
-                state,
-                biz.id,
-                ent.id,
-                gross,
-                debt_id=f"debt:wage:{bid}:{ent.id}",
-                created_tick=intent.tick,
-                note="unpaid_wage",
-                transfer_reason="wage",
+        if employed_by_self:
+            # 店主自雇：工资记 0，不生成“自己欠自己”的工资债。
+            # 店主收益走月度分红（system_shop_dividend），不走工资。
+            note = "店主自雇，工资记0文（店主收益走分红）"
+        elif settled_daily:
+            # 已签日结契约的雇工：工资由日界 system_shop_settle 统一结算，
+            # 此处不再重复支付，也不生成工资债。
+            note = f"已签日结契约，工资本日由日结发放{gross}文"
+        else:
+            effects.extend(
+                payment_with_shortfall(
+                    state,
+                    biz.id,
+                    ent.id,
+                    gross,
+                    debt_id=f"debt:wage:{bid}:{ent.id}",
+                    created_tick=intent.tick,
+                    note="unpaid_wage",
+                    transfer_reason="wage",
+                )
             )
-        )
+            note = f"在{biz.name}做工{hours}小时，应得{gross}文，实收{received}文，税{tax}文"
         if tax > 0:
             effects.append(Effect("burn", {"account": wallet(ent.id), "amount": tax, "reason": "income_tax"}))
         effects.extend(
@@ -174,13 +186,7 @@ class WorkAction(Action):
                 Effect("skill", {"entity": ent.id, "skill": skill, "delta": hours * 0.0006}),
                 Effect("set_field", {"entity": ent.id, "field": "last_action_tick", "value": intent.tick}),
                 *goal_progress(state, ent.id, "wealth", float(max(0, net)), intent.tick, goal_id=explicit_goal_id(intent)),
-                *memory(
-                    state,
-                    ent.id,
-                    intent.tick,
-                    f"在{biz.name}做工{hours}小时，应得{gross}文，实收{received}文，税{tax}文",
-                    0.2,
-                ),
+                *memory(state, ent.id, intent.tick, note, 0.2),
             ]
         )
         return effects

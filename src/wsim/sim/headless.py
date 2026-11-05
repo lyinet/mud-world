@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from ..actions.registry import ActionRegistry, build_registry
+from ..actions.business import has_player_shop
 from ..actions.common import treasury_balance, treasury_guard_threshold
 from ..actions.social import PLAYER_SOURCES
 from ..agent.budget import BudgetGuard, BudgetLimits
@@ -729,6 +730,12 @@ def run_headless(
             emit(Intent(actor="system", verb="system_maintenance", args={"day": day},
                         tick=base + TICKS_PER_DAY - 1, source="system"))
         )
+        # 玩家店铺日结：独立事件；没有玩家店铺时完全不发，保证旧世界事件序列不变。
+        if has_player_shop(writer.state):
+            day_events.append(
+                emit(Intent(actor="system", verb="system_shop_settle", args={"day": day},
+                            tick=base + TICKS_PER_DAY - 1, source="system"))
+            )
         # 预算审计：当天真的因超限降级 Mock 才写，一天最多一条。
         if budget is not None and budget.take_audit(day):
             day_events.append(

@@ -9,6 +9,50 @@
 
 ---
 
+## [功能] 2026-11-05 — 开店经营闭环：初始库存、店铺雇佣、独立日结、自雇不记债
+
+- **改了什么**
+  - `open_shop` 按档位写入初始库存（stall 13 / storefront 30 / branch 50 件，只取内容包真实物品），
+    并按既有 `sell_price` 向 `treasury:region` 进货：钱包 → 公账 `transfer(reason=shop_stock)`，
+    库存 `item_create(reason=initial_stock)`；铺面费仍付给所在地商业体公账（`reason=shop_rent`）。
+    前置要求钱包覆盖“铺面费 + 进货成本”，无赠送、无 `mint`。
+  - `recruit` 增加店铺雇佣语义（带 `shop`/`position`/`wage`）：岗位须在 `economy.wages_daily`，
+    日薪为市场价 0.8–1.5 倍，双向好感 ≥ 6、最高技能 ≥ 0.15，按档位限 1/2/3 人；
+    失败返回 `relation_too_low` / `skill_too_low` / `wage_too_low|too_high` / `shop_full` /
+    `target_not_at_shop` 等可读原因码，拒绝事件照常落库。成功写 `shop_hire`（岗位、日薪、
+    `employed_at`）与双方记忆。
+  - 新增独立日界事件 `system_shop_settle`（不并入 `system_debts`）：先付工资，现金不足记
+    “店铺欠雇工”的债；再按 `月租/30` 缴日摊税，不足部分以运行期 `tax_arrears` 结转次日；
+    净利 = 营收 − 进货 − 工资 − 税；每个雇工每日产出 1 件档位库存品；店主与雇工各写一条可读记忆，
+    亏损追加“亏损，店主需补足”。
+  - `transfer` 效果按 `reason=buy|consume` / `sell` 累计玩家店铺当日营收/进货（运行期计数器，
+    不进 `to_dict()`）；`shop_day_close` 清零并结转欠税。
+  - 修自雇零薪：在自家店 `work` 现在 `received=0` 且**不生成任何债务**（不再出现“自己欠自己”），
+    只扣体力/涨技能并写“店主自雇，工资记0文（店主收益走分红）”。
+  - `sim/scheduler.py::_day_end` 在 `system_maintenance` 之后加条件守卫：仅当存在 `player:` 所有者
+    的店铺才 emit `system_shop_settle`；`headless.py` 用同一判断。无店世界事件序列逐字节不变。
+- **为什么**：可玩性审计实测两处真 bug —— `open_shop` 扣 300/1200/3000 文换来无库存、无员工、
+  无日结的空壳；在自家店 `work` 应得工资却实收 0，并生成“自己欠自己”的工资债。
+- **验证方式**
+  - 新增 `tests/test_shop_operations.py` 7 条：初始库存资金流向与 `minted` 不变；recruit 前置/原因码/
+    契约；自雇 0 工资无自我债；日结工资/税/产出/亏损记忆/计数清零/欠税结转；欠薪债未结清累加、
+    结清后用带 tick 新 id；无店日界事件整表哈希与改动前逐字节一致；有店 3 个世界日每日恰好一条
+    settle 且位于维护类之后、seq 连续。
+  - 真实服务（`wsim.api` + ambient，seed 42，content_hash `7ec670c1…`，run `shop-demo-v7`）跑
+    day2–4：营收 65/59/210，工资每日 18（实付 18、欠 0），税每日 10 实付，净利 +37/+31/+182，
+    产出每日 1 件，日末库存 39/35/28 件，日末店铺现金 45/76/258。
+  - 不变量：3,203 事件 seq 1..3203 连续；`conservation_error=0`；
+    `minted_total 53150 − burned_total 1175 = accounts_sum 51975`；玩家钱包 2550
+    = 6000 − 3000 铺面费 − 450 进货。
+  - 基线：旧 V3 期望值保留并 skip；W1 在 HEAD `48b512f` 入库的 V4 数值原样保留、两条测试 skip；
+    新建 V5（693→692 events，buy 793→785，business_cash 12599→12816，sell 967 / burned 81 /
+    blocked 8 / pruned 4 不变，state/event 哈希显式变化）。
+  - 计数：本提交全量 pytest **454 passed / 16 skipped**（新增 `tests/test_shop_operations.py` 7 条 +
+    golden V5 2 条通过；W1 的 V4 两条转为 skip，其数值未改）。
+- **commit**：见本次提交（与 CHANGELOG 同一 pathspec 提交）。
+
+---
+
 ## [功能] 2026-11-05 — 玩家消费类动作开闸：buy/sell/consume/escort 与价格可见
 
 - **改了什么**：`api/session.py` 的玩家动词白名单/别名放行 `buy`、`sell`、`consume`、`escort`，

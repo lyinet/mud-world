@@ -5,6 +5,7 @@ from ..agent.dialogue import PLAYER_NAME, compose_talk, place_names
 from ..core.clock import TICKS_PER_DAY
 from ..core.models import Effect, Intent, Reject
 from ..world.state import WorldState
+from .business import is_shop_hire, shop_hire_effects, shop_hire_preconditions
 from .common import (
     alive,
     arg_int,
@@ -404,6 +405,8 @@ class RecruitAction(Action):
         self.content = content
 
     def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
+        if is_shop_hire(intent):
+            return shop_hire_preconditions(self.content, state, intent)
         ent = require_entity(state, intent.actor)
         target = alive(state, arg_str(intent, "target"))
         if _offline_player_target(state, target.id):
@@ -424,6 +427,8 @@ class RecruitAction(Action):
         return []
 
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
+        if is_shop_hire(intent):
+            return shop_hire_effects(self.content, state, intent)
         ent = require_entity(state, intent.actor)
         target = alive(state, arg_str(intent, "target"))
         current = state.affection_between(ent.id, target.id)

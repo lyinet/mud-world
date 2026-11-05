@@ -63,6 +63,7 @@ def build_registry(content, seed: int, plugin_dir: Path | None = None) -> Action
         SystemRecoverAction,
         SystemSavingsTaxAction,
         SystemShopDividendAction,
+        SystemShopSettleAction,
         SystemShopTaxAction,
         SystemTreasuryGuardAction,
     )
@@ -101,6 +102,7 @@ def build_registry(content, seed: int, plugin_dir: Path | None = None) -> Action
     reg.register(SystemDebtsAction(content))
     reg.register(SystemSavingsTaxAction(content))
     reg.register(SystemShopDividendAction(content))
+    reg.register(SystemShopSettleAction(content))
     reg.register(SystemShopTaxAction(content))
     reg.register(SystemTreasuryGuardAction(content))
     reg.register(SystemBudgetAction(content))

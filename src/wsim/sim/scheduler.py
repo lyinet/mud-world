@@ -24,6 +24,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Callable
 
+from ..actions.business import has_player_shop
 from ..actions.registry import build_registry
 from ..core.canonical import hash_obj
 from ..core.clock import TICKS_PER_DAY, TICKS_PER_HOUR, day_of, stamp
@@ -569,6 +570,11 @@ class AmbientScheduler:
             ("system_maintenance", {"day": day}),
         ):
             self._emit_system(Intent("system", verb, args, tick, "system"))
+        # 玩家店铺日结：独立事件，只在存在玩家店铺时发出；无店世界的事件序列逐字节不变。
+        if has_player_shop(self.writer.state):
+            self._emit_system(
+                Intent("system", "system_shop_settle", {"day": day}, tick, "system")
+            )
         if (day + 1) in (30, 60, 90):
             for verb in ("system_savings_tax", "system_shop_dividend", "system_shop_tax"):
                 self._emit_system(Intent("system", verb, {"day": day}, tick, "system"))

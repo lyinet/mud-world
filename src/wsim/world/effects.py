@@ -58,6 +58,8 @@ EFFECT_OPS = frozenset(
         "skill",
         "set_field",
         "set_employment",
+        "shop_hire",
+        "shop_day_close",
         "relation_upsert",
         "marry",
         "faction_join",
@@ -117,6 +119,14 @@ def _account(state: WorldState, account: str) -> int:
     if account not in state.accounts:
         raise EffectError(f"账户不存在: {account}")
     return int(state.accounts[account])
+
+
+def _player_shop_by_account(state: WorldState, account: str):
+    """按公账反查玩家店铺；非玩家店铺返回 None（NPC 店铺不参与日结）。"""
+    for biz in state.businesses.values():
+        if biz.cash_account == account and biz.owner and str(biz.owner).startswith("player:"):
+            return biz
+    return None
 
 
 def _owner_stock(state: WorldState, owner: str) -> dict[str, int]:
@@ -241,6 +251,30 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             raise EffectError(f"余额不足: {src} {bal} < {amount}")
         state.accounts[src] -= amount
         state.accounts[dst] += amount
+        # 玩家店铺当日流水：营收=顾客买入入公账，进货=公账付给卖方。
+        # 只累计运行期计数，不改变任何持久字段，日结事件统一结算。
+        reason = str(d.get("reason", ""))
+        # 顾客买入与在店里消费/吃饭都算店铺营收；向卖方付款（sell）算进货。
+        if reason in ("buy", "consume"):
+            shop = _player_shop_by_account(state, dst)
+            if shop is not None:
+                shop.day_revenue += amount
+        elif reason == "sell":
+            shop = _player_shop_by_account(state, src)
+            if shop is not None:
+                shop.day_restock += amount
+        return
+
+    if op == "shop_day_close":
+        # 日结完成后清零计数并结转欠税：这些是运行期字段，不进 state 字典。
+        arrears = d.get("tax_arrears") or {}
+        for biz in state.businesses.values():
+            biz.day_revenue = 0
+            biz.day_restock = 0
+        for bid, amount in dict(arrears).items():
+            biz = state.businesses.get(str(bid))
+            if biz is not None:
+                biz.tax_arrears = max(0, _as_int(amount, "tax_arrears"))
         return
 
     if op in ("item_create", "item_consume", "item_move"):
@@ -313,6 +347,30 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         ent.employed_at = bid
         if ent.id not in biz.employees:
             biz.employees.append(ent.id)
+        return
+
+    if op == "shop_hire":
+        # 店铺雇佣契约：写入岗位/日薪 + 就业指向，并从原雇主名册里摘除。
+        ent = _entity(state, str(d["entity"]))
+        bid = str(d["business"])
+        biz = state.businesses.get(bid)
+        if biz is None:
+            raise EffectError(f"商业体不存在: {bid}")
+        wage = _as_int(d["wage"], "wage")
+        if wage <= 0:
+            raise EffectError("日薪必须为正")
+        old = ent.employed_at
+        if old and old in state.businesses and old != bid:
+            prev = state.businesses[old]
+            if ent.id in prev.employees:
+                prev.employees.remove(ent.id)
+            prev.employee_wages.pop(ent.id, None)
+            prev.employee_positions.pop(ent.id, None)
+        ent.employed_at = bid
+        if ent.id not in biz.employees:
+            biz.employees.append(ent.id)
+        biz.employee_wages[ent.id] = wage
+        biz.employee_positions[ent.id] = str(d.get("position", ""))
         return
 
     if op == "relation_upsert":

@@ -126,9 +126,20 @@ class Business:
     cash_account: str = ""
     stock: dict[str, int] = field(default_factory=dict)
     employees: list[str] = field(default_factory=list)
+    # 雇工契约（仅玩家店铺使用）：岗位与日薪。空字典不写进 state 字典，
+    # 保证没有雇工的旧世界哈希逐字节不变。
+    employee_wages: dict[str, int] = field(default_factory=dict)
+    employee_positions: dict[str, str] = field(default_factory=dict)
+    # 日结运行期计数（仅玩家店铺累计，由 transfer 效果维护）：当天顾客买入与进货支出。
+    # 刻意不写进 to_dict()：没有玩家店铺的旧世界 state hash 必须逐字节不变。
+    day_revenue: int = 0
+    day_restock: int = 0
+    # 欠缴日摊税（运行期，不进 to_dict）：现金不足时结转到次日，仍由
+    # system_shop_settle 自己补缴，不混入 system_debts。
+    tax_arrears: int = 0
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        data = {
             "id": self.id,
             "name": self.name,
             "location": self.location,
@@ -138,6 +149,10 @@ class Business:
             "stock": self.stock,
             "employees": self.employees,
         }
+        if self.employee_wages:
+            data["employee_wages"] = dict(sorted(self.employee_wages.items()))
+            data["employee_positions"] = dict(sorted(self.employee_positions.items()))
+        return data
 
 
 @dataclass

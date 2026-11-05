@@ -33,13 +33,21 @@ P4 里程碑基线 v3（2026-11-05，任务公平轮转 + 接单提前）：
 - 旧 GOLDEN_MILESTONE_V2 / DIALOGUE_GOLDEN_MILESTONE_V2 原样保留并显式 skip；
   新基线见 GOLDEN_MILESTONE_V3 / DIALOGUE_GOLDEN_MILESTONE_V3。
 
-P3F 里程碑基线 v4（2026-11-05，玩家消费类动作开闸）：
-- 本次只改 HTTP/API 入口与只读 state（放行 buy/sell/consume/escort、补原因码与价格字段），
+P4 里程碑基线 v4（2026-11-05，玩家消费类动作开闸，W1 会话在 HEAD 48b512f 已入库）：
+- 只改 HTTP/API 入口与只读 state（放行玩家 buy/sell/consume/escort、补原因码与价格字段），
   不改 NPC 动作前置、不改调度、不改 content；2 天 headless 世界不执行玩家 API 动作，
-  实跑与 V3 逐项完全相同（693 events / sell 967 / buy 793 / burned 81 /
-  business_cash 12599 / blocked 8 / pruned 4，state/event 哈希不变），即**零漂移**。
-- 旧 V3 基线值原样保留并显式 skip，新基线见 GOLDEN_MILESTONE_V4 /
-  DIALOGUE_GOLDEN_MILESTONE_V4；V4 是本 HEAD 上同值的显式复核基线，不是改旧数字。
+  当时实跑两次逐项与 V3 完全相同（693 events，经济流量与拦截计数零漂移）。
+- **V4 保持 W1 已入库原值，不重编号**：本轮“开店经营闭环”改变 NPC `open_shop` 的进货与
+  库存路径，使同一 2 天世界发生漂移，因此 V4 两条测试显式 skip 并指向 V5。
+
+P4 里程碑基线 v5（2026-11-05，开店经营闭环）：
+- `open_shop` 按档位获得初始库存，并按既有 `sell_price` 向区域公账进货（reason=shop_stock）；
+  NPC 开店多一笔进货支出，库存带来额外成交：2 天世界 693→692 events，buy 793→785、
+  business_cash 12599→12816（进货钱从店主/NPC 钱包进入区域公账）。
+- sell 967 / burned 81 / blocked 8 / pruned 4 不变；state/event 哈希显式变化。
+  无玩家店铺的日界不新增任何事件（`system_shop_settle` 只在有玩家店铺时 emit）。
+- 新基线见 GOLDEN_MILESTONE_V5 / DIALOGUE_GOLDEN_MILESTONE_V5。
+- 复核命令：`PYTHONPATH=src python -m pytest tests/test_p3e_golden.py`。
 """
 from __future__ import annotations
 
@@ -255,12 +263,15 @@ DIALOGUE_GOLDEN_MILESTONE_V3 = {
     "dialogue_calls": 65,
 }
 
-# P3F 里程碑基线 v4（2026-11-05，玩家消费类动作开闸，非静默改旧基线）：
-# 只改 API 入口/只读 state，2 天 headless NPC 行为不变；实跑与 V3 逐项相同（零漂移）。
+# P4 里程碑基线 v4（2026-11-05，玩家消费类动作开闸，W1 会话已入库）：
+# 只改 HTTP/API 入口和只读 state，不改变 2 天 headless 的 NPC 行为；
+# 当时实跑两次与 V3 逐项相同（693 events / sell 967 / buy 793 / burned 81 /
+# business_cash 12599 / blocked 8 / pruned 4，state/event 哈希不变）。
+# 本轮开店闭环改变 NPC open_shop 路径，V4 两条测试改为 skip，数值原样保留。
 PLAYER_COMMERCE_BASELINE_REASON = (
-    "玩家消费类动作开闸只改 API 入口与只读 state，不改 NPC 动作前置、调度与 content；"
-    "2 天 headless 世界实跑与 V3 逐项相同（693 events、经济流量/拦截计数/状态哈希零漂移），"
-    "V4 为同 HEAD 的显式复核基线，旧 V3 数值原样保留。"
+    "玩家消费类动作开闸只改 API 入口与只读 state，不改 NPC 动作/调度/content；"
+    "2 天 headless 世界与 V3 逐项相同（693 events、经济流量与拦截计数零漂移、"
+    "state/event 哈希不变），V4 为同 HEAD 的显式复核基线。"
 )
 GOLDEN_MILESTONE_V4 = {
     "events_total": 693,
@@ -277,6 +288,35 @@ DIALOGUE_GOLDEN_MILESTONE_V4 = {
     "events_total": 693,
     "state_final": "22d415077f26873dcb1fd26c1b94ac4efd3ba8b8035ce43ce8c0fefddcee01b9",
     "event_final": "b7ded604509b24579eab66771c88f4bdfad9d049fc827994dbb6b07f6472049e",
+    "dialogue_calls": 65,
+}
+
+# P4 里程碑基线 v5（2026-11-05，开店经营闭环）：
+# `open_shop` 现在按档位给初始库存，并按既有 sell_price 向区域公账进货（reason=shop_stock）；
+# 因此 NPC 开店会多一笔进货支出、随后多卖几件货，2 天世界从 693→692 events，
+# buy 793→785，business_cash 12599→12816（进货钱进了区域公账）；
+# sell 967 / burned 81 / blocked 8 / pruned 4 不变，state/event 哈希显式变化。
+# 旧 V3/V4 基线原值保留并 skip，本组为显式迁移基线。
+SHOP_BASELINE_REASON = (
+    "开店初始库存按 sell_price 向区域公账进货：NPC 开店多一笔 shop_stock 支出、"
+    "库存带来额外成交，2 天世界 693→692 events（buy 793→785、"
+    "business_cash 12599→12816），state/event 哈希变化；旧 V3/V4 基线原样保留。"
+)
+GOLDEN_MILESTONE_V5 = {
+    "events_total": 692,
+    "state_final": "0ee1f724df0e2cb8960f64408a3442185f96aa9c1857fe71091179567900cf2c",
+    "event_final": "6a919efe6e0ac23d19eb0e75097be917df3dc85f41aca06b36b1923f5b65d2f4",
+    "sell_in": 967,
+    "buy_out": 785,
+    "burned": 81,
+    "business_cash": 12816,
+    "precondition_blocked": 8,
+    "precondition_pruned": 4,
+}
+DIALOGUE_GOLDEN_MILESTONE_V5 = {
+    "events_total": 692,
+    "state_final": "67b86167cc675e0ab4ead722c4b4b8077b42eb7a0683f63dd6f5943facf1b0fe",
+    "event_final": "394e38a7247ac0bfc358167631243453eba92de26a166028d6a546087a1a04e1",
     "dialogue_calls": 65,
 }
 
@@ -601,7 +641,7 @@ def test_p4_milestone_v2_dialogue_enabled_fake_run_is_golden(tmp_path):
     )
 
 
-@pytest.mark.skip(reason="玩家消费类动作开闸后基线迁移到 GOLDEN_MILESTONE_V4（同值零漂移复核），见文件头说明")
+@pytest.mark.skip(reason="开店初始库存改变 NPC 进货/成交路径（693→692 events）；迁移到 ..._V4 基线")
 def test_p4_milestone_v3_deterministic_2d_fake_run_is_golden(tmp_path):
     """P4 v3 基线：任务公平轮转 + 接单提前后的 2 天世界（693 events）。"""
     summary = _run_two_day(tmp_path, "golden-milestone-v3", dialogue=False)
@@ -632,7 +672,7 @@ def test_p4_milestone_v3_deterministic_2d_fake_run_is_golden(tmp_path):
     assert len(blocked_file.read_text(encoding="utf-8").splitlines()) == GOLDEN_MILESTONE_V3["precondition_blocked"]
 
 
-@pytest.mark.skip(reason="玩家消费类动作开闸后 dialogue 基线迁移到 DIALOGUE_GOLDEN_MILESTONE_V4（同值零漂移复核），见文件头说明")
+@pytest.mark.skip(reason="开店初始库存改变 NPC 进货/成交路径（693→692 events）；迁移到 ..._dialogue_V4 基线")
 def test_p4_milestone_v3_dialogue_enabled_fake_run_is_golden(tmp_path):
     """P4 v3 基线（dialogue 开启路径）：事件数不变，state/event hash 显式漂移。"""
     summary = _run_two_day(tmp_path, "golden-milestone-dialogue-v3", dialogue=True)
@@ -651,8 +691,9 @@ def test_p4_milestone_v3_dialogue_enabled_fake_run_is_golden(tmp_path):
     )
 
 
+@pytest.mark.skip(reason="开店闭环改变 NPC 进货/成交路径（693→692 events）；W1 的 V4 原值保留，迁移到 V5，见文件头说明")
 def test_p4_milestone_v4_deterministic_2d_fake_run_is_golden(tmp_path):
-    """P4 v4 基线：玩家消费类动作开闸后的 2 天世界（与 V3 同值，零漂移）。"""
+    """P4 v4 基线（W1 已入库）：玩家消费类动作开闸后的 2 天世界（693 events）。"""
     summary = _run_two_day(tmp_path, "golden-milestone-v4", dialogue=False)
     cf = summary["economy"]["cashflow"]
     got = {
@@ -671,7 +712,7 @@ def test_p4_milestone_v4_deterministic_2d_fake_run_is_golden(tmp_path):
     assert not drift, (
         "P4 里程碑 v4 基线漂移（golden_milestone_v4, actual）："
         + json.dumps(drift, ensure_ascii=False)
-        + "；原因: " + PLAYER_COMMERCE_BASELINE_REASON
+        + "；原因: " + SHOP_BASELINE_REASON
     )
 
     pruned_file = tmp_path / "golden-milestone-v4" / "pruned.jsonl"
@@ -681,8 +722,9 @@ def test_p4_milestone_v4_deterministic_2d_fake_run_is_golden(tmp_path):
     assert len(blocked_file.read_text(encoding="utf-8").splitlines()) == GOLDEN_MILESTONE_V4["precondition_blocked"]
 
 
+@pytest.mark.skip(reason="开店闭环改变 NPC 进货/成交路径；W1 的 V4 dialogue 原值保留，迁移到 V5，见文件头说明")
 def test_p4_milestone_v4_dialogue_enabled_fake_run_is_golden(tmp_path):
-    """P4 v4 基线（dialogue 开启路径）：与 V3 同值（零漂移复核）。"""
+    """P4 v4 基线（W1 已入库，dialogue 开启路径）：693 events，state/event hash 与 V3 相同。"""
     summary = _run_two_day(tmp_path, "golden-milestone-dialogue-v4", dialogue=True)
     got = {
         "events_total": summary["events"]["total"],
@@ -695,5 +737,53 @@ def test_p4_milestone_v4_dialogue_enabled_fake_run_is_golden(tmp_path):
     assert not drift, (
         "P4 里程碑 v4 dialogue 基线漂移（golden_milestone_dialogue_v4, actual）："
         + json.dumps(drift, ensure_ascii=False)
-        + "；原因: " + PLAYER_COMMERCE_BASELINE_REASON
+        + "；原因: " + SHOP_BASELINE_REASON
+    )
+
+
+def test_p4_milestone_v5_deterministic_2d_fake_run_is_golden(tmp_path):
+    """P4 v5 基线：开店经营闭环后的 2 天世界（692 events）。"""
+    summary = _run_two_day(tmp_path, "golden-milestone-v5", dialogue=False)
+    cf = summary["economy"]["cashflow"]
+    got = {
+        "events_total": summary["events"]["total"],
+        "state_final": summary["hashes"]["state_final"],
+        "event_final": summary["hashes"]["event_final"],
+        "sell_in": cf["inflow_by_reason"].get("sell", 0),
+        "buy_out": cf["outflow_by_reason"].get("buy", 0),
+        "burned": summary["economy"]["burned_total"],
+        "business_cash": summary["economy"]["business_cash_now"],
+        "precondition_blocked": summary["precondition_blocked"]["total"],
+        "precondition_pruned": summary["precondition_pruned"]["total"],
+    }
+    drift = {k: (GOLDEN_MILESTONE_V5[k], got[k])
+             for k in GOLDEN_MILESTONE_V5 if got[k] != GOLDEN_MILESTONE_V5[k]}
+    assert not drift, (
+        "P4 里程碑 v5 基线漂移（golden_milestone_v5, actual）："
+        + json.dumps(drift, ensure_ascii=False)
+        + "；原因: " + SHOP_BASELINE_REASON
+    )
+
+    pruned_file = tmp_path / "golden-milestone-v5" / "pruned.jsonl"
+    blocked_file = tmp_path / "golden-milestone-v5" / "blocked.jsonl"
+    assert pruned_file.exists() and blocked_file.exists(), "缺少全量拦截记录导出"
+    assert len(pruned_file.read_text(encoding="utf-8").splitlines()) == GOLDEN_MILESTONE_V5["precondition_pruned"]
+    assert len(blocked_file.read_text(encoding="utf-8").splitlines()) == GOLDEN_MILESTONE_V5["precondition_blocked"]
+
+
+def test_p4_milestone_v5_dialogue_enabled_fake_run_is_golden(tmp_path):
+    """P4 v5 基线（dialogue 开启路径）：开店闭环后的 692 events。"""
+    summary = _run_two_day(tmp_path, "golden-milestone-dialogue-v5", dialogue=True)
+    got = {
+        "events_total": summary["events"]["total"],
+        "state_final": summary["hashes"]["state_final"],
+        "event_final": summary["hashes"]["event_final"],
+        "dialogue_calls": summary["llm"]["dialogue_async"]["calls"],
+    }
+    drift = {k: (DIALOGUE_GOLDEN_MILESTONE_V5[k], got[k])
+             for k in DIALOGUE_GOLDEN_MILESTONE_V5 if got[k] != DIALOGUE_GOLDEN_MILESTONE_V5[k]}
+    assert not drift, (
+        "P4 里程碑 v5 dialogue 基线漂移（golden_milestone_dialogue_v5, actual）："
+        + json.dumps(drift, ensure_ascii=False)
+        + "；原因: " + SHOP_BASELINE_REASON
     )

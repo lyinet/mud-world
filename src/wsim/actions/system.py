@@ -700,3 +700,38 @@ class SystemShopTaxAction(Action):
             if tax > 0 and state.account_balance(biz.cash_account) >= tax:
                 effects.append(Effect("burn", {"account": biz.cash_account, "amount": tax, "reason": "shop_monthly_tax"}))
         return effects
+
+
+class SystemShopSettleAction(Action):
+    """玩家店铺日结（独立事件，不与 system_debts 混账）。
+
+    流水由 `Business.day_revenue/day_restock`（transfer 效果维护）读取，
+    状态变更全部走 Effect：工资不足记欠账（不增发），日摊税直接销毁，
+    雇工产出计入 items_created；结算成功后再清零当日计数。
+    没有玩家店铺时拒绝，保证旧世界事件序列逐字节不变。
+    """
+
+    verb = "system_shop_settle"
+
+    def __init__(self, content):
+        self.content = content
+
+    def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
+        from .business import has_player_shop
+
+        if not has_player_shop(state):
+            return ["no_player_shop"]
+        return []
+
+    def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
+        from .business import (
+            build_shop_settlements,
+            shop_day_reset_effects,
+            shop_settlement_effects,
+        )
+
+        rows = build_shop_settlements(self.content, state)
+        effects = shop_settlement_effects(self.content, state, rows, int(intent.tick))
+        effects.extend(shop_day_reset_effects(state, rows))
+        return effects
+
