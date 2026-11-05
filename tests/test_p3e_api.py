@@ -84,8 +84,13 @@ def test_state_contract_fields(session):
     assert {"id", "name", "description", "exits", "services"} <= set(state["location"])
     for row in state["location"]["exits"]:
         assert {"id", "name", "exists"} == set(row)
-    assert all(set(row) == {"id", "name", "role", "location", "presence", "doing"}
-               for row in state["present_npcs"])
+    assert all(
+        set(row) == {
+            "id", "name", "role", "location", "presence", "doing",
+            "skills", "employed_by", "bond", "trust",
+        }
+        for row in state["present_npcs"]
+    )
     assert set(state["quest_board"]) == {"counts", "rows", "active"}
     assert set(state["quest_board"]["counts"]) == {"open", "acceptable_here", "accepted_by_me"}
     assert all(set(row) >= {"id", "template", "name", "category", "giver", "reward_money",

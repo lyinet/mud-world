@@ -9,6 +9,37 @@
 
 ---
 
+## [功能] 2026-11-05 — 玩家店铺与在场 NPC 视图补齐
+
+- **改了什么**
+  - `GET /api/player/state` 顶层 `shop` 保留既有键，新增 `employees[]`（`name/position/wage/present/unpaid_wage`）、
+    `cash`、`stock_count`（件数合计，排除 `escrow:` 托管键与 `qty<=0`）、`stock[]`
+    （`item/name/qty/sell_price`）、`today_revenue`、`today_wage`、`today_tax`、`tax_arrears`、
+    `last_settle_tick`（`tick - tick % 144`）。玩家未开店时形状稳定：空数组与 0。
+  - `present_npcs[]`（以及 `nearby` 别名）新增 `skills`（最高技能及等级）、`employed_by`
+    （`employed_at` 优先，否则 `business`）、`bond`（`affection_between`）、`trust`
+    （双向 active 关系最大 `trust`，无关系给 0）。
+  - `api/session.py`：派生计算放在 `_shop_view` / `_present_view`；`_present_view` 纳入既有
+    按 tick 的 `_view_cache`（缓存由三元组扩为四元组），同一 tick 重复读不再重复构造。
+  - 文档：`docs/player-api.md` 新增 §3.2 字段表；契约只增不改，`profile_version` 仍为 1。
+- **为什么改**：UI 商业/经营面板拿不到雇工名单、岗位、日薪、到店与欠薪，也看不到自己的
+  现金、可售件数与当日经营数字；在场 NPC 面板缺技能、受雇归属与好感/信任。
+- **验证**
+  - 新增 4 条 `tests/test_player_commerce.py`：店铺字段与件数口径、未开店空形状、
+    在场 NPC 技能/受雇/关系、同 tick 缓存复用。
+  - 全量 `python -m pytest -o addopts="" -q`：499 passed / 18 skipped / 0 failed。
+  - P95（同一脚本 `/tmp/p95_compare.py`，`--auth off`、`XKX_AMBIENT=0`，端口 8140，
+    同一基线 `f150ade`（临时 worktree）run `p95_v3_base_clean` → 本提交 run `p95_v3_after_final`；
+    顺序 100 次、50 并发 250 次）：
+    顺序 `/api/player/state` 0.92 ms → 1.02 ms；顺序 `/api/state` 0.31 ms → 0.40 ms；
+    50 并发 `/api/player/state` 123.64 ms → 123.84 ms；50 并发 `/api/state` 31.87 ms → 35.80 ms
+    （并发世界态绝对值受机器负载影响较大，多次运行波动明显）。
+- **commit**：`（见本轮 SHA-C）`
+
+---
+
+---
+
 ## [修复] 2026-11-05 — 店铺日结按实际出勤（缺勤 0 工资 0 产出）
 
 - **改了什么**
@@ -63,6 +94,8 @@
   - 真实 `wsim.api` + ambient 3 世界日：`move:not_adjacent` = 0、`work:not_at_workplace` = 0；
     雇工每日出工（tick 85/119、194/276、323/357/398）。
   - `content_hash` 关闭 `7ec670c1…` / 开启 `3fd99946…` 未变；`llm_calls=0`。
+
+---
 
 ## [功能] 2026-11-05 — 玩家婚姻闭环：求婚、确定性裁决、婚后日常、和离
 

@@ -43,6 +43,7 @@ from ..world.state import WorldState
 from ..world.store import EventStore
 from ..world.writer import Writer
 from ..actions.escort import resolve_payer, route_meta
+from ..actions.business import daily_shop_tax
 from ..actions.registry import build_registry
 from ..actions.common import (
     business_selling,
@@ -306,7 +307,10 @@ class WorldSession:
         self._price_cache: dict[str, int] = {}
         # 同一 tick 内钱包/地点/店铺视图不变（库存与钱只会随写动作推进 tick 而变）。
         self._view_tick = -1
-        self._view_cache: dict[str, tuple[dict[str, Any], dict[str, Any], dict[str, Any]]] = {}
+        self._view_cache: dict[
+            str,
+            tuple[dict[str, Any], dict[str, Any], dict[str, Any], list[dict[str, Any]]],
+        ] = {}
 
         self.content = load_content(self.root, allow_fixture=False, use_content=True)
         # 世界自走与玩家共用 content：feed 只认这批 NPC，玩家 ID 永不进入公共事件流。
@@ -459,9 +463,10 @@ class WorldSession:
                     self._wallet_view(pid, prices),
                     self._location_view(ent.location, pid, prices),
                     self._shop_view(pid, ent.location, prices),
+                    self._present_view(pid, ent.location),
                 )
                 self._view_cache[pid] = cached_views
-            wallet_view, location_view, shop_view = cached_views
+            wallet_view, location_view, shop_view, present_view = cached_views
             player = {
                 "entity_id": pid,
                 "account_id": account,
@@ -490,7 +495,7 @@ class WorldSession:
             }
             location = location_view
             shop = shop_view
-            present = self._present_view(pid, ent.location)
+            present = present_view
             online = self._online_players_view(pid)
             quest_board = self._quest_board_view(pid, ent.location)
             escrow_rows, escrow_total = self._escrow_view()
@@ -1058,6 +1063,62 @@ class WorldSession:
                         "sell_limit": self._sell_limit(pid, item, unit_sell, loc_id),
                     }
                 )
+        # 玩家自己的店：优先当前地点，否则按 id 升序取第一；没有则空形状。
+        owned = sorted(
+            (b for b in self.state.businesses.values() if b.owner == pid),
+            key=lambda b: b.id,
+        )
+        own = next((b for b in owned if b.location == loc_id), owned[0] if owned else None)
+        tick = int(self.state.tick)
+        employees: list[dict[str, Any]] = []
+        stock_rows: list[dict[str, Any]] = []
+        stock_count = 0
+        cash = 0
+        today_revenue = 0
+        today_wage = 0
+        today_tax = 0
+        tax_arrears = 0
+        if own is not None:
+            unpaid_by: dict[str, int] = {}
+            for debt in self.state.debts.values():
+                if debt.status != "active" or debt.note != "unpaid_wage" or debt.debtor != own.id:
+                    continue
+                unpaid_by[debt.creditor] = unpaid_by.get(debt.creditor, 0) + int(debt.amount)
+            for eid in sorted(own.employees):
+                worker = self.state.entities.get(str(eid))
+                employees.append(
+                    {
+                        "name": worker.name if worker is not None else str(eid),
+                        "position": str(own.employee_positions.get(str(eid), "")),
+                        "wage": int(own.employee_wages.get(str(eid), 0)),
+                        # 当日是否到店：雇工实体存活且就在本店地点。
+                        "present": bool(
+                            worker is not None
+                            and worker.status == "alive"
+                            and worker.location == own.location
+                        ),
+                        "unpaid_wage": int(unpaid_by.get(str(eid), 0)),
+                    }
+                )
+            for item, qty in sorted(own.stock.items()):
+                qty = int(qty)
+                # 托管货物（escrow:<镖单>:<item>）不属于店铺可售库存。
+                if qty <= 0 or str(item).startswith("escrow:") or item not in self.content.items:
+                    continue
+                stock_rows.append(
+                    {
+                        "item": item,
+                        "name": self._item_name(item),
+                        "qty": qty,
+                        "sell_price": self._item_prices(prices, item)[1],
+                    }
+                )
+                stock_count += qty
+            cash = int(self.state.account_balance(own.cash_account))
+            today_revenue = int(own.day_revenue)
+            today_wage = sum(int(v) for v in own.employee_wages.values())
+            today_tax = int(daily_shop_tax(self.content, own.kind))
+            tax_arrears = int(own.tax_arrears)
         return {
             "location": loc_id,
             "businesses": [
@@ -1071,15 +1132,37 @@ class WorldSession:
             ],
             "buy": buy_rows,
             "sell": sell_rows,
+            "employees": employees,
+            "cash": cash,
+            "stock_count": stock_count,
+            "stock": stock_rows,
+            "today_revenue": today_revenue,
+            "today_wage": today_wage,
+            "today_tax": today_tax,
+            "tax_arrears": tax_arrears,
+            "last_settle_tick": tick - tick % TICKS_PER_DAY,
         }
 
     def _present_view(self, pid: str, loc_id: str) -> list[dict[str, Any]]:
+        # 同一 tick 内遍历一次关系，按对方取双向 active 关系里的最大 trust。
+        trust_by: dict[str, float] = {}
+        for rel in self.state.relations.values():
+            if rel.status != "active":
+                continue
+            if rel.a == pid:
+                other = rel.b
+            elif rel.b == pid:
+                other = rel.a
+            else:
+                continue
+            trust_by[other] = max(trust_by.get(other, 0.0), float(rel.trust))
         rows = []
         for ent in sorted(self.state.entities.values(), key=lambda e: e.id):
             if ent.id == pid or str(ent.id).startswith("player:"):
                 continue
             if ent.location != loc_id or ent.status != "alive":
                 continue
+            top = max(ent.skills.items(), key=lambda kv: (float(kv[1]), kv[0])) if ent.skills else None
             rows.append(
                 {
                     "id": ent.id,
@@ -1088,6 +1171,14 @@ class WorldSession:
                     "location": ent.location,
                     "presence": ent.presence,
                     "doing": "",
+                    "skills": (
+                        {"name": str(top[0]), "level": round(float(top[1]), 4)}
+                        if top is not None
+                        else None
+                    ),
+                    "employed_by": ent.employed_at or ent.business or None,
+                    "bond": float(self.state.affection_between(pid, ent.id)),
+                    "trust": float(trust_by.get(ent.id, 0.0)),
                 }
             )
         return rows

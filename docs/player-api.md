@@ -364,6 +364,34 @@ PYTHONPATH=src python3 -m wsim.api --run player-demo --seed-account alice --port
 `buy_limit`/`sell_limit` 已综合“单笔最多 20 件、店铺库存/现金、玩家钱包/持有量”。
 这些字段均为增量；原有键与语义不变，匿名公共摘要白名单也不含这些新字段。
 
+### 3.2 玩家店铺与在场 NPC 视图补充（2026-11-05 只增不改）
+
+顶层 `shop` 在保留 `location` / `businesses[]` / `buy[]` / `sell[]` 的前提下新增以下只读字段；
+玩家未开店时形状仍然稳定（`employees=[]`、`stock=[]`，数值键均为 `0`）：
+
+| 字段 | 类型 | 口径 |
+|---|---|---|
+| `employees[]` | array | 本店雇工，按实体 id 升序。每项 `name`、`position`（岗位）、`wage`（日薪）、`present`（雇工实体 `status=alive` 且 `location == 店铺 location`，即当日到店）、`unpaid_wage`（该雇工在本店 `status=active` 且 `note="unpaid_wage"` 的债务合计） |
+| `cash` | integer | 本店现金账户（`cash:<business_id>`）余额 |
+| `stock_count` | integer | 本店可售库存**件数合计**；排除 `escrow:` 开头的托管键与 `qty <= 0`，不是品类数 |
+| `stock[]` | array | 每项 `item`、`name`、`qty`（件数）、`sell_price`（单件收购价）；同样排除托管键与未知物品 |
+| `today_revenue` | integer | 当日顾客买入流水（`Business.day_revenue`） |
+| `today_wage` | integer | 本店当日工资合计（`employee_wages` 求和） |
+| `today_tax` | integer | 本店日摊税（`daily_shop_tax(content, kind)`，月租/30，至少 1 文） |
+| `tax_arrears` | integer | 结转到次日仍未缴的日摊税 |
+| `last_settle_tick` | integer | 最近一个日界 tick：`tick - tick % 144`（`TICKS_PER_DAY = 144`） |
+
+`present_npcs[]`（`nearby` 是同一份数据的别名）每项新增：
+
+| 字段 | 类型 | 口径 |
+|---|---|---|
+| `skills` | object \| null | 最高技能 `{"name": 技能名, "level": 等级}`；无技能为 `null` |
+| `employed_by` | string \| null | `Entity.employed_at`，否则 `Entity.business`，都没有为 `null` |
+| `bond` | number | `WorldState.affection_between(玩家, NPC)`，无关系为 `0.0` |
+| `trust` | number | 玩家与 NPC 双向 `status="active"` 关系中最大的 `trust`；无关系为 `0.0`（`Relation` 默认信任基线是 `0.4`） |
+
+以上均为只读投影，不改动作语义；同一 tick 内按玩家缓存，写动作推进 tick 后才重新计算。
+
 ---
 
 ## 4. `POST /api/player/action`

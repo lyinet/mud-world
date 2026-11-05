@@ -12,9 +12,12 @@ from pathlib import Path
 
 import pytest
 
+from wsim.actions.business import daily_shop_tax
 from wsim.actions.common import transaction_tax, wallet
 from wsim.actions.escort import resolve_payer
-from wsim.core.clock import TICKS_PER_HOUR
+from wsim.core.clock import TICKS_PER_DAY, TICKS_PER_HOUR
+from wsim.core.models import Effect
+from wsim.world.effects import apply_effects
 from wsim.world.state import Quest
 from wsim.api.session import WorldSession
 from wsim.audit.conservation import conservation
@@ -710,6 +713,227 @@ def test_rest_rejects_when_quest_deadline_would_be_missed(session: WorldSession)
     reject = [e for e in session.store.read_all() if e.verb == "rest"][-1]
     assert reject.reason == "rejected:cannot_rest_now"
     assert not any(eff["op"] == "stamina" for eff in reject.effects)
+
+
+def _seed_own_shop(
+    s: WorldSession, kind: str = "storefront", location: str = "market"
+) -> str:
+    """在运行态造一家玩家店铺（视图只读，测试视图用真实 state 形状即可）。"""
+    pid = s._pid(ACCOUNT)
+    shop_id = f"shop:player:{ACCOUNT}"
+    cash = f"cash:{shop_id}"
+    apply_effects(
+        s.state,
+        [
+            Effect("create_account", {"account": cash}),
+            Effect("create_business", {
+                "id": shop_id,
+                "name": "试营业小店",
+                "location": location,
+                "kind": kind,
+                "owner": pid,
+                "cash_account": cash,
+            }),
+            Effect("set_field", {"entity": pid, "field": "business", "value": shop_id}),
+        ],
+    )
+    return shop_id
+
+
+def _seed_employee(
+    s: WorldSession,
+    shop_id: str,
+    eid: str,
+    name: str,
+    role: str,
+    location: str,
+    wage: int,
+    skills: dict[str, float] | None = None,
+) -> None:
+    apply_effects(
+        s.state,
+        [
+            Effect("create_entity", {
+                "id": eid,
+                "name": name,
+                "role": role,
+                "location": location,
+                "stamina": 100.0,
+                "max_stamina": 100.0,
+                "skills": dict(skills or {}),
+            }),
+            Effect("create_account", {"account": wallet(eid)}),
+            Effect("shop_hire", {
+                "business": shop_id,
+                "entity": eid,
+                "position": role,
+                "wage": wage,
+            }),
+        ],
+    )
+
+
+def test_shop_view_exposes_employees_stock_and_daily_stats(session: WorldSession) -> None:
+    _enter(session)
+    shop_id = _seed_own_shop(session, kind="storefront")
+    cash = f"cash:{shop_id}"
+    # 129 文入账：结清 9 文测试欠薪债后，现金余额正好 120。
+    apply_effects(session.state, [Effect("mint", {"account": cash, "amount": 129, "reason": "test"})])
+    _seed_employee(session, shop_id, "npc:emp1", "陆九斤", "脚夫", "market", 30, {"脚夫": 0.4})
+    _seed_employee(session, shop_id, "npc:emp2", "王二", "酒保", "inn", 20, {"酒保": 0.3})
+    # 两笔同雇工的 active 欠薪债 + 一笔已结清（不应计入）。
+    apply_effects(
+        session.state,
+        [
+            Effect("debt_create", {
+                "id": "debt:test:emp1:a",
+                "creditor": "npc:emp1",
+                "debtor": shop_id,
+                "amount": 5,
+                "note": "unpaid_wage",
+            }),
+            Effect("debt_create", {
+                "id": "debt:test:emp1:b",
+                "creditor": "npc:emp1",
+                "debtor": shop_id,
+                "amount": 3,
+                "note": "unpaid_wage",
+            }),
+            Effect("debt_create", {
+                "id": "debt:test:emp1:settled",
+                "creditor": "npc:emp1",
+                "debtor": shop_id,
+                "amount": 9,
+                "note": "unpaid_wage",
+            }),
+            Effect("debt_settle", {"id": "debt:test:emp1:settled", "amount": 9}),
+        ],
+    )
+    biz = session.state.businesses[shop_id]
+    biz.stock = {
+        "flatbread": 10,
+        "cured_meat": 3,
+        "escrow:es1:coarse_cloth": 2,
+        "hemp_rope": 0,
+    }
+    biz.day_revenue = 40
+    biz.tax_arrears = 7
+
+    shop = session.player_state(ACCOUNT)["shop"]
+    rows = {row["name"]: row for row in shop["employees"]}
+    assert set(rows) == {"陆九斤", "王二"}
+    expected_keys = {"name", "position", "wage", "present", "unpaid_wage"}
+    for row in shop["employees"]:
+        assert set(row) == expected_keys
+    assert rows["陆九斤"] == {
+        "name": "陆九斤", "position": "脚夫", "wage": 30, "present": True, "unpaid_wage": 8,
+    }
+    assert rows["王二"] == {
+        "name": "王二", "position": "酒保", "wage": 20, "present": False, "unpaid_wage": 0,
+    }
+    assert shop["cash"] == 120
+    assert session.state.account_balance(cash) == 120
+    # 件数口径：10 + 3；escrow 托管键与 qty<=0 都不计入，也不等于品类数。
+    assert shop["stock_count"] == 13
+    assert len(shop["stock"]) == 2
+    assert shop["stock_count"] != len(shop["stock"])
+    stock = {row["item"]: row for row in shop["stock"]}
+    assert set(stock) == {"flatbread", "cured_meat"}
+    for item, row in stock.items():
+        assert set(row) == {"item", "name", "qty", "sell_price"}
+        assert row["name"] == session._item_name(item)
+        assert row["sell_price"] == session._item_prices(None, item)[1]
+    assert stock["flatbread"]["qty"] == 10
+    assert stock["cured_meat"]["qty"] == 3
+    assert shop["today_revenue"] == 40
+    assert shop["today_wage"] == 50
+    assert shop["today_tax"] == daily_shop_tax(session.content, "storefront")
+    assert shop["tax_arrears"] == 7
+    tick = int(session.state.tick)
+    assert shop["last_settle_tick"] == tick - tick % TICKS_PER_DAY
+    assert shop["last_settle_tick"] % TICKS_PER_DAY == 0
+
+
+def test_shop_view_empty_shape_is_stable_for_new_player(session: WorldSession) -> None:
+    _enter(session)
+    shop = session.player_state(ACCOUNT)["shop"]
+    assert shop["employees"] == []
+    assert shop["stock"] == []
+    for key in (
+        "cash", "stock_count", "today_revenue", "today_wage",
+        "today_tax", "tax_arrears",
+    ):
+        assert shop[key] == 0
+    assert shop["last_settle_tick"] % TICKS_PER_DAY == 0
+    assert {"location", "businesses", "buy", "sell"} <= set(shop)
+
+
+def test_present_view_exposes_skills_employment_and_relations(session: WorldSession) -> None:
+    _enter(session)
+    pid = session._pid(ACCOUNT)
+    npcs = sorted(
+        e.id for e in session.state.entities.values()
+        if e.id != pid
+        and not str(e.id).startswith("player:")
+        and e.location == "market"
+        and e.status == "alive"
+    )
+    assert len(npcs) >= 2
+    first, second = npcs[0], npcs[1]
+    session.state.entities[first].skills = {"捕快": 0.35, "武艺": 0.2}
+    session.state.entities[first].employed_at = "shop:player:u1"
+    session.state.entities[second].skills = {}
+    session.state.entities[second].employed_at = None
+    session.state.entities[second].business = "shop:player:u1"
+    apply_effects(
+        session.state,
+        [
+            Effect("relation_upsert", {
+                "a": pid, "b": first, "kind": "friend", "affection": 12.0, "trust": 0.4,
+            }),
+            Effect("relation_upsert", {
+                "a": first, "b": pid, "kind": "friend", "affection": 3.0, "trust": 0.7,
+            }),
+        ],
+    )
+
+    present = session.player_state(ACCOUNT)["present_npcs"]
+    assert present, "market 必须有在场 NPC"
+    expected_keys = {"skills", "employed_by", "bond", "trust"}
+    for row in present:
+        assert expected_keys <= set(row)
+    row = next(r for r in present if r["id"] == first)
+    assert row["skills"] == {"name": "捕快", "level": 0.35}
+    assert row["employed_by"] == "shop:player:u1"
+    assert row["bond"] == session.state.affection_between(pid, first) == 12.0
+    assert row["trust"] == 0.7
+    other = next(r for r in present if r["id"] == second)
+    assert other["skills"] is None
+    assert other["employed_by"] == "shop:player:u1"
+    assert other["bond"] == 0.0
+    assert other["trust"] == 0.0
+
+
+def test_state_view_cache_reused_within_tick(session: WorldSession) -> None:
+    _enter(session)
+    shop_id = _seed_own_shop(session)
+    session.state.businesses[shop_id].day_revenue = 40
+
+    first = session.player_state(ACCOUNT)
+    assert first["shop"]["today_revenue"] == 40
+    assert len(session._view_cache) == 1
+
+    # 同一 tick 内篡改 state：缓存不得重建，读数保持不变。
+    session.state.businesses[shop_id].day_revenue = 999
+    second = session.player_state(ACCOUNT)
+    assert second["shop"]["today_revenue"] == 40
+    assert len(session._view_cache) == 1
+
+    # tick 推进后缓存失效，读到最新值。
+    session._advance()
+    third = session.player_state(ACCOUNT)
+    assert third["shop"]["today_revenue"] == 999
+    assert len(session._view_cache) == 1
 
 
 def test_escort_cargo_survives_leave_and_timeout_without_duplication(session: WorldSession) -> None:
