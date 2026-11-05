@@ -20,9 +20,9 @@ python3 tools/build_dist.py --version p3l --out dist
 
 | 项 | 结果 |
 | --- | --- |
-| 文件数 | **535** 个（清单 `dist/MANIFEST-delivery-p3l.txt`） |
-| `tar.gz` | 约 **8.3 MiB**（精确字节见 `dist/p3l-SHA256.txt`） |
-| `zip` | 约 **8.6 MiB**（精确字节见 `dist/p3l-SHA256.txt`） |
+| 文件数 | **537** 个（清单 `dist/MANIFEST-delivery-p3l.txt`） |
+| `tar.gz` | **8.27 MiB**（精确字节见 `dist/p3l-SHA256.txt`） |
+| `zip` | **8.59 MiB**（精确字节见 `dist/p3l-SHA256.txt`） |
 | 包根 `README.md` 首行 | `# XKX / world-sim 对外试玩包（p3l）`（由 `--version p3l` 注入） |
 | `deploy/service.yaml` | 按设计**不在包内** |
 | token 类文件 | **0**：解包后 `find . -name 'token*'` 为空 |
