@@ -190,6 +190,22 @@
 
 ---
 
+## [安全] 2026-11-05 — 移除已入库的崩溃演练 session 证据
+
+- **事件**：`reports/w5/crash-drill/token-check.txt` 于 `9c76cde` 入库，内容为
+  `/api/auth/me` 响应，含一次性 `session_id`（`s:e1cb5106…`）、账号名与 `account_id`；
+  **不含 Bearer 本体**。
+- **处置**：`11c3ac9` 从 HEAD `git rm` 该文件并删除磁盘副本；`.gitignore` 补
+  `reports/**/token*.txt`、`reports/**/*-check.txt`（不忽略整个 `reports/**`，保留交付证据）；
+  `SECURITY.md` 第 5 节第 6 条记录来龙去脉。
+- **历史状态**：**未改写历史**，该文件在 `9c76cde` 及后续历史中仍可检出；`session_id`
+  为一次性会话标识，压测后已 `DELETE FROM sessions`，不可用于重新认证。
+- **扫描**：HEAD 中凭证型文件已归零；`tools/e2e_service_check.py` 的
+  `Bearer e2e-stale-token` 是 401 测试字面量，`reports/w4-ui/checks.json` 的
+  `tok_ui_user_1` / `s:1` 是 UI mock，均非真实凭证。
+
+---
+
 ## [安全] 2026-11-04 — W5 崩溃演练明文令牌清理
 
 - **事件**：`deploy/crash_drill.sh` 曾把用 `drill-secret` 登录得到的完整 Bearer token
