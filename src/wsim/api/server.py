@@ -6,7 +6,9 @@ Bearer 令牌校验；不存在“配置存在但仍可匿名写”的旁路。
 from __future__ import annotations
 
 import json
+import os
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -41,6 +43,7 @@ _AUTH_ROUTES = {
 _AUTH_ME = "/api/auth/me"
 _RECONNECT_ROUTE = "/api/player/reconnect"
 _SERVICE_INFO = "/api/service/info"
+_HEALTH = "/api/health"
 _INTENTS_PREFIX = "/api/player/intents/"
 
 # 席位/额度类业务拒绝：用 429 明确表达“不是服务端 500”。
@@ -57,6 +60,89 @@ _AUTH_STATUS = {
     "auth_invalid_credentials": 401,
     "auth_disabled": 503,
 }
+
+
+def _ambient_status_path(session: WorldSession) -> Path:
+    raw = os.environ.get("XKX_AMBIENT_STATUS") or ""
+    if raw:
+        return Path(raw)
+    return Path(session.run_dir) / "ambient" / "ambient_status.json"
+
+
+def _ambient_health_payload(session: WorldSession) -> dict[str, Any]:
+    """只读 ambient_status.json；缺失/过期/进程消失都收敛为 stopped。"""
+    base: dict[str, Any] = {
+        "ambient": "stopped",
+        "ambient_tick": None,
+        "ambient_last_tick_at": "",
+        "ambient_reason": "status_file_missing",
+        "ambient_pid": None,
+        "ambient_speed": None,
+    }
+    path = _ambient_status_path(session)
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return base
+    if not isinstance(data, dict):
+        return base
+    state = str(data.get("state") or "")
+    if state not in ("running", "paused"):
+        base.update(
+            {
+                "ambient": "stopped",
+                "ambient_tick": data.get("tick"),
+                "ambient_last_tick_at": str(data.get("last_tick_at") or ""),
+                "ambient_reason": str(data.get("reason") or state or "stopped"),
+                "ambient_pid": data.get("pid"),
+                "ambient_speed": data.get("speed"),
+            }
+        )
+        return base
+    try:
+        stale_s = float(os.environ.get("XKX_AMBIENT_STALE_S") or 120.0)
+    except ValueError:
+        stale_s = 120.0
+    try:
+        age = max(0.0, time.clock_gettime(time.CLOCK_REALTIME) - path.stat().st_mtime)
+    except OSError:
+        age = stale_s + 1.0
+    if age > stale_s:
+        base.update(
+            {
+                "ambient": "stopped",
+                "ambient_tick": data.get("tick"),
+                "ambient_last_tick_at": str(data.get("last_tick_at") or ""),
+                "ambient_reason": "status_stale",
+                "ambient_pid": data.get("pid"),
+                "ambient_speed": data.get("speed"),
+            }
+        )
+        return base
+    pid = data.get("pid")
+    if isinstance(pid, int):
+        try:
+            os.kill(pid, 0)
+        except (ProcessLookupError, PermissionError):
+            base.update(
+                {
+                    "ambient": "stopped",
+                    "ambient_tick": data.get("tick"),
+                    "ambient_last_tick_at": str(data.get("last_tick_at") or ""),
+                    "ambient_reason": "process_gone",
+                    "ambient_pid": pid,
+                    "ambient_speed": data.get("speed"),
+                }
+            )
+            return base
+    return {
+        "ambient": state,
+        "ambient_tick": data.get("tick"),
+        "ambient_last_tick_at": str(data.get("last_tick_at") or ""),
+        "ambient_reason": str(data.get("reason") or ""),
+        "ambient_pid": pid,
+        "ambient_speed": data.get("speed"),
+    }
 
 
 def resolve_auth_required(root: str | Path, mode: str = "auto") -> bool:
@@ -145,6 +231,23 @@ class _Handler(BaseHTTPRequestHandler):
         path = self._path()
         query = self._query()
         account = query.get("account_id", "")
+        if path == _HEALTH:
+            # 只加不改：现有键（ok/mode/readonly/profile_version/upstream_ok）语义保持，
+            # ambient 字段为新增，供 start.sh / 前端探活判断后台自走是否在推进。
+            self._send(
+                200,
+                {
+                    "ok": True,
+                    "mode": "live",
+                    "readonly": False,
+                    "profile_version": 1,
+                    "upstream_ok": True,
+                    "run": session.run_id,
+                    "tick": int(session.state.tick),
+                    **_ambient_health_payload(session),
+                },
+            )
+            return
         if path == _SERVICE_INFO:
             self._send(
                 200,
@@ -154,6 +257,7 @@ class _Handler(BaseHTTPRequestHandler):
                     "tick": int(session.state.tick),
                     "run": session.run_id,
                     "profile_version": 1,
+                    **_ambient_health_payload(session),
                 },
             )
             return

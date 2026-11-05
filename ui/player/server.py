@@ -1221,24 +1221,84 @@ class UpstreamUnavailable(Exception):
     """真 API 不可达（网络层，不是业务拒绝）。"""
 
 
+def _fetch_service_info(base: str, timeout: float) -> dict[str, Any] | None:
+    url = base.rstrip("/") + "/api/service/info"
+    try:
+        req = Request(url, headers={"Accept": "application/json"})
+        with urlopen(req, timeout=timeout) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+    except (HTTPError, URLError, OSError, ValueError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _service_info_ok(payload: dict[str, Any] | None) -> bool:
+    return (
+        isinstance(payload, dict)
+        and payload.get("ok") is True
+        and payload.get("profile_version") == PROFILE_VERSION
+    )
+
+
 def probe_upstream(base: str, timeout: float) -> bool:
     """轻量探活：GET /api/service/info，必须返回契约 JSON。
 
     不能用匿名 GET /api/player/state：服务模式下匿名读只返回公共摘要白名单，
     没有 profile_version，会让探活恒失败、整个门面降级成 readonly。
     """
-    url = base.rstrip("/") + "/api/service/info"
+    return _service_info_ok(_fetch_service_info(base, timeout))
+
+
+AMBIENT_FIELDS = (
+    "ambient",
+    "ambient_tick",
+    "ambient_last_tick_at",
+    "ambient_reason",
+    "ambient_pid",
+    "ambient_speed",
+)
+
+
+def _ambient_stopped(reason: str) -> dict[str, Any]:
+    return {
+        "ambient": "stopped",
+        "ambient_tick": None,
+        "ambient_last_tick_at": "",
+        "ambient_reason": reason,
+        "ambient_pid": None,
+        "ambient_speed": None,
+    }
+
+
+def _upstream_ambient(payload: dict[str, Any] | None) -> dict[str, Any]:
+    """从上游 service/info 响应取 ambient 字段；不可达时如实报 stopped。"""
+    if not isinstance(payload, dict):
+        return _ambient_stopped("upstream_unreachable")
+    state = payload.get("ambient")
+    if state not in ("running", "paused", "stopped"):
+        return _ambient_stopped("upstream_ambient_absent")
+    return {key: payload.get(key) for key in AMBIENT_FIELDS}
+
+
+def _local_ambient(run_path: Path) -> dict[str, Any]:
+    path = Path(run_path) / "ambient" / "ambient_status.json"
     try:
-        req = Request(url, headers={"Accept": "application/json"})
-        with urlopen(req, timeout=timeout) as resp:
-            payload = json.loads(resp.read().decode("utf-8"))
-        return (
-            isinstance(payload, dict)
-            and payload.get("ok") is True
-            and payload.get("profile_version") == PROFILE_VERSION
-        )
-    except (HTTPError, URLError, OSError, ValueError):
-        return False
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return _ambient_stopped("status_file_missing")
+    if not isinstance(data, dict):
+        return _ambient_stopped("status_file_bad")
+    state = data.get("state")
+    if state not in ("running", "paused"):
+        return _ambient_stopped(str(data.get("reason") or state or "stopped"))
+    return {
+        "ambient": state,
+        "ambient_tick": data.get("tick"),
+        "ambient_last_tick_at": str(data.get("last_tick_at") or ""),
+        "ambient_reason": str(data.get("reason") or ""),
+        "ambient_pid": data.get("pid"),
+        "ambient_speed": data.get("speed"),
+    }
 
 
 def forward_upstream(
@@ -1337,7 +1397,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def _health(self) -> None:
         if self.mode == "live":
-            ok = probe_upstream(self.upstream, self.timeout)
+            upstream_payload = _fetch_service_info(self.upstream, self.timeout)
+            ok = _service_info_ok(upstream_payload)
             self._json(
                 200,
                 {
@@ -1348,6 +1409,7 @@ class Handler(BaseHTTPRequestHandler):
                     "upstream": self.upstream,
                     "upstream_ok": ok,
                     "docs": "world-sim/docs/player-api.md",
+                    **_upstream_ambient(upstream_payload),
                 },
             )
             return
@@ -1363,11 +1425,13 @@ class Handler(BaseHTTPRequestHandler):
                     "message": "只读 run 不可用。",
                     "upstream": self.upstream,
                     "upstream_ok": False,
+                    **_ambient_stopped("readonly_unavailable"),
                 },
             )
             return
         payload = view.health()
         payload.update({"mode": "readonly", "readonly": True, "upstream": self.upstream, "upstream_ok": False})
+        payload.update(_local_ambient(view.run_path))
         self._json(200 if payload.get("ok") else 503, payload)
 
     # ------------------------------------------------------------------- GET
