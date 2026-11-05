@@ -9,6 +9,24 @@
 
 ---
 
+## [文档] 2026-11-06 — 发布/回滚手册与提交规范
+
+- **改了什么**：
+  - 新增 `docs/RELEASE-ROLLBACK.md`：发布步骤、回滚步骤（compose 的 `image` 指回上一版 tag）、
+    数据兼容性检查清单（`events.sqlite` schema、`content_hash`、令牌表），以及
+    “哪些改动需要回滚数据库”的判定表；附 2026-11-06 同卷回滚实测命令与输出。
+  - 新增 `docs/COMMIT-CONVENTION.md`：每次提交必须一条 CHANGELOG 条目、显式 pathspec、
+    禁止 `git add -A` / `git add .`、tag 只增不改、提交前检查表与 CHANGELOG 模板。
+- **为什么改**：把“发布可退回上一版”从口头约定变成可执行步骤与判定表；把变更记录纪律前置到提交时，
+  避免多任务并行时用宽 pathspec 把无关文件卷进提交（本轮已实际发生一次，见 commit `0e1d685`）。
+- **验证方式**：按手册命令完成同卷回滚实测，7/7 PASS（启动、`/api/state` 200、事件可读、
+  `seq` 连续、旧令牌有效、`content_hash` 不变、回滚后继续写），输出见
+  [docs/RELEASE-ROLLBACK.md](docs/RELEASE-ROLLBACK.md) 第 6 节；文档内命令与
+  `tools/build_image.sh` 实际输出一致。
+- **commit**：`（见本提交）`
+
+---
+
 ## [安全 P0] 2026-11-06 — 登录限流防爆破 + 令牌吊销 + 审计
 
 - **改了什么**
