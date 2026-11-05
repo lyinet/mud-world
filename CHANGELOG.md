@@ -9,6 +9,45 @@
 
 ---
 
+## [修复] 2026-11-05 — 委托板保供：每发布点每日至少 1 张可接单 + 金库垫付
+
+- **改了什么**
+  - `actions/quests.py::SystemQuestPostAction` 在常规发布之外新增 `_floor_posts`：每个
+    “发布点”（有存活 giver 且模板无声望门槛的地点）当天没有可接单时补 1 张；候选按模板 id
+    排序、优先 `procurement`/`errand`，起点 `day % len(group)` 确定性轮转，无随机数；保底单
+    跳过全局/模板过期上限与完成率门槛，仍要求 giver 存活、同模板无 open、`giver_item` 有货。
+    该点候选全部 `accepted` 在途时，允许 repeatable 模板再开一张。
+  - giver 现金不足 reward 时，差额由 `treasury:region` 走真实
+    `transfer(reason=quest_reward_advance, quest, template, day)` 垫付；金库不足则放弃该点
+    当日保底，**不 `mint`、不记欠账**。保底单 `quest_create` 带 `floor: true` 与
+    `advance_money`，可与常规单区分。
+  - `content/**` 数值未改（`deadline_days` / `expired_cap_*` 均不动），不依赖调过期参数。
+- **为什么改**：修复前 `runs/audit-r2` 从第 10 世界日起 8 个发布点新增单全部为 0，
+  `system_quest_post` 返回 `[]`；逐模板复算显示全局过期上限触发 324 次、在途 191 次、
+  现金不足仅 3 次（且发生在第 24–26 日），第 7–15 日被抑制的 giver 现金 268–4937 文、
+  reward 8–36 文，**没有一例因现金不足**。根因是大量未接单在日界集中过期，使
+  `retained_expired ≥ expired_cap_global=20` 封停全部模板；存量 open 单继续过期后板面归零，
+  保留期结束后短暂恢复再进入周期性死锁（`runs/audit-ambient` 第 16–23 日 0 单）。
+- **验证方式**
+  - 真实服务 + ambient（seed 42，4x 配置，`runs/service-ambient-10d`，tick 1440）连续 10 世界日：
+    新增 156、接单 125、完成 115、过期 22；第 7–10 日日界每个有 giver 的发布点最小可接单均为 1
+    （集市 7/8/7/4、河渡 2/1/2/1、药铺 1/—/1/1；第 8 日药铺无 giver 在店，不属发布点）。
+    守恒 `accounts_sum 45691 = minted 47450 − burned 1759`，delta=0。
+  - 同 seed 两次真实服务 run：3851 events，
+    `event_hash 655bd929…` 两次一致；headless `fix-floor-10d-a/-b` 亦一致（`a586e3f7…`，3968 events）。
+  - 玩家侧（`runs/floor-player-proof`，原第 12 日 0 单）：跨日界补 5 张保底单后接
+    `quest:errand_silk_sample:1728` → move → trade → `quest_deliver`，钱包 300→308。
+  - 垫付（`runs/floor-advance-proof`）：清空 7 个 giver 钱包后每点补 1 单，逐笔
+    `transfer` 合计 105 文，`accounts_sum = minted − burned` 对账 delta=0。
+  - 供给/需求平衡 30 天：第 11–15 日保底 3–6 单/日、板面最小 1；第 16 日 prune 后常规恢复
+    19 单，未见板面堆满无人接。
+  - `tests/test_quest_floor.py` 新增 6 条；`tests/test_quest_health.py` 旧“全局上限→0 单”
+    契约改为“每发布点仍有 1 张保底”。
+  - 全量 `pytest`：480 passed / 16 skipped；`./scripts/selfcheck.sh` 4/4 PASS；
+    `tests/test_p3e_golden.py` V5（692 events）保持通过，旧基线原值保留 skip。
+  - `content/**` 未改：`content_hash` 关闭态 `7ec670c1…`、开启态 `3fd99946…` 不变。
+- **commit**：见本条对应的保底供给提交（实现 / 测试 / 文档各自成笔）。
+
 ## [修复] 2026-11-05 — 玩家 API 放行 recruit：开店闭环在正式 HEAD 可用
 
 - **改了什么**
