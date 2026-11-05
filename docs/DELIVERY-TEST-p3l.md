@@ -36,19 +36,19 @@ python3 tools/build_dist.py --version p3l --out dist
 ### 2.1 legacy（`./start.sh` 默认，含世界自走）
 
 ```bash
-cd /tmp/xkx-p3l-final/world-sim
-API_PORT=8570 PORT=8550 RUN_ID=p3l-final ./start.sh
+cd /tmp/xkx-p3l-final2/world-sim
+API_PORT=8572 PORT=8552 RUN_ID=p3l-final2 ./start.sh
 ```
 
 | 时刻 | 观测 |
 | --- | --- |
-| 09:42:52 | 解包目录首次启动完成：API 8570 / 前端 8550 就绪 |
-| 09:42:52 | `/api/health`：`ok=true, mode=live, ambient_tick=1, ambient_speed=1.0, upstream_ok=true` |
-| 09:42:52 | `GET /api/world/feed?limit=20`：HTTP 200，0.001883s；顶层 `ok/tick/limit/events`；`tick=1, n=2`；事件字段 `actor/important/place/summary/tick/verb`；升序 |
-| 09:42:52 | `GET /api/state` HTTP 200；`GET /` HTTP 200、12,997 B、`<title>入世 · 世界门面</title>` |
-| 09:44:05 | 60 秒可见性见 §3 |
+| 10:02:37 | 解包目录首次启动完成（**9s**，含建 venv、装依赖、2 日种子、起 API + 前端）：API 8572 / 前端 8552 就绪 |
+| 10:02:37 | `/api/health`：`ok=true, mode=live, ambient=running, ambient_tick=0, ambient_speed=1.0, upstream_ok=true` |
+| 10:02:37 | `GET /api/world/feed?limit=20`：HTTP 200，0.000775s；顶层 `ok/tick/limit/events`；`tick=0, n=0`（首个 tick 尚未落库） |
+| 10:02:37 | `GET /api/state` HTTP 200；`GET /api/player/state` HTTP 200；`GET /` HTTP 200、12,997 B、`<title>入世 · 世界门面</title>` |
+| 10:05:49 | 60 秒可见性见 §3.1 |
 
-`XKX_AMBIENT=0` 关闭自走（端口 8571 / 8551，RUN_ID=`p3l-ambient-off`）：
+`XKX_AMBIENT=0` 关闭自走：在 `102a312` 候选包实测（端口 8571 / 8551，RUN_ID=`p3l-ambient-off`）：
 
 | 项 | 结果 |
 | --- | --- |
@@ -56,59 +56,63 @@ API_PORT=8570 PORT=8550 RUN_ID=p3l-final ./start.sh
 | 等待 >20s 后 | tick 仍为 **0**，`/api/world/feed` 返回 `events=[]` |
 | 结论 | 自走确实未启动，行为与旧版一致 |
 
+> **证据口径**：`d01ba9b` 未改 ambient 启动逻辑；关闭态沿用候选包实测，**未在最终包复跑**。
+
 ### 2.2 service 模式（`--auth on` + UI 代理）
 
 ```bash
+cd /tmp/xkx-p3l-final2/world-sim
 PYTHONPATH=src XKX_AMBIENT=1 .venv/bin/python -m wsim.api \
-  --root . --run p3l-svc --port 8587 --auth on
-.venv/bin/python ui/player/server.py --upstream http://127.0.0.1:8587 --port 8557
+  --root . --run p3l-svc-final --port 8589 --auth on
+.venv/bin/python ui/player/server.py --upstream http://127.0.0.1:8589 --port 8559
 ```
 
-API 直连（09:46:56 就绪）：
+API 直连（10:02:52 就绪，1s）：
 
 | 场景 | 观测 |
 | --- | --- |
-| `/api/service/info` | `auth_required=true, ambient=running, ambient_tick` 随世界推进 |
-| 匿名 `GET /api/state?account_id=u_p3l_a` | **200**，恰好 9 键：`activity/idle_seconds/name/ok/online/place/sect_name/server_tick/shop_name`；`wallet/items/relations` 均不存在 |
-| 本人令牌 `GET /api/state` | **200**，完整状态（`player.wallet.money=300`、地点集市、`tick` 与世界时钟一致） |
+| 注册 / 登录 / enter | 200 / 200 / 200（`created=true`, `tick=1`） |
+| 匿名 `GET /api/state?account_id=u_p3l_final` | **200**，恰好 9 键：`activity/idle_seconds/name/ok/online/place/sect_name/server_tick/shop_name`；`wallet/items/relations` 均不存在 |
+| 本人令牌 `GET /api/state` | **200**，完整状态（`player.wallet.money=300`、地点集市、`tick=7`） |
 | 令牌 + 他人账号 | **403** `auth_account_mismatch` |
 | 匿名 `GET /api/player/intents/i:deadbeef` | **401** `auth_missing_token` |
-| 令牌 `POST /api/player/action`（move→academy） | **200** `ok=true, status=executed`，地点变为书院 |
+| 令牌 `POST /api/player/action`（move→academy） | **200** `ok=true, status=executed`（候选包同路径已验，最终包同代码） |
 | 匿名 `GET /api/world/feed?limit=20` | **200**，顶层 `ok/tick/limit/events`，事件 6 字段、升序；`tick` 与 health `ambient_tick` 同一时钟 |
 
-UI 代理（8557）：
+UI 代理（8559，1s 就绪）：
 
 | 场景 | 观测 |
 | --- | --- |
-| `/api/health` | **200**，`mode=live, readonly=false, upstream_ok=true, ambient=running, ambient_tick` 与 API 一致 |
-| 匿名 `/api/state?account_id=u_p3l_a` | **200**，仅 9 键公共摘要 |
-| 带令牌 `/api/player/state` | **200**，完整状态（书院 / 300 文） |
-| 带令牌跨账号 `/api/state?account_id=u_p3l_b` | **403** 原样透传 |
-| `/api/world/feed?limit=20` | **200**，真实 NPC 事件可读 |
+| `/api/health` | **200**，`mode=live`，`ambient_tick` 与 API 一致 |
+| 匿名 `/api/state?account_id=u_p3l_final` | **200**，仅 9 键公共摘要 |
+| 带令牌 `/api/player/state` | **200**，完整状态（集市 / 300 文） |
+| 带令牌跨账号 `/api/state?account_id=u_other` | **403** 原样透传 |
+| `/api/world/feed?limit=20` | **200**，20 条真实 NPC 事件（`tick=41`） |
 | `GET /` | **200**，12,997 B |
 
-### 2.3 Docker（从交付包自身 `deploy/` 起容器）
+### 2.3 Docker（从最终交付包自身 `deploy/` 起容器）
 
 ```bash
-cd /tmp/xkx-p3l-final/world-sim/deploy
+cd /tmp/xkx-p3l-final2/world-sim/deploy
 docker-compose up -d --build
 ```
 
 | 时刻 | 观测 |
 | --- | --- |
-| 09:52:05 | 开始构建（`python:3.12-slim`、17 步、成功打 tag `xkx/world-sim:w5`） |
-| 09:52:0x | `Container xkx-world Started` |
-| 首次 inspect | `running healthy`，`FailingStreak=0` |
-| 端点 | `/api/service/info` 200 `auth_required=true`；`/api/health` 200 `mode=live`；`/api/world/feed` 200；`GET /` 200、12,997 B |
-| 默认 ambient | **stopped**：`entrypoint.sh` 未注入 `XKX_AMBIENT`，容器默认不自走 |
+| 10:04:00 | 开始构建（`python:3.12-slim`、17 步、成功打 tag `xkx/world-sim:w5`；legacy builder 上下文约 18.5 MB） |
+| 10:04:0x | `Container xkx-world Started`；**4s** 内 `healthy` |
+| inspect | `running healthy`，`FailingStreak=0` |
+| `/api/health` | **200**，`mode=live`，`ambient=stopped`（默认），`tick=27` |
+| `/api/world/feed?limit=20` | **200**（默认关闭自走，返回历史窗口） |
+| `/api/state` / `GET /` | **200** / **200**（12,997 B） |
 
 显式开启容器内自走（临时 override 注入 `XKX_AMBIENT=1`，不改包内文件）：
 
 | 项 | 结果 |
 | --- | --- |
-| 健康 | `healthy`（4s 内），`failing=0` |
-| `/api/health` | **200**，`mode=live, ambient=running, ambient_tick=12` |
-| `/api/world/feed?limit=20` | **200**，`tick=13`，返回真实 NPC 事件（曹半仙/石敢当） |
+| 健康 | `healthy`（**4s** 内），`failing=0` |
+| `/api/health` | **200**，`mode=live, ambient=running, ambient_tick=27` |
+| `/api/world/feed?limit=20` | **200**，返回真实 NPC 事件（曹半仙 `move/quest_accept/work`、石敢当 `move`） |
 | 鉴权矩阵 | 匿名 9 键摘要、令牌完整状态、跨账号 **403**、匿名 intents **401**、令牌 move **200 executed** |
 | `GET /` | **200** |
 
@@ -118,25 +122,25 @@ Docker 说明：本机为独立版 `docker-compose` 5.6.1（legacy builder，不
 
 ## 3. 世界动态 60 秒可见性
 
-### 3.1 legacy（`p3l-final`，09:43–09:44）
+### 3.1 legacy（`p3l-final2`，10:04–10:05）
 
 | 时点 | health `ambient_tick` | feed `tick` | 事件数 | 窗口内最大 tick |
 | --- | --- | --- | --- | --- |
-| T0（09:43:0x） | 2 | 2 | 4 | 2 |
-| T60（09:44:05） | **13** | **13** | **25** | 13 |
+| T0（10:04:49） | 21 | 21 | 20（limit 满窗） | 21 |
+| T60（10:05:49） | **31** | **31** | **20**（limit 满窗） | **31** |
 
-- `same_clock=true`；窗口内新增 **23** 条事件；样例：
-  `{"tick":13,"actor":"石敢当","verb":"buy","place":"集市","summary":"在集市做买卖","important":false}`
+- `same_clock=true`；60 秒窗口内 20 条全部是 tick > T0 的**新增** NPC 事件；
+  样例：`{"tick":31,"actor":"柳三娘","verb":"move","place":"客栈","summary":"动身前往客栈","important":false}`
 
-### 3.2 service（`p3l-svc`，09:59:20–10:00:21）
+### 3.2 service（`p3l-svc-final`，10:02:53–10:03:53）
 
 | 时点 | health `ambient_tick` | feed `tick` | 事件数 | 窗口内最大 tick |
 | --- | --- | --- | --- | --- |
-| T0（09:59:20） | 4346 | 4346 | 20（limit 满窗） | 4343 |
-| T60（10:00:21） | **4356** | **4356** | **20**（limit 满窗） | **4356** |
+| T0（10:02:53） | 7 | 7 | 2 | 7 |
+| T60（10:03:53） | **16** | **16** | **14** | **14** |
 
-- `same_clock=true`；60 秒窗口内 feed 的 20 条全部是 tick > T0 的**真实 NPC 事件**；
-  样例：`{"actor":"段五斗","important":false,"place":"集市","summary":"在集市做工","tick":4356,"verb":"work"}`
+- `same_clock=true`；窗口内新增 **12** 条真实 NPC 事件；
+  样例：`{"actor":"石敢当","important":false,"place":"集市","summary":"石敢当在集市活动","tick":14,"verb":"debt_settle"}`
 
 ### 3.3 UI 面板
 
@@ -179,7 +183,8 @@ OUT=/tmp/p3l-crash-drill RUN=p3l-crash-drill XKX_AMBIENT=1 deploy/crash_drill.sh
 | 旧令牌仍有效 | PASS（重启后 `/api/auth/me` 200） |
 | 内容 hash 篡改退出码 | PASS（**3**） |
 
-结论：**8/8 PASS**。p3k 的 8/8 证据未沿用，本轮为 p3l 包重跑。
+结论：**8/8 PASS**。本轮在 `102a312` 候选包（ambient 与玩家同进程）**重跑**；
+`d01ba9b` 未改运行时与崩溃路径，**最终包沿用本次重跑，未再复跑**。p3k 的 8/8 证据未沿用。
 
 ## 6. 包内自检
 
@@ -188,7 +193,7 @@ OUT=/tmp/p3l-crash-drill RUN=p3l-crash-drill XKX_AMBIENT=1 deploy/crash_drill.sh
 | 项 | 结果 |
 | --- | --- |
 | 内容包校验 | PASS（NPC 30 人、初始货币 35,650 文、关系边 106 条） |
-| 单元测试 pytest | **439 passed, 12 skipped**（133.01s） |
+| 单元测试 pytest | **439 passed, 12 skipped**（129.75s） |
 | 框架验收 | **6/6 PASS**，`replay=MATCH`，守恒=0 |
 | 玩家闭环 | PASS（enter → 移动 → 对话 → 接任务 → 刷新状态仍在） |
 | 总结 | **selfcheck PASS（4/4）** |
