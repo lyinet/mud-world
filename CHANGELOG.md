@@ -175,6 +175,34 @@
 
 ---
 
+## [安全 P0] 2026-11-06 — 丢库 fail-closed：有账号但事件库缺失/损坏时拒绝启动
+
+- **改了什么**
+  - 新增 `src/wsim/api/world_guard.py`：启动前只读检查 `service.sqlite` 账号数
+    （`users` 表）与 `events.sqlite` 状态（是否存在、事件数、`PRAGMA integrity_check`）。
+  - `src/wsim/api/__main__.py`：在创建 `WorldSession` **之前**执行守卫；失败时向 stderr
+    打单行 JSON 并以退出码退出：丢库 **4 `events_missing`**、损坏 **5 `events_corrupt`**
+    （内容包哈希不符仍是 3）。新增 `--allow-new-world`：只放行“丢库开新世界”，
+    不放行损坏库。
+  - 首次创世写 `runs/<run>/world_id.json` 世界身份标记（run_id / content_hash / seed /
+    created_at）；启动日志新增 `"world": "new" | "existing"` 与 `allow_new_world`。
+  - `docs/OPS-RUNBOOK.md` 新增第 10 节（启动矩阵、拒绝日志样例、`--allow-new-world` 边界）。
+  - `tests/test_w1_world_guard.py`：四场景（全新目录、有账号无库、有账号损坏库、显式覆盖）。
+- **为什么改**：卷挂错或误删 `events.sqlite` 时服务会静默重建创世并返回 `ok:true`，
+  等于清档且无人察觉。
+- **验证方式**（原样输出）
+  - ① 全新空目录：`startup: {"ok": true, ..., "world": "new", "allow_new_world": false}`，
+    `world_id.json: {"content_hash": "7ec670c1...", "run_id": "fresh", "seed": 42}`。
+  - ② 有账号 + 无事件库：`exit: 4`，
+    `stderr: {"accounts": 1, "code": "events_missing", "exit_code": 4, "ok": false, "reason": "检测到已有账号数据但事件库缺失，疑似卷挂载错误；如需开新世界请显式 --allow-new-world", ...}`。
+  - ③ 有账号 + 损坏事件库：`exit: 5`，
+    `stderr: {"code": "events_corrupt", "exit_code": 5, "reason": "事件库 integrity_check 失败（error: file is not a database）；拒绝启动，请从备份恢复 events.sqlite。"}`。
+  - ④ 显式 `--allow-new-world`：`startup: {..., "world": "new", "allow_new_world": true}`；
+    `/api/health` → `{"ok": true, "world": {"new_world": true, "run": "renew", "tick": 0}, ...}`。
+- **commit**：`（见本提交）`
+
+---
+
 ## [安全 P0/P1] 2026-11-06 — 请求体/头部限制、超时、CORS 同源默认 + 依赖漏洞扫描
 
 - **改了什么**

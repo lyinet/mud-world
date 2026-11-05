@@ -442,3 +442,54 @@ WAL 异常或磁盘满时：先停服，保留 `events.sqlite`/`-wal`/`-shm` 原
 - 备份与主库同盘：磁盘损坏会双丢，异地副本不在 P0 范围。
 - 内容包升级前先备份；升级后旧备份会因 `content_hash` 不符而无法启动（预期）。
 - 备份含账号哈希/令牌：目录 `700`、文件 `600`，拷离机器前加密。
+
+## 10. 世界丢失 fail-closed 与真实健康检查（2026-11-06）
+
+### 10.1 启动前世界身份检查
+
+服务在创建 `WorldSession` 之前先做一次只读检查（`api/world_guard.py`）：
+
+| 场景 | 行为 | 退出码 |
+| --- | --- | --- |
+| 无 `service.sqlite` 或无账号 | 正常创世 | 0 |
+| 有账号 + `events.sqlite` 缺失/0 事件 | 拒绝启动，日志一行 JSON `events_missing` | **4** |
+| `events.sqlite` `PRAGMA integrity_check` 非 `ok` | 拒绝启动，`events_corrupt` | **5** |
+| 内容包 `content_hash` 不符（既有行为） | 拒绝启动 | 3 |
+| 有账号 + 丢库，但显式 `--allow-new-world` | 允许创世，日志 `world: new` | 0 |
+
+拒绝启动时示例（stderr 单行 JSON）：
+
+```json
+{"accounts": 1, "code": "events_missing", "events_db": ".../runs/lost/events.sqlite",
+ "exit_code": 4, "ok": false,
+ "reason": "检测到已有账号数据但事件库缺失，疑似卷挂载错误；如需开新世界请显式 --allow-new-world",
+ "service_db": ".../runs/lost/service.sqlite"}
+```
+
+首次创世会在 `runs/<run>/world_id.json` 写入世界身份标记
+（`run_id` / `content_hash` / `seed` / `created_at`），既有世界不覆盖。
+
+> 注意：`--allow-new-world` 只放行“丢库开新世界”，**不会**放行损坏库；损坏库必须从备份恢复。
+
+### 10.2 `/api/health`
+
+每次请求真实检查，返回 200/503：
+
+```json
+{"ok": true, "mode": "live", "readonly": false, "profile_version": 1, "upstream_ok": true,
+ "run": "player-demo", "tick": 88152,
+ "storage": {"events_ok": true, "seq_gap": 0, "disk_free_mb": 41234,
+             "disk_free_pct": 41.2, "last_commit_age_s": 0.2, "integrity": "ok"},
+ "world": {"run": "player-demo", "tick": 88152, "new_world": false}, "ambient": "running", ...}
+```
+
+判定口径：
+
+- `storage.events_ok`：`EventStore.count()`（COUNT(*) 缓存）与 `EventTail.last_seq`
+  （MAX(seq) 缓存）一致，且 `integrity_check = ok`。两者差异即 `seq_gap`；O(1)，不 `read_all`。
+- `integrity_check` 默认 60 秒缓存（`XKX_INTEGRITY_CACHE_S`）。
+- `disk_free_pct` 低于 5% → 503（`XKX_DISK_MIN_FREE_PCT`）。
+- 写者最后提交（`events.sqlite` / `-wal` mtime）超过 60 秒 → 503（`XKX_WRITER_IDLE_MAX_S`）；
+  刚启动时以进程启动时刻为基准，不会因旧库 mtime 误判。
+- 任一不满足 → `ok=false` + **HTTP 503**；既有键保持不变，只新增 `storage` / `world`。
+

@@ -12,6 +12,7 @@ from .auth import DEFAULT_ITERATIONS, DEFAULT_RECONNECT_GRACE, DEFAULT_TOKEN_TTL
 from .server import create_server, resolve_auth_required
 from .session import WorldSession
 from .persistence import ContentHashMismatch
+from .world_guard import check_startup, write_world_id
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -46,9 +47,21 @@ def main(argv: list[str] | None = None) -> int:
         help="断线重连宽限（秒）；超时后按新会话处理但存档仍在。",
     )
     parser.add_argument("--auth-iterations", type=int, default=DEFAULT_ITERATIONS, help="PBKDF2 迭代次数。")
+    parser.add_argument(
+        "--allow-new-world",
+        action="store_true",
+        help="已有账号但事件库缺失时，显式允许开新世界（默认拒绝启动，退出码 4）。",
+    )
     args = parser.parse_args(argv)
 
     root = Path(args.root).resolve()
+    run_dir = root / "runs" / args.run
+    service_db = Path(args.session_db) if args.session_db else run_dir / "service.sqlite"
+    guard = check_startup(service_db, run_dir / "events.sqlite", allow_new_world=args.allow_new_world)
+    if guard is not None:
+        # 固定契约：单行 JSON 到 stderr；退出码 4=丢库、5=库损坏；不监听、不写事件。
+        print(json.dumps(guard, ensure_ascii=False, sort_keys=True), file=sys.stderr, flush=True)
+        return int(guard["exit_code"])
     try:
         session = WorldSession(
             root,
@@ -62,6 +75,15 @@ def main(argv: list[str] | None = None) -> int:
         # 固定契约：退出码 3 + 单行 JSON 错误到 stderr；不监听、不写事件。
         print(exc.log_line(), file=sys.stderr, flush=True)
         return exc.exit_code
+    # 首次创世落“世界身份”标记；既有世界不覆盖（标记只在造新世界时写）。
+    world_state = "existing" if session.replayed else "new"
+    if world_state == "new":
+        write_world_id(
+            session.run_dir,
+            run_id=args.run,
+            content_hash=session.content.content_hash,
+            seed=args.seed,
+        )
     auth_required = resolve_auth_required(root, args.auth)
     accounts: AccountStore | None = None
     if auth_required:
@@ -89,6 +111,8 @@ def main(argv: list[str] | None = None) -> int:
                 "tick": session.state.tick,
                 "auth_required": auth_required,
                 "auth_mode": args.auth,
+                "world": world_state,
+                "allow_new_world": bool(args.allow_new_world),
                 "ambient": (ambient_info or {}).get("ambient", "stopped"),
                 "docs": "docs/player-api.md",
             },
