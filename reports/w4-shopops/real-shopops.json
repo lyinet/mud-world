@@ -1,0 +1,164 @@
+{
+  "meta": {
+    "run_id": "w4-shopops-1106020548",
+    "api": "http://127.0.0.1:57416",
+    "proxy": "http://127.0.0.1:57417",
+    "ambient_speed": "4",
+    "started_at": "2026-11-06 02:05:48",
+    "head": "857172b2f24c54288ae937d772df31983555c8e1",
+    "status": "blocked_backend_not_ready"
+  },
+  "blocked": {
+    "status": "blocked_backend_not_ready",
+    "missing": [
+      "restock",
+      "set_price",
+      "dismiss",
+      "withdraw",
+      "shop_report"
+    ],
+    "probes": [
+      {
+        "verb": "restock",
+        "status": 409,
+        "code": "unknown_action",
+        "text": "未知操作；可用操作见 docs/player-api.md。",
+        "implemented": false
+      },
+      {
+        "verb": "set_price",
+        "status": 409,
+        "code": "unknown_action",
+        "text": "未知操作；可用操作见 docs/player-api.md。",
+        "implemented": false
+      },
+      {
+        "verb": "dismiss",
+        "status": 409,
+        "code": "unknown_action",
+        "text": "未知操作；可用操作见 docs/player-api.md。",
+        "implemented": false
+      },
+      {
+        "verb": "withdraw",
+        "status": 409,
+        "code": "unknown_action",
+        "text": "未知操作；可用操作见 docs/player-api.md。",
+        "implemented": false
+      },
+      {
+        "verb": "shop_report",
+        "status": 409,
+        "code": "unknown_action",
+        "text": "未知操作；可用操作见 docs/player-api.md。",
+        "implemented": false
+      }
+    ],
+    "note": "后端动作未进 master；本轮不跑成功路径，不用 mock 顶替真服务证据。"
+  },
+  "steps": {
+    "capability_probe": [
+      {
+        "verb": "restock",
+        "status": 409,
+        "code": "unknown_action",
+        "text": "未知操作；可用操作见 docs/player-api.md。",
+        "implemented": false
+      },
+      {
+        "verb": "set_price",
+        "status": 409,
+        "code": "unknown_action",
+        "text": "未知操作；可用操作见 docs/player-api.md。",
+        "implemented": false
+      },
+      {
+        "verb": "dismiss",
+        "status": 409,
+        "code": "unknown_action",
+        "text": "未知操作；可用操作见 docs/player-api.md。",
+        "implemented": false
+      },
+      {
+        "verb": "withdraw",
+        "status": 409,
+        "code": "unknown_action",
+        "text": "未知操作；可用操作见 docs/player-api.md。",
+        "implemented": false
+      },
+      {
+        "verb": "shop_report",
+        "status": 409,
+        "code": "unknown_action",
+        "text": "未知操作；可用操作见 docs/player-api.md。",
+        "implemented": false
+      }
+    ],
+    "blocked": {
+      "status": "blocked_backend_not_ready",
+      "missing": [
+        "restock",
+        "set_price",
+        "dismiss",
+        "withdraw",
+        "shop_report"
+      ],
+      "probes": [
+        {
+          "verb": "restock",
+          "status": 409,
+          "code": "unknown_action",
+          "text": "未知操作；可用操作见 docs/player-api.md。",
+          "implemented": false
+        },
+        {
+          "verb": "set_price",
+          "status": 409,
+          "code": "unknown_action",
+          "text": "未知操作；可用操作见 docs/player-api.md。",
+          "implemented": false
+        },
+        {
+          "verb": "dismiss",
+          "status": 409,
+          "code": "unknown_action",
+          "text": "未知操作；可用操作见 docs/player-api.md。",
+          "implemented": false
+        },
+        {
+          "verb": "withdraw",
+          "status": 409,
+          "code": "unknown_action",
+          "text": "未知操作；可用操作见 docs/player-api.md。",
+          "implemented": false
+        },
+        {
+          "verb": "shop_report",
+          "status": 409,
+          "code": "unknown_action",
+          "text": "未知操作；可用操作见 docs/player-api.md。",
+          "implemented": false
+        }
+      ],
+      "note": "后端动作未进 master；本轮不跑成功路径，不用 mock 顶替真服务证据。"
+    }
+  },
+  "results": [
+    {
+      "name": "真服务 原因码全部中文（无原始 code）",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "真服务 移动端 375×812 账本可横滚、页面不溢出、控件 ≥44px",
+      "ok": true,
+      "detail": {
+        "overflow": 0,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "ledgerScrollable": false,
+        "small": []
+      }
+    }
+  ]
+}

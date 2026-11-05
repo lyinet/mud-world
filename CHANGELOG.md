@@ -39,7 +39,29 @@
 - **后端未就绪**：当前 master 无这五个动作；本轮只做 UI + mock，真服务脚本
   `tools/ui_check_real_shopops.py` 将显式探测并标 `blocked_backend_not_ready`，
   不用 mock 顶替真服务证据。
-- **commit**：待补（本条目所在提交）。
+- **commit**：`857172b`。
+
+---
+
+## [W4 店铺经营真服务验收] 2026-11-06 — 能力探测记录 + `blocked_backend_not_ready`
+
+- **改了什么**
+  - 新增 `tools/ui_check_real_shopops.py`：真 `wsim.api`（`--auth off` + ambient 4x）+ 真代理，
+    浏览器开摊 → 进货 → 改价 → 等日结 → 账本 → 提现 → 辞退；每步截图，页面 hook fetch
+    保存真实请求/响应到 `reports/w4-shopops/real-shopops.json`。
+  - 进入后先对 `restock/set_price/dismiss/withdraw/shop_report` 发最小探测请求；
+    命中 `unknown_action` / `unknown_verb` / `not_implemented_for_player` / HTTP 404
+    即写 `blocked_backend_not_ready` 并退出 0，**不跑 mock、不伪造成功**。
+  - 账本为空（开店不足一日）时如实显示空态并截图，记录 `ledger_empty: true`，不延长等待凑数据。
+- **为什么改**：UI 与 mock 已就绪，但五个后端动作当前不在 master；需要一条可重复的真服务
+  验收路径，并在后端未就绪时给出可审计的阻断结论，而不是假成功。
+- **验证方式**
+  - `python3 tools/ui_check_real_shopops.py --settle-timeout 20`：exit 0，
+    2 checks / 0 failed，输出 `BLOCKED`，五个动作探测均 `unknown_action`。
+  - 证据：`reports/w4-shopops/`（`real-0-business.png`、`real-0-blocked.png`、
+    `real-7-mobile.png`、`real-shopops.json`）。
+  - 全量 UI/mock 验收见上一条（`ui_check.py` 151/0、`--only shopops` 16/0、proxy 12/0）。
+- **commit**：本条目所在提交。
 
 ---
 
