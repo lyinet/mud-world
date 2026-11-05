@@ -1,0 +1,15 @@
+{
+  "captured_at_local": "2026-11-05",
+  "commit": "f1f15a7",
+  "note": "实现前基线；无玩家参与的头世界（ambient/headless），用于逐字节对比 state/event 哈希。",
+  "command": "python3 sim/run_headless.py --days 2 --seed 42 --npc 12 --out /tmp/wsim-base --run-id before",
+  "content_hash": "7ec670c1c83c7b99e9bee35f84602bd7a68ef22126b29c9003529809b2c3d53f",
+  "seed": 42,
+  "days": 2,
+  "npc_count": 12,
+  "events_total": 279,
+  "hashes": {
+    "state_final": "91ca62360b0a25e2e97375458c8a379946ab17be2bf760630ec29576fe399d6d",
+    "event_final": "eb139d4fb4c0cc041ed1142e610f0f782dd0e7eb0ef56ce307cf057f37d70181"
+  }
+}
