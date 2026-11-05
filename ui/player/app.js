@@ -84,6 +84,8 @@
     qtyMax: 3
   };
   const SHOP_HIRE = { minAffection: 6.0, minSkill: 0.15, wageMinRatio: 0.8, wageMaxRatio: 1.5, capacity: { stall: 1, storefront: 2, branch: 3 } };
+  /* 店铺经营：定价只能在基准价 ±20% 内；账本固定展示最近 7 个有日结的世界日。 */
+  const SHOP_OPS = { priceMinRatio: 0.8, priceMaxRatio: 1.2, reportDays: 7 };
   /* 婚姻裁决口径对齐 src/wsim/actions/marriage.py：
      接受 = 好感 ≥60 且 信任 ≥30；再处处看 = 好感 ≥45 或 信任 ≥20；其余为拒绝。 */
   const MARRIAGE_RULES = {
@@ -186,6 +188,7 @@
     account_missing: '玩家钱包账户不存在，已被回滚。',
     effect_invalid: '操作违反世界规则，已被回滚。',
     bad_args: '参数不完整或格式错误。',
+    too_many_attempts: '尝试次数过多，请稍后再试。',
     'bad_arg:money_delta': '金额参数必须是整数。',
     /* 玩家消费类动作（buy / sell / consume / escort）专属原因码。 */
     not_enough_money: '你的钱不够（买入价含交易税）。',
@@ -222,7 +225,7 @@
     already_owns_shop: '你已经有店铺了，不能再开第二家。',
     no_landlord: '这个地点没有可签约的铺面。',
     no_shop: '你还没有店铺；先开一家再来雇人。',
-    not_shop_owner: '这家店铺不是你的，不能雇佣。',
+    not_shop_owner: '这家店铺不是你的，不能经营。',
     not_player_shop_hire: '只有玩家店铺可以雇工。',
     target_not_found: '要雇的人不在这个世界。',
     self_recruit: '不能雇自己。',
@@ -230,6 +233,12 @@
     already_hired: '对方已经在你的店里做工。',
     target_owns_shop: '对方自己开着店，不会来做雇工。',
     shop_full: '店铺雇工已满；升级铺面或先解雇再雇。',
+    /* 店铺经营动作（restock / set_price / dismiss / withdraw / shop_report）。 */
+    price_out_of_range: '定价只能在基准价的 ±20% 以内；超出范围没人敢应价。',
+    insufficient_shop_cash: '店铺现金不足，不能提这么多；先留着进货或等日结回款。',
+    target_not_employed: '这个人不在你的店里做工，无法辞退。',
+    'bad_arg:price': '价格必须是整数。',
+    'bad_arg:amount': '提现金额必须是正整数。',
     unknown_position: '这个岗位不在市价表里；请从可选岗位中选择。',
     skill_too_low: '对方手艺还不够（技能低于 0.15）。',
     relation_too_low: '好感不足 6.0；先多交谈、经营人情再来雇。',
@@ -322,6 +331,15 @@
       consume: '',      // 「买一份现吃」的体力变化文案
       hire: '',
       escort: '',
+      shopops: {
+        qty: {},        // 进货：item -> 用户输入数量
+        price: {},      // 改价：item -> 用户输入价格
+        busy: {},       // 动作键 -> 是否在途（防重复点击）
+        report: null,   // 最近一次 shop_report 的 days
+        reportLoaded: false,
+        reportUnavailable: false
+      },
+      dismissTarget: '',
       deferred: null    // 正在输入表单时暂存的 state，失焦后补渲染
     },
     marriage: {
@@ -1270,7 +1288,9 @@
     const acct = String(st.account_id || p.account_id || '');
     if (state.commerce.account && state.commerce.account !== acct) {
       // 换账号时清掉上一位玩家留下的数量、雇工与押镖文案。
-      state.commerce = { account: acct, tab: 'shop', qty: {}, pos: {}, wageSet: false, consume: '', hire: '', escort: '', deferred: null };
+      state.commerce = { account: acct, tab: 'shop', qty: {}, pos: {}, wageSet: false, consume: '', hire: '', escort: '',
+        shopops: { qty: {}, price: {}, busy: {}, report: null, reportLoaded: false, reportUnavailable: false },
+        dismissTarget: '', deferred: null };
     } else {
       state.commerce.account = acct;
     }
@@ -2188,7 +2208,7 @@
     });
     info.innerHTML = '<b>' + escapeHtml(own.name || '你的店铺') + '</b>' +
       ' · ' + escapeHtml(tierLabel(own.kind)) +
-      ' · 店内现金 <b>' + escapeHtml(own.cash == null ? 0 : own.cash) + '</b> 文' +
+      ' · 店内现金 <b>' + escapeHtml(shopCashOf(st, own)) + '</b> 文' +
       ' · 库存 ' + (stockKnown ? ('<b>' + stock + '</b> 件') : '<span class="commerce-gap">件数未由接口提供</span>') +
       ' · 店址 ' + escapeHtml(own.location || ((st.location || {}).name || ''));
   }
@@ -2221,7 +2241,7 @@
       return;
     }
     const cap = SHOP_HIRE.capacity[own.kind] || 0;
-    const rows = Array.isArray(own.employees) ? own.employees : null;
+    const rows = shopEmployeesOf(st, own);
     el('employeeHint').textContent = rows ? (rows.length + '/' + cap + ' 人') : (cap + ' 人上限');
     if (!rows) {
       list.innerHTML = '<div class="commerce-empty">服务端尚未返回雇工名单（岗位 / 日薪 / 是否到店）。' +
@@ -2235,13 +2255,371 @@
     list.innerHTML = rows.map(function (emp) {
       const present = emp.present == null ? (emp.at_shop == null ? null : !!emp.at_shop) : !!emp.present;
       const presentText = present == null ? '到店情况未提供' : (present ? '到店' : '未到店');
-      return '<div class="commerce-row" data-employee="' + escapeHtml(emp.id || emp.target || '') + '">' +
-        '<div class="row-main"><span class="row-name">' + escapeHtml(emp.name || emp.id || '雇工') + '</span>' +
+      const target = String(emp.id || emp.target || '');
+      const owed = Number(emp.unpaid_wage || 0);
+      const busy = !!state.commerce.shopops.busy['dismiss:' + target];
+      return '<div class="commerce-row shopops-row" data-employee="' + escapeHtml(target) + '">' +
+        '<div class="row-main"><span class="row-name">' + escapeHtml(emp.name || target || '雇工') + '</span>' +
         '<span class="row-meta">岗位 ' + escapeHtml(emp.position || '—') +
         ' · 日薪 ' + escapeHtml(emp.wage == null ? '—' : emp.wage) + ' 文' +
-        ' · ' + escapeHtml(presentText) + '</span></div></div>';
+        ' · ' + escapeHtml(presentText) +
+        (owed > 0 ? ' · 欠薪 <b>' + owed + '</b> 文' : '') + '</span></div>' +
+        '<div class="row-actions">' +
+        '<button type="button" class="ghost commerce-btn" data-dismiss="' + escapeHtml(target) + '"' +
+        (busy ? ' disabled' : '') + '>' + (busy ? '处理中…' : '辞退') + '</button>' +
+        '</div></div>';
     }).join('');
   }
+
+  /* ------------------------------------------------------------- 店铺经营 */
+  function shopCashOf(st, own) {
+    const shop = (st && st.shop) || {};
+    if (shop.cash != null && Number.isFinite(Number(shop.cash))) return Number(shop.cash);
+    if (own && own.cash != null && Number.isFinite(Number(own.cash))) return Number(own.cash);
+    return 0;
+  }
+
+  function shopEmployeesOf(st, own) {
+    const shop = (st && st.shop) || {};
+    if (Array.isArray(shop.employees)) return shop.employees;
+    if (own && Array.isArray(own.employees)) return own.employees;
+    return null;
+  }
+
+  function shopStockRowsOf(st, own) {
+    if (!own) return [];
+    const shop = (st && st.shop) || {};
+    let raw = Array.isArray(shop.stock) ? shop.stock : null;
+    if (!raw) {
+      raw = (shop.buy || []).filter(function (row) {
+        return row && row.business === own.id;
+      }).map(function (row) {
+        return { item: row.item, name: row.name, qty: row.stock, price: row.price };
+      });
+    }
+    return raw.filter(function (row) {
+      return row && row.item;
+    }).map(function (row) {
+      const base = Number(row.base_price != null ? row.base_price
+        : (row.price != null ? row.price : (row.sell_price != null ? row.sell_price : 0)));
+      const price = Number(row.price != null ? row.price
+        : (row.sell_price != null ? row.sell_price : base));
+      const restock = Number(row.restock_price != null ? row.restock_price
+        : (row.cost != null ? row.cost : (base || price)));
+      return {
+        item: String(row.item),
+        name: row.name || row.item,
+        qty: Math.max(0, Number(row.qty != null ? row.qty : (row.stock || 0))),
+        price: price,
+        base_price: base || price,
+        restock_price: restock,
+        priced: base > 0 || price > 0
+      };
+    });
+  }
+
+  function priceBoundsOf(base) {
+    const b = Math.max(0, Math.floor(Number(base) || 0));
+    if (b <= 0) return { min: 0, max: 0, base: 0 };
+    return {
+      min: Math.max(1, Math.floor(b * SHOP_OPS.priceMinRatio)),
+      max: Math.max(1, Math.ceil(b * SHOP_OPS.priceMaxRatio)),
+      base: b
+    };
+  }
+
+  function restockQtyOf(item, max) {
+    const raw = Number(state.commerce.shopops.qty[item]);
+    const qty = Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 1;
+    return Math.max(1, Math.min(Math.max(1, max == null ? 20 : max), qty));
+  }
+
+  function shopReportDaysOf(st) {
+    const cached = state.commerce.shopops.report;
+    if (Array.isArray(cached) && cached.length) return cached.slice(-SHOP_OPS.reportDays);
+    const shop = (st && st.shop) || {};
+    let report = shop.report;
+    if (Array.isArray(report)) return report.slice(-SHOP_OPS.reportDays);
+    if (report && Array.isArray(report.days)) return report.days.slice(-SHOP_OPS.reportDays);
+    if (shop.shop_report && Array.isArray(shop.shop_report.days)) {
+      return shop.shop_report.days.slice(-SHOP_OPS.reportDays);
+    }
+    return [];
+  }
+
+  function ledgerTotalsOf(days) {
+    const total = { revenue: 0, restock: 0, wage: 0, tax: 0, net_profit: 0, trades: 0 };
+    (days || []).forEach(function (row) {
+      total.revenue += Number(row.revenue || 0);
+      total.restock += Number(row.restock || 0);
+      total.wage += Number(row.wage || 0);
+      total.tax += Number(row.tax || 0);
+      total.net_profit += Number(row.net_profit || 0);
+      total.trades += Number(row.trades || 0);
+    });
+    return total;
+  }
+
+  /* 负净利原因只由该行数值推导，不写死文案，也不臆测接口没给的库存字段。 */
+  function ledgerReasonOf(row) {
+    const revenue = Number(row.revenue || 0);
+    const wage = Number(row.wage || 0);
+    const restock = Number(row.restock || 0);
+    const net = Number(row.net_profit || 0);
+    if (net >= 0) return '';
+    if (revenue <= 0) return '当日无客流';
+    if (wage > revenue) return '工资高于营收';
+    if (restock > 0 && restock >= revenue) return '进货占去营收';
+    return '入不敷出';
+  }
+
+  function shopOpsDisabledReason(st, own) {
+    if (!own) return '你还没有店铺；先开一家再经营';
+    const shop = (st && st.shop) || {};
+    const me = 'player:' + String((state.session && state.session.accountId) || '');
+    if (shop.owner && String(shop.owner) !== me && String(shop.owner) !== String(own.owner || '')) {
+      return '这家店铺不是你的，不能经营';
+    }
+    const loc = String((st.location || {}).id || '');
+    if (own.location && loc && String(own.location) !== loc) return '你不在店铺所在地';
+    return '';
+  }
+
+  function renderRestockSection(st, own, reason) {
+    const list = el('restockList');
+    const hint = el('restockHint');
+    const rows = shopStockRowsOf(st, own);
+    if (!own) {
+      hint.textContent = '无店';
+      list.innerHTML = '<div class="commerce-empty">' + escapeHtml(reason || '你还没有店铺') + '。</div>';
+      el('restockTotal').textContent = '合计 0 文';
+      return;
+    }
+    if (!rows.length) {
+      hint.textContent = '无库存';
+      list.innerHTML = '<div class="commerce-empty">店里没有可进的货。</div>';
+      el('restockTotal').textContent = '合计 0 文';
+      return;
+    }
+    hint.textContent = rows.length + ' 种可进货';
+    list.innerHTML = rows.map(function (row) {
+      const qty = restockQtyOf(row.item, 20);
+      const busy = !!state.commerce.shopops.busy['restock:' + row.item];
+      const total = row.restock_price > 0 ? row.restock_price * qty : 0;
+      return '<div class="commerce-row shopops-row" data-restock-row="' + escapeHtml(row.item) + '">' +
+        '<div class="row-main"><span class="row-name">' + escapeHtml(row.name) + '</span>' +
+        '<span class="row-meta">现有 <b class="stock-now">' + escapeHtml(row.qty) + '</b> 件 · 进货单价 ' +
+        (row.priced ? (escapeHtml(row.restock_price) + ' 文/件') : '<span class="commerce-gap">接口未提供</span>') +
+        '</span></div>' +
+        '<div class="row-actions">' +
+        '<input type="number" min="1" max="20" step="1" inputmode="numeric" ' +
+        'data-restock-qty="' + escapeHtml(row.item) + '" value="' + qty + '" aria-label="进几件' +
+        escapeHtml(row.name) + '"' + ((busy || reason) ? ' disabled' : '') + ' />' +
+        '<button type="button" class="primary commerce-btn" data-restock-go="' + escapeHtml(row.item) + '"' +
+        ((busy || reason) ? ' disabled' : '') + '>' + (busy ? '处理中…' : '进货') + '</button>' +
+        '<span class="commerce-reason" data-restock-cost="' + escapeHtml(row.item) + '">' +
+        (row.priced ? ('合计 ' + total + ' 文') : '总价以服务端结算为准') + '</span>' +
+        '</div></div>';
+    }).join('');
+    updateRestockTotal(st);
+  }
+
+  function updateRestockTotal(st) {
+    const own = ownShopOf(st);
+    const rows = shopStockRowsOf(st, own);
+    let total = 0;
+    let known = true;
+    rows.forEach(function (row) {
+      const input = document.querySelector('input[data-restock-qty="' + row.item + '"]');
+      const qty = Math.max(1, Math.min(20, Math.floor(Number((input && input.value) || restockQtyOf(row.item)) || 1)));
+      if (row.restock_price > 0) total += row.restock_price * qty;
+      else known = false;
+      const line = document.querySelector('[data-restock-cost="' + row.item + '"]');
+      if (line) line.textContent = row.priced ? ('合计 ' + (row.restock_price * qty) + ' 文') : '总价以服务端结算为准';
+    });
+    el('restockTotal').textContent = known ? ('合计 ' + total + ' 文') : '合计以服务端结算为准';
+  }
+
+  function priceNoteText(base, price) {
+    const b = Math.max(0, Math.floor(Number(base) || 0));
+    const p = Math.max(0, Math.floor(Number(price) || 0));
+    const delta = b > 0 ? Math.round(((p - b) / b) * 100) : 0;
+    const dir = p > b ? '高' : (p < b ? '低' : '持平');
+    const tail = p > b ? ' · 过高可能没人买' : (p < b ? ' · 过低每件赚得少' : ' · 与基准持平');
+    const head = '当前基准价 ' + b + ' 文，你的价 ' + p + ' 文，比基准' +
+      (dir === '持平' ? '持平 0%' : (dir + ' ' + Math.abs(delta) + '%'));
+    return { text: head + tail, delta: delta, bad: b > 0 && (p < Math.floor(b * SHOP_OPS.priceMinRatio)
+      || p > Math.ceil(b * SHOP_OPS.priceMaxRatio)) };
+  }
+
+  function renderPriceSection(st, own, reason) {
+    const list = el('priceList');
+    const hint = el('priceHint');
+    const rows = shopStockRowsOf(st, own);
+    if (!own) {
+      hint.textContent = '无店';
+      list.innerHTML = '<div class="commerce-empty">' + escapeHtml(reason || '你还没有店铺') + '。</div>';
+      return;
+    }
+    if (!rows.length) {
+      hint.textContent = '无库存';
+      list.innerHTML = '<div class="commerce-empty">店里没有可定价的货。</div>';
+      return;
+    }
+    hint.textContent = '只能在基准价 ±20% 内调整';
+    list.innerHTML = rows.map(function (row) {
+      const bounds = priceBoundsOf(row.base_price);
+      const input = Number(state.commerce.shopops.price[row.item]);
+      const price = Number.isFinite(input) && input > 0 ? Math.floor(input) : (row.price || bounds.base);
+      const note = priceNoteText(bounds.base, price);
+      const busy = !!state.commerce.shopops.busy['price:' + row.item];
+      const disabled = !!(reason || busy || bounds.base <= 0);
+      return '<div class="commerce-row shopops-row shopops-price" data-price-row="' + escapeHtml(row.item) + '">' +
+        '<div class="row-main"><span class="row-name">' + escapeHtml(row.name) + '</span>' +
+        '<span class="row-meta">当前价 <b>' + escapeHtml(row.price) + '</b> 文 · 基准价 ' +
+        (bounds.base > 0 ? (escapeHtml(bounds.base) + ' 文') : '<span class="commerce-gap">接口未提供</span>') +
+        ' · 库存 ' + escapeHtml(row.qty) + ' 件</span></div>' +
+        '<div class="row-actions shopops-price-actions">' +
+        '<input type="number" min="' + bounds.min + '" max="' + bounds.max + '" step="1" ' +
+        'inputmode="numeric" data-price-input="' + escapeHtml(row.item) + '" value="' + price + '" ' +
+        'aria-label="' + escapeHtml(row.name) + '定价"' + (disabled ? ' disabled' : '') + ' />' +
+        '<input type="range" class="price-range" min="' + bounds.min + '" max="' + bounds.max + '" ' +
+        'step="1" data-price-range="' + escapeHtml(row.item) + '" value="' + price + '" ' +
+        'aria-label="' + escapeHtml(row.name) + '定价滑块"' + (disabled ? ' disabled' : '') + ' />' +
+        '<span class="price-badge' + (note.bad ? ' bad' : '') + '" data-price-delta="' + escapeHtml(row.item) + '">' +
+        (note.bad ? '超出 ±20%' : ((note.delta > 0 ? '+' : '') + note.delta + '%')) + '</span>' +
+        '<button type="button" class="primary commerce-btn" data-price-go="' + escapeHtml(row.item) + '"' +
+        (disabled ? ' disabled' : '') + '>' + (busy ? '处理中…' : '改价') + '</button>' +
+        '</div>' +
+        '<div class="price-note' + (note.bad ? ' bad' : '') + '" data-price-note="' + escapeHtml(row.item) + '">' +
+        escapeHtml(note.text) + '</div></div>';
+    }).join('');
+  }
+
+  function updatePriceRow(item) {
+    const row = document.querySelector('[data-price-row="' + item + '"]');
+    if (!row) return;
+    const input = row.querySelector('[data-price-input]');
+    const range = row.querySelector('[data-price-range]');
+    const priceRows = shopStockRowsOf(state.st || {}, ownShopOf(state.st || {}));
+    const stock = priceRows.filter(function (r) { return r.item === item; })[0];
+    if (!stock) return;
+    const value = Math.max(0, Math.floor(Number((input && input.value) || (range && range.value)) || 0));
+    state.commerce.shopops.price[item] = value;
+    if (input) input.value = String(value);
+    if (range) range.value = String(value);
+    const note = priceNoteText(stock.base_price, value);
+    const badge = row.querySelector('[data-price-delta]');
+    if (badge) {
+      badge.textContent = note.bad ? '超出 ±20%' : ((note.delta > 0 ? '+' : '') + note.delta + '%');
+      badge.classList.toggle('bad', note.bad);
+    }
+    const noteEl = row.querySelector('[data-price-note]');
+    if (noteEl) {
+      noteEl.textContent = note.text;
+      noteEl.classList.toggle('bad', note.bad);
+    }
+  }
+
+  function renderWithdrawSection(st, own, reason) {
+    const cash = shopCashOf(st, own);
+    el('shopCashNow').textContent = '当前店现 ' + cash + ' 文';
+    const input = el('withdrawAmount');
+    const btn = el('withdrawGo');
+    const busy = !!state.commerce.shopops.busy.withdraw;
+    if (!own) {
+      input.disabled = true;
+      btn.disabled = true;
+      return;
+    }
+    input.disabled = !!busy;
+    btn.disabled = !!(busy || reason);
+    btn.textContent = busy ? '处理中…' : '提现';
+    input.max = String(Math.max(0, cash));
+  }
+
+  function ledgerCell(value) {
+    return escapeHtml(value == null ? 0 : value);
+  }
+
+  function renderLedger(st, own) {
+    const days = own ? shopReportDaysOf(st) : [];
+    const empty = el('ledgerEmpty');
+    const wrap = el('ledgerWrap');
+    const body = el('ledgerBody');
+    const foot = el('ledgerFoot');
+    if (!days.length) {
+      empty.classList.remove('hidden');
+      wrap.classList.add('hidden');
+      body.innerHTML = '';
+      foot.innerHTML = '';
+      return;
+    }
+    empty.classList.add('hidden');
+    wrap.classList.remove('hidden');
+    body.innerHTML = days.map(function (row) {
+      const net = Number(row.net_profit || 0);
+      const cls = net > 0 ? 'profit-pos' : (net < 0 ? 'profit-neg' : '');
+      const reason = ledgerReasonOf(row);
+      return '<tr data-ledger-day="' + escapeHtml(row.day) + '">' +
+        '<td>' + escapeHtml('第 ' + (row.day == null ? '?' : row.day) + ' 日') + '</td>' +
+        '<td>' + ledgerCell(row.revenue) + '</td>' +
+        '<td>' + ledgerCell(row.restock) + '</td>' +
+        '<td>' + ledgerCell(row.wage) + '</td>' +
+        '<td>' + ledgerCell(row.tax) + '</td>' +
+        '<td class="' + cls + '">' + (net > 0 ? '+' : '') + net + '</td>' +
+        '<td>' + ledgerCell(row.trades) + '</td>' +
+        '<td class="ledger-reason">' + escapeHtml(reason) + '</td></tr>';
+    }).join('');
+    const total = ledgerTotalsOf(days);
+    const netCls = total.net_profit > 0 ? 'profit-pos' : (total.net_profit < 0 ? 'profit-neg' : '');
+    foot.innerHTML = '<tr class="ledger-total-row">' +
+      '<td>' + escapeHtml(days.length + ' 日合计') + '</td>' +
+      '<td>' + total.revenue + '</td><td>' + total.restock + '</td><td>' + total.wage + '</td>' +
+      '<td>' + total.tax + '</td><td class="' + netCls + '">' +
+      (total.net_profit > 0 ? '+' : '') + total.net_profit + '</td>' +
+      '<td>' + total.trades + '</td><td></td></tr>';
+  }
+
+  function ensureShopReport(st) {
+    if (shopReportDaysOf(st).length) return;
+    const ops = state.commerce.shopops;
+    if (!state.commerce.account || ops.reportLoaded || ops.reportUnavailable || ops.reportBusy) return;
+    loadShopReport();
+  }
+  async function loadShopReport() {
+    const account = state.session && state.session.accountId;
+    if (!account) return;
+    const ops = state.commerce.shopops;
+    if (ops.reportBusy) return;
+    ops.reportBusy = true;
+    const before = state.st || {};
+    try {
+      const res = await API.action(account, 'shop_report', {}, before.tick == null ? null : before.tick);
+      const data = res.data || {};
+      if (res.authRequired || res.status === 401) return;
+      if (res.status === 409 || data.ok === false || res.status === 0) {
+        const code = String(data.reject_reason || data.reason || '');
+        ops.reportUnavailable = code === 'unknown_action' || code === 'unknown_verb'
+          || code === 'not_implemented_for_player' || res.status === 404;
+        ops.reportLoaded = true;
+        renderLedger(state.st || {}, ownShopOf(state.st || {}));
+        return;
+      }
+      const details = data.details || data;
+      const days = Array.isArray(details.days) ? details.days
+        : (Array.isArray(data.days) ? data.days : []);
+      ops.report = days;
+      ops.reportLoaded = true;
+      renderLedger(state.st || {}, ownShopOf(state.st || {}));
+    } catch (err) {
+      ops.reportUnavailable = true;
+      ops.reportLoaded = true;
+    } finally {
+      ops.reportBusy = false;
+    }
+  }
+
 
   function relationMap(st) {
     const map = {};
@@ -2840,6 +3218,12 @@
     renderHireList(st, own);
     renderEscortForm(st);
     renderMarriagePane(st);
+    const opsReason = shopOpsDisabledReason(st, own);
+    renderRestockSection(st, own, opsReason);
+    renderPriceSection(st, own, opsReason);
+    renderWithdrawSection(st, own, opsReason);
+    renderLedger(st, own);
+    if (state.commerce.tab === 'business' && own) ensureShopReport(st);
     renderSoonList();
   }
 
@@ -2976,6 +3360,190 @@
     toast(state.commerce.hire);
     pushLog('ok', '雇佣 ' + row.name + ' · ' + position + ' · ' + wage + ' 文/日',
       'event_seq ' + (out.data.event_seq == null ? '?' : out.data.event_seq));
+  }
+
+  function actionDetail(data, key, fallback) {
+    const details = (data && data.details) || {};
+    if (details[key] != null) return details[key];
+    if (data && data[key] != null) return data[key];
+    return fallback;
+  }
+
+  function shopBusy(key) {
+    return !!state.commerce.shopops.busy[key];
+  }
+
+  function startShopBusy(key) {
+    if (shopBusy(key)) return false;
+    state.commerce.shopops.busy[key] = true;
+    return true;
+  }
+
+  function endShopBusy(key) {
+    delete state.commerce.shopops.busy[key];
+    if (state.st) renderCommerce(state.st);
+  }
+
+  async function doRestock(itemKey) {
+    const st = state.st;
+    const own = ownShopOf(st);
+    const reason = shopOpsDisabledReason(st, own);
+    if (reason) return showReasonToast('进货', 'not_shop_owner');
+    const row = shopStockRowsOf(st, own).filter(function (r) { return r.item === itemKey; })[0];
+    if (!row) return showReasonToast('进货', 'item_not_available');
+    const input = document.querySelector('input[data-restock-qty="' + itemKey + '"]');
+    const rawQty = input && input.value !== '' ? input.value : state.commerce.shopops.qty[itemKey];
+    const qty = Math.floor(Number(rawQty));
+    if (!Number.isFinite(qty) || qty < 1 || qty > 20) {
+      return showReasonToast('进货' + (row.name || itemKey), 'bad_arg:qty');
+    }
+    const key = 'restock:' + itemKey;
+    if (!startShopBusy(key)) return;
+    state.commerce.shopops.qty[itemKey] = qty;
+    renderCommerce(st);
+    try {
+      const out = await commerceAction('restock', { item: itemKey, qty: qty }, '进货' + (row.name || itemKey));
+      if (!out) return;
+      const data = out.data || {};
+      const before = actionDetail(data, 'stock_before', row.qty);
+      const after = actionDetail(data, 'stock_after', row.qty + qty);
+      const total = actionDetail(data, 'total', row.restock_price * qty);
+      toast('进货 ' + (row.name || itemKey) + '×' + qty + '，花费 ' + total + ' 文，库存 ' +
+        before + ' → ' + after);
+      pushLog('ok', '进货 ' + (row.name || itemKey) + '×' + qty + '，花费 ' + total + ' 文，库存 ' +
+        before + ' → ' + after, 'event_seq ' + (data.event_seq == null ? '?' : data.event_seq));
+    } finally {
+      endShopBusy(key);
+    }
+  }
+
+  async function doSetPrice(itemKey) {
+    const st = state.st;
+    const own = ownShopOf(st);
+    const reason = shopOpsDisabledReason(st, own);
+    if (reason) return showReasonToast('改价', 'not_shop_owner');
+    const row = shopStockRowsOf(st, own).filter(function (r) { return r.item === itemKey; })[0];
+    if (!row) return showReasonToast('改价', 'item_not_available');
+    const input = document.querySelector('input[data-price-input="' + itemKey + '"]');
+    const rawPrice = input && input.value !== '' ? input.value : state.commerce.shopops.price[itemKey];
+    const price = Math.floor(Number(rawPrice));
+    const bounds = priceBoundsOf(row.base_price);
+    if (!Number.isFinite(price) || price <= 0) {
+      return showReasonToast('改价' + (row.name || itemKey), 'bad_arg:price');
+    }
+    if (bounds.base > 0 && (price < bounds.min || price > bounds.max)) {
+      return showReasonToast('改价' + (row.name || itemKey), 'price_out_of_range');
+    }
+    const key = 'price:' + itemKey;
+    if (!startShopBusy(key)) return;
+    state.commerce.shopops.price[itemKey] = price;
+    renderCommerce(st);
+    try {
+      const out = await commerceAction('set_price', { item: itemKey, price: price }, '改价' + (row.name || itemKey));
+      if (!out) return;
+      const data = out.data || {};
+      const next = Number(actionDetail(data, 'price', price));
+      const base = Number(actionDetail(data, 'base_price', row.base_price));
+      const delta = Number(actionDetail(data, 'delta_pct',
+        base > 0 ? Math.round(((next - base) / base) * 100) : 0));
+      toast('改价 ' + (row.name || itemKey) + ' ' + row.price + ' → ' + next + ' 文（' +
+        (delta > 0 ? '+' : '') + delta + '%）');
+      pushLog('ok', '改价 ' + (row.name || itemKey) + ' → ' + next + ' 文（' +
+        (delta > 0 ? '+' : '') + delta + '%）', 'event_seq ' + (data.event_seq == null ? '?' : data.event_seq));
+    } finally {
+      endShopBusy(key);
+    }
+  }
+
+  async function doWithdraw() {
+    const st = state.st;
+    const own = ownShopOf(st);
+    const reason = shopOpsDisabledReason(st, own);
+    if (reason) return showReasonToast('提现', 'not_shop_owner');
+    const amount = Math.floor(Number(el('withdrawAmount').value) || 0);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return showReasonToast('提现', 'bad_arg:amount');
+    }
+    const cash = shopCashOf(st, own);
+    if (amount > cash) return showReasonToast('提现', 'insufficient_shop_cash');
+    const key = 'withdraw';
+    if (!startShopBusy(key)) return;
+    renderCommerce(st);
+    try {
+      const out = await commerceAction('withdraw', { amount: amount }, '提现' + amount + ' 文');
+      if (!out) return;
+      const data = out.data || {};
+      const beforeCash = shopCashOf(out.before || {}, ownShopOf(out.before || {}));
+      const afterCash = Number(actionDetail(data, 'shop_cash_after',
+        shopCashOf(out.st || {}, ownShopOf(out.st || {}))));
+      toast('提现 ' + amount + ' 文，店现 ' + beforeCash + ' → ' + afterCash);
+      pushLog('ok', '提现 ' + amount + ' 文 · 店现 ' + beforeCash + ' → ' + afterCash,
+        'event_seq ' + (data.event_seq == null ? '?' : data.event_seq));
+    } finally {
+      endShopBusy(key);
+    }
+  }
+
+  function openDismiss(targetId) {
+    const st = state.st;
+    const own = ownShopOf(st);
+    const reason = shopOpsDisabledReason(st, own);
+    if (reason) return showReasonToast('辞退', 'not_shop_owner');
+    const emp = (shopEmployeesOf(st, own) || []).filter(function (e) {
+      return String(e.id || e.target || '') === String(targetId);
+    })[0];
+    if (!emp) return showReasonToast('辞退', 'target_not_employed');
+    state.commerce.dismissTarget = String(targetId);
+    el('dismissText').textContent = '确定辞退 ' + (emp.name || targetId) + '？岗位 ' +
+      (emp.position || '—') + '，日薪 ' + (emp.wage == null ? '—' : emp.wage) + ' 文。';
+    el('dismissError').classList.add('hidden');
+    el('dismissConfirm').disabled = false;
+    el('dismissConfirm').textContent = '确认辞退';
+    el('dismissModal').classList.remove('hidden');
+  }
+
+  function closeDismiss() {
+    el('dismissModal').classList.add('hidden');
+    state.commerce.dismissTarget = '';
+  }
+
+  async function doDismiss() {
+    const target = String(state.commerce.dismissTarget || '');
+    if (!target) return;
+    const st = state.st;
+    const own = ownShopOf(st);
+    const reason = shopOpsDisabledReason(st, own);
+    if (reason) return showReasonToast('辞退', 'not_shop_owner');
+    const emp = (shopEmployeesOf(st, own) || []).filter(function (e) {
+      return String(e.id || e.target || '') === target;
+    })[0] || {};
+    const key = 'dismiss:' + target;
+    if (!startShopBusy(key)) return;
+    const btn = el('dismissConfirm');
+    btn.disabled = true;
+    btn.textContent = '处理中…';
+    try {
+      const out = await commerceAction('dismiss', { target: target }, '辞退' + (emp.name || target));
+      if (!out) {
+        const box = el('dismissError');
+        box.textContent = '辞退没有完成；原因见右上提示。';
+        box.classList.remove('hidden');
+        return;
+      }
+      const data = out.data || {};
+      const owed = Number(actionDetail(data, 'wage_owed', Number(emp.unpaid_wage || 0)));
+      closeDismiss();
+      toast('已辞退 ' + (emp.name || target) + (owed > 0 ? ('，欠薪 ' + owed + ' 文仍计') : '，无欠薪'));
+      pushLog('ok', '辞退 ' + (emp.name || target) + (owed > 0 ? (' · 欠薪 ' + owed + ' 文仍计') : ' · 无欠薪'),
+        'event_seq ' + (data.event_seq == null ? '?' : data.event_seq));
+    } finally {
+      delete state.commerce.shopops.busy[key];
+      if (state.st) renderCommerce(state.st);
+      if (!el('dismissModal').classList.contains('hidden')) {
+        btn.disabled = false;
+        btn.textContent = '确认辞退';
+      }
+    }
   }
 
   async function doEscort() {
@@ -3224,6 +3792,38 @@
       const btn = ev.target.closest('[data-hire]');
       if (btn) doHire(btn.getAttribute('data-hire'));
     });
+    el('employeeList').addEventListener('click', function (ev) {
+      const btn = ev.target.closest('[data-dismiss]');
+      if (btn && !btn.disabled) openDismiss(btn.getAttribute('data-dismiss'));
+    });
+    el('restockList').addEventListener('click', function (ev) {
+      const btn = ev.target.closest('[data-restock-go]');
+      if (btn && !btn.disabled) doRestock(btn.getAttribute('data-restock-go'));
+    });
+    el('restockList').addEventListener('input', function (ev) {
+      const input = ev.target.closest('[data-restock-qty]');
+      if (!input) return;
+      const item = input.getAttribute('data-restock-qty');
+      state.commerce.shopops.qty[item] = Math.floor(Number(input.value) || 1);
+      updateRestockTotal(state.st || {});
+    });
+    el('priceList').addEventListener('input', function (ev) {
+      const input = ev.target.closest('[data-price-input]');
+      const range = ev.target.closest('[data-price-range]');
+      const item = (input || range) && (input || range).getAttribute(input ? 'data-price-input' : 'data-price-range');
+      if (item) updatePriceRow(item);
+    });
+    el('priceList').addEventListener('click', function (ev) {
+      const btn = ev.target.closest('[data-price-go]');
+      if (btn && !btn.disabled) doSetPrice(btn.getAttribute('data-price-go'));
+    });
+    el('withdrawGo').addEventListener('click', doWithdraw);
+    el('dismissClose').addEventListener('click', closeDismiss);
+    el('dismissCancel').addEventListener('click', closeDismiss);
+    el('dismissConfirm').addEventListener('click', doDismiss);
+    el('dismissModal').addEventListener('click', function (ev) {
+      if (ev.target === el('dismissModal')) closeDismiss();
+    });
     el('escortDest').addEventListener('change', updateEscortEstimate);
     el('escortQty').addEventListener('input', updateEscortEstimate);
     el('escortFee').addEventListener('input', updateEscortEstimate);
@@ -3282,6 +3882,7 @@
         closeNpcModal();
         closeAuthModal();
         closeDivorce();
+        closeDismiss();
         el('searchResults').classList.add('hidden');
       }
     });
@@ -3415,6 +4016,32 @@
           deferred: !!state.commerce.deferred,
           editing: commerceEditing()
         };
+      },
+      shopOpsState: function () {
+        const st = state.st || {};
+        const own = ownShopOf(st);
+        const days = own ? shopReportDaysOf(st) : [];
+        return {
+          reason: shopOpsDisabledReason(st, own),
+          cash: shopCashOf(st, own),
+          stock: shopStockRowsOf(st, own),
+          employees: (shopEmployeesOf(st, own) || []).length,
+          days: days,
+          total: ledgerTotalsOf(days),
+          busy: Object.keys(state.commerce.shopops.busy),
+          reportLoaded: !!state.commerce.shopops.reportLoaded,
+          reportUnavailable: !!state.commerce.shopops.reportUnavailable,
+          dismissTarget: state.commerce.dismissTarget
+        };
+      },
+      refreshShopReport: function () {
+        const ops = state.commerce.shopops;
+        ops.report = null;
+        ops.reportLoaded = false;
+        ops.reportUnavailable = false;
+        ops.reportBusy = false;
+        renderLedger(state.st || {}, ownShopOf(state.st || {}));
+        return loadShopReport();
       },
       refreshState: function (account) {
         const acct = account == null ? (state.session && state.session.accountId) : account;

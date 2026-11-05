@@ -67,6 +67,15 @@ SHOP_STOCK = {
 }
 POSITION_WAGES = {"铁匠": 32, "绣娘": 24, "脚夫": 18, "掌柜": 36, "游医": 28,
                   "镖师": 30, "酒保": 20, "药童": 15, "货郎": 26}
+LEDGER_SAMPLE = [
+    {"day": 1, "revenue": 60, "restock": 18, "wage": 32, "tax": 3, "net_profit": 7, "trades": 9},
+    {"day": 2, "revenue": 0, "restock": 0, "wage": 32, "tax": 0, "net_profit": -32, "trades": 0},
+    {"day": 3, "revenue": 30, "restock": 0, "wage": 70, "tax": 1, "net_profit": -41, "trades": 4},
+    {"day": 4, "revenue": 20, "restock": 25, "wage": 0, "tax": 1, "net_profit": -6, "trades": 3},
+    {"day": 5, "revenue": 100, "restock": 20, "wage": 32, "tax": 5, "net_profit": 43, "trades": 12},
+    {"day": 6, "revenue": 45, "restock": 40, "wage": 0, "tax": 2, "net_profit": 3, "trades": 6},
+    {"day": 7, "revenue": 80, "restock": 10, "wage": 32, "tax": 4, "net_profit": 34, "trades": 10},
+]
 NPC_SKILL = {"npc:liu_sanniang": 0.30, "npc:wang_tiejiang": 0.40,
              "npc:afu": 0.20, "npc:chen_huolang": 0.05}
 AFFECTION = {"npc:wang_tiejiang": 7.0, "npc:afu": 7.0, "npc:chen_huolang": 7.0}
@@ -168,6 +177,9 @@ class MockWorld:
         self.last_write_auth = ""
         self.refresh_calls = 0
         self.rotate_count = 0
+        self.verb_calls = {}
+        self.slow_verb = ""
+        self.slow_ms = 0
         self.force_401 = 0
         self.write_auth_headers = []
         self.feed_calls = 0
@@ -357,7 +369,26 @@ class MockWorld:
             sell.append({"item": item, "name": SHOP_NAMES.get(item, item), "category": "material",
                          "qty": qty, "price": price,
                          "sell_price": SHOP_SELL_PRICE[item], "sell_limit": qty})
-        return {"location": LOCATIONS[loc]["name"], "businesses": biz, "buy": buy, "sell": sell}
+        view = {"location": LOCATIONS[loc]["name"], "businesses": biz, "buy": buy, "sell": sell}
+        if own:
+            # W4 店铺经营：顶层现金/雇工/库存定价/7 日账本，与真服务字段同名。
+            rows = []
+            for item, qty in sorted(own["stock"].items()):
+                base = int(own["base_prices"].get(item, SHOP_ITEM_PRICE.get(item, 1)))
+                rows.append({
+                    "item": item, "name": SHOP_NAMES.get(item, item),
+                    "qty": max(0, int(qty) - a["stock_shift"]),
+                    "price": int(own["prices"].get(item, base)),
+                    "base_price": base,
+                    "restock_price": base,
+                    "sell_price": SHOP_SELL_PRICE.get(item, max(1, base // 2)),
+                })
+            view["cash"] = int(own["cash"])
+            view["stock_count"] = sum(r["qty"] for r in rows)
+            view["stock"] = rows
+            view["employees"] = [dict(e) for e in own["employees"]]
+            view["report"] = {"days": [dict(d) for d in own["report"]]}
+        return view
 
     def _buy_row(self, a, item):
         for row in self._shop_view(a)["buy"]:
@@ -390,6 +421,9 @@ class MockWorld:
                              "reason_text": "你还没有进入世界。"}
             if client_tick is not None and Number_ok(client_tick) and int(client_tick) < a["tick"] - 120:
                 return 409, {"ok": False, "reason": "stale_tick"}
+            self.verb_calls[verb] = self.verb_calls.get(verb, 0) + 1
+            if self.slow_verb == verb and self.slow_ms > 0:
+                time.sleep(self.slow_ms / 1000.0)
             if verb == "move":
                 target = (args or {}).get("to")
                 allowed = [x[0] for x in LOCATIONS[a["location"]]["exits"]]
@@ -526,8 +560,11 @@ class MockWorld:
                 a["shop"] = {
                     "id": "shop:player:" + account_id,
                     "name": {"stall": "小摊", "storefront": "铺面", "branch": "分号"}[kind],
-                    "kind": kind, "cash": 0, "location": a["location"],
+                    "kind": kind, "cash": 100, "location": a["location"],
                     "stock": dict(SHOP_STOCK[kind]), "employees": [],
+                    "prices": {item: SHOP_ITEM_PRICE.get(item, 1) for item in SHOP_STOCK[kind]},
+                    "base_prices": {item: SHOP_ITEM_PRICE.get(item, 1) for item in SHOP_STOCK[kind]},
+                    "report": [],
                 }
                 a["tick"] += 3
                 a["event_seq"] += 1
@@ -568,12 +605,84 @@ class MockWorld:
                     return reject("wage_too_high")
                 own["employees"].append({"id": target, "name": npc["name"],
                                          "position": position, "wage": wage,
-                                         "present": True})
+                                         "unpaid_wage": wage, "present": True})
                 a["tick"] += 4
                 a["event_seq"] += 1
                 return 200, {"ok": True, "event_seq": a["event_seq"], "tick": a["tick"],
                              "next_tick": a["tick"] + 6,
                              "details": {"target": target, "position": position, "wage": wage}}
+            if verb in ("restock", "set_price", "dismiss", "withdraw", "shop_report"):
+                own = a["shop"]
+                if not own or own["location"] != a["location"]:
+                    return reject("not_shop_owner")
+                if verb == "restock":
+                    item = str((args or {}).get("item") or "")
+                    if item not in own["stock"]:
+                        return reject("item_not_available")
+                    qty = _int_arg((args or {}).get("qty"), None)
+                    if qty is None or qty < 1 or qty > 20:
+                        return reject("bad_arg:qty")
+                    base = int(own["base_prices"].get(item, 1))
+                    total = base * qty
+                    if a["money"] < total:
+                        return reject("not_enough_money")
+                    before = max(0, int(own["stock"].get(item, 0)) - a["stock_shift"])
+                    a["money"] -= total
+                    own["stock"][item] = before + qty
+                    a["stock_shift"] = 0
+                    a["tick"] += 3
+                    a["event_seq"] += 1
+                    return 200, {"ok": True, "event_seq": a["event_seq"], "tick": a["tick"],
+                                 "next_tick": a["tick"] + 6,
+                                 "details": {"item": item, "qty": qty, "total": total,
+                                             "stock_before": before, "stock_after": before + qty}}
+                if verb == "set_price":
+                    item = str((args or {}).get("item") or "")
+                    if item not in own["stock"]:
+                        return reject("item_not_available")
+                    price = _int_arg((args or {}).get("price"), None)
+                    if price is None or price <= 0:
+                        return reject("bad_arg:price")
+                    base = int(own["base_prices"].get(item, 1))
+                    low, high = int(base * 0.8), int(round(base * 1.2))
+                    if price < low or price > high:
+                        return reject("price_out_of_range")
+                    own["prices"][item] = price
+                    delta = int(round(((price - base) / base) * 100)) if base else 0
+                    a["tick"] += 2
+                    a["event_seq"] += 1
+                    return 200, {"ok": True, "event_seq": a["event_seq"], "tick": a["tick"],
+                                 "next_tick": a["tick"] + 6,
+                                 "details": {"item": item, "price": price, "base_price": base,
+                                             "delta_pct": delta}}
+                if verb == "dismiss":
+                    target = str((args or {}).get("target") or "")
+                    row = next((e for e in own["employees"] if e["id"] == target), None)
+                    if row is None:
+                        return reject("target_not_employed")
+                    owed = int(row.get("unpaid_wage", 0))
+                    own["employees"].remove(row)
+                    a["tick"] += 3
+                    a["event_seq"] += 1
+                    return 200, {"ok": True, "event_seq": a["event_seq"], "tick": a["tick"],
+                                 "next_tick": a["tick"] + 6,
+                                 "details": {"target": target, "wage_owed": owed}}
+                if verb == "withdraw":
+                    amount = _int_arg((args or {}).get("amount"), None)
+                    if amount is None or amount <= 0:
+                        return reject("bad_arg:amount")
+                    if amount > int(own["cash"]):
+                        return reject("insufficient_shop_cash")
+                    own["cash"] -= amount
+                    a["money"] += amount
+                    a["tick"] += 2
+                    a["event_seq"] += 1
+                    return 200, {"ok": True, "event_seq": a["event_seq"], "tick": a["tick"],
+                                 "next_tick": a["tick"] + 6,
+                                 "details": {"amount": amount, "shop_cash_before": own["cash"] + amount,
+                                             "shop_cash_after": own["cash"]}}
+                return 200, {"ok": True, "event_seq": a["event_seq"], "tick": a["tick"], "next_tick": a["tick"] + 6,
+                             "details": {"days": [dict(d) for d in own.get("report", [])]}}
             if verb == "escort":
                 if not any(b["kind"].find("escort") >= 0
                            for b in self._shop_view(a)["businesses"]):
@@ -877,7 +986,20 @@ class Handler(SimpleHTTPRequestHandler):
             self.world.rotate_count = 0
             self.world.force_401 = 0
             self.world.write_auth_headers = []
+            self.world.verb_calls = {}
             self._json(200, {"ok": True})
+            return
+        if path == "/__check/verb_stats":
+            q = parse_qs(urlsplit(self.path).query)
+            verb = (q.get("verb") or [""])[0]
+            self._json(200, {"ok": True, "verb": verb,
+                             "calls": self.world.verb_calls.get(verb, 0)})
+            return
+        if path == "/__check/slow":
+            q = parse_qs(urlsplit(self.path).query)
+            self.world.slow_verb = (q.get("verb") or [""])[0]
+            self.world.slow_ms = int((q.get("ms") or ["0"])[0])
+            self._json(200, {"ok": True, "verb": self.world.slow_verb, "ms": self.world.slow_ms})
             return
         if path == "/__check/stats":
             self._json(200, {"ok": True, "refresh_calls": self.world.refresh_calls,
@@ -909,6 +1031,24 @@ class Handler(SimpleHTTPRequestHandler):
                 a["tick"] += n
                 a["stock_shift"] += shift
                 self._json(200, {"ok": True, "tick": a["tick"], "stock_shift": a["stock_shift"]})
+            return
+        if path == "/__check/shop_report":
+            q = parse_qs(urlsplit(self.path).query)
+            account = (q.get("account") or [""])[0]
+            mode = (q.get("mode") or ["sample"])[0]
+            with self.world.lock:
+                a = self.world.accounts.get(account)
+                if a is None or not a.get("shop"):
+                    self._json(409, {"ok": False, "reason": "no_shop"})
+                    return
+                if "cash" in q:
+                    a["shop"]["cash"] = int(q["cash"][0])
+                if mode == "empty":
+                    a["shop"]["report"] = []
+                else:
+                    a["shop"]["report"] = [dict(r) for r in LEDGER_SAMPLE]
+                self._json(200, {"ok": True, "days": len(a["shop"]["report"]),
+                                 "cash": a["shop"]["cash"]})
             return
         # 静态文件
         return super().do_GET()
@@ -2396,11 +2536,300 @@ def run_commerce(browser, base, results, world):
     kctx.close()
 
 
+SHOPOPS_EVIDENCE = ROOT / "reports" / "w4-shopops"
+
+
+def shopops_capture(page, name):
+    SHOPOPS_EVIDENCE.mkdir(parents=True, exist_ok=True)
+    path = SHOPOPS_EVIDENCE / (name + ".png")
+    page.screenshot(path=str(path), full_page=True)
+    return str(path.relative_to(ROOT))
+
+
+def shopops_snapshot(page):
+    return page.evaluate("""() => {
+      const op = window.__XKX.shopOpsState();
+      const rows = Array.from(document.querySelectorAll('#ledgerBody tr')).map(r => ({
+        day: r.getAttribute('data-ledger-day'), text: r.textContent.trim(),
+        reason: (r.querySelector('.ledger-reason') || {}).textContent || '',
+        netClass: (r.children[5] || {}).className || '',
+        netColor: (r.children[5] ? getComputedStyle(r.children[5]).color : '')
+      }));
+      return {
+        op,
+        restockRows: Array.from(document.querySelectorAll('#restockList .commerce-row')).map(r => ({
+          item: r.getAttribute('data-restock-row'), text: r.textContent.trim(),
+          qty: !!r.querySelector('input[data-restock-qty]'),
+          disabled: r.querySelector('[data-restock-go]') ? r.querySelector('[data-restock-go]').disabled : null
+        })),
+        priceRows: Array.from(document.querySelectorAll('#priceList .commerce-row')).map(r => ({
+          item: r.getAttribute('data-price-row'), text: r.textContent.trim(),
+          note: (r.querySelector('[data-price-note]') || {}).textContent || '',
+          disabled: r.querySelector('[data-price-go]') ? r.querySelector('[data-price-go]').disabled : null
+        })),
+        employees: Array.from(document.querySelectorAll('#employeeList .commerce-row')).map(r => ({
+          id: r.getAttribute('data-employee'), text: r.textContent.trim(),
+          hasDismiss: !!r.querySelector('[data-dismiss]')
+        })),
+        withdrawDisabled: document.getElementById('withdrawGo').disabled,
+        withdrawText: document.getElementById('shopCashNow').textContent.trim(),
+        restockTotal: document.getElementById('restockTotal').textContent.trim(),
+        ledger: {
+          emptyVisible: !document.getElementById('ledgerEmpty').classList.contains('hidden'),
+          emptyText: document.getElementById('ledgerEmpty').textContent.trim(),
+          wrapVisible: !document.getElementById('ledgerWrap').classList.contains('hidden'),
+          rows: rows,
+          totalText: document.getElementById('ledgerFoot').textContent.trim(),
+          wrapScroll: document.getElementById('ledgerWrap').scrollWidth,
+          wrapClient: document.getElementById('ledgerWrap').clientWidth
+        },
+        modalVisible: !document.getElementById('dismissModal').classList.contains('hidden'),
+        modalText: document.getElementById('dismissModal').textContent.trim(),
+        toast: document.getElementById('toast').textContent.trim(),
+        errors: Array.from(document.querySelectorAll('#errorList .error-item')).map(e => e.textContent.trim()),
+        log: Array.from(document.querySelectorAll('#log .log-item')).map(e => e.textContent.trim())
+      };
+    }""")
+
+
+def run_shopops(browser, base, results, world):
+    ctx, page = commerce_page(browser, base, "u_shopops", "店掌柜")
+    page.click('[data-tab="business"]')
+    page.wait_for_timeout(600)
+    snap = shopops_snapshot(page)
+    results.must("店铺经营 无店时四区禁用并提示开店",
+                 "你还没有店铺" in snap["op"]["reason"]
+                 and snap["withdrawDisabled"]
+                 and all(not r["disabled"] for r in snap["restockRows"])
+                 and snap["ledger"]["emptyVisible"]
+                 and "尚无日结记录" in snap["ledger"]["emptyText"], snap)
+    shopops_capture(page, "mock-shopops-noshop")
+
+    page.request.get(base + "/__check/money?account=u_shopops&value=2000")
+    page.evaluate("() => window.__XKX.refreshState('u_shopops')")
+    page.wait_for_function("() => window.__XKX.commerceState().money === 2000", timeout=8000)
+    page.click('[data-tier="storefront"]')
+    page.wait_for_function("() => !!window.__XKX.commerceState().ownShop", timeout=8000)
+    page.wait_for_timeout(800)
+
+    page.request.get(base + "/__check/shop_report?account=u_shopops&mode=sample&cash=100")
+    page.evaluate("() => { window.__XKX.refreshShopReport(); return window.__XKX.refreshState('u_shopops'); }")
+    page.wait_for_function(
+        "() => document.querySelectorAll('#ledgerBody tr').length === 7", timeout=8000)
+    snap = shopops_snapshot(page)
+    results.must("店铺经营 开店后四区启用（进货/定价/辞退/提现）",
+                 snap["op"]["reason"] == "" and snap["op"]["cash"] == 100
+                 and len(snap["restockRows"]) >= 3 and all(r["qty"] for r in snap["restockRows"])
+                 and len(snap["priceRows"]) >= 3 and all(not r["disabled"] for r in snap["priceRows"])
+                 and not snap["withdrawDisabled"]
+                 and "当前店现 100 文" in snap["withdrawText"], snap)
+
+    results.must("店铺经营 账本 7 行与「7 日合计」行渲染",
+                 len(snap["ledger"]["rows"]) == 7
+                 and "335" in snap["ledger"]["totalText"] and "198" in snap["ledger"]["totalText"]
+                 and "113" in snap["ledger"]["totalText"] and "44" in snap["ledger"]["totalText"]
+                 and "7 日合计" in snap["ledger"]["totalText"], snap["ledger"])
+    results.must("店铺经营 正负净利着色且负行由数值推导原因",
+                 any("profit-pos" in r["netClass"] for r in snap["ledger"]["rows"])
+                 and any("profit-neg" in r["netClass"] for r in snap["ledger"]["rows"])
+                 and any("当日无客流" in r["reason"] for r in snap["ledger"]["rows"])
+                 and any("工资高于营收" in r["reason"] for r in snap["ledger"]["rows"])
+                 and any("进货占去营收" in r["reason"] for r in snap["ledger"]["rows"])
+                 and len(set(r["netColor"] for r in snap["ledger"]["rows"])) >= 2, snap["ledger"])
+    shopops_capture(page, "mock-shopops-ledger")
+
+    # 进货：数量 6，单价 3，合计 18；库存 10 → 16。
+    page.fill('input[data-restock-qty="flatbread"]', "6")
+    snap = shopops_snapshot(page)
+    flat_row = next(r for r in snap["restockRows"] if r["item"] == "flatbread")
+    results.must("店铺经营 进货行显示该行合计 18 文",
+                 "合计 18 文" in flat_row["text"], flat_row["text"])
+    page.click('[data-restock-go="flatbread"]')
+    page.wait_for_function(
+        "() => document.getElementById('log').textContent.indexOf('库存 10 → 16') >= 0", timeout=8000)
+    snap = shopops_snapshot(page)
+    results.must("店铺经营 进货成功文案含件数/花费/库存前后",
+                 any("进货 炊饼×6" in row and "花费 18 文" in row and "库存 10 → 16" in row
+                     for row in snap["log"]), snap["log"])
+    shopops_capture(page, "mock-shopops-restock")
+
+    page.request.get(base + "/__check/money?account=u_shopops&value=0")
+    page.evaluate("() => window.__XKX.refreshState('u_shopops')")
+    page.wait_for_function("() => window.__XKX.commerceState().money === 0", timeout=8000)
+    page.click('[data-restock-go="noodle"]')
+    page.wait_for_function(
+        "() => document.getElementById('errorList').textContent.indexOf('钱不够') >= 0", timeout=8000)
+    snap = shopops_snapshot(page)
+    results.must("店铺经营 not_enough_money 映射中文且不露原始码",
+                 any("钱不够" in e for e in snap["errors"])
+                 and all("not_enough_money" not in e for e in snap["errors"]), snap["errors"])
+    page.request.get(base + "/__check/money?account=u_shopops&value=2000")
+    page.evaluate("() => window.__XKX.refreshState('u_shopops')")
+    page.wait_for_function("() => window.__XKX.commerceState().money === 2000", timeout=8000)
+
+    page.fill('input[data-restock-qty="noodle"]', "0")
+    page.click('[data-restock-go="noodle"]')
+    page.wait_for_function(
+        "() => document.getElementById('errorList').textContent.indexOf('数量必须是') >= 0", timeout=8000)
+    snap = shopops_snapshot(page)
+    results.must("店铺经营 bad_arg:qty 映射中文",
+                 any("数量必须是" in e for e in snap["errors"]), snap["errors"])
+
+    # 防重复：慢请求窗口内连点两次，只应产生一次 restock。
+    page.request.get(base + "/__check/reset_stats")
+    page.request.get(base + "/__check/slow?verb=restock&ms=600")
+    page.evaluate("""() => {
+      const btn = document.querySelector('[data-restock-go="rice"]');
+      if (btn) { btn.click(); btn.click(); }
+    }""")
+    page.wait_for_timeout(150)
+    busy = page.evaluate("""() => {
+      const b = document.querySelector('[data-restock-go="rice"]');
+      return { disabled: b ? b.disabled : null, text: b ? b.textContent.trim() : '' };
+    }""")
+    page.wait_for_function(
+        "() => document.getElementById('log').textContent.indexOf('进货 米') >= 0", timeout=8000)
+    page.wait_for_timeout(200)
+    calls = page.request.get(base + "/__check/verb_stats?verb=restock").json()["calls"]
+    results.must("店铺经营 进行中按钮禁用并防重复请求",
+                 busy["disabled"] is True and "处理中" in busy["text"] and calls == 1,
+                 {"busy": busy, "calls": calls})
+    page.request.get(base + "/__check/slow?verb=&ms=0")
+
+    # 定价：基准 3，改到 4（+33%），界面同步给后果提示。
+    page.fill('input[data-price-input="flatbread"]', "4")
+    page.wait_for_function(
+        "() => document.querySelector('[data-price-note=\"flatbread\"]').textContent.indexOf('当前基准价 3 文，你的价 4 文，比基准高 33%') >= 0",
+        timeout=4000)
+    snap = shopops_snapshot(page)
+    flat = next(r for r in snap["priceRows"] if r["item"] == "flatbread")
+    results.must("店铺经营 定价后果提示（基准/我的价/高低百分比）",
+                 "当前基准价 3 文，你的价 4 文，比基准高 33%" in flat["note"]
+                 and "过高可能没人买" in flat["note"], flat["note"])
+    page.click('[data-price-go="flatbread"]')
+    page.wait_for_function(
+        "() => document.getElementById('toast').textContent.indexOf('+33%') >= 0", timeout=8000)
+    snap = shopops_snapshot(page)
+    results.must("店铺经营 改价成功显示 3 → 4 文（+33%）",
+                 any("炊饼 3 → 4 文（+33%）" in t for t in [snap["toast"]] + snap["log"]), snap["log"])
+    shopops_capture(page, "mock-shopops-price")
+
+    page.fill('input[data-price-input="flatbread"]', "10")
+    page.click('[data-price-go="flatbread"]')
+    page.wait_for_function(
+        "() => document.getElementById('errorList').textContent.indexOf('±20%') >= 0", timeout=8000)
+    snap = shopops_snapshot(page)
+    results.must("店铺经营 price_out_of_range 映射中文",
+                 any("±20%" in e for e in snap["errors"]), snap["errors"])
+
+    # 辞退：先雇王铁匠，再二次确认，欠薪仍计。
+    page.click('[data-tab="hire"]')
+    page.select_option('select[data-pos-for="npc:wang_tiejiang"]', "铁匠")
+    page.fill("#hireWage", "32")
+    page.click('[data-hire="npc:wang_tiejiang"]')
+    page.wait_for_function(
+        "() => document.getElementById('employeeList').textContent.indexOf('王铁匠') >= 0", timeout=8000)
+    page.click('[data-tab="business"]')
+    page.wait_for_timeout(400)
+    page.click('[data-dismiss="npc:wang_tiejiang"]')
+    page.wait_for_function("() => !document.getElementById('dismissModal').classList.contains('hidden')",
+                           timeout=4000)
+    snap = shopops_snapshot(page)
+    results.must("店铺经营 辞退二次确认写明欠薪仍计",
+                 snap["modalVisible"] and "王铁匠" in snap["modalText"]
+                 and "欠薪仍计" in snap["modalText"], snap["modalText"])
+    shopops_capture(page, "mock-shopops-dismiss")
+    page.click("#dismissConfirm")
+    page.wait_for_function(
+        "() => document.getElementById('log').textContent.indexOf('欠薪 32 文仍计') >= 0", timeout=8000)
+    snap = shopops_snapshot(page)
+    results.must("店铺经营 辞退成功返回欠薪数字并从名单移除",
+                 any("已辞退 王铁匠" in t and "欠薪 32 文仍计" in t for t in [snap["toast"]] + snap["log"])
+                 and all(e["id"] != "npc:wang_tiejiang" for e in snap["employees"]), snap)
+    page.evaluate("() => window.__XKX.showError('target_not_employed')")
+    snap = shopops_snapshot(page)
+    results.must("店铺经营 target_not_employed 映射中文",
+                 any("不在你的店里" in e for e in snap["errors"]), snap["errors"])
+
+    # 提现：店现 100 → 80。
+    page.fill("#withdrawAmount", "20")
+    page.click("#withdrawGo")
+    page.wait_for_function(
+        "() => document.getElementById('toast').textContent.indexOf('店现 100 → 80') >= 0", timeout=8000)
+    snap = shopops_snapshot(page)
+    results.must("店铺经营 提现成功显示店现前后",
+                 any("提现 20 文，店现 100 → 80" in t for t in [snap["toast"]] + snap["log"])
+                 and "当前店现 80 文" in snap["withdrawText"], snap)
+    page.fill("#withdrawAmount", "0")
+    page.click("#withdrawGo")
+    page.wait_for_function(
+        "() => document.getElementById('errorList').textContent.indexOf('正整数') >= 0", timeout=8000)
+    page.request.get(base + "/__check/shop_report?account=u_shopops&mode=sample&cash=50")
+    page.evaluate("() => { window.__XKX.refreshShopReport(); return window.__XKX.refreshState('u_shopops'); }")
+    page.wait_for_timeout(500)
+    page.fill("#withdrawAmount", "500")
+    page.click("#withdrawGo")
+    page.wait_for_function(
+        "() => document.getElementById('errorList').textContent.indexOf('店铺现金不足') >= 0", timeout=8000)
+    snap = shopops_snapshot(page)
+    results.must("店铺经营 提现拒绝码映射（bad_arg:amount / insufficient_shop_cash）",
+                 any("正整数" in e for e in snap["errors"])
+                 and any("店铺现金不足" in e for e in snap["errors"]), snap["errors"])
+
+    # 空账本：开店不足一日。
+    page.request.get(base + "/__check/shop_report?account=u_shopops&mode=empty&cash=50")
+    page.evaluate("() => { window.__XKX.refreshShopReport(); return window.__XKX.refreshState('u_shopops'); }")
+    page.wait_for_function(
+        "() => !document.getElementById('ledgerEmpty').classList.contains('hidden')", timeout=8000)
+    snap = shopops_snapshot(page)
+    results.must("店铺经营 空账本显示「尚无日结记录，世界日结束后来看」",
+                 snap["ledger"]["emptyVisible"] and not snap["ledger"]["wrapVisible"]
+                 and "尚无日结记录，世界日结束后来看" in snap["ledger"]["emptyText"], snap["ledger"])
+    shopops_capture(page, "mock-shopops-empty")
+
+    # 移动端 375×812：表格可横滚、页面不溢出、控件 ≥44px。
+    page.set_viewport_size({"width": 375, "height": 812})
+    page.request.get(base + "/__check/shop_report?account=u_shopops&mode=sample&cash=80")
+    page.evaluate("() => { window.__XKX.refreshShopReport(); return window.__XKX.refreshState('u_shopops'); }")
+    page.wait_for_function(
+        "() => document.querySelectorAll('#ledgerBody tr').length === 7", timeout=8000)
+    page.wait_for_timeout(300)
+    mobile = page.evaluate("""() => {
+      const controls = Array.from(document.querySelectorAll(
+        '#restockList input, #restockList button, #priceList input, #priceList button, ' +
+        '#withdrawAmount, #withdrawGo, #employeeList [data-dismiss]'))
+        .filter(x => !x.classList.contains('hidden'));
+      const small = controls.filter(x => x.getBoundingClientRect().height < 44)
+        .map(x => (x.id || x.getAttribute('data-restock-go') || x.getAttribute('data-price-input') ||
+                   x.getAttribute('data-price-range') || x.textContent.trim()));
+      const wrap = document.getElementById('ledgerWrap');
+      return {
+        pageOverflow: document.documentElement.scrollWidth > window.innerWidth,
+        innerWidth: window.innerWidth, scrollWidth: document.documentElement.scrollWidth,
+        ledgerScrollable: wrap.scrollWidth > wrap.clientWidth,
+        controlCount: controls.length, small: small
+      };
+    }""")
+    results.must("店铺经营 375×812 账本横向滚动且页面不溢出",
+                 not mobile["pageOverflow"] and mobile["ledgerScrollable"]
+                 and mobile["scrollWidth"] <= mobile["innerWidth"] + 1, mobile)
+    results.must("店铺经营 移动端新增控件均 ≥44px",
+                 mobile["controlCount"] > 0 and not mobile["small"], mobile)
+    shopops_capture(page, "mock-shopops-mobile")
+
+    ctx.close()
+    SHOPOPS_EVIDENCE.mkdir(parents=True, exist_ok=True)
+    rows = [r for r in results.rows if r["name"].startswith("店铺经营 ")]
+    SHOPOPS_EVIDENCE.joinpath("mock-shopops.json").write_text(
+        json.dumps({"checks": rows, "failed": sum(1 for r in rows if not r["ok"])},
+                   ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--serve", action="store_true", help="只启动 mock 服务")
     ap.add_argument("--only", default="",
-                    help="desktop|mobile|keyboard|auth|reasons|regression|feed|commerce|marriage，逗号分隔")
+                    help="desktop|mobile|keyboard|auth|reasons|regression|feed|commerce|marriage|shopops，逗号分隔")
     ap.add_argument("--auth", action="store_true", help="--serve 时启用鉴权模式")
     args = ap.parse_args()
 
@@ -2434,6 +2863,8 @@ def main():
                     run_marriage(browser, base, results, world)
                 if not only or "commerce" in only:
                     run_commerce(browser, base, results, world)
+                if not only or "shopops" in only:
+                    run_shopops(browser, base, results, world)
                 if not only or "desktop" in only:
                     run_desktop(browser, base, results)
                 if not only or "mobile" in only:

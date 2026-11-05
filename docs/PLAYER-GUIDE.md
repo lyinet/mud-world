@@ -177,8 +177,8 @@
 | `bad_shop_type` | 店铺档位不合法；只能选摊、店面或分号。 |
 | `already_owns_shop` | 你已经有店铺了，不能再开第二家。 |
 | `no_landlord` | 这个地点没有可签约的铺面。 |
-| `no_shop` | 你还没有店铺；先开一家再来雇人。 |
-| `not_shop_owner` | 这家店铺不是你的，不能雇佣。 |
+| `no_shop` | 你还没有店铺；先开一家再来经营。 |
+| `not_shop_owner` | 这家店铺不是你的，不能经营。 |
 | `not_player_shop_hire` | 只有玩家店铺可以雇工。 |
 | `target_not_found` | 要雇的人不在这个世界。 |
 | `self_recruit` | 不能雇自己。 |
@@ -191,6 +191,12 @@
 | `relation_too_low` | 好感不足 6.0；先多交谈、经营人情再来雇。 |
 | `wage_too_low` | 日薪低于市价的 0.8 倍，对方不会接受。 |
 | `wage_too_high` | 日薪高于市价的 1.5 倍，对方觉得不合理。 |
+| `price_out_of_range` | 定价只能在基准价的 ±20% 以内；超出范围没人敢应价。 |
+| `insufficient_shop_cash` | 店铺现金不足，不能提这么多；先留着进货或等日结回款。 |
+| `target_not_employed` | 这个人不在你的店里做工，无法辞退。 |
+| `bad_arg:qty` | 进货数量必须是 1-20 的整数。 |
+| `bad_arg:price` | 价格必须是整数。 |
+| `bad_arg:amount` | 提现金额必须是正整数。 |
 | `already_married` | 你已经成婚了，不能再结一次。 |
 | `not_married` | 你还没有婚约，无法进行这个操作。 |
 | `bond_too_low` | 感情还没到谈婚论嫁的地步；先多相处、经营人情。 |
@@ -218,7 +224,7 @@
 | 页签 | 入口 | 动作与真实请求 |
 | --- | --- | --- |
 | 商店 `shop` | 当前地点有铺面时列出可买/可卖 | `buy {item,qty}`、`sell {item,qty}`、`consume {item,qty:1}` |
-| 经营 `business` | 摊 / 店面 / 分号三档 | `open_shop {kind}`；开店后显示店内现金、库存件数与雇工列表 |
+| 经营 `business` | 摊 / 店面 / 分号三档 | `restock {item,qty}`、`set_price {item,price}`、`dismiss {target}`、`withdraw {amount}`、`shop_report {}`；`open_shop {kind}` 开店 |
 | 雇人 `hire` | 当前地点在场 NPC | `recruit {target,position,wage}`；日薪默认岗位市价 |
 | 押镖 `escort` | 所在地有镖局才可用 | `escort {route,[cargo_item],cargo_qty,cargo_value,fee}` |
 | 婚姻 `marriage` | 当前地点有可求婚 NPC 时列出候选 | `marriage_propose {target,gift_money,gift_item,gift_qty}`；配偶栏「和离」发 `marriage_end {}` |
@@ -232,6 +238,27 @@
 - **刷新**：主状态 8 秒轮询；输入框聚焦或有未保存数字时暂缓重建列表，失焦后补渲染，不打断正在输入的表单。
 - **触控与键盘**：页签、行按钮、数字/下拉输入 `min-height: 44px`；页签支持 `←/→/Home/End`，行输入可用 Tab 到达并回车触发。
 - 证据：`reports/w4-commerce/`（`real-commerce.json` 含每个动作的真实请求/响应与 UI 快照，`real-*.png` 为桌面/移动截图）。
+
+### 7.1 店铺经营：进货 / 定价 / 辞退 / 提现 / 7 日账本
+
+「经营」页签在自有店铺下方依次给出五个区：
+
+- **进货**：每件货一行，填数量（1-20），行尾即时显示「合计 N 文」；点「进货」后提示
+  「进货 炊饼×6，花费 18 文，库存 4 → 10」。进货从钱包扣钱，库存增加。
+- **定价**：每件货一行，显示当前价与基准价；数字框与滑块都受基准价 ±20% 约束。输入时直接显示
+  「当前基准价 X 文，你的价 Y 文，比基准高/低 Z%」，并提示「过高可能没人买」；超出范围时
+  行尾标红「超出 ±20%」，按钮不发请求。
+- **辞退**：店内雇工每行一个「辞退」按钮，点开二次确认，写明「欠薪仍计」。确认后提示
+  「已辞退 X，欠薪 N 文仍计」；欠薪不会因辞退自动消失。
+- **提现**：填金额（正整数），下方显示当前店现；先从店铺公账扣，再进你的钱包。成功提示
+  「提现 20 文，店现 100 → 80」。
+- **7 日账本**：表格列为世界日 / 营收 / 进货 / 工资 / 税 / 净利 / 笔数 / 说明；净利正数绿色、
+  负数红色，负行按该行数值给出简短原因（当日无客流 / 工资高于营收 / 进货占去营收 / 入不敷出）；
+  表格底部有一行「7 日合计」。开店不足一日或日结未到时显示「尚无日结记录，世界日结束后来看」。
+
+无店或不是店主时，四个操作区与辞退按钮全部禁用并给出原因；动作在途时按钮转圈（文案
+「处理中…」）且不可重复点击。375×812 下账本表格可横向滚动，页面不横向溢出；新增控件均 ≥44px。
+真服务若尚未实现这些动作，验收脚本会显式标记 `blocked_backend_not_ready`，不会用 mock 冒充真服务证据。
 
 ## 8. 婚姻：如何求婚 / 如何和离
 
@@ -271,11 +298,14 @@ python3 tools/ui_check.py --only desktop  # 只跑某一组（含 --only commerc
 python3 tools/ui_check.py --serve         # 起 mock 页面，手动看；--auth 启动鉴权模式
 python3 tools/ui_check_real_commerce.py   # 真服务（--auth off + ambient）商业面板取证
 python3 tools/ui_check_real_marriage.py   # 真服务成功路径：talk 到 60+ → 求婚 → 配偶栏 → 和离
+python3 tools/ui_check.py --only shopops  # 店铺经营专项（mock，16 项）
+python3 tools/ui_check_real_shopops.py    # 真服务：能力探测；后端未就绪标 blocked_backend_not_ready
 ```
 
 - mock 服务只改内存，不写 `runs/`、不启动世界 tick，避免与其它会话的确定性基线冲突。
 - 证据目录：`reports/w4-ui/`（`checks.json`、桌面/移动/鉴权截图、`keyboard.txt`、`mobile-summary.json`）。
 - 婚姻证据：`reports/w4-marriage/`（mock 与真服务截图；`real-marriage.json` 含每步真实请求/响应）。
+- 店铺经营证据：`reports/w4-shopops/`（mock 截图与 `mock-shopops.json`；真服务 `real-*.png|json`）。
 - 真服务婚姻脚本按真实时间累积好感（4x 下约 29 分钟），不是 mock 成功路径；`--smoke` 只跑 talk 循环验证选择器。
 
 ## 10. 未覆盖 / 已知限制
@@ -286,9 +316,12 @@ python3 tools/ui_check_real_marriage.py   # 真服务成功路径：talk 到 60+
 - 只读模式（`--readonly`）下交付会返回提案，不会真正产生资金变化，引导④进度会停在交付前，可用「跳过」结束。
 - 桌面 1280×900、移动 375×812 已实测；其它尺寸只保证布局断点逻辑一致，未逐像素验收。
 - 商业面板有 3 处后端字段缺口，UI 以明确文案兜底（不伪造数据）：
-  1. `shop` 视图不返回自有店铺的雇工名单，开店后「雇工列表」显示「服务端尚未返回雇工名单」；
+  1. `shop` 视图不返回自有店铺的雇工名单时，「雇工列表」显示「服务端尚未返回雇工名单」；
   2. `present_npcs` 不含技能与受雇状态，雇人行只显示好感（来自 `player.relations`），技能/受雇显示「接口未提供」；
   3. `_shop_view` 按物品去重，店铺库存件数无法可靠汇总，能汇总时才显示「N 件」，否则显示「件数未由接口提供」。
+- 店铺经营五个动作（`restock` / `set_price` / `dismiss` / `withdraw` / `shop_report`）由后端另一路实现；
+  UI 与 mock 验收已完成，真服务脚本会先探测，缺失时明确标 `blocked_backend_not_ready` 并跳过，
+  不会用 mock 数据冒充真服务证据。`shop_report` 为空（开店不足一日）时如实显示空态。
 - 真服务新世界的 NPC 技能要从 0 练到 0.15（`skill_too_low`），短跑世界雇人必然被拒；成功路径由 mock 验收覆盖。
 - 婚姻有两处接口缺口，UI 只做明确兜底、不伪造：
   1. `present_npcs` / `nearby` 不返回 NPC 的配偶字段，候选列表对「别人是否已婚」显示「已婚状态：接口未提供」；能确定的只有玩家自己的配偶（显示「已婚（你的配偶）」）；

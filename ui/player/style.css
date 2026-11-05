@@ -849,6 +849,110 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   padding: 6px 0;
 }
 
+/* ------------------------------------------------------- W4 店铺经营 */
+.shop-total {
+  display: flex;
+  justify-content: flex-end;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.shop-cash-line {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.shop-cash-line b { color: var(--ink); }
+.shopops-row .row-actions { row-gap: 6px; }
+.shopops-price-actions { align-items: stretch; }
+.price-range {
+  flex: 1 1 120px;
+  min-width: 96px;
+  min-height: 44px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.price-range:disabled { cursor: default; }
+.price-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line-soft);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.price-badge.bad { color: var(--danger, #b23b3b); border-color: var(--danger, #b23b3b); }
+.price-note {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.price-note.bad { color: var(--danger, #b23b3b); }
+.stock-now { color: var(--ink); }
+
+.ledger-empty {
+  padding: 10px 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.ledger-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+}
+.ledger-table {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.ledger-table th,
+.ledger-table td {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--line-soft);
+  text-align: right;
+  white-space: nowrap;
+}
+.ledger-table th,
+.ledger-table td:first-child { text-align: left; }
+.ledger-table thead th {
+  position: sticky;
+  top: 0;
+  background: #fffdf8;
+  color: var(--muted);
+  font-weight: 600;
+}
+.ledger-table th:first-child,
+.ledger-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: #fffdf8;
+}
+.ledger-table tbody tr:nth-child(even) td { background: rgba(176, 134, 58, .05); }
+.ledger-table tbody tr:nth-child(even) td:first-child { background: #fdf8ef; }
+.profit-pos { color: #1f7a3d; font-weight: 700; }
+.profit-neg { color: var(--danger, #b23b3b); font-weight: 700; }
+.ledger-reason {
+  max-width: 132px;
+  white-space: normal !important;
+  text-align: left !important;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.ledger-total-row td {
+  border-top: 2px solid var(--line);
+  border-bottom: 0;
+  font-weight: 700;
+  background: #fffdf8;
+}
+
 /* ---------------------------------------------------------------- responsive */
 @media (max-width: 1180px) {
   .layout { grid-template-columns: 280px minmax(0, 1fr); }
@@ -1022,6 +1126,14 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   margin: 0 0 8px;
 }
 .divorce-card .modal-body .hint { margin-top: 8px; }
+.dismiss-card #dismissText {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 8px;
+}
+.dismiss-card .modal-body .hint { margin-top: 8px; }
+.dismiss-card .modal-body .entry-error { margin-top: 12px; }
 
 /* 世界回应（/api/player/messages 轮询结果） */
 .replies {

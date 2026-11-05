@@ -181,10 +181,37 @@
 
         <div class="commerce-pane hidden" id="pane-business" role="tabpanel">
           <div class="hint" id="ownShopInfo">—</div>
+          <div class="commerce-sub"><b>进货</b><span class="hint" id="restockHint">—</span></div>
+          <div class="commerce-list" id="restockList"></div>
+          <div class="shop-total" id="restockTotal">合计 0 文</div>
+          <div class="commerce-sub"><b>定价</b><span class="hint" id="priceHint">基准价 ±20%</span></div>
+          <div class="commerce-list" id="priceList"></div>
           <div class="commerce-sub"><b>开一家</b><span class="hint">铺面费 + 初始进货</span></div>
           <div class="commerce-list" id="tierList"></div>
           <div class="commerce-sub"><b>店内雇工</b><span class="hint" id="employeeHint">—</span></div>
           <div class="commerce-list" id="employeeList"></div>
+          <div class="commerce-sub"><b>提现</b><span class="hint">从店铺公账取回私囊</span></div>
+          <div class="commerce-inline" id="withdrawSection">
+            <label for="withdrawAmount">金额</label>
+            <input id="withdrawAmount" type="number" min="1" step="1" value="10" inputmode="numeric" />
+            <span class="hint">文</span>
+            <button class="primary small commerce-btn" id="withdrawGo" type="button">提现</button>
+          </div>
+          <div class="shop-cash-line" id="shopCashNow">当前店现 0 文</div>
+          <div class="commerce-sub"><b>7 日账本</b><span class="hint">世界日 / 营收 / 进货 / 工资 / 税 / 净利 / 笔数</span></div>
+          <div class="ledger-empty" id="ledgerEmpty">尚无日结记录，世界日结束后来看</div>
+          <div class="ledger-wrap hidden" id="ledgerWrap">
+            <table class="ledger-table" id="ledgerTable">
+              <thead>
+                <tr>
+                  <th>世界日</th><th>营收</th><th>进货</th><th>工资</th>
+                  <th>税</th><th>净利</th><th>笔数</th><th>说明</th>
+                </tr>
+              </thead>
+              <tbody id="ledgerBody"></tbody>
+              <tfoot id="ledgerFoot"></tfoot>
+            </table>
+          </div>
         </div>
 
         <div class="commerce-pane hidden" id="pane-hire" role="tabpanel">
@@ -421,6 +448,29 @@
 </div>
 
 <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+
+<!-- 辞退二次确认：欠薪仍计，避免误触 -->
+<div class="modal hidden" id="dismissModal" role="dialog" aria-modal="true" aria-labelledby="dismissTitle">
+  <div class="modal-card dismiss-card">
+    <button class="modal-close" id="dismissClose" type="button" aria-label="关闭">×</button>
+    <div class="modal-head">
+      <div class="avatar big" id="dismissAvatar">辞</div>
+      <div>
+        <h2 id="dismissTitle">辞退雇工</h2>
+        <p id="dismissSub">辞退后不再到店，日结也不再计当日工资。</p>
+      </div>
+    </div>
+    <div class="modal-body">
+      <p id="dismissText">—</p>
+      <div class="hint"><b>欠薪仍计</b>：已经记在店铺账上的欠薪不会因为辞退而消失，仍需结清。</div>
+      <div class="entry-error hidden" id="dismissError"></div>
+    </div>
+    <div class="entry-actions">
+      <button class="ghost" id="dismissCancel" type="button">取消</button>
+      <button class="primary" id="dismissConfirm" type="button">确认辞退</button>
+    </div>
+  </div>
+</div>
 
 <script src="app.js"></script>
 </body>

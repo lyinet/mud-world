@@ -9,6 +9,40 @@
 
 ---
 
+## [W4 店铺经营 UI] 2026-11-06 — 进货 / 定价 / 辞退 / 提现 / 7 日账本（mock 验收）
+
+- **改了什么**
+  - `ui/player/index.html`：经营页签新增进货列表、定价列表、提现区与 7 日账本；
+    账本表头为世界日 / 营收 / 进货 / 工资 / 税 / 净利 / 笔数 / 说明，底部「7 日合计」；
+    雇工行新增「辞退」按钮与二次确认弹窗（写明欠薪仍计）。
+  - `ui/player/app.js`：接入 `restock {item,qty}`、`set_price {item,price}`、
+    `dismiss {target}`、`withdraw {amount}`、`shop_report {}`；无店/非店主禁用，
+    动作在途按钮禁用并显示「处理中…」，成功提示带具体数字；新增原因码中文映射
+    `price_out_of_range` / `insufficient_shop_cash` / `target_not_employed` /
+    `bad_arg:price` / `bad_arg:amount` 并修正 `not_shop_owner` 文案。
+    账本负净利原因由该行 `revenue/wage/restock` 推导，不写死；`shop_report` 为空显示空态。
+  - `ui/player/style.css`：账本表格、正负净利着色、横向滚动与粘性首列、44px 控件、
+    375×812 断点。
+  - `tools/ui_check.py`：mock `shop` 增加 `cash/employees/stock[]/report`，实现五个动作与
+    拒绝码；新增 `--only shopops`（16 项断言）与 `/__check/shop_report`、`/__check/slow`、
+    `/__check/verb_stats` 测试路由。
+  - `docs/PLAYER-GUIDE.md` §7.1 新增店铺经营玩家说明；`docs/w4-shopops-spec.md`、
+    `docs/w4-shopops-tasks.md` 记录本轮规格/任务。
+- **为什么改**：经营页签此前只有开店、库存件数和雇工名单，店主无法进货、调价、辞退、
+  提现，也看不到日结盈亏；补齐后店主可在 UI 完成日常经营并诊断亏损原因。
+- **验证方式**
+  - `python3 tools/ui_check.py --only shopops`：16 checks，0 failed。
+  - `python3 tools/ui_check.py`：151 checks，0 failed。
+  - `python3 tools/ui_check_proxy.py`：12 checks，0 failed。
+  - `python3 -m pytest -q`：exit 0。
+  - 证据：`reports/w4-shopops/`（`mock-shopops*.png`、`mock-shopops.json`）。
+- **后端未就绪**：当前 master 无这五个动作；本轮只做 UI + mock，真服务脚本
+  `tools/ui_check_real_shopops.py` 将显式探测并标 `blocked_backend_not_ready`，
+  不用 mock 顶替真服务证据。
+- **commit**：待补（本条目所在提交）。
+
+---
+
 ## [P0 数据安全] 2026-11-06 — 容器内备份/恢复演练 + RPO/RTO 与同盘处置
 
 - **改了什么**
