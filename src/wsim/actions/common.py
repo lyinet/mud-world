@@ -194,15 +194,73 @@ def first_business_at(state: WorldState, location: str) -> Business | None:
     return biz[0] if biz else None
 
 
-def business_selling(state: WorldState, location: str, item: str) -> Business | None:
-    for biz in state.business_at(location):
-        if biz.stock.get(item, 0) > 0:
-            return biz
-    return None
+def is_player_business(biz: Business) -> bool:
+    """玩家开的店：owner 形如 player:<account>，或 id 形如 shop:player:*。"""
+    return str(getattr(biz, "owner", "") or "").startswith("player:") or str(biz.id).startswith("shop:player:")
 
 
-def business_with_cash(state: WorldState, location: str, need: int) -> Business | None:
-    for biz in state.business_at(location):
+def stable_slot(key: str, size: int) -> int:
+    """FNV-1a 32 位稳定散列取模。
+
+    不用内建 `hash()`：它受 PYTHONHASHSEED 影响，跨进程不一致；这里是纯函数，
+    同 key 同 size 永远同结果（确定性护栏）。
+    """
+    if size <= 0:
+        return 0
+    h = 0x811C9DC5
+    for ch in key:
+        h = ((h ^ ord(ch)) * 0x01000193) & 0xFFFFFFFF
+    return h % size
+
+
+def player_market_active(state: WorldState) -> bool:
+    """世界里是否已有玩家店铺（决定是否启用玩家同权/新采购口径）。"""
+    return any(is_player_business(b) for b in state.businesses.values())
+
+
+def business_order(state: WorldState, location: str, salt: str = "", day: int = 0) -> list[Business]:
+    """店铺遍历顺序：同价同货的平局在同地点有玩家店时按稳定散列轮转。
+
+    轮转键 `(地点, 买主, 世界日)`：不同买主、不同日子把不同店排到首位，
+    N 家店长期各占约 1/N，平局公平且完全确定性（无 random / 无墙钟）。
+    没有玩家店（或未给 salt）时直接返回原顺序，无玩家世界逐字节不变。
+    """
+    biz = state.business_at(location)
+    if not salt or len(biz) < 2:
+        return biz
+    if not any(is_player_business(b) for b in biz):
+        return biz
+    slot = stable_slot(f"{location}|{salt}|{day}", len(biz))
+    return biz[slot:] + biz[:slot]
+
+
+def selling_shops(
+    state: WorldState, location: str, item: str, salt: str = "", day: int = 0
+) -> list[Business]:
+    """同地点所有有货的店，按“同货同价”公平顺序排列。
+
+    只有该 item 的卖家中出现玩家店时才轮转：键 `(地点, 物品, 买主, 世界日)`
+    让玩家店与 NPC 店在**同一件货**上长期各占约 1/N，平局公平且完全确定性。
+    没有玩家店（或没给 salt）时保持 `business_at` 原顺序，无玩家世界逐字节不变。
+    """
+    sellers = [b for b in state.business_at(location) if b.stock.get(item, 0) > 0]
+    if not salt or len(sellers) < 2 or not any(is_player_business(b) for b in sellers):
+        return sellers
+    slot = stable_slot(f"{location}|{item}|{salt}|{day}", len(sellers))
+    return sellers[slot:] + sellers[:slot]
+
+
+def business_selling(
+    state: WorldState, location: str, item: str, salt: str = "", day: int = 0
+) -> Business | None:
+    sellers = selling_shops(state, location, item, salt, day)
+    return sellers[0] if sellers else None
+
+
+def business_with_cash(
+    state: WorldState, location: str, need: int, salt: str = "", day: int = 0
+) -> Business | None:
+    for biz in business_order(state, location, salt, day):
         if state.account_balance(biz.cash_account) >= need:
             return biz
     return None

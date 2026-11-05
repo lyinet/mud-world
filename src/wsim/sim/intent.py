@@ -21,14 +21,18 @@ from ..actions.common import (
     founding_members,
     goal_kind,
     goal_target,
+    is_player_business,
     join_target_location,
     max_skill,
     nearest_location,
     organization_at,
     path_between,
+    player_market_active,
     role_allowed,
     sell_price,
+    selling_shops,
     skill_for,
+    stable_slot,
     treasury_balance,
     treasury_guard_active,
     treasury_open_shop_buffer,
@@ -662,15 +666,23 @@ class Planner:
             # 午饭（一天一顿，减少无效往返；晚饭取消）
             loc, cursor, cash = self._meal(state, intents, npc, loc, cursor, seg_end, cash, "午饭")
 
-            # 婚后日常不在这里排期：内容目标耗尽后 plan 根本不会被调用，
-            # 因此由 `MockReasoner.decide` 入口的 `_spouse_visit` 负责每日陪伴。
-
-            # 消费倾向：有余钱就买一件非口粮品，钱回流店铺；
             # 正在攒注册费的发起人不做可选消费，否则永远差最后几百文。
             saving_for_sect = (
                 choice.content_type == "found_sect"
                 and cash < int((self.content.economy.get("sect") or {}).get("founding_cost", 2500))
             )
+
+            # 专程进店：日常活动地附近有玩家店时，按 (npc, 世界日) 稳定散列
+            # 决定“今天去不去”，命中就走过去买一件（不靠“恰好路过”）。
+            if not saving_for_sect:
+                loc, cursor, cash = self._player_shop_trip(
+                    state, intents, npc, loc, cursor, seg_end, cash, memo, reason
+                )
+
+            # 婚后日常不在这里排期：内容目标耗尽后 plan 根本不会被调用，
+            # 因此由 `MockReasoner.decide` 入口的 `_spouse_visit` 负责每日陪伴。
+
+            # 消费倾向：有余钱就买一件商品/口粮，钱回流店铺。
             if not saving_for_sect:
                 loc, cursor, cash = self._propensity_buy(state, intents, npc, loc, cursor, seg_end, cash, memo)
 
@@ -982,6 +994,83 @@ class Planner:
                     )
         return loc, cursor, cash
 
+    def _player_shop_item(self, state: WorldState, biz, cash: int) -> tuple[str, int] | None:
+        """玩家店里当前买得起、最便宜的一件商品（服务/堂食不算商品）。"""
+        best: tuple[int, str] | None = None
+        for iid, qty in sorted(biz.stock.items()):
+            if qty <= 0 or iid not in self.content.items:
+                continue
+            if str(self.content.items[iid].get("category", "")) in ("service", "meal"):
+                continue
+            price = self.content.item_price(iid, state)
+            if price <= 0 or price * 3 > cash:
+                continue
+            if best is None or price < best[0]:
+                best = (price, iid)
+        return (best[1], best[0]) if best else None
+
+    def _player_shop_trip(
+        self,
+        state: WorldState,
+        intents: list[Intent],
+        npc: str,
+        loc: str,
+        cursor: int,
+        end: int,
+        cash: int,
+        memo: dict[str, Any],
+        reason,
+    ) -> tuple[str, int, int]:
+        """专程进店：日常活动地附近有玩家店时，走过去买一件。
+
+        与“恰好路过”不同：命中当天即使人不在店里也会专门跑一趟（≤2 跳）。
+        去不去由 `(npc, 世界日)` 的稳定散列决定（约三分之一的日子），
+        完全确定性、不用随机源；没有玩家店时直接返回，零影响。
+        """
+        if memo.get("bought") or cursor >= end or cash < 120:
+            return loc, cursor, cash
+        if treasury_guard_active(state, self.content):
+            return loc, cursor, cash
+        shops = sorted(
+            (b for b in state.businesses.values() if is_player_business(b)),
+            key=lambda b: b.id,
+        )
+        if not shops:
+            return loc, cursor, cash
+        day = day_of(cursor)
+        if stable_slot(f"{npc}|{day}|trip", 1000) >= 320:
+            return loc, cursor, cash
+        target = next((b for b in shops if b.location == loc), None)
+        if target is None:
+            near = [
+                (len(path_between(state, loc, b.location)), b.id, b)
+                for b in shops
+                if 0 < len(path_between(state, loc, b.location)) <= 2
+            ]
+            if not near:
+                return loc, cursor, cash
+            target = min(near, key=lambda row: (row[0], row[1]))[2]
+        picked = self._player_shop_item(state, target, cash)
+        if picked is None:
+            return loc, cursor, cash
+        item, price = picked
+        tax = int(price * float((self.content.economy.get("taxes") or {}).get("transaction", 0.0)))
+        if target.location != loc:
+            loc, cursor = self._move(
+                state, intents, npc, loc, target.location, cursor, end, reason("专程去玩家店铺")
+            )
+            if loc != target.location:
+                return loc, cursor, cash
+        before = cursor
+        cursor = self._add(
+            intents, npc, "buy", {"from": loc, "item": item, "qty": 1},
+            cursor, end, f"专程进店，买{item}",
+        )
+        if cursor != before:
+            memo["bought"] = item
+            cash -= price + tax
+        return loc, cursor, cash
+
     def _propensity_buy(
         self,
         state: WorldState,
@@ -993,33 +1082,71 @@ class Planner:
         cash: int,
         memo: dict[str, Any],
     ) -> tuple[str, int, int]:
-        """消费倾向：有余钱买一件非口粮品，钱回流店铺（非 top3 动作）。
+        """消费倾向：有余钱就买一件商品/口粮，钱回流店铺（非 top3 动作）。
 
         treasury_guard 期间暂停这类非紧急采购，把现金留给工资与已承诺镖单。
+
+        玩家入市后（`player_market_active`）：
+        - 卖家按 (地点, 买主, 世界日) 稳定散列轮转，玩家店与 NPC 店同价同货时同权；
+        - 库存门槛降为 1 件（可买走最后一件）；
+        - 食物走“囤口粮”分支（与午饭 consume 分开记账），不再整体排除。
+        无玩家店的世界沿用旧顺序与旧门槛，事件逐字节不变。
         """
         if memo.get("bought") or cursor >= end or cash < 120:
             return loc, cursor, cash
         if treasury_guard_active(state, self.content):
             return loc, cursor, cash
-        best: tuple[int, str] | None = None
-        for biz in state.business_at(loc):
-            for iid, qty in sorted(biz.stock.items()):
-                if qty < 3 or iid not in self.content.items:
+        day = day_of(cursor)
+        market = player_market_active(state)
+        best: tuple[int, str] | None = None  # (price, iid)
+        if market:
+            # 新口径：按“同一件货”的卖家轮转，玩家店与 NPC 店同权；
+            # 食物可囤（与午饭 consume 分开），库存可只剩 1 件。
+            candidates = sorted(
+                {
+                    iid
+                    for biz in state.business_at(loc)
+                    for iid, qty in biz.stock.items()
+                    if qty > 0
+                }
+            )
+            for iid in candidates:
+                if iid not in self.content.items:
                     continue
-                if str(self.content.items[iid].get("category", "")) in ("food", "drink", "service", "meal"):
+                if str(self.content.items[iid].get("category", "")) in ("service", "meal"):
+                    continue
+                sellers = selling_shops(state, loc, iid, npc, day)
+                if not sellers:
                     continue
                 price = self.content.item_price(iid, state)
                 if price <= 0 or price * 3 > cash:
                     continue
-                if best is None or price < best[0]:
+                if best is None or (price, iid) < best:
                     best = (price, iid)
+        else:
+            # 无玩家店：旧口径（排除口粮、qty>=3、首个最便宜），事件逐字节不变。
+            for biz in state.business_at(loc):
+                for iid, qty in sorted(biz.stock.items()):
+                    if qty < 3 or iid not in self.content.items:
+                        continue
+                    if str(self.content.items[iid].get("category", "")) in (
+                        "food", "drink", "service", "meal",
+                    ):
+                        continue
+                    price = self.content.item_price(iid, state)
+                    if price <= 0 or price * 3 > cash:
+                        continue
+                    if best is None or price < best[0]:
+                        best = (price, iid)
         if best is None:
             return loc, cursor, cash
         price, iid = best
+        is_food = str(self.content.items[iid].get("category", "")) in ("food", "drink")
+        note = f"添置口粮{iid}" if is_food else f"手头宽裕，添置{iid}"
         before = cursor
         cursor = self._add(
             intents, npc, "buy", {"from": loc, "item": iid, "qty": 1},
-            cursor, end, f"手头宽裕，添置{iid}",
+            cursor, end, note,
         )
         if cursor != before:
             memo["bought"] = iid

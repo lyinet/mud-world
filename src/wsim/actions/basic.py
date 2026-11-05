@@ -4,6 +4,7 @@
 """
 from __future__ import annotations
 
+from ..core.clock import day_of
 from ..core.models import Effect, Intent, Reject
 from ..world.state import WorldState
 from .common import (
@@ -237,8 +238,9 @@ class ConsumeAction(Action):
     def __init__(self, content):
         self.content = content
 
-    def _seller(self, state: WorldState, ent, item: str):
-        return business_selling(state, ent.location, item)
+    def _seller(self, state: WorldState, ent, item: str, tick: int):
+        # 卖家解析按 (地点, 买主, 世界日) 轮转：玩家店与 NPC 店同价同货时同权。
+        return business_selling(state, ent.location, item, salt=ent.id, day=day_of(tick))
 
     def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
         ent = require_entity(state, intent.actor)
@@ -250,7 +252,7 @@ class ConsumeAction(Action):
         qty = arg_int(intent, "qty", 1, minimum=1, maximum=10)
         if item not in self.content.items:
             return ["unknown_item"]
-        seller = self._seller(state, ent, item)
+        seller = self._seller(state, ent, item, intent.tick)
         if seller is None:
             return ["item_not_available"]
         price = self.content.item_price(item, state) * qty
@@ -265,7 +267,7 @@ class ConsumeAction(Action):
         if item is None:
             raise Reject("item_not_available")
         qty = arg_int(intent, "qty", 1, minimum=1, maximum=10)
-        seller = self._seller(state, ent, item)
+        seller = self._seller(state, ent, item, intent.tick)
         if seller is None:
             raise Reject("item_not_available")
         price = self.content.item_price(item, state) * qty
