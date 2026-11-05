@@ -9,6 +9,33 @@
 
 ---
 
+## [修复] 2026-11-05 — 玩家店铺雇工进入日程：契约即出工，欠薪仍到店
+
+- **改了什么**
+  - `sim/intent.py` 的常规日程 `work` 分支按雇主类型区分资金门槛：
+    - NPC 商业体（`owner` 为空）沿用原规则 `余额 ≥ 日薪 + employer_reserve`，不变；
+    - 玩家店铺（`owner=player:<account>`）契约成立即出工，偿付判断只看
+      **玩家钱包余额 + 店铺当日营收**，不套 2000 文储备；钱不够仍在计划里注明
+      “店主现金紧，工资走欠薪”，日结由 `system_shop_settle` 记店铺欠雇工的债。
+  - 玩家雇主的日薪优先取契约 `employee_wages`（不再用岗位市场价）；`found_sect`
+    加班路径同步使用该口径。
+  - 头号动机：此前 `yan_shouyi` 签约后 `employed_at=shop:player:<account>`，
+    但日程因 NPC 储备规则不再去庙里、也不去玩家店，实际“失业在家”。
+- **验证**
+  - 新增 `tests/test_intent_player_employment.py` 8 条：玩家店日程出现
+    `move market → work at market`（店现 0 / 钱包低于储备仍出工）、欠薪文案、
+    契约日薪优先、NPC 雇主储备规则不变、同地点 `talk` 前置、3 天自走工资与
+    同 seed 两次 state/event 哈希一致。
+  - 无玩家雇佣的世界：`tests/test_p3e_golden.py` V5 原值继续通过（state/event 哈希
+    逐字节不变），因此不新增/不改旧基线。
+  - 真实仓库代码自走 3 日验收记录见 `docs/shop-operations.md` 7.1；HTTP 端到端
+    （开店 → 雇 1 人 → 3 个世界日，`recruit` 经 HTTP 签约）见 7.2。7.2 使用的是
+    本仓库工作树（HEAD `1709524` + 本轮 `intent.py` + W1 尚未入库的 `recruit`
+    放行）；`origin/master` 合并后可用同一脚本复跑。
+- **commit**：见本次提交（与 CHANGELOG 同一 pathspec 提交）。
+
+---
+
 ## [修复] 2026-11-05 — 押镖货物托管：发单即扣货、送达离场、失败原量退回、托管进对账
 
 - **改了什么**

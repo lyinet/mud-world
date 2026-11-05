@@ -105,16 +105,33 @@ if has_player_shop(self.writer.state):
 `sim/headless.py` 用同一判断（`has_player_shop`）在日界发出同一事件，口径一致。
 
 - 守卫只做一件事：世界里存在 `owner` 以 `player:` 开头的店铺才 emit。
+- **NPC 开的店不触发日结**：`has_player_shop` 只认 `owner.startswith("player:")`。NPC 商业体
+  （创世生成的 `biz:<loc>:<item>` 等，`owner` 为空）继续走既有机制：按动作即时付款、月度税等，
+  没有店铺 P&L 日结。若未来需要 NPC 店铺也按日结算，那是另一套口径（需要 NPC 店铺的收入/进货
+  计数与负债语义），本轮不改变。
 - 无店铺世界不发该事件，日界事件序列与改动前逐字节一致（测试对整份事件列表序列化后比对哈希）。
 - 调度循环、配速、时钟、护栏、`_day_end` 其它步骤顺序均未改动。
 - 不在调度侧挡掉的非法结算仍会按 `Writer.submit` 既有语义写 rejected 事件（保持可审计性）；
   本事件的 `preconditions` 用 `no_player_shop` 兜底，避免手工误发。
 
-## 6. 已知限制
+## 6. 雇工日程：玩家店铺是 workplace 候选
 
-- 雇工的**自主日程**仍走既有 `sim/intent.py`：它要求雇主公账现金 ≥ 日薪 + 储备（2000 文）
-  才会主动去店里上工。小店现金未达标时，雇工在日结层按契约出工/产出/领薪，
-  但个人行动不会显示“到店干活”（本轮按边界不改 `intent.py`）。
+`sim/intent.py` 的日程层按雇主类型区分资金门槛（这是让雇工“真的去上班”的关键）：
+
+| 雇主类型 | 上工条件 | 付不出日薪时 |
+| --- | --- | --- |
+| NPC 商业体（`owner` 为空） | 公账现金 ≥ 日薪 + `employer_reserve`（2000 文），原规则不变 | 不去整班，留在原地练手艺 |
+| 玩家店铺（`owner=player:<account>`） | 契约成立即出工；偿付判断只看**玩家钱包余额 + 店铺当日营收**，不套 2000 文储备 | 仍然出工，日结记“店铺欠雇工”的欠薪债 |
+
+- 玩家店铺的日薪取契约 `employee_wages`（不再用岗位市场价），日程里的 `work` 发生在店铺地点。
+- 签约会把 `Entity.employed_at` 指向玩家店铺，雇工离开原 workplace 属于正常调动；
+  日程保证他确实到新店铺上工，而不是“两边都不去”。
+- 计划文案会区分“上工糊口”与“上工糊口（店主现金紧，工资走欠薪）”，便于日志审计。
+- 该改动只影响存在玩家雇佣契约的 NPC：无玩家雇佣的世界里，两条分支都走原 NPC 规则，
+  golden 基线的 state/event 哈希逐字节不变（`test_p3e_golden.py` V5）。
+
+## 6.1 已知限制
+
 - 日结只统计店铺公账上的 `buy/consume` 与 `sell` 流水；玩家私下的物品转移不计营收。
 - 欠薪由 `system_debts` 在次日日界补付；补付不重复计入当日净利（成本已在欠薪当日计提）。
 
@@ -132,9 +149,52 @@ if has_player_shop(self.writer.state):
 - day0（开店当日）营收 0、无雇工，日摊税 10 结转欠税；day1 营收 46、工资 18、税实付 20
   （10 当期 + 10 补缴 day0 欠税），净利 +18。
 - 雇工 `yan_shouyi`：雇佣前在庙里“上工糊口”；雇佣后 `employed_at=shop:player:u_demo`，
-  每日领 18 文（个税 1 文 burn），但受 `intent.py` 的雇主要求（现金 ≥ 日薪 + 2000 储备）限制，
-  小店现金未达标前不会主动到店上工（见第 6 节）。
+  每日领 18 文（个税 1 文 burn）。本轮修复前受 `intent.py` 的 2000 文储备限制不会到店；
+  修复后日程改走玩家店铺分支（第 6 节），契约成立即到店上工，欠薪场景仍出工。
 - 自雇：`work` 事件只有体力/技能/记忆效果，`transfer` 与 `debt_create` 均为 0。
 - 不变量：3,203 条事件 seq 连续 1..3203；`conservation_error=0`；
   `minted_total=53150`、`burned_total=1175`、`accounts_sum=51975`（= minted − burned）；
   玩家钱包 2550 = 6000 − 3000 铺面费 − 450 进货，未从自雇拿到工资。
+
+## 7.1 雇工行为修复验收：引擎自走（3 个世界日）
+
+环境：HEAD `1709524` + 本轮 `intent.py`；content_hash `7ec670c1`；seed 42；
+`AmbientScheduler` 自走（不配速、3×144 ticks），玩家店铺 `shop:player:u_demo`（branch，market），
+雇工 `yan_shouyi`，契约日薪 18。
+
+| 项目 | 结果 |
+| --- | --- |
+| 到店上工 | day0 tick 32/75/113；day1 158/200/239；day2 289/318，均为 `work at=market hours=8` |
+| 同地点 talk | 回放 tick 318：雇工 `market`、玩家 `market`，`TalkAction.preconditions=[]`（非 `not_together`） |
+| 日结（注资 200 文） | 每日 `wage=18`、`tax=10`、`output=1`；日末店现 116（200 − 3×18 − 3×10），钱包 300 |
+| 欠薪场景（钱包/店现 0） | 每日仍 `work at=market`，计划文案带“店主现金紧，工资走欠薪”；日结 day0 `debt_create` 18、day1/day2 `debt_increase` 18，活动债 54，`creditor=yan_shouyi / debtor=shop` |
+| 事件量与 NPC 覆盖（同 seed 对照） | 有雇佣 1,331 条非系统事件 / 31 名 NPC；无雇佣 1,384 / 31。总量 −3.8%（雇工日程改写导致其与庙里同伴的互动减少），NPC 覆盖 31/31 不变 |
+| 确定性 | 同 seed、同输入两次：state hash `ff2bed00…`、event hash `70065d9f…` 完全一致 |
+
+## 7.2 HTTP 真实服务端到端复跑（同一仓库工作树，3 个世界日）
+
+环境：真实仓库工作树（HEAD `1709524` + 本轮 `intent.py` + W1 未提交的 `recruit`
+放行）；`wsim.api` + ambient（seed 42、speed 4x），数据根 `/tmp/xkx-live-intent`，
+run `hire-e2e`；content_hash `7ec670c1`。
+
+- 现实差异：真实 HEAD 的 `STARTING_MONEY=300`（演示副本曾是 6000）。因此本轮没有
+  预置资金，玩家先卖掉随身粗布/炊饼（+21）、打短工（+33）凑到 354 文，在 **temple**
+  开 `stall`（开店 + 初始库存共 345 文，钱包余 9 文）；店现完全来自顾客消费，无 mint。
+- 雇工：tick 326 通过 HTTP `recruit` 签约 `yan_shouyi`（岗位庙祝、日薪 18），
+  `shop_hire` 效果落库，`employed_at=shop:player:u_demo`。
+- 行程：tick 333/362（签约当天）、439/473/515、576/607/640、720，均
+  `move temple → work at=temple hours=8`，reason“上工糊口”，店铺地点与玩家同址。
+- 同地点 `talk`：tick 561 在 temple 对 `yan_shouyi` 执行 `talk`，`ok`（非 `not_together`）。
+- 日结（签约后的 3 个日界）：
+
+| tick | 营收 | 工资 | 税 | 净利 | 产出 | 说明 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 432 | 16 | 18 | 1 | −3 | 1 炊饼 | 亏损提示“店主需补足”；工资 `transfer` 到雇工钱包，个税 1 burn |
+| 576 | 52 | 18 | 1 | +33 | 1 炊饼 | 正常盈利 |
+| 720 | 3 | 18 | 1 | −16 | 1 炊饼 | 店现仍够付工资，未生成欠薪债 |
+
+- 店铺现金全程由 temple 的 NPC 顾客消费入账（`buy/consume` 的 `transfer` 到
+  `cash:shop:player:u_demo`），没有外部注资；工资三天各 18 文均实付。
+- 欠薪场景（店现/钱包不足）已在 7.1 的引擎自走中验证：仍然出工、日结走
+  店铺欠雇工的活动债；HTTP 放行合并后可用同一脚本复跑。
+

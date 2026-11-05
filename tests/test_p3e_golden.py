@@ -48,6 +48,14 @@ P4 里程碑基线 v5（2026-11-05，开店经营闭环）：
   无玩家店铺的日界不新增任何事件（`system_shop_settle` 只在有玩家店铺时 emit）。
 - 新基线见 GOLDEN_MILESTONE_V5 / DIALOGUE_GOLDEN_MILESTONE_V5。
 - 复核命令：`PYTHONPATH=src python -m pytest tests/test_p3e_golden.py`。
+
+P4 里程碑基线（2026-11-05，玩家店铺雇工日程，`sim/intent.py`）：
+- 只改“雇主是玩家店铺”时的日程分支（契约即出工、偿付看玩家钱包+当日营收）；
+  本 2 天 golden 世界没有玩家店铺/雇佣契约，仍走 NPC 雇主原分支，因此 **V5 数值与
+  state/event 哈希不变，无需新建基线**；V5 两条测试保持启用，旧 V3/V4 继续 skip。
+- 有玩家雇佣的 3 天自走确定性基线见 `tests/test_intent_player_employment.py`
+  的 `test_three_day_hired_world_pays_wages_and_is_deterministic`（同 seed 两次
+  state/event 哈希一致，且每天工资 18 / 税 10 / 产出 1）。
 """
 from __future__ import annotations
 

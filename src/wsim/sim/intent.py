@@ -589,21 +589,32 @@ class Planner:
 
             employer = self._employer(state, ent)
             work_loc = employer.location if employer is not None else ""
-            gross = self._gross_wage(ent)
+            gross = self._wage_for_employment(employer, ent)
             reserve = int((self.content.economy.get("work") or {}).get("employer_reserve", 300))
-            # 日工可连续上工（P2-B 复核 B6）：不再隔日。但只有在雇主现金足够
-            # 支付当日全额工资且留有余量时才上工，避免把商业体现金抽干后只能打欠条。
-            can_work = (
-                employer is not None
-                and state.account_balance(employer.cash_account) >= gross + reserve
-            )
+            # 日工可连续上工（P2-B 复核 B6）：不再隔日。
+            # NPC 雇主沿用原规则（现金 ≥ 日薪 + 储备），防止把商业体现金抽干；
+            # 玩家雇主按玩家钱包 + 当日营收判断偿付能力，但**不因此罢工**：
+            # 契约成立就出工，钱不够由日结 system_shop_settle 记欠薪债。
+            if employer is not None and self._employer_is_player(employer):
+                can_work = True
+                work_note = (
+                    "上工糊口"
+                    if self._player_employer_can_pay(state, employer, gross)
+                    else "上工糊口（店主现金紧，工资走欠薪）"
+                )
+            else:
+                can_work = (
+                    employer is not None
+                    and state.account_balance(employer.cash_account) >= gross + reserve
+                )
+                work_note = "上工糊口"
             if work_loc and can_work:
                 loc, cursor = self._move(state, intents, npc, loc, work_loc, cursor, seg_end, reason("去上工"))
                 if loc == work_loc and cursor < seg_end:
                     before = cursor
-                    cursor = self._add(intents, npc, "work", {"at": loc, "hours": 8}, cursor, seg_end, reason("上工糊口"))
+                    cursor = self._add(intents, npc, "work", {"at": loc, "hours": 8}, cursor, seg_end, reason(work_note))
                     if cursor != before:
-                        cash += self._net_wage(ent)
+                        cash += self._net_wage(ent, gross)
             else:
                 # 无雇主或雇主现金不足：留在原地练手艺；攒门派注册费的人优先去挣现钱。
                 note = "雇主现金不足，先练手艺" if work_loc else "没有雇主，练手艺"
@@ -678,8 +689,35 @@ class Planner:
     def _gross_wage(self, ent) -> int:
         return max(1, int(round(self.content.wage_for(ent.role))))
 
-    def _net_wage(self, ent) -> int:
+    def _employer_is_player(self, employer) -> bool:
+        """玩家开的店：owner 形如 player:<account>。NPC 店铺走既有规则。"""
+        return bool(
+            employer is not None
+            and employer.owner
+            and str(employer.owner).startswith("player:")
+        )
+
+    def _wage_for_employment(self, employer, ent) -> int:
+        """雇工的实际日薪：玩家店铺优先读契约日薪，其余沿用岗位市场价。"""
         gross = self._gross_wage(ent)
+        if self._employer_is_player(employer):
+            wage = (getattr(employer, "employee_wages", None) or {}).get(ent.id)
+            if wage:
+                return max(1, int(wage))
+        return gross
+
+    def _player_employer_can_pay(self, state: WorldState, employer, gross: int) -> bool:
+        """玩家雇主的偿付判断：玩家钱包实际余额 + 当前已入账的当日营收。
+
+        刻意不套用 NPC 雇主的 2000 文储备（那是防 NPC 破产的设计）。
+        判断结果只影响计划文案；即使付不出，雇工仍按契约出工，由日结记欠薪债。
+        """
+        wallet_bal = state.account_balance(f"wallet:{employer.owner}")
+        today_revenue = int(getattr(employer, "day_revenue", 0))
+        return wallet_bal + today_revenue >= gross
+
+    def _net_wage(self, ent, gross: int | None = None) -> int:
+        gross = self._gross_wage(ent) if gross is None else gross
         tax = int(gross * float((self.content.economy.get("taxes") or {}).get("income", 0.0)))
         return gross - tax
 
@@ -1188,11 +1226,12 @@ class Planner:
                         return loc, cursor, cash
                 employer = self._employer(state, ent)
                 reserve = int((self.content.economy.get("work") or {}).get("employer_reserve", 300))
-                half_shift = max(1, int(round(self._gross_wage(ent) * 4 / 8.0)))
+                half_shift = max(1, int(round(self._wage_for_employment(employer, ent) * 4 / 8.0)))
+                player_employer = self._employer_is_player(employer)
                 if (
                     employer is not None
                     and cursor < end
-                    and state.account_balance(employer.cash_account) >= half_shift + reserve
+                    and (player_employer or state.account_balance(employer.cash_account) >= half_shift + reserve)
                 ):
                     loc, cursor = self._move(state, intents, npc, loc, employer.location, cursor, end,
                                              reason(f"加班凑{cost}文注册费"))
@@ -1201,7 +1240,7 @@ class Planner:
                             intents, npc, "work", {"at": loc, "hours": 4},
                             cursor, end, reason(f"加班凑{cost}文注册费"),
                         )
-                        cash += int(round(int(round(self._gross_wage(ent) * 4 / 8.0)) * 0.9))
+                        cash += int(round(int(round(self._wage_for_employment(employer, ent) * 4 / 8.0)) * 0.9))
                         return loc, cursor, cash
             else:
                 cursor = self._add(
