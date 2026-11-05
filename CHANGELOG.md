@@ -9,6 +9,27 @@
 
 ---
 
+## [文档] 2026-11-05 — 内容层 4 件零成交物品种类定位
+
+- **改了什么**：`docs/known-limitations.md` 追加 §12「内容层零成交物品（已定位、未修）」，
+  逐件记录 `salt_lamp` / `salt_scale` / `rare_herb_box` / `service_night_watch` 的
+  类目与价格、具体判定条件（`_propensity_buy()` 只看当前所在地、库存 ≥3、
+  排除 `food/drink/service/meal`、`price×3 ≤ cash`、`cash ≥ 120`）、
+  引用委托为何不成交（`inquiry_*` 与 `errand_night_watch_report` 的
+  `offer/want` 为空、`money_delta=0`；`debt_hu_chen` 只搬钱），以及最小修法建议；
+  并补口径说明：`inquiry_*` 为零价值问价、永远不会产生成交事件，
+  “被任务引用”不等于“活跃”，覆盖应把 `quest_refs` 单独计入。
+- **为什么**：委托公平轮转后零成交物品 6→4，剩余 4 件的根因需要留档，
+  避免后续把“被引用”误读成“已盘活”，也避免重复排查。
+- **验证方式**：纯文档，零代码改动，未触碰 `content/**`；`content_hash` 未变
+  （关闭态 `7ec670c1c83c7b99e9bee35f84602bd7a68ef22126b29c9003529809b2c3d53f`）。
+  按任务要求未跑全量 pytest。
+- **本轮不做**：任何修法都要动内容定义或经济判定，会让 `content_hash` 与
+  V2/V3 golden（经济流量、`state_final`）再漂一次，冻结期内不接受。
+- **commit**：`730c82b`；本条为回填（`docs(changelog)`）。
+
+---
+
 ## [功能] 2026-11-05 — 世界自走成为首发默认体验
 
 - **改了什么**：`./start.sh` 默认同时拉起 API、前端与后台自走（`XKX_AMBIENT=0` 关闭，
