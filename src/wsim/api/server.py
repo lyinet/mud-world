@@ -17,6 +17,7 @@ from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
 from .auth import AccountStore, error_payload
+from .health import probe_from_session
 from .metrics import HttpMetrics
 from .session import WorldSession
 
@@ -411,21 +412,11 @@ class _Handler(BaseHTTPRequestHandler):
             self._handle_metrics()
             return
         if path == _HEALTH:
-            # 只加不改：现有键（ok/mode/readonly/profile_version/upstream_ok）语义保持，
-            # ambient 字段为新增，供 start.sh / 前端探活判断后台自走是否在推进。
-            self._send(
-                200,
-                {
-                    "ok": True,
-                    "mode": "live",
-                    "readonly": False,
-                    "profile_version": 1,
-                    "upstream_ok": True,
-                    "run": session.run_id,
-                    "tick": int(session.state.tick),
-                    **_ambient_health_payload(session),
-                },
-            )
+            # 真实探活：events 可读/seq 连续/integrity（60s 缓存）/磁盘/写者停滞；
+            # 既有键（ok/mode/readonly/profile_version/upstream_ok）语义保持不变。
+            payload = self.server.health_probe.snapshot()  # type: ignore[attr-defined]
+            payload.update(_ambient_health_payload(session))
+            self._send(200 if payload.get("ok") else 503, payload)
             return
         if path == _SERVICE_INFO:
             self._send(
@@ -777,6 +768,9 @@ def create_server(
     max_header_bytes: int | None = None,
     request_timeout: float | None = None,
     cors_origin: str | None = None,
+    disk_min_free_pct: float | None = None,
+    writer_idle_max_s: float | None = None,
+    integrity_cache_s: float | None = None,
 ) -> ThreadingHTTPServer:
     server = ThreadingHTTPServer((host, int(port)), _Handler)
     server.session = session  # type: ignore[attr-defined]
@@ -804,6 +798,13 @@ def create_server(
     if cors_origin is None:
         cors_origin = os.environ.get("XKX_CORS_ORIGIN", "")
     server.cors_origin = str(cors_origin or "")  # type: ignore[attr-defined]
+    # 健康探针：阈值可显式注入（测试可把小阈值调大来构造降级场景）。
+    server.health_probe = probe_from_session(  # type: ignore[attr-defined]
+        session,
+        disk_min_free_pct=disk_min_free_pct,
+        writer_idle_max_s=writer_idle_max_s,
+        integrity_cache_s=integrity_cache_s,
+    )
     server.daemon_threads = True
     return server
 

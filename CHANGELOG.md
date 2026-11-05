@@ -175,6 +175,35 @@
 
 ---
 
+## [安全 P0] 2026-11-06 — `/api/health` 改为真实健康检查（200/503）
+
+- **改了什么**
+  - 新增 `src/wsim/api/health.py`：`HealthProbe` 每次请求真实检查并返回快照。
+  - `src/wsim/api/server.py`：`/api/health` 改走探针，返回 `200`/`503`；保留既有键
+    `ok/mode/readonly/profile_version/upstream_ok`，新增
+    `storage:{events_ok, seq_gap, disk_free_mb, disk_free_pct, last_commit_age_s, integrity}`
+    与 `world:{run, tick, new_world}`。
+  - 判定：`EventStore.count()`（COUNT(*) 缓存）与 `EventTail.last_seq`（MAX(seq) 缓存）
+    不一致 → `seq_gap>0`、`events_ok=false`（O(1)，不 `read_all`）；`integrity_check`
+    60 秒缓存；磁盘剩余 <5% 或写者 60 秒无提交 → 503。阈值可由
+    `XKX_DISK_MIN_FREE_PCT` / `XKX_WRITER_IDLE_MAX_S` / `XKX_INTEGRITY_CACHE_S` 覆盖，
+    `create_server` 也可显式注入（测试用）。
+  - `docs/OPS-RUNBOOK.md` §10.2：判定口径与响应样例。
+  - `tests/test_w1_health_real.py`：正常 200、磁盘阈值 503、seq 断洞 503、写者停滞 503。
+- **为什么改**：原 `/api/health` 硬编码 `ok:true`，库丢了/写者卡死也报健康，探活与
+  监控形同虚设。
+- **验证方式**（原样输出）
+  - 正常：`(200, {'ok': True, 'storage': {'events_ok': True, 'seq_gap': 0,
+    'disk_free_mb': 1155289, 'disk_free_pct': 60.56, 'last_commit_age_s': 0.0,
+    'integrity': 'ok'}, 'world': {'new_world': True, 'run': 'hok', 'tick': 0}, ...})`
+  - 磁盘阈值（mock 100%）：`(503, {'ok': False, 'storage': {'disk_free_pct': 60.56, ...}})`。
+  - seq 断洞（把末条事件 seq 抬高 5）：
+    `(503, {'ok': False, 'storage': {'events_ok': False, 'seq_gap': 5, 'integrity': 'ok', ...}, 'world': {'new_world': False, 'run': 'hgap', 'tick': 0}})`。
+  - `python -m pytest tests/test_w1_health_real.py -q` → 4 passed。
+- **commit**：`（见本提交）`
+
+---
+
 ## [安全 P0] 2026-11-06 — 丢库 fail-closed：有账号但事件库缺失/损坏时拒绝启动
 
 - **改了什么**
