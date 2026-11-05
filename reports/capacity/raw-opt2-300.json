@@ -1,0 +1,1100 @@
+{
+  "schema": "w5-load-report/v1",
+  "started_at": "2026-11-05T20:55:31+00:00",
+  "duration_s": 90.0,
+  "actual_duration_s": 97.83,
+  "config": {
+    "base_url": "http://127.0.0.1:8152",
+    "players": 300,
+    "think_time_s": 2.0,
+    "ramp_up_s": 8.0,
+    "tag": "d0da7c",
+    "run_dir": "/Users/lyinet/projects/XKX/world-sim/runs/cap-opt2-300",
+    "server_pid": 83254
+  },
+  "players": {
+    "started": 300,
+    "entered": 299,
+    "failed_enter": 1,
+    "cycles": 5406,
+    "player_errors": []
+  },
+  "totals": {
+    "requests": 11712,
+    "ok": 11711,
+    "errors": 0,
+    "http_5xx": 0,
+    "http_401": 0,
+    "capacity_rejections": 1,
+    "business_rejections": 0,
+    "error_rate_pct": 0.0,
+    "latency_ms": {
+      "all": {
+        "count": 11712,
+        "p50": 47.906,
+        "p95": 6627.727,
+        "p99": 8308.961,
+        "mean": 1366.605,
+        "max": 8777.686
+      },
+      "by_endpoint": {
+        "GET /api/player/state": {
+          "count": 5406,
+          "p50": 4.509,
+          "p95": 21.947,
+          "p99": 57.678,
+          "mean": 7.326,
+          "max": 175.799
+        },
+        "POST /api/auth/login": {
+          "count": 300,
+          "p50": 50.799,
+          "p95": 77.201,
+          "p99": 113.327,
+          "mean": 53.421,
+          "max": 123.055
+        },
+        "POST /api/auth/register": {
+          "count": 300,
+          "p50": 49.511,
+          "p95": 71.457,
+          "p99": 77.658,
+          "mean": 51.96,
+          "max": 99.637
+        },
+        "POST /api/player/action": {
+          "count": 5406,
+          "p50": 2459.72,
+          "p95": 7575.22,
+          "p99": 8606.393,
+          "mean": 2914.952,
+          "max": 8777.686
+        },
+        "POST /api/player/enter": {
+          "count": 300,
+          "p50": 298.436,
+          "p95": 1728.955,
+          "p99": 1875.082,
+          "mean": 587.433,
+          "max": 1883.826
+        }
+      }
+    },
+    "status_codes": {
+      "200": 11711,
+      "429": 1
+    },
+    "request_counts_by_endpoint": {
+      "GET /api/player/state": 5406,
+      "POST /api/auth/login": 300,
+      "POST /api/auth/register": 300,
+      "POST /api/player/action": 5406,
+      "POST /api/player/enter": 300
+    },
+    "rejections_by_code": {},
+    "error_samples": []
+  },
+  "resources": {
+    "samples": [
+      {
+        "t": 0.0,
+        "rss_mb": 40.06,
+        "cpu_pct": 0.0,
+        "cpu_s": 0.2,
+        "alive": true
+      },
+      {
+        "t": 2.02,
+        "rss_mb": 46.39,
+        "cpu_pct": 338.87,
+        "cpu_s": 7.0,
+        "alive": true,
+        "db_size_mb": 4.234,
+        "seq_gap": 0
+      },
+      {
+        "t": 4.03,
+        "rss_mb": 57.66,
+        "cpu_pct": 416.3,
+        "cpu_s": 15.4,
+        "alive": true,
+        "db_size_mb": 4.464,
+        "seq_gap": 0
+      },
+      {
+        "t": 6.05,
+        "rss_mb": 65.41,
+        "cpu_pct": 432.31,
+        "cpu_s": 24.1,
+        "alive": true,
+        "db_size_mb": 4.933,
+        "seq_gap": 0
+      },
+      {
+        "t": 8.06,
+        "rss_mb": 75.52,
+        "cpu_pct": 417.11,
+        "cpu_s": 32.5,
+        "alive": true,
+        "db_size_mb": 5.183,
+        "seq_gap": 0
+      },
+      {
+        "t": 10.07,
+        "rss_mb": 76.88,
+        "cpu_pct": 98.87,
+        "cpu_s": 34.5,
+        "alive": true,
+        "db_size_mb": 5.691,
+        "seq_gap": 0
+      },
+      {
+        "t": 12.09,
+        "rss_mb": 75.08,
+        "cpu_pct": 96.74,
+        "cpu_s": 36.5,
+        "alive": true,
+        "db_size_mb": 5.964,
+        "seq_gap": 0
+      },
+      {
+        "t": 14.18,
+        "rss_mb": 73.0,
+        "cpu_pct": 100.26,
+        "cpu_s": 38.6,
+        "alive": true,
+        "db_size_mb": 6.492,
+        "seq_gap": 0
+      },
+      {
+        "t": 16.25,
+        "rss_mb": 79.88,
+        "cpu_pct": 100.28,
+        "cpu_s": 40.6,
+        "alive": true,
+        "db_size_mb": 6.734,
+        "seq_gap": 0
+      },
+      {
+        "t": 18.27,
+        "rss_mb": 81.73,
+        "cpu_pct": 101.61,
+        "cpu_s": 42.7,
+        "alive": true,
+        "db_size_mb": 7.257,
+        "seq_gap": 0
+      },
+      {
+        "t": 20.29,
+        "rss_mb": 81.34,
+        "cpu_pct": 99.76,
+        "cpu_s": 44.7,
+        "alive": true,
+        "db_size_mb": 7.527,
+        "seq_gap": 0
+      },
+      {
+        "t": 22.3,
+        "rss_mb": 84.05,
+        "cpu_pct": 99.39,
+        "cpu_s": 46.7,
+        "alive": true,
+        "db_size_mb": 7.789,
+        "seq_gap": 0
+      },
+      {
+        "t": 24.32,
+        "rss_mb": 85.88,
+        "cpu_pct": 102.61,
+        "cpu_s": 48.8,
+        "alive": true,
+        "db_size_mb": 8.293,
+        "seq_gap": 0
+      },
+      {
+        "t": 26.34,
+        "rss_mb": 89.11,
+        "cpu_pct": 100.88,
+        "cpu_s": 50.8,
+        "alive": true,
+        "db_size_mb": 8.558,
+        "seq_gap": 0
+      },
+      {
+        "t": 28.36,
+        "rss_mb": 106.34,
+        "cpu_pct": 102.58,
+        "cpu_s": 52.9,
+        "alive": true,
+        "db_size_mb": 8.824,
+        "seq_gap": 0
+      },
+      {
+        "t": 30.38,
+        "rss_mb": 112.11,
+        "cpu_pct": 97.51,
+        "cpu_s": 54.9,
+        "alive": true,
+        "db_size_mb": 9.093,
+        "seq_gap": 0
+      },
+      {
+        "t": 32.4,
+        "rss_mb": 116.62,
+        "cpu_pct": 96.42,
+        "cpu_s": 56.8,
+        "alive": true,
+        "db_size_mb": 9.355,
+        "seq_gap": 0
+      },
+      {
+        "t": 34.42,
+        "rss_mb": 107.22,
+        "cpu_pct": 99.34,
+        "cpu_s": 58.8,
+        "alive": true,
+        "db_size_mb": 9.621,
+        "seq_gap": 0
+      },
+      {
+        "t": 36.44,
+        "rss_mb": 115.53,
+        "cpu_pct": 101.97,
+        "cpu_s": 60.9,
+        "alive": true,
+        "db_size_mb": 9.882,
+        "seq_gap": 0
+      },
+      {
+        "t": 38.46,
+        "rss_mb": 114.83,
+        "cpu_pct": 100.4,
+        "cpu_s": 62.9,
+        "alive": true,
+        "db_size_mb": 10.121,
+        "seq_gap": 0
+      },
+      {
+        "t": 40.48,
+        "rss_mb": 120.97,
+        "cpu_pct": 100.44,
+        "cpu_s": 64.9,
+        "alive": true,
+        "db_size_mb": 10.39,
+        "seq_gap": 0
+      },
+      {
+        "t": 42.5,
+        "rss_mb": 125.02,
+        "cpu_pct": 102.12,
+        "cpu_s": 67.0,
+        "alive": true,
+        "db_size_mb": 10.656,
+        "seq_gap": 0
+      },
+      {
+        "t": 44.51,
+        "rss_mb": 117.75,
+        "cpu_pct": 101.62,
+        "cpu_s": 69.0,
+        "alive": true,
+        "db_size_mb": 10.925,
+        "seq_gap": 0
+      },
+      {
+        "t": 46.54,
+        "rss_mb": 110.17,
+        "cpu_pct": 100.74,
+        "cpu_s": 71.1,
+        "alive": true,
+        "db_size_mb": 10.925,
+        "seq_gap": 0
+      },
+      {
+        "t": 48.57,
+        "rss_mb": 126.2,
+        "cpu_pct": 98.24,
+        "cpu_s": 73.1,
+        "alive": true,
+        "db_size_mb": 11.191,
+        "seq_gap": 0
+      },
+      {
+        "t": 50.59,
+        "rss_mb": 128.73,
+        "cpu_pct": 99.16,
+        "cpu_s": 75.1,
+        "alive": true,
+        "db_size_mb": 11.453,
+        "seq_gap": 0
+      },
+      {
+        "t": 52.61,
+        "rss_mb": 126.7,
+        "cpu_pct": 89.53,
+        "cpu_s": 76.9,
+        "alive": true,
+        "db_size_mb": 11.691,
+        "seq_gap": 0
+      },
+      {
+        "t": 54.63,
+        "rss_mb": 128.09,
+        "cpu_pct": 100.27,
+        "cpu_s": 78.9,
+        "alive": true,
+        "db_size_mb": 11.691,
+        "seq_gap": 0
+      },
+      {
+        "t": 56.66,
+        "rss_mb": 132.84,
+        "cpu_pct": 99.62,
+        "cpu_s": 80.9,
+        "alive": true,
+        "db_size_mb": 11.957,
+        "seq_gap": 0
+      },
+      {
+        "t": 58.73,
+        "rss_mb": 121.97,
+        "cpu_pct": 90.6,
+        "cpu_s": 82.8,
+        "alive": true,
+        "db_size_mb": 12.218,
+        "seq_gap": 0
+      },
+      {
+        "t": 60.75,
+        "rss_mb": 132.47,
+        "cpu_pct": 99.85,
+        "cpu_s": 84.8,
+        "alive": true,
+        "db_size_mb": 12.75,
+        "seq_gap": null
+      },
+      {
+        "t": 65.79,
+        "rss_mb": 122.31,
+        "cpu_pct": 95.07,
+        "cpu_s": 89.6,
+        "alive": true,
+        "db_size_mb": 12.75,
+        "seq_gap": 0
+      },
+      {
+        "t": 67.85,
+        "rss_mb": 132.41,
+        "cpu_pct": 58.22,
+        "cpu_s": 90.8,
+        "alive": true,
+        "db_size_mb": 12.75,
+        "seq_gap": 0
+      },
+      {
+        "t": 69.88,
+        "rss_mb": 128.92,
+        "cpu_pct": 74.7,
+        "cpu_s": 92.3,
+        "alive": true,
+        "db_size_mb": 13.011,
+        "seq_gap": 0
+      },
+      {
+        "t": 71.91,
+        "rss_mb": 131.34,
+        "cpu_pct": 93.6,
+        "cpu_s": 94.2,
+        "alive": true,
+        "db_size_mb": 13.011,
+        "seq_gap": 0
+      },
+      {
+        "t": 73.93,
+        "rss_mb": 132.03,
+        "cpu_pct": 71.63,
+        "cpu_s": 95.7,
+        "alive": true,
+        "db_size_mb": 13.269,
+        "seq_gap": 0
+      },
+      {
+        "t": 75.95,
+        "rss_mb": 145.48,
+        "cpu_pct": 90.18,
+        "cpu_s": 97.5,
+        "alive": true,
+        "db_size_mb": 13.269,
+        "seq_gap": 0
+      },
+      {
+        "t": 77.97,
+        "rss_mb": 131.62,
+        "cpu_pct": 82.55,
+        "cpu_s": 99.2,
+        "alive": true,
+        "db_size_mb": 13.511,
+        "seq_gap": 0
+      },
+      {
+        "t": 79.99,
+        "rss_mb": 106.5,
+        "cpu_pct": 80.79,
+        "cpu_s": 100.8,
+        "alive": true,
+        "db_size_mb": 13.511,
+        "seq_gap": 0
+      },
+      {
+        "t": 82.01,
+        "rss_mb": 106.41,
+        "cpu_pct": 83.18,
+        "cpu_s": 102.5,
+        "alive": true,
+        "db_size_mb": 13.769,
+        "seq_gap": 0
+      },
+      {
+        "t": 84.04,
+        "rss_mb": 132.86,
+        "cpu_pct": 94.14,
+        "cpu_s": 104.4,
+        "alive": true,
+        "db_size_mb": 13.769,
+        "seq_gap": 0
+      },
+      {
+        "t": 86.08,
+        "rss_mb": 150.69,
+        "cpu_pct": 95.16,
+        "cpu_s": 106.3,
+        "alive": true,
+        "db_size_mb": 14.039,
+        "seq_gap": 0
+      },
+      {
+        "t": 88.1,
+        "rss_mb": 137.22,
+        "cpu_pct": 94.37,
+        "cpu_s": 108.2,
+        "alive": true,
+        "db_size_mb": 14.039,
+        "seq_gap": 0
+      },
+      {
+        "t": 90.13,
+        "rss_mb": 137.61,
+        "cpu_pct": 91.42,
+        "cpu_s": 110.1,
+        "alive": true,
+        "db_size_mb": 14.296,
+        "seq_gap": 0
+      },
+      {
+        "t": 92.16,
+        "rss_mb": 134.73,
+        "cpu_pct": 85.94,
+        "cpu_s": 111.8,
+        "alive": true,
+        "db_size_mb": 14.296,
+        "seq_gap": 0
+      },
+      {
+        "t": 94.18,
+        "rss_mb": 137.52,
+        "cpu_pct": 96.62,
+        "cpu_s": 113.8,
+        "alive": true,
+        "db_size_mb": 14.543,
+        "seq_gap": 0
+      },
+      {
+        "t": 96.19,
+        "rss_mb": 123.45,
+        "cpu_pct": 50.56,
+        "cpu_s": 114.8,
+        "alive": true,
+        "db_size_mb": 14.543,
+        "seq_gap": 0
+      }
+    ],
+    "rss_baseline_mb": 40.06,
+    "rss_peak_mb": 150.69,
+    "rss_end_mb": 123.45,
+    "rss_growth_mb": 83.39,
+    "cpu_peak_pct": 432.31,
+    "cpu_mean_pct": 117.52,
+    "cpu_seconds_total": 114.6,
+    "event_count_samples": [
+      {
+        "at": "2026-11-05T20:55:33+00:00",
+        "count": 367
+      },
+      {
+        "at": "2026-11-05T20:55:35+00:00",
+        "count": 812
+      },
+      {
+        "at": "2026-11-05T20:55:37+00:00",
+        "count": 1248
+      },
+      {
+        "at": "2026-11-05T20:55:39+00:00",
+        "count": 1618
+      },
+      {
+        "at": "2026-11-05T20:55:41+00:00",
+        "count": 2067
+      },
+      {
+        "at": "2026-11-05T20:55:43+00:00",
+        "count": 2490
+      },
+      {
+        "at": "2026-11-05T20:55:45+00:00",
+        "count": 2962
+      },
+      {
+        "at": "2026-11-05T20:55:47+00:00",
+        "count": 3356
+      },
+      {
+        "at": "2026-11-05T20:55:49+00:00",
+        "count": 3738
+      },
+      {
+        "at": "2026-11-05T20:55:51+00:00",
+        "count": 4068
+      },
+      {
+        "at": "2026-11-05T20:55:53+00:00",
+        "count": 4416
+      },
+      {
+        "at": "2026-11-05T20:55:55+00:00",
+        "count": 4786
+      },
+      {
+        "at": "2026-11-05T20:55:57+00:00",
+        "count": 5147
+      },
+      {
+        "at": "2026-11-05T20:55:59+00:00",
+        "count": 5480
+      },
+      {
+        "at": "2026-11-05T20:56:01+00:00",
+        "count": 5722
+      },
+      {
+        "at": "2026-11-05T20:56:03+00:00",
+        "count": 5972
+      },
+      {
+        "at": "2026-11-05T20:56:05+00:00",
+        "count": 6236
+      },
+      {
+        "at": "2026-11-05T20:56:07+00:00",
+        "count": 6532
+      },
+      {
+        "at": "2026-11-05T20:56:09+00:00",
+        "count": 6781
+      },
+      {
+        "at": "2026-11-05T20:56:11+00:00",
+        "count": 7036
+      },
+      {
+        "at": "2026-11-05T20:56:13+00:00",
+        "count": 7312
+      },
+      {
+        "at": "2026-11-05T20:56:15+00:00",
+        "count": 7573
+      },
+      {
+        "at": "2026-11-05T20:56:17+00:00",
+        "count": 7824
+      },
+      {
+        "at": "2026-11-05T20:56:19+00:00",
+        "count": 8050
+      },
+      {
+        "at": "2026-11-05T20:56:21+00:00",
+        "count": 8262
+      },
+      {
+        "at": "2026-11-05T20:56:23+00:00",
+        "count": 8430
+      },
+      {
+        "at": "2026-11-05T20:56:25+00:00",
+        "count": 8654
+      },
+      {
+        "at": "2026-11-05T20:56:28+00:00",
+        "count": 8872
+      },
+      {
+        "at": "2026-11-05T20:56:30+00:00",
+        "count": 9056
+      },
+      {
+        "at": "2026-11-05T20:56:35+00:00",
+        "count": 9574
+      },
+      {
+        "at": "2026-11-05T20:56:37+00:00",
+        "count": 9719
+      },
+      {
+        "at": "2026-11-05T20:56:39+00:00",
+        "count": 9793
+      },
+      {
+        "at": "2026-11-05T20:56:41+00:00",
+        "count": 9903
+      },
+      {
+        "at": "2026-11-05T20:56:43+00:00",
+        "count": 10068
+      },
+      {
+        "at": "2026-11-05T20:56:45+00:00",
+        "count": 10152
+      },
+      {
+        "at": "2026-11-05T20:56:47+00:00",
+        "count": 10288
+      },
+      {
+        "at": "2026-11-05T20:56:49+00:00",
+        "count": 10414
+      },
+      {
+        "at": "2026-11-05T20:56:51+00:00",
+        "count": 10528
+      },
+      {
+        "at": "2026-11-05T20:56:53+00:00",
+        "count": 10640
+      },
+      {
+        "at": "2026-11-05T20:56:55+00:00",
+        "count": 10796
+      },
+      {
+        "at": "2026-11-05T20:56:57+00:00",
+        "count": 10959
+      },
+      {
+        "at": "2026-11-05T20:56:59+00:00",
+        "count": 11128
+      },
+      {
+        "at": "2026-11-05T20:57:01+00:00",
+        "count": 11292
+      },
+      {
+        "at": "2026-11-05T20:57:03+00:00",
+        "count": 11436
+      },
+      {
+        "at": "2026-11-05T20:57:05+00:00",
+        "count": 11618
+      },
+      {
+        "at": "2026-11-05T20:57:07+00:00",
+        "count": 11714
+      }
+    ],
+    "event_count_monotonic": true,
+    "seq_gap_max": 0,
+    "seq_gap_end": 0,
+    "db_size_mb_start": 4.234,
+    "db_size_mb_end": 14.543,
+    "db_growth_mb_per_s": 0.107173,
+    "health_samples": [
+      {
+        "t": 2.02,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 876
+      },
+      {
+        "t": 4.03,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 2016
+      },
+      {
+        "t": 6.05,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 3150
+      },
+      {
+        "t": 8.06,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 4116
+      },
+      {
+        "t": 10.07,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 5292
+      },
+      {
+        "t": 12.09,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 6558
+      },
+      {
+        "t": 14.18,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 7980
+      },
+      {
+        "t": 16.25,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 9156
+      },
+      {
+        "t": 18.27,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 10308
+      },
+      {
+        "t": 20.29,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 11298
+      },
+      {
+        "t": 22.3,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 12336
+      },
+      {
+        "t": 24.32,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 13446
+      },
+      {
+        "t": 26.34,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 14532
+      },
+      {
+        "t": 28.36,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 15534
+      },
+      {
+        "t": 30.38,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 16260
+      },
+      {
+        "t": 32.4,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 17010
+      },
+      {
+        "t": 34.42,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 17802
+      },
+      {
+        "t": 36.44,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 18684
+      },
+      {
+        "t": 38.46,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 19434
+      },
+      {
+        "t": 40.48,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 20202
+      },
+      {
+        "t": 42.5,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 21030
+      },
+      {
+        "t": 44.51,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 21810
+      },
+      {
+        "t": 46.54,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 22560
+      },
+      {
+        "t": 48.57,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 23238
+      },
+      {
+        "t": 50.59,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 23874
+      },
+      {
+        "t": 52.61,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 24384
+      },
+      {
+        "t": 54.63,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 25056
+      },
+      {
+        "t": 56.66,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 25710
+      },
+      {
+        "t": 58.73,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 26262
+      },
+      {
+        "t": 65.79,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 28248
+      },
+      {
+        "t": 67.85,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 28470
+      },
+      {
+        "t": 69.88,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 28800
+      },
+      {
+        "t": 71.91,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 29298
+      },
+      {
+        "t": 73.93,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 29550
+      },
+      {
+        "t": 75.95,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 29952
+      },
+      {
+        "t": 77.97,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 30336
+      },
+      {
+        "t": 79.99,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 30678
+      },
+      {
+        "t": 82.01,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 31008
+      },
+      {
+        "t": 84.04,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 31476
+      },
+      {
+        "t": 86.08,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 31968
+      },
+      {
+        "t": 88.1,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 32472
+      },
+      {
+        "t": 90.13,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 32964
+      },
+      {
+        "t": 92.16,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 33402
+      },
+      {
+        "t": 94.18,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 33948
+      },
+      {
+        "t": 96.19,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 34236
+      }
+    ]
+  },
+  "event_growth": {
+    "count_before": 3,
+    "count_after": 11714,
+    "delta": 11711,
+    "monotonic": true
+  },
+  "invariants": {
+    "run_dir": "/Users/lyinet/projects/XKX/world-sim/runs/cap-opt2-300",
+    "db_exists": true,
+    "ok": true,
+    "errors": [],
+    "integrity_check": "ok",
+    "event_count": 11714,
+    "seq": {
+      "first": 1,
+      "last": 11714,
+      "count": 11714,
+      "distinct": 11714,
+      "contiguous": true
+    },
+    "wallet": {
+      "accounts": 341,
+      "sum_balance": 137150,
+      "minted_total": 137150,
+      "burned_total": 0,
+      "expected_sum": 137150,
+      "delta": 0,
+      "transfers": 0
+    },
+    "negative_rows": [],
+    "half_write_rows": [],
+    "genesis_events": 2,
+    "genesis_ok_events": 1,
+    "outcomes": {
+      "ok": 11713,
+      "rejected": 1
+    }
+  },
+  "pass": {
+    "state_p95_under_300ms": true,
+    "error_rate_under_0_5pct": true,
+    "zero_http_500": true,
+    "invariants_pass": true,
+    "event_count_monotonic": true,
+    "all": true
+  },
+  "throughput": {
+    "requests_per_second": 119.72,
+    "write_ops_per_second": 55.26,
+    "reads_per_second": 55.26,
+    "events_per_second": 119.71,
+    "counts_by_endpoint": {
+      "GET /api/player/state": 5406,
+      "POST /api/auth/login": 300,
+      "POST /api/auth/register": 300,
+      "POST /api/player/action": 5406,
+      "POST /api/player/enter": 300
+    }
+  },
+  "per_seat": {
+    "requests_per_seat": 39.04,
+    "requests_per_seat_second": 0.3991,
+    "cpu_seconds_total": 114.6,
+    "cpu_seconds_per_request": 0.009785,
+    "rss_growth_mb_per_seat": 0.278
+  },
+  "host": {
+    "loadavg_before": [
+      5.8349609375,
+      5.97998046875,
+      5.92236328125
+    ],
+    "loadavg_after": [
+      11.7109375,
+      7.7470703125,
+      6.59130859375
+    ],
+    "bench_cap_override": true
+  },
+  "health_at_start": {
+    "ambient": "stopped",
+    "ambient_last_tick_at": "",
+    "ambient_pid": null,
+    "ambient_reason": "status_file_missing",
+    "ambient_speed": null,
+    "ambient_tick": null,
+    "mode": "live",
+    "ok": true,
+    "profile_version": 1,
+    "readonly": false,
+    "run": "cap-opt2-300",
+    "storage": {
+      "disk_free_mb": 1153548,
+      "disk_free_pct": 60.47,
+      "events_ok": true,
+      "integrity": "ok",
+      "last_commit_age_s": 0.2,
+      "seq_gap": 0
+    },
+    "tick": 0,
+    "upstream_ok": true,
+    "world": {
+      "new_world": true,
+      "run": "cap-opt2-300",
+      "tick": 0
+    }
+  }
+}

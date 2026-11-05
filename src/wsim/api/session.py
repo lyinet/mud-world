@@ -11,7 +11,9 @@ import math
 import os
 import threading
 import time
+import weakref
 from collections import OrderedDict
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable
 
@@ -389,19 +391,9 @@ class WorldSession:
         self._presence_active = max(0.0, float(presence_active_seconds))
         self._presence_offline = max(self._presence_active, float(presence_offline_seconds))
         self._last_active: dict[str, float] = {}
-        # 价格缓存按 tick 失效（tick 不变则库存/供需不变，读快照无需重复扫全城）。
-        self._price_tick = -1
-        self._price_cache: dict[str, int] = {}
-        # 同一 tick 内钱包/地点/店铺视图不变（库存与钱只会随写动作推进 tick 而变）。
-        self._view_tick = -1
-        self._view_cache: dict[
-            str,
-            tuple[dict[str, Any], dict[str, Any], dict[str, Any], list[dict[str, Any]]],
-        ] = {}
-        # 任务读路径的有序缓存：按 state 对象身份失效（Writer 每次提交都替换 state），
-        # 同一版本状态下多个读请求只排一次序，避免每请求重复 O(n log n)。
-        self._quest_order_state: WorldState | None = None
-        self._quest_order: list = []
+        # 读快照：Writer 只替换 `state` 引用、从不原地改已提交状态，因此读路径
+        # 捕获一次引用后可在锁外计算；每请求的缓存放线程本地，避免并发读互相污染。
+        self._read_local = threading.local()
 
         self.content = load_content(self.root, allow_fixture=False, use_content=True)
         # 世界自走与玩家共用 content：feed 只认这批 NPC，玩家 ID 永不进入公共事件流。
@@ -489,26 +481,59 @@ class WorldSession:
 
     @property
     def state(self):
-        """始终指向 Writer 的最新投影，避免 bootstrap/submit 替换后读到旧对象。"""
+        """始终指向 Writer 的最新投影；读快照作用域内固定在捕获的那一版。"""
+        snapshot = getattr(self._read_local, "snapshot", None)
+        if snapshot is not None:
+            return snapshot
         return self.writer.state
 
+    @contextmanager
+    def _read_snapshot(self):
+        """把 `self.state` 固定到当前 Writer 投影，之后所有视图计算都不必占写锁。
+
+        Writer 提交后只替换引用，已提交状态对象不再被原地修改，所以锁外读旧快照
+        是安全的；一次请求内所有字段来自同一版本，不会出现跨版本的撕裂读。
+        """
+        snapshot = self.writer.state
+        previous = getattr(self._read_local, "snapshot", None)
+        self._read_local.snapshot = snapshot
+        try:
+            yield snapshot
+        finally:
+            self._read_local.snapshot = previous
+
+    @property
+    def _view_cache(self) -> dict[str, Any]:
+        """兼容旧调用：返回当前线程的读视图缓存（同一 tick 内复用）。"""
+        local = self._read_local
+        cache = getattr(local, "view_cache", None)
+        if cache is None:
+            cache = {}
+            local.view_cache = cache
+        return cache
+
     def _sorted_quests(self) -> list:
-        """按 id 排序的任务投影缓存；state 对象被 Writer 替换时重排一次。"""
+        """按 id 排序的任务投影缓存；按线程 + state 对象身份失效，避免每请求重排。
+
+        只持弱引用：请求结束后快照可以被回收，不会把旧世界钉在线程本地缓存里。
+        """
         state = self.state
-        if state is not self._quest_order_state:
-            self._quest_order_state = state
-            self._quest_order = sorted(state.quests.values(), key=lambda q: q.id)
-        return self._quest_order
+        local = self._read_local
+        ref = getattr(local, "quest_src_ref", None)
+        if ref is None or ref() is not state:
+            local.quest_src_ref = weakref.ref(state)
+            local.quest_order = sorted(state.quests.values(), key=lambda q: q.id)
+        return local.quest_order
 
     # ------------------------------------------------------------------ read
     def status(self, account: str) -> dict[str, Any]:
         pid = self._pid(account)
-        with self.lock:
+        with self._read_snapshot():
             return self._status_view(pid)
 
     def quests(self, account: str) -> dict[str, Any]:
         pid = self._pid(account)
-        with self.lock:
+        with self._read_snapshot():
             return self._quests_view(pid)
 
     def _escrow_view(self) -> tuple[list[dict[str, Any]], int]:
@@ -539,14 +564,14 @@ class WorldSession:
     def player_state(self, account: str) -> dict[str, Any]:
         """`GET /api/player/state`：冻结结构的只读快照。"""
         account = str(account or "").strip().lower()
-        with self.lock:
+        with self._read_snapshot() as snapshot:
             if not ACCOUNT_RE.match(account):
                 return {
                     "ok": False,
                     "profile_version": PROFILE_VERSION,
                     "reject_reason": "bad_account",
                     "reason_text": _reason_text("bad_account"),
-                    "tick": self.state.tick,
+                    "tick": snapshot.tick,
                 }
             pid = self._pid(account)
             view = self._status_view(pid)
@@ -560,11 +585,12 @@ class WorldSession:
             # 一次快照内按物品缓存成交价：内容层的供需乘数会扫全城库存，
             # 同一物品在 wallet/location/shop 三处重复取价会让并发读成倍变慢。
             prices: dict[str, tuple[int, int]] = {}
-            tick = int(self.state.tick)
-            if tick != self._view_tick:
-                self._view_cache.clear()
-                self._view_tick = tick
-            cached_views = self._view_cache.get(pid)
+            tick = int(snapshot.tick)
+            local = self._read_local
+            if tick != getattr(local, "view_tick", -1):
+                local.view_cache = {}
+                local.view_tick = tick
+            cached_views = getattr(local, "view_cache", {}).get(pid)
             if cached_views is None:
                 cached_views = (
                     self._wallet_view(pid, prices),
@@ -572,7 +598,7 @@ class WorldSession:
                     self._shop_view(pid, ent.location, prices),
                     self._present_view(pid, ent.location),
                 )
-                self._view_cache[pid] = cached_views
+                self._read_local.view_cache[pid] = cached_views
             wallet_view, location_view, shop_view, present_view = cached_views
             player = {
                 "entity_id": pid,
@@ -658,13 +684,13 @@ class WorldSession:
         加入钱包/背包类字段后自动泄漏。
         """
         account = str(account or "").strip().lower()
-        with self.lock:
+        with self._read_snapshot() as snapshot:
             if not ACCOUNT_RE.match(account):
                 return {
                     "ok": False,
                     "reject_reason": "bad_account",
                     "reason_text": _reason_text("bad_account"),
-                    "server_tick": int(self.state.tick),
+                    "server_tick": int(snapshot.tick),
                 }
             pid = self._pid(account)
             ent = self.state.entities.get(pid)
@@ -674,7 +700,7 @@ class WorldSession:
                     "ok": False,
                     "reject_reason": "player_not_entered",
                     "reason_text": _reason_text("player_not_entered"),
-                    "server_tick": int(self.state.tick),
+                    "server_tick": int(snapshot.tick),
                 }
             now = self._presence_clock()
             row = {
@@ -693,7 +719,7 @@ class WorldSession:
     def public_quests(self) -> dict[str, Any]:
         """服务模式匿名读：只返回公共开放任务，不含奖励明细与任何人已接任务。"""
         rows: list[dict[str, Any]] = []
-        with self.lock:
+        with self._read_snapshot() as snapshot:
             for quest in self._sorted_quests():
                 if quest.status != "open":
                     continue
@@ -703,7 +729,7 @@ class WorldSession:
                 rows.append(row)
             return {
                 "ok": True,
-                "tick": int(self.state.tick),
+                "tick": int(snapshot.tick),
                 "open": rows,
                 "active": [],
             }
@@ -1098,13 +1124,14 @@ class WorldSession:
         if item not in self.content.items:
             return (0, 0)
         tick = int(self.state.tick)
-        if tick != self._price_tick:
-            self._price_cache.clear()
-            self._price_tick = tick
-        buy = self._price_cache.get(item)
+        local = self._read_local
+        if tick != getattr(local, "price_tick", -1):
+            local.price_cache = {}
+            local.price_tick = tick
+        buy = getattr(local, "price_cache", {}).get(item)
         if buy is None:
             buy = int(self.content.item_price(item, self.state))
-            self._price_cache[item] = buy
+            local.price_cache[item] = buy
         ratio = float(self.content.economy.get("sell_ratio", 0.6))
         pair = (buy, max(1, int(round(buy * ratio))))
         if prices is not None:

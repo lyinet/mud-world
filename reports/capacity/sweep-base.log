@@ -1,0 +1,10 @@
+=== level 50 ===
+  state p50/p95/p99=1.161/19.73/62.342ms err=0 429cap=0 writes/s=23.4 cpu=31.76% rss=55.59MB seq_gap_max=0
+=== level 100 ===
+  state p50/p95/p99=42.772/719.469/1239.957ms err=0 429cap=0 writes/s=39.93 cpu=81.87% rss=67.69MB seq_gap_max=0
+=== level 150 ===
+  state p50/p95/p99=614.297/1773.503/2870.077ms err=0 429cap=0 writes/s=39.41 cpu=95.55% rss=74.47MB seq_gap_max=0
+=== level 200 ===
+  state p50/p95/p99=1380.365/2701.263/3374.104ms err=0 429cap=1 writes/s=36.36 cpu=106.22% rss=81.16MB seq_gap_max=0
+=== level 300 ===
+  state p50/p95/p99=3294.763/6888.299/10001.08ms err=67 429cap=1 writes/s=28.46 cpu=117.75% rss=85.44MB seq_gap_max=0

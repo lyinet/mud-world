@@ -1,0 +1,1 @@
+{"ok": true, "run_dir": "/Users/lyinet/projects/XKX/world-sim/runs/cap-opt2-100", "listen": "http://127.0.0.1:8143", "profile_version": 1, "tick": 0, "auth_required": true, "auth_mode": "on", "world": "new", "allow_new_world": false, "ambient": "stopped", "docs": "docs/player-api.md"}

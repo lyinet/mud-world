@@ -136,12 +136,16 @@ class Recorder:
         self.http_5xx = 0
         self.http_401 = 0
         self.error_samples: list[str] = []
+        self.by_status: Counter[str] = Counter()
+        self.by_endpoint_count: Counter[str] = Counter()
 
     def record(self, endpoint: str, status: int, payload: dict[str, Any], elapsed_ms: float, error: str) -> None:
         code = _reason(payload)
         with self.lock:
             self.requests += 1
             self.by_endpoint.setdefault(endpoint, []).append(elapsed_ms)
+            self.by_endpoint_count[endpoint] += 1
+            self.by_status["timeout" if error else str(status)] += 1
             if error:
                 self.errors += 1
                 if len(self.error_samples) < 30:
@@ -197,6 +201,8 @@ class Recorder:
                     "all": percentiles(all_lat),
                     "by_endpoint": {k: percentiles(v) for k, v in sorted(self.by_endpoint.items())},
                 },
+                "status_codes": dict(sorted(self.by_status.items())),
+                "request_counts_by_endpoint": dict(sorted(self.by_endpoint_count.items())),
                 "rejections_by_code": dict(sorted(self.reject_codes.items())),
                 "error_samples": list(self.error_samples),
             }
@@ -490,14 +496,17 @@ class ResourceSampler(threading.Thread):
         stop: threading.Event,
         interval: float,
         run_dir: Path | None,
+        base_url: str | None = None,
     ) -> None:
         super().__init__(name="w5-resource-sampler", daemon=True)
         self.pid = pid
         self.stop = stop
         self.interval = max(0.5, interval)
         self.run_dir = run_dir
+        self.base_url = base_url.rstrip("/") if base_url else None
         self.samples: list[dict[str, Any]] = []
         self.event_counts: list[dict[str, Any]] = []
+        self.health_samples: list[dict[str, Any]] = []
         self._lock = threading.Lock()
 
     def _event_count(self) -> int | None:
@@ -514,6 +523,34 @@ class ResourceSampler(threading.Thread):
                 conn.close()
         except Exception:
             return None
+
+    def _db_size_mb(self) -> float | None:
+        if self.run_dir is None:
+            return None
+        db = self.run_dir / "events.sqlite"
+        try:
+            total = db.stat().st_size
+            wal = db.with_suffix(".sqlite-wal")
+            if wal.exists():
+                total += wal.stat().st_size
+        except OSError:
+            return None
+        return round(total / (1024 * 1024), 3)
+
+    def _health(self) -> dict[str, Any] | None:
+        if not self.base_url:
+            return None
+        try:
+            with urllib.request.urlopen(f"{self.base_url}/api/health", timeout=3) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+        except Exception:
+            return None
+        storage = data.get("storage") or {}
+        return {
+            "seq_gap": int(storage.get("seq_gap") or 0),
+            "events_ok": storage.get("events_ok"),
+            "tick": int(data.get("tick") or 0),
+        }
 
     def run(self) -> None:
         t0 = time.monotonic()
@@ -536,6 +573,8 @@ class ResourceSampler(threading.Thread):
             cpu_pct = 0.0
             if prev is not None and now_at > prev_at:
                 cpu_pct = max(0.0, (now[1] - prev[1]) / (now_at - prev_at) * 100.0)
+            health = self._health()
+            db_size = self._db_size_mb()
             with self._lock:
                 self.samples.append({
                     "t": round(now_at - t0, 2),
@@ -543,7 +582,11 @@ class ResourceSampler(threading.Thread):
                     "cpu_pct": round(cpu_pct, 2),
                     "cpu_s": round(now[1], 1),
                     "alive": True,
+                    "db_size_mb": db_size,
+                    "seq_gap": health.get("seq_gap") if health else None,
                 })
+                if health is not None:
+                    self.health_samples.append({"t": round(now_at - t0, 2), **health})
             count = self._event_count()
             if count is not None:
                 with self._lock:
@@ -565,6 +608,12 @@ class ResourceSampler(threading.Thread):
                 cpu_seconds = round(max(0.0, last_cpu - first_cpu), 1)
             counts = [r["count"] for r in self.event_counts]
             monotonic = all(b >= a for a, b in zip(counts, counts[1:]))
+            gaps = [r["seq_gap"] for r in rows if r.get("seq_gap") is not None]
+            db_sizes = [r["db_size_mb"] for r in rows if r.get("db_size_mb") is not None]
+            duration = (rows[-1]["t"] - rows[0]["t"]) if len(rows) >= 2 else 0.0
+            growth_mb_per_s = None
+            if len(db_sizes) >= 2 and duration > 0:
+                growth_mb_per_s = round((db_sizes[-1] - db_sizes[0]) / duration, 6)
             return {
                 "samples": rows,
                 "rss_baseline_mb": baseline,
@@ -576,6 +625,12 @@ class ResourceSampler(threading.Thread):
                 "cpu_seconds_total": cpu_seconds,
                 "event_count_samples": list(self.event_counts),
                 "event_count_monotonic": monotonic,
+                "seq_gap_max": max(gaps) if gaps else None,
+                "seq_gap_end": gaps[-1] if gaps else None,
+                "db_size_mb_start": db_sizes[0] if db_sizes else None,
+                "db_size_mb_end": db_sizes[-1] if db_sizes else None,
+                "db_growth_mb_per_s": growth_mb_per_s,
+                "health_samples": list(self.health_samples),
             }
 
 
@@ -795,7 +850,7 @@ def run_load(args: argparse.Namespace) -> dict[str, Any]:
     run_dir = Path(args.run_dir).resolve() if args.run_dir else None
 
     count_before = _count_events(run_dir) if run_dir else None
-    sampler = ResourceSampler(args.server_pid, stop, args.sample_interval, run_dir)
+    sampler = ResourceSampler(args.server_pid, stop, args.sample_interval, run_dir, base_url=base)
     if args.server_pid > 0 or run_dir is not None:
         sampler.start()
 
@@ -889,6 +944,18 @@ def run_load(args: argparse.Namespace) -> dict[str, Any]:
         },
     }
     report["pass"]["all"] = all(bool(v) for v in report["pass"].values())
+    # 吞吐：读 / 写分开算。写动作 = 除 state 与 auth/enter 之外的 POST。
+    counts = rec.get("request_counts_by_endpoint", {})
+    write_ops = sum(n for ep, n in counts.items()
+                    if ep.startswith("POST ") and not ep.startswith("POST /api/auth")
+                    and ep not in ("POST /api/player/enter",))
+    report["throughput"] = {
+        "requests_per_second": round(total / max(1.0, actual), 2),
+        "write_ops_per_second": round(write_ops / max(1.0, actual), 2),
+        "reads_per_second": round((counts.get(STATE_ENDPOINT, 0)) / max(1.0, actual), 2),
+        "events_per_second": round((report["event_growth"]["delta"] or 0) / max(1.0, actual), 2),
+        "counts_by_endpoint": counts,
+    }
     report["per_seat"] = {
         "requests_per_seat": round(total / max(1, args.players), 2),
         "requests_per_seat_second": round(total / max(1, args.players) / max(1.0, actual), 4),

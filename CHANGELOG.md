@@ -9,6 +9,40 @@
 
 ---
 
+## [容量] 2026-11-06 — 50–300 席实测、读路径出锁与 clone 值拷贝，给出 100/150/500 席结论
+
+- **改了什么**
+  - 新增 `docs/CAPACITY.md`：50/100/150/200/300 席读写混合实测表（`state` P50/P95/P99、写吞吐、错误码、
+    `seq_gap`、RSS/CPU、SQLite 增长）、瓶颈指认、两项优化的前后对比、200 席 5 分钟 soak、扩容结论；
+    新增 `docs/PARTITIONING.md`：地理/区域/玩家分组/分房间四种方案对比、跨区押镖/交易/门派处理、
+    跨分片事件号与 tick 屏障、成本与落地顺序（设计文档，未改实现）。
+  - `src/wsim/api/session.py` **只改读路径**（写路径 `submit` 一行未动）：
+    392 行新增 `self._read_local` 线程本地读上下文；491 行新增 `_read_snapshot()`（捕获一次 Writer 投影引用，
+    锁外计算）；505 行 `_view_cache` 兼容属性；515 行 `_sorted_quests` 改弱引用缓存；
+    529/534/564/684/719/729/1125 行 `status/quests/player_state/public_state/public_quests/_item_prices`
+    改快照读与线程本地缓存，去掉读路径上的 `with self.lock`。
+    （该文件另有其它会话的 `world_feed` 改动，本次提交只暂存了上述读路径 hunk。）
+  - `src/wsim/world/state.py:387-395`：`clone()` 从逐字段 `copy.deepcopy` 改为 `pickle.loads(pickle.dumps(...))`；
+    仍是“克隆成功才切投影”，失败时旧投影不受影响。
+  - `tools/load_test.py`：报告新增 `status_codes` / `request_counts_by_endpoint` / `seq_gap_max` /
+    `db_growth_mb_per_s` / `rss_growth_mb` / `throughput`（并修掉 WAL 体积取值的 `stat()` 误用）。
+  - 新增测量工具 `tools/capacity_sweep.py`（每档独立起停服务端）、`tools/capacity_probe.py`
+    （进程内替换 `session.lock` 量锁等待/持有/队列深度与 clone/apply/append 分段耗时）、
+    `tools/capacity_overrides/sitecustomize.py`（仅 300 席测量时临时抬高区域上限，不改出厂默认 200）。
+  - `reports/capacity/`：各档位原始 JSON、探针结果与 sweep/soak 日志。
+- **为什么改**：`docs/OPS-RUNBOOK.md §8` 只有“150→500 扩容未实现”的文档结论，没有任何实测支撑；
+  本轮先用真实数字指认瓶颈，再只做被复测证明有效的两项优化，最后才给分区判断。
+- **验证方式**
+  - 红线：`PYTHONPATH=src .venv/bin/python -m pytest -q tests/test_p3e_golden.py`
+    → `2 passed, 18 skipped`（最新 V6 两套通过，18 个历史版本按文件头显式 skip，无玩家世界哈希逐字节一致）。
+  - 优化前后（同一 90s / think=2s / 每席位 1 读 + 1 写口径）：
+    100 席 `state` P95 719 → 11.9ms、写吞吐 39.9 → 45.8/s；150 席 1773 → 13.9ms、39.4 → 61.5/s；
+    200 席 2701 → 20.9ms、36.4 → 61.4/s；300 席 6888 → 21.9ms、28.5 → 55.3/s。
+  - 200 席 5 分钟 soak：24,226 请求、错误率 0%、`seq_gap` 全程 0、不变量 PASS；
+    `action` P95 4.97s、RSS 70 → 160MB **未收敛**（如实记录，需 ≥2h 复测）。
+  - 结论：单进程安全线 **100 席**、极限约 **150 席**；500 席单进程不可达，需要分区。
+- **commit**：见本条目所在提交。
+
 ## [玩家 UI] 2026-11-06 — 店铺经营接真服务成功链、缺货提示与账本中文原因
 
 - **改了什么**

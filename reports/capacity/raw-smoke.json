@@ -1,0 +1,398 @@
+{
+  "schema": "w5-load-report/v1",
+  "started_at": "2026-11-05T20:11:59+00:00",
+  "duration_s": 10.0,
+  "actual_duration_s": 11.2,
+  "config": {
+    "base_url": "http://127.0.0.1:8149",
+    "players": 5,
+    "think_time_s": 1.0,
+    "ramp_up_s": 2.0,
+    "tag": "3f11e5",
+    "run_dir": "/Users/lyinet/projects/XKX/world-sim/runs/cap-smoke",
+    "server_pid": 55579
+  },
+  "players": {
+    "started": 5,
+    "entered": 5,
+    "failed_enter": 0,
+    "cycles": 47,
+    "player_errors": []
+  },
+  "totals": {
+    "requests": 109,
+    "ok": 109,
+    "errors": 0,
+    "http_5xx": 0,
+    "http_401": 0,
+    "capacity_rejections": 0,
+    "business_rejections": 0,
+    "error_rate_pct": 0.0,
+    "latency_ms": {
+      "all": {
+        "count": 109,
+        "p50": 5.716,
+        "p95": 35.371,
+        "p99": 52.141,
+        "mean": 8.941,
+        "max": 55.355
+      },
+      "by_endpoint": {
+        "GET /api/player/state": {
+          "count": 47,
+          "p50": 1.22,
+          "p95": 4.34,
+          "p99": 19.093,
+          "mean": 1.833,
+          "max": 19.093
+        },
+        "POST /api/auth/login": {
+          "count": 5,
+          "p50": 33.383,
+          "p95": 35.371,
+          "p99": 35.371,
+          "mean": 33.531,
+          "max": 35.371
+        },
+        "POST /api/auth/register": {
+          "count": 5,
+          "p50": 51.692,
+          "p95": 55.355,
+          "p99": 55.355,
+          "mean": 45.85,
+          "max": 55.355
+        },
+        "POST /api/player/action": {
+          "count": 47,
+          "p50": 7.182,
+          "p95": 17.405,
+          "p99": 42.45,
+          "mean": 9.587,
+          "max": 42.45
+        },
+        "POST /api/player/enter": {
+          "count": 5,
+          "p50": 7.879,
+          "p95": 10.062,
+          "p99": 10.062,
+          "mean": 8.185,
+          "max": 10.062
+        }
+      }
+    },
+    "status_codes": {
+      "200": 109
+    },
+    "request_counts_by_endpoint": {
+      "GET /api/player/state": 47,
+      "POST /api/auth/login": 5,
+      "POST /api/auth/register": 5,
+      "POST /api/player/action": 47,
+      "POST /api/player/enter": 5
+    },
+    "rejections_by_code": {},
+    "error_samples": []
+  },
+  "resources": {
+    "samples": [
+      {
+        "t": 0.0,
+        "rss_mb": 1.42,
+        "cpu_pct": 0.0,
+        "cpu_s": 0.0,
+        "alive": true
+      },
+      {
+        "t": 1.01,
+        "rss_mb": 1.42,
+        "cpu_pct": 0.0,
+        "cpu_s": 0.0,
+        "alive": true,
+        "db_size_mb": 0.401,
+        "seq_gap": 0
+      },
+      {
+        "t": 2.02,
+        "rss_mb": 1.2,
+        "cpu_pct": 0.0,
+        "cpu_s": 0.0,
+        "alive": true,
+        "db_size_mb": 0.605,
+        "seq_gap": 0
+      },
+      {
+        "t": 3.04,
+        "rss_mb": 1.19,
+        "cpu_pct": 0.0,
+        "cpu_s": 0.0,
+        "alive": true,
+        "db_size_mb": 0.731,
+        "seq_gap": 0
+      },
+      {
+        "t": 4.05,
+        "rss_mb": 1.2,
+        "cpu_pct": 0.0,
+        "cpu_s": 0.0,
+        "alive": true,
+        "db_size_mb": 0.857,
+        "seq_gap": 0
+      },
+      {
+        "t": 5.06,
+        "rss_mb": 1.2,
+        "cpu_pct": 0.0,
+        "cpu_s": 0.0,
+        "alive": true,
+        "db_size_mb": 0.982,
+        "seq_gap": 0
+      },
+      {
+        "t": 6.08,
+        "rss_mb": 1.2,
+        "cpu_pct": 0.0,
+        "cpu_s": 0.0,
+        "alive": true,
+        "db_size_mb": 1.108,
+        "seq_gap": 0
+      },
+      {
+        "t": 7.09,
+        "rss_mb": 1.2,
+        "cpu_pct": 0.0,
+        "cpu_s": 0.0,
+        "alive": true,
+        "db_size_mb": 1.234,
+        "seq_gap": 0
+      },
+      {
+        "t": 8.1,
+        "rss_mb": 1.19,
+        "cpu_pct": 0.0,
+        "cpu_s": 0.0,
+        "alive": true,
+        "db_size_mb": 1.359,
+        "seq_gap": 0
+      },
+      {
+        "t": 9.11,
+        "rss_mb": 1.2,
+        "cpu_pct": 0.0,
+        "cpu_s": 0.0,
+        "alive": true,
+        "db_size_mb": 1.493,
+        "seq_gap": 0
+      },
+      {
+        "t": 10.13,
+        "rss_mb": 1.2,
+        "cpu_pct": 0.0,
+        "cpu_s": 0.0,
+        "alive": true,
+        "db_size_mb": 1.572,
+        "seq_gap": 0
+      },
+      {
+        "t": 11.14,
+        "rss_mb": 1.2,
+        "cpu_pct": 0.0,
+        "cpu_s": 0.0,
+        "alive": true,
+        "db_size_mb": 1.572,
+        "seq_gap": 0
+      }
+    ],
+    "rss_baseline_mb": 1.42,
+    "rss_peak_mb": 1.42,
+    "rss_end_mb": 1.2,
+    "rss_growth_mb": -0.22,
+    "cpu_peak_pct": 0.0,
+    "cpu_mean_pct": 0.0,
+    "cpu_seconds_total": 0.0,
+    "event_count_samples": [
+      {
+        "at": "2026-11-05T20:12:00+00:00",
+        "count": 20
+      },
+      {
+        "at": "2026-11-05T20:12:01+00:00",
+        "count": 36
+      },
+      {
+        "at": "2026-11-05T20:12:02+00:00",
+        "count": 46
+      },
+      {
+        "at": "2026-11-05T20:12:03+00:00",
+        "count": 56
+      },
+      {
+        "at": "2026-11-05T20:12:04+00:00",
+        "count": 66
+      },
+      {
+        "at": "2026-11-05T20:12:05+00:00",
+        "count": 76
+      },
+      {
+        "at": "2026-11-05T20:12:06+00:00",
+        "count": 86
+      },
+      {
+        "at": "2026-11-05T20:12:07+00:00",
+        "count": 96
+      },
+      {
+        "at": "2026-11-05T20:12:08+00:00",
+        "count": 106
+      },
+      {
+        "at": "2026-11-05T20:12:09+00:00",
+        "count": 112
+      },
+      {
+        "at": "2026-11-05T20:12:10+00:00",
+        "count": 112
+      }
+    ],
+    "event_count_monotonic": true,
+    "seq_gap_max": 0,
+    "seq_gap_end": 0,
+    "db_size_mb_start": 0.401,
+    "db_size_mb_end": 1.572,
+    "db_growth_mb_per_s": 0.105117,
+    "health_samples": [
+      {
+        "t": 1.01,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 42
+      },
+      {
+        "t": 2.02,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 84
+      },
+      {
+        "t": 3.04,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 114
+      },
+      {
+        "t": 4.05,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 144
+      },
+      {
+        "t": 5.06,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 174
+      },
+      {
+        "t": 6.08,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 204
+      },
+      {
+        "t": 7.09,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 234
+      },
+      {
+        "t": 8.1,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 264
+      },
+      {
+        "t": 9.11,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 294
+      },
+      {
+        "t": 10.13,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 312
+      },
+      {
+        "t": 11.14,
+        "seq_gap": 0,
+        "events_ok": true,
+        "tick": 312
+      }
+    ]
+  },
+  "event_growth": {
+    "count_before": 3,
+    "count_after": 112,
+    "delta": 109,
+    "monotonic": true
+  },
+  "invariants": {
+    "run_dir": "/Users/lyinet/projects/XKX/world-sim/runs/cap-smoke",
+    "db_exists": true,
+    "ok": true,
+    "errors": [],
+    "integrity_check": "ok",
+    "event_count": 112,
+    "seq": {
+      "first": 1,
+      "last": 112,
+      "count": 112,
+      "distinct": 112,
+      "contiguous": true
+    },
+    "wallet": {
+      "accounts": 47,
+      "sum_balance": 48950,
+      "minted_total": 48950,
+      "burned_total": 0,
+      "expected_sum": 48950,
+      "delta": 0,
+      "transfers": 0
+    },
+    "negative_rows": [],
+    "half_write_rows": [],
+    "genesis_events": 2,
+    "genesis_ok_events": 1,
+    "outcomes": {
+      "ok": 112
+    }
+  },
+  "pass": {
+    "state_p95_under_300ms": true,
+    "error_rate_under_0_5pct": true,
+    "zero_http_500": true,
+    "invariants_pass": true,
+    "event_count_monotonic": true,
+    "all": true
+  },
+  "throughput": {
+    "requests_per_second": 9.73,
+    "write_ops_per_second": 4.2,
+    "reads_per_second": 4.2,
+    "events_per_second": 9.73,
+    "counts_by_endpoint": {
+      "GET /api/player/state": 47,
+      "POST /api/auth/login": 5,
+      "POST /api/auth/register": 5,
+      "POST /api/player/action": 47,
+      "POST /api/player/enter": 5
+    }
+  },
+  "per_seat": {
+    "requests_per_seat": 21.8,
+    "requests_per_seat_second": 1.9464,
+    "cpu_seconds_total": 0.0,
+    "cpu_seconds_per_request": 0.0,
+    "rss_growth_mb_per_seat": -0.044
+  }
+}
