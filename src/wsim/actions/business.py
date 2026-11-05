@@ -228,6 +228,18 @@ def _worked_on_day(state: WorldState, eid: str, day: int) -> bool:
     return False
 
 
+def shop_stock_snapshot(content, biz) -> tuple[int, list[str]]:
+    """收盘库存快照：总件数 + 该档位常规品类里已售罄的 SKU。
+
+    只读 `biz.stock`：不改库存、不参与成交，只用于日结/报告归因
+    "缺货导致的零成交日"。无玩家店的世界不会被调用，事件序列不变。
+    """
+    stock_units = sum(max(0, int(qty)) for qty in biz.stock.values())
+    canonical = sorted(_initial_stock(content, biz.kind))
+    stockout_items = [item for item in canonical if int(biz.stock.get(item, 0)) <= 0]
+    return stock_units, stockout_items
+
+
 def build_shop_settlements(content, state: WorldState, tick: int | None = None) -> list[dict]:
     """计算玩家店铺当日日结行（不产生效果，只给日界事件 args 用）。
 
@@ -294,6 +306,7 @@ def build_shop_settlements(content, state: WorldState, tick: int | None = None) 
         output_units = sum(
             _employee_output_units(state, row["employee"]) for row in employees if row["present"]
         )
+        stock_units, stockout_items = shop_stock_snapshot(content, biz)
         rows.append({
             "shop": bid,
             "kind": biz.kind,
@@ -317,6 +330,10 @@ def build_shop_settlements(content, state: WorldState, tick: int | None = None) 
             "output_qty": output_units if output_item else 0,
             "customers": int(biz.day_customers),
             "cash": cash,
+            "stock_units": stock_units,
+            "stockout_items": stockout_items,
+            # 归因口径：当天零成交且该档常规品类有售罄 SKU → 记一次缺货日。
+            "stockout": int(biz.day_customers) == 0 and bool(stockout_items),
         })
     return rows
 
@@ -418,6 +435,9 @@ def build_shop_history_row(row: dict, tick: int) -> tuple[int, dict]:
         "net_profit": int(row.get("net", 0)),
         "tx": int(row.get("tx", 0)),
         "customers": int(row.get("customers", 0)),
+        "stock_units": int(row.get("stock_units", 0)),
+        "stockout": bool(row.get("stockout", False)),
+        "stockout_items": list(row.get("stockout_items") or []),
     }
 
 
@@ -727,6 +747,8 @@ class ShopReportAction(Action):
             "days": days,
             "cash": state.account_balance(biz.cash_account),
             "price_overrides": dict(sorted(biz.price_overrides.items())),
+            "stock": {item: int(qty) for item, qty in sorted(biz.stock.items())},
+            "stockouts": sum(1 for d in days if d.get("stockout")),
         })]
 
 

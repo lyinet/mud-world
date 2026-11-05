@@ -533,6 +533,42 @@ def test_shop_report_returns_last_seven_rows(real_content, world):
     assert action.preconditions(world, intent) == ["not_shop_owner"]
 
 
+def test_stockout_zero_sale_day_is_flagged(real_content, world):
+    """断供归因：零成交 + 常规品类售罄 → 日结行与 shop_report 都能看出来。"""
+    _seed_shop(world, kind="storefront")
+    biz = world.businesses[SHOP_ID]
+    biz.stock = {"coarse_cloth": 0, "cleaver": 2, "flatbread": 0,
+                 "needle": 0, "noodle": 0, "rice": 0}
+    biz.day_customers = 0
+
+    rows = build_shop_settlements(real_content, world)
+    assert len(rows) == 1
+    row = rows[0]
+    assert row["stockout"] is True
+    assert row["stock_units"] == 2
+    assert row["stockout_items"] == ["coarse_cloth", "flatbread", "needle", "noodle", "rice"]
+
+    apply_effects(world, shop_settlement_effects(real_content, world, rows, tick=143))
+    report = [e for e in ShopReportAction(real_content).apply(world, _intent("shop_report"), None)
+              if e.op == "shop_report"][0].data
+    assert report["stockouts"] == 1
+    assert report["days"][-1]["stockout"] is True
+    assert report["days"][-1]["stockout_items"] == row["stockout_items"]
+    assert report["stock"] == {"coarse_cloth": 0, "cleaver": 2, "flatbread": 0,
+                               "needle": 0, "noodle": 0, "rice": 0}
+
+    # 库存齐全但零成交：只是没客人，不是缺货。
+    biz.stock = {item: 2 for item in ("coarse_cloth", "cleaver", "flatbread",
+                                      "needle", "noodle", "rice")}
+    biz.day_customers = 0
+    assert build_shop_settlements(real_content, world)[0]["stockout"] is False
+
+    # 有成交但个别品类售罄：不算"缺货导致的零成交日"。
+    biz.stock = {"cleaver": 2}
+    biz.day_customers = 2
+    assert build_shop_settlements(real_content, world)[0]["stockout"] is False
+
+
 def test_buyer_picks_cheaper_shop_when_prices_differ(real_content, world):
     from wsim.actions.commerce import BuyAction
 
