@@ -1,7 +1,7 @@
-# XKX / world-sim 对外试玩包（p3k）
+# XKX / world-sim 对外试玩包（p3l）
 
-本版基于 `b23827a`（`delivery-p3k` 冻结基线），内容冻结
-`content_hash = 7ec670c1…`（关闭态）；`delivery-p3f`–`p3j` 为前序交付，tag 均不改写。
+本版在 `delivery-p3k` 冻结基线 `b23827a` 上叠加 p3l 活世界增量，内容冻结
+`content_hash = 7ec670c1…`（关闭态）；`delivery-p3f`–`p3k` 为前序交付，tag 均不改写。
 
 这是一个可离线运行的 MUD 世界：Python 引擎 `wsim.api` + 浏览器前端 `ui/player`
 + 默认开启的后台世界自走（ambient）。
@@ -38,10 +38,12 @@ CPU 上限用 `XKX_AMBIENT_CPU=70`（百分比）调整。
 ## 三个观察点
 
 1. **世界在跑**：顶部时钟每个动作推进 1 小时（6 tick）；`tick` 从 0 → 6 → 12。
-2. **NPC 自主行动**：`./start.sh` 默认常驻后台自走，NPC 会自己修炼、开店、结婚；
-   `/api/health` 的 `ambient`/`ambient_tick` 显示自走是否在推进。玩家存档仍是动作驱动，
-   自走在独立世界目录 `runs/<RUN_ID>/ambient`（不双写存档）。
-   想看一段完整的 NPC 行动回放，可另生成一个 jsonl 种子世界（只读，不影响当前存档）：
+2. **NPC 自主行动**：`./start.sh` 默认常驻同进程世界自走，NPC 会自己修炼、开店、结婚；
+   `/api/health` 的 `ambient`/`ambient_tick` 显示自走是否在推进，且 `ambient_tick` 就是当前世界 tick。
+   自走与玩家共用同一份 `events.sqlite`、同一个 Writer 和同一把锁，整 tick 串行提交；
+   `runs/<RUN_ID>/ambient/` 只保留审计与状态文件（不再另起独立世界）。
+   中栏「世界动态」每 8 秒匿名刷新 `GET /api/world/feed?limit=20`，失败时静默显示「世界暂时安静」。
+   想看一段更长的 NPC 行动回放，可另生成一个 jsonl 种子世界（只读，不影响当前存档）：
    ```bash
    .venv/bin/python sim/run_headless.py --days 10 --seed 42 --run-id npc-feed
    .venv/bin/python scripts/world_feed.py --run runs/npc-feed --lines 12
@@ -54,8 +56,9 @@ CPU 上限用 `XKX_AMBIENT_CPU=70`（百分比）调整。
 
 - [快速开始（含每一步预期输出、断线验证）](docs/QUICKSTART.md)
 - [已知限制（目标校准、模型 FAIL、维护义务、委托补发范围、节奏单人实测）](docs/known-limitations.md)
-- [p3k Release Notes（服务化、自走调度器、压测与部署、首发容量边界）](docs/RELEASE-NOTES-p3k.md)
-- [p3k 交付实测（干净解包、一条命令起服务、测试计数）](docs/DELIVERY-TEST-p3k.md)
+- [p3l Release Notes（世界默认自走、同一世界 feed、公平轮转、容量边界）](docs/RELEASE-NOTES-p3l.md)
+- [p3l 交付实测（三路径、60 秒可见性、P95、崩溃恢复）](docs/DELIVERY-TEST-p3l.md)
+- [p3k Release Notes（历史基线：服务化、压测与部署）](docs/RELEASE-NOTES-p3k.md)
 - [内容包验证清单（新手链、日常、长线、物价、关系；p3i 沿用）](docs/CONTENT-GUIDE-p3i.md)
 - [项目说明（仓库原有 README）](README-PROJECT.md)
 
@@ -65,7 +68,7 @@ CPU 上限用 `XKX_AMBIENT_CPU=70`（百分比）调整。
 ./scripts/selfcheck.sh
 ```
 
-本机实测：`pytest` 全绿（计数见 `docs/AMBIENT.md` / CHANGELOG），
+本机实测：`pytest` **439 passed, 12 skipped**（干净解包），
 内容包 / 单元测试 / 框架验收 / 玩家闭环 4 项全 PASS；framework 6/6。
 skip 是显式保留的旧基线，不是删测试。
 
@@ -83,8 +86,9 @@ skip 是显式保留的旧基线，不是删测试。
 - 不要把 8020/8000 直接暴露公网：`start.sh` 默认只绑 `127.0.0.1`；API 虽已对写端点启用
   Bearer 鉴权（PBKDF2 账号），但仍是明文 HTTP、无 TLS/限流，且 `account_id` 只是字符串，
   不能当身份证明；
-- 不要把自走世界与玩家存档当成同一个世界：`start.sh` 默认启动 ambient，但它写
-  `runs/<RUN_ID>/ambient/events.sqlite`，不并入玩家存档（见 `docs/AMBIENT.md`）；
+- 不要为自走再起第二个 Writer：p3l 起自走已并入 API 进程，与玩家共用
+  `runs/<RUN_ID>/events.sqlite`、同一个 Writer 和同一把锁；关闭用 `XKX_AMBIENT=0`，
+  不要另起独立的 ambient 子进程；
 - 不要把本版 K1 的 `49.45% → 65.93%` 当成模型贡献：它归因于目标体量与内容校准，模型在该维度零增益；
 - 不要把模型的两次机制实验当成“仍在优化”：每 tick 选择器与每 3 日战略层均 FAIL，已永久收工；
 - 不要把 R5 的 55.9% 非平手胜率当作“模型明显更好”：与好模板持平，对话默认仍走模板；
