@@ -9,6 +9,42 @@
 
 ---
 
+## [安全 P0] 2026-11-06 — 登录限流防爆破 + 令牌吊销 + 审计
+
+- **改了什么**
+  - `src/wsim/api/auth.py`：新增 `login_failures` / `login_locks` / `audit_log` 表；
+    `login()` 增加 `ip` 参数，按 `(ip, account)` 统计失败：5 分钟窗口 5 次失败后按
+    15 分钟 → 1 小时 → 24 小时指数退避；锁定期内（含正确口令）返回 `too_many_attempts`；
+    锁定判定在 PBKDF2 之前，成功登录清零失败与退避级别。
+  - 新增 `clear_login_locks()`（运维解锁，可按账号/IP 过滤）与
+    `revoke_sessions()`（按账号或全部吊销，`status=revoked`）；
+    `resolve_token` / `refresh` / `reconnect` / `disconnect` 对 `revoked` 一律
+    `auth_invalid_token`（不是 `auth_expired_token`）。
+  - 吊销与解锁写 `service.sqlite` 的 `audit_log`（同一事务提交，随库备份，无需日志轮转）。
+  - `src/wsim/api/server.py`：`_AUTH_STATUS` 增 `too_many_attempts: 429`；
+    登录传 TCP 对端 IP（不信任 `X-Forwarded-For`）；429 响应带 `Retry-After` 头与
+    `retry_after` 字段。
+  - 新增 `tools/unlock_account.py`（`--account` / `--ip` / `--all`）与
+    `tools/revoke_sessions.py`（`--account` / `--all`）。
+  - `docs/AUTH-API-W1.md` 增第 6/7 节（限流规则、解锁与吊销用法、审计选址理由）。
+- **为什么改**：上线前 P0：无登录限流等于开放爆破；无吊销能力意味着令牌泄露/离职
+  账号无法即时止损。
+- **验证方式**（`python -m pytest tests/test_w1_auth_hardening.py tests/test_w1_auth.py
+  tests/test_w1_http_auth.py tests/test_w1_capacity.py -q` → 25 passed）
+  - 50 次错误口令（真实服务 + 真 service.sqlite）：
+    `first4=[(1,401),..]`、`5th=(5,429,'too_many_attempts','900')`、
+    `50th=(50,429,...)`、`statuses={401:4,429:46}`、`retry_after_values=['900']`；
+    锁定期内正确口令 `429 retry_after=900`。
+  - 换 IP：`ipA correct too_many_attempts` / `ipB correct True`。
+  - 运维解锁：`unlock: 0 unlocked scope=u_demo locks=1` → `login-after-unlock: 200 True`。
+  - 吊销：`revoke: 0 ... sessions=1` → `me-after-revoke: 401 auth_invalid_token`、
+    `write-after-revoke: 401 auth_invalid_token`；
+    `audit_log: [('login_lock','u_demo','level=1 backoff=900s'),
+    ('unlock_account','u_demo','locks=1'), ('revoke_sessions','u_demo','revoked=1 scope=u_demo')]`。
+- **commit**：`（见本提交）`
+
+---
+
 ## [安全 P0/P1] 2026-11-06 — HTTP 指标端点 `GET /api/metrics`（Prometheus 文本）
 
 - **改了什么**
@@ -39,6 +75,25 @@
     基线 HEAD `p95=43.09ms, requests=?, errors=25`；加指标后两次
     `p95=52.91ms (78686 req, 2517.9 rps, errors=31)` 与
     `p95=37.45ms (98615 req, 3142.5 rps, errors=13)`，落在基线同一波动区间内。
+- **commit**：`（见本提交）`
+
+---
+
+## [部署] 2026-11-06 — 镜像版本化（label + /app/VERSION）与双 tag 构建
+
+- **改了什么**：
+  - `deploy/Dockerfile` 接受 `--build-arg XKX_VERSION` / `XKX_REVISION`，写入
+    `org.opencontainers.image.version` / `revision` 两个 label 与 `/app/VERSION` 文件
+    （`/api/health` 未改，避免动 API 逻辑）。
+  - 新增 `tools/build_image.sh`：版本默认取 `git describe --tags --always`，一次构建
+    `xkx-world-sim:<version>` 与 `xkx-world-sim:latest`，输出 version / revision /
+    image_id / digest / `/app/VERSION`。
+- **为什么改**：发布与回滚必须能精确指向某一镜像，且容器内外都能零依赖确认版本。
+- **验证方式**：`tools/build_image.sh rb-v1` / `rb-v0` 构建成功，label 与 `/app/VERSION`
+  一致；同卷回滚实测（当前版 `6c84cb0` → 上一版 `af4b64c`）7/7 PASS，完整命令与输出见
+  [docs/RELEASE-ROLLBACK.md](docs/RELEASE-ROLLBACK.md) 第 6 节。
+  说明：Dockerfile 的版本注入部分因并行任务提交 `0e1d685` 的宽 pathspec 提前进入 master，
+  本提交补齐构建脚本；两处内容一致。
 - **commit**：`（见本提交）`
 
 ---

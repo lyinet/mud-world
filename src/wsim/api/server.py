@@ -63,6 +63,7 @@ _AUTH_STATUS = {
     "auth_username_taken": 409,
     "auth_invalid_credentials": 401,
     "auth_disabled": 503,
+    "too_many_attempts": 429,
 }
 
 
@@ -186,7 +187,9 @@ class _Handler(BaseHTTPRequestHandler):
         return
 
     # ------------------------------------------------------------- primitives
-    def _send(self, status: int, payload: dict[str, Any]) -> None:
+    def _send(
+        self, status: int, payload: dict[str, Any], headers: dict[str, str] | None = None
+    ) -> None:
         self._status_code = int(status)
         metrics = getattr(self.server, "metrics", None)  # type: ignore[attr-defined]
         if metrics is not None and isinstance(payload, dict) and payload.get("ok") is False:
@@ -197,6 +200,8 @@ class _Handler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
+        for name, value in (headers or {}).items():
+            self.send_header(name, value)
         self.end_headers()
         self.wfile.write(body)
 
@@ -239,8 +244,19 @@ class _Handler(BaseHTTPRequestHandler):
             return header[len("bearer "):].strip()
         return ""
 
-    def _send_auth_error(self, code: str, status: int | None = None) -> None:
-        self._send(status or _AUTH_STATUS.get(code, 401), error_payload(code, self._session().state.tick))
+    def _client_ip(self) -> str:
+        """按 TCP 对端地址限流；不信任 X-Forwarded-For（可伪造）。"""
+        return str(self.client_address[0]) if self.client_address else ""
+
+    def _send_auth_error(
+        self, code: str, status: int | None = None, retry_after: int | None = None
+    ) -> None:
+        payload = error_payload(code, self._session().state.tick)
+        headers: dict[str, str] = {}
+        if retry_after is not None:
+            payload["retry_after"] = int(retry_after)
+            headers["Retry-After"] = str(int(retry_after))
+        self._send(status or _AUTH_STATUS.get(code, 401), payload, headers)
 
     def _resolve_token(self) -> tuple[dict[str, Any] | None, str | None]:
         accounts = self._accounts()
@@ -572,9 +588,13 @@ class _Handler(BaseHTTPRequestHandler):
                     },
                 )
                 return
-            res = accounts.login(body.get("username"), body.get("password"))
+            res = accounts.login(
+                body.get("username"), body.get("password"), ip=self._client_ip()
+            )
             if not res.get("ok"):
-                self._send_auth_error(str(res.get("code") or "auth_invalid_credentials"))
+                code = str(res.get("code") or "auth_invalid_credentials")
+                retry = res.get("retry_after")
+                self._send_auth_error(code, retry_after=(int(retry) if retry else None))
                 return
             self._send(200, res)
             return

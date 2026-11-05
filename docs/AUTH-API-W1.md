@@ -158,3 +158,44 @@ curl -s -X POST http://127.0.0.1:8020/api/player/reconnect \
 
 初始资产发放总额达上限同理返回 429 `endowment_cap_reached`。其他业务拒绝仍为 200，
 按 `reject_reason` 判断。
+
+## 6. 登录限流与防爆破
+
+按 `(ip, account)` 统计失败次数（TCP 对端地址，不信任 `X-Forwarded-For`）：
+
+- 5 分钟窗口内失败 5 次 → 锁定 15 分钟；
+- 解除后再次失败 5 次 → 锁定 1 小时；
+- 再解除后失败 5 次 → 锁定 24 小时（上限）。
+- 锁定期内所有登录（**包括正确口令**）返回 HTTP **429**：
+
+```json
+{"ok": false, "code": "too_many_attempts", "reject_reason": "too_many_attempts",
+ "reason_text": "登录失败次数过多；请稍后再试。", "tick": 120, "retry_after": 900}
+```
+
+并带 `Retry-After: 900` 响应头。锁定判定在 PBKDF2 之前，不消耗 CPU。
+成功登录清零该 `(ip, account)` 的失败记录与退避级别。
+
+同一 IP 的锁定只作用于该 IP + 该账号组合，不影响其他 IP；反过来，一个 IP
+被锁也不会波及其他账号。运维可解锁：
+
+```bash
+python3 tools/unlock_account.py --account u_demo            # 解锁该账号全部 IP
+python3 tools/unlock_account.py --account u_demo --ip 10.0.0.8
+python3 tools/unlock_account.py --all
+```
+
+## 7. 令牌吊销
+
+```bash
+python3 tools/revoke_sessions.py --account u_demo
+python3 tools/revoke_sessions.py --all
+```
+
+吊销后该账号的活动/断线会话立即变为 `revoked`，旧令牌在 `resolve_token` /
+`refresh` / `reconnect` 一律返回 **401 `auth_invalid_token`**（不是
+`auth_expired_token`）。吊销与审计在同一次事务写入 `service.sqlite` 的
+`audit_log` 表（`action=revoke_sessions`、`account`、`ip`、`detail` 含吊销数量）。
+选择写库而不是日志文件的理由：审计与会话状态同事务提交，不会出现“吊销成功但
+审计丢失”；`service.sqlite` 本来就在备份/恢复工具覆盖范围内，无需额外日志轮转。
+

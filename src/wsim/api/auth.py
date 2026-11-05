@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import math
 import re
 import secrets
 import sqlite3
@@ -23,6 +24,11 @@ DEFAULT_RECONNECT_GRACE = 60
 MIN_PASSWORD = 6
 MAX_PASSWORD = 128
 
+# 登录防爆破：同一 (ip, account) 在窗口内失败达到阈值后按级别退避。
+LOGIN_FAIL_WINDOW = 300
+LOGIN_FAIL_THRESHOLD = 5
+LOCK_BACKOFFS: tuple[int, ...] = (900, 3_600, 86_400)
+
 # 与 player.ACCOUNT_RE 保持同一规则；这里复制一份，避免鉴权层依赖动作层。
 USERNAME_RE = re.compile(r"^[a-z0-9_-]{3,32}$")
 
@@ -36,6 +42,7 @@ ERROR_TEXT: dict[str, str] = {
     "auth_expired_token": "令牌已过期；请重新登录。",
     "auth_account_mismatch": "请求账号与令牌账号不一致。",
     "auth_disabled": "当前为 legacy 匿名模式，鉴权接口不可用。",
+    "too_many_attempts": "登录失败次数过多；请稍后再试。",
 }
 
 _SCHEMA = """
@@ -58,6 +65,28 @@ CREATE TABLE IF NOT EXISTS sessions (
     status TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_sessions_account ON sessions(account_id);
+CREATE TABLE IF NOT EXISTS login_failures (
+    ip TEXT NOT NULL,
+    account TEXT NOT NULL,
+    failed_at REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_login_failures_key ON login_failures(ip, account, failed_at);
+CREATE TABLE IF NOT EXISTS login_locks (
+    ip TEXT NOT NULL,
+    account TEXT NOT NULL,
+    level INTEGER NOT NULL,
+    locked_until REAL NOT NULL,
+    updated_at REAL NOT NULL,
+    PRIMARY KEY (ip, account)
+);
+CREATE TABLE IF NOT EXISTS audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    at REAL NOT NULL,
+    action TEXT NOT NULL,
+    account TEXT NOT NULL DEFAULT '',
+    ip TEXT NOT NULL DEFAULT '',
+    detail TEXT NOT NULL DEFAULT ''
+);
 """
 
 
@@ -166,12 +195,109 @@ class AccountStore:
         expected = self._hash_password(pwd, str(row["salt"]), int(row["iterations"]))
         return name if hmac.compare_digest(expected, str(row["hash_hex"])) else None
 
-    def login(self, username: Any, password: Any, now: float | None = None) -> dict[str, Any]:
+    def login(
+        self, username: Any, password: Any, now: float | None = None, ip: str = ""
+    ) -> dict[str, Any]:
+        """登录。按 `(ip, account)` 做失败计数与指数退避，锁定期内一律 429。
+
+        锁定判定在 PBKDF2 之前，锁定期内不再消耗 CPU；成功登录清零该键的
+        失败记录与锁定级别。其他 `(ip, account)` 组合互不影响。
+        """
+        name = normalize_username(username)
+        ip_s = str(ip or "")
+        now_f = self._now(now)
+        with self.lock:
+            retry = self._lock_remaining(name, ip_s, now_f)
+        if retry > 0:
+            return {"ok": False, "code": "too_many_attempts", "retry_after": retry}
         account = self.authenticate(username, password)
         if account is None:
+            with self.lock:
+                retry = self._record_failure(name, ip_s, now_f)
+            if retry > 0:
+                return {"ok": False, "code": "too_many_attempts", "retry_after": retry}
             return {"ok": False, "code": "auth_invalid_credentials"}
         with self.lock:
-            return self._create_session(account, self._now(now))
+            self._clear_failures(name, ip_s)
+            return self._create_session(account, now_f)
+
+    # ------------------------------------------------------- login hardening
+    def _lock_remaining(self, account: str, ip: str, now_f: float) -> int:
+        """剩余锁定秒数；未锁定返回 0。"""
+        row = self.conn.execute(
+            "SELECT locked_until FROM login_locks WHERE ip=? AND account=?", (ip, account)
+        ).fetchone()
+        if row is None:
+            return 0
+        remaining = float(row["locked_until"]) - now_f
+        return max(0, math.ceil(remaining))
+
+    def _record_failure(self, account: str, ip: str, now_f: float) -> int:
+        """记一次失败；达到阈值则升级锁定并返回剩余秒数，否则返回 0。"""
+        cutoff = now_f - LOGIN_FAIL_WINDOW
+        self.conn.execute("DELETE FROM login_failures WHERE failed_at < ?", (cutoff,))
+        self.conn.execute(
+            "INSERT INTO login_failures(ip,account,failed_at) VALUES(?,?,?)", (ip, account, now_f)
+        )
+        count = int(
+            self.conn.execute(
+                "SELECT COUNT(*) AS n FROM login_failures WHERE ip=? AND account=? AND failed_at >= ?",
+                (ip, account, cutoff),
+            ).fetchone()["n"]
+        )
+        if count < LOGIN_FAIL_THRESHOLD:
+            self.conn.commit()
+            return 0
+        row = self.conn.execute(
+            "SELECT level FROM login_locks WHERE ip=? AND account=?", (ip, account)
+        ).fetchone()
+        level = (int(row["level"]) + 1) if row is not None else 1
+        backoff = LOCK_BACKOFFS[min(level - 1, len(LOCK_BACKOFFS) - 1)]
+        locked_until = now_f + backoff
+        self.conn.execute(
+            "INSERT OR REPLACE INTO login_locks(ip,account,level,locked_until,updated_at)"
+            " VALUES(?,?,?,?,?)",
+            (ip, account, level, locked_until, now_f),
+        )
+        # 触发锁定的这一批失败不再保留：解锁后重新从 0 计数。
+        self.conn.execute("DELETE FROM login_failures WHERE ip=? AND account=?", (ip, account))
+        self._audit(
+            "login_lock", account=account, ip=ip,
+            detail=f"level={level} backoff={backoff}s",
+        )
+        self.conn.commit()
+        return int(backoff)
+
+    def _clear_failures(self, account: str, ip: str) -> None:
+        self.conn.execute("DELETE FROM login_failures WHERE ip=? AND account=?", (ip, account))
+        self.conn.execute("DELETE FROM login_locks WHERE ip=? AND account=?", (ip, account))
+        self.conn.commit()
+
+    def clear_login_locks(self, account: str | None = None, ip: str | None = None) -> int:
+        """运维解锁：清掉失败计数与锁定；可按账号/来源 IP 过滤。"""
+        account_n = normalize_username(account) if account else None
+        ip_n = str(ip) if ip else None
+        with self.lock:
+            where, args = self._scope_where(account_n, ip_n)
+            cur = self.conn.execute(f"DELETE FROM login_locks{where}", args)
+            cleared = int(cur.rowcount or 0)
+            self.conn.execute(f"DELETE FROM login_failures{where}", args)
+            self._audit("unlock_account", account=account_n or "", ip=ip_n or "",
+                        detail=f"locks={cleared}")
+            self.conn.commit()
+            return cleared
+
+    @staticmethod
+    def _scope_where(account: str | None, ip: str | None) -> tuple[str, tuple[Any, ...]]:
+        clauses: list[str] = []
+        args: list[Any] = []
+        if account:
+            clauses.append("account=?")
+            args.append(account)
+        if ip:
+            clauses.append("ip=?")
+            args.append(ip)
+        return (" WHERE " + " AND ".join(clauses)) if clauses else "", tuple(args)
 
     # --------------------------------------------------------------- sessions
     def _create_session(self, account: str, now: float) -> dict[str, Any]:
@@ -214,6 +340,8 @@ class AccountStore:
             ).fetchone()
             if row is None:
                 return None, "auth_invalid_token"
+            if str(row["status"]) == "revoked":
+                return None, "auth_invalid_token"
             if str(row["status"]) == "expired" or float(row["expires_at"]) <= now_f:
                 return None, "auth_expired_token"
             if touch:
@@ -237,6 +365,8 @@ class AccountStore:
                 "SELECT * FROM sessions WHERE token_hash=?", (self._hash_token(str(token or "").strip()),)
             ).fetchone()
             if row is None:
+                return {"ok": False, "code": "auth_invalid_token"}
+            if str(row["status"]) == "revoked":
                 return {"ok": False, "code": "auth_invalid_token"}
             if str(row["status"]) == "expired" or float(row["expires_at"]) <= now_f:
                 return {"ok": False, "code": "auth_expired_token"}
@@ -278,12 +408,65 @@ class AccountStore:
             self.conn.commit()
             return {"ok": True, "logged_out": True, "session_id": str(row["id"])}
 
+    def revoke_sessions(
+        self,
+        account: str | None = None,
+        all_accounts: bool = False,
+        ip: str = "",
+        now: float | None = None,
+    ) -> dict[str, Any]:
+        """吊销令牌：指定账号或全部活动会话，立即不可用（`auth_invalid_token`）。
+
+        审计写入 `service.sqlite` 的 `audit_log` 表（与吊销同一事务提交），
+        不依赖外部日志轮转，便于随 service 库一起备份与回查。
+        """
+        if not account and not all_accounts:
+            return {"ok": False, "code": "revoke_needs_target"}
+        now_f = self._now(now)
+        with self.lock:
+            if all_accounts:
+                scope = "*"
+                cur = self.conn.execute(
+                    "UPDATE sessions SET status='revoked'"
+                    " WHERE status IN ('active','disconnected')"
+                )
+            else:
+                scope = normalize_username(account)
+                cur = self.conn.execute(
+                    "UPDATE sessions SET status='revoked'"
+                    " WHERE account_id=? AND status IN ('active','disconnected')",
+                    (scope,),
+                )
+            count = int(cur.rowcount or 0)
+            self._audit(
+                "revoke_sessions",
+                account="" if all_accounts else scope,
+                ip=str(ip or ""),
+                detail=f"revoked={count} scope={scope}",
+            )
+            self.conn.commit()
+        return {"ok": True, "revoked": count, "account": scope}
+
+    def list_audit(self, limit: int = 50) -> list[dict[str, Any]]:
+        with self.lock:
+            rows = self.conn.execute(
+                "SELECT * FROM audit_log ORDER BY id DESC LIMIT ?", (max(1, int(limit)),)
+            ).fetchall()
+            return [self._row(r) or {} for r in rows]
+
+    def _audit(self, action: str, account: str = "", ip: str = "", detail: str = "") -> None:
+        """只写审计表；调用方负责 commit。"""
+        self.conn.execute(
+            "INSERT INTO audit_log(at,action,account,ip,detail) VALUES(?,?,?,?,?)",
+            (self._now(None), str(action), str(account), str(ip), str(detail)),
+        )
+
     def disconnect(self, session_id: str, tick: int, now: float | None = None) -> bool:
         """标记断线；记录断线 tick，供 60 秒重连恢复。"""
         now_f = self._now(now)
         with self.lock:
             row = self.conn.execute("SELECT * FROM sessions WHERE id=?", (str(session_id),)).fetchone()
-            if row is None or str(row["status"]) == "expired":
+            if row is None or str(row["status"]) in ("expired", "revoked"):
                 return False
             self.conn.execute(
                 "UPDATE sessions SET status='disconnected', disconnected_at=?, tick_at_disconnect=?"
@@ -299,6 +482,8 @@ class AccountStore:
         with self.lock:
             row = self.conn.execute("SELECT * FROM sessions WHERE id=?", (str(session_id),)).fetchone()
             if row is None:
+                return {"ok": False, "code": "auth_invalid_token"}
+            if str(row["status"]) == "revoked":
                 return {"ok": False, "code": "auth_invalid_token"}
             if str(row["status"]) == "expired" or float(row["expires_at"]) <= now_f:
                 return {"ok": False, "code": "auth_expired_token"}
