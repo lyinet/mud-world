@@ -23,6 +23,10 @@ services:
       UI_PORT: "8030"
       AUTH_MODE: "${AUTH_MODE:-on}"
       TICK_STEP: "${TICK_STEP:-6}"
+      # 与 ./start.sh 一致：默认自走；XKX_AMBIENT=0 关闭。CPU 护栏默认 70%、1x 配速。
+      XKX_AMBIENT: "${XKX_AMBIENT:-1}"
+      XKX_AMBIENT_CPU: "${XKX_AMBIENT_CPU:-70}"
+      XKX_AMBIENT_SPEED: "${XKX_AMBIENT_SPEED:-1}"
     # 只读运行时注入：compose 从宿主 .env 读取，不写入镜像；缺失时按 required:false 跳过。
     env_file:
       - path: ../.env

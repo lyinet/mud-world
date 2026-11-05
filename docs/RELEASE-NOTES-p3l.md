@@ -129,9 +129,12 @@ XKX_AMBIENT=0 ./start.sh                     # 关闭自走
 2. **单区 150 席**：首发按单区 **150 席**对外；200 席功能上可连入（第 201 席返回 429
    `player_cap_reached`），但 P95 不达标。**不得写成“200 席达标”。**
 3. **扩容方案未实现**：多区、每区 4 核 / 2GB 仍是方案，代码未落地。
-4. **Docker 容器默认不自走**：`deploy/entrypoint.sh` 未注入 `XKX_AMBIENT`，容器默认
-   `ambient=stopped`；需要活世界容器时显式设 `XKX_AMBIENT=1`（本轮已验证该方式可跑）。
-   `./start.sh` 的默认自走不受影响。
+4. **Docker 容器默认自走（tag 后修正）**：`delivery-p3l` tag 时 `deploy/entrypoint.sh`
+   未注入 `XKX_AMBIENT`，容器默认 `ambient=stopped`；**tag 之后**已修正为默认开启，
+   与 `./start.sh` 一致（`XKX_AMBIENT_CPU=70`、`XKX_AMBIENT_SPEED=1` 一并透传），
+   `XKX_AMBIENT=0` 仍可显式关闭。实测：无任何环境变量 `up -d` → `ambient=running`、
+   `ambient_tick` 推进、`/api/world/feed` 有真实 NPC 事件；`XKX_AMBIENT=0` → `ambient=stopped`。
+   **tag 未移动**，交付包需按 tag 之后的修正提交重打。
 5. **Docker 构建器**：本机验证使用独立版 `docker-compose` 5.6.1（legacy builder，
    不读 `deploy/Dockerfile.dockerignore`，构建上下文偏大）；生产建议 Compose v2 / BuildKit。
 6. **72 天长周期、多人长跑仍未验证**；委托补发只在玩家会话作用域生效。

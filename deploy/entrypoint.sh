@@ -9,6 +9,10 @@ API_HOST="${API_HOST:-0.0.0.0}"
 UI_HOST="${UI_HOST:-0.0.0.0}"
 AUTH_MODE="${AUTH_MODE:-on}"
 TICK_STEP="${TICK_STEP:-6}"
+# 与 ./start.sh 一致：容器默认世界自走开启，XKX_AMBIENT=0 显式关闭。
+export XKX_AMBIENT="${XKX_AMBIENT:-1}"
+export XKX_AMBIENT_CPU="${XKX_AMBIENT_CPU:-70}"
+export XKX_AMBIENT_SPEED="${XKX_AMBIENT_SPEED:-1}"
 
 mkdir -p /app/runs
 

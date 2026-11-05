@@ -58,6 +58,9 @@ docker run --rm --entrypoint sh xkx/world-sim:w5 -c 'env | grep -Ei "api[_-]?key
 > `events.sqlite` 与 `service.sqlite`。
 > 注意：本机只有独立版 `docker-compose`（legacy builder，不读 `deploy/Dockerfile.dockerignore`，
 > 构建上下文会偏大）。生产请用 Docker Compose v2 / BuildKit，`docker compose up -d --build`。
+> 容器**默认世界自走**（与 `./start.sh` 一致）：compose/entrypoint 注入 `XKX_AMBIENT=1`、
+> `XKX_AMBIENT_CPU=70`、`XKX_AMBIENT_SPEED=1`，不必额外设环境变量。需要静止容器时：
+> `XKX_AMBIENT=0 docker compose up -d --force-recreate`。
 
 ### 1.3 关键启动参数
 
