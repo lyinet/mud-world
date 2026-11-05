@@ -27,6 +27,7 @@
     <div class="top-actions">
       <span class="run-tag" id="runTag">载入中</span>
       <button class="ghost small auth-btn" id="authBtn" type="button" title="登录或注册">登录/注册</button>
+      <button class="ghost small" id="commerceJump" type="button" title="跳到商业与经营">商业</button>
       <button class="ghost small" id="switchBtn" type="button" title="换一个玩家身份/账号">换人</button>
     </div>
   </header>
@@ -131,6 +132,74 @@
         </div>
         <div class="quest-summary" id="questSummary">—</div>
         <div class="quest-list" id="questList"></div>
+      </div>
+
+      <div class="block commerce-block" id="commerceBlock">
+        <div class="block-head">
+          <h2>商业与经营</h2>
+          <span class="hint" id="commerceHint">—</span>
+        </div>
+        <div class="commerce-tabs" id="commerceTabs" role="tablist" aria-label="商业与经营">
+          <button class="tab active" type="button" role="tab" data-tab="shop" aria-selected="true" aria-controls="pane-shop">商店</button>
+          <button class="tab" type="button" role="tab" data-tab="business" aria-selected="false" aria-controls="pane-business">店铺</button>
+          <button class="tab" type="button" role="tab" data-tab="hire" aria-selected="false" aria-controls="pane-hire">雇人</button>
+          <button class="tab" type="button" role="tab" data-tab="escort" aria-selected="false" aria-controls="pane-escort">押镖</button>
+          <button class="tab" type="button" role="tab" data-tab="soon" aria-selected="false" aria-controls="pane-soon">江湖</button>
+        </div>
+
+        <div class="commerce-pane" id="pane-shop" role="tabpanel">
+          <div class="commerce-sub"><b>可买</b><span class="hint" id="buyHint">—</span></div>
+          <div class="commerce-list" id="buyList"></div>
+          <div class="commerce-consume">
+            <button class="ghost small commerce-btn" id="consumeBtn" type="button">买一份现吃</button>
+            <span class="hint" id="consumeResult">在当前铺子挑最便宜的一份吃食。</span>
+          </div>
+          <div class="commerce-sub"><b>可卖</b><span class="hint" id="sellHint">—</span></div>
+          <div class="commerce-list" id="sellList"></div>
+        </div>
+
+        <div class="commerce-pane hidden" id="pane-business" role="tabpanel">
+          <div class="hint" id="ownShopInfo">—</div>
+          <div class="commerce-sub"><b>开一家</b><span class="hint">铺面费 + 初始进货</span></div>
+          <div class="commerce-list" id="tierList"></div>
+          <div class="commerce-sub"><b>店内雇工</b><span class="hint" id="employeeHint">—</span></div>
+          <div class="commerce-list" id="employeeList"></div>
+        </div>
+
+        <div class="commerce-pane hidden" id="pane-hire" role="tabpanel">
+          <div class="commerce-inline">
+            <label for="hireWage">日薪</label>
+            <input id="hireWage" type="number" min="1" step="1" value="30" inputmode="numeric" />
+            <span class="hint">文 / 日</span>
+          </div>
+          <div class="commerce-list" id="hireList"></div>
+          <div class="hint" id="hireHint">—</div>
+        </div>
+
+        <div class="commerce-pane hidden" id="pane-escort" role="tabpanel">
+          <div class="commerce-inline">
+            <label for="escortDest">终点</label>
+            <select id="escortDest"></select>
+          </div>
+          <div class="commerce-inline">
+            <label for="escortCargo">货物</label>
+            <select id="escortCargo"></select>
+          </div>
+          <div class="commerce-inline">
+            <label for="escortQty">数量</label>
+            <input id="escortQty" type="number" min="1" max="3" step="1" value="1" inputmode="numeric" />
+            <label for="escortFee">镖费</label>
+            <input id="escortFee" type="number" min="120" max="260" step="10" value="120" inputmode="numeric" />
+          </div>
+          <div class="hint" id="escortEstimate">—</div>
+          <button class="primary small commerce-btn" id="escortGo" type="button">押镖</button>
+          <div class="hint" id="escortResult"></div>
+        </div>
+
+        <div class="commerce-pane hidden" id="pane-soon" role="tabpanel">
+          <div class="commerce-list" id="soonList"></div>
+          <div class="hint" id="soonHint">这些玩法暂未开放；入口先留在这里。</div>
+        </div>
       </div>
     </aside>
   </main>

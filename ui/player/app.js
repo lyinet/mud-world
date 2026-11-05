@@ -33,6 +33,8 @@
 
   const FEED_LIMIT = 20;
   const FEED_INTERVAL_MS = 8000;
+  /* 商店价格/库存随世界 tick 变化：主状态 8 秒刷新一次，商业面板随之更新。 */
+  const STATE_INTERVAL_MS = 8000;
 
   /* 后端 feed 的 verb 是内部动词（move / quest_accept / open_shop …）。
      玩家侧只走这张表：集中映射成中文动作；表里没有的一律「有事发生」，
@@ -57,6 +59,51 @@
     return raw.replace(/[a-z][a-z_]*/g, function (word) {
       return FEED_VERB_TEXT[word] || FEED_VERB_FALLBACK;
     });
+  }
+
+  /* 商业与经营口径：全部对齐 content/economy.yaml。
+     `stock` 是开店时的初始进货成本，报价必须 rent+stock，服务端按总额校验现金。 */
+  const COMMERCE_TIERS = [
+    { kind: 'stall', label: '摊', rent: 300, stock: 45 },
+    { kind: 'storefront', label: '店面', rent: 1200, stock: 272 },
+    { kind: 'branch', label: '分号', rent: 3000, stock: 450 }
+  ];
+  const POSITION_WAGES = {
+    '铁匠': 32, '绣娘': 24, '脚夫': 18, '掌柜': 36, '游医': 28, '镖师': 30,
+    '酒保': 20, '捕快': 26, '说书人': 22, '师爷': 30, '学究': 24, '药童': 15,
+    '屠户': 30, '船夫': 20, '更夫': 16, '媒婆': 24, '石匠': 28, '香客': 14,
+    '货郎': 26, '算命先生': 22, '渔娘': 20, '菜农': 20, '抄经人': 14,
+    '庙祝': 18, '茶博士': 22
+  };
+  const ESCORT_RULES = {
+    durationTicks: 144,   // 24h × 6 tick
+    agencyCut: 0.30,
+    feeMin: 120,
+    feeMax: 260,
+    cargoMin: 100,
+    qtyMax: 3
+  };
+  const SHOP_HIRE = { minAffection: 6.0, minSkill: 0.15, wageMinRatio: 0.8, wageMaxRatio: 1.5, capacity: { stall: 1, storefront: 2, branch: 3 } };
+
+  function tierOf(kind) {
+    return COMMERCE_TIERS.filter(function (t) { return t.kind === kind; })[0] || null;
+  }
+
+  function tierLabel(kind) {
+    const t = tierOf(kind);
+    return t ? t.label : (kind || '店铺');
+  }
+
+  function positionWage(position) {
+    return POSITION_WAGES[position] == null ? 0 : POSITION_WAGES[position];
+  }
+
+  /* 与服务端结算一致：share = fee - int(fee × cut)；不能先乘 (1-cut) 再取整，
+     否则 180 文会因浮点误差算成 125（服务端结算为 126）。 */
+  function escortNet(fee, cut) {
+    const base = Math.floor(Number(fee) || 0);
+    const ratio = Number(cut == null ? ESCORT_RULES.agencyCut : cut) || 0;
+    return Math.max(1, base - Math.floor(base * ratio));
   }
 
   /* 原因码映射：前端只认 reject_reason，中文文案由这里兜底。
@@ -114,7 +161,7 @@
     reputation_too_low: '声望还不够接这一单；先做小委托或经营人情，达到门槛再来。',
     not_at_target: '还没到任务目标地点或委托人处；先移动过去再交付。',
     quest_item_missing: '采购类委托需要你持有目标物品；先取得物品再交付。',
-    item_not_held: '你身上没有这条委托要求的物品；先取得物品再交付。',
+    item_not_held: '你身上没有这件物品或数量不足。',
     trade_unfair: '交易价值明显不对等；对方拒绝了这笔买卖。',
     service_item: '服务类物品不能用于玩家交易。',
     offer_not_held: '你给出的物品数量不足。',
@@ -130,6 +177,73 @@
     effect_invalid: '操作违反世界规则，已被回滚。',
     bad_args: '参数不完整或格式错误。',
     'bad_arg:money_delta': '金额参数必须是整数。',
+    /* 玩家消费类动作（buy / sell / consume / escort）专属原因码。 */
+    not_enough_money: '你的钱不够（买入价含交易税）。',
+    item_not_available: '这件物品不在当前内容包里，买不到。',
+    item_missing: '你背包里没有足够的这件物品。',
+    not_here: '你不在这个交易地点。',
+    shop_closed: '这里没有店铺，不能买卖。',
+    not_a_merchant: '这里的店铺不做这件货的买卖。',
+    unknown_item: '这件物品在世界里不存在。',
+    no_buyer_cash: '本地店铺现金不够，暂时收不下这批货。',
+    wrong_location: '你不在这家店铺所在的地点。',
+    'bad_arg:qty': '数量必须是 1-20 的整数。',
+    'bad_arg:item': '物品参数不合法。',
+    'bad_arg:from': '交易地点参数不合法。',
+    'bad_arg:to': '交易地点参数不合法。',
+    /* 押镖。 */
+    not_at_origin: '你不在镖单的起点。',
+    route_not_adjacent: '押镖路线不连续；只能沿相邻地点逐段走。',
+    already_on_escort: '你正在押镖，不能同时接第二单。',
+    cargo_too_low: '货值低于这条线路的最低承运要求。',
+    cargo_too_high: '货值超过这条线路的最高承运额度。',
+    fee_too_low: '镖银低于这条线路的最低标准。',
+    fee_too_high: '镖银超过这条线路的最高标准。',
+    no_escort_agency: '起点没有镖局，不能接镖。',
+    agency_insufficient_cash: '镖局现金不足以支付这单镖银。',
+    'bad_arg:route': '路线格式错误；请从当前地点沿相邻出口选择终点。',
+    'bad_arg:cargo_qty': '货物数量必须是 1-100 的整数。',
+    'bad_arg:cargo_value': '货值必须是整数。',
+    'bad_arg:fee': '镖银必须是整数。',
+    /* 店铺与雇工。 */
+    treasury_guard: '商会护盘期间暂不可开店。',
+    treasury_buffer: '区域金库保底线不足，开店被暂缓；过一会儿再试。',
+    bad_shop_type: '店铺档位不合法；只能选摊、店面或分号。',
+    already_owns_shop: '你已经有店铺了，不能再开第二家。',
+    no_landlord: '这个地点没有可签约的铺面。',
+    no_shop: '你还没有店铺；先开一家再来雇人。',
+    not_shop_owner: '这家店铺不是你的，不能雇佣。',
+    not_player_shop_hire: '只有玩家店铺可以雇工。',
+    target_not_found: '要雇的人不在这个世界。',
+    self_recruit: '不能雇自己。',
+    target_not_at_shop: '对方不在你的店铺所在地点。',
+    already_hired: '对方已经在你的店里做工。',
+    target_owns_shop: '对方自己开着店，不会来做雇工。',
+    shop_full: '店铺雇工已满；升级铺面或先解雇再雇。',
+    unknown_position: '这个岗位不在市价表里；请从可选岗位中选择。',
+    skill_too_low: '对方手艺还不够（技能低于 0.15）。',
+    relation_too_low: '好感不足 6.0；先多交谈、经营人情再来雇。',
+    wage_too_low: '日薪低于市价的 0.8 倍，对方不会接受。',
+    wage_too_high: '日薪高于市价的 1.5 倍，对方觉得不合理。',
+    /* 婚配相关（服务端已登记，入口下一步开放）：先把文案备齐，避免原始码外露。 */
+    already_married: '你已经成婚了，不能再结一次。',
+    bond_too_low: '感情还没到谈婚论嫁的地步；先多相处、经营人情。',
+    gift_missing: '提亲需要带一件像样的礼物。',
+    not_married: '你还没有婚约，无法进行这个操作。',
+    self_propose: '不能向自己提亲。',
+    spouse_not_alive: '你的配偶已不在人世，这段婚约无法继续。',
+    spouse_not_here: '你的配偶不在当前地点；先走到对方那里。',
+    spouse_offline: '你的配偶不在线，暂时不能互动。',
+    target_in_couple: '对方已有婚约或配偶，不能再谈。',
+    target_not_npc: '对方不是可婚配的人物。',
+    target_not_player: '该操作只对玩家角色有效。',
+    trust_too_low: '信任不足；先建立更深的交情。',
+    unknown_actor: '操作发起人不在世界里；请刷新后重试。',
+    /* 玩家尚未开放的玩法：给明确文案，绝不落到「未知操作」。 */
+    not_implemented_for_player: '该玩法尚未开放。',
+    sect_exists: '这里已经有门派了。',
+    already_in_faction: '你已经入了门派，不能另立门户。',
+    low_reputation: '声望不足，暂时不能立派。',
     intent_not_found: '没有找到这个请求；请刷新后重试。',
     readonly_mode: '只读模式不支持该动作；请用可写模式启动。',
     world_important: '你所在或相邻的地点出现了重要动静；留意「世界动态」。'
@@ -179,6 +293,17 @@
       step: 1,
       status: 'idle',    // idle | active | skipped | completed
       accountId: ''
+    },
+    commerce: {
+      account: '',
+      tab: 'shop',
+      qty: {},          // buy:item / sell:item -> 用户正在输入的数量（刷新时保留）
+      pos: {},          // 雇工岗位：target id -> position
+      wageSet: false,   // 用户是否亲手改过日薪（没改时跟随岗位市价）
+      consume: '',      // 「买一份现吃」的体力变化文案
+      hire: '',
+      escort: '',
+      deferred: null    // 正在输入表单时暂存的 state，失焦后补渲染
     },
     ui: {
       errors: [],
@@ -343,7 +468,8 @@
     if (key && REASON_TEXT[key]) return REASON_TEXT[key];
     const human = String(serverText == null ? '' : serverText).trim();
     if (human) return human;
-    if (key) return '操作没有完成：' + key + '（服务端没有给出中文说明，请刷新后再试）。';
+    // 兜底也不把原始 code 露给玩家：前端原因码表 + 服务端 reason_text 之外一律通用文案。
+    if (key) return '操作没有完成；服务端没有给出中文说明，请刷新后再试。';
     return '操作没有完成，但服务端没有给出原因；请刷新状态后重试。';
   }
 
@@ -381,7 +507,6 @@
       return '<div class="error-item"><div class="error-head"><b>' + escapeHtml(r.context || '操作') +
         '</b><span>' + escapeHtml(clockText(r.at)) + '</span></div>' +
         '<div>' + escapeHtml(r.text || '') + '</div>' +
-        (r.code ? '<div class="error-code">原因码：<code>' + escapeHtml(r.code) + '</code></div>' : '') +
         '</div>';
     }).join('');
   }
@@ -1117,6 +1242,13 @@
   function applyState(st) {
     state.st = st;
     const p = st.player || {};
+    const acct = String(st.account_id || p.account_id || '');
+    if (state.commerce.account && state.commerce.account !== acct) {
+      // 换账号时清掉上一位玩家留下的数量、雇工与押镖文案。
+      state.commerce = { account: acct, tab: 'shop', qty: {}, pos: {}, wageSet: false, consume: '', hire: '', escort: '', deferred: null };
+    } else {
+      state.commerce.account = acct;
+    }
     const readonly = !!st.readonly || !!(state.health && state.health.readonly);
     state.session = {
       accountId: st.account_id || p.account_id || '',
@@ -1197,6 +1329,7 @@
     renderQuests(st);
     renderToday(st);
     renderGrowth(st);
+    renderCommerce(st);
     renderTalkTarget();
     renderLog();
     if (state.guide.active) repositionGuide();
@@ -1642,7 +1775,9 @@
       }) },
       { label: '可拜访 NPC', rows: npcs.map(function (n) { return n.name + '（' + n.role + '）'; }) },
       { label: '可买产业', rows: biz.map(function (b) {
-        return b.shop_type + ' ' + b.cost + ' 文' + (b.affordable ? ' · 买得起' : ' · 还差本钱') +
+        const tier = tierOf(b.shop_type);
+        const total = tier ? tier.rent + tier.stock : Number(b.cost || 0);
+        return tierLabel(b.shop_type) + ' 共需 ' + total + ' 文' +
           (b.blocked ? ' · 商会护盘期间暂不可开' : '');
       }) },
     ];
@@ -1666,16 +1801,22 @@
         box.appendChild(btn);
       }
       if (g.label === '可买产业') {
+        const money = Number((((st.player || {}).wallet) || {}).money || 0);
         biz.forEach(function (b) {
-          if (!b.affordable || b.blocked) return;
+          const tier = tierOf(b.shop_type);
+          const total = tier ? tier.rent + tier.stock : Number(b.cost || 0);
           const btn = document.createElement('button');
           btn.type = 'button';
           btn.className = 'ghost today-act';
-          btn.textContent = '开' + (b.shop_type === 'stall' ? '摊' : b.shop_type === 'storefront' ? '铺' : '分号') +
-            '（' + b.cost + ' 文）';
-          btn.addEventListener('click', function () {
-            doGrowthAction('open_shop', { shop_type: b.shop_type }, '置产');
-          });
+          btn.textContent = '开' + tierLabel(b.shop_type) + '（' + total + ' 文）';
+          const reason = b.blocked ? '商会护盘期间暂不可开'
+            : (money < total ? '还差 ' + (total - money) + ' 文' : '');
+          if (reason) {
+            btn.disabled = true;
+            btn.title = reason;
+          } else {
+            btn.addEventListener('click', function () { doOpenShop(b.shop_type); });
+          }
           box.appendChild(btn);
         });
       }
@@ -1847,6 +1988,593 @@
     pushLog('ok', label, 'event_seq ' + (data.event_seq == null ? '?' : data.event_seq));
   }
 
+  /* ------------------------------------------------------------- 商业与经营 */
+  function commerceEditing() {
+    const active = document.activeElement;
+    const block = el('commerceBlock');
+    if (!active || !block || !block.contains(active)) return false;
+    const tag = active.tagName;
+    return tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA';
+  }
+
+  function setCommerceTab(tab) {
+    const tabs = el('commerceTabs');
+    if (!tabs) return;
+    const valid = ['shop', 'business', 'hire', 'escort', 'soon'];
+    const cur = valid.indexOf(tab) >= 0 ? tab : 'shop';
+    state.commerce.tab = cur;
+    Array.prototype.forEach.call(tabs.querySelectorAll('[data-tab]'), function (btn) {
+      const on = btn.getAttribute('data-tab') === cur;
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+      btn.setAttribute('tabindex', on ? '0' : '-1');
+    });
+    valid.forEach(function (key) {
+      const pane = el('pane-' + key);
+      if (pane) pane.classList.toggle('hidden', key !== cur);
+    });
+  }
+
+  function ownShopOf(st) {
+    const account = String((state.session && state.session.accountId) ||
+      (st && st.account_id) || '');
+    const shop = (st && st.shop) || {};
+    const id = 'shop:player:' + account;
+    return (shop.businesses || []).filter(function (b) { return b.id === id; })[0] || null;
+  }
+
+  function buyLimitOf(row, money) {
+    const stock = Math.max(0, Number(row.stock || 0));
+    const cap = row.buy_limit == null ? stock : Number(row.buy_limit);
+    const total = Math.max(1, Number(row.total || row.price || 1));
+    return Math.max(0, Math.min(stock, cap, Math.floor(money / total)));
+  }
+
+  function qtyValue(key, max) {
+    const raw = Number(state.commerce.qty[key]);
+    const qty = Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 1;
+    return Math.max(1, Math.min(Math.max(1, max), qty));
+  }
+
+  function shopRowMeta(row) {
+    const name = escapeHtml(row.name || row.item || '物品');
+    const tax = Number(row.tax || 0);
+    const total = Number(row.total == null ? row.price : row.total);
+    const limit = row.buy_limit == null ? '不限' : String(row.buy_limit);
+    return '<div class="row-main"><span class="row-name">' + name + '</span>' +
+      '<span class="row-meta">单价 ' + escapeHtml(row.price) + ' 文 · 税 ' + escapeHtml(tax) +
+      ' 文 · 含税 ' + escapeHtml(total) + ' 文/份 · 库存 ' + escapeHtml(row.stock == null ? 0 : row.stock) +
+      ' · 限购 ' + escapeHtml(limit) + (row.business_name ? ' · ' + escapeHtml(row.business_name) : '') +
+      '</span></div>';
+  }
+
+  function foodRowsOf(st) {
+    const rows = ((st && st.shop) || {}).buy || [];
+    return rows.filter(function (r) {
+      const cat = String(r.category || '');
+      return (cat === 'food' || cat === 'drink') && Number(r.stock || 0) > 0;
+    }).sort(function (a, b) {
+      return Number(a.total || a.price || 0) - Number(b.total || b.price || 0);
+    });
+  }
+
+  function renderBuyList(st, money) {
+    const list = el('buyList');
+    const rows = ((st.shop || {}).buy || []);
+    const foods = foodRowsOf(st);
+    el('buyHint').textContent = rows.length ? (rows.length + ' 种') : '这个地点没有铺子卖货';
+    el('consumeBtn').disabled = !foods.length;
+    el('consumeBtn').textContent = foods.length ? ('买一份' + (foods[0].name || foods[0].item) + '现吃') : '没有现成吃食';
+    if (!state.commerce.consume) {
+      el('consumeResult').textContent = foods.length
+        ? ('现吃 ' + (foods[0].name || foods[0].item) + '：' + (foods[0].total || foods[0].price) + ' 文/份，体力 +25。')
+        : '这里没有现成的吃食。';
+    }
+    if (!rows.length) {
+      list.innerHTML = '<div class="commerce-empty">这里没有可买的货。</div>';
+      return;
+    }
+    list.innerHTML = rows.map(function (row) {
+      const key = 'buy:' + row.item;
+      const max = buyLimitOf(row, money);
+      const qty = qtyValue(key, max);
+      const reason = max <= 0 ? '库存或现金不足' : '';
+      return '<div class="commerce-row" data-buy="' + escapeHtml(row.item) + '">' +
+        shopRowMeta(row) +
+        '<div class="row-actions">' +
+        '<input type="number" min="1" max="' + max + '" step="1" inputmode="numeric" ' +
+        'data-qty="' + escapeHtml(key) + '" value="' + (max > 0 ? qty : 0) + '" aria-label="买几份' +
+        escapeHtml(row.name || row.item) + '"' + (max <= 0 ? ' disabled' : '') + ' />' +
+        '<button type="button" class="ghost commerce-btn" data-buy-go="' + escapeHtml(row.item) + '"' +
+        (max <= 0 ? ' disabled title="' + escapeHtml(reason) + '"' : '') + '>买</button>' +
+        (reason ? '<span class="commerce-reason">' + escapeHtml(reason) + '</span>' : '') +
+        '</div></div>';
+    }).join('');
+  }
+
+  function renderSellList(st) {
+    const list = el('sellList');
+    const rows = ((st.shop || {}).sell || []);
+    el('sellHint').textContent = rows.length ? (rows.length + ' 种可卖') : '这里不收你的货';
+    if (!rows.length) {
+      list.innerHTML = '<div class="commerce-empty">没有可卖的货。</div>';
+      return;
+    }
+    list.innerHTML = rows.map(function (row) {
+      const key = 'sell:' + row.item;
+      const held = Math.max(0, Number(row.qty == null ? 0 : row.qty));
+      const cap = row.sell_limit == null ? held : Number(row.sell_limit);
+      const max = Math.max(0, Math.min(held, cap));
+      const qty = qtyValue(key, max);
+      return '<div class="commerce-row" data-sell="' + escapeHtml(row.item) + '">' +
+        '<div class="row-main"><span class="row-name">' + escapeHtml(row.name || row.item) + '</span>' +
+        '<span class="row-meta">售价 ' + escapeHtml(row.sell_price == null ? row.price : row.sell_price) +
+        ' 文/件 · 持有 ' + escapeHtml(held) + ' · 上限 ' + escapeHtml(cap) + '</span></div>' +
+        '<div class="row-actions">' +
+        '<input type="number" min="1" max="' + max + '" step="1" inputmode="numeric" ' +
+        'data-qty="' + escapeHtml(key) + '" value="' + qty + '" aria-label="卖几件' +
+        escapeHtml(row.name || row.item) + '"' + (max <= 0 ? ' disabled' : '') + ' />' +
+        '<button type="button" class="ghost commerce-btn" data-sell-go="' + escapeHtml(row.item) + '"' +
+        (max <= 0 ? ' disabled title="持有数量不足"' : '') + '>卖</button>' +
+        '</div></div>';
+    }).join('');
+  }
+
+  function blockedTier(st, kind) {
+    const rows = ((st.today || {}).business) || [];
+    return rows.filter(function (b) { return b.shop_type === kind && b.blocked; })[0] || null;
+  }
+
+  function renderOwnedShop(st, own) {
+    const info = el('ownShopInfo');
+    if (!own) {
+      info.textContent = '你还没有店铺。当前位置可以开摊、店面或分号。';
+      return;
+    }
+    let stock = 0;
+    let stockKnown = false;
+    ((st.shop || {}).buy || []).forEach(function (row) {
+      if (row.business === own.id && row.stock != null) {
+        stock += Number(row.stock || 0);
+        stockKnown = true;
+      }
+    });
+    info.innerHTML = '<b>' + escapeHtml(own.name || '你的店铺') + '</b>' +
+      ' · ' + escapeHtml(tierLabel(own.kind)) +
+      ' · 店内现金 <b>' + escapeHtml(own.cash == null ? 0 : own.cash) + '</b> 文' +
+      ' · 库存 ' + (stockKnown ? ('<b>' + stock + '</b> 件') : '<span class="commerce-gap">件数未由接口提供</span>') +
+      ' · 店址 ' + escapeHtml(own.location || ((st.location || {}).name || ''));
+  }
+
+  function renderTierList(st, own, money) {
+    const list = el('tierList');
+    list.innerHTML = COMMERCE_TIERS.map(function (tier) {
+      const total = tier.rent + tier.stock;
+      let reason = '';
+      if (own) reason = '你已经有店铺了';
+      else if (money < total) reason = '还差 ' + (total - money) + ' 文';
+      else if (blockedTier(st, tier.kind)) reason = '商会护盘期间暂不可开';
+      return '<div class="commerce-row" data-tier-row="' + tier.kind + '">' +
+        '<div class="row-main"><span class="row-name">' + escapeHtml(tier.label) + '</span>' +
+        '<span class="row-meta">铺面 ' + tier.rent + ' 文 + 初始进货 ' + tier.stock +
+        ' 文 = 共需 ' + total + ' 文</span></div>' +
+        '<div class="row-actions">' +
+        '<button type="button" class="primary commerce-btn" data-tier="' + tier.kind + '"' +
+        (reason ? ' disabled title="' + escapeHtml(reason) + '"' : '') + '>开' + escapeHtml(tier.label) + '</button>' +
+        (reason ? '<span class="commerce-reason">' + escapeHtml(reason) + '</span>' : '') +
+        '</div></div>';
+    }).join('');
+  }
+
+  function renderEmployeeList(st, own) {
+    const list = el('employeeList');
+    if (!own) {
+      el('employeeHint').textContent = '开店后显示';
+      list.innerHTML = '<div class="commerce-empty">先开一家店，才能看到店内雇工。</div>';
+      return;
+    }
+    const cap = SHOP_HIRE.capacity[own.kind] || 0;
+    const rows = Array.isArray(own.employees) ? own.employees : null;
+    el('employeeHint').textContent = rows ? (rows.length + '/' + cap + ' 人') : (cap + ' 人上限');
+    if (!rows) {
+      list.innerHTML = '<div class="commerce-empty">服务端尚未返回雇工名单（岗位 / 日薪 / 是否到店）。' +
+        '当前只能从「雇人」页确认新雇契约。</div>';
+      return;
+    }
+    if (!rows.length) {
+      list.innerHTML = '<div class="commerce-empty">店里还没有雇工。</div>';
+      return;
+    }
+    list.innerHTML = rows.map(function (emp) {
+      const present = emp.present == null ? (emp.at_shop == null ? null : !!emp.at_shop) : !!emp.present;
+      const presentText = present == null ? '到店情况未提供' : (present ? '到店' : '未到店');
+      return '<div class="commerce-row" data-employee="' + escapeHtml(emp.id || emp.target || '') + '">' +
+        '<div class="row-main"><span class="row-name">' + escapeHtml(emp.name || emp.id || '雇工') + '</span>' +
+        '<span class="row-meta">岗位 ' + escapeHtml(emp.position || '—') +
+        ' · 日薪 ' + escapeHtml(emp.wage == null ? '—' : emp.wage) + ' 文' +
+        ' · ' + escapeHtml(presentText) + '</span></div></div>';
+    }).join('');
+  }
+
+  function relationMap(st) {
+    const map = {};
+    ((st.player || {}).relations || []).forEach(function (r) {
+      if (r && r.target) map[r.target] = r;
+    });
+    return map;
+  }
+
+  function renderHireList(st, own) {
+    const list = el('hireList');
+    const hint = el('hireHint');
+    const npcs = (st.present_npcs || []).filter(function (n) { return n && n.id; });
+    if (!npcs.length) {
+      el('hireHint').textContent = '这里没有可雇的人。';
+      list.innerHTML = '<div class="commerce-empty">当前地点没有人可以雇。</div>';
+      return;
+    }
+    const rel = relationMap(st);
+    const cap = own ? (SHOP_HIRE.capacity[own.kind] || 0) : 0;
+    const employees = own && Array.isArray(own.employees) ? own.employees : [];
+    const full = own && employees.length >= cap;
+    hint.textContent = own
+      ? (full ? '店铺雇工已满（' + employees.length + '/' + cap + '）。' : '门槛：好感 ≥6.0、技能 ≥0.15；日薪为市价的 0.8-1.5 倍。')
+      : '先开一家店铺，再来雇人。';
+    list.innerHTML = npcs.map(function (npc) {
+      const r = rel[npc.id];
+      const aff = r ? Number(r.affection || 0) : 0;
+      const pos = state.commerce.pos[npc.id] ||
+        (POSITION_WAGES[npc.role] ? npc.role : '脚夫');
+      const market = positionWage(pos);
+      const low = Math.max(1, Math.round(market * SHOP_HIRE.wageMinRatio));
+      const high = Math.round(market * SHOP_HIRE.wageMaxRatio);
+      const localReason = !own ? '先开店' : (full ? '已满员' : '');
+      const opts = Object.keys(POSITION_WAGES).sort(function (a, b) { return POSITION_WAGES[a] - POSITION_WAGES[b]; })
+        .map(function (p) {
+          return '<option value="' + escapeHtml(p) + '"' + (p === pos ? ' selected' : '') + '>' +
+            escapeHtml(p) + '（' + POSITION_WAGES[p] + ' 文）</option>';
+        }).join('');
+      return '<div class="commerce-row" data-hire-row="' + escapeHtml(npc.id) + '">' +
+        '<div class="row-main"><span class="row-name">' + escapeHtml(npc.name) +
+        '<span class="pill">' + escapeHtml(npc.role || '') + '</span></span>' +
+        '<span class="row-meta">好感 ' + escapeHtml(aff.toFixed(1)) +
+        (aff < SHOP_HIRE.minAffection ? '（不足 6.0）' : '') +
+        ' · 技能 <span class="commerce-gap">接口未提供</span>' +
+        ' · 受雇 <span class="commerce-gap">接口未提供</span>' +
+        ' · 市价 ' + market + ' 文（可 ' + low + '-' + high + '）</span></div>' +
+        '<div class="row-actions">' +
+        '<select data-pos-for="' + escapeHtml(npc.id) + '" aria-label="' + escapeHtml(npc.name) + '的岗位">' +
+        opts + '</select>' +
+        '<button type="button" class="primary commerce-btn" data-hire="' + escapeHtml(npc.id) + '"' +
+        (localReason ? ' disabled title="' + escapeHtml(localReason) + '"' : '') + '>雇</button>' +
+        (localReason ? '<span class="commerce-reason">' + escapeHtml(localReason) + '</span>' : '') +
+        '</div></div>';
+    }).join('');
+    if (!state.commerce.wageSet && npcs.length) {
+      const first = npcs[0];
+      const pos = state.commerce.pos[first.id] ||
+        (POSITION_WAGES[first.role] ? first.role : '脚夫');
+      el('hireWage').value = String(Math.max(1, positionWage(pos)));
+    }
+  }
+
+  function escortContext(st) {
+    const loc = (st && st.location) || {};
+    const biz = ((st && st.shop) || {}).businesses || [];
+    const agencies = biz.filter(function (b) {
+      return String(b.kind || '').indexOf('escort') >= 0;
+    });
+    const items = (((st || {}).player || {}).wallet || {}).items || [];
+    return {
+      loc: loc,
+      agencies: agencies,
+      hasAgency: agencies.length > 0,
+      dests: (loc.exits || []).filter(function (x) { return x && x.id && x.exists !== false; }),
+      items: items.filter(function (it) { return it.item && Number(it.qty || 0) > 0; }),
+      active: ((st || {}).escort_orders || []).filter(function (o) { return o.status === 'active' || o.status === 'open'; })
+    };
+  }
+
+  function fillSelect(select, rows, placeholder, valueKey, labelFn) {
+    if (!select) return;
+    const prev = select.value;
+    select.innerHTML = rows.length ? rows.map(function (row) {
+      return '<option value="' + escapeHtml(row[valueKey]) + '">' + escapeHtml(labelFn(row)) + '</option>';
+    }).join('') : ('<option value="">' + escapeHtml(placeholder) + '</option>');
+    if (prev && rows.some(function (row) { return String(row[valueKey]) === prev; })) select.value = prev;
+    else if (rows.length) select.value = String(rows[0][valueKey]);
+  }
+
+  function clampEscortQty() {
+    const st = state.st;
+    if (!st) return;
+    const ctx = escortContext(st);
+    const row = ctx.items.filter(function (it) { return it.item === el('escortCargo').value; })[0] || null;
+    const max = Math.max(1, Math.min(ESCORT_RULES.qtyMax, Number((row || {}).qty || 1)));
+    el('escortQty').max = String(max);
+    if (Number(el('escortQty').value) > max) el('escortQty').value = String(max);
+  }
+
+  function updateEscortEstimate() {
+    const st = state.st;
+    if (!st) return;
+    const ctx = escortContext(st);
+    const dest = el('escortDest').value;
+    const cargo = el('escortCargo').value;
+    const qty = Math.max(1, Math.min(ESCORT_RULES.qtyMax, Math.floor(Number(el('escortQty').value) || 1)));
+    const fee = Math.floor(Number(el('escortFee').value) || 0);
+    const cargoRow = ctx.items.filter(function (it) { return it.item === cargo; })[0] || null;
+    const est = el('escortEstimate');
+    const go = el('escortGo');
+    if (!ctx.hasAgency) {
+      est.textContent = '这里没有镖局；起点必须有镖局才能接镖。先走到镖局所在地。';
+      go.disabled = true;
+      return;
+    }
+    if (!ctx.dests.length) {
+      est.textContent = '当前地点没有相邻出口，无法组一条押镖路线。';
+      go.disabled = true;
+      return;
+    }
+    if (!dest || !cargoRow) {
+      est.textContent = '选一个相邻终点和一件随身货物，再定镖费。';
+      go.disabled = true;
+      return;
+    }
+    if (fee < ESCORT_RULES.feeMin || fee > ESCORT_RULES.feeMax) {
+      est.textContent = '镖费需在 ' + ESCORT_RULES.feeMin + '-' + ESCORT_RULES.feeMax + ' 文之间。';
+      go.disabled = true;
+      return;
+    }
+    const destName = (ctx.dests.filter(function (x) { return x.id === dest; })[0] || {}).name || dest;
+    const held = Math.max(0, Number(cargoRow.qty || 0));
+    const net = escortNet(fee, ESCORT_RULES.agencyCut);
+    const arrive = Number(st.tick || 0) + ESCORT_RULES.durationTicks;
+    est.textContent = '路线 ' + (ctx.loc.name || ctx.loc.id) + ' → ' + destName + '（相邻）· ' +
+      (cargoRow.name || cargoRow.item) + '×' + Math.min(qty, held) + '（持有 ' + held + '）· ' +
+      '预计到手 ' + net + ' 文（镖费 ' + fee + ' 文，镖局抽 ' + Math.round(ESCORT_RULES.agencyCut * 100) + '%）· ' +
+      '到货 tick ' + arrive;
+    go.disabled = held <= 0;
+  }
+
+  function renderEscortForm(st) {
+    const ctx = escortContext(st);
+    fillSelect(el('escortDest'), ctx.dests, '（没有相邻出口）', 'id', function (row) {
+      return (row.name || row.id) + '（相邻）';
+    });
+    fillSelect(el('escortCargo'), ctx.items, '（背包里没有可押的货）', 'item', function (row) {
+      return (row.name || row.item) + '（持有 ' + row.qty + '）';
+    });
+    const cargoKey = el('escortCargo').value;
+    const cargoRow = ctx.items.filter(function (it) { return it.item === cargoKey; })[0] || null;
+    const maxHeld = Math.max(0, Number((cargoRow || {}).qty || 0));
+    el('escortQty').max = String(Math.max(1, Math.min(ESCORT_RULES.qtyMax, maxHeld || 1)));
+    if (Number(el('escortQty').value) > Math.max(1, maxHeld)) {
+      el('escortQty').value = String(Math.max(1, Math.min(ESCORT_RULES.qtyMax, maxHeld)));
+    }
+    updateEscortEstimate();
+  }
+
+  function renderSoonList() {
+    const rows = [
+      { verb: 'marry', name: '结婚', note: '该玩法尚未开放；入口先留在这里，下一步开放。' },
+      { verb: 'found_sect', name: '立派', note: '该玩法尚未开放；入口先留在这里。' },
+      { verb: 'apprentice', name: '收徒', note: '该玩法尚未开放；入口先留在这里。' }
+    ];
+    el('soonList').innerHTML = rows.map(function (row) {
+      return '<div class="commerce-row" data-soon="' + row.verb + '">' +
+        '<div class="row-main"><span class="row-name">' + escapeHtml(row.name) + '</span>' +
+        '<span class="row-meta">' + escapeHtml(row.note) + '</span></div>' +
+        '<div class="row-actions"><button type="button" class="ghost commerce-btn" disabled ' +
+        'title="该玩法尚未开放">尚未开放</button></div></div>';
+    }).join('');
+  }
+
+  function renderCommerce(st) {
+    if (!st) return;
+    const block = el('commerceBlock');
+    if (!block) return;
+    // 正在输入数量/日薪/终点时不重建列表：8 秒轮询照旧更新 state，
+    // 等表单失焦后再补一次渲染，绝不打断用户输入。
+    if (commerceEditing()) {
+      state.commerce.deferred = st;
+      return;
+    }
+    state.commerce.deferred = null;
+    const p = st.player || {};
+    const loc = st.location || {};
+    const money = Number((p.wallet || {}).money || 0);
+    const own = ownShopOf(st);
+    el('commerceHint').textContent = (loc.name || '这里') +
+      ' · tick ' + (st.tick == null ? '—' : st.tick) +
+      (own ? (' · 自有店铺 ' + tierLabel(own.kind)) : '');
+    setCommerceTab(state.commerce.tab);
+    renderBuyList(st, money);
+    renderSellList(st);
+    renderOwnedShop(st, own);
+    renderTierList(st, own, money);
+    renderEmployeeList(st, own);
+    renderHireList(st, own);
+    renderEscortForm(st);
+    renderSoonList();
+  }
+
+  function showReasonToast(context, code) {
+    const text = reasonText(code, '');
+    toast(text, true);
+    recordError(context, code, text);
+    pushLog('rejected', context + '：' + text, code);
+    return text;
+  }
+
+  async function commerceAction(verb, args, label) {
+    const account = state.session && state.session.accountId;
+    if (!account) { toast('先进入世界。', true); showEntry(true); return null; }
+    if (!requireAuthForWrite()) return null;
+    const before = state.st || {};
+    const res = await API.action(account, verb, args || {}, before.tick == null ? null : before.tick)
+      .catch(function (err) {
+        return { status: 0, data: { ok: false, message: '请求失败：' + (err.message || err) } };
+      });
+    const data = res.data || {};
+    if (res.authRequired || res.status === 401) return null;
+    if (res.status === 409 || data.ok === false || res.status === 0) {
+      notifyError(label, data, res.status);
+      return null;
+    }
+    if (data.status === 'proposed' || data.readonly) {
+      toast('只读模式：已提交' + label + '提案（不落地）。');
+      pushLog('proposal', label + '提案', data.intent_id || '');
+      return null;
+    }
+    const st = await loadState(account);
+    return { res: res, data: data, st: st, before: before };
+  }
+
+  async function doBuy(itemKey) {
+    const st = state.st;
+    const rows = ((st || {}).shop || {}).buy || [];
+    const row = rows.filter(function (r) { return r.item === itemKey; })[0];
+    if (!row) return showReasonToast('买货', 'item_not_available');
+    const money = Number(((state.st || {}).player || {}).wallet ? state.st.player.wallet.money : 0) || 0;
+    const max = buyLimitOf(row, money);
+    if (max <= 0) return showReasonToast('买' + (row.name || itemKey), 'not_enough_money');
+    const key = 'buy:' + itemKey;
+    const input = document.querySelector('input[data-qty="' + key + '"]');
+    const qty = Math.max(1, Math.min(max, Math.floor(Number((input && input.value) || state.commerce.qty[key]) || 1)));
+    state.commerce.qty[key] = qty;
+    const out = await commerceAction('buy', { item: itemKey, qty: qty }, '买' + (row.name || itemKey));
+    if (!out) return;
+    const beforeMoney = Number((((out.before || {}).player || {}).wallet || {}).money || 0);
+    const afterMoney = Number((((out.st || {}).player || {}).wallet || {}).money || 0);
+    const delta = afterMoney - beforeMoney;
+    toast('买下 ' + (row.name || itemKey) + '×' + qty + ' · 钱包 ' + beforeMoney + ' → ' + afterMoney +
+      ' 文（' + (delta > 0 ? '+' : '') + delta + '）');
+    pushLog('ok', '买 ' + (row.name || itemKey) + '×' + qty + ' · ' + (delta > 0 ? '+' : '') + delta + ' 文',
+      'event_seq ' + (out.data.event_seq == null ? '?' : out.data.event_seq));
+  }
+
+  async function doSell(itemKey) {
+    const st = state.st;
+    const rows = ((st || {}).shop || {}).sell || [];
+    const row = rows.filter(function (r) { return r.item === itemKey; })[0];
+    if (!row) return showReasonToast('卖货', 'item_missing');
+    const max = Math.max(0, Math.min(Number(row.qty || 0), row.sell_limit == null ? Number(row.qty || 0) : Number(row.sell_limit)));
+    if (max <= 0) return showReasonToast('卖' + (row.name || itemKey), 'item_missing');
+    const key = 'sell:' + itemKey;
+    const input = document.querySelector('input[data-qty="' + key + '"]');
+    const qty = Math.max(1, Math.min(max, Math.floor(Number((input && input.value) || state.commerce.qty[key]) || 1)));
+    state.commerce.qty[key] = qty;
+    const out = await commerceAction('sell', { item: itemKey, qty: qty }, '卖' + (row.name || itemKey));
+    if (!out) return;
+    const beforeMoney = Number((((out.before || {}).player || {}).wallet || {}).money || 0);
+    const afterMoney = Number((((out.st || {}).player || {}).wallet || {}).money || 0);
+    const delta = afterMoney - beforeMoney;
+    toast('卖出 ' + (row.name || itemKey) + '×' + qty + ' · 钱包 ' + beforeMoney + ' → ' + afterMoney +
+      ' 文（' + (delta > 0 ? '+' : '') + delta + '）');
+    pushLog('ok', '卖 ' + (row.name || itemKey) + '×' + qty + ' · ' + (delta > 0 ? '+' : '') + delta + ' 文',
+      'event_seq ' + (out.data.event_seq == null ? '?' : out.data.event_seq));
+  }
+
+  async function doConsume() {
+    const st = state.st;
+    const foods = foodRowsOf(st);
+    if (!foods.length) return showReasonToast('现吃', 'item_not_available');
+    const row = foods[0];
+    const beforeStamina = Math.round(Number(((state.st || {}).player || {}).stamina || 0));
+    const out = await commerceAction('consume', { item: row.item, qty: 1 }, '现吃' + (row.name || row.item));
+    if (!out) return;
+    const afterStamina = Math.round(Number(((out.st || {}).player || {}).stamina || 0));
+    const delta = afterStamina - beforeStamina;
+    const beforeMoney = Number((((out.before || {}).player || {}).wallet || {}).money || 0);
+    const afterMoney = Number((((out.st || {}).player || {}).wallet || {}).money || 0);
+    state.commerce.consume = '现吃 ' + (row.name || row.item) + '×1：体力 ' + beforeStamina + ' → ' +
+      afterStamina + '（' + (delta > 0 ? '+' : '') + delta + '）· 钱包 ' + beforeMoney + ' → ' +
+      afterMoney + ' 文（' + (afterMoney - beforeMoney > 0 ? '+' : '') + (afterMoney - beforeMoney) + '）';
+    el('consumeResult').textContent = state.commerce.consume;
+    toast('现吃 ' + (row.name || row.item) + '：体力 +' + Math.max(0, delta));
+    pushLog('ok', '现吃 ' + (row.name || row.item) + ' · 体力 +' + Math.max(0, delta),
+      'event_seq ' + (out.data.event_seq == null ? '?' : out.data.event_seq));
+  }
+
+  async function doOpenShop(kind) {
+    const tier = tierOf(kind);
+    if (!tier) return showReasonToast('开店', 'bad_shop_type');
+    const out = await commerceAction('open_shop', { shop_type: kind }, '开' + tier.label);
+    if (!out) return;
+    state.commerce.tab = 'business';
+    renderCommerce(out.st);
+    const own = ownShopOf(out.st);
+    toast('已开' + tier.label + ' · 店内现金 ' + (own && own.cash != null ? own.cash : 0) + ' 文');
+    pushLog('ok', '开' + tier.label + '（' + tier.rent + ' + ' + tier.stock + ' 文）',
+      'event_seq ' + (out.data.event_seq == null ? '?' : out.data.event_seq));
+  }
+
+  async function doHire(targetId) {
+    const st = state.st;
+    const own = ownShopOf(st);
+    if (!own) return showReasonToast('雇人', 'no_shop');
+    const row = (st.present_npcs || []).filter(function (n) { return n.id === targetId; })[0];
+    if (!row) return showReasonToast('雇人', 'target_not_found');
+    const select = document.querySelector('select[data-pos-for="' + targetId + '"]');
+    const position = (select && select.value) || state.commerce.pos[targetId] || '脚夫';
+    state.commerce.pos[targetId] = position;
+    const market = positionWage(position);
+    const wage = Math.floor(Number(el('hireWage').value) || 0);
+    if (market <= 0) return showReasonToast('雇' + row.name, 'unknown_position');
+    if (wage < Math.round(market * SHOP_HIRE.wageMinRatio)) return showReasonToast('雇' + row.name, 'wage_too_low');
+    if (wage > Math.round(market * SHOP_HIRE.wageMaxRatio)) return showReasonToast('雇' + row.name, 'wage_too_high');
+    const out = await commerceAction('recruit',
+      { target: targetId, position: position, wage: wage }, '雇' + row.name);
+    if (!out) return;
+    state.commerce.hire = '已雇佣 ' + row.name + ' 做 ' + position + '，日薪 ' + wage + ' 文。';
+    el('hireHint').textContent = state.commerce.hire;
+    toast(state.commerce.hire);
+    pushLog('ok', '雇佣 ' + row.name + ' · ' + position + ' · ' + wage + ' 文/日',
+      'event_seq ' + (out.data.event_seq == null ? '?' : out.data.event_seq));
+  }
+
+  async function doEscort() {
+    const st = state.st;
+    const ctx = escortContext(st);
+    if (!ctx.hasAgency) return showReasonToast('押镖', 'no_escort_agency');
+    const dest = el('escortDest').value;
+    if (!dest || !ctx.dests.some(function (x) { return x.id === dest; })) {
+      return showReasonToast('押镖', 'route_not_adjacent');
+    }
+    const cargoItem = el('escortCargo').value;
+    const cargoRow = ctx.items.filter(function (it) { return it.item === cargoItem; })[0];
+    if (!cargoRow) return showReasonToast('押镖', 'item_missing');
+    const held = Math.max(0, Number(cargoRow.qty || 0));
+    const qty = Math.max(1, Math.min(ESCORT_RULES.qtyMax, held, Math.floor(Number(el('escortQty').value) || 1)));
+    if (held <= 0) return showReasonToast('押镖', 'item_missing');
+    const fee = Math.floor(Number(el('escortFee').value) || 0);
+    if (fee < ESCORT_RULES.feeMin) return showReasonToast('押镖', 'fee_too_low');
+    if (fee > ESCORT_RULES.feeMax) return showReasonToast('押镖', 'fee_too_high');
+    const unit = Number(cargoRow.price || 0);
+    const cargoValue = Math.max(ESCORT_RULES.cargoMin, Math.round(unit * qty));
+    const route = [ctx.loc.id, dest];
+    const args = { route: route, cargo_item: cargoItem, cargo_qty: qty, cargo_value: cargoValue, fee: fee };
+    const out = await commerceAction('escort', args, '押镖 ' + (ctx.loc.name || ctx.loc.id) + '→' + dest);
+    if (!out) return;
+    const orders = ((out.st || {}).escort_orders || []).concat(((out.data || {}).escort_orders || []));
+    const mine = orders.filter(function (o) {
+      return o && String(o.carrier || '').indexOf(state.session.accountId) >= 0;
+    }).sort(function (a, b) { return Number(b.created_tick || 0) - Number(a.created_tick || 0); })[0] || null;
+    const arrive = mine && mine.arrive_tick ? mine.arrive_tick : (Number(out.st.tick || 0) + ESCORT_RULES.durationTicks);
+    const net = mine && mine.fee ? escortNet(mine.fee, mine.agency_cut):
+      escortNet(fee, ESCORT_RULES.agencyCut);
+    const destName = (ctx.dests.filter(function (x) { return x.id === dest; })[0] || {}).name || dest;
+    state.commerce.escort = '镖单已接：' + (ctx.loc.name || ctx.loc.id) + ' → ' + destName + ' · ' +
+      (cargoRow.name || cargoItem) + '×' + qty + ' · 镖费 ' + (mine && mine.fee ? mine.fee : fee) +
+      ' 文 · 预计到手 ' + net + ' 文 · 到货 tick ' + arrive;
+    el('escortResult').textContent = state.commerce.escort;
+    toast('镖单已接 · 到货 tick ' + arrive);
+    pushLog('ok', '押镖 ' + (ctx.loc.name || ctx.loc.id) + '→' + destName + ' · 到货 ' + arrive,
+      'event_seq ' + (out.data.event_seq == null ? '?' : out.data.event_seq));
+    updateEscortEstimate();
+  }
+
   /* ------------------------------------------------------------- init */
   async function restoreAccount() {
     // 旧版本可能留下 ws_player_session；它不参与恢复，直接清掉，避免读旧快照。
@@ -1974,6 +2702,89 @@
       if (ev.target === el('npcModal')) closeNpcModal();
     });
 
+    /* 商业与经营：所有控件都是原生 button/input/select，Tab 可达、Enter/Space 可触发。 */
+    el('commerceJump').addEventListener('click', function () {
+      state.commerce.tab = state.commerce.tab || 'shop';
+      setCommerceTab(state.commerce.tab);
+      const block = el('commerceBlock');
+      if (block) block.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const active = el('commerceTabs') &&
+        el('commerceTabs').querySelector('[data-tab="' + state.commerce.tab + '"]');
+      if (active) setTimeout(function () { active.focus(); }, 0);
+    });
+    el('commerceTabs').addEventListener('click', function (ev) {
+      const btn = ev.target.closest('[data-tab]');
+      if (!btn) return;
+      setCommerceTab(btn.getAttribute('data-tab'));
+      if (btn.getAttribute('data-tab') === 'escort') updateEscortEstimate();
+    });
+    el('commerceTabs').addEventListener('keydown', function (ev) {
+      const tabs = Array.prototype.slice.call(el('commerceTabs').querySelectorAll('[data-tab]'));
+      const idx = tabs.indexOf(document.activeElement);
+      if (idx < 0) return;
+      let next = null;
+      if (ev.key === 'ArrowRight') next = tabs[(idx + 1) % tabs.length];
+      else if (ev.key === 'ArrowLeft') next = tabs[(idx + tabs.length - 1) % tabs.length];
+      else if (ev.key === 'Home') next = tabs[0];
+      else if (ev.key === 'End') next = tabs[tabs.length - 1];
+      if (!next) return;
+      ev.preventDefault();
+      next.focus();
+      setCommerceTab(next.getAttribute('data-tab'));
+    });
+    el('commerceBlock').addEventListener('input', function (ev) {
+      const target = ev.target;
+      if (target && target.getAttribute && target.getAttribute('data-qty')) {
+        state.commerce.qty[target.getAttribute('data-qty')] = target.value;
+      }
+      if (target && target.id === 'hireWage') state.commerce.wageSet = true;
+    });
+    el('commerceBlock').addEventListener('change', function (ev) {
+      const target = ev.target;
+      if (target && target.getAttribute && target.getAttribute('data-pos-for')) {
+        const id = target.getAttribute('data-pos-for');
+        state.commerce.pos[id] = target.value;
+        state.commerce.wageSet = true;
+        const market = positionWage(target.value);
+        if (market > 0) el('hireWage').value = String(market);
+      }
+      if (target && target.id === 'escortCargo') {
+        clampEscortQty();
+        updateEscortEstimate();
+      }
+    });
+    el('commerceBlock').addEventListener('focusout', function () {
+      // 输入结束后补一次被暂缓的渲染：价格/库存不会因为“正在输入”而永久滞后。
+      setTimeout(function () {
+        if (state.commerce.deferred && !commerceEditing()) {
+          const st = state.commerce.deferred;
+          state.commerce.deferred = null;
+          renderCommerce(st);
+        }
+      }, 0);
+    });
+    el('buyList').addEventListener('click', function (ev) {
+      const btn = ev.target.closest('[data-buy-go]');
+      if (btn) doBuy(btn.getAttribute('data-buy-go'));
+    });
+    el('sellList').addEventListener('click', function (ev) {
+      const btn = ev.target.closest('[data-sell-go]');
+      if (btn) doSell(btn.getAttribute('data-sell-go'));
+    });
+    el('consumeBtn').addEventListener('click', doConsume);
+    el('tierList').addEventListener('click', function (ev) {
+      const btn = ev.target.closest('[data-tier]');
+      if (btn) doOpenShop(btn.getAttribute('data-tier'));
+    });
+    el('hireList').addEventListener('click', function (ev) {
+      const btn = ev.target.closest('[data-hire]');
+      if (btn) doHire(btn.getAttribute('data-hire'));
+    });
+    el('escortDest').addEventListener('change', updateEscortEstimate);
+    el('escortQty').addEventListener('input', updateEscortEstimate);
+    el('escortFee').addEventListener('input', updateEscortEstimate);
+    el('escortGo').addEventListener('click', doEscort);
+
     el('authBtn').addEventListener('click', function () {
       if (state.auth.mode === 'legacy') return;
       openAuthModal(state.auth.access ? 'login' : 'login');
@@ -2068,7 +2879,7 @@
             if (!err.authRequired) markDegraded(err);
           }
         }
-      }, 10000);
+      }, STATE_INTERVAL_MS);
     } catch (err) {
       const box = el('entryError');
       box.textContent = '无法连接服务端：' + (err.message || err);
@@ -2120,6 +2931,30 @@
           status: state.guide.status,
           accountId: state.guide.accountId
         };
+      },
+      commerceState: function () {
+        const st = state.st || {};
+        const own = ownShopOf(st);
+        const shop = st.shop || {};
+        const money = Number(((st.player || {}).wallet || {}).money || 0);
+        return {
+          tab: state.commerce.tab,
+          money: money,
+          buyRows: (shop.buy || []).length,
+          sellRows: (shop.sell || []).length,
+          servers: ((shop.businesses || []).length),
+          ownShop: own ? { id: own.id, kind: own.kind, cash: own.cash, employees: Array.isArray(own.employees) ? own.employees.length : null } : null,
+          hireRows: (st.present_npcs || []).length,
+          hasEscortAgency: ((shop.businesses || []).some(function (b) { return String(b.kind || '').indexOf('escort') >= 0; })),
+          escortDests: ((st.location || {}).exits || []).map(function (x) { return x.id; }),
+          activeEscorts: ((st.escort_orders || []).filter(function (o) { return o.status === 'active' || o.status === 'open'; }).length),
+          deferred: !!state.commerce.deferred,
+          editing: commerceEditing()
+        };
+      },
+      refreshState: function (account) {
+        const acct = account == null ? (state.session && state.session.accountId) : account;
+        return loadState(acct);
       },
       guideTargetInfo: function () {
         const ctx = guideTarget(state.guide.step);

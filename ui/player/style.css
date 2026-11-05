@@ -696,6 +696,159 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   font-size: 11px;
 }
 
+/* 商业与经营：商店 / 店铺 / 雇人 / 押镖 / 江湖入口 */
+/* 右栏是 flex 列：每个块按内容自然增高，超出的部分由面板滚动，
+   避免块被压扁后内容溢出、盖住相邻块的任务按钮。 */
+.panel.right > .block { flex: 0 0 auto; }
+.commerce-block { min-width: 0; }
+.commerce-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.commerce-tabs .tab {
+  flex: 1 1 54px;
+  min-height: 44px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.commerce-tabs .tab.active {
+  border-color: var(--accent);
+  color: var(--ink);
+  background: rgba(176, 134, 58, .12);
+  font-weight: 700;
+}
+.commerce-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.commerce-sub {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+.commerce-sub .hint { text-align: right; }
+.commerce-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+.commerce-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 7px 8px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .55);
+}
+.commerce-row .row-main {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+.commerce-row .row-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.commerce-row .row-meta {
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.commerce-row .row-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.commerce-row input[type="number"] {
+  width: 72px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+}
+.commerce-row select {
+  max-width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+}
+.commerce-reason {
+  color: var(--danger, #b23b3b);
+  font-size: 11.5px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.commerce-gap {
+  color: var(--muted);
+  font-size: 11.5px;
+  border-bottom: 1px dotted var(--line);
+}
+.commerce-inline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+.commerce-inline label { font-size: 12px; color: var(--muted); }
+.commerce-inline input,
+.commerce-inline select {
+  min-height: 44px;
+  min-width: 84px;
+  max-width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+}
+.commerce-consume {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.commerce-btn { min-height: 44px; }
+.commerce-row button { min-height: 44px; }
+.commerce-row .soon {
+  opacity: .72;
+}
+.commerce-empty {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 6px 0;
+}
+
 /* ---------------------------------------------------------------- responsive */
 @media (max-width: 1180px) {
   .layout { grid-template-columns: 280px minmax(0, 1fr); }
@@ -765,6 +918,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   .layout > .panel.center { order: 3; }
   .panel.right > .block.fold-growth { order: 3; }
   .panel.right > .block:nth-child(3) { order: 2; }
+  .panel.right > .block.commerce-block { order: 3; }
+  .commerce-row .row-main { align-items: flex-start; }
+  .commerce-row .row-actions > button { flex: 1 1 64px; }
 
   .fold-btn { display: inline-flex; align-items: center; justify-content: center; }
   .block.foldable.collapsed > .block-body { display: none; }

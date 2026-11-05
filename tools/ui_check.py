@@ -34,10 +34,42 @@ def _json_bytes(payload):
 
 
 LOCATIONS = {
-    "market": {"name": "市集", "exits": [("pharmacy", "药铺"), ("teahouse", "茶楼")]},
+    "market": {"name": "市集", "exits": [("pharmacy", "药铺"), ("teahouse", "茶楼"),
+                                        ("escort_agency", "镖局")]},
     "pharmacy": {"name": "药铺", "exits": [("market", "市集")]},
     "teahouse": {"name": "茶楼", "exits": [("market", "市集")]},
+    "escort_agency": {"name": "镖局", "exits": [("market", "市集")]},
 }
+
+# 商业面板 mock：与真服务 shop/escort 视图字段同名。
+SHOP_BUY = [
+    {"item": "flatbread", "name": "炊饼", "category": "food", "price": 3, "tax": 0,
+     "total": 3, "stock": 6, "business": "biz:market:shop", "business_name": "市集杂货铺"},
+    {"item": "noodle", "name": "汤面", "category": "food", "price": 5, "tax": 0,
+     "total": 5, "stock": 4, "business": "biz:market:shop", "business_name": "市集杂货铺"},
+    {"item": "coarse_cloth", "name": "粗布（一匹）", "category": "material", "price": 25,
+     "tax": 1, "total": 26, "stock": 3, "business": "biz:market:shop",
+     "business_name": "市集杂货铺"},
+]
+SHOP_NAMES = {"flatbread": "炊饼", "noodle": "汤面", "coarse_cloth": "粗布（一匹）",
+              "rice": "米饭", "cleaver": "菜刀", "needle": "绣花针"}
+SHOP_ITEM_PRICE = {"flatbread": 3, "noodle": 5, "coarse_cloth": 25, "rice": 4,
+                   "cleaver": 40, "needle": 12}
+SHOP_SELL_PRICE = {"flatbread": 2, "noodle": 3, "coarse_cloth": 15, "rice": 2,
+                   "cleaver": 24, "needle": 7}
+SHOP_TOTALS = {"stall": 345, "storefront": 1472, "branch": 3450}
+SHOP_STOCK = {
+    "stall": {"flatbread": 6, "noodle": 4, "rice": 3},
+    "storefront": {"flatbread": 10, "noodle": 8, "rice": 6, "coarse_cloth": 4,
+                   "cleaver": 2, "needle": 2},
+    "branch": {"flatbread": 14, "noodle": 10, "rice": 8, "coarse_cloth": 6,
+               "cleaver": 3, "needle": 3},
+}
+POSITION_WAGES = {"铁匠": 32, "绣娘": 24, "脚夫": 18, "掌柜": 36, "游医": 28,
+                  "镖师": 30, "酒保": 20, "药童": 15, "货郎": 26}
+NPC_SKILL = {"npc:liu_sanniang": 0.30, "npc:wang_tiejiang": 0.40,
+             "npc:afu": 0.20, "npc:chen_huolang": 0.05}
+AFFECTION = {"npc:wang_tiejiang": 7.0, "npc:afu": 7.0, "npc:chen_huolang": 7.0}
 
 QUEST = {
     "id": "quest:silk_sample:0",
@@ -56,11 +88,19 @@ QUEST = {
 
 NPCS = {
     "market": [{"id": "npc:liu_sanniang", "name": "刘三娘", "role": "商户",
-                "doing": "整理今日的布匹订单", "location": "market", "presence": "在场"}],
+                "doing": "整理今日的布匹订单", "location": "market", "presence": "在场"},
+               {"id": "npc:wang_tiejiang", "name": "王铁匠", "role": "铁匠",
+                "doing": "守着炉子打铁", "location": "market", "presence": "在场"},
+               {"id": "npc:afu", "name": "阿福", "role": "药童",
+                "doing": "在铺子门口晒药", "location": "market", "presence": "在场"},
+               {"id": "npc:chen_huolang", "name": "陈货郎", "role": "货郎",
+                "doing": "挑着担子叫卖", "location": "market", "presence": "在场"}],
     "pharmacy": [{"id": "npc:pharmacy_keeper", "name": "药铺掌柜", "role": "掌柜",
                   "doing": "核对药柜库存", "location": "pharmacy", "presence": "在场"}],
     "teahouse": [{"id": "npc:teahouse_owner", "name": "茶楼老板", "role": "掌柜",
                   "doing": "招呼客人", "location": "teahouse", "presence": "在场"}],
+    "escort_agency": [{"id": "npc:escort_boss", "name": "镖局总镖头", "role": "镖师",
+                       "doing": "清点镖车", "location": "escort_agency", "presence": "在场"}],
 }
 
 # 世界动态固定样本：市集/药铺（玩家当前地点与相邻地点）各一条 important，
@@ -99,6 +139,19 @@ def auth_error(code, tick=0):
             "reason_text": AUTH_ERROR_TEXT.get(code, code), "tick": tick}
 
 
+def _int_arg(value, default=None):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def reject(code, text=""):
+    """与真服务失败响应同形：reject_reason 由前端映射成中文。"""
+    return 409, {"ok": False, "reason": code, "reject_reason": code,
+                 "reason_text": text or code}
+
+
 class MockWorld:
     def __init__(self, auth_enabled=False, upstream_ok=True):
         self.lock = threading.RLock()
@@ -128,8 +181,14 @@ class MockWorld:
             "money": 300,
             "tick": 12,
             "event_seq": 1,
+            "stamina": 82,
             "created": created,
             "accepted": False,
+            "items": {"flatbread": 3, "coarse_cloth": 1},
+            "shop": None,
+            "escort_orders": [],
+            "stock_shift": 0,
+            "stock_adj": {},
         }
 
     def enter(self, account_id, display_name, archetype):
@@ -168,12 +227,12 @@ class MockWorld:
                 "name": a["display_name"],
                 "archetype": a["archetype"],
                 "role": a["role"],
-                "stamina": 82,
+                "stamina": a["stamina"],
                 "max_stamina": 100,
                 "location": loc,
                 "location_name": LOCATIONS[loc]["name"],
-                "wallet": {"money": a["money"], "items": [{"name": "粗布", "qty": 1},
-                                                          {"name": "炊饼", "qty": 3}]},
+                "wallet": {"money": a["money"], "items": self._wallet_items(a)},
+                "relations": self._relations(),
             }
             return {
                 "ok": True,
@@ -183,6 +242,8 @@ class MockWorld:
                 "player": p,
                 "location": {"id": loc, "name": LOCATIONS[loc]["name"], "exits": exits},
                 "present_npcs": NPCS[loc],
+                "shop": self._shop_view(a),
+                "escort_orders": [dict(o) for o in a["escort_orders"]],
                 "quest_board": {
                     "rows": rows,
                     "active": active_rows,
@@ -209,6 +270,89 @@ class MockWorld:
                 },
                 "online_players": [],
             }
+
+    # ------------------------------------------------------------- commerce
+    def _npc(self, npc_id):
+        for rows in NPCS.values():
+            for npc in rows:
+                if npc["id"] == npc_id:
+                    return npc
+        return None
+
+    def _wallet_items(self, a):
+        rows = []
+        for item, qty in sorted(a["items"].items()):
+            if qty <= 0:
+                continue
+            price = SHOP_ITEM_PRICE.get(item, 1)
+            rows.append({"item": item, "name": SHOP_NAMES.get(item, item), "qty": qty,
+                         "price": price,
+                         "sell_price": SHOP_SELL_PRICE.get(item, max(1, price // 2))})
+        return rows
+
+    def _relations(self):
+        rows = []
+        for npc_id, aff in sorted(AFFECTION.items()):
+            npc = self._npc(npc_id)
+            if npc:
+                rows.append({"target": npc_id, "name": npc["name"], "kind": "familiar",
+                             "affection": aff, "trust": aff})
+        npc = self._npc("npc:liu_sanniang")
+        if npc:
+            rows.append({"target": npc["id"], "name": npc["name"], "kind": "familiar",
+                         "affection": 0.0, "trust": 0.0})
+        return rows
+
+    def _shop_view(self, a):
+        loc = a["location"]
+        biz = []
+        if loc == "market":
+            biz.append({"id": "biz:market:shop", "name": "市集杂货铺", "kind": "service_shop",
+                        "cash": 900, "location": loc})
+        if loc == "escort_agency":
+            biz.append({"id": "biz:escort_agency:service_escort", "name": "平安镖局",
+                        "kind": "service_escort", "cash": 5000, "location": loc})
+        own = a["shop"] if a["shop"] and a["shop"]["location"] == loc else None
+        if own:
+            biz.append({"id": own["id"], "name": own["name"], "kind": own["kind"],
+                        "cash": own["cash"], "location": own["location"],
+                        "employees": [dict(e) for e in own["employees"]]})
+        buy, seen = [], set()
+        if loc == "market":
+            for row in SHOP_BUY:
+                r = dict(row)
+                r["stock"] = max(0, int(row["stock"]) - a["stock_shift"] -
+                                int(a.get("stock_adj", {}).get(r["item"], 0)))
+                r["buy_limit"] = min(r["stock"], 5)
+                buy.append(r)
+                seen.add(r["item"])
+        if own:
+            for item, qty in sorted(own["stock"].items()):
+                if item in seen:
+                    continue
+                seen.add(item)
+                stock = max(0, int(qty) - a["stock_shift"])
+                price = SHOP_ITEM_PRICE.get(item, 1)
+                buy.append({"item": item, "name": SHOP_NAMES.get(item, item),
+                            "category": "material" if item in ("cleaver", "needle", "coarse_cloth") else "food",
+                            "price": price, "tax": 0, "total": price, "stock": stock,
+                            "business": own["id"], "business_name": own["name"],
+                            "buy_limit": stock})
+        sell = []
+        for item, qty in (sorted(a["items"].items()) if (loc == "market" or own) else []):
+            if qty <= 0 or item not in SHOP_SELL_PRICE:
+                continue
+            price = SHOP_ITEM_PRICE.get(item, 1)
+            sell.append({"item": item, "name": SHOP_NAMES.get(item, item), "category": "material",
+                         "qty": qty, "price": price,
+                         "sell_price": SHOP_SELL_PRICE[item], "sell_limit": qty})
+        return {"location": LOCATIONS[loc]["name"], "businesses": biz, "buy": buy, "sell": sell}
+
+    def _buy_row(self, a, item):
+        for row in self._shop_view(a)["buy"]:
+            if row["item"] == item:
+                return row
+        return None
 
     def feed(self, limit=20):
         try:
@@ -281,7 +425,170 @@ class MockWorld:
                 a["event_seq"] += 1
                 return 200, {"ok": True, "event_seq": a["event_seq"], "tick": a["tick"],
                              "details": {"reply": "刘三娘：布已经备好，送到药铺就行。"}}
-            if verb in ("cultivate", "open_shop"):
+            if verb == "buy":
+                item = str((args or {}).get("item") or "")
+                qty = _int_arg((args or {}).get("qty"), 1)
+                if qty is None:
+                    return reject("bad_arg:qty")
+                row = self._buy_row(a, item)
+                if row is None:
+                    return reject("item_not_available")
+                if not 1 <= qty <= 20:
+                    return reject("bad_arg:qty")
+                if qty > row["stock"]:
+                    return reject("item_missing")
+                cost = int(row["total"]) * qty
+                if a["money"] < cost:
+                    return reject("not_enough_money")
+                a["money"] -= cost
+                a["items"][item] = a["items"].get(item, 0) + qty
+                a["stock_adj"][item] = int(a["stock_adj"].get(item, 0)) + qty
+                a["tick"] += 2
+                a["event_seq"] += 1
+                return 200, {"ok": True, "event_seq": a["event_seq"], "tick": a["tick"],
+                             "next_tick": a["tick"] + 6,
+                             "details": {"item": item, "qty": qty, "cost": cost}}
+            if verb == "sell":
+                item = str((args or {}).get("item") or "")
+                qty = _int_arg((args or {}).get("qty"), 1)
+                if qty is None:
+                    return reject("bad_arg:qty")
+                held = int(a["items"].get(item, 0))
+                if not 1 <= qty <= 20:
+                    return reject("bad_arg:qty")
+                if qty > held:
+                    return reject("item_missing")
+                if not any(r["item"] == item for r in self._shop_view(a)["sell"]):
+                    return reject("not_a_merchant")
+                gain = int(SHOP_SELL_PRICE.get(item, 1)) * qty
+                a["items"][item] = held - qty
+                a["money"] += gain
+                a["tick"] += 2
+                a["event_seq"] += 1
+                return 200, {"ok": True, "event_seq": a["event_seq"], "tick": a["tick"],
+                             "next_tick": a["tick"] + 6,
+                             "details": {"item": item, "qty": qty, "gain": gain}}
+            if verb == "consume":
+                foods = [r for r in self._shop_view(a)["buy"]
+                         if r.get("category") in ("food", "drink") and r["stock"] > 0]
+                foods.sort(key=lambda r: int(r["total"]))
+                item = str((args or {}).get("item") or "")
+                row = next((r for r in foods if r["item"] == item), None)
+                if row is None:
+                    row = foods[0] if foods else None
+                if row is None:
+                    return reject("item_not_available")
+                cost = int(row["total"])
+                if a["money"] < cost:
+                    return reject("not_enough_money")
+                before = a["stamina"]
+                a["money"] -= cost
+                a["stamina"] = min(100, a["stamina"] + 25)
+                a["tick"] += 3
+                a["event_seq"] += 1
+                return 200, {"ok": True, "event_seq": a["event_seq"], "tick": a["tick"],
+                             "next_tick": a["tick"] + 6,
+                             "details": {"item": row["item"], "cost": cost,
+                                         "stamina_before": before, "stamina_after": a["stamina"]}}
+            if verb == "open_shop":
+                kind = str((args or {}).get("shop_type") or "")
+                if kind not in SHOP_TOTALS:
+                    return reject("bad_shop_type")
+                if a["shop"]:
+                    return reject("already_owns_shop")
+                total = SHOP_TOTALS[kind]
+                if a["money"] < total:
+                    return reject("insufficient_money")
+                a["money"] -= total
+                a["shop"] = {
+                    "id": "shop:player:" + account_id,
+                    "name": {"stall": "小摊", "storefront": "铺面", "branch": "分号"}[kind],
+                    "kind": kind, "cash": 0, "location": a["location"],
+                    "stock": dict(SHOP_STOCK[kind]), "employees": [],
+                }
+                a["tick"] += 3
+                a["event_seq"] += 1
+                return 200, {"ok": True, "event_seq": a["event_seq"], "tick": a["tick"],
+                             "next_tick": a["tick"] + 6,
+                             "details": {"shop_type": kind, "cost": total}}
+            if verb == "recruit":
+                target = str((args or {}).get("target") or "")
+                npc = self._npc(target)
+                if npc is None:
+                    return reject("target_not_found")
+                if target == "player:" + account_id:
+                    return reject("self_recruit")
+                own = a["shop"]
+                if not own:
+                    return reject("no_shop")
+                if own["location"] != a["location"]:
+                    return reject("wrong_location")
+                if npc["location"] != own["location"]:
+                    return reject("target_not_at_shop")
+                cap = {"stall": 1, "storefront": 2, "branch": 3}.get(own["kind"], 0)
+                if len(own["employees"]) >= cap:
+                    return reject("shop_full")
+                position = str((args or {}).get("position") or npc["role"])
+                if position not in POSITION_WAGES:
+                    return reject("unknown_position")
+                if NPC_SKILL.get(target, 0) < 0.15:
+                    return reject("skill_too_low")
+                if AFFECTION.get(target, 0) < 6.0:
+                    return reject("relation_too_low")
+                market = POSITION_WAGES[position]
+                wage = _int_arg((args or {}).get("wage"), market)
+                if wage is None:
+                    return reject("wage_too_low")
+                if wage < int(round(market * 0.8)):
+                    return reject("wage_too_low")
+                if wage > int(round(market * 1.5)):
+                    return reject("wage_too_high")
+                own["employees"].append({"id": target, "name": npc["name"],
+                                         "position": position, "wage": wage,
+                                         "present": True})
+                a["tick"] += 4
+                a["event_seq"] += 1
+                return 200, {"ok": True, "event_seq": a["event_seq"], "tick": a["tick"],
+                             "next_tick": a["tick"] + 6,
+                             "details": {"target": target, "position": position, "wage": wage}}
+            if verb == "escort":
+                if not any(b["kind"].find("escort") >= 0
+                           for b in self._shop_view(a)["businesses"]):
+                    return reject("no_escort_agency")
+                route = (args or {}).get("route") or []
+                dest = route[1] if isinstance(route, list) and len(route) == 2 else None
+                allowed = [x[0] for x in LOCATIONS[a["location"]]["exits"]]
+                if not dest or route[0] != a["location"] or dest not in allowed:
+                    return reject("route_not_adjacent")
+                item = str((args or {}).get("cargo_item") or "")
+                qty = _int_arg((args or {}).get("cargo_qty"), 1)
+                if qty is None or not 1 <= qty <= 100:
+                    return reject("bad_arg:cargo_qty")
+                if qty > int(a["items"].get(item, 0)):
+                    return reject("item_missing")
+                fee = _int_arg((args or {}).get("fee"), 180)
+                if fee is None or fee < 120:
+                    return reject("fee_too_low")
+                if fee > 260:
+                    return reject("fee_too_high")
+                value = _int_arg((args or {}).get("cargo_value"), 100)
+                if value is None:
+                    return reject("bad_arg:cargo_value")
+                if value < 100:
+                    return reject("cargo_too_low")
+                a["tick"] += 1
+                a["event_seq"] += 1
+                a["escort_orders"].append({
+                    "id": "escort:%d" % a["event_seq"], "carrier": "player:" + account_id,
+                    "route": route, "status": "active", "fee": fee,
+                    "agency_cut": 0.30, "arrive_tick": a["tick"] + 144,
+                    "created_tick": a["tick"], "cargo_item": item, "cargo_qty": qty,
+                })
+                return 200, {"ok": True, "event_seq": a["event_seq"], "tick": a["tick"],
+                             "next_tick": a["tick"] + 6,
+                             "details": {"route": route, "fee": fee,
+                                         "arrive_tick": a["tick"] + 144}}
+            if verb in ("cultivate",):
                 a["tick"] += 2
                 a["event_seq"] += 1
                 return 200, {"ok": True, "event_seq": a["event_seq"], "tick": a["tick"]}
@@ -466,6 +773,31 @@ class Handler(SimpleHTTPRequestHandler):
                              "rotate_count": self.world.rotate_count,
                              "force_401": self.world.force_401,
                              "write_auth_headers": self.world.write_auth_headers})
+            return
+        if path == "/__check/money":
+            q = parse_qs(urlsplit(self.path).query)
+            account = (q.get("account") or [""])[0]
+            with self.world.lock:
+                a = self.world.accounts.get(account)
+                if a is None:
+                    self._json(409, {"ok": False, "reason": "player_not_entered"})
+                    return
+                a["money"] = int((q.get("value") or ["0"])[0])
+                self._json(200, {"ok": True, "account_id": account, "money": a["money"]})
+            return
+        if path == "/__check/tick":
+            q = parse_qs(urlsplit(self.path).query)
+            account = (q.get("account") or [""])[0]
+            n = int((q.get("n") or ["6"])[0])
+            shift = int((q.get("stock") or ["0"])[0])
+            with self.world.lock:
+                a = self.world.accounts.get(account)
+                if a is None:
+                    self._json(409, {"ok": False, "reason": "player_not_entered"})
+                    return
+                a["tick"] += n
+                a["stock_shift"] += shift
+                self._json(200, {"ok": True, "tick": a["tick"], "stock_shift": a["stock_shift"]})
             return
         # 静态文件
         return super().do_GET()
@@ -1389,11 +1721,321 @@ def run_auth(browser, base, results):
     ctx.close()
 
 
+COMMERCE_EVIDENCE = ROOT / "reports" / "w4-commerce"
+
+
+def commerce_capture(page, name):
+    COMMERCE_EVIDENCE.mkdir(parents=True, exist_ok=True)
+    path = COMMERCE_EVIDENCE / (name + ".png")
+    page.screenshot(path=str(path))
+    return str(path.relative_to(ROOT))
+
+
+def commerce_page(browser, base, account, display="商户客", viewport=None):
+    ctx = browser.new_context(viewport=viewport or {"width": 1280, "height": 900})
+    page = ctx.new_page()
+    page.goto(base + "/?ui_check=1")
+    enter_world(page, account, display)
+    page.evaluate("""() => { const b = document.getElementById('guideSkip'); if (b) b.click(); }""")
+    page.wait_for_function(
+        "() => document.getElementById('guideLayer').classList.contains('hidden')", timeout=8000)
+    page.wait_for_function("() => !!window.__XKX.commerceState()", timeout=8000)
+    return ctx, page
+
+
+def commerce_snapshot(page):
+    return page.evaluate("""() => {
+      const money = window.__XKX.commerceState().money;
+      const buy = Array.from(document.querySelectorAll('#buyList .commerce-row')).map(r => ({
+        item: r.getAttribute('data-buy'), text: r.textContent.trim(),
+        qty: !!r.querySelector('input[data-qty]'), button: !!r.querySelector('[data-buy-go]')
+      }));
+      const sell = Array.from(document.querySelectorAll('#sellList .commerce-row')).map(r => ({
+        item: r.getAttribute('data-sell'), text: r.textContent.trim(),
+        button: r.querySelector('[data-sell-go]') ? !r.querySelector('[data-sell-go]').disabled : false
+      }));
+      const tiers = Array.from(document.querySelectorAll('#tierList .commerce-row')).map(r => ({
+        kind: r.getAttribute('data-tier-row'), text: r.textContent.trim(),
+        disabled: r.querySelector('[data-tier]') ? r.querySelector('[data-tier]').disabled : null
+      }));
+      const hires = Array.from(document.querySelectorAll('#hireList .commerce-row')).map(r => ({
+        id: r.getAttribute('data-hire-row'), text: r.textContent.trim(),
+        pos: r.querySelector('select') ? r.querySelector('select').value : null,
+        disabled: r.querySelector('[data-hire]') ? r.querySelector('[data-hire]').disabled : null
+      }));
+      return {
+        money, buy, sell, tiers, hires,
+        commerceVisible: !!document.getElementById('commerceBlock'),
+        jumpVisible: !!document.getElementById('commerceJump'),
+        own: window.__XKX.commerceState().ownShop,
+        ownText: (document.getElementById('ownShopInfo') || {}).textContent || '',
+        employeeText: (document.getElementById('employeeList') || {}).textContent || '',
+        consumeText: (document.getElementById('consumeResult') || {}).textContent || '',
+        escortEstimate: (document.getElementById('escortEstimate') || {}).textContent || '',
+        escortResult: (document.getElementById('escortResult') || {}).textContent || '',
+        hireHint: (document.getElementById('hireHint') || {}).textContent || '',
+        soon: (document.getElementById('soonList') || {}).textContent || '',
+        errors: Array.from(document.querySelectorAll('#errorList .error-item')).map(e => e.textContent.trim()),
+        log: Array.from(document.querySelectorAll('#log .log-item')).map(e => e.textContent.trim())
+      };
+    }""")
+
+
+def run_commerce(browser, base, results, world):
+    ctx, page = commerce_page(browser, base, "u_commerce", "商户甲")
+    snap = commerce_snapshot(page)
+    results.must("商业 入口可见（顶栏按钮 + 面板）", snap["jumpVisible"] and snap["commerceVisible"], snap)
+    results.must("商业 商店页列出可买物品（单价/含税/库存/限购）",
+                 any(r["item"] == "flatbread" and "炊饼" in r["text"] and "单价 3" in r["text"]
+                     and "含税 3" in r["text"] and "库存 6" in r["text"] and "限购" in r["text"]
+                     and r["qty"] and r["button"] for r in snap["buy"]), snap["buy"])
+    results.must("商业 可卖物品显示 sell_price 与持有数量",
+                 any(r["item"] == "coarse_cloth" and "售价 15" in r["text"] and "持有 1" in r["text"]
+                     for r in snap["sell"]), snap["sell"])
+
+    page.fill('input[data-qty="buy:flatbread"]', "2")
+    page.click('[data-buy-go="flatbread"]')
+    page.wait_for_function("() => window.__XKX.commerceState().money === 294", timeout=8000)
+    snap = commerce_snapshot(page)
+    results.must("商业 buy 数量 2 真调用（钱包 300→294）",
+                 "库存 4" in next(r["text"] for r in snap["buy"] if r["item"] == "flatbread")
+                 and any("买" in row for row in snap["log"]), snap["buy"])
+    commerce_capture(page, "mock-commerce-buy")
+
+    page.click("#consumeBtn")
+    page.wait_for_function("() => window.__XKX.commerceState().money === 291", timeout=8000)
+    page.wait_for_function("() => document.getElementById('consumeResult').textContent.indexOf('体力 82 → 100') >= 0",
+                           timeout=8000)
+    snap = commerce_snapshot(page)
+    results.must("商业 consume 一键现吃并显示体力变化",
+                 "体力 82 → 100（+18）" in snap["consumeText"] and "钱包 294 → 291" in snap["consumeText"],
+                 snap["consumeText"])
+    commerce_capture(page, "mock-commerce-consume")
+
+    page.fill('input[data-qty="sell:coarse_cloth"]', "1")
+    page.click('[data-sell-go="coarse_cloth"]')
+    page.wait_for_function("() => window.__XKX.commerceState().money === 306", timeout=8000)
+    snap = commerce_snapshot(page)
+    results.must("商业 sell 数量 1 真调用（钱包 291→306）",
+                 any("卖" in row for row in snap["log"]) and
+                 all(not r["button"] for r in snap["sell"] if r["item"] == "coarse_cloth"), snap["sell"])
+
+    # 8 秒刷新：tick 推进后库存变化必须在下一轮轮询内进入界面。
+    started = time.monotonic()
+    page.request.get(base + "/__check/tick?account=u_commerce&n=6&stock=1")
+    page.wait_for_function(
+        "() => /库存 3/.test(document.querySelector('[data-buy=flatbread]').textContent)",
+        timeout=12000)
+    elapsed = time.monotonic() - started
+    results.must("商业 价格/库存 8 秒内刷新（无输入时）", elapsed <= 9.5, {"elapsed": round(elapsed, 2)})
+
+    # 正在输入的数量在轮询期间不被重建/清空。
+    page.focus('input[data-qty="buy:flatbread"]')
+    page.fill('input[data-qty="buy:flatbread"]', "7")
+    page.request.get(base + "/__check/tick?account=u_commerce&n=6&stock=1")
+    page.wait_for_timeout(9000)
+    typing = page.evaluate("""() => {
+      const el = document.querySelector('input[data-qty="buy:flatbread"]');
+      return {value: el.value, focused: document.activeElement === el,
+              deferred: window.__XKX.commerceState().deferred};
+    }""")
+    results.must("商业 刷新不打断正在输入的数量", typing["value"] == "7" and typing["focused"],
+                 typing)
+    page.evaluate("() => document.activeElement.blur()")
+    page.wait_for_function(
+        "() => /库存 2/.test(document.querySelector('[data-buy=flatbread]').textContent)", timeout=4000)
+
+    page.click('[data-tab="business"]')
+    snap = commerce_snapshot(page)
+    stall = next(r for r in snap["tiers"] if r["kind"] == "stall")
+    results.must("商业 资金不足时开店按钮禁用并给原因",
+                 stall["disabled"] and "还差" in stall["text"] and "共需 345" in stall["text"], stall)
+    page.request.get(base + "/__check/money?account=u_commerce&value=2000")
+    page.evaluate("() => window.__XKX.refreshState('u_commerce')")
+    page.wait_for_function("() => window.__XKX.commerceState().money === 2000", timeout=8000)
+    page.click('[data-tier="storefront"]')
+    page.wait_for_function("() => !!window.__XKX.commerceState().ownShop", timeout=8000)
+    page.wait_for_function("() => window.__XKX.commerceState().money === 528", timeout=8000)
+    snap = commerce_snapshot(page)
+    results.must("商业 open_shop 三档开店成功并显示店内现金/库存",
+                 snap["own"] and snap["own"]["kind"] == "storefront" and
+                 "店内现金" in snap["ownText"] and "库存" in snap["ownText"], snap["ownText"])
+    results.must("商业 已有店铺后三档按钮禁用并给原因",
+                 all(r["disabled"] and "已经有店铺" in r["text"] for r in snap["tiers"]), snap["tiers"])
+    commerce_capture(page, "mock-commerce-open-shop")
+
+    page.click('[data-tab="hire"]')
+    snap = commerce_snapshot(page)
+    wang = next(r for r in snap["hires"] if r["id"] == "npc:wang_tiejiang")
+    liu = next(r for r in snap["hires"] if r["id"] == "npc:liu_sanniang")
+    results.must("商业 雇人列表显示好感/技能/受雇状态",
+                 "好感 7.0" in wang["text"] and "技能" in wang["text"] and "受雇" in wang["text"], wang)
+    results.must("商业 低好感 NPC 明确标出", "好感 0.0（不足 6.0）" in liu["text"], liu)
+
+    page.select_option('select[data-pos-for="npc:wang_tiejiang"]', "铁匠")
+    page.fill("#hireWage", "20")
+    page.click('[data-hire="npc:wang_tiejiang"]')
+    page.wait_for_function(
+        "() => document.getElementById('errorList').textContent.indexOf('日薪低于市价') >= 0",
+        timeout=8000)
+    snap = commerce_snapshot(page)
+    results.must("商业 wage_too_low 映射中文且不露原始码",
+                 any("日薪低于市价" in e for e in snap["errors"]) and
+                 all("wage_too_low" not in e for e in snap["errors"]), snap["errors"])
+
+    page.fill("#hireWage", "32")
+    page.click('[data-hire="npc:wang_tiejiang"]')
+    page.wait_for_function(
+        "() => document.getElementById('employeeList').textContent.indexOf('王铁匠') >= 0", timeout=8000)
+    snap = commerce_snapshot(page)
+    results.must("商业 recruit 成功并显示岗位/日薪/到店",
+                 "王铁匠" in snap["employeeText"] and "铁匠" in snap["employeeText"]
+                 and "32" in snap["employeeText"] and "到店" in snap["employeeText"],
+                 snap["employeeText"])
+
+    page.select_option('select[data-pos-for="npc:liu_sanniang"]', "脚夫")
+    page.fill("#hireWage", "18")
+    page.click('[data-hire="npc:liu_sanniang"]')
+    page.wait_for_function(
+        "() => document.getElementById('errorList').textContent.indexOf('好感不足') >= 0", timeout=8000)
+    snap = commerce_snapshot(page)
+    results.must("商业 relation_too_low 映射中文", any("好感不足" in e for e in snap["errors"]),
+                 snap["errors"])
+
+    page.select_option('select[data-pos-for="npc:chen_huolang"]', "货郎")
+    page.fill("#hireWage", "26")
+    page.click('[data-hire="npc:chen_huolang"]')
+    page.wait_for_function(
+        "() => document.getElementById('errorList').textContent.indexOf('手艺还不够') >= 0", timeout=8000)
+    snap = commerce_snapshot(page)
+    results.must("商业 skill_too_low 映射中文", any("手艺还不够" in e for e in snap["errors"]),
+                 snap["errors"])
+
+    page.select_option('select[data-pos-for="npc:afu"]', "药童")
+    page.fill("#hireWage", "15")
+    page.click('[data-hire="npc:afu"]')
+    page.wait_for_function(
+        "() => document.getElementById('employeeList').textContent.indexOf('阿福') >= 0", timeout=8000)
+    snap = commerce_snapshot(page)
+    liu_full = next(r for r in snap["hires"] if r["id"] == "npc:liu_sanniang")
+    results.must("商业 shop_full 映射中文（满员按钮禁用并给原因）",
+                 liu_full["disabled"] and "已满员" in liu_full["text"]
+                 and "雇工已满" in page.evaluate("() => window.__XKX.reasonText('shop_full', '')"),
+                 liu_full)
+    commerce_capture(page, "mock-commerce-hire")
+
+    page.click('[data-tab="escort"]')
+    snap = commerce_snapshot(page)
+    results.must("商业 无镖局时押镖入口禁用并说明原因",
+                 "这里没有镖局" in snap["escortEstimate"] and
+                 page.evaluate("() => document.getElementById('escortGo').disabled"), snap["escortEstimate"])
+
+    page.click('button[data-exit-id="escort_agency"]')
+    page.wait_for_function("() => window.__XKX.commerceState().escortDests.indexOf('market') >= 0",
+                           timeout=8000)
+    page.wait_for_function(
+        "() => document.getElementById('escortEstimate').textContent.indexOf('预计到手') >= 0",
+        timeout=8000)
+    page.select_option("#escortDest", "market")
+    page.select_option("#escortCargo", "flatbread")
+    page.fill("#escortFee", "180")
+    page.fill("#escortQty", "1")
+    page.wait_for_function(
+        "() => document.getElementById('escortEstimate').textContent.indexOf('预计到手 126 文') >= 0",
+        timeout=4000)
+    snap = commerce_snapshot(page)
+    results.must("商业 押镖显示预计收入与到货 tick",
+                 "预计到手 126 文" in snap["escortEstimate"] and
+                 "到货 tick" in snap["escortEstimate"], snap["escortEstimate"])
+    page.fill("#escortFee", "100")
+    page.wait_for_function(
+        "() => document.getElementById('escortEstimate').textContent.indexOf('镖费需在 120-260 文之间') >= 0",
+        timeout=4000)
+    snap = commerce_snapshot(page)
+    results.must("商业 镖费越界本地给出中文原因",
+                 "镖费需在 120-260 文之间" in snap["escortEstimate"]
+                 and page.evaluate("() => document.getElementById('escortGo').disabled"),
+                 snap["escortEstimate"])
+    page.fill("#escortFee", "180")
+    page.click("#escortGo")
+    page.wait_for_function(
+        "() => document.getElementById('escortResult').textContent.indexOf('镖单已接') >= 0",
+        timeout=8000)
+    snap = commerce_snapshot(page)
+    results.must("商业 escort 真调用并显示到货 tick",
+                 "镖单已接" in snap["escortResult"] and "到货 tick" in snap["escortResult"]
+                 and "预计到手 126 文" in snap["escortResult"], snap["escortResult"])
+    commerce_capture(page, "mock-commerce-escort")
+
+    page.click('[data-tab="soon"]')
+    snap = commerce_snapshot(page)
+    results.must("商业 未开放玩法显示明确文案（结婚入口预留）",
+                 "结婚" in snap["soon"] and "该玩法尚未开放" in snap["soon"], snap["soon"])
+    results.must("商业 not_implemented_for_player 中文映射",
+                 page.evaluate("() => window.__XKX.reasonText('not_implemented_for_player', '')") == "该玩法尚未开放。",
+                 page.evaluate("() => window.__XKX.reasonText('not_implemented_for_player', '')"))
+    ctx.close()
+
+    # 移动端 375×812：无横向溢出、触控目标 ≥44px。
+    mctx, mpage = commerce_page(browser, base, "u_commerce_m", "商户乙",
+                                viewport={"width": 375, "height": 812})
+    mpage.click("#commerceJump")
+    mpage.wait_for_timeout(300)
+    mobile_checks = []
+    for tab in ("shop", "business", "hire", "escort", "soon"):
+        mpage.click('[data-tab="%s"]' % tab)
+        mpage.wait_for_timeout(120)
+        mobile_checks.append(mpage.evaluate("""() => {
+          const controls = Array.from(document.querySelectorAll(
+            '#commerceBlock button, #commerceBlock input, #commerceBlock select'))
+            .filter(n => n.getBoundingClientRect().height > 0);
+          const small = controls.filter(n => n.getBoundingClientRect().height < 44)
+            .map(n => ({tag: n.tagName, text: (n.textContent || n.value || '').slice(0, 12),
+                        h: Math.round(n.getBoundingClientRect().height)}));
+          return {
+            tab: window.__XKX.commerceState().tab,
+            overflow: document.documentElement.scrollWidth - window.innerWidth,
+            small: small, controls: controls.length,
+            tabsFit: (() => { const n = document.getElementById('commerceTabs');
+              return n.scrollWidth <= n.clientWidth + 1; })()
+          };
+        }"""))
+    results.must("移动 商业 375×812 无横向溢出且触控≥44px",
+                 all(c["overflow"] <= 0 and not c["small"] and c["tabsFit"] and c["controls"] >= 1
+                     for c in mobile_checks), mobile_checks)
+    mpage.click("#commerceJump")
+    commerce_capture(mpage, "mock-commerce-mobile")
+    mctx.close()
+
+    # 键盘：Tab/方向键/Enter 能切换页签并完成一次购买。
+    kctx, kpage = commerce_page(browser, base, "u_commerce_k", "商户丙")
+    kpage.evaluate("() => document.getElementById('commerceJump').focus()")
+    kpage.keyboard.press("Enter")
+    kpage.wait_for_function(
+        "() => document.activeElement && document.activeElement.getAttribute('data-tab') === 'shop'",
+        timeout=4000)
+    kpage.keyboard.press("ArrowRight")
+    kpage.wait_for_function(
+        "() => document.activeElement && document.activeElement.getAttribute('data-tab') === 'business'",
+        timeout=4000)
+    kpage.focus('[data-tab="shop"]')
+    kpage.keyboard.press("Enter")
+    kpage.focus('input[data-qty="buy:flatbread"]')
+    kpage.fill('input[data-qty="buy:flatbread"]', "1")
+    kpage.keyboard.press("Tab")
+    kpage.keyboard.press("Enter")
+    kpage.wait_for_function("() => window.__XKX.commerceState().money === 297", timeout=8000)
+    results.must("商业 键盘可切换页签并完成购买",
+                 kpage.evaluate("() => window.__XKX.commerceState().money") == 297,
+                 {"money": 297})
+    kctx.close()
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--serve", action="store_true", help="只启动 mock 服务")
     ap.add_argument("--only", default="",
-                    help="desktop|mobile|keyboard|auth|reasons|regression|feed，逗号分隔")
+                    help="desktop|mobile|keyboard|auth|reasons|regression|feed|commerce，逗号分隔")
     ap.add_argument("--auth", action="store_true", help="--serve 时启用鉴权模式")
     args = ap.parse_args()
 
@@ -1423,6 +2065,8 @@ def main():
                     run_reasons(browser, base, results)
                 if not only or "feed" in only:
                     run_feed(browser, base, results, world)
+                if not only or "commerce" in only:
+                    run_commerce(browser, base, results, world)
                 if not only or "desktop" in only:
                     run_desktop(browser, base, results)
                 if not only or "mobile" in only:

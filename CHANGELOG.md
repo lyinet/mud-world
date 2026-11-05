@@ -9,6 +9,41 @@
 
 ---
 
+## [功能] 2026-11-05 — 玩家商业与经营面板（买/卖/现吃/开店/雇人/押镖）
+
+- **改了什么**
+  - `ui/player/` 新增「商业与经营」区块（`#commerceBlock`，顶栏「商业」直达），五个页签：
+    商店（可买/可卖/现吃）、经营（摊/店面/分号三档与自有店铺）、雇人、押镖、未开放。
+  - 商店：可买行显示名称/单价/含税总价/库存/`buy_limit`，可卖行显示 `sell_price` 与持有数；
+    数量为原生数字输入（1-20，受 `buy_limit`/库存/现金约束）；`consume` 一键买一份现吃并显示
+    `体力 a → b（±d）· 钱包 c → d 文（±e）`。
+  - 经营：三档报价按 `content/economy.yaml` 的 `rent + 初始进货`（345 / 1472 / 3450），资金不足
+    按钮禁用并写清缺口；开店后显示店内现金、库存件数、雇工列表（岗位/日薪/到店）。
+  - 雇人：列当前地点在场 NPC（好感/技能/受雇），日薪默认岗位市价；服务端拒绝码
+    （`relation_too_low`/`skill_too_low`/`wage_too_low`/`wage_too_high`/`shop_full`/
+    `target_not_at_shop`/`unknown_position`/`self_recruit`）全部映射中文。
+  - 押镖：终点只取服务端 `exits`（相邻校验），货物只列背包真实持有；实时给出预计到手
+    （按服务端口径 `fee - int(fee × 30%)`）与到货 tick（`tick + 144`）。
+  - 原因码：补齐 `item_not_available`/`not_here`/`shop_closed`/`not_a_merchant`/
+    `not_enough_money`/`item_missing`/`not_implemented_for_player`/`bad_arg:cargo_qty` 等；
+    未知码兜底不再显示原始 code，错误复查面板也不再露出 code。
+  - 未开放玩法（`marry`/`found_sect`/`apprentice`）统一显示「该玩法尚未开放」，结婚入口位置已留出。
+  - 刷新：主状态轮询 10000ms → 8000ms；输入聚焦或存在未保存数字时暂缓重建商业列表，失焦补渲染。
+  - `tools/ui_check.py` 新增 `commerce` 组（mock 桌面/移动/键盘/8 秒刷新/输入保护/原因码）；
+  - `tools/ui_check_real_commerce.py`：真 API（`--auth off` + ambient）+ 真代理跑
+    买→吃→卖→押镖→开店→雇人，页面内 hook `fetch` 记录真实请求/响应。
+  - 文档：`docs/PLAYER-GUIDE.md` 新增商业面板说明与原因码映射。
+- **为什么改**：后台已开闸 `buy/sell/consume/escort/recruit/open_shop`，但玩家在界面上点不到，
+  等于没开；本次只补界面与验收，不改服务端。
+- **验证方式**
+  - `python3 tools/ui_check.py`：112 项全过、0 失败（含新增商业组与既有 86 项）。
+  - `python3 tools/ui_check_proxy.py`：12 项全过、无回归。
+  - `python3 tools/ui_check_real_commerce.py`：真服务逐动作截图与请求/响应存
+    `reports/w4-commerce/`。
+  - `python3 -m pytest`：479 passed / 16 skipped（当次工作区全量，含并行分支的婚姻用例）。
+- **commit**：见本次提交（仅 `ui/player/**`、`tools/ui_check*.py`、`reports/w4-commerce/**`、
+  `docs/PLAYER-GUIDE.md`、`CHANGELOG.md`）。
+
 ## [修复] 2026-11-05 — 委托板保供：每发布点每日至少 1 张可接单 + 金库垫付
 
 - **改了什么**
