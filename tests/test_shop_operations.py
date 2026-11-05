@@ -240,6 +240,43 @@ def test_settlement_pays_wage_tax_output_and_reports_loss(real_content, world):
     assert world.businesses[SHOP_ID].tax_arrears == tax
 
 
+def test_settlement_absent_pays_zero_and_records(real_content, world):
+    """缺勤口径：当日无带 employer 的出工 → 0 工资、0 产出、不生成欠薪债。"""
+    _seed_shop(world, kind="storefront")
+    _seed_employee(world, "npc:emp1", 20)
+    _seed_employee(world, "npc:emp2", 20)
+    apply_effects(world, [Effect("mint", {"account": SHOP_CASH, "amount": 30, "reason": "test_float"})])
+    biz = world.businesses[SHOP_ID]
+    biz.day_revenue = 50
+    biz.day_restock = 10
+    # emp1 当日出工（WorkAction 的日结契约记忆），emp2 缺勤。
+    world.memories.setdefault("npc:emp1", []).append({
+        "tick": 10, "text": "已签日结契约，工资本日由日结发放20文",
+        "importance": 0.4, "source": "",
+    })
+
+    rows = build_shop_settlements(real_content, world, tick=143)
+    assert len(rows) == 1
+    row = rows[0]
+    assert row["present_count"] == 1
+    assert [a["employee"] for a in row["absent"]] == ["npc:emp2"]
+    assert row["wage"] == 20
+    assert row["wage_paid"] == 20 and row["wage_unpaid"] == 0
+    assert row["output_qty"] == 1
+    assert row["net"] == 50 - 10 - 20 - daily_shop_tax(real_content, "storefront")
+
+    apply_effects(world, shop_settlement_effects(real_content, world, rows, tick=143))
+    assert world.account_balance(wallet("npc:emp1")) == 20 - income_tax(real_content, 20)
+    assert world.account_balance(wallet("npc:emp2")) == 0
+    assert "debt:wage:shop:player:u1:npc:emp2" not in world.debts
+    owner_memory = [
+        m for m in world.memories.get("player:u1", [])
+        if "当日未到店" in str(m.get("text", ""))
+    ]
+    assert owner_memory, "店主记忆必须记某雇工当日未到店"
+    assert conservation(world)["conservation_error"] == 0
+
+
 def test_wage_debt_increases_when_active_and_reopens_after_settle(real_content, world):
     """欠薪债：未结清时累加；结清后次日再欠必须用带 tick 的新 id，避免冲突。"""
     _seed_shop(world, kind="stall")

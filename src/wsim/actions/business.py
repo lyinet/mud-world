@@ -1,6 +1,7 @@
 """事业/组织建立动词：open_shop / found_sect，以及店铺雇佣与日结。"""
 from __future__ import annotations
 
+from ..core.clock import TICKS_PER_DAY, day_of
 from ..core.models import Effect, Intent, Reject
 from ..world.state import WorldState
 from .common import (
@@ -159,13 +160,44 @@ def shop_hire_effects(content, state: WorldState, intent: Intent) -> list[Effect
     ]
 
 
-def build_shop_settlements(content, state: WorldState) -> list[dict]:
+# 已签日结契约的雇工在 WorkAction 里写的可读记忆；日结据此判断“当日是否真的到店”。
+# 出勤是事实：只有当日确实在店内上工（带 employer 的 work）才计薪、计产出，
+# 人没来就 0 工资 0 产出，不能靠契约自动发钱。
+ATTENDANCE_MARKER = "工资本日由日结发放"
+
+
+def settled_day_of(tick: int) -> int:
+    """日界事件 tick 对应的结算日。
+
+    无头/无跨 tick 丢弃时在当日最后一 tick（143/287/...）结算；
+    共享世界玩家动作会跨 tick，日界可能落在次日边界后几 tick，
+    此时结算日仍是刚结束的那一天。两种口径都归一到“刚结束的一天”。
+    """
+    day = day_of(tick)
+    if tick % TICKS_PER_DAY == TICKS_PER_DAY - 1:
+        return day
+    return day - 1
+
+
+def _worked_on_day(state: WorldState, eid: str, day: int) -> bool:
+    start = day * TICKS_PER_DAY
+    end = start + TICKS_PER_DAY
+    for mem in state.memories.get(eid, ()):
+        tick = int(mem.get("tick", -1))
+        if start <= tick < end and ATTENDANCE_MARKER in str(mem.get("text", "")):
+            return True
+    return False
+
+
+def build_shop_settlements(content, state: WorldState, tick: int | None = None) -> list[dict]:
     """计算玩家店铺当日日结行（不产生效果，只给日界事件 args 用）。
 
     流水直接读 `Business.day_revenue/day_restock`（由 transfer 效果维护），
-    工资与税在这里按“先工资、后税”的现金约束算出实付/欠付，净利口径：
-    revenue - restock - 工资 - 税。
+    工资按**当日实际出勤**计：有该雇工当日的日结出工记忆才计薪与产出，
+    缺勤者 0 工资 0 产出；工资与税在这里按“先工资、后税”的现金约束算出
+    实付/欠付，净利口径：revenue - restock - 工资 - 税。
     """
+    day = settled_day_of(int(tick)) if tick is not None else None
     rows: list[dict] = []
     for bid in sorted(state.businesses):
         biz = state.businesses[bid]
@@ -175,22 +207,38 @@ def build_shop_settlements(content, state: WorldState) -> list[dict]:
         restock = int(biz.day_restock)
         cash = state.account_balance(biz.cash_account)
         employees = []
+        absent = []
         for eid in sorted(biz.employees):
             e = state.entities.get(eid)
             if e is None or e.status != "alive":
                 continue
-            wage = int(biz.employee_wages.get(eid, 0))
-            if wage <= 0:
+            contract_wage = int(biz.employee_wages.get(eid, 0))
+            if contract_wage <= 0:
                 continue
-            employees.append({
+            present = True if day is None else _worked_on_day(state, eid, day)
+            row = {
                 "employee": eid,
+                "name": e.name,
                 "position": str(biz.employee_positions.get(eid, "")),
-                "wage": wage,
+                "contract_wage": contract_wage,
+                "wage": contract_wage if present else 0,
                 "paid": 0,
-                "unpaid": wage,
-            })
+                "unpaid": 0,
+                "present": present,
+                "absent": not present,
+            }
+            employees.append(row)
+            if not present:
+                absent.append({
+                    "employee": eid,
+                    "name": e.name,
+                    "position": str(biz.employee_positions.get(eid, "")),
+                    "contract_wage": contract_wage,
+                })
         remaining = cash
         for row in employees:
+            if not row["present"]:
+                continue
             row["paid"] = min(row["wage"], remaining)
             row["unpaid"] = row["wage"] - row["paid"]
             remaining -= row["paid"]
@@ -203,6 +251,7 @@ def build_shop_settlements(content, state: WorldState) -> list[dict]:
         tax_paid = min(tax_due, remaining)
         net = revenue - restock - wage_total - tax
         output_item = shop_output_item(content, biz.kind)
+        present_count = sum(1 for row in employees if row["present"])
         rows.append({
             "shop": bid,
             "kind": biz.kind,
@@ -219,8 +268,10 @@ def build_shop_settlements(content, state: WorldState) -> list[dict]:
             "net": net,
             "loss": net < 0,
             "employees": employees,
+            "absent": absent,
+            "present_count": present_count,
             "output_item": output_item,
-            "output_qty": len(employees) if output_item else 0,
+            "output_qty": present_count if output_item else 0,
             "cash": cash,
         })
     return rows
@@ -238,6 +289,21 @@ def shop_settlement_effects(content, state: WorldState, rows: list[dict], tick: 
             eid = str(emp["employee"])
             ent = state.entities.get(eid)
             if ent is None or ent.status != "alive":
+                continue
+            if emp.get("absent"):
+                # 缺勤：0 工资、0 产出、不生成欠薪债（欠薪只在“出勤但现金不足”时发生）。
+                absent_name = str(emp.get("name") or ent.name)
+                if biz.owner:
+                    effects.extend(memory(
+                        state, biz.owner, tick,
+                        f"{absent_name}当日未到店，工资0文、产出0件",
+                        0.4,
+                    ))
+                effects.extend(memory(
+                    state, eid, tick,
+                    f"当日未到店（{biz.name}），日结工资0文、产出0件",
+                    0.3,
+                ))
                 continue
             paid = int(emp["paid"])
             unpaid = int(emp["unpaid"])

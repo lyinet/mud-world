@@ -730,7 +730,7 @@ class SystemShopSettleAction(Action):
             shop_settlement_effects,
         )
 
-        rows = build_shop_settlements(self.content, state)
+        rows = build_shop_settlements(self.content, state, int(intent.tick))
         effects = shop_settlement_effects(self.content, state, rows, int(intent.tick))
         effects.extend(shop_day_reset_effects(state, rows))
         return effects
