@@ -12,13 +12,15 @@
 """
 from __future__ import annotations
 
+import contextlib
 import heapq
 import json
 import os
+import threading
 import time
 import traceback
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Callable
 
@@ -183,6 +185,11 @@ class AmbientScheduler:
         clock: Callable[[], float] | None = None,
         sleeper: Callable[[float], None] | None = None,
         cpu_clock: Callable[[], float] | None = None,
+        writer: Writer | None = None,
+        store: EventStore | None = None,
+        state: WorldState | None = None,
+        registry: Any | None = None,
+        lock: Any | None = None,
     ):
         if cfg is None:
             raise ValueError("AmbientScheduler 需要 AmbientConfig")
@@ -195,6 +202,14 @@ class AmbientScheduler:
         self.content = content or load_content(
             self.root, min_npcs=0, allow_fixture=False, use_content=True
         )
+        # 共享世界模式：注入 API 的单写者（Writer/EventStore/registry）与锁，
+        # 自走在同一份 events.sqlite 上排队，绝不另开第二个写者。
+        self.writer = writer
+        self.store = store
+        self.registry = registry
+        self.shared = writer is not None
+        self._lock = lock
+        self._owns_store = store is None
 
         self.tick = int(cfg.start_tick)
         self._processed = 0
@@ -253,6 +268,7 @@ class AmbientScheduler:
         self._online_players: set[str] = set()
         self._lod_changes: list[dict[str, Any]] = []
         self._final: dict[str, Any] | None = None
+        self._day_marker: int | None = None
 
         self.out_dir.mkdir(parents=True, exist_ok=True)
         self.status_path = (
@@ -269,10 +285,20 @@ class AmbientScheduler:
         self.npcs = npcs
         self.npc_ids = sorted({str(n["id"]) for n in npcs})
 
-        self.state = WorldState(locations=self.content.locations)
-        self.store = EventStore(self.out_dir / "events.sqlite")
-        self.registry = build_registry(self.content, cfg.seed)
-        self.writer = Writer(self.state, self.store, self.registry, cfg.seed)
+        if not self.shared:
+            self.state = WorldState(locations=self.content.locations)
+            self.store = EventStore(self.out_dir / "events.sqlite")
+            self.registry = build_registry(self.content, cfg.seed)
+            self.writer = Writer(self.state, self.store, self.registry, cfg.seed)
+        else:
+            # 世界（含 genesis/玩家存档）已由 WorldSession 建立；这里只接手，不重建。
+            self.writer = writer
+            self.store = store if store is not None else writer.store
+            self.registry = registry if registry is not None else writer.registry
+            self.state = state if state is not None else writer.state
+            self.tick = int(self.state.tick)
+            # 共享世界已有 genesis：下一个 tick 直接从世界当前 tick 往后推。
+            self._first_tick_pending = False
 
         self.cost = AmbientCostModel(
             llm_enabled=bool(cfg.llm_enabled), max_calls=max(0, int(cfg.llm_max_calls))
@@ -280,11 +306,15 @@ class AmbientScheduler:
         self.rule_reasoner = MockReasoner(seed=cfg.seed, content=self.content, telemetry=None)
         self.reasoner = AmbientReasoner(self.rule_reasoner, self.cost, None)
 
-        genesis = build_genesis(self.content, npcs, root=self.root)
-        self._genesis_event = self.writer.bootstrap(genesis.effects, tick=0, verb="genesis")
-        self.state = self.writer.state
-        self._record_event(self._genesis_event)
-        self.genesis = genesis
+        if self.shared:
+            self.genesis = None
+            self._genesis_event = None
+        else:
+            genesis = build_genesis(self.content, npcs, root=self.root)
+            self._genesis_event = self.writer.bootstrap(genesis.effects, tick=0, verb="genesis")
+            self.state = self.writer.state
+            self._record_event(self._genesis_event)
+            self.genesis = genesis
 
         lod_cfg = load_lod_config(self.root / "config" / "lod.yaml")
         self.lod_cfg = lod_cfg
@@ -332,7 +362,7 @@ class AmbientScheduler:
             "pid": os.getpid(),
             "state": state,
             "reason": reason,
-            "tick": int(self.tick),
+            "tick": int(self.writer.state.tick) if self.shared else int(self.tick),
             "last_tick_at": self._last_tick_at,
             "updated_at": self._now_iso(),
             "speed": self.speed,
@@ -376,6 +406,47 @@ class AmbientScheduler:
         except (PermissionError, OverflowError, ValueError):
             return False
         return False
+
+    # -------------------------------------------------- 共享世界（单写者会合点）
+    def _guard(self):
+        """与 API 的 WorldSession.lock 共用同一把锁；独立模式为空上下文。"""
+        return self._lock if self._lock is not None else contextlib.nullcontext()
+
+    def _sync_shared_tick(self) -> None:
+        """把世界 tick 与在线玩家同步进来。
+
+        玩家动作一次推进 6 tick。这里只承认世界当前 tick，绝不补跑：
+        补跑会重复消费系统日界/NPC 事件，等于双倍走时。
+        """
+        if not self.shared:
+            return
+        with self._guard():
+            cur = int(self.writer.state.tick)
+            if cur > self.tick:
+                # 玩家跨过的 tick 不补跑：丢弃为那些时刻排队的旧意图，
+                # 否则它们会带着旧 tick 晚到落账，破坏 tick 单调。
+                while self._queue and self._queue[0][0] <= cur:
+                    heapq.heappop(self._queue)
+                self.tick = cur
+                # 重新锚定配速基准，避免“玩家推进 + 自走追赶”叠成双倍时钟。
+                self._anchor_tick = cur
+                self._anchor_time = self.clock()
+            self._online_players = {
+                pid for pid, prof in self.writer.state.players.items() if prof.online
+            }
+
+    def start_background(self, name: str = "wsim-ambient") -> threading.Thread:
+        """在后台线程跑配速循环（与 API 同进程、共用同一把写锁）。"""
+
+        def _run() -> None:
+            try:
+                self.start()
+            except Exception as exc:  # 不静默：落盘 ambient_error.json，线程正常退出
+                self._write_error("background", exc)
+
+        thread = threading.Thread(target=_run, name=name, daemon=True)
+        thread.start()
+        return thread
 
     def _record_event(self, ev: Event) -> None:
         if ev.seq <= self._last_seq:
@@ -488,8 +559,9 @@ class AmbientScheduler:
             self._log_line(f"[{stamp(intent.tick)}] system_rejected verb={intent.verb} reason={ev.reason}")
         return ev
 
-    def _day_end(self, tick: int) -> None:
-        day = tick // TICKS_PER_DAY
+    def _day_end(self, tick: int, day: int | None = None) -> None:
+        if day is None:
+            day = tick // TICKS_PER_DAY
         for verb, args in (
             ("system_debts", {}),
             ("system_quest_fail", {}),
@@ -527,14 +599,33 @@ class AmbientScheduler:
 
     # ---------------------------------------------------------------- tick 推进
     def _process_tick(self) -> None:
-        if self._first_tick_pending:
+        if self.shared:
+            # 世界 tick 的唯一事实源是 Writer.state.tick；玩家推进过就直接从那里往后推一格。
+            self.tick = max(self.tick, int(self.writer.state.tick)) + 1
+            self._online_players = {
+                pid for pid, prof in self.writer.state.players.items() if prof.online
+            }
+        elif self._first_tick_pending:
             self._first_tick_pending = False
         else:
             self.tick += 1
         self._processed += 1
         t = self.tick
         self._tick_events = 0
-        if t % TICKS_PER_DAY == 0:
+        day = t // TICKS_PER_DAY
+        if self._day_marker is None:
+            self._day_marker = day
+            if t % TICKS_PER_DAY == 0:
+                self._today_heat = Counter()
+                self._day_start(t)
+                self._replan_today = Counter()
+        elif day != self._day_marker:
+            old = self._day_marker
+            # 共享世界里玩家可能一次跳过日界；补一次日结（用当前 tick，事件 tick 仍单调），
+            # 但绝不在同一日重复结算——那是“双倍走时”的来源。
+            if self.shared:
+                self._day_end(t, day=old)
+            self._day_marker = day
             self._today_heat = Counter()
             self._day_start(t)
             self._replan_today = Counter()
@@ -543,6 +634,9 @@ class AmbientScheduler:
         while self._queue and self._queue[0][0] <= t:
             _, _prio, _seq, kind, payload = heapq.heappop(self._queue)
             if kind == "intent":
+                if self.shared and int(payload.tick) < t:
+                    # 安全网：任何迟到的旧意图都归并到当前 tick，事件 tick 不倒退。
+                    payload = replace(payload, tick=t)
                 ev = self._submit(payload)
                 if ev is None:
                     self._maybe_replan(payload)
@@ -574,8 +668,9 @@ class AmbientScheduler:
                 self._emit_system(
                     Intent("system", "system_escort_arrive", {}, t, "system")
                 )
-        if t % TICKS_PER_DAY == (TICKS_PER_DAY - 1):
+        if not self.shared and t % TICKS_PER_DAY == (TICKS_PER_DAY - 1):
             # 日末结算：t=143 对应第 0 日结束，与 headless 的 base+143 对齐。
+            # 共享模式改由“日界变更”分支结算，避免玩家跳 tick 时漏结算或重复结算。
             self._day_end(t)
         # 世界时钟与事件日志同源：tick 不参与状态哈希，只用于玩家写操作校验。
         self.writer.state.tick = t
@@ -701,7 +796,8 @@ class AmbientScheduler:
         n = max(0, int(n))
         self._record_control("step", source, {"ticks": n})
         for _ in range(n):
-            self._process_tick()
+            with self._guard():
+                self._process_tick()
             if self._max_reached():
                 break
         self._anchor_tick = self.tick
@@ -850,6 +946,7 @@ class AmbientScheduler:
     def run_ticks(self, n: int) -> int:
         """不配速连跑 n 个 tick（测试/验收用），仍受 CPU 护栏约束。"""
         for _ in range(max(0, int(n))):
+            self._sync_shared_tick()
             self._tick_with_guard()
             if self._max_reached():
                 break
@@ -862,7 +959,10 @@ class AmbientScheduler:
         t0_wall = self.clock()
         t0_cpu = self.cpu_clock()
         try:
-            self._process_tick()
+            # 共享模式下整 tick（含事件追加/提交）都在 API 的锁内，
+            # 与玩家写路径串行，保证单写者、单事务、seq 连续。
+            with self._guard():
+                self._process_tick()
         except Exception as exc:  # 不静默：落盘后继续抛出
             self._write_error("tick", exc)
             raise
@@ -881,6 +981,8 @@ class AmbientScheduler:
         self._anchor_time = self.clock()
         while not self.stopped:
             self._poll_control()
+            # 玩家可能在同一把锁里刚推进了世界时钟：先对齐，再决定是否自走。
+            self._sync_shared_tick()
             now = self.clock()
             if now >= self._next_parent_check:
                 self._next_parent_check = now + 0.5
@@ -955,7 +1057,8 @@ class AmbientScheduler:
             source="player",
             reason="ambient_player_enter",
         )
-        ev = self.writer.submit(intent)
+        with self._guard():
+            ev = self.writer.submit(intent)
         self._record_event(ev)
         if ev.outcome == "ok":
             self._online_players.add(pid)
@@ -985,16 +1088,17 @@ class AmbientScheduler:
 
     def leave_player(self, player_id: str = "player:visitor") -> dict[str, Any]:
         pid = player_id if player_id.startswith("player:") else f"player:{player_id}"
-        ev = self.writer.submit(
-            Intent(
-                actor=pid,
-                verb="player_leave",
-                args={"player_id": pid},
-                tick=self.tick,
-                source="player",
-                reason="ambient_player_leave",
+        with self._guard():
+            ev = self.writer.submit(
+                Intent(
+                    actor=pid,
+                    verb="player_leave",
+                    args={"player_id": pid},
+                    tick=int(self.writer.state.tick) if self.shared else self.tick,
+                    source="player",
+                    reason="ambient_player_leave",
+                )
             )
-        )
         self._record_event(ev)
         if ev.outcome == "ok":
             self._online_players.discard(pid)
@@ -1110,7 +1214,8 @@ class AmbientScheduler:
                 fh.close()
             except Exception:
                 pass
-        try:
-            self.store.close()
-        except Exception:
-            pass
+        if self._owns_store:
+            try:
+                self.store.close()
+            except Exception:
+                pass
