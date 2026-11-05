@@ -1,9 +1,11 @@
-# W5 一条命令起引擎 + API + 前端：
+# W5 一条命令起引擎 + API + 前端（备份默认生效）：
 #   cd world-sim/deploy && docker compose up -d --build
 #
 # - events.sqlite 与 service.sqlite 都在命名卷 xkx-w5-data 的 /app/runs/<RUN_ID>/ 下。
+# - 备份容器默认随 `up` 启动，6 小时一轮（BK_INTERVAL 覆盖）；失败时容器 Exited(非零)
+#   且 healthcheck 转 unhealthy，状态落在 xkx-w5-backups/last_backup_status.json。
 # - 镜像不包含任何密钥；.env 只在运行时作为环境注入（不存在也可启动）。
-# - 默认端口 8020（API）、8030（前端）。
+# - API/UI 默认只绑定 127.0.0.1（不直接暴露公网）；对外走 proxy 的 TLS 端口。
 
 name: xkx
 
@@ -14,9 +16,10 @@ services:
       dockerfile: deploy/Dockerfile
     image: xkx/world-sim:w5
     container_name: xkx-world
+    # 只绑回环：公网入口只允许经过 proxy（见 deploy/nginx/xkx.conf）。
     ports:
-      - "${API_PORT:-8020}:8020"
-      - "${UI_PORT:-8030}:8030"
+      - "127.0.0.1:${API_PORT:-8020}:8020"
+      - "127.0.0.1:${UI_PORT:-8030}:8030"
     environment:
       RUN_ID: "${RUN_ID:-service}"
       API_PORT: "8020"
@@ -42,36 +45,45 @@ services:
       retries: 5
       start_period: 20s
 
-  # 可选 profile：只做定时在线备份，不提供 API/UI。
-  #   cd deploy && docker compose --profile backup up -d
-  # 选择 profile 而不是 entrypoint 开关的理由与 RPO/RTO 见 docs/BACKUP-RESTORE.md。
+  # 默认服务（不再用 profile）：备份随 `docker compose up` 一起启动。
+  #   - 失败不再吞掉：scripts/backup_loop.sh 重试后仍失败 → Exited(非零) + unhealthy。
+  #   - 每轮结果写 /app/backups/last_backup_status.json，供 healthcheck 与运维脚本读取。
+  #   - 异地推送：XKX_OFFSITE_MODE / XKX_OFFSITE_TARGET / XKX_OFFSITE_REQUIRED 透传，
+  #     未配置时状态文件显式 offsite=disabled（见 tools/backup_offsite.sh）。
   backup:
     image: xkx/world-sim:w5
     container_name: xkx-backup
-    profiles: ["backup"]
-    # 镜像 ENTRYPOINT 是 deploy/entrypoint.sh（会拉起 API+UI）。compose 的 command
-    # 只覆盖 CMD，不覆盖 ENTRYPOINT；不显式改 entrypoint 就会在备份容器里再起一套
-    # 世界服务，两个进程同时写同一个 events.sqlite，实测报
-    # `UNIQUE constraint failed: events.seq`。必须覆盖成纯 shell 循环。
+    # 镜像 ENTRYPOINT 是 deploy/entrypoint.sh（会拉起 API+UI）；compose 的 command
+    # 只覆盖 CMD，不覆盖 ENTRYPOINT。必须显式覆盖，否则备份容器会再起一套世界服务，
+    # 两个进程同时写同一个 events.sqlite（实测 UNIQUE constraint failed: events.seq）。
     entrypoint: ["/bin/sh", "-c"]
-    command:
-      - >-
-        while true; do
-        python /app/tools/backup_snapshot.py --root /app --run "${RUN_ID:-service}" --backup-dir /app/backups || true;
-        sleep "${BK_INTERVAL:-21600}";
-        done
-    # 该容器不含 API/UI，禁用镜像继承的 HEALTHCHECK（默认检查 8020/8030，恒 unhealthy）。
-    healthcheck:
-      disable: true
+    command: ["exec sh /app/scripts/backup_loop.sh"]
     environment:
       RUN_ID: "${RUN_ID:-service}"
+      BK_RUN: "${RUN_ID:-service}"
+      BK_ROOT: "/app"
+      BK_DIR: "/app/backups"
       BK_INTERVAL: "${BK_INTERVAL:-21600}"
+      BK_RETRIES: "${BK_RETRIES:-2}"
+      BK_RETRY_DELAY: "${BK_RETRY_DELAY:-30}"
+      XKX_OFFSITE_MODE: "${XKX_OFFSITE_MODE:-disabled}"
+      XKX_OFFSITE_TARGET: "${XKX_OFFSITE_TARGET:-}"
+      XKX_OFFSITE_REQUIRED: "${XKX_OFFSITE_REQUIRED:-0}"
+      XKX_OFFSITE_SSH_HOST: "${XKX_OFFSITE_SSH_HOST:-}"
       # 备份产物独立卷；不放数据卷里，避免备份撑爆 /app/runs。
       PYTHONPATH: "/app/src"
     volumes:
       - xkx-data:/app/runs
       - xkx-backups:/app/backups
-    restart: unless-stopped
+    # 镜像继承的 HEALTHCHECK 检查 8020/8030（该容器没有 API/UI），必须换成备份链路健康检查。
+    healthcheck:
+      test: ["CMD", "python", "/app/deploy/backup_healthcheck.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    # 失败后保持 Exited，由人工/告警介入；避免在坏盘上无限重启刷日志。
+    restart: "no"
 
 volumes:
   xkx-data:

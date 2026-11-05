@@ -65,6 +65,40 @@
 
 ---
 
+## [P0 数据安全] 2026-11-06 — 备份默认生效、失败不再静默、状态可观测
+
+- **改了什么**
+  - `deploy/docker-compose.yml`：`backup` 服务去掉 `profiles: ["backup"]`，成为默认服务
+    ——不带任何 profile 的 `docker compose up` 就会跑备份；命令改为
+    `exec sh /app/scripts/backup_loop.sh`，删除 `|| true` 与 `while true` 内联循环。
+  - `scripts/backup_loop.sh`：重写失败语义。单轮失败按 `BK_RETRIES`（默认 2）重试，
+    仍失败则写 `last_backup_status.json`（`ok=false` + `stage` + `exit_code` + `error`）
+    并 `exit 1`；成功也写状态文件（含 `backup_dir`、events seq、各文件 sha256/size、
+    offsite 结果）。启动时先等源库出现（`BK_STARTUP_WAIT`，默认 300s），避免把
+    world 建库竞态记成失败。
+  - 新增 `deploy/backup_healthcheck.py`：读状态文件判健康——缺失 / `ok=false` /
+    过期（`BK_INTERVAL × BK_STALE_FACTOR + 600s`）→ unhealthy；替换镜像继承的
+    API 健康检查。`backup` 服务 `restart: "no"`：失败后保持 `Exited(非零)` 等人工介入，
+    不在坏盘上无限重启。
+- **为什么改**：默认部署里备份是 profile（默认不跑），且 `|| true` 会把失败吞掉，
+  容器仍 `Up`。等于"有备份能力、默认不跑、跑失败也不报警"，不满足 P0。
+- **验收（实测）**
+  - 不带 profile：`docker-compose up -d` 后 `xkx-world healthy` / `xkx-backup healthy`，
+    备份卷出现 `20261105T181308Z`（`duration_ms=31526` 含首次启动重试；
+    第二次重建后 `duration_ms=683`），`last_backup_status.json` 为
+    `{"ok": true, "stage": "ok", "offsite": {"offsite": "disabled"}, "events": {"seq": {"count": 70, ...}}}`。
+  - 只读备份卷：容器 `Exited (1)`、`exit_code=1`，日志
+    `OSError: [Errno 30] Read-only file system: '/app/backups/status.1.tmp'` +
+    `备份连续失败 1 次，退出码 2`。
+  - 源库截断：重试 3 次后 `Exited (1)`，日志
+    `backup 失败 exit=1 ... DatabaseError: database disk image is malformed`，
+    状态文件 `{"ok": false, "stage": "backup", "exit_code": 1, "error": "... malformed"}`。
+  - 恢复该源库后 `restore_verify` 15/15、两容器 `healthy`。
+- **未做**：未改 `src/wsim/api/**`、`actions/**`、`sim/**`、`ui/**`。
+- **commit**：`（见本提交）`。
+
+---
+
 ## [P0 数据安全] 2026-11-06 — 容器内备份/恢复演练 + RPO/RTO 与同盘处置
 
 - **改了什么**
