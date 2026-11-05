@@ -118,6 +118,23 @@
     giftQtyMax: 20,
     reasonChars: 40
   };
+  /* 门派门槛：与 docs/player-api.md §13.2 对齐，仅用于门槛提示与预填；
+     最终裁决仍在后端，前端不替代校验。 */
+  const SECT_RULES = {
+    foundCost: 800,
+    registrationFee: 200,
+    startupCapital: 600,
+    minReputation: 20,
+    minAffection: 30,
+    minTrust: 30,
+    minMasterSkill: 0.4,
+    discipleCap: 3,
+    stipendDaily: 10,
+    duesDaily: 5,
+    arrearsExpel: 30,
+    withdrawCap: 500,
+    treasuryReserve: 100
+  };
 
   function tierOf(kind) {
     return COMMERCE_TIERS.filter(function (t) { return t.kind === kind; })[0] || null;
@@ -398,6 +415,18 @@
       target: '',      // 当前选中的求婚对象 id
       result: '',      // 求婚/和离结果文案（跨轮询保留）
       resultBad: false
+    },
+    sect: {
+      account: '',
+      name: '',          // 立派表单：门派名
+      doctrine: '',      // 立派表单：宗旨
+      joinTarget: '',    // 加入已有门派：门派 id 或驻地 id
+      deposit: '',       // 金库存入金额
+      withdraw: '',      // 金库取出金额
+      result: '',
+      resultBad: false,
+      busy: {},          // 写动作在途：key -> true
+      confirmTarget: ''  // 驱逐二次确认对象
     },
     ui: {
       errors: [],
@@ -1351,6 +1380,13 @@
     } else {
       state.marriage.account = acct;
     }
+    if (state.sect.account && state.sect.account !== acct) {
+      // 换账号时清掉门派名册/表单/在途状态，绝不把上一位玩家的门派带进界面。
+      state.sect = { account: acct, name: '', doctrine: '', joinTarget: '', deposit: '',
+        withdraw: '', result: '', resultBad: false, busy: {}, confirmTarget: '' };
+    } else {
+      state.sect.account = acct;
+    }
     const readonly = !!st.readonly || !!(state.health && state.health.readonly);
     state.session = {
       accountId: st.account_id || p.account_id || '',
@@ -2118,7 +2154,7 @@
   function setCommerceTab(tab) {
     const tabs = el('commerceTabs');
     if (!tabs) return;
-    const valid = ['shop', 'business', 'hire', 'escort', 'marriage', 'soon'];
+    const valid = ['shop', 'business', 'hire', 'escort', 'sect', 'marriage', 'soon'];
     const cur = valid.indexOf(tab) >= 0 ? tab : 'shop';
     state.commerce.tab = cur;
     Array.prototype.forEach.call(tabs.querySelectorAll('[data-tab]'), function (btn) {
@@ -3013,9 +3049,9 @@
   }
 
   function renderSoonList() {
+    // 立派与收徒已移入「门派」页签；这里只保留尚未对玩家开放的拜师。
     const rows = [
-      { verb: 'found_sect', name: '立派', note: '该玩法尚未开放；入口先留在这里。' },
-      { verb: 'apprentice', name: '收徒', note: '该玩法尚未开放；入口先留在这里。' }
+      { verb: 'apprentice', name: '拜师', note: '该玩法尚未开放；门派招募请用「门派」页签。' }
     ];
     el('soonList').innerHTML = rows.map(function (row) {
       return '<div class="commerce-row" data-soon="' + row.verb + '">' +
@@ -3423,6 +3459,623 @@
     pushLog('proposal', '休息占位', 'rest 动作待后端上线');
   }
 
+  /* ------------------------------------------------------------- 门派面板 */
+  /* 字段缺口一律显示「暂不可用」，不按 0 冒充，也不 mock。 */
+  const SECT_GAP_BOND = '暂不可用（缺 disciples[].affection/trust）';
+  const SECT_GAP_SETTLE = '暂不可用（缺 disciples[].settled_today）';
+
+  function sectDataOf(st) {
+    const top = st && st.sect;
+    const pv = st && st.player && st.player.sect;
+    if (top === undefined && pv === undefined) {
+      return { missing: true, inSect: false, sect: null };
+    }
+    const sect = (top && top.sect) || (pv && pv.sect) || null;
+    return { missing: false, inSect: !!sect, sect: sect };
+  }
+
+  function sectReputation(st) {
+    const rep = ((st && st.growth) || {}).reputation;
+    if (!rep || rep.value == null || !isFinite(Number(rep.value))) return null;
+    return Number(rep.value);
+  }
+
+  function sectMoney(st) {
+    const money = (((st || {}).player || {}).wallet || {}).money;
+    if (money == null || !isFinite(Number(money))) return null;
+    return Number(money);
+  }
+
+  function sectMaxSkill(st) {
+    const skills = (((st || {}).growth || {}).skill || {}).skills ||
+      ((st || {}).player || {}).skills || {};
+    const vals = Object.keys(skills).map(function (k) { return Number(skills[k]); })
+      .filter(function (v) { return isFinite(v); });
+    return vals.length ? Math.max.apply(null, vals) : null;
+  }
+
+  function sectBondOf(st, id) {
+    let aff = null;
+    let trust = null;
+    (((st || {}).player || {}).relations || []).forEach(function (rel) {
+      if (!rel || String(rel.target) !== String(id)) return;
+      const a = Number(rel.affection);
+      const t = Number(rel.trust);
+      if (isFinite(a) && (aff == null || a > aff)) aff = a;
+      if (isFinite(t) && (trust == null || t > trust)) trust = t;
+    });
+    return { aff: aff, trust: trust };
+  }
+
+  function sectNum(value, digits) {
+    const n = Number(value);
+    if (!isFinite(n)) return '—';
+    const d = digits == null ? 0 : digits;
+    return d ? n.toFixed(d).replace(/\.0+$/, '') : String(Math.round(n));
+  }
+
+  function sectGate(label, cur, need, unit) {
+    const suffix = unit || '';
+    let text;
+    let tone = '';
+    if (cur == null || !isFinite(Number(cur))) {
+      text = '当前 暂不可用 / 需要 ' + need + suffix + ' / 差 暂不可用';
+    } else {
+      const c = Number(cur);
+      const gap = Math.max(0, Number(need) - c);
+      tone = gap > 0 ? ' bad' : ' ok';
+      text = '当前 ' + sectNum(c, Math.abs(c - Math.round(c)) < 1e-9 ? 0 : 1) + suffix +
+        ' / 需要 ' + need + suffix + ' / ' + (gap > 0 ? ('差 ' + sectNum(gap, 1) + suffix) : '已达标');
+    }
+    return '<div class="hint sect-gate' + tone + '">' + escapeHtml(label + '：' + text) + '</div>';
+  }
+
+  function sectCapGate(label, cur, need) {
+    if (cur == null || !isFinite(Number(cur))) {
+      return '<div class="hint sect-gate">' + escapeHtml(label + '：当前 暂不可用 / 上限 ' + need + ' / 差 暂不可用') + '</div>';
+    }
+    const gap = Number(need) - Number(cur);
+    return '<div class="hint sect-gate' + (gap > 0 ? ' ok' : ' bad') + '">' +
+      escapeHtml(label + '：当前 ' + sectNum(cur) + ' / 上限 ' + need + ' / ' + (gap > 0 ? ('还差 ' + gap + ' 人') : '已满')) +
+      '</div>';
+  }
+
+  function sectLimitsOf(sect) {
+    const l = (sect && sect.limits) || {};
+    return {
+      disciple_cap: l.disciple_cap == null ? SECT_RULES.discipleCap : Number(l.disciple_cap),
+      dues_daily: l.dues_daily == null ? SECT_RULES.duesDaily : Number(l.dues_daily),
+      stipend_daily: l.stipend_daily == null ? SECT_RULES.stipendDaily : Number(l.stipend_daily),
+      arrears_expel: l.arrears_expel == null ? SECT_RULES.arrearsExpel : Number(l.arrears_expel)
+    };
+  }
+
+  function sectBusy(key) { return !!state.sect.busy[key]; }
+
+  function setSectResult(text, bad) {
+    state.sect.result = text || '';
+    state.sect.resultBad = !!bad;
+    const box = el('sectResult');
+    if (!box) return;
+    box.textContent = state.sect.result;
+    box.classList.toggle('bad', !!bad);
+    box.classList.toggle('ok', !!text && !bad);
+  }
+
+  function sectSnapOf(data, st) {
+    const details = (data && data.details) || {};
+    // 真实服务返回 details.sect 为 {in_sect, sect} 包装层；mock/旧结构可能是快照本身。
+    const raw = details.sect;
+    const snap = (raw && raw.sect) ? raw.sect : (raw || sectDataOf(st).sect);
+    return snap || null;
+  }
+
+  function sectSuccessText(prefix, snap) {
+    if (!snap) return prefix + '（服务端未返回门派快照，请刷新后查看真实数字）';
+    const treasury = snap.treasury && snap.treasury.balance != null
+      ? (Number(snap.treasury.balance) + ' 文') : '暂不可用（缺 treasury.balance）';
+    const roster = snap.member_count != null
+      ? (Number(snap.member_count) + ' 人') : '暂不可用（缺 member_count）';
+    return prefix + ' · 金库 ' + treasury + ' · 名册 ' + roster;
+  }
+
+  function renderSectHint(st) {
+    const hint = el('sectHint');
+    if (!hint) return;
+    const data = sectDataOf(st);
+    if (!state.session || !state.session.accountId) {
+      hint.textContent = '登录并进入世界后查看门派。';
+      return;
+    }
+    if (data.missing) {
+      hint.textContent = '门派数据暂不可用：GET /api/player/state 未返回顶层 sect 字段。';
+      return;
+    }
+    if (!data.inSect) {
+      hint.textContent = '尚未入派 · 可立派（' + SECT_RULES.foundCost + ' 文 / 声望 ' +
+        SECT_RULES.minReputation + '）或加入已有门派。';
+      return;
+    }
+    const sect = data.sect;
+    const role = sect.role === 'leader' ? '门主' : '弟子';
+    hint.textContent = (sect.name || sect.id || '门派') + ' · ' + role +
+      ' · ' + (sect.location_name || sect.location || '驻地未知') +
+      ' · tick ' + (st.tick == null ? '—' : st.tick);
+  }
+
+  function renderSectRoster(st, sect, isLeader) {
+    const rows = (sect && sect.disciples) || [];
+    if (!rows.length) {
+      return '<div class="commerce-empty">名册暂无弟子。</div>';
+    }
+    const entityId = String((state.session && state.session.entityId) ||
+      ((st.player || {}).entity_id) || '');
+    const limits = sectLimitsOf(sect);
+    return '<div class="sect-roster">' + rows.map(function (d) {
+      const self = entityId && String(d.id) === entityId;
+      const bond = sectBondOf(st, d.id);
+      const arrears = Number(d.arrears || 0);
+      const days = Math.ceil(arrears / (limits.stipend_daily || SECT_RULES.stipendDaily));
+      const bondText = (bond.aff == null || bond.trust == null)
+        ? ('好感/信任：' + SECT_GAP_BOND)
+        : ('好感 ' + sectNum(bond.aff, 1) + ' · 信任 ' + sectNum(bond.trust, 1));
+      const settleText = '逐人结算：' + SECT_GAP_SETTLE;
+      const statusText = self
+        ? (arrears > 0
+          ? ('俸禄：欠饷 ' + sectNum(arrears) + ' 文（约 ' + days + ' 天，日俸 ' +
+            sectNum(limits.stipend_daily) + ' 文，满 ' + sectNum(limits.arrears_expel) + ' 文离派）')
+          : '俸禄：已结清（欠饷 0 文）')
+        : ('欠饷 ' + sectNum(arrears) + ' 文' + (arrears > 0 ? ('（约 ' + days + ' 天）') : ''));
+      return '<div class="sect-row' + (self ? ' self' : '') + '" data-sect-disciple="' + escapeHtml(d.id) + '">' +
+        '<div class="sect-row-head"><b>' + escapeHtml(d.name || d.id) + '</b>' +
+        (self ? '<span class="pill">你</span>' : '') +
+        '<span class="pill">' + escapeHtml(d.at_sect ? '在驻地' : '外出') + '</span>' +
+        (d.presence ? '<span class="hint tiny">' + escapeHtml(d.presence) + '</span>' : '') +
+        '</div>' +
+        '<div class="sect-meta">技能 ' +
+        (d.skill == null ? '暂不可用（缺 disciples[].skill）' : sectNum(d.skill, 2)) +
+        ' · ' + bondText + '</div>' +
+        '<div class="sect-meta">' + settleText + ' · ' + statusText + '</div>' +
+        (isLeader ? '<div class="sect-actions"><button type="button" class="ghost small commerce-btn"' +
+          ' data-sect-expel="' + escapeHtml(d.id) + '"' +
+          (sectBusy('expel:' + d.id) ? ' disabled' : '') + '>' +
+          (sectBusy('expel:' + d.id) ? '处理中…' : '驱逐') + '</button></div>' : '') +
+        '</div>';
+    }).join('') + '</div>';
+  }
+
+  function renderSectRecruit(st, sect, isLeader) {
+    if (!isLeader) {
+      return '<div class="hint">只有门主可以收徒、派俸、驱逐与金库操作。</div>';
+    }
+    const limits = sectLimitsOf(sect);
+    const cap = limits.disciple_cap;
+    const member = sect.member_count == null ? null : Number(sect.member_count);
+    const masterSkill = sectMaxSkill(st);
+    const npcs = ((st.present_npcs || st.nearby || []).filter(function (n) {
+      return n && !String(n.id).startsWith('player:');
+    }));
+    let html = '<div class="commerce-sub"><b>收徒</b><span class="hint">好感 ' +
+      SECT_RULES.minAffection + ' / 信任 ' + SECT_RULES.minTrust + ' / 掌门技能 ' +
+      SECT_RULES.minMasterSkill + '</span></div>';
+    html += sectCapGate('名册人数', member, cap);
+    html += sectGate('掌门技能', masterSkill, SECT_RULES.minMasterSkill, '');
+    if (!npcs.length) {
+      return html + '<div class="commerce-empty">当前地点没有可收的 NPC。</div>';
+    }
+    html += '<div class="commerce-list">' + npcs.map(function (npc) {
+      // present_npcs.bond 走 affection_between，不含 sworn 关系；收徒裁决用 _bond
+      // （所有 active 关系取最大）。这里用 player.relations 里同一 NPC 的真实关系补齐，
+      // 让页面门槛与后端裁决一致；两边都没有才显示「暂不可用」。
+      const relBond = sectBondOf(st, npc.id);
+      const npcBond = npc.bond == null ? null : Number(npc.bond);
+      const npcTrust = npc.trust == null ? null : Number(npc.trust);
+      const bond = (npcBond == null && relBond.aff == null) ? null
+        : Math.max(npcBond == null ? 0 : npcBond, relBond.aff == null ? 0 : relBond.aff);
+      const trust = (npcTrust == null && relBond.trust == null) ? null
+        : Math.max(npcTrust == null ? 0 : npcTrust, relBond.trust == null ? 0 : relBond.trust);
+      const targetSkill = npc.skills && npc.skills.level != null ? Number(npc.skills.level) : null;
+      const affOk = bond != null && bond >= SECT_RULES.minAffection;
+      const trustOk = trust != null && trust >= SECT_RULES.minTrust;
+      const skillOk = masterSkill != null && masterSkill >= SECT_RULES.minMasterSkill &&
+        (targetSkill == null || targetSkill >= 0.2);
+      const capOk = member == null || member < cap;
+      const busy = sectBusy('recruit:' + npc.id);
+      const blocked = !affOk || !trustOk || !skillOk || !capOk;
+      return '<div class="commerce-row sect-row" data-recruit-row="' + escapeHtml(npc.id) + '">' +
+        '<div class="row-main"><span class="row-name">' + escapeHtml(npc.name || npc.id) +
+        '<span class="pill">' + escapeHtml(npc.role || '') + '</span></span>' +
+        '<span class="row-meta">' + escapeHtml(sectGateText('好感', bond, SECT_RULES.minAffection)) +
+        ' · ' + escapeHtml(sectGateText('信任', trust, SECT_RULES.minTrust)) +
+        ' · 技能 ' + (targetSkill == null ? '暂不可用' : sectNum(targetSkill, 2)) + '/0.2' +
+        '</span></div>' +
+        '<div class="row-actions"><button type="button" class="ghost small commerce-btn"' +
+        ' data-sect-recruit="' + escapeHtml(npc.id) + '"' +
+        ((blocked || busy) ? ' disabled' : '') + '>' +
+        (busy ? '处理中…' : (capOk ? '收徒' : '名额已满')) + '</button></div></div>';
+    }).join('') + '</div>';
+    return html;
+  }
+
+  function sectGateText(label, cur, need) {
+    if (cur == null || !isFinite(Number(cur))) return label + ' 暂不可用/需要 ' + need;
+    const gap = Math.max(0, need - Number(cur));
+    return label + ' ' + sectNum(cur, 1) + '/' + need + (gap > 0 ? ('（差 ' + sectNum(gap, 1) + '）') : '（达标）');
+  }
+
+  function renderSectLeader(st, sect) {
+    const limits = sectLimitsOf(sect);
+    const treasury = sect.treasury && sect.treasury.balance != null
+      ? Number(sect.treasury.balance) : null;
+    const settled = sect.settled_today == null
+      ? '暂不可用（缺 settled_today）'
+      : (sect.settled_today ? '今日已结算' : '今日未结算');
+    const money = sectMoney(st);
+    const withdrawMax = treasury == null ? null : Math.max(0,
+      Math.min(SECT_RULES.withdrawCap, treasury - SECT_RULES.treasuryReserve));
+    const payBusy = sectBusy('pay');
+    const canPay = !sect.settled_today && Number(sect.member_count || 0) > 1;
+    const depositRaw = Number(state.sect.deposit);
+    const depositVal = state.sect.deposit === '' ? '' : (isFinite(depositRaw) ? depositRaw : '');
+    const withdrawRaw = Number(state.sect.withdraw);
+    const withdrawVal = state.sect.withdraw === '' ? '' : (isFinite(withdrawRaw) ? withdrawRaw : '');
+    let html = '<div class="sect-summary">' +
+      '<div>门派：<b>' + escapeHtml(sect.name || sect.id) + '</b> · 门主：' +
+      escapeHtml(sect.leader_name || sect.leader || '—') + '</div>' +
+      '<div class="sect-meta">' + escapeHtml(sectCapLine(sect)) + '</div>' +
+      '<div class="sect-meta">金库：' + (treasury == null ? '暂不可用（缺 treasury.balance）' : (sectNum(treasury) + ' 文')) +
+      ' · 门级结算：' + escapeHtml(settled) + '</div></div>';
+
+    html += sectRosterBlock(st, sect, true);
+
+    html += '<div class="commerce-sub"><b>派俸禄</b><span class="hint">每日一次；会费 ' +
+      sectNum(limits.dues_daily) + ' 文/人，俸禄 ' + sectNum(limits.stipend_daily) + ' 文/人</span></div>';
+    html += '<div class="hint' + (settled.indexOf('已结算') >= 0 ? ' bad' : '') + '">' +
+      escapeHtml(settled) + ' · 弟子 ' + sectNum(Number(sect.member_count || 0) - 1) + ' 人</div>';
+    html += '<button type="button" class="primary small commerce-btn" id="sectPayGo" data-sect-pay="1"' +
+      ((!canPay || payBusy) ? ' disabled' : '') + '>' +
+      (payBusy ? '处理中…' : (sect.settled_today ? '今日已结算' : (canPay ? '派俸禄' : '门中暂无弟子'))) + '</button>';
+
+    html += renderSectRecruit(st, sect, true);
+
+    html += '<div class="commerce-sub"><b>金库</b><span class="hint">存入 / 取出（单次上限 ' +
+      SECT_RULES.withdrawCap + ' 文，须留 ' + SECT_RULES.treasuryReserve + ' 文）</span></div>';
+    html += '<div class="sect-meta">当前余额 ' +
+      (treasury == null ? '暂不可用' : (sectNum(treasury) + ' 文')) + ' / 保留金 ' +
+      SECT_RULES.treasuryReserve + ' 文 / 单次上限 ' + SECT_RULES.withdrawCap + ' 文 / 最多可提 ' +
+      (withdrawMax == null ? '暂不可用' : (sectNum(withdrawMax) + ' 文')) + '</div>';
+    html += '<div class="commerce-inline">' +
+      '<label for="sectDepositAmount">存入</label>' +
+      '<input id="sectDepositAmount" type="number" min="1" step="1" inputmode="numeric" value="' +
+      escapeHtml(depositVal) + '" />' +
+      '<span class="hint">钱包 ' + (money == null ? '暂不可用' : (sectNum(money) + ' 文')) + '</span>' +
+      '<button type="button" class="ghost small commerce-btn" id="sectDepositGo" data-sect-deposit="1"' +
+      ((!isFinite(depositVal) || depositVal < 1 || (money != null && depositVal > money) || sectBusy('deposit')) ? ' disabled' : '') + '>' +
+      (sectBusy('deposit') ? '处理中…' : '存入') + '</button></div>';
+    html += '<div class="commerce-inline">' +
+      '<label for="sectWithdrawAmount">取出</label>' +
+      '<input id="sectWithdrawAmount" type="number" min="1" step="1" inputmode="numeric" value="' +
+      escapeHtml(withdrawVal) + '" />' +
+      '<span class="hint">可提上限 ' + (withdrawMax == null ? '暂不可用' : (sectNum(withdrawMax) + ' 文')) + '</span>' +
+      '<button type="button" class="ghost small commerce-btn" id="sectWithdrawGo" data-sect-withdraw="1"' +
+      ((!isFinite(withdrawVal) || withdrawVal < 1 || withdrawVal > (withdrawMax == null ? 0 : withdrawMax) || sectBusy('withdraw')) ? ' disabled' : '') + '>' +
+      (sectBusy('withdraw') ? '处理中…' : '取出') + '</button></div>';
+    if (withdrawMax != null && withdrawMax <= 0) {
+      html += '<div class="hint bad">' + escapeHtml(reasonText(treasury != null && treasury <= SECT_RULES.treasuryReserve
+        ? 'treasury_reserve' : 'insufficient_treasury')) + '</div>';
+    }
+    return html;
+  }
+
+  function sectCapLine(sect) {
+    const cap = sectLimitsOf(sect).disciple_cap;
+    const member = sect.member_count == null ? null : Number(sect.member_count);
+    if (member == null) return '名册 暂不可用（缺 member_count）/ 上限 ' + cap;
+    return '名册 ' + member + ' / 上限 ' + cap + ' / ' + (member >= cap ? '已满' : ('还差 ' + (cap - member) + ' 人'));
+  }
+
+  function sectRosterBlock(st, sect, isLeader) {
+    let html = '<div class="commerce-sub"><b>名册</b><span class="hint">' +
+      escapeHtml(sectCapLine(sect)) + '</span></div>';
+    html += '<div class="sect-meta">门级结算：' + escapeHtml(
+      sect.settled_today == null ? '暂不可用（缺 settled_today）' : (sect.settled_today ? '今日已结算' : '今日未结算')
+    ) + ' · 逐人结算：' + SECT_GAP_SETTLE + '</div>';
+    html += renderSectRoster(st, sect, isLeader);
+    return html;
+  }
+
+  function renderSectDisciple(st, sect) {
+    const limits = sectLimitsOf(sect);
+    const body = '<div class="sect-summary">' +
+      '<div>门派：<b>' + escapeHtml(sect.name || sect.id) + '</b> · 门主：' +
+      escapeHtml(sect.leader_name || sect.leader || '—') + '</div>' +
+      '<div class="sect-meta">' + escapeHtml(sectCapLine(sect)) + ' · 金库：' +
+      (sect.treasury && sect.treasury.balance != null
+        ? (sectNum(sect.treasury.balance) + ' 文') : '暂不可用（缺 treasury.balance）') + '</div></div>' +
+      sectRosterBlock(st, sect, false) +
+      '<div class="hint">只有门主可以收徒、派俸、驱逐与金库操作。</div>' +
+      '<div class="hint tiny">你的俸禄：日俸 ' + sectNum(limits.stipend_daily) +
+      ' 文；欠饷满 ' + sectNum(limits.arrears_expel) + ' 文当日离派（债务保留）。</div>';
+    return body;
+  }
+
+  function renderSectFound(st) {
+    const money = sectMoney(st);
+    const rep = sectReputation(st);
+    const name = String(state.sect.name || '');
+    const nameOk = name.trim().length >= 2 && name.trim().length <= 12;
+    const moneyOk = money != null && money >= SECT_RULES.foundCost;
+    const repOk = rep != null && rep >= SECT_RULES.minReputation;
+    return '<div class="commerce-sub"><b>立派</b><span class="hint">' + SECT_RULES.foundCost +
+      ' 文（注册费 ' + SECT_RULES.registrationFee + ' + 启动金 ' + SECT_RULES.startupCapital + '） · 声望 ' +
+      SECT_RULES.minReputation + '</span></div>' +
+      '<div class="commerce-inline"><label for="sectName">门派名</label>' +
+      '<input id="sectName" type="text" maxlength="12" placeholder="2-12 字" value="' +
+      escapeHtml(name) + '" /></div>' +
+      '<div class="commerce-inline"><label for="sectDoctrine">宗旨</label>' +
+      '<input id="sectDoctrine" type="text" maxlength="60" placeholder="可留空，默认「守望相济，不欺乡里」" value="' +
+      escapeHtml(state.sect.doctrine || '') + '" /></div>' +
+      sectGate('立派费用', money, SECT_RULES.foundCost, ' 文') +
+      sectGate('声望', rep, SECT_RULES.minReputation, '') +
+      '<div class="hint bad' + (nameOk ? ' hidden' : '') + '" id="sectNameHint">门派名需 2-12 字；当前 ' +
+      escapeHtml(name.trim().length) + ' 字。</div>' +
+      '<button type="button" class="primary small commerce-btn" id="sectFoundGo" data-sect-found="1"' +
+      ((!nameOk || !moneyOk || !repOk || sectBusy('found')) ? ' disabled' : '') + '>' +
+      (sectBusy('found') ? '处理中…' : '立派') + '</button>';
+  }
+
+  function renderSectJoin(st) {
+    const target = String(state.sect.joinTarget || ((st.location || {}).id || ''));
+    return '<div class="commerce-sub"><b>加入已有门派</b><span class="hint">join_sect 已开放</span></div>' +
+      '<div class="commerce-inline"><label for="sectJoinTarget">门派 id / 驻地</label>' +
+      '<input id="sectJoinTarget" type="text" maxlength="32" placeholder="如 sect:u_demo 或 market" value="' +
+      escapeHtml(target) + '" /></div>' +
+      '<div class="hint">暂不可用：后端未提供门派列表接口（无 factions[]），需填写门派 id 或驻地 id。</div>' +
+      '<button type="button" class="primary small commerce-btn" id="sectJoinGo" data-sect-join="1"' +
+      ((!target.trim() || sectBusy('join')) ? ' disabled' : '') + '>' +
+      (sectBusy('join') ? '处理中…' : '加入已有门派') + '</button>';
+  }
+
+  function renderSectPane(st) {
+    const body = el('sectBody');
+    if (!body) return;
+    renderSectHint(st);
+    if (!state.session || !state.session.accountId) {
+      body.innerHTML = '';
+      setSectResult('', false);
+      return;
+    }
+    const data = sectDataOf(st);
+    if (data.missing) {
+      body.innerHTML = '<div class="commerce-empty">门派数据暂不可用：GET /api/player/state 未返回顶层 sect 字段。</div>';
+      return;
+    }
+    if (!data.inSect) {
+      body.innerHTML = renderSectFound(st) + '<div class="sect-divider"></div>' + renderSectJoin(st);
+      return;
+    }
+    body.innerHTML = data.sect.role === 'leader'
+      ? renderSectLeader(st, data.sect)
+      : renderSectDisciple(st, data.sect);
+  }
+
+  async function sectAction(verb, args, label, busyKey) {
+    const account = state.session && state.session.accountId;
+    if (!account) {
+      toast('先进入世界，才能操作门派。', true);
+      showEntry(true);
+      return null;
+    }
+    if (!requireAuthForWrite()) return null;
+    if (busyKey && sectBusy(busyKey)) return null;
+    if (busyKey) {
+      state.sect.busy[busyKey] = true;
+      renderSectPane(state.st || {});
+    }
+    try {
+      const before = state.st || {};
+      const res = await API.action(account, verb, args || {}, before.tick == null ? null : before.tick)
+        .catch(function (err) {
+          return { status: 0, data: { ok: false, message: '请求失败：' + (err.message || err) } };
+        });
+      const data = res.data || {};
+      if (res.authRequired || res.status === 401) return null;
+      if (res.status === 409 || data.ok === false || res.status === 0) {
+        const reason = notifyError(label, data, res.status);
+        setSectResult(reason.text, true);
+        return null;
+      }
+      if (data.status === 'proposed' || data.readonly) {
+        setSectResult('只读模式：' + label + '提案已提交，世界不会落地。', true);
+        pushLog('proposal', label + '提案', data.intent_id || '');
+        return null;
+      }
+      const next = await loadState(account);
+      return { res: res, data: data, st: next };
+    } finally {
+      if (busyKey) {
+        delete state.sect.busy[busyKey];
+        renderSectPane(state.st || {});
+      }
+    }
+  }
+
+  async function doSectFound() {
+    const st = state.st;
+    if (!st) return;
+    const name = String(state.sect.name || '').trim();
+    if (name.length < 2 || name.length > 12) {
+      setSectResult('门派名需 2-12 字；当前 ' + name.length + ' 字。', true);
+      return;
+    }
+    const money = sectMoney(st);
+    const rep = sectReputation(st);
+    if (money != null && money < SECT_RULES.foundCost) {
+      setSectResult('立派还差 ' + (SECT_RULES.foundCost - money) + ' 文（现有 ' + money + ' 文）。', true);
+      return;
+    }
+    if (rep != null && rep < SECT_RULES.minReputation) {
+      setSectResult('声望还差 ' + sectNum(SECT_RULES.minReputation - rep, 1) +
+        '（现有 ' + sectNum(rep, 1) + ' / 需要 ' + SECT_RULES.minReputation + '）。', true);
+      return;
+    }
+    const out = await sectAction('found_sect', {
+      name: name,
+      doctrine: String(state.sect.doctrine || '').trim().slice(0, 60)
+    }, '立派', 'found');
+    if (!out) return;
+    const snap = sectSnapOf(out.data, out.st);
+    setSectResult(sectSuccessText('立派成功：' + name, snap), false);
+    toast('立派成功：' + name);
+    pushLog('ok', '立派：' + name, 'event_seq ' + (out.data.event_seq == null ? '?' : out.data.event_seq));
+  }
+
+  async function doSectJoin() {
+    const st = state.st;
+    if (!st) return;
+    const target = String(state.sect.joinTarget || ((st.location || {}).id || '')).trim();
+    if (!target) {
+      setSectResult('请填写门派 id 或驻地 id。', true);
+      return;
+    }
+    const out = await sectAction('join_sect', { target: target, dues: 0 }, '加入门派', 'join');
+    if (!out) return;
+    const snap = sectSnapOf(out.data, out.st);
+    setSectResult(sectSuccessText('已加入门派', snap), false);
+    toast('已加入门派。');
+    pushLog('ok', '加入门派：' + target, 'event_seq ' + (out.data.event_seq == null ? '?' : out.data.event_seq));
+  }
+
+  async function doSectRecruit(targetId) {
+    const st = state.st;
+    const npc = ((st.present_npcs || st.nearby || []).filter(function (n) { return n.id === targetId; })[0]);
+    if (!npc) {
+      setSectResult(reasonText('target_not_found'), true);
+      return;
+    }
+    const out = await sectAction('recruit_disciple', { target: targetId }, '收徒 ' + (npc.name || targetId),
+      'recruit:' + targetId);
+    if (!out) return;
+    const snap = sectSnapOf(out.data, out.st);
+    setSectResult(sectSuccessText('已收 ' + (npc.name || targetId) + ' 为徒', snap), false);
+    toast('已收 ' + (npc.name || targetId) + ' 为徒。');
+    pushLog('ok', '收徒：' + (npc.name || targetId), 'event_seq ' + (out.data.event_seq == null ? '?' : out.data.event_seq));
+  }
+
+  async function doSectPay() {
+    const out = await sectAction('pay_disciples', {}, '派俸禄', 'pay');
+    if (!out) return;
+    const snap = sectSnapOf(out.data, out.st);
+    const settlement = (out.data.details || {}).settlement || {};
+    const dues = settlement.dues == null ? null : Number(settlement.dues);
+    const stipend = settlement.stipend == null ? null : Number(settlement.stipend);
+    const leavers = (settlement.leavers || []).length;
+    let text = '日结完成：收会费 ' + (dues == null ? '暂不可用' : (dues + ' 文')) +
+      '，发俸禄 ' + (stipend == null ? '暂不可用' : (stipend + ' 文'));
+    if (snap && snap.treasury && snap.treasury.balance != null) {
+      text += '，金库 ' + Number(snap.treasury.balance) + ' 文';
+    } else {
+      text += '，金库 暂不可用（缺 treasury.balance）';
+    }
+    if (snap && snap.member_count != null) text += '，名册 ' + Number(snap.member_count) + ' 人';
+    else text += '，名册 暂不可用（缺 member_count）';
+    if (leavers) text += '；' + leavers + ' 名弟子欠饷离派';
+    setSectResult(text, false);
+    toast('日结完成。');
+    pushLog('ok', '派俸禄', text);
+  }
+
+  function openSectExpel(targetId) {
+    const data = sectDataOf(state.st || {});
+    const sect = data.sect;
+    if (!sect) return;
+    const d = (sect.disciples || []).filter(function (x) { return String(x.id) === String(targetId); })[0];
+    if (!d) return;
+    state.sect.confirmTarget = String(targetId);
+    el('sectModalText').textContent = '把 ' + (d.name || d.id) + ' 逐出 ' + (sect.name || sect.id) + '？';
+    el('sectModalAvatar').textContent = firstChar(d.name || '逐');
+    el('sectModalError').textContent = '';
+    el('sectModalError').classList.add('hidden');
+    el('sectModal').classList.remove('hidden');
+    setTimeout(function () { el('sectModalCancel').focus(); }, 0);
+  }
+
+  function closeSectExpel() {
+    const modal = el('sectModal');
+    if (!modal || modal.classList.contains('hidden')) return;
+    modal.classList.add('hidden');
+    state.sect.confirmTarget = '';
+  }
+
+  async function doSectExpel() {
+    const targetId = state.sect.confirmTarget;
+    if (!targetId) return;
+    const data = sectDataOf(state.st || {});
+    const d = ((data.sect || {}).disciples || []).filter(function (x) { return String(x.id) === String(targetId); })[0];
+    const name = (d && d.name) || targetId;
+    const btn = el('sectModalConfirm');
+    btn.disabled = true;
+    btn.textContent = '处理中…';
+    try {
+      const out = await sectAction('expel_disciple', { target: targetId }, '驱逐 ' + name, 'expel:' + targetId);
+      if (!out) {
+        el('sectModalError').textContent = state.sect.result || '操作没有完成。';
+        el('sectModalError').classList.remove('hidden');
+        return;
+      }
+      closeSectExpel();
+      const snap = sectSnapOf(out.data, out.st);
+      setSectResult(sectSuccessText('已驱逐 ' + name, snap), false);
+      toast('已驱逐 ' + name + '（欠薪债务仍保留）。');
+      pushLog('ok', '驱逐弟子：' + name, 'event_seq ' + (out.data.event_seq == null ? '?' : out.data.event_seq));
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '确认驱逐';
+    }
+  }
+
+  async function doSectDeposit() {
+    const amount = Math.floor(Number(state.sect.deposit != null ? state.sect.deposit : el('sectDepositAmount').value));
+    if (!isFinite(amount) || amount < 1) {
+      setSectResult('存入金额必须是 1 文以上的整数。', true);
+      return;
+    }
+    const out = await sectAction('sect_deposit', { amount: amount }, '金库存入', 'deposit');
+    if (!out) return;
+    const snap = sectSnapOf(out.data, out.st);
+    const balance = snap && snap.treasury && snap.treasury.balance != null
+      ? (Number(snap.treasury.balance) + ' 文') : '暂不可用（缺 treasury.balance）';
+    setSectResult('已存入 ' + amount + ' 文 · 金库 ' + balance, false);
+    toast('已存入 ' + amount + ' 文。');
+    pushLog('ok', '金库存入 ' + amount + ' 文', '金库 ' + balance);
+  }
+
+  async function doSectWithdraw() {
+    const amount = Math.floor(Number(state.sect.withdraw != null ? state.sect.withdraw : el('sectWithdrawAmount').value));
+    if (!isFinite(amount) || amount < 1) {
+      setSectResult('取出金额必须是 1 文以上的整数。', true);
+      return;
+    }
+    const sect = sectDataOf(state.st || {}).sect || {};
+    const treasury = sect.treasury && sect.treasury.balance != null ? Number(sect.treasury.balance) : null;
+    if (amount > SECT_RULES.withdrawCap) {
+      setSectResult(reasonText('withdraw_over_cap'), true);
+      return;
+    }
+    if (treasury != null && treasury - amount < SECT_RULES.treasuryReserve) {
+      setSectResult(reasonText('treasury_reserve'), true);
+      return;
+    }
+    const out = await sectAction('sect_withdraw', { amount: amount }, '金库取出', 'withdraw');
+    if (!out) return;
+    const snap = sectSnapOf(out.data, out.st);
+    const balance = snap && snap.treasury && snap.treasury.balance != null
+      ? (Number(snap.treasury.balance) + ' 文') : '暂不可用（缺 treasury.balance）';
+    setSectResult('已取出 ' + amount + ' 文 · 金库 ' + balance, false);
+    toast('已取出 ' + amount + ' 文。');
+    pushLog('ok', '金库取出 ' + amount + ' 文', '金库 ' + balance);
+  }
+
   function renderCommerce(st) {
     if (!st) return;
     const block = el('commerceBlock');
@@ -3449,6 +4102,7 @@
     renderEmployeeList(st, own);
     renderHireList(st, own);
     renderEscortForm(st);
+    renderSectPane(st);
     renderMarriagePane(st);
     const opsReason = shopOpsDisabledReason(st, own);
     renderRestockSection(st, own, opsReason);
@@ -3964,6 +4618,7 @@
       if (!btn) return;
       setCommerceTab(btn.getAttribute('data-tab'));
       if (btn.getAttribute('data-tab') === 'escort') updateEscortEstimate();
+      if (btn.getAttribute('data-tab') === 'sect') renderSectPane(state.st || {});
     });
     el('commerceTabs').addEventListener('keydown', function (ev) {
       const tabs = Array.prototype.slice.call(el('commerceTabs').querySelectorAll('[data-tab]'));
@@ -4078,6 +4733,75 @@
     el('escortQty').addEventListener('input', updateEscortEstimate);
     el('escortFee').addEventListener('input', updateEscortEstimate);
     el('escortGo').addEventListener('click', doEscort);
+
+    /* 门派：表单输入只更新状态，避免 8 秒轮询打断输入；按钮禁用态即时同步。 */
+    function syncSectInput(input) {
+      if (!input || !input.id) return;
+      const id = input.id;
+      const value = input.value;
+      if (id === 'sectName') {
+        state.sect.name = value;
+        /* 只更新姓名提示与按钮禁用态，不整体重绘，避免打断输入。 */
+        const ok = value.trim().length >= 2 && value.trim().length <= 12;
+        const hint = el('sectNameHint');
+        if (hint) {
+          hint.textContent = '门派名需 2-12 字；当前 ' + value.trim().length + ' 字。';
+          hint.classList.toggle('hidden', ok);
+        }
+        const found = el('sectFoundGo');
+        if (found) {
+          const money = sectMoney(state.st || {});
+          const rep = sectReputation(state.st || {});
+          found.disabled = !ok || (money != null && money < SECT_RULES.foundCost) ||
+            (rep != null && rep < SECT_RULES.minReputation) || sectBusy('found');
+        }
+        return;
+      }
+      if (id === 'sectDoctrine') { state.sect.doctrine = value; return; }
+      if (id === 'sectJoinTarget') {
+        state.sect.joinTarget = value;
+        const join = el('sectJoinGo');
+        if (join) join.disabled = !value.trim() || sectBusy('join');
+        return;
+      }
+      if (id === 'sectDepositAmount') {
+        state.sect.deposit = value;
+        const v = Math.floor(Number(value));
+        const money = sectMoney(state.st || {});
+        const btn = el('sectDepositGo');
+        if (btn) btn.disabled = !isFinite(v) || v < 1 || (money != null && v > money) || sectBusy('deposit');
+        return;
+      }
+      if (id === 'sectWithdrawAmount') {
+        state.sect.withdraw = value;
+        const v = Math.floor(Number(value));
+        const sect = sectDataOf(state.st || {}).sect || {};
+        const bal = sect.treasury && sect.treasury.balance != null ? Number(sect.treasury.balance) : null;
+        const max = bal == null ? null : Math.max(0, Math.min(SECT_RULES.withdrawCap, bal - SECT_RULES.treasuryReserve));
+        const btn = el('sectWithdrawGo');
+        if (btn) btn.disabled = !isFinite(v) || v < 1 || (max != null && v > max) || sectBusy('withdraw');
+      }
+    }
+    el('sectBody').addEventListener('input', function (ev) { syncSectInput(ev.target); });
+    el('sectBody').addEventListener('click', function (ev) {
+      const btn = ev.target.closest('button[data-sect-found], button[data-sect-join], ' +
+        'button[data-sect-recruit], button[data-sect-pay], button[data-sect-expel], ' +
+        'button[data-sect-deposit], button[data-sect-withdraw]');
+      if (!btn || btn.disabled) return;
+      if (btn.hasAttribute('data-sect-found')) return doSectFound();
+      if (btn.hasAttribute('data-sect-join')) return doSectJoin();
+      if (btn.hasAttribute('data-sect-recruit')) return doSectRecruit(btn.getAttribute('data-sect-recruit'));
+      if (btn.hasAttribute('data-sect-pay')) return doSectPay();
+      if (btn.hasAttribute('data-sect-expel')) return openSectExpel(btn.getAttribute('data-sect-expel'));
+      if (btn.hasAttribute('data-sect-deposit')) return doSectDeposit();
+      if (btn.hasAttribute('data-sect-withdraw')) return doSectWithdraw();
+    });
+    el('sectModalClose').addEventListener('click', closeSectExpel);
+    el('sectModalCancel').addEventListener('click', closeSectExpel);
+    el('sectModalConfirm').addEventListener('click', doSectExpel);
+    el('sectModal').addEventListener('click', function (ev) {
+      if (ev.target === el('sectModal')) closeSectExpel();
+    });
 
     el('proposeList').addEventListener('click', function (ev) {
       const btn = ev.target.closest('[data-propose-choose]');
@@ -4333,6 +5057,58 @@
           confirmOpen: !el('divorceModal').classList.contains('hidden'),
           talkTargetSpouse: !!el('talkTarget').classList.contains('spouse'),
           restResult: el('restResult').textContent.trim()
+        };
+      },
+      sectState: function () {
+        const st = state.st || {};
+        const data = sectDataOf(st);
+        const sect = data.sect;
+        const limits = sect ? sectLimitsOf(sect) : null;
+        const npcs = ((st.present_npcs || st.nearby || []).filter(function (n) {
+          return n && !String(n.id).startsWith('player:');
+        }));
+        return {
+          missing: data.missing,
+          inSect: data.inSect,
+          role: sect ? String(sect.role || '') : '',
+          name: sect ? String(sect.name || '') : '',
+          leader: sect ? String(sect.leader_name || sect.leader || '') : '',
+          memberCount: sect && sect.member_count != null ? Number(sect.member_count) : null,
+          cap: limits ? limits.disciple_cap : SECT_RULES.discipleCap,
+          treasury: sect && sect.treasury && sect.treasury.balance != null ? Number(sect.treasury.balance) : null,
+          settledToday: sect && sect.settled_today != null ? !!sect.settled_today : null,
+          disciples: sect ? (sect.disciples || []).map(function (d) {
+            const bond = sectBondOf(st, d.id);
+            return {
+              id: d.id, name: d.name, skill: d.skill == null ? null : Number(d.skill),
+              atSect: !!d.at_sect, arrears: Number(d.arrears || 0),
+              affection: bond.aff, trust: bond.trust,
+              settledToday: d.settled_today == null ? null : !!d.settled_today
+            };
+          }) : [],
+          candidates: npcs.map(function (n) {
+            // 与渲染同一口径：present_npcs.bond 不含 sworn，用 relations 补齐。
+            const rel = sectBondOf(st, n.id);
+            const nb = n.bond == null ? null : Number(n.bond);
+            const nt = n.trust == null ? null : Number(n.trust);
+            const bond = (nb == null && rel.aff == null) ? null
+              : Math.max(nb == null ? 0 : nb, rel.aff == null ? 0 : rel.aff);
+            const trust = (nt == null && rel.trust == null) ? null
+              : Math.max(nt == null ? 0 : nt, rel.trust == null ? 0 : rel.trust);
+            return { id: n.id, name: n.name, bond: bond, trust: trust,
+              skill: n.skills && n.skills.level != null ? Number(n.skills.level) : null };
+          }),
+          reputation: sectReputation(st),
+          money: sectMoney(st),
+          maxSkill: sectMaxSkill(st),
+          busy: Object.keys(state.sect.busy),
+          result: state.sect.result,
+          resultBad: !!state.sect.resultBad,
+          confirmTarget: state.sect.confirmTarget,
+          confirmOpen: !el('sectModal').classList.contains('hidden'),
+          foundDisabled: !!(el('sectFoundGo') && el('sectFoundGo').disabled),
+          bodyText: (el('sectBody') ? el('sectBody').textContent : '').trim().slice(0, 600),
+          hint: (el('sectHint') ? el('sectHint').textContent : '').trim()
         };
       },
       guideTargetInfo: function () {

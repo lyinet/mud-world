@@ -9,6 +9,48 @@
 
 ---
 
+## [功能] 2026-11-06 — 玩家端门派面板（三角色视角 / 门槛差额 / 13 拒绝码中文 / 真服务成功链）
+
+- **改了什么**
+  - `ui/player/index.html`：新增「门派」页签（`data-tab="sect"`）与 `#pane-sect`（`#sectHint` /
+    `#sectBody` / `#sectResult` / `#sectDataGap`）；新增驱逐二次确认弹层 `#sectModal`，静态写明
+    「欠薪债务仍保留」；tablist 共 7 个页签。
+  - `ui/player/app.js`：新增 `SECT_RULES`（800 文、声望 20、好感 30、信任 30、技能 0.4/0.2、上限 3、
+    会费 5、俸禄 10、保留金 100、取出上限 500）与 `state.sect`；按未入派 / 弟子 / 门主三种视角渲染；
+    所有门槛控件旁显示「当前值 / 需要值 / 差多少」；写动作在途禁用并显示「处理中…」，成功文案带
+    金库余额与名册人数，拒绝统一走中文 `reasonText`；`__XKX.sectState()` 导出只读投影供验收。
+    - 真实契约修正：写响应 `details.sect` 是 `{in_sect, sect}` 包装层，`sectSnapOf` 解包后再取
+      `treasury.balance` / `member_count`，不再把包装层当快照（此前会显示「暂不可用」）。
+    - `present_npcs[].bond` 走 `affection_between`、不含 `sworn`；收徒裁决用所有 active 关系的
+      `_bond`。候选好感/信任改用 `player.relations[]`（真实返回字段）取最大值补齐，使页面门槛与
+      后端裁决一致；两边都没有时才显示「暂不可用」。
+  - `ui/player/style.css`：门派名册/门槛/操作区样式，按钮 `min-height: 44px`；移动端七页签改为换行，
+    不再让页签条自身横向滚动（375px 下 `#commerceTabs.scrollWidth <= clientWidth`）。
+  - `ui/player/app.js`「江湖」未开放页不再重复列「立派 / 收徒」（已移入门派页签），只留尚未开放的
+    「拜师」。
+  - `tools/ui_check.py`：MockWorld 门派造场（leader / disciple / poor / founder / missing）与六个
+    门派动作的真实拒绝码；`--only sect` 21 项；两处「未开放页」断言随产品更新。
+  - `tools/ui_check_real_sect.py`（新增）：真服务验收，用真实押镖挣钱、真实 `recruit` 攒声望、
+    真实 `cultivate` 升掌门技能，再走 UI 完成立派 → 收徒 → 派俸；每步记录请求/响应/前后快照。
+  - `docs/PLAYER-GUIDE.md` 新增 §7.2 门派面板说明与三处接口缺口；`specs/player-sect-ui/` 为本次
+    spec 与任务清单。
+- **为什么改**
+  - 门派六个写动作已随 `74b37ee` 上线，玩家端需要一个能看懂门槛、能安全重复点击、拒绝时不会
+    落到「未知错误」的面板；后端没有的字段一律显示「暂不可用」，不造字段、不 mock。
+- **验证方式**
+  - `node --check ui/player/app.js` 通过。
+  - `python3 tools/ui_check.py --only sect`：**21/21 通过**（三角色、空态、13 拒绝码中文、在途禁用、
+    驱逐确认、金库上限、匿名无假数据、375×812 触控与溢出）。
+  - `python3 tools/ui_check_real_sect.py --speed 4`：**25/25 通过、0 失败、672.5s**。真实数字：
+    押镖 5 轮钱包 300 → 966 文；声望 0 → 63；镖师技能 0.35 → 0.41；立派后金库 600 文 / 名册 1 人；
+    收徒常半夏后名册 2 人 / 金库 600 文；派俸 `dues=5`、`stipend=10`、金库 595 文，`settledToday=true`，
+    按钮禁用「今日已结算」；匿名页无假数据；移动端 `scrollWidth - innerWidth = 0`。证据
+    `reports/w5-sect/real-sect.json` 与 14 张截图。
+  - `python3 tools/ui_check.py`（全量）：**176/176 通过、0 失败**（原基线 155 + 门派 21）。
+- **commit 短哈希**：见本条目所在提交（含本文档）。
+
+---
+
 ## [容量] 2026-11-06 — 50–300 席实测、读路径出锁与 clone 值拷贝，给出 100/150/500 席结论
 
 - **改了什么**

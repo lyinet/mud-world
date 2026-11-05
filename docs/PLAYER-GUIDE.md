@@ -219,7 +219,7 @@
 
 ## 7. 商业与经营面板（W4）
 
-右栏「商业与经营」区块（`#commerceBlock`，顶栏「商业」按钮可直达），六页签：
+右栏「商业与经营」区块（`#commerceBlock`，顶栏「商业」按钮可直达），七页签：
 
 | 页签 | 入口 | 动作与真实请求 |
 | --- | --- | --- |
@@ -228,7 +228,7 @@
 | 雇人 `hire` | 当前地点在场 NPC | `recruit {target,position,wage}`；日薪默认岗位市价 |
 | 押镖 `escort` | 所在地有镖局才可用 | `escort {route,[cargo_item],cargo_qty,cargo_value,fee}` |
 | 婚姻 `marriage` | 当前地点有可求婚 NPC 时列出候选 | `marriage_propose {target,gift_money,gift_item,gift_qty}`；配偶栏「和离」发 `marriage_end {}` |
-| 未开放 `soon` | 开宗立派 / 收徒 | 服务端返回 `not_implemented_for_player`，统一显示「该玩法尚未开放」 |
+| 门派 `sect` | 未入派显示立派 / 加入；已入派按门主、弟子两种视角 | `found_sect {name,doctrine}`、`join_sect {target}`、`recruit_disciple {target}`、`pay_disciples {}`、`expel_disciple {target}`、`sect_deposit {amount}`、`sect_withdraw {amount}` |
 
 - **可买**：名称、单价、含税总价、库存、`buy_limit`；数量用原生数字输入（1-20，受 `buy_limit`/库存/现金约束），每行「买」按钮。
 - **可卖**：名称、`sell_price`、持有数量；数量上限为持有数，每行「卖」按钮。
@@ -266,6 +266,31 @@
 无店或不是店主时，四个操作区与辞退按钮全部禁用并给出原因；动作在途时按钮转圈（文案
 「处理中…」）且不可重复点击。375×812 下账本表格可横向滚动，页面不横向溢出；新增控件均 ≥44px。
 真服务若尚未实现这些动作，验收脚本会显式标记 `blocked_backend_not_ready`，不会用 mock 冒充真服务证据。
+
+### 7.2 门派：立派 / 收徒 / 派俸 / 驱逐 / 金库
+
+门派页签按三种身份渲染，数据只来自 `GET /api/player/state` 的 `player.sect`（写动作响应的
+`details.sect` 同源）：
+
+| 身份 | 页面内容 | 可写动作 |
+| --- | --- | --- |
+| 未入派 | 立派（门派名、宗旨、800 文与声望 20 门槛）；加入（门派 id 输入） | `found_sect`、`join_sect` |
+| 弟子（非门主） | 门派名、门主、名册、自己的俸禄状态与欠饷天数 | 无（显示「只有门主可以…」） |
+| 门主 | 名册（技能/好感/信任/欠饷/逐人结算状态）、收徒门槛、派俸、驱逐、金库 | `recruit_disciple`、`pay_disciples`、`expel_disciple`、`sect_deposit`、`sect_withdraw` |
+
+- **门槛三项**：每个门槛控件旁直接写「当前值 / 需要值 / 差多少」——立派 800 文与声望 20、
+  收徒好感 30 / 信任 30 / 掌门技能 0.4、名册上限 3、金库保留金 100 与单次取出上限 500、
+  可提上限 = min(500, 金库余额 − 100)。不足时按钮禁用，但差额与原因始终可见。
+- **在途禁用**：写请求发出后按钮变「处理中…」并禁用，防重复提交；成功后再按服务端快照重绘。
+- **成功文案带真实数字**：立派「金库 600 文 · 名册 1 人」；收徒「金库 X 文 · 名册 N 人」；
+  派俸「收会费 A 文，发俸禄 B 文，金库 C 文，名册 N 人」，A/B/C 取自 `details.settlement`
+  与 `details.sect`，不写死。当日已结算后派俸按钮禁用并显示「今日已结算」。
+- **驱逐**：二次确认弹层写明「欠薪债务仍保留」；确认才发 `expel_disciple`。
+- **拒绝码中文**：`no_sect / insufficient_funds / insufficient_rep / already_in_sect /
+  not_sect_leader / favor_too_low / trust_too_low / sect_full / disciple_not_found /
+  withdraw_over_cap / treasury_reserve / insufficient_treasury / already_settled_today`
+  全部映射为中文，未知码也不会显示「未知错误」。
+- **未登录 / 匿名**：门派区只显示「登录并进入世界后查看门派。」，不渲染空壳门派、名册或金库。
 
 ## 8. 婚姻：如何求婚 / 如何和离
 
@@ -307,12 +332,15 @@ python3 tools/ui_check_real_commerce.py   # 真服务（--auth off + ambient）�
 python3 tools/ui_check_real_marriage.py   # 真服务成功路径：talk 到 60+ → 求婚 → 配偶栏 → 和离
 python3 tools/ui_check.py --only shopops  # 店铺经营专项（mock，16 项）
 python3 tools/ui_check_real_shopops.py    # 真服务：能力探测；后端未就绪标 blocked_backend_not_ready
+python3 tools/ui_check.py --only sect     # 门派专项（mock，21 项）
+python3 tools/ui_check_real_sect.py --speed 4  # 真服务：押镖挣钱 → 声望/技能 → 立派 → 收徒 → 派俸
 ```
 
 - mock 服务只改内存，不写 `runs/`、不启动世界 tick，避免与其它会话的确定性基线冲突。
 - 证据目录：`reports/w4-ui/`（`checks.json`、桌面/移动/鉴权截图、`keyboard.txt`、`mobile-summary.json`）。
 - 婚姻证据：`reports/w4-marriage/`（mock 与真服务截图；`real-marriage.json` 含每步真实请求/响应）。
 - 店铺经营证据：`reports/w4-shopops/`（mock 截图与 `mock-shopops.json`；真服务 `real-*.png|json`）。
+- 门派证据：`reports/w5-sect/`（`real-sect.json` 含能力探测、每步真实请求/响应与前后快照；`real-*.png`）。
 - 真服务婚姻脚本按真实时间累积好感（4x 下约 29 分钟），不是 mock 成功路径；`--smoke` 只跑 talk 循环验证选择器。
 
 ## 10. 未覆盖 / 已知限制
@@ -333,4 +361,17 @@ python3 tools/ui_check_real_shopops.py    # 真服务：能力探测；后端未
 - 婚姻有两处接口缺口，UI 只做明确兜底、不伪造：
   1. `present_npcs` / `nearby` 不返回 NPC 的配偶字段，候选列表对「别人是否已婚」显示「已婚状态：接口未提供」；能确定的只有玩家自己的配偶（显示「已婚（你的配偶）」）；
   2. 配偶当日陪伴优先读 `state.marriage.last_daily_tick / daily_note`；接口没给出时用配偶是否同地点近似，并在配偶块下注明口径。
+- 门派有三处接口缺口，UI 只做明确兜底、不伪造：
+  1. `GET /api/player/state` 不提供门派列表（无 `factions[]`），「加入门派」只能填门派 id；
+     页面注明「暂不可用：后端未提供门派列表接口」；
+  2. `player.sect.sect.disciples[]` 不返回逐人 `affection` / `trust`；有 `player.relations` 真实关系时
+     按关系显示（与后端 `_bond` 同口径），没有任何关系记录时显示「暂不可用（缺
+     disciples[].affection/trust）」；
+  3. `disciples[]` 不返回逐人 `settled_today`，逐人结算状态显示「暂不可用（缺
+     disciples[].settled_today）」；门级 `settled_today` 正常返回。
+- `present_npcs[].bond` 走 `affection_between`，不含 `sworn` 关系；收徒裁决用的是所有 active 关系的
+  `_bond`。UI 用 `player.relations`（真实返回字段）补齐好感/信任，使页面门槛与后端裁决一致；
+  这不是新增字段，而是同一份真实关系数据的另一种聚合口径。
+- `details.sect` 是 `{in_sect, sect}` 包装层（`docs/player-api.md §13` 同源）；UI 解包后取
+  `treasury.balance` / `member_count`，不再把包装层当快照。
 - 「休息」目前只是按钮占位（点一下提示「体力恢复中」，不发请求）；`rest` 动作接入后再换成真实请求。

@@ -849,6 +849,58 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   padding: 6px 0;
 }
 
+/* ------------------------------------------------------- W5 门派 */
+.sect-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .55);
+  min-width: 0;
+}
+.sect-summary b { font-weight: 600; overflow-wrap: anywhere; }
+.sect-meta {
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.sect-gate { font-size: 11.5px; }
+.sect-gate.bad { color: var(--red); }
+.sect-gate.ok { color: var(--green); }
+.sect-divider { height: 1px; margin: 12px 0; background: var(--line-soft); }
+.sect-roster { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.sect-row {
+  min-width: 0;
+  padding: 8px 9px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .55);
+}
+.sect-row.self { border-color: var(--line); background: rgba(245, 241, 232, .92); }
+.sect-row-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.sect-row-head b { font-weight: 600; overflow-wrap: anywhere; }
+.sect-row .sect-meta { margin-top: 3px; }
+.sect-actions { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+.sect-actions button,
+.sect-row button { min-height: 44px; }
+.sect-result { min-height: 18px; overflow-wrap: anywhere; }
+.sect-result.ok { color: var(--green); }
+.sect-result.bad { color: var(--red); }
+@media (max-width: 768px) {
+  .sect-roster { overflow-x: auto; }
+  .sect-actions { flex-direction: column; align-items: stretch; }
+  .sect-actions button { width: 100%; }
+}
+
 /* ------------------------------------------------------- W4 店铺经营 */
 .shop-total {
   display: flex;
@@ -1043,8 +1095,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   .panel.right > .block:nth-child(3) { order: 2; }
   .panel.right > .block.commerce-block { order: 3; }
   .panel.right > .block.marriage-block { order: 2; }
-  .commerce-tabs { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; }
-  .commerce-tabs .tab { flex: 0 0 auto; }
+  /* 七页签在 375px 下横向排不下：允许换行，避免页签条自身横向滚动。 */
+  .commerce-tabs { overflow-x: visible; flex-wrap: wrap; padding-bottom: 2px; }
+  .commerce-tabs .tab { flex: 1 1 54px; }
   .commerce-row .row-main { align-items: flex-start; }
   .commerce-row .row-actions > button { flex: 1 1 64px; }
 

@@ -155,11 +155,12 @@
           <h2>商业与经营</h2>
           <span class="hint" id="commerceHint">—</span>
         </div>
-        <div class="commerce-tabs" id="commerceTabs" role="tablist" aria-label="商业、经营与婚姻">
+        <div class="commerce-tabs" id="commerceTabs" role="tablist" aria-label="商业、经营、门派与婚姻">
           <button class="tab active" type="button" role="tab" data-tab="shop" aria-selected="true" aria-controls="pane-shop">商店</button>
           <button class="tab" type="button" role="tab" data-tab="business" aria-selected="false" aria-controls="pane-business">店铺</button>
           <button class="tab" type="button" role="tab" data-tab="hire" aria-selected="false" aria-controls="pane-hire">雇人</button>
           <button class="tab" type="button" role="tab" data-tab="escort" aria-selected="false" aria-controls="pane-escort">押镖</button>
+          <button class="tab" type="button" role="tab" data-tab="sect" aria-selected="false" aria-controls="pane-sect">门派</button>
           <button class="tab" type="button" role="tab" data-tab="marriage" aria-selected="false" aria-controls="pane-marriage">婚姻</button>
           <button class="tab" type="button" role="tab" data-tab="soon" aria-selected="false" aria-controls="pane-soon">江湖</button>
         </div>
@@ -243,6 +244,13 @@
           <div class="hint" id="escortEstimate">—</div>
           <button class="primary small commerce-btn" id="escortGo" type="button">押镖</button>
           <div class="hint" id="escortResult"></div>
+        </div>
+
+        <div class="commerce-pane hidden" id="pane-sect" role="tabpanel">
+          <div class="hint" id="sectHint">登录并进入世界后查看门派。</div>
+          <div id="sectBody"></div>
+          <div class="hint sect-result" id="sectResult"></div>
+          <div class="hint tiny" id="sectDataGap">字段口径：名册的好感/信任与逐人结算若后端未返回，会标「暂不可用」，不按 0 冒充。</div>
         </div>
 
         <div class="commerce-pane hidden" id="pane-marriage" role="tabpanel">
@@ -444,6 +452,29 @@
     <div class="entry-actions">
       <button class="ghost" id="divorceCancel" type="button">取消</button>
       <button class="primary" id="divorceConfirm" type="button">确认和离</button>
+    </div>
+  </div>
+</div>
+
+<!-- 驱逐二次确认：写清“欠薪债务仍保留”，避免误触 -->
+<div class="modal hidden" id="sectModal" role="dialog" aria-modal="true" aria-labelledby="sectModalTitle">
+  <div class="modal-card dismiss-card">
+    <button class="modal-close" id="sectModalClose" type="button" aria-label="关闭">×</button>
+    <div class="modal-head">
+      <div class="avatar big" id="sectModalAvatar">逐</div>
+      <div>
+        <h2 id="sectModalTitle">驱逐弟子</h2>
+        <p>这一步不可撤销。</p>
+      </div>
+    </div>
+    <div class="modal-body">
+      <p id="sectModalText">—</p>
+      <div class="hint"><b>欠薪债务仍保留</b>：驱逐只解除门派归属与师徒关系，门派欠该弟子的俸禄（欠饷）不会消失。</div>
+      <div class="entry-error hidden" id="sectModalError"></div>
+    </div>
+    <div class="entry-actions">
+      <button class="ghost" id="sectModalCancel" type="button">取消</button>
+      <button class="primary" id="sectModalConfirm" type="button">确认驱逐</button>
     </div>
   </div>
 </div>

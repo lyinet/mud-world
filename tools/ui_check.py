@@ -20,7 +20,7 @@ import time
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, quote, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 UI_DIR = ROOT / "ui" / "player"
@@ -219,6 +219,10 @@ class MockWorld:
             "marriage": {"status": "single", "spouse_id": "", "spouse_name": "",
                          "since_tick": 0, "last_daily_tick": 0, "daily_note": ""},
             "replies": [],
+            "sect": None,
+            "sect_missing": False,
+            "reputation": 0.2,
+            "skill_max": 0.35,
         }
 
     def enter(self, account_id, display_name, archetype):
@@ -263,15 +267,23 @@ class MockWorld:
                 "location_name": LOCATIONS[loc]["name"],
                 "wallet": {"money": a["money"], "items": self._wallet_items(a)},
                 "relations": self._relations(a),
+                "skills": {"镖师": a.get("skill_max", 0.35)},
             }
-            return {
+            st = {
                 "ok": True,
                 "account_id": account_id,
                 "tick": a["tick"],
                 "readonly": False,
                 "player": p,
                 "location": {"id": loc, "name": LOCATIONS[loc]["name"], "exits": exits},
-                "present_npcs": NPCS[loc],
+                "present_npcs": [
+                    dict(npc,
+                         bond=float(a["affection"].get(npc["id"], 0.0)),
+                         trust=float(a["trust"].get(npc["id"], 0.0)),
+                         skills={"name": npc["role"],
+                                 "level": NPC_SKILL.get(npc["id"], 0.3)})
+                    for npc in NPCS[loc]
+                ],
                 "nearby": NPCS[loc],
                 "marriage": dict(a["marriage"]),
                 "shop": self._shop_view(a),
@@ -293,15 +305,86 @@ class MockWorld:
                     "business": [{"shop_type": "stall", "cost": 120, "affordable": True, "blocked": False}],
                 },
                 "growth": {
-                    "reputation": {"level": 1, "name": "初出茅庐", "value": 0.2, "progress": 0.2,
+                    "reputation": {"level": 1, "name": "初出茅庐",
+                                   "value": a.get("reputation", 0.2),
+                                   "progress": a.get("reputation", 0.2),
                                    "next_at": 1.0, "next_name": "小有名气", "next_unlock": "解锁茶楼委托"},
                     "skill": {"level": 1, "name": "手艺人", "value": 0.3, "progress": 0.3,
-                              "next_at": 2.0, "next_name": "熟练工", "next_unlock": "工时缩短"},
-                    "assets": {"level": 1, "name": "空手", "value": 300, "progress": 0.1,
+                              "next_at": 2.0, "next_name": "熟练工", "next_unlock": "工时缩短",
+                              "skills": {"镖师": a.get("skill_max", 0.35)}},
+                    "assets": {"level": 1, "name": "空手", "value": a["money"], "progress": 0.1,
                                "next_at": 1000, "next_name": "有摊", "next_unlock": "可买摊位"},
                 },
                 "online_players": [],
             }
+            if not a.get("sect_missing"):
+                st["sect"] = {"in_sect": bool(a.get("sect")), "sect": a.get("sect")}
+                p["sect"] = st["sect"]
+            return st
+
+    # ---------------------------------------------------------------- 门派
+    def _sect_state(self, account_id, a, leader, settled=False, arrears=0, treasury=600):
+        player_id = "player:" + account_id
+        # 让名册里的 NPC 弟子有真实的好感/信任（前端从 player.relations 取）；
+        # 阿福故意留低值，用来验证「当前/需要/差多少」的收徒门槛文案。
+        a["affection"]["npc:wang_tiejiang"] = 35.0
+        a["trust"]["npc:wang_tiejiang"] = 31.0
+        a["affection"]["npc:afu"] = 12.0
+        a["trust"]["npc:afu"] = 8.0
+        npc_rows = [
+            {"id": "npc:wang_tiejiang", "name": "王铁匠", "skill": 0.55,
+             "presence": "在场", "at_sect": True, "arrears": int(arrears)},
+            {"id": "npc:afu", "name": "阿福", "skill": 0.3,
+             "presence": "在场", "at_sect": True, "arrears": 0},
+        ]
+        if leader:
+            leader_id = player_id
+            leader_name = a["display_name"]
+            disciples = list(npc_rows)
+        else:
+            leader_id = "npc:liu_sanniang"
+            leader_name = "刘三娘"
+            disciples = [{"id": player_id, "name": a["display_name"],
+                          "skill": a.get("skill_max", 0.35), "presence": "在场",
+                          "at_sect": True, "arrears": int(arrears)},
+                         npc_rows[0]]
+        return {
+            "id": "sect:ui_check", "faction_id": "sect:ui_check",
+            "name": "青竹派", "location": a["location"],
+            "location_name": LOCATIONS[a["location"]]["name"],
+            "role": "leader" if leader else "disciple",
+            "leader": leader_id, "leader_name": leader_name,
+            "member_count": 1 + len(disciples),
+            "treasury": {"account": "sect:ui_check", "balance": int(treasury)},
+            "disciples": disciples,
+            "limits": {"disciple_cap": 3, "dues_daily": 5,
+                       "stipend_daily": 10, "arrears_expel": 30},
+            "settled_today": bool(settled),
+        }
+
+    def set_sect(self, account_id, mode, money=None, reputation=None,
+                 settled=None, arrears=None, treasury=None):
+        with self.lock:
+            a = self.accounts.get(account_id)
+            if a is None:
+                return 409, {"ok": False, "reason": "player_not_entered"}
+            a["sect_missing"] = (mode == "missing")
+            a["sect"] = None
+            if money is not None:
+                a["money"] = int(money)
+            if reputation is not None:
+                a["reputation"] = float(reputation)
+            if mode == "leader":
+                a["sect"] = self._sect_state(account_id, a, True,
+                                             settled=bool(settled or False),
+                                             arrears=arrears or 0,
+                                             treasury=treasury or 600)
+            elif mode == "disciple":
+                a["sect"] = self._sect_state(account_id, a, False,
+                                             settled=bool(settled or False),
+                                             arrears=arrears or 0,
+                                             treasury=treasury or 500)
+            return 200, {"ok": True, "mode": mode, "sect": a["sect"]}
 
     # ------------------------------------------------------------- commerce
     def _npc(self, npc_id):
@@ -743,6 +826,143 @@ class MockWorld:
                              "next_tick": a["tick"] + 6,
                              "details": {"route": route, "fee": fee,
                                          "arrive_tick": a["tick"] + 144}}
+            # ------------------------------------------------------- 门派
+            if verb == "found_sect":
+                if a["sect"]:
+                    return reject("already_in_sect")
+                if a["money"] < 800:
+                    return reject("insufficient_funds")
+                if float(a.get("reputation", 0)) < 20:
+                    return reject("insufficient_rep")
+                a["money"] -= 800
+                a["sect"] = self._sect_state(account_id, a, True,
+                                             settled=False, arrears=0,
+                                             treasury=600)
+                a["sect"]["disciples"] = []
+                a["sect"]["member_count"] = 1
+                a["tick"] += 3
+                a["event_seq"] += 1
+                return 200, {"ok": True, "event_seq": a["event_seq"], "tick": a["tick"],
+                             "next_tick": a["tick"] + 6,
+                             "details": {"sect": {"in_sect": True, "sect": a["sect"]},
+                                         "cost": 800}}
+            if verb == "join_sect":
+                if a["sect"]:
+                    return reject("already_in_sect")
+                a["sect"] = self._sect_state(account_id, a, False,
+                                             settled=False, arrears=0,
+                                             treasury=500)
+                a["tick"] += 3
+                a["event_seq"] += 1
+                return 200, {"ok": True, "event_seq": a["event_seq"], "tick": a["tick"],
+                             "next_tick": a["tick"] + 6,
+                             "details": {"sect": {"in_sect": True, "sect": a["sect"]}}}
+            if verb == "recruit_disciple":
+                sect = a["sect"]
+                if not sect:
+                    return reject("no_sect")
+                if sect.get("role") != "leader":
+                    return reject("not_sect_leader")
+                target = str((args or {}).get("target") or "")
+                npc = self._npc(target)
+                if npc is None:
+                    return reject("disciple_not_found")
+                if len(sect.get("disciples") or []) >= int((sect.get("limits") or {}).get("disciple_cap", 3)):
+                    return reject("sect_full")
+                if float(a["affection"].get(target, 0)) < 30:
+                    return reject("favor_too_low")
+                if float(a["trust"].get(target, 0)) < 30:
+                    return reject("trust_too_low")
+                sect.setdefault("disciples", []).append({
+                    "id": target, "name": npc["name"], "skill": NPC_SKILL.get(target, 0.3),
+                    "presence": "在场", "at_sect": True, "arrears": 0})
+                sect["member_count"] = 1 + len(sect["disciples"])
+                a["tick"] += 3
+                a["event_seq"] += 1
+                return 200, {"ok": True, "event_seq": a["event_seq"], "tick": a["tick"],
+                             "next_tick": a["tick"] + 6,
+                             "details": {"sect": {"in_sect": True, "sect": sect}}}
+            if verb == "pay_disciples":
+                sect = a["sect"]
+                if not sect:
+                    return reject("no_sect")
+                if sect.get("role") != "leader":
+                    return reject("not_sect_leader")
+                if sect.get("settled_today"):
+                    return reject("already_settled_today")
+                limits = sect.get("limits") or {}
+                count = len(sect.get("disciples") or [])
+                dues = count * int(limits.get("dues_daily", 5))
+                stipend = count * int(limits.get("stipend_daily", 10))
+                sect.setdefault("treasury", {})["balance"] = int(
+                    sect.get("treasury", {}).get("balance", 0)) + dues - stipend
+                sect["settled_today"] = True
+                a["tick"] += 3
+                a["event_seq"] += 1
+                return 200, {"ok": True, "event_seq": a["event_seq"], "tick": a["tick"],
+                             "next_tick": a["tick"] + 6,
+                             "details": {"settlement": {"dues": dues, "stipend": stipend,
+                                                        "leavers": []},
+                                         "sect": {"in_sect": True, "sect": sect}}}
+            if verb == "expel_disciple":
+                sect = a["sect"]
+                if not sect:
+                    return reject("no_sect")
+                if sect.get("role") != "leader":
+                    return reject("not_sect_leader")
+                target = str((args or {}).get("target") or "")
+                rows = sect.get("disciples") or []
+                keep = [d for d in rows if str(d.get("id")) != target]
+                if len(keep) == len(rows):
+                    return reject("disciple_not_found")
+                sect["disciples"] = keep
+                sect["member_count"] = 1 + len(keep)
+                a["tick"] += 3
+                a["event_seq"] += 1
+                return 200, {"ok": True, "event_seq": a["event_seq"], "tick": a["tick"],
+                             "next_tick": a["tick"] + 6,
+                             "details": {"sect": {"in_sect": True, "sect": sect}}}
+            if verb == "sect_deposit":
+                amount = _int_arg((args or {}).get("amount"), 0)
+                sect = a["sect"]
+                if not sect:
+                    return reject("no_sect")
+                if sect.get("role") != "leader":
+                    return reject("not_sect_leader")
+                if amount is None or amount < 1:
+                    return reject("bad_arg:amount")
+                if a["money"] < amount:
+                    return reject("insufficient_funds")
+                a["money"] -= amount
+                sect["treasury"]["balance"] = int(sect["treasury"]["balance"]) + amount
+                a["tick"] += 2
+                a["event_seq"] += 1
+                return 200, {"ok": True, "event_seq": a["event_seq"], "tick": a["tick"],
+                             "next_tick": a["tick"] + 6,
+                             "details": {"sect": {"in_sect": True, "sect": sect}}}
+            if verb == "sect_withdraw":
+                amount = _int_arg((args or {}).get("amount"), 0)
+                sect = a["sect"]
+                if not sect:
+                    return reject("no_sect")
+                if sect.get("role") != "leader":
+                    return reject("not_sect_leader")
+                if amount is None or amount < 1:
+                    return reject("bad_arg:amount")
+                if amount > 500:
+                    return reject("withdraw_over_cap")
+                balance = int(sect["treasury"]["balance"])
+                if balance < amount:
+                    return reject("insufficient_treasury")
+                if balance - amount < 100:
+                    return reject("treasury_reserve")
+                sect["treasury"]["balance"] = balance - amount
+                a["money"] += amount
+                a["tick"] += 2
+                a["event_seq"] += 1
+                return 200, {"ok": True, "event_seq": a["event_seq"], "tick": a["tick"],
+                             "next_tick": a["tick"] + 6,
+                             "details": {"sect": {"in_sect": True, "sect": sect}}}
             if verb == "marriage_propose":
                 target = str((args or {}).get("target") or "")
                 npc = self._npc(target)
@@ -994,6 +1214,24 @@ class Handler(SimpleHTTPRequestHandler):
                 self._json(200, {"ok": True, "target": target,
                                  "affection": a["affection"].get(target, 0),
                                  "trust": a["trust"].get(target, 0)})
+            return
+        if path == "/__check/sect":
+            q = parse_qs(urlsplit(self.path).query)
+            account = (q.get("account") or [""])[0]
+            mode = (q.get("mode") or ["none"])[0]
+
+            def _num(key, cast):
+                return cast(q[key][0]) if key in q else None
+
+            status, payload = self.world.set_sect(
+                account, mode,
+                money=_num("money", int),
+                reputation=_num("reputation", float),
+                settled=(q.get("settled") or ["0"])[0] in ("1", "true", "yes"),
+                arrears=_num("arrears", int),
+                treasury=_num("treasury", int),
+            )
+            self._json(status, payload)
             return
         if path == "/__check/expire":
             self.world.expire_all()
@@ -2262,12 +2500,13 @@ def run_marriage(browser, base, results, world):
                      "tick_after": world.accounts[account]["tick"]})
         shot("mock-marriage-7-single")
 
-        # 7) 未开放页只留立派/收徒
+        # 7) 未开放页只留拜师（立派/收徒已在「门派」页签开放）
         page.click('button[data-tab="soon"]')
         page.wait_for_function("() => !document.getElementById('pane-soon').classList.contains('hidden')")
         soon = page.locator("#pane-soon").inner_text()
-        results.add("婚姻 未开放页移除结婚，仅立派/收徒",
-                    "结婚" not in soon and "立派" in soon and "收徒" in soon,
+        results.add("婚姻 未开放页不再重复立派/收徒，仅留拜师",
+                    "拜师" in soon
+                    and all(k not in soon for k in ("结婚", "立派", "收徒")),
                     {"soon": soon})
 
         # 8) rest 占位：提示但不发请求
@@ -2513,9 +2752,9 @@ def run_commerce(browser, base, results, world):
 
     page.click('[data-tab="soon"]')
     snap = commerce_snapshot(page)
-    results.must("商业 未开放玩法显示明确文案（仅立派/收徒，结婚已移出）",
-                 "立派" in snap["soon"] and "收徒" in snap["soon"]
-                 and "该玩法尚未开放" in snap["soon"] and "结婚" not in snap["soon"],
+    results.must("商业 未开放玩法只留拜师，立派/收徒已移入「门派」页签",
+                 "拜师" in snap["soon"] and "该玩法尚未开放" in snap["soon"]
+                 and all(k not in snap["soon"] for k in ("立派", "收徒", "结婚")),
                  snap["soon"])
     results.must("商业 not_implemented_for_player 中文映射",
                  page.evaluate("() => window.__XKX.reasonText('not_implemented_for_player', '')") == "该玩法尚未开放。",
@@ -2915,11 +3154,295 @@ def run_shopops(browser, base, results, world):
                    ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+SECT_EVIDENCE = ROOT / "reports" / "w5-sect"
+
+
+def sect_snapshot(page):
+    return page.evaluate("""() => {
+      const s = window.__XKX.sectState();
+      const rows = Array.from(document.querySelectorAll('#sectBody .sect-row')).map(r => ({
+        id: r.getAttribute('data-sect-disciple') || r.getAttribute('data-recruit-row') || '',
+        cls: r.className,
+        recruit: !!r.getAttribute('data-recruit-row'),
+        text: r.textContent.trim(),
+        button: r.querySelector('button') ? r.querySelector('button').textContent.trim() : '',
+        disabled: r.querySelector('button') ? r.querySelector('button').disabled : null
+      }));
+      const pay = document.getElementById('sectPayGo');
+      const found = document.getElementById('sectFoundGo');
+      const join = document.getElementById('sectJoinGo');
+      const dep = document.getElementById('sectDepositGo');
+      const wd = document.getElementById('sectWithdrawGo');
+      const body = document.getElementById('sectBody');
+      return {
+        ...s,
+        rows: rows,
+        body: body ? body.textContent.trim() : '',
+        result: document.getElementById('sectResult').textContent.trim(),
+        hint: document.getElementById('sectHint').textContent.trim(),
+        foundDisabled: found ? found.disabled : null,
+        foundText: found ? found.textContent.trim() : '',
+        joinDisabled: join ? join.disabled : null,
+        payDisabled: pay ? pay.disabled : null,
+        payText: pay ? pay.textContent.trim() : '',
+        depositDisabled: dep ? dep.disabled : null,
+        depositText: dep ? dep.textContent.trim() : '',
+        withdrawDisabled: wd ? wd.disabled : null,
+        withdrawText: wd ? wd.textContent.trim() : '',
+        modalVisible: !document.getElementById('sectModal').classList.contains('hidden'),
+        modalText: document.getElementById('sectModalText').textContent.trim(),
+        modalAll: document.getElementById('sectModal').textContent.trim(),
+        modalError: document.getElementById('sectModalError').textContent.trim(),
+        toast: document.getElementById('toast').textContent.trim(),
+        errors: Array.from(document.querySelectorAll('#errorList .error-item')).map(e => e.textContent.trim()),
+        log: Array.from(document.querySelectorAll('#log .log-item')).map(e => e.textContent.trim())
+      };
+    }""")
+
+def sect_setup(page, base, account, mode, **params):
+    query = "/__check/sect?account=" + quote(account) + "&mode=" + quote(mode)
+    for key, value in params.items():
+        query += "&" + key + "=" + quote(str(value))
+    page.request.get(base + query)
+    page.evaluate("(acct) => window.__XKX.refreshState(acct)", account)
+    page.wait_for_timeout(300)
+
+
+def sect_open(page):
+    page.click('[data-tab="sect"]')
+    page.wait_for_function(
+        "() => document.getElementById('pane-sect') && !document.getElementById('pane-sect').classList.contains('hidden')",
+        timeout=6000)
+    page.wait_for_timeout(200)
+
+
+def sect_capture(page, name):
+    SECT_EVIDENCE.mkdir(parents=True, exist_ok=True)
+    page.screenshot(path=str(SECT_EVIDENCE / (name + ".png")), full_page=True)
+
+
+SECT_REJECT_CODES = [
+    "no_sect", "insufficient_funds", "insufficient_rep", "already_in_sect",
+    "not_sect_leader", "favor_too_low", "trust_too_low", "sect_full",
+    "disciple_not_found", "withdraw_over_cap", "treasury_reserve",
+    "insufficient_treasury", "already_settled_today",
+]
+
+
+def run_sect(browser, base, results, world):
+    # 1) 未入派：门槛三项齐全；余额/声望不足时按钮禁用且写清差额。
+    ctx, page = commerce_page(browser, base, "u_sect_founder", "掌门候选")
+    sect_setup(page, base, "u_sect_founder", "founder", money=1200, reputation=30)
+    sect_open(page)
+    page.fill("#sectName", "青竹派")
+    snap = sect_snapshot(page)
+    results.must("门派 未入派显示 800 文/声望 20 的当前值、需要值与差额",
+                 "当前 1200 文 / 需要 800 文 / 已达标" in snap["body"]
+                 and "当前 30 / 需要 20 / 已达标" in snap["body"]
+                 and snap["foundDisabled"] is False, snap["body"])
+    results.must("门派 未入派不出现名册/金库假数据",
+                 "名册" not in snap["body"] and "金库" not in snap["body"]
+                 and snap["treasury"] is None, snap["body"])
+
+    ctx.close()
+
+    pctx, ppage = commerce_page(browser, base, "u_sect_poor", "贫寒弟子")
+    sect_setup(ppage, base, "u_sect_poor", "poor", money=300, reputation=5)
+    sect_open(ppage)
+    snap = sect_snapshot(ppage)
+    results.must("门派 立派门槛不足时按钮禁用并写清差额",
+                 snap["foundDisabled"] is True
+                 and "当前 300 文 / 需要 800 文 / 差 500 文" in snap["body"]
+                 and "当前 5 / 需要 20 / 差 15" in snap["body"], snap["body"])
+    sect_capture(ppage, "mock-sect-found-gate")
+    pctx.close()
+
+    # 2) 真写动作：立派 → 门主视角，成功文案带真实金库/名册数字。
+    ctx, page = commerce_page(browser, base, "u_sect_make", "立派者")
+    sect_setup(page, base, "u_sect_make", "founder", money=1200, reputation=30)
+    sect_open(page)
+    page.fill("#sectName", "青竹派")
+    page.fill("#sectDoctrine", "守望相济")
+    page.click("#sectFoundGo")
+    page.wait_for_function(
+        "() => document.getElementById('sectResult').textContent.indexOf('立派成功') >= 0", timeout=8000)
+    snap = sect_snapshot(page)
+    results.must("门派 立派成功带真实金库余额与名册人数",
+                 "立派成功：青竹派" in snap["result"] and "金库 600 文" in snap["result"]
+                 and "名册 1 人" in snap["result"]
+                 and snap["role"] == "leader", snap["result"])
+    sect_capture(page, "mock-sect-founder")
+
+    # 3) 弟子视角：门派/门主/名册/自己的欠饷天数；不渲染门主按钮。
+    dctx, dpage = commerce_page(browser, base, "u_sect_disciple", "门下弟子")
+    sect_setup(dpage, base, "u_sect_disciple", "disciple", arrears=20)
+    sect_open(dpage)
+    snap = sect_snapshot(dpage)
+    self_row = next((r for r in snap["rows"] if r["id"] == "player:u_sect_disciple"), None)
+    results.must("门派 弟子视角显示门派、门主与自己的欠饷天数",
+                 snap["role"] == "disciple" and "青竹派" in snap["body"]
+                 and "刘三娘" in snap["body"] and self_row is not None
+                 and "欠饷 20 文（约 2 天" in self_row["text"], snap["body"])
+    results.must("门派 弟子视角不出现门主写操作",
+                 "只有门主可以收徒、派俸、驱逐与金库操作" in snap["body"]
+                 and snap["payDisabled"] is None
+                 and not any(r["button"] == "驱逐" for r in snap["rows"]), snap["body"])
+    sect_capture(dpage, "mock-sect-disciple")
+    dctx.close()
+
+    # 4) 门主视角：名册字段、收徒门槛、派俸、驱逐二次确认、金库上限。
+    ctx.close()
+    lctx, lpage = commerce_page(browser, base, "u_sect_leader", "门派掌门")
+    sect_setup(lpage, base, "u_sect_leader", "leader", arrears=20, settled=0, treasury=600)
+    sect_open(lpage)
+    snap = sect_snapshot(lpage)
+    wang = next((r for r in snap["rows"] if r["id"] == "npc:wang_tiejiang" and not r["recruit"]), None)
+    afu = next((r for r in snap["rows"] if r["id"] == "npc:afu" and r["recruit"]), None)
+    results.must("门派 门主名册含技能/好感/信任/欠饷与结算状态缺口标注",
+                 wang is not None and "技能 0.55" in wang["text"]
+                 and "好感 35" in wang["text"] and "信任 31" in wang["text"]
+                 and "欠饷 20 文" in wang["text"]
+                 and "暂不可用（缺 disciples[].settled_today）" in wang["text"]
+                 and "名册 3 / 上限 3 / 已满" in snap["body"], wang)
+    results.must("门派 收徒门槛显示当前/需要/差额且未达标禁用",
+                 afu is not None and "好感 12/30（差 18）" in afu["text"]
+                 and "信任 8/30（差 22）" in afu["text"] and afu["disabled"] is True, afu)
+    sect_capture(lpage, "mock-sect-leader")
+
+    # 派俸：当日一次；成功后回显真实会费/俸禄/金库。
+    lpage.click("#sectPayGo")
+    lpage.wait_for_function(
+        "() => document.getElementById('sectResult').textContent.indexOf('日结完成') >= 0", timeout=8000)
+    snap = sect_snapshot(lpage)
+    results.must("门派 派俸成功回显真实会费/俸禄/金库与名册",
+                 "收会费 10 文" in snap["result"] and "发俸禄 20 文" in snap["result"]
+                 and "金库 590 文" in snap["result"] and "名册 3 人" in snap["result"], snap["result"])
+    results.must("门派 当日已结算后派俸按钮禁用并回显今日已结算",
+                 snap["payDisabled"] is True and "今日已结算" in snap["payText"]
+                 and "今日已结算" in snap["body"], {"disabled": snap["payDisabled"], "text": snap["payText"]})
+
+    # 驱逐：二次确认写明欠薪债务仍保留。
+    lpage.click('[data-sect-expel="npc:wang_tiejiang"]')
+    lpage.wait_for_function(
+        "() => !document.getElementById('sectModal').classList.contains('hidden')", timeout=4000)
+    snap = sect_snapshot(lpage)
+    results.must("门派 驱逐二次确认写明欠薪债务仍保留",
+                 snap["modalVisible"] and "王铁匠" in snap["modalText"]
+                 and "欠薪债务仍保留" in snap["modalAll"], snap["modalAll"])
+    lpage.click("#sectModalCancel")
+    lpage.click('[data-sect-expel="npc:wang_tiejiang"]')
+    lpage.click("#sectModalConfirm")
+    lpage.wait_for_function(
+        "() => document.getElementById('sectResult').textContent.indexOf('已驱逐') >= 0", timeout=8000)
+    snap = sect_snapshot(lpage)
+    results.must("门派 驱逐成功回显真实名册人数",
+                 "已驱逐 王铁匠" in snap["result"] and "名册 2 人" in snap["result"]
+                 and all(r["id"] != "npc:wang_tiejiang" for r in snap["rows"] if not r["recruit"]),
+                 snap["result"])
+
+    # 金库：显示保留金与可提上限；超限禁用；存取回显真实余额。
+    results.must("门派 金库显示保留金 100 与单次上限/可提上限",
+                 lpage.evaluate("() => window.__XKX.sectState().treasury") == 590,
+                 snap["body"])
+    lpage.fill("#sectWithdrawAmount", "600")
+    snap = sect_snapshot(lpage)
+    results.must("门派 取出超限按钮禁用并给可提上限",
+                 snap["withdrawDisabled"] is True and "最多可提 490 文" in snap["body"], snap["body"])
+    lpage.fill("#sectWithdrawAmount", "50")
+    lpage.click("#sectWithdrawGo")
+    lpage.wait_for_function(
+        "() => document.getElementById('sectResult').textContent.indexOf('已取出 50 文') >= 0", timeout=8000)
+    snap = sect_snapshot(lpage)
+    results.must("门派 取出成功回显金库真实余额",
+                 "已取出 50 文" in snap["result"] and "金库 540 文" in snap["result"], snap["result"])
+    lpage.fill("#sectDepositAmount", "100")
+    lpage.click("#sectDepositGo")
+    lpage.wait_for_function(
+        "() => document.getElementById('sectResult').textContent.indexOf('已存入 100 文') >= 0", timeout=8000)
+    snap = sect_snapshot(lpage)
+    results.must("门派 存入成功回显金库真实余额",
+                 "已存入 100 文" in snap["result"] and "金库 640 文" in snap["result"], snap["result"])
+
+    # 在途：显示「处理中…」且按钮禁用。
+    sect_setup(lpage, base, "u_sect_leader", "leader", arrears=0, settled=0, treasury=600)
+    lpage.request.get(base + "/__check/slow?verb=pay_disciples&ms=900")
+    lpage.click("#sectPayGo")
+    lpage.wait_for_function(
+        "() => document.getElementById('sectPayGo').textContent.indexOf('处理中') >= 0", timeout=4000)
+    snap = sect_snapshot(lpage)
+    results.must("门派 写动作在途按钮禁用并显示处理中",
+                 snap["payDisabled"] is True and "处理中" in snap["payText"], snap)
+    lpage.wait_for_function(
+        "() => document.getElementById('sectResult').textContent.indexOf('日结完成') >= 0", timeout=10000)
+    lpage.request.get(base + "/__check/slow?verb=&ms=0")
+
+    # 13 个拒绝码：全部中文，不落「未知错误」。
+    reasons = lpage.evaluate("""(codes) => codes.map(c => [c, window.__XKX.reasonText(c, '')])""",
+                             SECT_REJECT_CODES)
+    results.must("门派 13 个拒绝码全部有中文文案",
+                 all(isinstance(t, str) and t.strip() and "未知" not in t for _, t in reasons),
+                 reasons)
+
+    # 缺字段 / 未登录：不渲染空壳假数据。
+    mctx, mpage = commerce_page(browser, base, "u_sect_missing", "缺字段")
+    sect_setup(mpage, base, "u_sect_missing", "missing")
+    sect_open(mpage)
+    snap = sect_snapshot(mpage)
+    results.must("门派 缺顶层 sect 字段时显示暂不可用且不造假数据",
+                 snap["missing"] is True and "未返回顶层 sect 字段" in snap["body"]
+                 and "名册" not in snap["body"] and "金库" not in snap["body"], snap["body"])
+    mctx.close()
+
+    actx = browser.new_context(viewport={"width": 1280, "height": 900})
+    apage = actx.new_page()
+    apage.goto(base + "/?ui_check=1")
+    wait_app(apage)
+    anon = apage.evaluate("""() => ({
+      body: (document.getElementById('sectBody') || {}).textContent || '',
+      hint: (document.getElementById('sectHint') || {}).textContent || '',
+      state: window.__XKX.sectState()
+    })""")
+    results.must("门派 未登录不渲染空壳假数据",
+                 anon["body"].strip() == "" and anon["state"]["inSect"] is False
+                 and "登录" in anon["hint"] and anon["state"]["treasury"] is None, anon)
+    actx.close()
+
+    # 移动端：门派按钮 ≥44px，页面不横向溢出。
+    lctx.close()
+    mctx, mpage = commerce_page(browser, base, "u_sect_mobile", "门派移动端",
+                                viewport={"width": 375, "height": 812})
+    sect_setup(mpage, base, "u_sect_mobile", "leader", arrears=0, settled=0, treasury=600)
+    mpage.click("#commerceJump")
+    sect_open(mpage)
+    mobile = mpage.evaluate("""() => {
+      const buttons = Array.from(document.querySelectorAll('#pane-sect button'))
+        .filter(b => b.getBoundingClientRect().height > 0);
+      const small = buttons.filter(b => b.getBoundingClientRect().height < 44)
+        .map(b => ({ text: b.textContent.trim(), h: Math.round(b.getBoundingClientRect().height) }));
+      return {
+        pageOverflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+        scrollWidth: document.documentElement.scrollWidth,
+        innerWidth: window.innerWidth,
+        buttons: buttons.length, small: small
+      };
+    }""")
+    results.must("门派 移动端 375px 按钮 ≥44px 且页面不溢出",
+                 mobile["buttons"] > 0 and not mobile["small"] and not mobile["pageOverflow"], mobile)
+    sect_capture(mpage, "mock-sect-mobile")
+    mctx.close()
+
+    SECT_EVIDENCE.mkdir(parents=True, exist_ok=True)
+    rows = [r for r in results.rows if r["name"].startswith("门派 ")]
+    SECT_EVIDENCE.joinpath("mock-sect.json").write_text(
+        json.dumps({"checks": rows, "failed": sum(1 for r in rows if not r["ok"])},
+                   ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--serve", action="store_true", help="只启动 mock 服务")
     ap.add_argument("--only", default="",
-                    help="desktop|mobile|keyboard|auth|reasons|regression|feed|commerce|marriage|shopops，逗号分隔")
+                    help="desktop|mobile|keyboard|auth|reasons|regression|feed|commerce|marriage|shopops|sect，逗号分隔")
     ap.add_argument("--auth", action="store_true", help="--serve 时启用鉴权模式")
     args = ap.parse_args()
 
@@ -2955,6 +3478,8 @@ def main():
                     run_commerce(browser, base, results, world)
                 if not only or "shopops" in only:
                     run_shopops(browser, base, results, world)
+                if not only or "sect" in only:
+                    run_sect(browser, base, results, world)
                 if not only or "desktop" in only:
                     run_desktop(browser, base, results)
                 if not only or "mobile" in only:
