@@ -3,7 +3,8 @@
 本版基于 `b23827a`（`delivery-p3k` 冻结基线），内容冻结
 `content_hash = 7ec670c1…`（关闭态）；`delivery-p3f`–`p3j` 为前序交付，tag 均不改写。
 
-这是一个可离线运行的 MUD 世界：Python 引擎 `wsim.api` + 浏览器前端 `ui/player`。
+这是一个可离线运行的 MUD 世界：Python 引擎 `wsim.api` + 浏览器前端 `ui/player`
++ 默认开启的后台世界自走（ambient）。
 无需模型 key、GPU 或外部数据库；存档与账号用本地 sqlite（`events.sqlite` / `service.sqlite`），
 首次运行自动建 venv、装固定依赖、生成种子世界。
 
@@ -20,7 +21,9 @@ API_PORT=8120 PORT=8010 ./start.sh
 ```
 
 脚本失败会给出可读错误（缺 Python、venv 创建失败、pip 失败、端口占用、种子生成失败），
-不会只甩一段栈回溯。按 Ctrl-C 同时停掉引擎和前端。
+不会只甩一段栈回溯。按 Ctrl-C 同时停掉引擎、前端与自走；日志在
+`runs/<RUN_ID>/logs/{api,ui,ambient}.log`。默认自走可用 `XKX_AMBIENT=0 ./start.sh` 关闭，
+CPU 上限用 `XKX_AMBIENT_CPU=70`（百分比）调整。
 
 ## 第一次进入
 
@@ -35,7 +38,9 @@ API_PORT=8120 PORT=8010 ./start.sh
 ## 三个观察点
 
 1. **世界在跑**：顶部时钟每个动作推进 1 小时（6 tick）；`tick` 从 0 → 6 → 12。
-2. **NPC 自主行动**：服务模式的世界从 tick 0 开始，NPC 由引擎按日程驱动（没有常驻后台调度器）。
+2. **NPC 自主行动**：`./start.sh` 默认常驻后台自走，NPC 会自己修炼、开店、结婚；
+   `/api/health` 的 `ambient`/`ambient_tick` 显示自走是否在推进。玩家存档仍是动作驱动，
+   自走在独立世界目录 `runs/<RUN_ID>/ambient`（不双写存档）。
    想看一段完整的 NPC 行动回放，可另生成一个 jsonl 种子世界（只读，不影响当前存档）：
    ```bash
    .venv/bin/python sim/run_headless.py --days 10 --seed 42 --run-id npc-feed
@@ -60,8 +65,9 @@ API_PORT=8120 PORT=8010 ./start.sh
 ./scripts/selfcheck.sh
 ```
 
-本机实测：`pytest 423 passed, 10 skipped`，内容包 / 单元测试 / 框架验收 / 玩家闭环 4 项全 PASS；
-framework 6/6。10 条 skip 是显式保留的旧基线，不是删测试。
+本机实测：`pytest` 全绿（计数见 `docs/AMBIENT.md` / CHANGELOG），
+内容包 / 单元测试 / 框架验收 / 玩家闭环 4 项全 PASS；framework 6/6。
+skip 是显式保留的旧基线，不是删测试。
 
 ## 包内范围
 
@@ -77,8 +83,8 @@ framework 6/6。10 条 skip 是显式保留的旧基线，不是删测试。
 - 不要把 8020/8000 直接暴露公网：`start.sh` 默认只绑 `127.0.0.1`；API 虽已对写端点启用
   Bearer 鉴权（PBKDF2 账号），但仍是明文 HTTP、无 TLS/限流，且 `account_id` 只是字符串，
   不能当身份证明；
-- 不要把“实时会话”当成 NPC 会自己持续行动的世界：`start.sh` 默认不启用调度器，
-  需要时显式运行 `tools/ambient_run.py`（见 `docs/AMBIENT.md`）；
+- 不要把自走世界与玩家存档当成同一个世界：`start.sh` 默认启动 ambient，但它写
+  `runs/<RUN_ID>/ambient/events.sqlite`，不并入玩家存档（见 `docs/AMBIENT.md`）；
 - 不要把本版 K1 的 `49.45% → 65.93%` 当成模型贡献：它归因于目标体量与内容校准，模型在该维度零增益；
 - 不要把模型的两次机制实验当成“仍在优化”：每 tick 选择器与每 3 日战略层均 FAIL，已永久收工；
 - 不要把 R5 的 55.9% 非平手胜率当作“模型明显更好”：与好模板持平，对话默认仍走模板；

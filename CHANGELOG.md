@@ -9,6 +9,27 @@
 
 ---
 
+## [功能] 2026-11-05 — 世界自走成为首发默认体验
+
+- **改了什么**：`./start.sh` 默认同时拉起 API、前端与后台自走（`XKX_AMBIENT=0` 关闭，
+  关闭态与旧版一致）；ambient 日志落 `runs/<RUN_ID>/logs/ambient.log`，API/前端各自落文件；
+  API 就绪后 ambient 后台独立启动，退出时先收 ambient 并 `wait` 收割；旧自走目录自动归档。
+  CPU 护栏改为 70% 阈值三档动作：补睡降速 → 持续超限暂停 → 低于恢复线自动恢复；
+  新增 `ambient_status.json`、`parent_pid` 看护、`cpu_pauses/cpu_resumes`。
+  `/api/health`、`/api/service/info`、`ui/player` `/api/health` 只**追加** ambient 字段，
+  `ok/mode/readonly/profile_version/upstream_ok` 不变。
+- **为什么**：此前默认不启用调度器，玩家解包起服务后世界静止，与产品核心设定相反；
+  同时避免自走过载时拖死服务端、进程退出后残留僵尸。
+- **验证**：干净 worktree（HEAD=`fea1d8f`）全量 pytest **429 passed / 10 skipped / 0 failed**；
+  `scripts/selfcheck.sh` **4/4 PASS**；`./start.sh` 一条命令后 `/api/health`
+  `ambient=running` 且 7s 内 `ambient_tick 0→1`；`XKX_AMBIENT=0` 为 `stopped` 且无 ambient 进程；
+  300 ticks（seed 42）：1119 事件 / 966 NPC 自主事件 / 28 个活跃 NPC / 16 种动词 / 0 LLM；
+  玩家第 149 tick 进入、209 退出：progress 0..299 连续，0..149 与无玩家对照逐字节一致，0 回滚；
+  1x 3 分钟进程 CPU 0.19%，注入忙等负载后 70% 阈值实测 3.68s 暂停、2.24s 自动恢复。
+- **commit**：`aee9bbe`（调度器/护栏）、`90e4404`（health）、`fea1d8f`（start.sh）。
+
+---
+
 ## [安全] 2026-11-04 — 读端点越权读取已修复
 
 - **问题**：服务模式下读端点匿名且接受任意 `account_id`，读路径不解析令牌，
