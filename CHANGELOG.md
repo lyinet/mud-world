@@ -9,6 +9,35 @@
 
 ---
 
+## [功能] 2026-11-05 — 玩家侧「世界动态」feed
+
+- **改了什么**：`ui/player` 中栏新增默认可见的「世界动态」区块，读
+  `GET /api/world/feed?limit=20`：按 tick 倒序最多 20 条，行格式
+  `· [tick] actor 在 place：summary`，`important=true` 金色强调；固定高度 168px
+  （移动端 148px）独立滚动，用户下滚阅读时插入新条目会补偿高度不跳动，停在顶部时跟随最新。
+  刷新与主状态解耦：每 8 秒单独节流、匿名请求，不与登录/单飞刷新互相打断；
+  失败/降级只显示「世界暂时安静」，不弹红字、不写错误历史、不动主状态。
+  玩家当前或相邻地点的 `important` 事件复用现有 toast + 操作记录（`world_important` 原因码，
+  按 tick+summary 去重），不新造弹层。`ui/player/server.py` 只读降级态新增
+  `/api/world/feed` 本地合成公共事件（过滤 `player:` 与 `system_*`），live 模式透传上游。
+  `tools/ui_check.py` 新增 13 条 feed 检查 + 3 条移动端检查；`ui_check_proxy` mock 上游
+  补 `/api/world/feed` 并加 2 条服务模式断言。
+- **为什么**：世界自走已默认开启，但玩家侧看不到 NPC 在动；需要把公共世界事件
+  呈现给玩家，同时不挤压主线操作、不被底部安全区遮挡。
+- **验证方式**：`python3 tools/ui_check.py` **82 checks / 0 failed**；
+  `python3 tools/ui_check_proxy.py` **12 checks / 0 failed**；真 `wsim.api --auth off`
+  + 真 `ui/player/server.py` 代理 + `XKX_AMBIENT_SPEED=4` 实测 feed 200 与真实事件截图；
+  真 `--auth on` API 匿名 feed 200。工作区（含其他会话未提交改动）pytest
+  **439 passed / 12 skipped**；`scripts/selfcheck.sh` **4/4 PASS**。
+  证据 `reports/w4-feed/`：5 张截图 + `feed-checks.json`（16 项 feed 检查，匿名头全空）
+  + `real-api-feed.json`。
+- **与契约的实测差异**（UI 已兼容）：响应是 `{ok,tick,limit,events:[...]}`；
+  `events` 实际按 tick **升序**返回；`verb` 是内部动词（`move`/`quest_accept`）而非中文动作名；
+  `summary` 是短语（如「动身前往药铺」）而非契约示例里的完整句子。
+- **commit**：`8f1ed22`；本条为回填（`docs(changelog)`）。
+
+---
+
 ## [文档] 2026-11-05 — 内容层 4 件零成交物品种类定位
 
 - **改了什么**：`docs/known-limitations.md` 追加 §12「内容层零成交物品（已定位、未修）」，
