@@ -88,6 +88,7 @@ docker run --rm --entrypoint sh xkx/world-sim:w5 -c 'env | grep -Ei "api[_-]?key
 |---|---|---|
 | `xkx-proxy`（nginx 1.27） | 容器 `80`/`443` → 宿主 `${PUBLIC_HTTP_PORT:-80}` / `${PUBLIC_HTTPS_PORT:-443}` | 公网唯一入口 |
 | `xkx-world`（API + 前端） | 容器 `8020` / `8030`，宿主发布仅 `127.0.0.1` | 仅本机调试；容器网络内由 proxy 访问 |
+| `xkx-admin`（管理控制台） | 容器 `8031`，**不发布任何宿主端口**，只挂 `xkx-admin-net`（`internal: true`） | 仅 proxy（静态 IP `172.30.31.10`）可达 |
 | `xkx-backup` | 仅容器网络 | 不对外 |
 
 实测（`netstat` + 跨机访问）：
@@ -117,16 +118,17 @@ $ curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8020/api/service/info
 ```bash
 cd deploy
 ./gen_selfsigned_cert.sh              # 仅演练：生成 deploy/nginx/certs/xkx.crt|key
+XKX_ADMIN_BASIC_PASS='<强口令>' ./gen_admin_basic_auth.sh   # 管理面 Basic 凭据
 # 生产：把运维签发的证书按同名放进去（不入库，deploy/nginx/certs/ 已在 .gitignore）
 
-docker compose up -d                  # world + backup + proxy 一起起
-docker compose ps                     # xkx-proxy 应为 healthy
+docker compose up -d                  # world + admin + backup + proxy 一起起
+docker compose ps                     # xkx-proxy / xkx-admin 应为 healthy
 docker exec xkx-proxy nginx -t        # 配置语法校验
 ```
 
 证书替换后：`docker compose restart proxy`（nginx 启动时读证书，不热加载）。
 
-**路由与安全策略**（`deploy/nginx/xkx.conf`）：
+**路由与安全策略**（`deploy/nginx/templates/default.conf.template`）：
 
 | 项 | 配置 | 说明 |
 |---|---|---|
@@ -203,6 +205,175 @@ $ curl -sk -o /dev/null -w '%{http_code}\n' -X POST --data-binary @7KB.json http
 | 浏览器提示证书不受信任 | 自签证书 | 演练预期；生产换正式证书 |
 | 大请求返回 nginx 的 413 HTML 而非 API JSON | 请求体 > 8KB 在 proxy 层被拒 | 预期行为（阈值与后端一致）；客户端应按 8KB 控制 |
 | 所有客户端共享登录失败计数 | 后端按 TCP 对端限流且不读 XFF | 见上"限流粒度"；单入口下按全局预算处理 |
+
+### 1.5 管理控制台（admin 服务 + 反代隔离）
+
+**部署形态**
+
+| 项 | 取值 | 说明 |
+|---|---|---|
+| 服务 | `xkx-admin`（同一镜像 `xkx/world-sim:w5`） | `entrypoint: python -m wsim.admin`，`--root /app --run ${RUN_ID:-service} --host 0.0.0.0 --port 8031` |
+| 数据 | 命名卷 `xkx-w5-data` → `/app/runs` | 与 `xkx-world` **同一个 `service.sqlite`**，不是副本 |
+| 网络 | `xkx-admin-net`（`internal: true`，`172.30.31.0/24`） | admin 只在此网内；**没有任何宿主端口映射** |
+| 反代地址 | `xkx-proxy` 在 `admin-net` 固定 `172.30.31.10` | `XKX_ADMIN_ALLOW_IPS` 只白名单这个地址 |
+| 启动顺序 | `depends_on: world: service_healthy` | world 未 healthy 时 admin 不启动 |
+
+容器内没有对外的 http 端口：`docker inspect xkx-admin` 的 `NetworkSettings.Ports` 为
+`{"8020/tcp":null,"8030/tcp":null}`（镜像 EXPOSE 的遗留，`8031` 未被 publish），
+网络只有 `xkx-admin-net=172.30.31.2`。宿主直连 `127.0.0.1:8031` 为 `connection refused`。
+
+**`XKX_SECRET_KEY` 的唯一来源：`world-sim/.env`（`env_file: ../.env`）**
+
+- `world` 与 `admin` 都只声明 `env_file: ../.env`（`required: false`），**共用同一份密钥**；
+  compose 的 `environment` 里**不写** `${XKX_SECRET_KEY}`/`${XKX_SECRET_KEY:-}`。
+  原因：compose 的 `environment` 优先级高于 `env_file`，宿主未导出时会把 `.env` 里的密钥
+  覆盖成空串 —— 表现就是"密钥看似配了，库里的 provider key 解不开，静默回退环境变量"。
+- 镜像里不包含任何密钥；`docker-compose.yml` 中对 `XKX_SECRET_KEY` 的引用只出现在注释里
+  （`grep -n 'XKX_SECRET_KEY' deploy/docker-compose.yml` 仅 4 行注释，无赋值）。
+- 密钥只存在于宿主 `.env`，`.env` 已在 `.gitignore`。当前单机形态不引入 docker secret；
+  若改为多机/编排平台托管，再换成 `secrets:` 并把两处 `environment` 同步改掉。
+
+实测两容器拿到同一主密钥（只比较 sha256，不打印密钥）：
+
+```text
+$ W=$(docker exec xkx-world sh -c 'printf %s "$XKX_SECRET_KEY" | sha256sum | cut -d" " -f1')
+$ A=$(docker exec xkx-admin sh -c 'printf %s "$XKX_SECRET_KEY" | sha256sum | cut -d" " -f1')
+world=5644e4e311dd35e18ea5958c18e5e478ae590334c4f14171fa101bf42c48c4e5
+admin=5644e4e311dd35e18ea5958c18e5e478ae590334c4f14171fa101bf42c48c4e5
+MATCH
+
+$ docker exec xkx-world sh -c 'ls -l /app/runs/service/service.sqlite'
+-rw-r--r-- 1 app app 53248 Nov  5 19:35 /app/runs/service/service.sqlite
+$ docker exec xkx-admin sh -c 'ls -l /app/runs/service/service.sqlite'
+-rw-r--r-- 1 app app 53248 Nov  5 19:35 /app/runs/service/service.sqlite
+```
+
+**访问路径与两层鉴权（路径不与玩家入口混用）**
+
+| 路径 | 反代层 | 应用层 | 说明 |
+|---|---|---|---|
+| `/admin`、`/admin/` | HTTP Basic（`admin.htpasswd`） | 静态页 | `deploy/nginx/certs/admin.htpasswd` 由 `deploy/gen_admin_basic_auth.sh` 生成，不入库 |
+| `/api/admin/login` | HTTP Basic | `XKX_ADMIN_TOKEN` 换 24h 会话 | 浏览器已缓存 Basic，登录请求自动带 |
+| `/api/admin/*`（其余） | 不加 Basic | `Authorization: Bearer <session>` | **不能加 Basic**：前端发 Bearer 会覆盖同一个 `Authorization` 头，导致 401 |
+| 玩家 `/api/*`、`/` | 无 | 原样 | 管理路径是独立前缀，玩家入口不受影响 |
+
+Basic 凭据生成：
+
+```bash
+cd deploy
+XKX_ADMIN_BASIC_USER=admin XKX_ADMIN_BASIC_PASS='<强口令>' ./gen_admin_basic_auth.sh
+# 写入 deploy/nginx/certs/admin.htpasswd（600），该目录已被 .gitignore 忽略
+```
+
+**公网屏蔽开关**：compose 的 `XKX_ADMIN_PUBLIC=0` → 渲染 `ADMIN_ENABLED=0` →
+`/admin`、`/admin/`、`/api/admin/*` **全部返回 404**（不暴露路径是否存在），玩家路径不受影响。
+默认 `1`（开放）。修改后需 `docker compose up -d --force-recreate proxy`（环境变量在容器创建时渲染）。
+
+**健康检查**（`deploy/admin_healthcheck.py`，`XKX_ADMIN_REQUIRE_SECRET=1` 默认）：
+
+- `/api/admin/health` 不可达 / 非 200 / `ok=false` → `unhealthy`，exit 1；
+- `master_key=false` → `unhealthy`（显式拒绝"密钥缺失却静默回退 env"）；
+- 正常 → `healthy: admin v… settings_version=… providers=… master_key=…`，exit 0。
+
+**实测（2026-11-06，整套 compose）**
+
+```text
+# 页面：无凭证 / 错误凭证 / 正确凭证
+$ curl -sk -o /dev/null -w '%{http_code}\n' https://127.0.0.1/admin/
+401
+$ curl -sk -D - -o /dev/null https://127.0.0.1/admin/ | grep -i www-authenticate
+www-authenticate: Basic realm="XKX Admin"
+$ curl -sk -o /dev/null -u 'admin:wrongpass' -w '%{http_code}\n' https://127.0.0.1/admin/
+401
+$ curl -sk -o /dev/null -u 'admin:<正确口令>' -w '%{http_code} size=%{size_download}\n' https://127.0.0.1/admin/
+200 size=8967
+
+# 应用层：无会话 / 有会话
+$ curl -sk -o /dev/null -w '%{http_code}\n' https://127.0.0.1/api/admin/settings
+401
+$ curl -sk -u 'admin:<正确口令>' -X POST -H 'Content-Type: application/json' \
+    -d '{"token":"<XKX_ADMIN_TOKEN>"}' https://127.0.0.1/api/admin/login
+{"ok": true, "token": "…", "expires_at_iso": "2026-11-06T19:46:25Z"}
+$ curl -sk -o /dev/null -w '%{http_code} size=%{size_download}\n' \
+    -H "Authorization: Bearer <session>" https://127.0.0.1/api/admin/settings
+200 size=7611
+```
+
+`settings` 顶层键（真实返回）：`budget / capabilities / capabilities_evidence /
+capabilities_last_check_at / capabilities_status / env_bridge / hot / hot_notes / llm /
+providers / routing / version / world / world_state`；
+`capabilities_status` 为
+`{"dialogue":"unconfigured","night_batch":"unconfigured","persona_gen":"stub","quest_gen":"stub",
+"self_goal":"stub","strategy":"unconfigured","validation":"stub"}`。
+
+```text
+$ curl -sk -H "Authorization: Bearer <session>" https://127.0.0.1/api/admin/providers
+providers=0 capability_slots=7
+slots: dialogue, night_batch, persona_gen, quest_gen, self_goal, strategy, validation
+```
+
+来源 IP 白名单（从同网另一容器直连，非 proxy）：
+
+```text
+$ docker run --rm --network xkx-admin-net --entrypoint python xkx/world-sim:w5 -c '…'
+HTTP 403 {"code": "admin_ip_not_allowed", "detail": "", "ok": false}
+```
+
+公网屏蔽开关（`XKX_ADMIN_PUBLIC=0` 重建 proxy 后）：
+
+```text
+/admin/            -> 404
+/api/admin/settings -> 404
+/api/service/info   -> 200      ← 玩家入口不受影响
+```
+
+健康检查与"失败必须可见"：
+
+```text
+$ docker exec xkx-admin python /app/deploy/admin_healthcheck.py
+healthy: admin v1.0.0 settings_version=0 providers=0 master_key=True
+exit=0
+$ docker exec -e XKX_ADMIN_HEALTH_URL=http://127.0.0.1:9/api/admin/health \
+    xkx-admin python /app/deploy/admin_healthcheck.py
+unhealthy: 管理接口不可达 URLError: <urlopen error [Errno 111] Connection refused>
+exit=1
+
+# 进程被冻结（等价"管理服务不响应"）
+$ docker pause xkx-admin
+$ docker ps --format '{{.Names}}\t{{.Status}}' | grep xkx-admin
+xkx-admin	Up 9 minutes (Paused)
+$ docker inspect xkx-admin --format 'docker_health={{.State.Health.Status}}'
+docker_health=unhealthy
+$ curl -sk -m 40 -o /dev/null -w '%{http_code} after %{time_total}s\n' \
+    https://127.0.0.1/api/admin/settings
+504 after 30.113570s          ← 反代在后端无响应时明确失败，不是静默 200
+
+# 容器停止（不是"静默 Up"）
+$ docker stop xkx-admin
+$ docker ps -a --format '{{.Names}}\t{{.Status}}' | grep xkx-admin
+xkx-admin	Exited (0) Less than a second ago
+$ curl -sk -m 15 -o /dev/null -w '%{http_code}\n' -u 'admin:<正确口令>' \
+    -X POST -H 'Content-Type: application/json' -d '{"token":"x"}' https://127.0.0.1/api/admin/login
+504
+$ docker start xkx-admin && sleep 25
+xkx-admin	Up 25 seconds (healthy)
+```
+
+**故障排查**
+
+| 现象 | 原因 | 处置 |
+|---|---|---|
+| `/admin/` 401（浏览器弹 Basic 框） | 未带/错 Basic 凭据 | 用 `admin.htpasswd` 对应账号；htpasswd 丢了重跑 `gen_admin_basic_auth.sh` |
+| `/admin/` 404 | `XKX_ADMIN_PUBLIC=0` 或少了尾部 `/` | 改回 `1` 并重建 proxy；`/admin` 会 308 到 `/admin/` |
+| `/api/admin/*` 401 `unauthorized` | 无 Bearer 或会话过期（24h） | 重新 `POST /api/admin/login` 取会话 |
+| `/api/admin/*` 403 `admin_ip_not_allowed` | 来源不是 proxy 固定 IP | 确认请求经 proxy；直连只允许容器内回环或精确命中 `XKX_ADMIN_ALLOW_IPS`（不支持 CIDR） |
+| `/admin/` 或 `/api/admin/*` 504 | admin 暂停/卡死，反代读超时 30s | `docker ps` 看健康；`docker logs xkx-admin`；必要时 `docker restart xkx-admin` |
+| `/api/admin/login` 502/504 | admin 未启动或不在 `admin-net` | `docker compose ps`；确认 `xkx-proxy` 的 `admin-net` IP 仍为 `172.30.31.10` |
+| `xkx-admin` 一直 `unhealthy`，日志 `master_key=false` | `.env` 缺 `XKX_SECRET_KEY` 或值被覆盖 | 检查 `world-sim/.env`；确认 compose 未用 `${XKX_SECRET_KEY}` 注入；重建 admin |
+| `xkx-admin` `unhealthy`，`admin_ip_not_allowed` 满日志 | `XKX_ADMIN_ALLOW_IPS` 与 proxy 实际 IP 不一致 | 核对 `admin-net` 静态 IP 与 `ALLOW_IPS` |
+
+> 管理面文档与代码不一致时以代码为准（`GET /api/admin/settings` 的真实字段与
+> `admin_audit.action` 取值见 [docs/ADMIN-CONSOLE.md](ADMIN-CONSOLE.md)）。
 
 ---
 

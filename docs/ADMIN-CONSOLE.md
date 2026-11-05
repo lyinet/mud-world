@@ -1,7 +1,11 @@
 # 管理控制台后端（wsim.admin）
 
-独立进程的管理服务：改游戏参数、配置 API 中转站与 key、按能力位分配模型、查看真实调用状态。
+独立进程的管理服务：改游戏参数、配置 provider（中转站地址）与 key、按能力位分配 provider、查看真实调用状态。
 所有写操作鉴权 + 审计；配置落 `service.sqlite`；key 用 AES-256-GCM 加密，界面只显示掩码。
+
+> 术语以代码为准：存储与 API 的单位是 **provider**（`id/base_url/model/...`）。
+> 控制台前端把同一 `base_url` 的多个 provider 聚成一张"中转站"卡片，**只是展示分组**，
+> 后端没有中转站聚合实体，也没有单独的"中转站表"。
 
 - 服务入口：`python -m wsim.admin`
 - 默认监听 `127.0.0.1:8031`（`XKX_ADMIN_BIND` / `XKX_ADMIN_PORT` 可改）
@@ -21,7 +25,7 @@ python -m wsim.admin --root . --run <run> --host 127.0.0.1 --port 8031
 |---|---|
 | `XKX_ADMIN_TOKEN` | 管理登录口令（`POST /api/admin/login`） |
 | `XKX_SECRET_KEY` | 主密钥（32 字节 base64）。**未配置时保存 key 返回 503 `master_key_missing`** |
-| `XKX_ADMIN_BIND` / `XKX_ADMIN_PORT` | 监听地址/端口，默认 `127.0.0.1:8031` |
+| `XKX_ADMIN_BIND` / `XKX_ADMIN_PORT` | 监听地址/端口，默认 `127.0.0.1:8031`（容器内为 `0.0.0.0:8031`，仅内网可达） |
 | `XKX_ADMIN_ALLOW_IPS` | 允许的非回环来源 IP（逗号分隔）。不配则只允许本机 |
 | `XKX_ADMIN_DB` / `XKX_SERVICE_DB` / `XKX_RUN` | 数据库定位（优先级 `--db` → `XKX_ADMIN_DB` → `XKX_SERVICE_DB` → `runs/<XKX_RUN>/service.sqlite`） |
 
@@ -64,6 +68,15 @@ python -m wsim.admin --root . --run <run> --host 127.0.0.1 --port 8031
 `PUT /api/admin/settings` 支持按段落部分更新（`{"world":{"ambient_speed":2}}`），
 返回 `requires_restart`、`changed`、`world_state`、`settings`。
 
+**字段边界（与后端契约一致）**：
+
+- `model` 只存在于 `providers[*]`；`routing.<capability>` 只有 `provider` 与 `fallback`，
+  **没有独立的 model 字段**（换模型就是换 provider 条目）。
+- provider 契约**没有 `auth_mode`**：主服务固定发
+  `Authorization: Bearer <key>`，不支持按条目切换鉴权方式。
+- `routing_view`（`GET /api/admin/providers`）里的 `model` 来自该能力位当前 provider 的
+  `model`，并附 `last_served_by`（真实调用回写），不是 routing 配置里的字段。
+
 ## 3. 生效契约（不做假热更）
 
 | 键 | 生效方式 | 说明 |
@@ -88,7 +101,7 @@ python -m wsim.admin --root . --run <run> --host 127.0.0.1 --port 8031
 > 写入后立即读取，`effective_value` 仍是旧值、`applied=false`——这是刻意行为，不是失败。
 > `source` 环境桥并重启玩家进程后才置 `applied=true`。
 
-## 4. key 与中转站
+## 4. key 与 provider（前端展示为“中转站”）
 
 - 存储：`admin_secrets(id, ciphertext, nonce, created_at, updated_at, last_used_at, updated_by)`，
   AES-256-GCM（优先 `cryptography`，缺失时内置实现，NIST 向量已测）。
@@ -188,6 +201,18 @@ python -m wsim.admin --root . --run <run> --host 127.0.0.1 --port 8031
 
 鉴权：`Authorization: Bearer <session>`；仅存 sha256。非本机来源需在 `XKX_ADMIN_ALLOW_IPS`，否则 403 `admin_ip_not_allowed`。
 
+`GET /api/admin/audit` 的 `action` 取值为代码里真实写入的集合，不存在其他拼写：
+
+| action | 触发 |
+|---|---|
+| `settings.update` | `PUT /api/admin/settings`（参数/路由写入） |
+| `provider.put` | `PUT /api/admin/providers/{id}`（新建或改 provider 元数据） |
+| `provider.key_rotate` | 同上且带 `api_key` 时额外一条（版本递增、主服务重载） |
+| `secret.put` | 写入/轮换 provider 密钥（值为掩码） |
+| `provider.delete` | `DELETE /api/admin/providers/{id}` |
+| `llm.killswitch` | `POST /api/admin/llm/killswitch` |
+| `llm.budget_denied` | 真实调用前被预算闸拒绝（同键首次，见 §6.2） |
+
 ## 8. 时间源纪律
 
 - 管理面墙钟统一走 `src/wsim/admin/clock.py::now_utc()`（审计/遥测专用）。
@@ -205,7 +230,8 @@ python -m wsim.admin --root . --run <run> --host 127.0.0.1 --port 8031
   - 检查是“先查后花”，并发批量同时通过检查时可能小幅超限；下次调用即被拒绝。
   - 单价为固定估算值，不是上游真实账单；以 `usage` 为准，缺失时按字符估算。
   - 只在 `dialogue` / `strategy` / `night_batch` 三个真实调用点生效，stub 能力位不受影响。
-- 无前端 UI；本轮只交付后端。
+- 前端静态页在 `ui/admin/`，由反代 `location /admin/` 直接提供（`alias /usr/share/nginx/admin/`）；
+  容器化起用方式见 [docs/OPS-RUNBOOK.md](OPS-RUNBOOK.md) §1.5。前端只消费本文档列出的真实端点。
 
 ## 10. 2026-11-06 两进程验收摘要
 

@@ -1,0 +1,140 @@
+# XKX 反向代理（TLS 终止）。本文件是 envsubst 模板，
+# 由官方 nginx 镜像启动时渲染到 /etc/nginx/conf.d/default.conf。
+# 文件名必须是 default.conf.template：渲染目标正好覆盖镜像自带的默认站点，
+# 否则默认站点会继续抢占 80 端口（Host 不匹配时落到它的 404），
+# 表现为 /healthz 与 308 跳转"配置写了却不生效"。
+#
+# 渲染变量（只替换容器环境里真实存在的变量，$host/$scheme 等 nginx 变量不受影响）：
+#   ADMIN_ENABLED  1=开放管理路径；0=整个 /admin/ 与 /api/admin/ 返回 404（公网屏蔽开关）
+#
+# 选 nginx 而不是 caddy 的原因：
+#   1) 需要把请求体上限严格对齐后端（8KB）并单独放行探活路径，nginx 的
+#      client_max_body_size / location 语义最直接；
+#   2) 证书可来自自有 CA/运维统一签发，不必依赖 ACME 域名校验；
+#   3) 生产常见、排障资料多，配置可被 nginx -t 静态校验。
+#
+# 安全边界：
+#   - 只在 proxy 上监听 80/443；world 的 8020/8030 与 admin 的 8031 不发布到公网。
+#   - HTTP 一律 308 到 HTTPS（308 保留方法与请求体，POST 不会退化成 GET）。
+#   - 管理面与玩家入口路径分离：/admin/ 与 /api/admin/ 是独立前缀，玩家路径不动。
+#   - 管理面默认要求 HTTP Basic（第二层才是控制台自己的 XKX_ADMIN_TOKEN 登录）。
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name _;
+
+    # 探活单独放行（不跳转、不写访问日志）
+    location = /healthz {
+        access_log off;
+        add_header Content-Type text/plain;
+        return 200 "ok\n";
+    }
+
+    # 其余一律跳 HTTPS
+    location / {
+        return 308 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name _;
+
+    ssl_certificate     /etc/nginx/certs/xkx.crt;
+    ssl_certificate_key /etc/nginx/certs/xkx.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+    ssl_session_cache   shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    server_tokens off;
+
+    # 管理面公网开关：由 compose 的 XKX_ADMIN_PUBLIC 渲染。
+    set $admin_enabled "${ADMIN_ENABLED}";
+
+    # 与后端 src/wsim/api/server.py 的 _MAX_BODY_BYTES（8*1024）一致。
+    # 后端超限返回 JSON 413 payload_too_large；nginx 在更早一层也会以 413 拒绝，
+    # 两者阈值相同，避免"反代放行、后端拒绝"或反之的错位。
+    client_max_body_size 8k;
+    client_body_buffer_size 8k;
+    client_body_timeout 30s;
+    client_header_timeout 15s;
+
+    # 后端读超时与 XKX_REQUEST_TIMEOUT（默认 30s）对齐。
+    proxy_read_timeout 30s;
+    proxy_send_timeout 30s;
+    proxy_connect_timeout 10s;
+
+    # 透传真实来源；后端按 TCP 对端限流（不读 XFF），反代后限流粒度为 proxy 的地址，
+    # 见 docs/OPS-RUNBOOK.md §1.4 的"限流粒度"说明。
+    proxy_set_header Host              $host;
+    proxy_set_header X-Real-IP         $remote_addr;
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host  $host;
+    proxy_http_version 1.1;
+    proxy_set_header Connection        "";
+
+    # proxy 自身探活
+    location = /healthz {
+        access_log off;
+        add_header Content-Type text/plain;
+        return 200 "ok\n";
+    }
+
+    # 后端真实探活：单独放行、不记访问日志（高频探活不污染日志）
+    location = /api/health {
+        access_log off;
+        proxy_pass http://world:8020;
+    }
+
+    # ---------------------------------------------------------------- 管理面
+    # 独立前缀，不与玩家入口混用。两层校验按端点分工：
+    #   - /admin/ 与 /api/admin/login：反代 HTTP Basic（浏览器缓存的 Basic 凭据
+    #     会随同源请求自动带上）；
+    #   - 其余 /api/admin/*：由控制台自己的 Bearer 会话令牌守护（后端 require_auth）。
+    # 为什么不对全部 /api/admin/ 加 Basic：控制台前端调用 API 时发
+    # `Authorization: Bearer <session>`，同一个头会覆盖 Basic，导致每次请求 401；
+    # 因此 Basic 只放在不带 Bearer 的页面与登录端点上，避免"两层认证互相顶掉"。
+    # 公网屏蔽开关：XKX_ADMIN_PUBLIC=0 时返回 404，不暴露该路径是否存在。
+    location = /admin {
+        if ($admin_enabled = "0") { return 404; }
+        return 308 https://$host/admin/;
+    }
+
+    location /admin/ {
+        if ($admin_enabled = "0") { return 404; }
+        auth_basic "XKX Admin";
+        auth_basic_user_file /etc/nginx/certs/admin.htpasswd;
+        alias /usr/share/nginx/admin/;
+        index index.html;
+        add_header Cache-Control "no-store";
+    }
+
+    location = /api/admin/login {
+        if ($admin_enabled = "0") { return 404; }
+        auth_basic "XKX Admin";
+        auth_basic_user_file /etc/nginx/certs/admin.htpasswd;
+        proxy_pass http://admin:8031;
+    }
+
+    location /api/admin/ {
+        if ($admin_enabled = "0") { return 404; }
+        # 不在这里加 auth_basic：见上，Bearer 会覆盖 Basic。
+        proxy_pass http://admin:8031;
+    }
+
+    # ---------------------------------------------------------------- 玩家面
+    # API（引擎/鉴权/状态/动作）
+    location /api/ {
+        proxy_pass http://world:8020;
+    }
+
+    # 玩家前端（8030 的静态页与同源代理）
+    location / {
+        proxy_pass http://world:8030;
+    }
+}

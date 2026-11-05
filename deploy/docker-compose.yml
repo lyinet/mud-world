@@ -34,6 +34,10 @@ services:
       XKX_AMBIENT: "${XKX_AMBIENT:-1}"
       XKX_AMBIENT_CPU: "${XKX_AMBIENT_CPU:-70}"
       XKX_AMBIENT_SPEED: "${XKX_AMBIENT_SPEED:-1}"
+      # 注意：XKX_SECRET_KEY 不在这里用 ${...} 显式注入 —— compose 的 environment
+      # 优先级高于 env_file，若写成 ${XKX_SECRET_KEY:-} 且宿主/项目 .env 没有该值，
+      # 会把 env_file（../.env）里已有的密钥覆盖成空串，导致"密钥看似配了却解不开"。
+      # 统一来源：../.env（world 与 admin 共用同一份，见 OPS-RUNBOOK §1.5）。
     # 只读运行时注入：compose 从宿主 .env 读取，不写入镜像；缺失时按 required:false 跳过。
     env_file:
       - path: ../.env
@@ -89,21 +93,68 @@ services:
     # 失败后保持 Exited，由人工/告警介入；避免在坏盘上无限重启刷日志。
     restart: "no"
 
+  # 管理控制台后端（python -m wsim.admin）：默认随栈启动，只挂内网，不映射端口。
+  # 与 world 共用 xkx-w5-data 卷和同一份 ../.env（因此共用 XKX_SECRET_KEY /
+  # XKX_ADMIN_TOKEN）。反代里的 /admin/ 与 /api/admin/ 是两个独立前缀，玩家入口不受影响。
+  admin:
+    image: xkx/world-sim:w5
+    container_name: xkx-admin
+    # 镜像 ENTRYPOINT 是 deploy/entrypoint.sh（会拉起玩家 API+UI），必须覆盖。
+    entrypoint: ["python", "-m", "wsim.admin"]
+    command: ["--root", "/app", "--run", "${RUN_ID:-service}", "--host", "0.0.0.0", "--port", "8031"]
+    environment:
+      RUN_ID: "${RUN_ID:-service}"
+      XKX_ADMIN_BIND: "0.0.0.0"
+      XKX_ADMIN_PORT: "8031"
+      # 只信任 proxy 的固定地址（admin-net 静态 IP）；其余来源一律 403。
+      XKX_ADMIN_ALLOW_IPS: "172.30.31.10"
+      # 生产语义：缺 XKX_SECRET_KEY 时直接 unhealthy，避免"密钥解不开却静默回退 env"。
+      XKX_ADMIN_REQUIRE_SECRET: "${XKX_ADMIN_REQUIRE_SECRET:-1}"
+      PYTHONPATH: "/app/src"
+    env_file:
+      - path: ../.env
+        required: false
+    volumes:
+      - xkx-data:/app/runs
+    networks:
+      - admin-net
+    depends_on:
+      world:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "/app/deploy/admin_healthcheck.py"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
   # 对外唯一入口：TLS 终止、HTTP→HTTPS、X-Forwarded-* 透传。
   # 证书目录 deploy/nginx/certs/ 由 deploy/gen_selfsigned_cert.sh 生成；
   # 生产替换为运维签发的 xkx.crt / xkx.key（同文件名，不提交到仓库）。
+  # 管理面 Basic 凭据由 deploy/gen_admin_basic_auth.sh 生成 admin.htpasswd。
   proxy:
     image: nginx:1.27-alpine
     container_name: xkx-proxy
     depends_on:
       world:
         condition: service_healthy
+    environment:
+      # 公网屏蔽开关：0 = /admin/ 与 /api/admin/ 一律 404。
+      ADMIN_ENABLED: "${XKX_ADMIN_PUBLIC:-1}"
     ports:
       - "${PUBLIC_HTTP_PORT:-80}:80"
       - "${PUBLIC_HTTPS_PORT:-443}:443"
     volumes:
-      - ./nginx/xkx.conf:/etc/nginx/conf.d/default.conf:ro
+      # 模板必须叫 default.conf.template：渲染结果覆盖镜像自带 default.conf，
+      # 避免默认站点抢占 80 端口（否则 Host 不匹配时 308/healthz 全部落到 404）。
+      - ./nginx/templates:/etc/nginx/templates:ro
       - ./nginx/certs:/etc/nginx/certs:ro
+      - ../ui/admin:/usr/share/nginx/admin:ro
+    networks:
+      default: {}
+      admin-net:
+        ipv4_address: 172.30.31.10
     restart: unless-stopped
     healthcheck:
       # 明文 /healthz 只做 proxy 自身存活；后端可用性由 world 的 /api/health 负责。
@@ -112,6 +163,15 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+
+networks:
+  # 管理面专用内网：不接外网、不映射端口，只有 proxy 能到 admin。
+  admin-net:
+    name: xkx-admin-net
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.30.31.0/24
 
 volumes:
   xkx-data:

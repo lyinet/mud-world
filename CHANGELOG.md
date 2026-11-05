@@ -9,6 +9,46 @@
 
 ---
 
+## [部署] 2026-11-06 — 管理控制台纳入默认部署，放到反代后面（独立路径 + 双层鉴权）
+
+- **改了什么**
+  - `deploy/docker-compose.yml`：新增 `admin` 服务（同一镜像，`entrypoint: python -m wsim.admin`，
+    `--root /app --run ${RUN_ID:-service} --host 0.0.0.0 --port 8031`）。与 `world` 共用
+    `xkx-w5-data` 卷（同一个 `service.sqlite`）和同一份 `../.env`；只挂 `xkx-admin-net`
+    （`internal: true`，`172.30.31.0/24`），**不发布任何宿主端口**。
+  - `XKX_SECRET_KEY` 只来自 `world-sim/.env`：compose 的 `environment` 不写
+    `${XKX_SECRET_KEY...}`（compose 的 environment 会覆盖 env_file，宿主未导出时会把密钥
+    覆盖成空串，导致库里的 provider key 解不开并静默回退 env）。镜像与 compose 均无明文密钥。
+  - `deploy/nginx/templates/default.conf.template`（由已删除的 `deploy/nginx/xkx.conf` 迁移）：
+    proxy 启动时 envsubst 渲染；新增 `/admin`、`/admin/`、`/api/admin/login` 的 HTTP Basic，
+    `/api/admin/*` 由控制台 Bearer 会话守护（不能对全段加 Basic：前端 Bearer 会覆盖同一
+    `Authorization` 头）；`XKX_ADMIN_PUBLIC=0` → 整个管理路径 404。
+  - `deploy/admin_healthcheck.py`：health 不可达/非 200/`ok=false`/`master_key=false` → exit 1
+    （`XKX_ADMIN_REQUIRE_SECRET` 默认 1），失败时容器 `unhealthy`，不静默 Up。
+  - `deploy/gen_admin_basic_auth.sh`：生成 `deploy/nginx/certs/admin.htpasswd`（600，gitignore）。
+  - `ui/admin/`（index.html / app.js / style.css / 本地代理 server.py）纳入仓库，反代直接 alias 提供。
+  - `docs/OPS-RUNBOOK.md` §1.4 同步模板路径；新增 §1.5（部署形态、密钥来源、鉴权分工、
+    屏蔽开关、健康检查、实测与故障表）。`docs/ADMIN-CONSOLE.md` 按代码真相修正：无 `auth_mode`、
+    routing 无独立 `model`、无中转站聚合实体、审计 action 真实集合。
+- **为什么改**：控制台此前只有手动 `python -m wsim.admin`，`deploy/` 没有入口；且管理库里的
+  provider key 必须与玩家进程共用同一 `XKX_SECRET_KEY` 和同一个库，否则解密失败后静默回退 env。
+  管理页也必须与玩家入口路径隔离，并按公网开关可整体下线。
+- **验收/实测（整套 compose，经 https 反代）**
+  - `/admin/`：无凭证 401（`WWW-Authenticate: Basic realm="XKX Admin"`）、错误口令 401、
+    正确 Basic 200（8967 字节）。
+  - `/api/admin/settings`：无 Bearer 401；登录后 Bearer 200（7611 字节，含 `capabilities`、
+    `capabilities_status` 7 项与 `world`）；`/api/admin/providers` 200，`capability_slots=7`。
+  - 管理端口无映射：宿主 `127.0.0.1:8031` connection refused；同网其他容器直连返回
+    `403 {"code": "admin_ip_not_allowed"}`。
+  - `XKX_ADMIN_PUBLIC=0`：`/admin/` 404、`/api/admin/settings` 404，玩家 `/api/service/info` 仍 200。
+  - 健康可见性：`docker pause xkx-admin` → `docker_health=unhealthy`，反代
+    `/api/admin/settings` 504（30.11s）；`docker stop` → `Exited (0)`，login 504；
+    健康检查坏 URL → `unhealthy … Connection refused` exit 1，正常 → exit 0。
+  - 两容器 `XKX_SECRET_KEY` 的 sha256 一致（未打印密钥）；`service.sqlite` 同一文件。
+- **未做/边界**：单机形态不引入 docker secret（迁移路径已写入 §1.5）；`XKX_ADMIN_ALLOW_IPS`
+  仍是精确 IP（不支持 CIDR）；后端 `wsim.api` 不读 XFF 的限流粒度问题不变。
+- **commit**：见本条目所在提交。
+
 ## [安全 P0] 2026-11-06 — LLM 预算在真实调用前强制拦截（自然日 UTC，可审计、可恢复）
 
 - **改了什么**

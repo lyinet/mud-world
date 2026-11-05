@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex,nofollow" />
+<title>XKX 管理控制台</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="seal" aria-hidden="true">管</span>
+    <div class="brand-text">
+      <h1>XKX 管理控制台</h1>
+      <p>游戏参数 · 中转站与 key · 能力位路由 · 线上状态</p>
+    </div>
+  </div>
+  <div class="connbar" aria-label="连接状态">
+    <span class="chip" id="backendChip"><i>后端</i><b>未连接</b></span>
+    <span class="chip" id="versionChip"><i>版本</i><b>—</b></span>
+    <span class="chip" id="masterKeyChip"><i>主密钥</i><b>—</b></span>
+    <span class="chip clock" id="lastSyncChip"><i>数据时间</i><b>—</b></span>
+    <button class="ghost small" id="refreshBtn" type="button">刷新</button>
+    <button class="ghost small" id="logoutBtn" type="button">切换连接</button>
+  </div>
+</header>
+
+<div class="intranet-note" role="note">
+  <b>管理台仅限内网访问。</b>
+  本页不挂在玩家端口，也不写入玩家页面；所有请求直达管理服务（默认 <code>127.0.0.1:8031</code>）。
+  页面任何位置都不显示 API key 明文，只显示后端返回的掩码。
+</div>
+
+<div id="globalBanner" class="banner hidden" role="alert"></div>
+
+<main class="shell" id="shell" hidden>
+  <nav class="rail" aria-label="区块导航">
+    <a href="#sec-overview" class="rail-item active" data-nav="overview"><span>线上状态</span><b id="navOverview">—</b></a>
+    <a href="#sec-params" class="rail-item" data-nav="params"><span>游戏参数</span><b id="navParams">—</b></a>
+    <a href="#sec-relays" class="rail-item" data-nav="relays"><span>中转站与模型</span><b id="navRelays">—</b></a>
+    <a href="#sec-caps" class="rail-item" data-nav="caps"><span>能力位路由</span><b id="navCaps">—</b></a>
+    <a href="#sec-audit" class="rail-item" data-nav="audit"><span>审计日志</span><b id="navAudit">—</b></a>
+    <div class="rail-foot">
+      <div class="hint">接口前缀</div>
+      <code id="railApiBase">/api/admin/*</code>
+      <div class="hint tiny">数据只来自管理服务；不可达时明确报错，不使用 mock 数据。</div>
+    </div>
+  </nav>
+
+  <div class="workspace">
+    <!-- 线上状态 -->
+    <section class="card" id="sec-overview">
+      <div class="card-head">
+        <div>
+          <h2>线上状态</h2>
+          <p class="hint">来自 <code>GET /api/admin/overview</code> 与 <code>GET /api/admin/settings</code>；世界参数同时展示配置值与运行值。</p>
+        </div>
+        <span class="card-tag" id="overviewHealth">—</span>
+      </div>
+      <div class="card-body">
+        <div class="stat-grid" id="statGrid">
+          <div class="stat"><span>读取中</span><b>—</b><em>—</em></div>
+        </div>
+
+        <div class="split">
+          <section class="subcard" id="runtimeCard">
+            <h3>运行面 vs 配置面</h3>
+            <div id="runtimeBody" class="kv-list"><div class="empty">未读取</div></div>
+          </section>
+          <section class="subcard killswitch" id="killswitchCard">
+            <h3>LLM 总闸（killswitch）</h3>
+            <div class="ks-state" id="ksState">—</div>
+            <p class="hint" id="ksHint">读取 llm.global_enabled。总闸关闭后，新请求直接返回 <code>llm_killswitch</code>（≤5 秒生效）。</p>
+            <button class="danger" id="ksBtn" type="button" disabled>—</button>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <!-- 游戏参数 -->
+    <section class="card" id="sec-params">
+      <div class="card-head">
+        <div>
+          <h2>游戏参数</h2>
+          <p class="hint">写入的是「期望值」；「当前运行值」只来自玩家进程观测。重启前不会变成已生效。</p>
+        </div>
+        <div class="head-actions">
+          <button class="ghost small" id="saveAllParams" type="button" disabled>保存全部修改</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="callout" id="paramCallout">
+          <div><b>重启后生效流程</b>：写入配置 → 生成 <code id="envBridgePath">runs/&lt;run&gt;/admin_env.sh</code> → 重启玩家 API → 管理服务观测到新 pid 后 <code>effective_value</code> 才更新、<code>applied=true</code>。</div>
+          <div class="hint tiny">写入后立即读取仍是旧值、<code>applied=false</code>，这是刻意行为，不是失败。</div>
+        </div>
+        <div id="paramTableWrap" class="table-wrap">
+          <div class="empty">未读取</div>
+        </div>
+        <div id="paramResult" class="result-box hidden" role="status"></div>
+      </div>
+    </section>
+
+    <!-- 中转站与模型 -->
+    <section class="card" id="sec-relays">
+      <div class="card-head">
+        <div>
+          <h2>中转站与模型</h2>
+          <p class="hint">后端以「一条 provider 记录 = 一个模型」存储；同 <code>base_url</code> 的条目在本页聚合为一个中转站。</p>
+        </div>
+        <div class="head-actions">
+          <button class="primary small" id="addRelayBtn" type="button">新增中转站</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="callout subtle">
+          <b>鉴权说明</b>：主服务固定使用 <code>Authorization: Bearer &lt;key&gt;</code>；后端 provider 契约没有 <code>auth_mode</code> 字段，因此本页不提供鉴权方式切换。
+          key 只写入密文表，列表只显示掩码与元数据。
+        </div>
+        <div id="providerList" class="relay-list"><div class="empty">未读取</div></div>
+        <div id="providerResult" class="result-box hidden" role="status"></div>
+      </div>
+    </section>
+
+    <!-- 能力位路由 -->
+    <section class="card" id="sec-caps">
+      <div class="card-head">
+        <div>
+          <h2>能力位路由</h2>
+          <p class="hint">七个能力位各自配置 provider 与降级链。状态只能由真实调用驱动；保存路由不会让状态变成 active。</p>
+        </div>
+        <div class="head-actions">
+          <span class="hint tiny" id="capsLastCheck">—</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="cap-legend" id="capLegend"></div>
+        <div id="capList" class="cap-list"><div class="empty">未读取</div></div>
+        <div id="capResult" class="result-box hidden" role="status"></div>
+      </div>
+    </section>
+
+    <!-- 审计日志 -->
+    <section class="card" id="sec-audit">
+      <div class="card-head">
+        <div>
+          <h2>审计日志</h2>
+          <p class="hint">来自 <code>GET /api/admin/audit?limit=…</code>；所有值由后端掩码，本页再按敏感字段名二次掩码。</p>
+        </div>
+        <div class="head-actions">
+          <select id="auditLimit" aria-label="审计条数">
+            <option value="50">50 条</option>
+            <option value="100" selected>100 条</option>
+            <option value="200">200 条</option>
+          </select>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="auditWrap" class="table-wrap">
+          <div class="empty">未读取</div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<!-- 登录 / 连接门 -->
+<div class="gate" id="loginGate">
+  <div class="gate-card">
+    <div class="gate-brand">
+      <span class="seal big" aria-hidden="true">管</span>
+      <div>
+        <h2>连接管理服务</h2>
+        <p class="hint">管理台仅限内网访问。登录口令是服务端环境变量 <code>XKX_ADMIN_TOKEN</code>，不是任何模型 API key。</p>
+      </div>
+    </div>
+    <label class="field">
+      <span>管理服务地址</span>
+      <input id="apiBaseInput" type="text" spellcheck="false" autocomplete="off" placeholder="http://127.0.0.1:8031" />
+    </label>
+    <label class="field">
+      <span>管理口令</span>
+      <input id="adminTokenInput" type="password" autocomplete="new-password" spellcheck="false" placeholder="XKX_ADMIN_TOKEN" />
+    </label>
+    <div class="gate-actions">
+      <button class="primary" id="connectBtn" type="button">连接</button>
+      <span class="hint tiny" id="gateProbe">尚未探测</span>
+    </div>
+    <div class="gate-status" id="gateStatus" role="status"></div>
+    <p class="tiny">
+      页面通过 <code>/api/admin/*</code> 读取真实管理 API。后端未启动或不可达时会明确显示「后端不可达」，
+      不使用缓存或 mock 数据伪装实时状态。
+    </p>
+    <p class="tiny" id="fileHint"></p>
+  </div>
+</div>
+
+<div id="modalRoot"></div>
+<div id="toastRoot" class="toast-root" aria-live="polite"></div>
+
+<script src="app.js" defer></script>
+</body>
+</html>
