@@ -1,9 +1,11 @@
 # 备份与恢复（P0）
 
-> 适用版本：W5（`events.sqlite` 为唯一事实源）。本文所有数字均来自本机实测，
-> 环境：macOS / Apple Silicon / Python 3.12 / sqlite 3.4x，run 为 `runs/p0-backup`
-> （由 `runs/w5-fixed/events.sqlite` 复制而来，29.4k 事件、约 29MB）。
-> 演练时间：2026-11-06（UTC 2026-11-05 17:2x–17:3x）。
+> 适用版本：W5（`events.sqlite` 为唯一事实源）。本文所有数字均来自本机实测。
+> 两套口径：**宿主机**（macOS / Apple Silicon / Python 3.12 / sqlite 3.4x，run 为
+> `runs/p0-backup`，由 `runs/w5-fixed/events.sqlite` 复制而来，29.4k 事件、约 29MB）；
+> **容器**（colima 29.5.2 / aarch64，镜像 `xkx/world-sim:w5`，run 为 `p0ctr`，
+> 445 事件、400KB 备份）。
+> 演练时间：2026-11-06（UTC 2026-11-05 17:2x–17:5x）。
 
 ## 0. 结论速览
 
@@ -11,10 +13,13 @@
 |---|---|---|
 | 备份方式 | `sqlite3.Connection.backup` 分页复制 | 不用 `cp`，不拷 `-wal`/`-shm` |
 | 备份对写路径的阻塞 | 存储层最大写延迟 **31.252ms**（另一次 8.226ms） | 阈值 200ms，见 §7-D |
-| 单次备份耗时（29MB / 29.4k 事件） | **2.46–6.29s** | 其中 SQLite copy 91.9–334.8ms，其余是 manifest 的 state_hash 重放 |
-| RPO（6 小时周期） | **约 6h00m07s** | = 6h 间隔 + 实测最长备份耗时；演练中实际丢失窗口 52s / 20 条事件 |
-| RTO（30MB 备份 → `/api/state` 200） | **6.510s** | restore+verify 5.002s + API 启动 1.505s |
+| 单次备份耗时（29MB / 29.4k 事件，宿主） | **2.46–6.29s** | 其中 SQLite copy 91.9–334.8ms，其余是 manifest 的 state_hash 重放 |
+| 单次备份耗时（400KB / 445 事件，容器） | **1.818s** | 容器内 `docker exec` 实测，见 §7-E |
+| RPO（6 小时周期） | **约 6h00m07s**（宿主 29MB）/ **6h00m02s**（容器 400KB） | = 6h 间隔 + 实测最长备份耗时；演练中实际丢失窗口 52s / 20 条事件 |
+| RTO（宿主 30MB 备份 → `/api/state` 200） | **6.510s** | restore+verify 5.002s + API 启动 1.505s |
+| RTO（容器 400KB 备份，停服→服务可用） | **3.174s** | 停服 1.135s + restore/verify/apply 0.605s + 启动到可用 1.435s，见 §7-E |
 | 演练 A/B/C/D | 全部通过 | 原始输出见 §7 |
+| 演练 E（容器） | 通过 | 真实容器内备份/损坏/恢复，原始输出见 §7-E |
 
 一句话：**备份可在线执行、不阻塞写路径；恢复必须停服、先校验装回再起服。**
 
@@ -213,8 +218,26 @@ docker-compose -f docker-compose.yml --profile backup up -d
 
 已做静态校验：`docker-compose -f deploy/docker-compose.yml --profile backup config`
 渲染出 `world` + `backup` 两个服务，卷映射与命令正确。
-**本机未做容器运行时演练**（避免重建镜像影响在跑的世界容器）；首次上线请按
-§6 在容器里跑一次备份 + `restore_verify` 再转为定时。
+
+**容器运行时演练已通过**（2026-11-06，colima 29.5.2 / aarch64，见 §7-E）：
+`world` 与 `backup` 同时在线，备份产物落在 `xkx-w5-backups` 卷上；容器内截断
+`events.sqlite` 后容器 `Exited (1)`，用备份恢复后 `healthy` + `/api/state` 200 + seq 连续。
+
+演练中发现并修复了 compose 配置的两个真实缺陷（都只影响 `backup` 服务）：
+
+1. **`command` 不会覆盖镜像 ENTRYPOINT**：镜像 ENTRYPOINT 是 `deploy/entrypoint.sh`，
+   compose 的 `command` 只替换 CMD。第一次运行时备份容器实际又拉起了一套 API+UI，
+   与 `world` 同时写同一个 `events.sqlite`，日志出现
+   `AMBIENT_ERROR ... UNIQUE constraint failed: events.seq`。
+   修复：`entrypoint: ["/bin/sh", "-c"]`，让 command 的循环成为容器内唯一进程。
+   **这也是「备份与主服务能否同时起」的答案**：修复后可以同时起（两者只在备份瞬间
+   共享一个读快照）；修复前不能，因为会双写。
+2. **继承的 HEALTHCHECK 恒为 unhealthy**：镜像的 HEALTHCHECK 检查 8020/8030，
+   备份容器没有 API/UI，必然失败。修复：`healthcheck: {disable: true}`。
+
+若改用宿主机 cron/systemd 而不跑 backup 容器，等价方案是：
+`*/6 * * * * cd /path/world-sim && BK_RUN=service scripts/backup_loop.sh`，
+备份目录用宿主机卷或直接写到另一块盘（见 §9.1 的异地要求）。
 
 ---
 
@@ -227,8 +250,13 @@ docker-compose -f docker-compose.yml --profile backup up -d
 2. **选备份**：看 `manifest.json` 的 `seq.max` / `created_at`，选故障前最近一份。
 3. **先校验、再装回**：
    ```bash
+   # 宿主机（备份在仓库根 backups/）
    .venv/bin/python tools/restore_verify.py --root . \
      --backup-dir backups/20261105T172730Z --apply-dir runs/service
+
+   # 容器（备份在 xkx-w5-backups 卷；backup 容器同时挂数据卷与备份卷）
+   docker exec xkx-backup python /app/tools/restore_verify.py --root /app \
+     --backup-dir /app/backups/20261105T172730Z --apply-dir /app/runs/service
    ```
    退出码必须是 `0`（JSON `ok=true`、`checks_passed=checks_total`）。任何非零都**不要**继续。
 4. **起服并验证**：
@@ -356,38 +384,238 @@ after : 32600|1|32600|32600      -- count|min|max|distinct
 即：备份执行 6.289s 期间 310 次写，**最大写延迟 31.252ms**，远低于 200ms 门槛
 （另一次探针为 8.226ms）。这证明 `Connection.backup` 的读快照不会阻塞 WAL 写者。
 
+### E. 容器内备份与恢复演练（2026-11-06，colima 29.5.2 / aarch64）
+
+环境：镜像 `xkx/world-sim:w5`（legacy builder 构建，BuildKit 的 buildx 组件在本机缺失），
+run `p0ctr`，数据卷 `xkx-w5-data`、备份卷 `xkx-w5-backups`，宿主端口 8020/8030。
+
+**E.1 世界与备份服务同时在线，产物在卷上**
+
+```
+$ docker ps --format '{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}'
+xkx-world    xkx/world-sim:w5   Up 35 seconds (healthy)  0.0.0.0:8020->8020/tcp, [::]:8020->8020/tcp, 0.0.0.0:8030->8030/tcp, [::]:8030->8030/tcp
+xkx-backup   xkx/world-sim:w5   Up 6 minutes             8020/tcp, 8030/tcp
+
+$ docker inspect xkx-backup --format '{{range .Mounts}}{{if .Name}}{{.Name}}{{end}} -> {{.Destination}}{{"\n"}}{{end}}'
+xkx-w5-data -> /app/runs
+xkx-w5-backups -> /app/backups
+```
+
+`/app/backups` 是命名卷 `xkx-w5-backups`，**不是容器临时层**。同一路径用独立容器挂同卷可见同一批文件：
+
+```
+$ docker run --rm --entrypoint sh -v xkx-w5-backups:/b xkx/world-sim:w5 -c 'ls -la /b; stat -c "%d %i %n" /b/20261105T175328Z/events.sqlite'
+total 16
+drwxr-xr-x 4 app  app  4096 Nov  5 17:53 .
+drwxr-xr-x 1 root root 4096 Nov  5 17:49 ..
+drwx------ 2 app  app  4096 Nov  5 17:52 20261105T175254Z
+drwx------ 2 app  app  4096 Nov  5 17:53 20261105T175328Z
+64785 149641 /b/20261105T175328Z/events.sqlite
+```
+
+`64785` 是卷所在设备号，说明文件在卷上而非容器可写层。
+
+**E.2 容器内执行备份**
+
+```
+$ docker exec xkx-backup python /app/tools/backup_snapshot.py --root /app --run p0ctr --backup-dir /app/backups
+{"ok": true, "backup_dir": "/app/backups/20261105T175328Z", "created_at": "2026-11-05T17:53:28Z",
+ "duration_ms": 1818.409, "failures": []}
+events seq: {'contiguous': True, 'count': 445, 'distinct': 445, 'holes': [], 'max': 445, 'min': 1}
+events sha256: c8d4bf78aa135f6a673d066df07d16048e9327552c576b6cdaaadca08b6b5378 size 409600
+service sha256: f71de750c5b29e5ccfc70cc0aab52669c33b0b57849a412d954234c7a33ad043 size 28672
+state_hash: 0ed32b7a0959cddde9fa0ffcc7521f1b675cad6de18eaf4f5e1be675acd3d8a5
+backup_api_ms: 307.302
+```
+
+```
+$ docker exec xkx-backup ls -la /app/backups/20261105T175328Z
+-rw------- 1 app app 409600 Nov  5 17:53 events.sqlite
+-rw------- 1 app app   2229 Nov  5 17:53 manifest.json
+-rw------- 1 app app  28672 Nov  5 17:53 service.sqlite
+drwx------ 2 app app   4096 Nov  5 17:53 .          # 目录 700、文件 600
+```
+
+**E.3 容器内造损坏 → 起服失败 → 恢复 → 起服成功**
+
+```
+# 停服后在数据卷内把 events.sqlite 截断到 4096 字节
+$ docker run --rm --entrypoint python -v xkx-w5-data:/app/runs xkx/world-sim:w5 -c "
+from pathlib import Path
+p=Path('/app/runs/p0ctr/events.sqlite'); n=p.stat().st_size
+p.write_bytes(p.read_bytes()[:4096]); print(f'truncated {n} -> {p.stat().st_size}')"
+truncated 430080 -> 4096
+
+# 起服：API 进程在 EventStore 打开时即失败，entrypoint 30s 等不到 API，容器退出
+$ docker start xkx-world && sleep 40
+$ docker ps -a --filter name=xkx-world --format '{{.Names}}\t{{.Status}}'
+xkx-world    Exited (1) 9 seconds ago
+$ docker inspect xkx-world --format 'status={{.State.Status}} exit_code={{.State.ExitCode}}'
+status=exited exit_code=1
+
+$ docker logs --tail=6 xkx-world
+  File "/app/src/wsim/world/store.py", line 43, in __init__
+    self.conn.execute("PRAGMA journal_mode=WAL")
+sqlite3.DatabaseError: database disk image is malformed
+wait_for: http://127.0.0.1:8020/api/service/info 在 30.0s 内不可达
+[entrypoint] API 未在 30s 内就绪，退出
+```
+
+（`restart: unless-stopped` 下会持续重启，实测 `RestartCount` 递增 0→1→2→3，属预期：
+损坏不可自愈，必须人工恢复。演练时用 `docker update --restart=no` 才拿到干净的
+`Exited (1)` 与退出码。）
+
+```
+# 从备份恢复（backup 容器同时挂数据卷与备份卷，无需额外容器）
+$ docker exec xkx-backup python /app/tools/restore_verify.py --root /app \
+    --backup-dir /app/backups/20261105T175328Z --apply-dir /app/runs/p0ctr
+RESTORE_EXIT=0
+ok= True passed= 15 / 15
+  PASS events_file_present
+  PASS events.sqlite_sha256
+  PASS events.sqlite_size
+  PASS events.sqlite_integrity
+  PASS service.sqlite_sha256
+  PASS service.sqlite_size
+  PASS service.sqlite_integrity
+  PASS events_seq_contiguous
+  PASS events_seq_min
+  PASS events_seq_max
+  PASS events_seq_count
+  PASS events_content_hash_matches_manifest
+  PASS content_hash_matches_current_content
+  PASS state_hash_matches_manifest
+  PASS event_hash_matches_manifest
+applied: {"apply_dir": "/app/runs/p0ctr",
+          "files": ["/app/runs/p0ctr/events.sqlite", "/app/runs/p0ctr/service.sqlite"]}
+
+# 恢复后文件大小回到备份值，integrity ok
+$ docker run --rm --entrypoint sh -v xkx-w5-data:/app/runs xkx/world-sim:w5 -c 'ls -la /app/runs/p0ctr/'
+-rw-r--r-- 1 app app 409600 Nov  5 17:56 events.sqlite
+-rw-r--r-- 1 app app  28672 Nov  5 17:56 service.sqlite
+```
+
+```
+# 起服并验证
+$ docker start xkx-world && sleep 25
+$ docker ps --format '{{.Names}}\t{{.Status}}'
+xkx-world    Up 35 seconds (healthy)
+$ docker inspect xkx-world --format 'health={{.State.Health.Status}}'
+health=healthy
+$ GET /api/state?account_id=p0ctr_user  ->  http= 200
+persistent= {"location": "market", "wallet": {"items": [...], "money": 300},
+             "endowed": true, "endowed_tick": 13, "stamina": 100.0}   # 与备份前一致
+
+$ docker exec xkx-world python -c "..."   # 恢复后（含恢复后 ambient 继续推进）
+{"count": 461, "min": 1, "max": 461, "distinct": 461, "integrity": "ok"}
+```
+
+恢复点为 `seq 445`（manifest `seq.max`），起服后世界自走继续写 446…，因此现场是
+`min=1 / max=461 / count=distinct=461`，**seq 连续、无重复**；玩家持久字段（地点、钱包、
+初始资产、体力）与备份前逐字段一致。
+
+**E.4 RTO（容器，停服→服务可用）**
+
+```json
+{"stop_ms": 1135, "restore_verify_apply_ms": 605, "start_to_available_ms": 1435,
+ "rto_total_ms": 3174}
+```
+
+备份 400KB / 445 事件；`restore_verify` 纯校验（不装回）单独测为 **624ms**。
+容器比宿主 30MB 那组快，原因是备份体量与重放事件数小两个数量级，不是容器更快。
+
+**E.5 备份文件本身被截断时也判失败**
+
+与「主库被截断」不同，这里截断的是**备份产物本身**，manifest 仍保留原始 sha256：
+
+```
+$ docker exec xkx-backup sh -c '
+D=/app/backups/20261105T175328Z
+sha256sum $D/events.sqlite; stat -c "size=%s" $D/events.sqlite
+rm -rf /tmp/bad && mkdir -p /tmp/bad && cp $D/events.sqlite $D/service.sqlite $D/manifest.json /tmp/bad/
+head -c 4096 $D/events.sqlite > /tmp/bad/events.sqlite
+sha256sum /tmp/bad/events.sqlite; stat -c "size=%s" /tmp/bad/events.sqlite
+python /app/tools/restore_verify.py --root /app --backup-dir /tmp/bad; echo "EXIT=$?"'
+c8d4bf78aa135f6a673d066df07d16048e9327552c576b6cdaaadca08b6b5378  .../events.sqlite
+size=409600
+773462ec10030a41d6a3fd40348a1edb254965ac962a3e293efdd499c044b3c5  /tmp/bad/events.sqlite
+size=4096
+{"backup_dir": "/tmp/bad", "checks": [
+  {"name": "events_file_present", "ok": true},
+  {"name": "events.sqlite_sha256", "ok": false,
+   "expected": "c8d4bf78...b5378", "actual": "773462ec...44b3c5"},
+  {"name": "events.sqlite_size", "ok": false, "expected": 409600, "actual": 4096},
+  {"name": "events.sqlite_integrity", "ok": false,
+   "error": "DatabaseError: database disk image is malformed"},
+  {"name": "service.sqlite_sha256", "ok": true},
+  {"name": "service.sqlite_size", "ok": true},
+  {"name": "service.sqlite_integrity", "ok": true},
+  {"name": "events_queryable", "ok": false,
+   "error": "DatabaseError: database disk image is malformed"}],
+ "checks_passed": 4, "checks_total": 8, "ok": false,
+ "failure_reason": "events.sqlite_sha256; events.sqlite_size; events.sqlite_integrity; events_queryable"}
+EXIT=2
+```
+
+**结论：备份文件被截断 → 校验失败、退出码 2，且三项独立信号（sha256、size、integrity）
+同时报警，不会误装回。**
+
 ---
 
 ## 8. RPO / RTO（实测口径）
 
 ### RPO
 
-- 调度常量 `BK_INTERVAL=21600s`；按 6 小时周期，最坏丢失窗口 = 6 小时 + 单次备份耗时。
-  本机 29MB / 29.4k 事件实测备份耗时 **2.46–6.29s** → 生产 RPO ≈ **6h00m07s**（取最长）。
-  事件数增长会拉长 `state_hash` 重放，因此 RPO 会随 `events.sqlite` 体量增加；
-  到 200k 事件前请重新测一次并把该值写回本节。
+- 调度常量 `BK_INTERVAL=21600s`；按 6 小时周期，**最坏丢失窗口 = 6 小时 + 单次备份耗时**。
+  - 宿主机（29MB / 29.4k 事件）：备份耗时 2.46–6.29s → **RPO ≈ 6h00m07s**。
+  - 容器（400KB / 445 事件）：备份耗时 1.818s → **RPO ≈ 6h00m02s**（这是本次容器演练的
+    实际口径，生产按宿主/线上体量取更大值）。
+  - 事件数增长会拉长 `state_hash` 重放，因此 RPO 会随 `events.sqlite` 体量增加；
+    到 200k 事件前请重新测一次并把该值写回本节。
 - 演练实测（B）：最后备份 `17:27:30Z`（seq 29438）→ 故障 `17:28:22Z`（52 秒后），
   期间写入 20 条事件（10 个动作）；恢复后这 20 条丢失。这是“从备份到故障”的
   **实际丢失窗口**，不是生产上限。
 
 ### RTO
 
-用备份 `backups/20261105T173139Z`（30,195,712 字节 / seq 30205）实测：
+宿主机口径，用备份 `backups/20261105T173139Z`（30,195,712 字节 / seq 30205）：
 
 ```json
 {"restore_verify_s": 5.002, "api_start_to_ready_s": 1.505, "rto_total_s": 6.51}
 ```
 
-分解：restore_verify（复制 + sha256 + integrity + seq + 两次重放）5.0s；
-API 从进程启动到 `/api/state` 200 为 1.5s。生产 RTO 还需加上人工发现/决策与
-`docker compose stop/start` 的时间，本值只覆盖“拿到备份后到服务可用”。
+容器口径（§7-E，400KB / 445 事件，停服→服务可用全程）：
+
+```json
+{"stop_ms": 1135, "restore_verify_apply_ms": 605, "start_to_available_ms": 1435,
+ "rto_total_ms": 3174}
+```
+
+分解：restore_verify（复制 + sha256 + integrity + seq + 两次重放）在宿主 30MB 时为 5.0s、
+容器 400KB 时为 0.6s（纯校验 624ms）；API 从进程启动到可用 1.4–1.5s；`docker stop`
+约 1.1s。生产 RTO 还需加上人工发现/决策时间，本值只覆盖“拿到备份后到服务可用”。
 
 ---
 
 ## 9. 已知限制
 
-1. **备份与主库同盘**：宿主 `backups/` 或容器卷 `xkx-w5-backups` 都在同一台机器，
-   磁盘/主机损坏会同时丢主库和备份。P0 不包含异地/对象存储；如需要，另加 `rsync`/S3 同步。
+1. **备份与主库同盘（已接受，但带硬性补偿要求）**：容器里备份已拆到独立命名卷
+   `xkx-w5-backups`（逻辑隔离，避免备份撑爆 `/app/runs`），但**两个卷仍在同一台宿主机、
+   同一块物理盘**；宿主机 `backups/` 同理。处置口径：
+   - **风险：接受**（P0 范围内的可接受风险，写进值守清单）。
+   - **补偿要求（上线前置）**：必须再加一份**异机/异地副本**，否则主机或磁盘损坏会
+     同时丢主库与备份。最小做法（任选其一，二选一即可）：
+     ```bash
+     # a) 同步到另一台机器（放到主机 A 的 crontab，每 6 小时）
+     rsync -az --delete /path/world-sim/backups/ backup-host:/srv/xkx-backups/
+
+     # b) 同步到对象存储（rclone 需先在备份机配置远端）
+     rclone sync /path/world-sim/backups/ s3:xkx-backups/
+     ```
+     容器卷的做法：把 `xkx-w5-backups` 绑到宿主目录（`- /srv/xkx-backups:/app/backups`）
+     后再用上面的命令，或直接在宿主机 cron 里跑 `scripts/backup_loop.sh` 写宿主目录。
+   - **验收**：异机副本必须与本地 `manifest.json` 的 `sha256` 一致（`sha256sum` 比对）；
+     每季度至少做一次“只从异地副本恢复”的演练。
 2. **无加密**：备份包含 `service.sqlite`（密码哈希、令牌）。目录 `700`、文件 `600` 仅防同机其他用户；
    拷离机器前应加密（如 `age`/`gpg`）。
 3. **state_hash 重放成本**：备份时会完整重放事件日志算 hash，耗时随事件数线性增长；
@@ -398,10 +626,14 @@ API 从进程启动到 `/api/state` 200 为 1.5s。生产 RTO 还需加上人工
 6. **恢复必须停服**：工具只做文件装回，不检测端口占用；并发写会造成新旧库混写。
 7. **定时任务不做自动恢复演练**：轮转只保证备份存在；建议每周对最新一份跑一次
    `restore_verify.py`（不带 `--apply-dir`），失败告警。
-8. **容器 profile 未做运行时演练**：只做了 `docker-compose config` 静态校验；
-   首次上线请重建镜像并在容器内执行一次备份 + 校验。
+8. **容器演练的边界**：容器演练里 `events.sqlite` 只有 445 条事件（400KB），所有容器内
+   数字（RTO 3.174s、备份 1.818s）都对应小体量；**线上体量请以宿主机 29MB 那组数字
+   （RTO 6.510s、备份 2.46–6.29s）为准**，事件数上去后两者都会变长。
 9. **备份目录不能是符号链接**：`--backup-dir` 指向符号链接时工具直接拒绝；
    轮转删除也会跳过任何含符号链接的备份目录。
+10. **BuildKit 缺失时的构建差异**：本机无 buildx，用 `DOCKER_BUILDKIT=0 docker build`
+    构建镜像；`deploy/Dockerfile.dockerignore` 只在 BuildKit 下生效，legacy builder
+    会把 `reports/`、`dist/` 等也送进构建上下文（镜像内容不受影响，只是上下文偏大）。
 
 ---
 
@@ -416,3 +648,5 @@ API 从进程启动到 `/api/state` 200 为 1.5s。生产 RTO 还需加上人工
 | 恢复后玩家 401 | `service.sqlite` 回滚，旧令牌失效 | 让玩家重新登录 |
 | 备份耗时突然变长 | 事件数增长 / 磁盘慢 / 同时有大量写 | 看 `duration_ms` 与 `timing.backup_api_ms`，必要时扩备份频率 |
 | `prune.skipped` 出现 `symlink_refused` | 备份目录被替换成符号链接（可疑） | 人工检查，不要自动删除 |
+| 备份容器日志出现 `UNIQUE constraint failed: events.seq` / 同时有两个 `/api/service/info` | `backup` 服务的 `command` 没覆盖镜像 ENTRYPOINT，容器里又起了一套世界服务 | 确认 `deploy/docker-compose.yml` 的 `backup` 有 `entrypoint: ["/bin/sh","-c"]`；停掉备份容器，按 §6 恢复最近备份 |
+| 备份容器长期 `unhealthy` | 镜像 HEALTHCHECK 检查 8020/8030，备份容器没有 API/UI | 确认 `backup` 服务有 `healthcheck: {disable: true}` |

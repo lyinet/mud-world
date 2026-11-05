@@ -9,6 +9,52 @@
 
 ---
 
+## [P0 数据安全] 2026-11-06 — 容器内备份/恢复演练 + RPO/RTO 与同盘处置
+
+- **改了什么**
+  - `docs/BACKUP-RESTORE.md`：新增 §7-E「容器内备份与恢复演练」，含 `docker ps`、
+    `docker inspect` 挂载、备份目录 `ls -la`、恢复前后 `seq`/`integrity_check` 与
+    失败退出码的原始输出；§0 结论速览拆出宿主机/容器两套实测数字；§8 RPO/RTO 补
+    容器口径并写明「RPO 最坏 = 6 小时 + 单次备份耗时」；§9.1 明确「备份与主库同盘」
+    的处置（风险接受 + 上线前必须有异机/异地副本，附 `rsync`/`rclone` 最小做法与验收）；
+    §6 恢复步骤补容器内 `docker exec ... restore_verify.py`；§10 补两条容器故障行。
+  - `deploy/docker-compose.yml`（单独一笔 `7b8d51b`）：`backup` 服务加
+    `entrypoint: ["/bin/sh","-c"]` 与 `healthcheck.disable: true`。
+- **为什么改**：此前只做了 `docker-compose config` 静态渲染，属配置校验不是验收。
+  运行时演练暴露两个真实缺陷：(a) compose `command` 不覆盖镜像 ENTRYPOINT，
+  备份容器实际又起了一套 API+UI，与 `world` 双写同一 `events.sqlite`
+  （实测 `UNIQUE constraint failed: events.seq`）；(b) 备份容器继承镜像 HEALTHCHECK
+  （查 8020/8030）必然 unhealthy。
+- **容器演练（colima 29.5.2 / aarch64，镜像 `xkx/world-sim:w5`，run `p0ctr`）**
+  - 世界与备份服务同时在线（修复后）：`xkx-world Up (healthy)`、`xkx-backup Up`；
+    `xkx-backup` 挂 `xkx-w5-data -> /app/runs`、`xkx-w5-backups -> /app/backups`，
+    备份文件 `stat` 设备号来自卷（非容器可写层）。
+  - 容器内备份：`duration_ms=1818.409`、`seq {min:1,max:445,count:445,contiguous:true}`、
+    `events.sqlite sha256 c8d4bf78… size 409600`、`backup_api_ms=307.302`。
+  - 容器内截断 `events.sqlite`（430080 → 4096 字节）后起服：`Exited (1)`、
+    `exit_code=1`、日志 `database disk image is malformed` +
+    `[entrypoint] API 未在 30s 内就绪，退出`（`restart: unless-stopped` 下会重启循环，
+    `RestartCount` 0→1→2→3）。
+  - `docker exec xkx-backup ... restore_verify.py --apply-dir /app/runs/p0ctr`：
+    退出码 0、15/15 PASS；起服后 `healthy`、`/api/state` **200**、
+    `{"count":461,"min":1,"max":461,"distinct":461,"integrity":"ok"}`（恢复点 445，
+    之后 ambient 续写）；玩家持久字段（地点/钱包/初始资产/体力）与备份前一致。
+  - RTO（容器，停服→服务可用）：`stop 1135ms + restore/verify/apply 605ms +
+    start→available 1435ms = 3174ms`；`restore_verify` 纯校验 624ms。
+  - RPO：容器备份 1.818s → 最坏 **6h00m02s**；宿主机 29MB 口径维持 **6h00m07s**。
+- **备份文件本身被截断（区别于主库截断）**：`head -c 4096` 截断备份里的
+  `events.sqlite` 后跑 `restore_verify`，`ok=false`、`checks_passed=4/8`、
+  `failure_reason=events.sqlite_sha256; events.sqlite_size; events.sqlite_integrity;
+  events_queryable`，**`EXIT=2`**。
+- **已知限制**：容器内数字对应 445 事件 / 400KB 的小体量，线上体量以宿主机 29MB 那组
+  为准；备份与主库仍同盘（同机同盘），只做了卷级逻辑隔离，异机副本是上线前置项；
+  本机无 buildx，镜像用 `DOCKER_BUILDKIT=0 docker build` 构建。
+- **未做**：未改 `src/wsim/api/**`、`actions/**`、`sim/**`、`ui/**`；未回退
+  `deploy/Dockerfile` 的 version 元数据（属另一会话，保留原样）。
+- **commit**：`7b8d51b`（compose 修复）、`（本提交）`（文档与 CHANGELOG）。
+
+---
+
 ## [文档] 2026-11-06 — 发布/回滚手册与提交规范
 
 - **改了什么**：
