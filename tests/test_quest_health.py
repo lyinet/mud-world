@@ -70,13 +70,29 @@ def test_post_skips_when_template_expired_cap_reached(real_content, real_state):
     assert "errand_silk_sample" not in created
 
 
-def test_post_skips_when_global_expired_cap_reached(real_content, real_state):
+def test_post_floor_supply_survives_global_expired_cap(real_content, real_state):
+    """全局过期上限只压常规发布，不能饿死保底供给：
+
+    20 条过期记录时常规路径 0 单，但每个有 giver 的发布点仍应有 1 张可接单。
+    """
     template_ids = sorted(real_content.quests)
     for i in range(20):
         tid = template_ids[i % len(template_ids)]
         real_state.quests[f"expired:global:{i}"] = _expired_quest(tid, f"expired:global:{i}")
     effects = _post(real_state, real_content)
-    assert not [e for e in effects if e.op == "quest_create"]
+    created = [e.data["template_id"] for e in effects if e.op == "quest_create"]
+    assert created, "全局过期上限不应让所有发布点都断供"
+    points = {
+        real_state.entities[str(tpl.get("giver", ""))].location
+        for tpl in real_content.quests.values()
+        if str(tpl.get("giver", "")) in real_state.entities
+        and float(tpl.get("require_reputation", 0) or 0) <= 0
+    }
+    created_locs = {
+        real_state.entities[str(real_content.quests[tid]["giver"])].location
+        for tid in created
+    }
+    assert created_locs == points
 
 
 def test_fail_action_prunes_stale_expired_and_keeps_stats(real_content, real_state):
