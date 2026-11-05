@@ -631,6 +631,26 @@ class Planner:
             # 午饭（一天一顿，减少无效往返；晚饭取消）
             loc, cursor, cash = self._meal(state, intents, npc, loc, cursor, seg_end, cash, "午饭")
 
+            # 婚后日常：配偶是玩家时，每天至少一次到玩家身边问候/带饭。
+            # 只在玩家-NPC 婚姻生效，NPC-NPC 与无玩家世界完全不走该分支。
+            spouse_id = str(ent.spouse or "")
+            if spouse_id.startswith("player:") and cursor < seg_end:
+                spouse = state.entities.get(spouse_id)
+                if spouse is not None and spouse.status == "alive" and spouse.presence != "offline":
+                    loc, cursor = self._move(
+                        state, intents, npc, loc, spouse.location, cursor, seg_end, reason("回家陪家人")
+                    )
+                    if loc == spouse.location and cursor < seg_end:
+                        cursor = self._add(
+                            intents,
+                            npc,
+                            "spouse_time",
+                            {"target": spouse_id},
+                            cursor,
+                            seg_end,
+                            reason("陪家人过日子"),
+                        )
+
             # 消费倾向：有余钱就买一件非口粮品，钱回流店铺；
             # 正在攒注册费的发起人不做可选消费，否则永远差最后几百文。
             saving_for_sect = (

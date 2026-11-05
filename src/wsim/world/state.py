@@ -370,6 +370,9 @@ class WorldState:
     items_burned: dict[str, int] = field(default_factory=dict)
     # 服务端审计（如 spoofed_arg）。空列表不写入哈希，保证旧 run 可回放。
     audit_log: list[dict[str, Any]] = field(default_factory=list)
+    # 玩家婚姻元数据：键为排序后的 "a|b"。只有至少一方是玩家时才写入；
+    # 为空时不影响哈希，保证无玩家世界逐字节不变。
+    marriages: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     def clone(self) -> "WorldState":
         return WorldState(
@@ -396,6 +399,7 @@ class WorldState:
             items_created=dict(self.items_created),
             items_burned=dict(self.items_burned),
             audit_log=copy.deepcopy(self.audit_log),
+            marriages=copy.deepcopy(self.marriages),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -427,6 +431,10 @@ class WorldState:
             data["endowment_total"] = self.endowment_total
         if self.audit_log:
             data["audit_log"] = list(self.audit_log)
+        if self.marriages:
+            data["marriages"] = {
+                k: dict(sorted(v.items())) for k, v in sorted(self.marriages.items())
+            }
         return data
 
     def hash(self) -> str:

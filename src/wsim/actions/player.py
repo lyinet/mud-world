@@ -62,6 +62,9 @@ PLAYER_VERBS = frozenset(
         "sell",
         "consume",
         "escort",
+        # 玩家婚姻：求婚与和离；NPC 裁决事件由服务端追加。
+        "marriage_propose",
+        "marriage_end",
     }
 )
 

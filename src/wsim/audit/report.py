@@ -27,6 +27,9 @@ ENGINE_ONLY_ALLOWED = {
     "quest_accept", "quest_deliver", "recruit", "debt_settle",
     # P3-C 玩家最小切片：由 UI/会话层直接 propose，不属于 NPC 决策动词。
     "player_enter", "player_presence", "player_leave", "player_endowment",
+    # 玩家婚姻闭环：由会话层/服务端事件链驱动，不在内容包 verbs 中声明。
+    "marriage_propose", "marriage_accept", "marriage_reject", "marriage", "marriage_end",
+    "spouse_time",
 }
 
 

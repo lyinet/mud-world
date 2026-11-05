@@ -54,6 +54,14 @@ def build_registry(content, seed: int, plugin_dir: Path | None = None) -> Action
         SystemTickAction,
     )
     from .milestones import SystemMaintenanceAction, SystemMilestoneAction
+    from .marriage import (
+        MarriageAction,
+        MarriageAcceptAction,
+        MarriageEndAction,
+        MarriageProposeAction,
+        MarriageRejectAction,
+        SpouseTimeAction,
+    )
     from .social import ApprenticeAction, JoinSectAction, MarryAction, RecruitAction, TalkAction
     from .system import (
         SystemBudgetAction,
@@ -85,6 +93,12 @@ def build_registry(content, seed: int, plugin_dir: Path | None = None) -> Action
     reg.register(ApprenticeAction(content))
     reg.register(JoinSectAction(content))
     reg.register(MarryAction(content))
+    reg.register(MarriageProposeAction(content))
+    reg.register(MarriageAcceptAction())
+    reg.register(MarriageRejectAction())
+    reg.register(MarriageAction())
+    reg.register(MarriageEndAction())
+    reg.register(SpouseTimeAction(content))
     reg.register(RecruitAction(content))
     reg.register(TalkAction(content))
     reg.register(OpenShopAction(content))

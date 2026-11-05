@@ -143,6 +143,20 @@ class TalkAction(Action):
                 pass
         req_aff = float(server["affection_delta"])
         req_trust = float(server["trust_delta"])
+        # 配偶专属回应：确定性台词按世界日轮换，覆盖模板/模型回复。
+        if (
+            pid.startswith("player:")
+            and target.spouse == pid
+            and pid in state.entities
+            and str(state.entities[pid].spouse or "") == target.id
+        ):
+            pname = state.entities[pid].name
+            spouse_lines = (
+                f"{pname}，我温着汤呢，忙完早些回来。",
+                f"我把{pname}的换洗衣裳叠在柜头了，出门别又忘了带伞。",
+                f"{pname}，米缸见底了，今日该缴租，你回来顺路去一趟。",
+            )
+            reply = spouse_lines[day % len(spouse_lines)]
 
         ledger = dict(state.talk_ledger.get(target.id) or {})
         day_aff = float(ledger.get("day_affection", 0.0))

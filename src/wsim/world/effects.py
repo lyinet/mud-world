@@ -62,6 +62,7 @@ EFFECT_OPS = frozenset(
         "shop_day_close",
         "relation_upsert",
         "marry",
+        "marriage_meta",
         "faction_join",
         "add_disciple",
         "debt_create",
@@ -422,6 +423,41 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             )
         ea.spouse = b
         eb.spouse = a
+        return
+
+    if op == "marriage_meta":
+        a, b = str(d["a"]), str(d["b"])
+        _entity(state, a)
+        _entity(state, b)
+        status = str(d.get("status", ""))
+        if status not in {"proposed", "accepted", "courtship", "rejected", "married", "ended"}:
+            raise EffectError(f"非法婚姻状态: {status}")
+        key = f"{a}|{b}" if a <= b else f"{b}|{a}"
+        rec = dict(state.marriages.get(key, {}))
+        rec["a"], rec["b"] = (a, b) if a <= b else (b, a)
+        rec["status"] = status
+        if status == "married":
+            rec.pop("expires_tick", None)
+            rec.pop("ended_tick", None)
+        elif status in {"proposed", "accepted", "courtship"}:
+            rec.pop("ended_tick", None)
+        for f in (
+            "since_tick",
+            "proposal_tick",
+            "decision",
+            "reason_code",
+            "expires_tick",
+            "last_daily_tick",
+            "daily_note",
+            "gift_money",
+            "gift_item",
+            "gift_qty",
+            "ended_tick",
+            "thresholds",
+        ):
+            if f in d:
+                rec[f] = d[f]
+        state.marriages[key] = rec
         return
 
     if op == "faction_join":

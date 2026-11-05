@@ -94,6 +94,11 @@ WRITE_ACTIONS: dict[str, str] = {
     # 统一动作入口使用的下划线别名（与 /api/player/quest/accept 等价）。
     "quest_accept": "quest_accept",
     "quest_deliver": "quest_deliver",
+    # 玩家婚姻：求婚 / 和离。NPC 决策事件由服务端自动追加，不对客户端开放。
+    "marriage_propose": "marriage_propose",
+    "marriage/propose": "marriage_propose",
+    "marriage_end": "marriage_end",
+    "marriage/end": "marriage_end",
 }
 
 # /api/player/action 的动词表：只接受客户端动词名，服务端映射为内部 action。
@@ -120,6 +125,10 @@ ACTION_ALIASES: dict[str, str] = {
     "sell": "sell",
     "consume": "consume",
     "escort": "escort",
+    "marriage_propose": "marriage_propose",
+    "marriage/propose": "marriage_propose",
+    "marriage_end": "marriage_end",
+    "marriage/end": "marriage_end",
 }
 
 # NPC 专属动作：玩家请求必须得到明确的“未开放”，而不是未知操作。
@@ -189,7 +198,7 @@ REASON_TEXT: dict[str, str] = {
     "hostile": "对方对你敌对，拒绝交易。",
     "bad_arg:money_delta": "金额参数必须是整数。",
     # 玩家消费类动作的专属原因码（与 NPC 引擎码分开，语义见 docs/player-api.md）。
-    "not_enough_money": "你的钱不够（买入价含交易税）。",
+    "not_enough_money": "你的钱不够完成当前操作。",
     "item_not_available": "这件物品不在当前内容包里。",
     "item_missing": "你背包里没有足够的这件物品。",
     "not_here": "你不在这个交易地点。",
@@ -218,6 +227,20 @@ REASON_TEXT: dict[str, str] = {
     "player_cap_reached": "本区域玩家席位已满，暂时无法创建新账号。",
     "endowment_already_granted": "该账号已经领取过初始资产，不能重复领取。",
     "endowment_cap_reached": "本区域初始资产发放总额已达上限；请联系运维。",
+    # 玩家婚姻
+    "already_married": "你已有配偶；和离后才能再谈婚嫁。",
+    "target_in_couple": "对方已有婚约或配偶。",
+    "spouse_not_here": "你的配偶不在当前地点；和离需当面说清。",
+    "bond_too_low": "你们的好感还不够；先多相处、多说话再提亲。",
+    "trust_too_low": "对方对你还不够信任；先建立信任再提亲。",
+    "gift_missing": "你指定的信物不在背包里或数量不足。",
+    "self_propose": "不能向自己求婚。",
+    "not_married": "你当前没有配偶，无需和离。",
+    "spouse_not_alive": "你的配偶已不在人世。",
+    "target_not_npc": "本轮只开放玩家向 NPC 求婚。",
+    "target_not_player": "配偶目标必须是玩家。",
+    "spouse_offline": "配偶不在线，今日的陪伴暂缓。",
+    "unknown_actor": "发起人不存在或已不在世界。",
     "account_missing": "玩家钱包账户不存在，已被回滚。",
     "effect_invalid": "操作违反世界规则，已被回滚。",
     "bad_args": "参数不完整或格式错误。",
@@ -451,6 +474,7 @@ class WorldSession:
                 "skills": {k: round(float(v), 4) for k, v in sorted(ent.skills.items())},
                 "relations": view["relations"],
                 "active_quests": view["active_quests"],
+                "marriage": view["marriage"],
             }
             location = location_view
             shop = shop_view
@@ -482,6 +506,7 @@ class WorldSession:
                     "escrow_items": escrow_total,
                 },
                 "player": player,
+                "marriage": view["marriage"],
                 "location": location,
                 "shop": shop,
                 "present_npcs": present,
@@ -809,6 +834,7 @@ class WorldSession:
         today["location_name"] = self._loc_name(loc)
         view["growth"] = growth_view(self.state, self.content, pid)
         view["today"] = today
+        view["marriage"] = self._marriage_view(pid)
         view["tick"] = self.state.tick
         view["ok"] = True
         return view
@@ -1277,6 +1303,61 @@ class WorldSession:
         intent = Intent(actor=pid, verb=verb, args=args, tick=tick, source="player")
         created = prof is None
         event = self._submit(intent)
+        # 婚姻是唯一的多事件链：求婚 -> NPC 裁决事件 -> 成婚。
+        # 所有后续事件都由服务端按确定性裁决生成，客户端无法伪造。
+        marriage_decision = ""
+        if verb == "marriage_propose" and event.outcome == "ok":
+            meta = self._event_marriage_meta(event)
+            marriage_decision = str(meta.get("decision") or "")
+            target = str(args.get("target") or "")
+            if marriage_decision == "accept":
+                accept_event = self._submit(
+                    Intent(
+                        actor=target,
+                        verb="marriage_accept",
+                        args={"player": pid, "target": target, "proposal_tick": int(event.tick)},
+                        tick=int(self.state.tick),
+                        source="npc",
+                        reason=f"{pid}求婚，{target}接受",
+                    )
+                )
+                if accept_event.outcome == "ok":
+                    event = self._submit(
+                        Intent(
+                            actor="system",
+                            verb="marriage",
+                            args={
+                                "a": pid,
+                                "b": target,
+                                "gift_money": int(args.get("gift_money") or 0),
+                                "gift_item": str(args.get("gift_item") or ""),
+                                "gift_qty": int(args.get("gift_qty") or 1)
+                                if args.get("gift_item")
+                                else 0,
+                                "proposal_tick": int(accept_event.tick),
+                            },
+                            tick=int(self.state.tick),
+                            source="system",
+                            reason=f"{pid}与{target}成婚",
+                        )
+                    )
+                else:
+                    event = accept_event
+            elif marriage_decision == "reject":
+                event = self._submit(
+                    Intent(
+                        actor=target,
+                        verb="marriage_reject",
+                        args={
+                            "player": pid,
+                            "target": target,
+                            "reason_code": str(meta.get("reason_code") or "bond_too_low"),
+                        },
+                        tick=int(self.state.tick),
+                        source="npc",
+                        reason=f"{pid}求婚，{target}婉拒",
+                    )
+                )
         # 首次进入的一次性初始资产是独立事件：enter 本身仍不铸币，
         # `player_endowment` 显式 mint + 造物，按 account_id 幂等。
         grant = None
@@ -1297,6 +1378,12 @@ class WorldSession:
         data = self._status_view(pid) if event.outcome == "ok" else {}
         response = self._response(event, data, action, pid)
         response["next_tick"] = self.state.tick
+        if action in ("marriage_propose", "marriage_end"):
+            response["details"]["decision"] = (
+                "ended" if action == "marriage_end" and event.outcome == "ok" else marriage_decision
+            )
+            if data:
+                response["details"]["marriage"] = dict(data.get("marriage") or {})
         if action == "enter" and event.outcome == "ok":
             response["details"]["created"] = created
             response["details"]["resumed"] = not created
@@ -1305,6 +1392,58 @@ class WorldSession:
                 self.state.players.get(pid), grant
             )
         return response
+
+    def _event_marriage_meta(self, event) -> dict[str, Any]:
+        for eff in event.effects or []:
+            if eff.get("op") == "marriage_meta":
+                return dict(eff.get("data") or {})
+        return {}
+
+    def _marriage_view(self, pid: str) -> dict[str, Any]:
+        """当前婚姻/求处快照；只读派生，不写状态。"""
+        from ..actions.marriage import pair_key
+
+        ent = self.state.entities.get(pid)
+        if ent is not None and ent.spouse:
+            spouse = self.state.entities.get(ent.spouse)
+            rec = self.state.marriages.get(pair_key(pid, ent.spouse), {})
+            return {
+                "status": "married",
+                "spouse_id": ent.spouse,
+                "spouse_name": spouse.name if spouse is not None else ent.spouse,
+                "since_tick": int(rec.get("since_tick") or 0),
+                "last_daily_tick": int(rec.get("last_daily_tick") or 0),
+                "daily_note": str(rec.get("daily_note") or ""),
+            }
+        pending: dict[str, Any] | None = None
+        for rec in self.state.marriages.values():
+            if pid not in (rec.get("a"), rec.get("b")):
+                continue
+            if rec.get("status") not in ("proposed", "accepted", "courtship"):
+                continue
+            if pending is None or int(rec.get("proposal_tick") or 0) >= int(
+                pending.get("proposal_tick") or 0
+            ):
+                pending = rec
+        if pending is not None:
+            other = str(pending.get("b") if pending.get("a") == pid else pending.get("a"))
+            spouse = self.state.entities.get(other)
+            return {
+                "status": str(pending.get("status")),
+                "spouse_id": other,
+                "spouse_name": spouse.name if spouse is not None else other,
+                "since_tick": int(pending.get("since_tick") or 0),
+                "expires_tick": int(pending.get("expires_tick") or 0),
+                "reason_code": str(pending.get("reason_code") or ""),
+            }
+        return {
+            "status": "single",
+            "spouse_id": "",
+            "spouse_name": "",
+            "since_tick": 0,
+            "last_daily_tick": 0,
+            "daily_note": "",
+        }
 
     def _endowment_view(self, prof, grant) -> dict[str, Any]:
         """`details.endowment`：本次是否发放、钱的来源与可审计总额。"""
@@ -1459,6 +1598,21 @@ class WorldSession:
                 base["cargo_value"] = payload.get("cargo_value", 100)
             base["fee"] = payload.get("fee", 0)
             return base
+        if action == "marriage_propose":
+            base["target"] = str(payload.get("target") or "").strip()
+            money = payload.get("gift_money", 0)
+            if isinstance(money, int) and not isinstance(money, bool):
+                base["gift_money"] = money
+            else:
+                base["gift_money"] = 0
+            item = str(payload.get("gift_item") or "").strip()
+            if item:
+                base["gift_item"] = item
+                qty = payload.get("gift_qty", 1)
+                base["gift_qty"] = qty if isinstance(qty, int) and not isinstance(qty, bool) else 1
+            return base
+        if action == "marriage_end":
+            return base
         return base
 
     def _precheck_player_action(
@@ -1469,6 +1623,34 @@ class WorldSession:
         语义与 BuyAction / SellAction / ConsumeAction / EscortAction 的前置一致，
         只读 content / state，不产生任何效果或半写。
         """
+        action = ACTION_ALIASES.get(action, action)
+        if action == "marriage_propose":
+            from ..actions.marriage import structural_reason
+
+            return (
+                structural_reason(
+                    self.state,
+                    self.content,
+                    pid,
+                    str(args.get("target") or ""),
+                    int(args.get("gift_money") or 0),
+                    str(args.get("gift_item") or "") or None,
+                    int(args.get("gift_qty") or 1),
+                )
+                or ""
+            )
+        if action == "marriage_end":
+            ent = self.state.entities.get(pid)
+            if ent is None:
+                return ""
+            if ent.spouse is None:
+                return "not_married"
+            other = self.state.entities.get(ent.spouse)
+            if other is None or other.status != "alive":
+                return "spouse_not_alive"
+            if ent.location != other.location:
+                return "spouse_not_here"
+            return ""
         if action not in ("buy", "sell", "consume", "escort"):
             return ""
         ent = self.state.entities.get(pid)
@@ -1571,7 +1753,8 @@ class WorldSession:
                 "tick": intent.tick, "source": intent.source}
         try:
             # 账号通过 API 校验后，服务端才授予该身份 propose 权限；权限不来自请求参数。
-            if intent.actor.startswith("player:") and self.gateway.permission_of(intent.actor) is None:
+            # NPC/系统事件链（婚姻裁决）也由服务端构造，同样在首次提交前登记。
+            if self.gateway.permission_of(intent.actor) is None:
                 self.gateway.register_identity(intent.actor, "propose_intent")
             # 第一段：玩家本人 propose，只入 outbox，不改状态。
             self.gateway.call(intent.actor, "world.propose_intent", {"intent": data})
