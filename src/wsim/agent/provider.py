@@ -94,6 +94,8 @@ class ProviderConfig:
     # 关闭思维链的候选请求体，按顺序尝试；第一组被上游接受即停止。
     extra_body: tuple[dict[str, Any], ...] = ()
     backoff_429_s: float = 25.0
+    # 管理面 provider id（环境变量配置为空）；只用于遥测/审计，不参与请求。
+    provider_id: str = ""
 
     def validate(self) -> None:
         errors: list[str] = []
@@ -399,13 +401,14 @@ class ProviderClient:
         self.last_attempt_latency_s = 0.0
         self.last_thinking_disabled_by = ""
         self.last_thinking_param_ignored = False
+        self.last_fallback = False
         self._transport = transport or _http_transport
         # P0-1：生产默认必须真的等待；旧的 no-op 会让 429 退避变成空操作。
         self._sleep: Callable[[float], None] = sleep_fn or time.sleep
         # 线程安全的调用/延迟/429 统计（complete_many 会并发）。
         self._stats_lock = threading.Lock()
         self.stats: dict[str, Any] = {
-            "calls": 0, "attempts": 0, "retries": 0, "http_429": 0,
+            "calls": 0, "attempts": 0, "retries": 0, "http_429": 0, "fallbacks": 0,
             "errors_by_kind": Counter(), "success": 0,
             "latency_s": [], "attempt_latency_s": [],
         }
@@ -449,6 +452,7 @@ class ProviderClient:
                 "attempts": int(self.stats["attempts"]),
                 "retries": int(self.stats["retries"]),
                 "http_429": int(self.stats["http_429"]),
+                "fallbacks": int(self.stats.get("fallbacks", 0)),
                 "success": int(self.stats["success"]),
                 "errors_by_kind": dict(sorted(self.stats["errors_by_kind"].items())),
                 # call_latency 含每次尝试 + 全部退避等待；attempt_latency 只含单次 HTTP。
@@ -524,23 +528,94 @@ class ProviderClient:
                 fh.write(json.dumps(row, ensure_ascii=False) + "\n")
 
     def _run(self, system: str, user: str) -> dict[str, Any]:
-        """单次调用（含重试）的无状态实现，供 complete/complete_many 共用。"""
+        """单次调用（含重试与 provider 降级链）的无状态实现，供 complete/complete_many 共用。
+
+        配置来源由 `wsim.admin.providers` 决定：DB 优先、环境变量兜底；
+        快照缓存保证每次调用只是一次内存读，查库间隔 ≥5 秒。
+        """
         if self.config.offline:
             return {
                 "text": "", "usage": {}, "latency_s": 0.0, "attempt_latency_s": 0.0,
                 "attempts": 1,
                 "error_kind": "offline", "error": ProviderUnavailable("offline_mode"),
                 "thinking_disabled_by": "none", "thinking_param_ignored": False,
+                "fallback": False, "provider_id": "",
             }
-        last: ProviderError | None = None
-        attempts = 0
+
+        chain, blocked = self._config_chain()
+        if blocked:
+            self._stat(calls=1, attempts=1, errors_by_kind=blocked,
+                       latency_s=0.0, attempt_latency_s=0.0)
+            return {
+                "text": "", "usage": {}, "latency_s": 0.0, "attempt_latency_s": 0.0,
+                "attempts": 1, "error_kind": blocked,
+                "error": ProviderUnavailable(blocked),
+                "thinking_disabled_by": "none", "thinking_param_ignored": False,
+                "fallback": False, "provider_id": "",
+            }
+
         call_started = time.perf_counter()
         self._stat(calls=1)
-        for attempt in range(self.config.max_retries + 1):
+        self.last_fallback = False
+        total_attempts = 0
+        last_error: dict[str, Any] | None = None
+        for index, cfg in enumerate(chain):
+            if index > 0:
+                self._stat(fallbacks=1)
+            result = self._run_config(cfg, system, user, call_started)
+            total_attempts += int(result.pop("_attempts", 1))
+            result["attempts"] = total_attempts
+            result["fallback"] = index > 0
+            result["provider_id"] = str(getattr(cfg, "provider_id", ""))
+            if result["error"] is None:
+                self.last_fallback = index > 0
+                if index > 0:
+                    # 记录最终生效配置，供遥测/审计读取（slot 不变）。
+                    self.config = cfg
+                return result
+            last_error = result
+        if last_error is None:  # pragma: no cover - chain 至少有一项
+            last_error = self._offline_result("unknown")
+        last_error["attempts"] = total_attempts
+        last_error["latency_s"] = time.perf_counter() - call_started
+        last_error["attempt_latency_s"] = (
+            float(last_error.get("attempt_latency_s") or 0.0) or last_error["latency_s"]
+        )
+        return last_error
+
+    def _config_chain(self) -> tuple[list[ProviderConfig], str]:
+        """返回 (配置链, 阻断码)。管理面不可用时一律沿用现有配置。"""
+        try:
+            from ..admin import providers as admin_providers
+        except Exception:  # noqa: BLE001 - 管理面缺失不得影响主服务
+            return [self.config], ""
+        try:
+            chain = admin_providers.chain_for_slot(self.config.slot)
+        except admin_providers.Killswitch:
+            return [], "llm_killswitch"
+        except Exception:  # noqa: BLE001
+            return [self.config], ""
+        return (list(chain) or [self.config]), ""
+
+    @staticmethod
+    def _offline_result(kind: str) -> dict[str, Any]:
+        return {
+            "text": "", "usage": {}, "latency_s": 0.0, "attempt_latency_s": 0.0,
+            "attempts": 1, "error_kind": kind, "error": ProviderUnavailable(kind),
+            "thinking_disabled_by": "none", "thinking_param_ignored": False,
+            "fallback": False, "provider_id": "",
+        }
+
+    def _run_config(
+        self, cfg: ProviderConfig, system: str, user: str, call_started: float
+    ) -> dict[str, Any]:
+        last: ProviderError | None = None
+        attempts = 0
+        for attempt in range(cfg.max_retries + 1):
             attempts = attempt + 1
             started = time.perf_counter()
             try:
-                result = self._transport(self.config, system, user)
+                result = self._transport(cfg, system, user)
                 attempt_latency = time.perf_counter() - started
                 call_latency = time.perf_counter() - call_started
                 self._stat(attempts=1, success=1, latency_s=call_latency,
@@ -552,12 +627,14 @@ class ProviderClient:
                             "latency_s": call_latency, "attempt_latency_s": attempt_latency,
                             "attempts": attempts, "error_kind": "", "error": None,
                             "thinking_disabled_by": result.thinking_disabled_by,
-                            "thinking_param_ignored": result.thinking_param_ignored}
+                            "thinking_param_ignored": result.thinking_param_ignored,
+                            "_attempts": attempts}
                 self._log_record(system, user, str(result), {}, call_latency, "ok")
                 return {"text": str(result), "usage": {}, "latency_s": call_latency,
                         "attempt_latency_s": attempt_latency,
                         "attempts": attempts, "error_kind": "", "error": None,
-                        "thinking_disabled_by": "none", "thinking_param_ignored": False}
+                        "thinking_disabled_by": "none", "thinking_param_ignored": False,
+                        "_attempts": attempts}
             except ProviderError as exc:
                 attempt_latency = time.perf_counter() - started
                 call_latency = time.perf_counter() - call_started
@@ -570,14 +647,15 @@ class ProviderClient:
                     return {"text": "", "usage": dict(exc.usage or {}), "latency_s": call_latency,
                             "attempt_latency_s": attempt_latency,
                             "attempts": attempts, "error_kind": exc.kind, "error": exc,
-                            "thinking_disabled_by": "", "thinking_param_ignored": False}
-                if attempt < self.config.max_retries:
+                            "thinking_disabled_by": "", "thinking_param_ignored": False,
+                            "_attempts": attempts}
+                if attempt < cfg.max_retries:
                     self._stat(retries=1)
                     # 429 用配置的固定退避（默认 25s）；其余错误指数退避。
                     delay = (
-                        self.config.backoff_429_s
+                        cfg.backoff_429_s
                         if exc.kind == "http_429"
-                        else self.config.backoff_base_s * (2 ** attempt)
+                        else cfg.backoff_base_s * (2 ** attempt)
                     )
                     self._sleep(delay)
             except ProviderUnavailable as exc:
@@ -587,14 +665,16 @@ class ProviderClient:
                 return {"text": "", "usage": {}, "latency_s": call_latency,
                         "attempt_latency_s": call_latency,
                         "attempts": attempts, "error_kind": "offline", "error": exc,
-                        "thinking_disabled_by": "none", "thinking_param_ignored": False}
+                        "thinking_disabled_by": "none", "thinking_param_ignored": False,
+                        "_attempts": attempts}
         call_latency = time.perf_counter() - call_started
         err = ProviderError(last.kind if last else "unknown", f"failed_after_attempts:{attempts}",
                             usage=dict(last.usage or {}) if last else None)
         return {"text": "", "usage": dict(last.usage or {}) if last else {}, "latency_s": call_latency,
                 "attempt_latency_s": call_latency,
                 "attempts": attempts, "error_kind": err.kind, "error": err,
-                "thinking_disabled_by": "", "thinking_param_ignored": False}
+                "thinking_disabled_by": "", "thinking_param_ignored": False,
+                "_attempts": attempts}
 
     # 兼容 P2 的 Reasoner 契约桩（真实接入走 LLMReasoner）。
     def decide(self, npc_state: dict[str, Any], world_view: dict[str, Any]) -> list[Intent]:
@@ -1398,6 +1478,9 @@ class LLMReasoner(Reasoner):
             thinking_disabled_by = str(getattr(active, "last_thinking_disabled_by", "") or "")
         if thinking_param_ignored is None:
             thinking_param_ignored = bool(getattr(active, "last_thinking_param_ignored", False))
+        if not fallback:
+            # provider 降级链成功时，由 _run 标记；调用方未显式传 fallback 时自动带出。
+            fallback = bool(getattr(active, "last_fallback", False))
         reported = bool(usage)
         # intent 槽上游可能不返回 usage：按要求记 null，不做字符估算。
         missing_intent_usage = cfg.slot == "intent" and not reported
