@@ -1670,6 +1670,7 @@ curl -s 'http://127.0.0.1:8848/api/world/feed?limit=5'
 |---|---|---|---|
 | `1` | 2026-11-04 | 首次冻结：`/enter`、`/state`、`/action`、`/intents/<id>`、`/messages` 字段与拒绝码 | 前端按此实现；后端不得随意改名 |
 | `1.1` | 2026-11-04 | **P0 修复：运行中新账号首次进入一次性发放**。新增独立事件 `player_endowment`（显式 mint + 造物，计入 `minted`，`reason=first_entry`）；`details.endowment` 新增 `granted` / `already_granted` / `event_seq` / `endowed_tick` / `endowment_total` / `cap` / `reject_reason` / `reason_text`；`granted_at_genesis` **语义修正**为“来源是否创世预置”；`/state` 新增顶层 `endowment_total` 与 `player.endowed` / `player.endowed_tick`；新增拒绝码 `player_cap_reached` / `endowment_already_granted` / `endowment_cap_reached` / `account_missing`；补充 `event_seq +2` 与首次进入 `+3` 的说明 | 前端：新增字段可忽略；`granted_at_genesis` 判断需改为读 `granted`；后端：`player_enter` 仍不铸币，发放由独立事件完成 |
+| `1.2` | 2026-11-06 | 新增 §13「未接线：门派动作设计」：冻结 `found_sect` / `recruit_disciple` / `expel_disciple` / `pay_disciples` / `sect_deposit` / `sect_withdraw` 的未来契约、门槛、拒绝码与钱流 | **未开放**：动作层已实现但未注册、未进 `PLAYER_VERBS`、未进 API 白名单；调用仍被拒 |
 
 ---
 
@@ -1680,3 +1681,66 @@ curl -s 'http://127.0.0.1:8848/api/world/feed?limit=5'
 - 离线托管（custody）与 dormant 的托管代理操作。
 - 异步意图队列（`accepted` 分支保留，但当前不会返回）。
 - 对话文笔质量未评测；`dialogue` 槽只按延迟与落单准确选型。
+- 门派动作（§13，动作层已实现但未接线）。
+
+---
+
+## 13. 未接线：门派动作设计（本轮**未开放**，前端不要实现入口）
+
+> **状态：动作层已实现，但未接注册表、未进 `PLAYER_VERBS`、未进 API 白名单。**
+> 当前调用 `found_sect` 仍返回 `not_implemented_for_player`；其余五个动词返回
+> 通用「未知动词」。设计全文见 `specs/player-sect/spec.md`，接线清单见
+> `specs/player-sect/tasks.md`。本节只冻结未来契约，**不代表可用**。
+
+### 13.1 动词与参数
+
+| 动词 | 参数 | 说明 |
+|---|---|---|
+| `found_sect` | `name`、`at`、`doctrine?`、`sect_id?` | 立派；`at` 缺省为当前所在地 |
+| `recruit_disciple` | `sect_id`、`target` | 收 NPC 为徒 |
+| `expel_disciple` | `sect_id`、`target` | 掌门逐出弟子 |
+| `pay_disciples` | `sect_id`、`day?` | 门派日结（收会费 / 发俸禄 / 欠饷判定） |
+| `sect_deposit` | `sect_id`、`amount` | 掌门向金库存钱 |
+| `sect_withdraw` | `sect_id`、`amount` | 掌门从金库提钱 |
+
+### 13.2 门槛（玩家口径，与 NPC 的 2500 文 / 声望 40 / 5 人不同）
+
+- 立派合计 **800 文**：注册费 200 文（`transfer` 到 `treasury:region`）+ 启动金
+  600 文（`transfer` 到 `treasury:sect:<sid>`）；声望 **≥ 20**；**单人可立派**。
+- 收徒：好感 ≥ 30、信任 ≥ 30、目标技能 ≥ 0.2、掌门技能 ≥ 0.4、掌门声望 ≥ 20，
+  掌门与目标同地点，草创期弟子上限 **3**。
+- 日结：每徒每日会费 **5 文**（弟子 → 金库）、俸禄 **10 文**（金库 → 弟子）；
+  欠饷累计 ≥ **30 文** 当日离派（离派不清债）。
+- 提取：单次 ≤ **500 文**，提取后金库须留 **100 文**。
+
+### 13.3 拒绝码（未来会并入 §7）
+
+`not_enough_money`、`reputation_too_low`、`already_in_sect`、`sect_not_found`、
+`not_sect_master`、`target_declined`、`disciples_full`、`wrong_location`、
+`unknown_location`、`invalid_sect_name`、`sect_name_taken`、`sect_exists`、
+`target_not_found`、`target_not_alive`、`target_is_player`、
+`not_together`、`self_recruit`、`target_in_sect`、`already_disciple`、`skill_too_low`、
+`target_not_disciple`、`no_disciples`、`already_settled_today`、`insufficient_treasury`、
+`withdraw_over_cap`、`treasury_reserve`、`bad_arg:sect_id`、`bad_arg:amount`、`bad_arg:day`。
+
+中文文案以 `specs/player-sect/spec.md §6` 为准。
+
+### 13.4 事件与钱流
+
+所有金额只走真实 `transfer` / `debt_*`，不 `mint`、P1 不 `burn`：
+
+| `reason` | 方向 |
+|---|---|
+| `sect_registration_fee` | 掌门钱包 → 官仓 |
+| `sect_endowment` | 掌门钱包 → 门派金库 |
+| `sect_dues` | 弟子钱包 → 门派金库 |
+| `sect_stipend` | 门派金库 → 弟子钱包 |
+| `sect_deposit` / `sect_withdraw` | 掌门钱包 ↔ 门派金库 |
+
+欠付写 `Debt`：`unpaid_dues`（弟子欠门派）、`unpaid_stipend`（门派欠弟子）。
+
+### 13.5 验收事件链（真实服务接线后）
+
+`found_sect` → `recruit_disciple` ×2 → `pay_disciples` ×3（第 0/1/2 日）→
+第 2 日日结出现 `set_field faction=null`、双向关系 `status=ended`、
+记忆「欠饷 30 文离派」；整链 `minted_total` / `burned_total` 不变。

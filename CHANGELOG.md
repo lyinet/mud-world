@@ -9,6 +9,35 @@
 
 ---
 
+## [功能] 2026-11-06 — 玩家门派 P1：立派 / 收徒 / 日结 / 金库（动作层，未接线）
+
+- **改了什么**
+  - 新增 `specs/player-sect/`：`spec.md`（门槛、属性、收徒、治理、钱流、原因码、验收链、P1/P2）、
+    `tasks.md`（实现与接线清单）、`checklist.md`。
+  - 新增 `src/wsim/actions/player_sect.py`：`PlayerFoundSectAction`、`PlayerRecruitDiscipleAction`、
+    `PlayerExpelDiscipleAction`、`PlayerPayDisciplesAction`、`PlayerSectDepositAction`、
+    `PlayerSectWithdrawAction`；纯 `preconditions` + `effects`，复用 `world/effects.py` 原语。
+  - 新增 `tests/test_player_sect_actions.py`（24 条）。
+  - `docs/player-api.md` 新增 §13「未接线：门派动作设计」，并在 §11 记录 `1.2`。
+- **关键数值**：立派 800 文（注册费 200 → 官仓 + 启动金 600 → 门派金库）、声望 ≥ 20、单人立派；
+  收徒好感/信任 ≥ 30、目标技能 ≥ 0.2、掌门技能 ≥ 0.4；草创期弟子上限 3；
+  会费 5 文/日/徒、俸禄 10 文/日/徒、欠饷 ≥ 30 文当日离派；提取单次 ≤ 500、留 100 保底。
+- **为什么改**：NPC 的 2500 文 / 声望 40 / 5 名弟子依赖未对玩家开放的 `apprentice`，单人玩家
+  无法在立派前凑齐 5 人；玩家初始 300 文、日净结余约 30–40 文，2500 文会把立派推到玩法末期。
+  玩家口径改为 800 文 + 单人立派，并保留“先立派、再收徒”的正向循环。
+- **钱流纪律**：所有金额走真实 `transfer` / `debt_*`；P1 不 `mint`、不 `burn`
+  （注册费改真实转入 `treasury:region`）；欠付写 `unpaid_dues` / `unpaid_stipend` 债务，离派不销债。
+- **验证方式**：`python -m pytest tests/test_player_sect_actions.py -q` → 24 passed；
+  `python -m pytest -q` → 全量 554 条收集、全部通过（18 skip）。
+  事件链单测用 `Writer + EventStore` 跑出 `found_sect → recruit_disciple ×2 → pay_disciples ×3`，
+  第 2 日日结出现 `faction=null` / `master=null` / 双向关系 `ended` / 记忆「欠饷30文离派」，
+  且整链 `minted_total`、`burned_total` 不变、`conservation_error == 0`。
+- **未做**：未改 `actions/registry.py`、`actions/player.py`、`api/session.py`、`content/**`；
+  API 仍拒绝调用，接线点见 `specs/player-sect/tasks.md`。
+- **commit**：`（见本提交）`（spec / 动作层+测试 / 文档各自成笔）。
+
+---
+
 ## [安全] 2026-11-06 — 历史凭证口径修正：已知风险 + 触发条件
 
 - **改了什么**：`SECURITY.md` §1 由“必须吊销/轮换、禁止复用、吊销前不得公开”改为
