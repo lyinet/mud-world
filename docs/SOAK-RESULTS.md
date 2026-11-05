@@ -39,7 +39,7 @@
 
 | 验收项 | 门槛 | 实测 | 判定 |
 |---|---|---|---|
-| RSS 预热后增长 | < 5%/小时 | **695.6 MB/h（高水位），+88.8%/h（相对均值）** | **FAIL** |
+| RSS 预热后增长 | < 5%/小时 | **695.6 MB/h（高水位），+121.3%/h（相对预热均值）** | **FAIL** |
 | P95 漂移（read） | 末10min/首10min < 1.3 | **32.622**（238.8ms → 7,790.0ms） | **FAIL** |
 | P95 漂移（write） | 末10min/首10min < 1.3 | **24.213**（245.4ms → 5,943.0ms） | **FAIL** |
 | 0 error | =0 | **201**（全部为尾部客户端超时） | **FAIL** |
@@ -177,10 +177,11 @@ view_cache 等 17 个结构全程 0 增长）：
 1. **每次写都全量深拷贝状态**：`src/wsim/world/writer.py:125` `trial = self.state.clone()`；
    clone 覆盖 quests/relations/memories/talk_ledger 等（`src/wsim/world/state.py` 的 clone 实现），
    而 `state.quests` 正以 351/h 增长，于是每写一次的成本随时长线性上升。写入前的 precondition
-   路径还会再 clone（`src/wsim/actions/player.py`、`src/wsim/world/effects.py` 中各自 `clone()`）。
+   路径还会再 clone（`src/wsim/actions/player.py:548`、`src/wsim/world/effects.py:946`）。
    对应实测：每请求 CPU 12.6→44.2ms。
-2. **读路径随世界规模线性变慢**：`src/wsim/api/session.py:1217` 每次 state 读都 `sorted(state.quests)`，
-   `:1149` 遍历全部 relations 生成视图；`_view_cache` 每个 tick 清空（`session.py:457-459` 附近），
+2. **读路径随世界规模线性变慢**：`src/wsim/api/session.py:661`、`:1007`、`:1018`、`:1362` 每次都
+   `sorted(self.state.quests.values(), key=q.id)`，`:1294` 遍历全部 relations 生成视图；
+   `_view_cache` 每个 tick 清空（`session.py:529`），
    即每个动作都要重建视图。对应实测：read P50 86ms→2,305ms。
 3. **对象数 8 倍增长 → GC 成本**：`gc_objects` 34.4 万→274.8 万（+1.37M/h），生成 2 代回收的扫描量
    随之线性上升（本工具只计数，没有测单次 GC 暂停时长）。
@@ -266,9 +267,9 @@ view_cache 等 17 个结构全程 0 增长）：
 | 指标 | 2h 实测 | 7 天 | 30 天 | 90 天 |
 |---|---|---|---|---|
 | 事件条数 | 239,207 | **23.18 M** | **98.55 M** | **295.5 M** |
-| `events.sqlite` | 217.5 MB | **20.8 GB** | **88.7 GB** | **265 GB** |
-| `mcp_audit.jsonl` | 168 MB | **14.1 GB** | **60.4 GB** | **181 GB** |
-| 进程内存（高水位） | 1356 MB | **118 GB** | **490 GB** | **1469 GB** |
+| `events.sqlite` | 217.5 MB | **20.4 GB** | **86.6 GB** | **259.5 GB** |
+| `mcp_audit.jsonl` | 168 MB | **13.8 GB** | **59.0 GB** | **177.0 GB** |
+| 进程内存（高水位） | 1356 MB | **115.4 GB** | **490.4 GB** | **1468.6 GB** |
 | 重启恢复耗时（按 15.2k 事件/s） | 15.8 s | 25 min | 108 min | 5.4 h |
 
 > 这些是**数学外推**，不含 OOM/降速截断。实际会在内存到达物理上限前被 OOM kill 或先因延迟不可用；
@@ -289,14 +290,14 @@ view_cache 等 17 个结构全程 0 增长）：
 2. **`MCPGateway.outbox` 无界** — `src/wsim/mcp/gateway.py`（`world.propose_intent` 里 `self.outbox.append`，
    API 写路径没有消费者 drain）。实测：400 写 → outbox len 402；`Intent` 总量 ≈ tokens + outbox。
    建议：消费后出队，或按容量上限保留最近 N 条。
-3. **completed quest 永不清理** — `src/wsim/actions/quests.py:397-407`，`quest_prune` 只清
+3. **completed quest 永不清理** — `src/wsim/actions/quests.py:399-408`，`quest_prune` 只清
    `expired/failed`；`state.quests` 实测 257→874（**351.3/h**）。它同时推高 `state.clone()` 成本。
    建议：completed 超过 N 天（如 7 天）也 prune。
 4. **每次写全量 `state.clone()`（深拷贝）** — `src/wsim/world/writer.py:125`；precondition 另有
-   clone（`src/wsim/actions/player.py`、`src/wsim/world/effects.py`）。实测每请求 CPU 12.6→44.2ms。
+   clone（`src/wsim/actions/player.py:548`、`src/wsim/world/effects.py:946`）。实测每请求 CPU 12.6→44.2ms。
    建议：写路径改为 copy-on-write，或只 clone 被影响的子结构。
-5. **读路径随时长线性变慢** — `src/wsim/api/session.py:1217`（每次读 `sorted(state.quests)`）、
-   `:1149`（遍历全部 relations）、`:457-459` 附近（`_view_cache` 每 tick 清空）。
+5. **读路径随时长线性变慢** — `src/wsim/api/session.py:661/1007/1018/1362`（每次读都
+   `sorted(self.state.quests.values())`）、`:1294`（遍历全部 relations）、`:529`（`_view_cache` 每 tick 清空）。
    实测 read P50 86ms→2,305ms。
 6. **已在别处修复（116231a，本次进程未生效）**：`AuditLog.records` 改 `deque(maxlen=4096)` +
    审计文件 100MB×5 轮转；`Writer._seen` 改 `OrderedDict` 上限 20,000；`session.requests/intents`
