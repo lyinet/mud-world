@@ -41,7 +41,15 @@ class ActionRegistry:
 
 def build_registry(content, seed: int, plugin_dir: Path | None = None) -> ActionRegistry:
     from .basic import ConsumeAction, CultivateAction, MoveAction, WorkAction
-    from .business import FoundSectAction, OpenShopAction
+    from .business import (
+        DismissAction,
+        FoundSectAction,
+        OpenShopAction,
+        RestockAction,
+        SetPriceAction,
+        ShopReportAction,
+        WithdrawAction,
+    )
     from .commerce import BuyAction, SellAction, TradeAction
     from .escort import EscortAction, SystemEscortArriveAction
     from .player import (
@@ -102,6 +110,11 @@ def build_registry(content, seed: int, plugin_dir: Path | None = None) -> Action
     reg.register(RecruitAction(content))
     reg.register(TalkAction(content))
     reg.register(OpenShopAction(content))
+    reg.register(RestockAction(content))
+    reg.register(SetPriceAction(content))
+    reg.register(DismissAction(content))
+    reg.register(WithdrawAction(content))
+    reg.register(ShopReportAction(content))
     reg.register(EscortAction(content))
     reg.register(FoundSectAction(content))
     reg.register(QuestAcceptAction(content))

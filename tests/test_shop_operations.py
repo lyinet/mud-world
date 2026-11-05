@@ -18,14 +18,19 @@ import pytest
 from wsim.actions.basic import WorkAction
 from wsim.actions.business import (
     SHOP_INITIAL_STOCK,
+    DismissAction,
     OpenShopAction,
+    RestockAction,
+    SetPriceAction,
+    ShopReportAction,
+    WithdrawAction,
     build_shop_settlements,
     daily_shop_tax,
     shop_day_reset_effects,
     shop_settlement_effects,
     shop_stock_cost,
 )
-from wsim.actions.common import income_tax, wallet
+from wsim.actions.common import income_tax, sell_price, wallet
 from wsim.actions.registry import build_registry
 from wsim.actions.social import RecruitAction
 from wsim.audit.conservation import conservation
@@ -393,6 +398,223 @@ def test_day_end_emits_one_settle_after_maintenance_with_shop(tmp_path, real_con
         assert verbs.index("system_shop_settle") > verbs.index("system_maintenance")
         assert verbs.count("system_shop_settle") == 1
     assert [e.seq for e in events] == list(range(1, len(events) + 1))
+
+
+def _intent(verb: str, **args) -> Intent:
+    return Intent(actor="player:u1", verb=verb, args=args, tick=0, source="test")
+
+
+def _seed_shop_float(state, amount: int = 100) -> None:
+    apply_effects(state, [Effect("mint", {"account": SHOP_CASH, "amount": amount, "reason": "test_float"})])
+
+
+def test_restock_buys_stock_and_conserves_money(real_content, world):
+    _seed_shop(world, kind="stall")
+    _seed_shop_float(world, 60)
+    biz = world.businesses[SHOP_ID]
+    before = int(biz.stock.get("flatbread", 0))
+    cash_before = world.account_balance(SHOP_CASH)
+    minted_before = world.minted_total
+    unit = sell_price(real_content, "flatbread")
+
+    action = RestockAction(real_content)
+    intent = _intent("restock", item="flatbread", qty=5)
+    assert action.preconditions(world, intent) == []
+    effects = action.apply(world, intent, None)
+    apply_effects(world, effects)
+
+    assert world.businesses[SHOP_ID].stock["flatbread"] == before + 5
+    assert world.account_balance(SHOP_CASH) == cash_before - unit * 5
+    assert world.minted_total == minted_before
+    moves = [e for e in effects if e.op == "transfer"]
+    assert moves[0].data == {
+        "src": SHOP_CASH, "dst": "treasury:region",
+        "amount": unit * 5, "reason": "restock",
+    }
+    created = [e for e in effects if e.op == "item_create"]
+    assert created[0].data["reason"] == "restock"
+    audit = [e for e in effects if e.op == "audit_log"][0].data
+    assert "stock_before=" + str(before) in audit["fields"]
+    assert "stock_after=" + str(before + 5) in audit["fields"]
+    assert conservation(world)["conservation_error"] == 0
+
+
+def test_restock_rejects_poor_shop_and_non_owner(real_content, world):
+    _seed_shop(world, kind="stall")
+    # 店现不足：本就没钱，补货直接拒绝。
+    action = RestockAction(real_content)
+    intent = _intent("restock", item="flatbread", qty=2)
+    assert action.preconditions(world, intent) == ["insufficient_shop_cash"]
+
+    # 不是店主：玩家名下店铺的 owner 换成别人。
+    world.businesses[SHOP_ID].owner = "npc:other"
+    assert action.preconditions(world, intent) == ["not_shop_owner"]
+
+
+def test_set_price_band_and_reject(real_content, world):
+    _seed_shop(world, kind="stall")
+    action = SetPriceAction(real_content)
+    base = int(real_content.item_price("flatbread", world))
+    high = int(round(base * 1.2))
+
+    ok = _intent("set_price", item="flatbread", price=high)
+    assert action.preconditions(world, ok) == []
+    apply_effects(world, action.apply(world, ok, None))
+    assert world.businesses[SHOP_ID].price_overrides["flatbread"] == high
+
+    bad = _intent("set_price", item="flatbread", price=high + 1)
+    assert action.preconditions(world, bad) == ["price_out_of_range"]
+
+    # 非店主同样拒绝，而不是静默写入。
+    world.businesses[SHOP_ID].owner = "npc:other"
+    assert action.preconditions(world, ok) == ["not_shop_owner"]
+
+
+def test_withdraw_caps_at_shop_cash(real_content, world):
+    _seed_shop(world, kind="stall")
+    _seed_shop_float(world, 30)
+    action = WithdrawAction(real_content)
+    wallet_before = world.account_balance(wallet("player:u1"))
+
+    ok = _intent("withdraw", qty=25)
+    assert action.preconditions(world, ok) == []
+    apply_effects(world, action.apply(world, ok, None))
+    assert world.account_balance(wallet("player:u1")) == wallet_before + 25
+    assert world.account_balance(SHOP_CASH) == 5
+    assert world.businesses[SHOP_ID].day_revenue == 0, "提现不得计入营收"
+
+    over = _intent("withdraw", qty=10)
+    assert action.preconditions(world, over) == ["insufficient_shop_cash"]
+
+
+def test_dismiss_keeps_unpaid_wage_debt(real_content, world):
+    _seed_shop(world, kind="stall")
+    _seed_employee(world, "npc:emp1", 20)
+    apply_effects(world, [Effect("debt_create", {
+        "id": "debt:wage:shop:player:u1:npc:emp1", "creditor": "npc:emp1",
+        "debtor": SHOP_ID, "amount": 12, "long_term": False,
+        "created_tick": 0, "note": "unpaid_wage",
+    })])
+    action = DismissAction(real_content)
+    intent = _intent("dismiss", target="npc:emp1")
+    assert action.preconditions(world, intent) == []
+    apply_effects(world, action.apply(world, intent, None))
+
+    biz = world.businesses[SHOP_ID]
+    assert biz.employees == [] and biz.employee_wages == {}
+    assert world.entities["npc:emp1"].employed_at is None
+    assert world.debts["debt:wage:shop:player:u1:npc:emp1"].status == "active"
+    assert world.debts["debt:wage:shop:player:u1:npc:emp1"].amount == 12
+    # 再辞退：已经不是雇工。
+    assert action.preconditions(world, intent) == ["not_employed"]
+    # 非店主拒绝。
+    world.businesses[SHOP_ID].owner = "npc:other"
+    assert action.preconditions(world, intent) == ["not_shop_owner"]
+
+
+def test_shop_report_returns_last_seven_rows(real_content, world):
+    _seed_shop(world, kind="stall")
+    biz = world.businesses[SHOP_ID]
+    for day in range(9):
+        biz.day_history.append({
+            "day": day, "revenue": 10 + day, "restock": 2, "wage": 6,
+            "tax": 1, "net_profit": 1 + day, "tx": 2, "customers": 2,
+        })
+    action = ShopReportAction(real_content)
+    intent = _intent("shop_report")
+    assert action.preconditions(world, intent) == []
+    effects = action.apply(world, intent, None)
+    report = [e for e in effects if e.op == "shop_report"][0].data
+    assert [row["day"] for row in report["days"]] == [2, 3, 4, 5, 6, 7, 8]
+    assert report["days"][-1]["net_profit"] == 9
+    assert report["days"][-1]["tx"] == 2
+
+    world.businesses[SHOP_ID].owner = "npc:other"
+    assert action.preconditions(world, intent) == ["not_shop_owner"]
+
+
+def test_buyer_picks_cheaper_shop_when_prices_differ(real_content, world):
+    from wsim.actions.commerce import BuyAction
+
+    _seed_shop(world, kind="stall")
+    rival_id = "shop:npc:rival"
+    rival_cash = f"cash:{rival_id}"
+    apply_effects(world, [
+        Effect("create_account", {"account": rival_cash}),
+        Effect("create_business", {
+            "id": rival_id, "name": "对门小摊", "location": "market",
+            "kind": "stall", "owner": "npc:rival", "cash_account": rival_cash,
+        }),
+    ])
+    world.businesses[rival_id].stock = {"flatbread": 20}
+    world.businesses[SHOP_ID].stock = {"flatbread": 20}
+    buyer = next(e for e in sorted(world.entities.values(), key=lambda e: e.id)
+                 if not e.id.startswith("player:"))
+    apply_effects(world, [
+        Effect("set_location", {"entity": buyer.id, "to": "market"}),
+        Effect("mint", {"account": wallet(buyer.id), "amount": 200, "reason": "test"}),
+    ])
+    base = int(real_content.item_price("flatbread", world))
+    # 玩家店比 NPC 店便宜 1 文：买主必须走进玩家店。
+    apply_effects(world, [Effect("shop_price", {
+        "business": SHOP_ID, "item": "flatbread", "price": max(1, base - 1),
+    })])
+    buy = BuyAction(real_content)
+    intent = Intent(actor=buyer.id, verb="buy", args={"item": "flatbread", "qty": 1},
+                    tick=0, source="test")
+    assert buy.preconditions(world, intent) == []
+    effects = buy.apply(world, intent, None)
+    pays = [e for e in effects if e.op == "transfer" and e.data.get("reason") == "buy"]
+    assert [p.data["dst"] for p in pays] == [SHOP_CASH]
+
+    # 玩家店贵 1 文：买主回落 NPC 店，玩家店当日成交笔数保持 0。
+    apply_effects(world, [Effect("shop_price", {
+        "business": SHOP_ID, "item": "flatbread", "price": base + 1,
+    })])
+    effects = buy.apply(world, intent, None)
+    pays = [e for e in effects if e.op == "transfer" and e.data.get("reason") == "buy"]
+    assert pays and all(p.data["dst"] != SHOP_CASH for p in pays), "贵价玩家店不应成交"
+    assert world.businesses[SHOP_ID].day_customers == 0
+    assert conservation(world)["conservation_error"] == 0
+
+
+def test_settlement_output_scales_with_skill(real_content, world):
+    _seed_shop(world, kind="storefront")
+    _seed_employee(world, "npc:emp1", 20)
+    world.entities["npc:emp1"].skills = {"屠户": 0.9}
+    biz = world.businesses[SHOP_ID]
+    biz.day_revenue = 40
+    row = build_shop_settlements(real_content, world)[0]
+    assert row["output_qty"] == 2, "熟练工（技能0.9）日产出 2 件"
+    assert row["tx"] == 0 and row["customers"] == 0
+
+
+def test_player_api_exposes_shop_actions():
+    from wsim.actions.player import PLAYER_VERBS
+    from wsim.api.session import ACTION_ALIASES, WRITE_ACTIONS, WorldSession
+
+    for verb in ("restock", "set_price", "dismiss", "withdraw", "shop_report"):
+        assert verb in PLAYER_VERBS
+        assert ACTION_ALIASES[verb] == verb
+        assert WRITE_ACTIONS[verb] == verb
+
+    args = WorldSession._args(
+        None, "restock", "player:u_demo", "u_demo",
+        {"item": "flatbread", "qty": 3, "from": ""},
+    )
+    assert args["item"] == "flatbread" and args["qty"] == 3
+    assert "from" not in args
+    assert WorldSession._args(
+        None, "set_price", "player:u_demo", "u_demo",
+        {"item": "flatbread", "price": 4},
+    )["price"] == 4
+    assert WorldSession._args(
+        None, "withdraw", "player:u_demo", "u_demo", {"qty": 5},
+    )["qty"] == 5
+    # UI 侧传 amount，后端也要收（_args 只做键名兼容，不改动作语义）。
+    assert WorldSession._args(
+        None, "withdraw", "player:u_demo", "u_demo", {"amount": 5},
+    )["qty"] == 5
 
 
 def test_player_api_exposes_recruit_with_shop_semantics():

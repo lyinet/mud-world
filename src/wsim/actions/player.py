@@ -53,6 +53,12 @@ PLAYER_VERBS = frozenset(
         "cultivate",
         "work",
         "open_shop",
+        # 店铺经营：补货、定价、辞退、提现、看账。
+        "restock",
+        "set_price",
+        "dismiss",
+        "withdraw",
+        "shop_report",
         "join_sect",
         # 店铺雇佣：复用 RecruitAction 的 shop/position/wage 语义（店员，不是门派招揽）。
         "recruit",

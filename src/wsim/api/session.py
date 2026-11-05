@@ -87,6 +87,12 @@ WRITE_ACTIONS: dict[str, str] = {
     "cultivate": "cultivate",
     "work": "work",
     "open_shop": "open_shop",
+    # 店铺经营：补货 / 定价 / 辞退 / 提现 / 看账。
+    "restock": "restock",
+    "set_price": "set_price",
+    "dismiss": "dismiss",
+    "withdraw": "withdraw",
+    "shop_report": "shop_report",
     "join_sect": "join_sect",
     # 店铺雇佣：参数与 RecruitAction 一致（target/position/wage，shop 缺省本人店铺）。
     "recruit": "recruit",
@@ -121,6 +127,11 @@ ACTION_ALIASES: dict[str, str] = {
     "cultivate": "cultivate",
     "work": "work",
     "open_shop": "open_shop",
+    "restock": "restock",
+    "set_price": "set_price",
+    "dismiss": "dismiss",
+    "withdraw": "withdraw",
+    "shop_report": "shop_report",
     "join_sect": "join_sect",
     "recruit": "recruit",
     "quest_accept": "quest/accept",
@@ -1637,6 +1648,27 @@ class WorldSession:
             base["shop_type"] = str(payload.get("shop_type") or "stall")
             base["name"] = str(payload.get("name") or f"{ent.name if ent else '玩家'}的摊子")
             return base
+        if action == "restock":
+            # 空串会被 arg_str 判成 bad_arg，因此只透传非空 item/from。
+            base["item"] = str(payload.get("item") or "")
+            base["qty"] = payload.get("qty", 1)
+            supplier = str(payload.get("from") or "")
+            if supplier:
+                base["from"] = supplier
+            return base
+        if action == "set_price":
+            base["item"] = str(payload.get("item") or "")
+            base["price"] = payload.get("price")
+            return base
+        if action == "dismiss":
+            base["target"] = str(payload.get("target") or "")
+            return base
+        if action == "withdraw":
+            # UI 侧用 amount，后端动作用 qty；两种键都收，缺省取 qty。
+            base["qty"] = payload.get("qty", payload.get("amount"))
+            return base
+        if action == "shop_report":
+            return base
         if action == "join_sect":
             ent = self.state.entities.get(pid)
             base["target"] = str(payload.get("target") or (ent.location if ent is not None else ""))
@@ -1998,6 +2030,12 @@ class WorldSession:
                 m = dict(eff.get("data") or {})
                 if m.get("source") == "talk:npc":
                     details["reply"] = str(m.get("text", "")).removeprefix("我答：")
+            elif eff.get("op") == "shop_report":
+                # 新增的只读透传：不改任何既有视图字段，只给 shop_report 动作附带 7 日账。
+                # W4 的 UI 读 details.days，同时保留 details.report（含店现/价格覆盖）。
+                report = dict(eff.get("data") or {})
+                details["report"] = report
+                details["days"] = list(report.get("days") or [])
         return {
             "ok": event.outcome == "ok",
             "status": "executed" if event.outcome == "ok" else "rejected",

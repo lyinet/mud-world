@@ -59,6 +59,10 @@ EFFECT_OPS = frozenset(
         "set_field",
         "set_employment",
         "shop_hire",
+        "shop_dismiss",
+        "shop_price",
+        "shop_history",
+        "shop_report",
         "shop_day_close",
         "relation_upsert",
         "marry",
@@ -255,12 +259,14 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         # 玩家店铺当日流水：营收=顾客买入入公账，进货=公账付给卖方。
         # 只累计运行期计数，不改变任何持久字段，日结事件统一结算。
         reason = str(d.get("reason", ""))
-        # 顾客买入与在店里消费/吃饭都算店铺营收；向卖方付款（sell）算进货。
+        # 顾客买入与在店里消费/吃饭都算店铺营收；向卖方付款（sell/restock）算进货。
+        # withdraw 是店主提现，既不是营收也不是进货，不进入日结流水。
         if reason in ("buy", "consume"):
             shop = _player_shop_by_account(state, dst)
             if shop is not None:
                 shop.day_revenue += amount
-        elif reason == "sell":
+                shop.day_customers += 1
+        elif reason in ("sell", "restock"):
             shop = _player_shop_by_account(state, src)
             if shop is not None:
                 shop.day_restock += amount
@@ -272,6 +278,7 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         for biz in state.businesses.values():
             biz.day_revenue = 0
             biz.day_restock = 0
+            biz.day_customers = 0
         for bid, amount in dict(arrears).items():
             biz = state.businesses.get(str(bid))
             if biz is not None:
@@ -372,6 +379,50 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             biz.employees.append(ent.id)
         biz.employee_wages[ent.id] = wage
         biz.employee_positions[ent.id] = str(d.get("position", ""))
+        return
+
+    if op == "shop_dismiss":
+        # 辞退只解除契约，不核销欠薪：欠薪仍以 debtor=店铺 的债务存在，由日界清偿。
+        ent = _entity(state, str(d["entity"]))
+        bid = str(d["business"])
+        biz = state.businesses.get(bid)
+        if biz is None:
+            raise EffectError(f"商业体不存在: {bid}")
+        if ent.id not in biz.employees:
+            raise EffectError(f"不是本店雇工: {ent.id}")
+        biz.employees.remove(ent.id)
+        biz.employee_wages.pop(ent.id, None)
+        biz.employee_positions.pop(ent.id, None)
+        if ent.employed_at == bid:
+            ent.employed_at = None
+        return
+
+    if op == "shop_price":
+        # 店主定价覆盖：price<=0 表示撤销，恢复基准价。价格本身由动作层校验 ±20%。
+        biz = state.businesses.get(str(d["business"]))
+        if biz is None:
+            raise EffectError(f"商业体不存在: {d['business']}")
+        item = str(d["item"])
+        price = _as_int(d["price"], "price")
+        if price <= 0:
+            biz.price_overrides.pop(item, None)
+        else:
+            biz.price_overrides[item] = price
+        return
+
+    if op == "shop_report":
+        # 只读视图：不修改 state，由 API 的 _response 透传给玩家。
+        return
+
+    if op == "shop_history":
+        # 日结快照只留最近 7 条；row 与 system_shop_settle 事件 args 同源。
+        biz = state.businesses.get(str(d["business"]))
+        if biz is None:
+            raise EffectError(f"商业体不存在: {d['business']}")
+        row = dict(d.get("row") or {})
+        biz.day_history.append(row)
+        if len(biz.day_history) > 7:
+            biz.day_history = biz.day_history[-7:]
         return
 
     if op == "relation_upsert":

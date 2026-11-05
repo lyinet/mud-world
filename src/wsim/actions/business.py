@@ -18,6 +18,7 @@ from .common import (
     require_entity,
     role_allowed,
     sell_price,
+    shop_price,
     treasury_balance,
     treasury_guard_active,
     treasury_open_shop_buffer,
@@ -48,6 +49,16 @@ SHOP_HIRE_MIN_AFFECTION = 6.0
 SHOP_HIRE_WAGE_MIN_RATIO = 0.8
 SHOP_HIRE_WAGE_MAX_RATIO = 1.5
 
+# 店主定价带：只允许基准价 ±20%，超出返回 price_out_of_range。
+SHOP_PRICE_BAND = 0.20
+RESTOCK_QTY_MAX = 50
+
+# 专程进店客流：档位基础概率 + 每名当班雇工加成，上限 0.80。
+# 机制常数写在这里而不是 content：不改内容数值，且可单独回归。
+SHOP_ATTRACTION_BASE = {"stall": 0.32, "storefront": 0.45, "branch": 0.55}
+SHOP_ATTRACTION_PER_EMPLOYEE = 0.12
+SHOP_ATTRACTION_CAP = 0.80
+
 
 def _initial_stock(content, kind: str) -> dict[str, int]:
     table = SHOP_INITIAL_STOCK.get(kind) or {}
@@ -77,6 +88,34 @@ def is_player_owned(biz) -> bool:
 def has_player_shop(state: WorldState) -> bool:
     """世界内是否存在玩家店铺：headless / 调度器 / 日结前置共用这一处判断。"""
     return any(is_player_owned(biz) for biz in state.businesses.values())
+
+
+def shop_attraction(biz, present: int) -> float:
+    """专程进店概率：档位基础值 + 当班雇工加成，封顶 0.80。
+
+    在没有玩家店的世界不会被调用；同 seed 下只看 (kind, present)，无随机、无墙钟。
+    """
+    base = SHOP_ATTRACTION_BASE.get(str(getattr(biz, "kind", "")), 0.32)
+    return min(SHOP_ATTRACTION_CAP, base + SHOP_ATTRACTION_PER_EMPLOYEE * max(0, int(present)))
+
+
+def _employee_output_units(state: WorldState, eid: str) -> int:
+    """雇工日产出件数随技能：新手工 1 件，技能 ≥0.5 的熟练工 2 件。"""
+    ent = state.entities.get(eid)
+    if ent is None:
+        return 0
+    return max(1, int(round(1 + float(max_skill(ent))))) if max_skill(ent) > 0 else 1
+
+
+def player_shop_for(state: WorldState, ent) -> tuple[object | None, str]:
+    """动作共用：当前玩家自己开的店；返回 (biz, 拒绝码)。"""
+    shop_id = str(getattr(ent, "business", "") or "")
+    if not shop_id or shop_id not in state.businesses:
+        return None, "no_shop"
+    biz = state.businesses[shop_id]
+    if biz.owner != ent.id:
+        return None, "not_shop_owner"
+    return biz, ""
 
 
 def is_shop_hire(intent: Intent) -> bool:
@@ -252,11 +291,15 @@ def build_shop_settlements(content, state: WorldState, tick: int | None = None) 
         net = revenue - restock - wage_total - tax
         output_item = shop_output_item(content, biz.kind)
         present_count = sum(1 for row in employees if row["present"])
+        output_units = sum(
+            _employee_output_units(state, row["employee"]) for row in employees if row["present"]
+        )
         rows.append({
             "shop": bid,
             "kind": biz.kind,
             "revenue": revenue,
             "restock": restock,
+            "tx": int(biz.day_customers),
             "wage": wage_total,
             "wage_paid": sum(row["paid"] for row in employees),
             "wage_unpaid": sum(row["unpaid"] for row in employees),
@@ -271,7 +314,8 @@ def build_shop_settlements(content, state: WorldState, tick: int | None = None) 
             "absent": absent,
             "present_count": present_count,
             "output_item": output_item,
-            "output_qty": present_count if output_item else 0,
+            "output_qty": output_units if output_item else 0,
+            "customers": int(biz.day_customers),
             "cash": cash,
         })
     return rows
@@ -346,6 +390,8 @@ def shop_settlement_effects(content, state: WorldState, rows: list[dict], tick: 
             effects.append(Effect("item_create", {
                 "owner": bid, "item": str(output_item), "qty": output_qty, "reason": "shop_output",
             }))
+        _, history_row = build_shop_history_row(row, tick)
+        effects.append(Effect("shop_history", {"business": bid, "row": history_row}))
         if biz.owner:
             warn = "（亏损，店主需补足）" if row.get("loss") else ""
             arrears = int(row.get("tax_arrears", 0))
@@ -358,6 +404,21 @@ def shop_settlement_effects(content, state: WorldState, rows: list[dict], tick: 
                 0.6,
             ))
     return effects
+
+
+def build_shop_history_row(row: dict, tick: int) -> tuple[int, dict]:
+    """shop_report 的 7 日行：与 system_shop_settle 事件 args 同源，只留决策字段。"""
+    day = settled_day_of(int(tick))
+    return day, {
+        "day": day,
+        "revenue": int(row.get("revenue", 0)),
+        "restock": int(row.get("restock", 0)),
+        "wage": int(row.get("wage", 0)),
+        "tax": int(row.get("tax", 0)),
+        "net_profit": int(row.get("net", 0)),
+        "tx": int(row.get("tx", 0)),
+        "customers": int(row.get("customers", 0)),
+    }
 
 
 def shop_day_reset_effects(state: WorldState, rows: list[dict]) -> list[Effect]:
@@ -463,6 +524,210 @@ class OpenShopAction(Action):
             ]
         )
         return effects
+
+
+class RestockAction(Action):
+    verb = "restock"
+
+    def __init__(self, content):
+        self.content = content
+
+    def _quote(self, state: WorldState, biz, item: str, qty: int, from_id: str):
+        """返回 (单价, 收款账户, 拒绝码)；缺省从区域公账批发。"""
+        if from_id:
+            src = state.businesses.get(from_id)
+            if src is None or src.id == biz.id or src.location != biz.location:
+                return 0, "", "no_supply"
+            if int(src.stock.get(item, 0)) < qty:
+                return 0, "", "no_supply"
+            return shop_price(self.content, state, src, item), src.cash_account, ""
+        return sell_price(self.content, item), "treasury:region", ""
+
+    def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
+        ent = require_entity(state, intent.actor)
+        biz, code = player_shop_for(state, ent)
+        if code:
+            return [code]
+        if biz.location != ent.location:
+            return ["wrong_location"]
+        item = arg_str(intent, "item")
+        if item not in self.content.items:
+            return ["unknown_item"]
+        qty = arg_int(intent, "qty", minimum=1, maximum=RESTOCK_QTY_MAX)
+        from_id = arg_str(intent, "from", required=False) or ""
+        unit, payee, code = self._quote(state, biz, item, qty, from_id)
+        if code:
+            return [code]
+        total = unit * qty
+        if state.account_balance(biz.cash_account) < total:
+            return ["insufficient_shop_cash"]
+        if state.account_balance(payee) < 0:
+            return ["no_supply"]
+        return []
+
+    def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
+        ent = require_entity(state, intent.actor)
+        biz, _ = player_shop_for(state, ent)
+        item = arg_str(intent, "item")
+        qty = arg_int(intent, "qty", minimum=1, maximum=RESTOCK_QTY_MAX)
+        from_id = arg_str(intent, "from", required=False) or ""
+        unit, payee, _ = self._quote(state, biz, item, qty, from_id)
+        total = unit * qty
+        before = int(biz.stock.get(item, 0))
+        effects: list[Effect] = [
+            Effect("transfer", {"src": biz.cash_account, "dst": payee,
+                                "amount": total, "reason": "restock"}),
+        ]
+        if from_id:
+            effects.append(Effect("item_move", {"src": from_id, "dst": biz.id,
+                                                "item": item, "qty": qty}))
+        else:
+            effects.append(Effect("item_create", {"owner": biz.id, "item": item,
+                                                  "qty": qty, "reason": "restock"}))
+        effects.append(Effect("audit_log", {
+            "kind": "shop_restock", "actor": ent.id, "tick": intent.tick,
+            "fields": [f"shop={biz.id}", f"item={item}", f"qty={qty}",
+                       f"unit={unit}", f"total={total}",
+                       f"stock_before={before}", f"stock_after={before + qty}"],
+            "note": "restock",
+        }))
+        effects.extend(memory(
+            state, ent.id, intent.tick,
+            f"{biz.name}补货{item}×{qty}，单价{unit}文，共{total}文，库存{before}→{before + qty}",
+            0.5,
+        ))
+        return effects
+
+
+class SetPriceAction(Action):
+    verb = "set_price"
+
+    def __init__(self, content):
+        self.content = content
+
+    def _band(self, state: WorldState, item: str) -> tuple[int, int, int]:
+        base = int(self.content.item_price(item, state))
+        return base, max(1, int(round(base * (1 - SHOP_PRICE_BAND)))), int(round(base * (1 + SHOP_PRICE_BAND)))
+
+    def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
+        ent = require_entity(state, intent.actor)
+        biz, code = player_shop_for(state, ent)
+        if code:
+            return [code]
+        item = arg_str(intent, "item")
+        if item not in self.content.items:
+            return ["unknown_item"]
+        price = arg_int(intent, "price", minimum=0, maximum=10**7)
+        if price > 0:
+            base, low, high = self._band(state, item)
+            if price < low or price > high:
+                return ["price_out_of_range"]
+        return []
+
+    def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
+        ent = require_entity(state, intent.actor)
+        biz, _ = player_shop_for(state, ent)
+        item = arg_str(intent, "item")
+        price = arg_int(intent, "price", minimum=0, maximum=10**7)
+        base, low, high = self._band(state, item)
+        text = f"{biz.name}把{item}售价调到{price}文（基准{base}，允许{low}–{high}）" if price > 0 \
+            else f"{biz.name}把{item}售价恢复基准{base}文"
+        return [
+            Effect("shop_price", {"business": biz.id, "item": item, "price": price}),
+            *memory(state, ent.id, intent.tick, text, 0.5),
+        ]
+
+
+class DismissAction(Action):
+    verb = "dismiss"
+
+    def __init__(self, content):
+        self.content = content
+
+    def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
+        ent = require_entity(state, intent.actor)
+        biz, code = player_shop_for(state, ent)
+        if code:
+            return [code]
+        target = arg_str(intent, "target")
+        if target not in state.entities:
+            return ["employee_not_found"]
+        if target not in biz.employees:
+            return ["not_employed"]
+        return []
+
+    def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
+        ent = require_entity(state, intent.actor)
+        biz, _ = player_shop_for(state, ent)
+        target = arg_str(intent, "target")
+        owed = state.debts.get(f"debt:wage:{biz.id}:{target}")
+        note = "；欠薪仍为店铺债务" if owed is not None and owed.status == "active" else ""
+        return [
+            Effect("shop_dismiss", {"business": biz.id, "entity": target}),
+            *memory(state, ent.id, intent.tick,
+                     f"{biz.name}辞退{state.entities[target].name}{note}", 0.5),
+            *memory(state, target, intent.tick,
+                     f"被{biz.name}辞退，契约解除{note}", 0.4),
+        ]
+
+
+class WithdrawAction(Action):
+    verb = "withdraw"
+
+    def __init__(self, content):
+        self.content = content
+
+    def _qty(self, state: WorldState, intent: Intent, biz) -> int:
+        return arg_int(intent, "qty", minimum=1, maximum=10**7)
+
+    def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
+        ent = require_entity(state, intent.actor)
+        biz, code = player_shop_for(state, ent)
+        if code:
+            return [code]
+        qty = self._qty(state, intent, biz)
+        if qty <= 0:
+            return ["bad_arg:qty"]
+        if state.account_balance(biz.cash_account) < qty:
+            return ["insufficient_shop_cash"]
+        if wallet(ent.id) not in state.accounts:
+            return ["not_enough_money"]
+        return []
+
+    def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
+        ent = require_entity(state, intent.actor)
+        biz, _ = player_shop_for(state, ent)
+        qty = self._qty(state, intent, biz)
+        after = state.account_balance(biz.cash_account) - qty
+        return [
+            Effect("transfer", {"src": biz.cash_account, "dst": wallet(ent.id),
+                                "amount": qty, "reason": "withdraw"}),
+            *memory(state, ent.id, intent.tick,
+                     f"从{biz.name}提现{qty}文，店现余{after}文", 0.4),
+        ]
+
+
+class ShopReportAction(Action):
+    verb = "shop_report"
+
+    def __init__(self, content):
+        self.content = content
+
+    def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
+        ent = require_entity(state, intent.actor)
+        _, code = player_shop_for(state, ent)
+        return [code] if code else []
+
+    def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
+        ent = require_entity(state, intent.actor)
+        biz, _ = player_shop_for(state, ent)
+        days = [dict(row) for row in biz.day_history][-7:]
+        return [Effect("shop_report", {
+            "shop": biz.id, "name": biz.name, "kind": biz.kind,
+            "days": days,
+            "cash": state.account_balance(biz.cash_account),
+            "price_overrides": dict(sorted(biz.price_overrides.items())),
+        })]
 
 
 class FoundSectAction(Action):

@@ -15,6 +15,7 @@ from .common import (
     memory,
     require_entity,
     sell_price,
+    shop_price,
     tax_split_effects,
     transaction_tax,
     wallet,
@@ -55,10 +56,12 @@ class BuyAction(Action):
             return ["wrong_location"]
         if item not in self.content.items:
             return ["unknown_item"]
-        seller = business_selling(state, ent.location, item, salt=ent.id, day=day_of(intent.tick))
+        seller = business_selling(state, ent.location, item, salt=ent.id,
+                                  day=day_of(intent.tick), content=self.content)
         if seller is None:
             return ["item_not_available"]
-        price = self.content.item_price(item, state) * qty
+        # 按卖家当店价成交：同地点同货不同价时，selling_shops 已先筛掉更贵的卖家。
+        price = shop_price(self.content, state, seller, item) * qty
         tax = transaction_tax(self.content, price)
         if state.account_balance(wallet(ent.id)) < price + tax:
             return ["insufficient_money"]
@@ -68,10 +71,11 @@ class BuyAction(Action):
         ent = require_entity(state, intent.actor)
         item = arg_str(intent, "item")
         qty = arg_int(intent, "qty", 1, minimum=1, maximum=20)
-        seller = business_selling(state, ent.location, item, salt=ent.id, day=day_of(intent.tick))
+        seller = business_selling(state, ent.location, item, salt=ent.id,
+                                  day=day_of(intent.tick), content=self.content)
         if seller is None:
             raise Reject("item_not_available")
-        price = self.content.item_price(item, state) * qty
+        price = shop_price(self.content, state, seller, item) * qty
         tax = transaction_tax(self.content, price)
         effects: list[Effect] = [
             Effect("transfer", {"src": wallet(ent.id), "dst": seller.cash_account, "amount": price, "reason": "buy"}),

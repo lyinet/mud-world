@@ -137,6 +137,12 @@ class Business:
     # 欠缴日摊税（运行期，不进 to_dict）：现金不足时结转到次日，仍由
     # system_shop_settle 自己补缴，不混入 system_debts。
     tax_arrears: int = 0
+    # 当日成交笔数（运行期，不进 to_dict）：shop_report 的 tx 与容量判断共用。
+    day_customers: int = 0
+    # 店主自定价（相对基准价 ±20% 内）：空字典不写进 to_dict()，旧世界哈希不变。
+    price_overrides: dict[str, int] = field(default_factory=dict)
+    # 最近 7 个世界日的日结快照：空列表不写进 to_dict()，无玩家店世界零污染。
+    day_history: list[dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         data = {
@@ -152,6 +158,10 @@ class Business:
         if self.employee_wages:
             data["employee_wages"] = dict(sorted(self.employee_wages.items()))
             data["employee_positions"] = dict(sorted(self.employee_positions.items()))
+        if self.price_overrides:
+            data["price_overrides"] = dict(sorted(self.price_overrides.items()))
+        if self.day_history:
+            data["day_history"] = list(self.day_history)
         return data
 
 

@@ -31,6 +31,7 @@ from ..actions.common import (
     role_allowed,
     sell_price,
     selling_shops,
+    shop_price,
     skill_for,
     stable_slot,
     treasury_balance,
@@ -42,6 +43,8 @@ from ..core.clock import TICKS_PER_DAY, day_of
 from ..core.models import Intent
 from ..core.rng import PRNG
 from ..world.state import WorldState
+# 机制常数只读引用：专程客流随档位与当班雇工变化（不改内容数值）。
+from ..actions.business import shop_attraction
 
 # 每个 LOD 档位每天允许的“目标动作”数（routine 通勤/上工/吃饭不计入深度）。
 DEPTH_GOAL_ACTIONS = {
@@ -994,20 +997,29 @@ class Planner:
                     )
         return loc, cursor, cash
 
-    def _player_shop_item(self, state: WorldState, biz, cash: int) -> tuple[str, int] | None:
-        """玩家店里当前买得起、最便宜的一件商品（服务/堂食不算商品）。"""
-        best: tuple[int, str] | None = None
+    def _player_shop_item(
+        self, state: WorldState, biz, cash: int, npc: str = "", day: int = 0
+    ) -> tuple[str, int] | None:
+        """玩家店里买得起的一件商品（服务/堂食不算），按稳定散列在候选间轮转。
+
+        同一天同一买主永远选同一件：确定性；不同买主均匀分布在不同价位，
+        避免所有人都只买最便宜的炊饼，也让贵货有稳定成交。
+        价格已按店主 `set_price` 覆盖后的当店价计算。
+        """
+        rows: list[tuple[str, int]] = []
         for iid, qty in sorted(biz.stock.items()):
             if qty <= 0 or iid not in self.content.items:
                 continue
             if str(self.content.items[iid].get("category", "")) in ("service", "meal"):
                 continue
-            price = self.content.item_price(iid, state)
+            price = shop_price(self.content, state, biz, iid)
             if price <= 0 or price * 3 > cash:
                 continue
-            if best is None or price < best[0]:
-                best = (price, iid)
-        return (best[1], best[0]) if best else None
+            rows.append((iid, price))
+        if not rows:
+            return None
+        iid, price = rows[stable_slot(f"{npc}|{day}|shop_item", len(rows))]
+        return iid, price
 
     def _player_shop_trip(
         self,
@@ -1024,8 +1036,9 @@ class Planner:
         """专程进店：日常活动地附近有玩家店时，走过去买一件。
 
         与“恰好路过”不同：命中当天即使人不在店里也会专门跑一趟（≤2 跳）。
-        去不去由 `(npc, 世界日)` 的稳定散列决定（约三分之一的日子），
-        完全确定性、不用随机源；没有玩家店时直接返回，零影响。
+        去不去由 `(npc, 世界日)` 的稳定散列决定，概率 `shop_attraction` 随
+        店铺档位与当班雇工数提高（branch 满员约八成日子会来），完全确定性、
+        不用随机源；没有玩家店时直接返回，零影响。
         """
         if memo.get("bought") or cursor >= end or cash < 120:
             return loc, cursor, cash
@@ -1038,8 +1051,6 @@ class Planner:
         if not shops:
             return loc, cursor, cash
         day = day_of(cursor)
-        if stable_slot(f"{npc}|{day}|trip", 1000) >= 320:
-            return loc, cursor, cash
         target = next((b for b in shops if b.location == loc), None)
         if target is None:
             near = [
@@ -1050,7 +1061,15 @@ class Planner:
             if not near:
                 return loc, cursor, cash
             target = min(near, key=lambda row: (row[0], row[1]))[2]
-        picked = self._player_shop_item(state, target, cash)
+        present = sum(
+            1 for eid in target.employees
+            if state.entities.get(eid) is not None
+            and state.entities[eid].status == "alive"
+            and state.entities[eid].location == target.location
+        )
+        if stable_slot(f"{npc}|{day}|trip", 1000) >= int(shop_attraction(target, present) * 1000):
+            return loc, cursor, cash
+        picked = self._player_shop_item(state, target, cash, npc, day)
         if picked is None:
             return loc, cursor, cash
         item, price = picked
@@ -1100,8 +1119,11 @@ class Planner:
         market = player_market_active(state)
         best: tuple[int, str] | None = None  # (price, iid)
         if market:
-            # 新口径：按“同一件货”的卖家轮转，玩家店与 NPC 店同权；
+            # 新口径：口粮篮 + 耐用品篮各一笔/日，互不挤占；
+            # 卖家按 (地点, 物品, 买主, 世界日) 稳定散列轮转，玩家店与 NPC 店同价同权；
             # 食物可囤（与午饭 consume 分开），库存可只剩 1 件。
+            food_rows: list[tuple[int, str]] = []
+            durable_rows: list[tuple[int, str]] = []
             candidates = sorted(
                 {
                     iid
@@ -1113,16 +1135,50 @@ class Planner:
             for iid in candidates:
                 if iid not in self.content.items:
                     continue
-                if str(self.content.items[iid].get("category", "")) in ("service", "meal"):
+                category = str(self.content.items[iid].get("category", ""))
+                if category in ("service", "meal"):
                     continue
-                sellers = selling_shops(state, loc, iid, npc, day)
+                sellers = selling_shops(state, loc, iid, npc, day, content=self.content)
                 if not sellers:
                     continue
-                price = self.content.item_price(iid, state)
+                price = shop_price(self.content, state, sellers[0], iid)
                 if price <= 0 or price * 3 > cash:
                     continue
-                if best is None or (price, iid) < best:
-                    best = (price, iid)
+                if category in ("food", "drink"):
+                    food_rows.append((price, iid))
+                else:
+                    durable_rows.append((price, iid))
+            tax_rate = float((self.content.economy.get("taxes") or {}).get("transaction", 0.0))
+            bought: list[str] = []
+            if food_rows and not memo.get("bought_food") and cursor < end:
+                price, iid = min(food_rows)
+                before = cursor
+                cursor = self._add(
+                    intents, npc, "buy", {"from": loc, "item": iid, "qty": 1},
+                    cursor, end, f"添置口粮{iid}",
+                )
+                if cursor != before:
+                    memo["bought_food"] = iid
+                    bought.append(iid)
+                    cash -= price + int(price * tax_rate)
+            if durable_rows and not memo.get("bought_durable") and cursor < end:
+                # 富买主按当日散列买到贵货，穷买主落在便宜货；同买主同日结果固定。
+                price, iid = durable_rows[
+                    stable_slot(f"{npc}|{day}|durable", len(durable_rows))
+                ]
+                if price * 3 <= cash:
+                    before = cursor
+                    cursor = self._add(
+                        intents, npc, "buy", {"from": loc, "item": iid, "qty": 1},
+                        cursor, end, f"手头宽裕，添置{iid}",
+                    )
+                    if cursor != before:
+                        memo["bought_durable"] = iid
+                        bought.append(iid)
+                        cash -= price + int(price * tax_rate)
+            if bought:
+                memo["bought"] = bought[-1]
+            return loc, cursor, cash
         else:
             # 无玩家店：旧口径（排除口粮、qty>=3、首个最便宜），事件逐字节不变。
             for biz in state.business_at(loc):
