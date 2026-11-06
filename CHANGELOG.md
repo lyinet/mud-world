@@ -24,7 +24,7 @@
   `docs/GIT-WORKFLOW.md` §4 补 tag 前 `content_hash` 比对项；
   `docs/CONTENT-SCALE.md` 补 2026-11-06 时点注记。
 - **验证**：`delivery-p3l` 哈希实测 `7ec670c1…`、当前 `5267a8a8…`（不同）；仅文档改动，无 `src/**` 改动。
-- **commit**：待回填
+- **commit**：`ca07429`
 
 ---
 
