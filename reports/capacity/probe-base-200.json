@@ -1,0 +1,113 @@
+{
+  "schema": "capacity-probe/v1",
+  "players": 200,
+  "entered": 199,
+  "duration_s": 49.89,
+  "think_time_s": 2.0,
+  "world_size": {
+    "entities": 231,
+    "players": 200,
+    "accounts": 241,
+    "businesses": 38,
+    "quests": 7,
+    "escorts": 0,
+    "total_tick": 16098
+  },
+  "lock": {
+    "acquires": 5567,
+    "wait_ms": {
+      "count": 5567,
+      "p50": 699.0,
+      "p95": 1534.0,
+      "p99": 2057.0,
+      "mean": 740.0,
+      "max": 3183.0
+    },
+    "hold_ms": {
+      "count": 5567,
+      "p50": 7.0,
+      "p95": 24.0,
+      "p99": 36.0,
+      "mean": 9.0,
+      "max": 341.0
+    },
+    "max_waiters": 192,
+    "waiters_p50": 87,
+    "waiters_p95": 127
+  },
+  "timers": {
+    "clone_ms": {
+      "count": 5910,
+      "p50": 7.0,
+      "p95": 11.0,
+      "p99": 23.0,
+      "mean": 7.0,
+      "max": 73.0
+    },
+    "apply_ms": {
+      "count": 5739,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "mean": 0.0,
+      "max": 1.0
+    },
+    "append_ms": {
+      "count": 5765,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 1.0,
+      "mean": 0.0,
+      "max": 318.0
+    },
+    "read_ms": {
+      "count": 2624,
+      "p50": 708.0,
+      "p95": 1431.0,
+      "p99": 2034.0,
+      "mean": 762.0,
+      "max": 3183.0
+    },
+    "write_ms": {
+      "count": 2623,
+      "p50": 789.0,
+      "p95": 1722.0,
+      "p99": 2098.0,
+      "mean": 827.0,
+      "max": 2385.0
+    }
+  },
+  "microbench_ms": {
+    "clone": {
+      "count": 60,
+      "p50": 4.0,
+      "p95": 5.0,
+      "p99": 7.0,
+      "mean": 5.0,
+      "max": 7.0
+    },
+    "read_player_state": {
+      "count": 60,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 1.0,
+      "mean": 0.0,
+      "max": 1.0
+    },
+    "write_move": {
+      "count": 60,
+      "p50": 11.0,
+      "p95": 13.0,
+      "p99": 17.0,
+      "mean": 10.0,
+      "max": 17.0
+    }
+  },
+  "throughput": {
+    "reads_per_second": 52.6,
+    "writes_per_second": 52.58,
+    "clone_ms_per_write": 7.355,
+    "append_ms_per_write": 0.212
+  },
+  "cpu_seconds": 48.66
+}

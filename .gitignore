@@ -35,3 +35,6 @@ deploy/.cpu_baseline
 !reports/evidence/runs/
 !reports/evidence/runs/**
 .DS_Store
+# 容量/压测的运行日志是临时产物（可由报告 JSON 与 docs/CAPACITY.md 第 8 节命令复现），不入库；
+# 入库的报告证据只保留 reports/capacity/raw-*.json 与 probe-*.json。
+reports/capacity/*.log
