@@ -9,6 +9,22 @@
 
 ---
 
+## [运维] 2026-11-06 — 固化“世界库不做删除式清理”纪律；清理验证账号凭证
+
+- **改了什么**：`docs/OPS-RUNBOOK.md` 新增 §5.1：
+  - 纪律：**世界库不做删除式清理；要干净就新开世界。测试账号可删凭证，事件保留。**
+  - 理由：`events.sqlite` 是 append-only 事实源，`seq` 连续性被 `health`、备份 manifest、
+    `replay`、`restore_verify` 共同依赖；为抹测试痕迹 `DELETE FROM events` 会制造
+    `seq_gap`，属于拿完整性契约换表面干净。
+  - 操作：测试账号只删 `users` / `sessions` / `login_failures` / `login_locks`，
+    事件与世界内实体保留；删后必须复核 `seq_gap=0`、`integrity=ok`、事件条数与
+    `max(seq)` 不变。
+- **当前实际状态**：`u_dockcheck`、`stopcheck`、`tlsgate3` 三个验证账号凭证已删
+  （`users` 0 行、`sessions` 0 行）；`u_dockcheck` 的 3 条测试事件保留
+  （seq 37116 / 37117 / 37119），`/api/health` 报 `seq_gap=0`、`integrity=ok`。
+  未执行 `down -v`、未做备份回滚。
+- **commit**：见本条目所在提交。
+
 ## [文档] 2026-11-06 — 修正过期数字：种子世界 836→735、自检 414→658、README 表格标注为历史基线
 
 - **改了什么**：

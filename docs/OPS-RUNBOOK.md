@@ -664,6 +664,37 @@ docker compose start world
 
 4. 若席位被已不存在的玩家占用（数据修复场景），从事件日志确认该 `player:*` 的 `player_leave`/`presence` 状态，再决定是否重放/开新 run；**不要直接改 events.sqlite**。
 
+### 5.1 世界库不做删除式清理（纪律）
+
+- **世界库不做删除式清理；要干净就新开世界。测试账号可删凭证，事件保留。**
+- 原因：`events.sqlite` 是 append-only 事实源，`seq` 连续性同时被 `health`、备份 manifest、
+  `replay`、`restore_verify` 依赖。为抹掉几条测试痕迹去 `DELETE FROM events` 会制造
+  `seq_gap`，等于拿完整性契约换表面干净——**禁止**。
+- 要“干净”的唯一正规路径是**换 `RUN_ID` 开新世界**（旧 run 目录整体归档），不是改旧库。
+- 测试账号只删**凭证**，保留事件与世界内实体：
+
+```bash
+docker compose stop world   # 运行中直接写 service.sqlite 会与 API 竞争
+docker compose exec -T world python - <<'PY'
+import sqlite3
+c = sqlite3.connect('/app/runs/service/service.sqlite', timeout=10)
+for u in ('test_account_1', 'test_account_2'):
+    c.execute("DELETE FROM users WHERE username=?", (u,))
+    c.execute("DELETE FROM sessions WHERE account_id=?", (u,))
+    c.execute("DELETE FROM login_failures WHERE account=?", (u,))
+    c.execute("DELETE FROM login_locks WHERE account=?", (u,))
+c.commit()
+PY
+docker compose start world
+```
+
+删完必须复核 `/api/health`：`seq_gap` 仍为 0、`integrity=ok`；`events` 条数与 `max(seq)` 不变。
+
+当前实际状态（2026-11-06）：验证账号 `u_dockcheck`、`stopcheck`、`tlsgate3` 的凭证已全部删除
+（`users` 0 行、`sessions` 0 行），三者的测试事件保留；`u_dockcheck` 残留
+seq 37116 / 37117 / 37119 三条（`player_enter` / `player_endowment` / `move`），
+`/api/health` 报 `seq_gap=0`、`integrity=ok`。未执行 `down -v`、未做备份回滚。
+
 ---
 
 ## 6. 容量告警阈值
