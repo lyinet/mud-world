@@ -103,7 +103,9 @@ def test_world_session_talk_path_returns_guarded_text(tmp_path):
         return Completion(text="段五斗把砍刀往案板上一按：“兄弟，要肥要瘦？”")
 
     queue = AsyncDialogueQueue(
-        ProviderClient(_cfg(), transport=transport), log_dir=tmp_path / "run"
+        ProviderClient(_cfg(), transport=transport),
+        log_dir=tmp_path / "run",
+        defer_calls=True,
     )
     session = WorldSession(
         ROOT,
@@ -113,16 +115,18 @@ def test_world_session_talk_path_returns_guarded_text(tmp_path):
         tick_step=6,
         run_dir=tmp_path / "run",
     )
+    session.dialogue_queue = queue
     session.registry.get("talk").dialogue = queue
     try:
         enter = session.perform(
             "u_demo", "enter", {"account_id": "u_demo", "display_name": "陈捕快"}
         )
         assert enter["ok"]
-        res = session.perform(
-            "u_demo", "talk", {"target": NPC, "message": "肉怎么卖？"}
-        )
+        args = {"target": NPC, "message": "肉怎么卖？"}
+        res = session.perform("u_demo", "talk", args)
         assert res["ok"]
+        # 唯一模型路径：事务提交后调用 finalize_dialogue。
+        session.finalize_dialogue(res, args)
         memories = session.state.memories.get(NPC) or []
         answers = [m["text"] for m in memories if m.get("source") == "talk:npc"]
         assert answers
@@ -139,16 +143,11 @@ def test_world_session_talk_path_returns_guarded_text(tmp_path):
         ]
         assert "兄弟，要肥要瘦" in log[-1]
 
-        # 模型台词只覆盖本次 HTTP 响应的 details.reply。
-        from wsim.agent import dialogue_runtime
-
-        result = {
-            "verb": "talk", "ok": True, "tick": res["tick"],
-            "player": "player:u_demo", "details": {"reply": latest},
-        }
-        dialogue_runtime.overlay_reply(result, {"target": NPC, "message": "肉怎么卖？"})
-        assert result["details"]["dialogue_source"] == "model"
-        assert "兄弟，要肥要瘦" in result["details"]["reply"]
+        # 模型台词写入唯一旁路，并只覆盖本次 HTTP 响应的 details.reply。
+        aside = session.dialogue_aside.get(int(res["event_seq"]), NPC)
+        assert aside and "兄弟，要肥要瘦" in aside
+        assert res["details"]["dialogue_source"] == "model"
+        assert "兄弟，要肥要瘦" in res["details"]["reply"]
         assert latest.startswith("我答：")  # 状态里的模板未变
     finally:
         queue.close()

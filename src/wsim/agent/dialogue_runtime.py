@@ -1,4 +1,4 @@
-"""对话模型运行时：双路配置 + 非持久化台词缓存。
+"""对话模型运行时：双路配置 + 唯一模型调用入口。
 
 红线：
 - 模型台词只进入 `dialogue_aside.jsonl`、`dialogue.jsonl` 与本次 HTTP 响应的
@@ -13,12 +13,15 @@
 
 开关：`XKX_DIALOGUE_MODEL=1`（默认关）。关闭时不构造任何 provider，
 也不会影响 `llm_enabled` / decision / intent / strategy 槽。
+
+模型调用只有一条代码路径：
+`api/session.py::WorldSession.finalize_dialogue` → `AsyncDialogueQueue.reply_sync`
+（事件事务提交后、不持锁）。本模块只负责构造队列与开关判定。
 """
 from __future__ import annotations
 
 import os
-import threading
-from collections import OrderedDict
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -30,10 +33,14 @@ from .provider import ProviderClient, ProviderConfig, ProviderConfigError
 from .provider import load_model_slots, load_provider_settings
 
 _ENABLED_VALUES = ("1", "true", "yes", "on")
-_CACHE_LIMIT = 256
-# key -> (模型文本, 模型名)
-_CACHE: "OrderedDict[tuple[str, str, int, str], tuple[str, str]]" = OrderedDict()
-_CACHE_LOCK = threading.Lock()
+
+
+class _DialogueClient(ProviderClient):
+    """对话槽不重试：管理台降级链会在每次调用时重新解析，这里逐个钳制为 0。"""
+
+    def _config_chain(self) -> tuple[list[ProviderConfig], str]:
+        chain, blocked = super()._config_chain()
+        return [replace(cfg, max_retries=0) if cfg.max_retries else cfg for cfg in chain], blocked
 
 
 def enabled() -> bool:
@@ -50,7 +57,8 @@ def _env_client(root: Path) -> ProviderClient | None:
         cfg = ProviderConfig.from_env(
             True,
             timeout_s=float(s.get("timeout_s", 60)),
-            max_retries=int(s.get("max_retries", 2)),
+            # 对话只服务本次 HTTP 补配音：失败/超时直接降级模板，不在 provider 层重试。
+            max_retries=0,
             backoff_base_s=float(s.get("backoff_base_s", 1.0)),
             max_tokens=int(s.get("max_tokens", 4096)),
             temperature=float(s.get("temperature", 0.8)),
@@ -65,7 +73,7 @@ def _env_client(root: Path) -> ProviderClient | None:
         )
     except ProviderConfigError:
         return None
-    return ProviderClient(cfg)
+    return _DialogueClient(cfg)
 
 
 def _dialogue_budget(root: Path) -> BudgetGuard | None:
@@ -84,7 +92,11 @@ def _dialogue_budget(root: Path) -> BudgetGuard | None:
 
 
 def build_queue(root: Path | str, run_dir: Path | str) -> AsyncDialogueQueue | None:
-    """按“管理台优先、env 兜底”的顺序构造对话队列；无可用配置返回 None。"""
+    """按“管理台优先、env 兜底”的顺序构造对话队列；无可用配置返回 None。
+
+    开关是显式 opt-in：只有 `enabled()` 为真且拿到可用 provider 才会走到这里。
+    对话调用不做 provider 层重试（超时即模板），避免慢网关拖住后续请求。
+    """
     root_path = Path(root)
     client: ProviderClient | None = None
     source = ""
@@ -93,7 +105,7 @@ def build_queue(root: Path | str, run_dir: Path | str) -> AsyncDialogueQueue | N
     except Exception:  # noqa: BLE001 - 管理库缺失/主密钥缺失都必须回退 env
         cfg = None
     if cfg is not None:
-        client = ProviderClient(cfg)
+        client = _DialogueClient(replace(cfg, max_retries=0))
         source = "admin_registry"
     if client is None:
         client = _env_client(root_path)
@@ -126,53 +138,3 @@ def attach_if_enabled(talk: Any, root: Path | str, run_dir: Path | str) -> Async
         return None
     talk.dialogue = queue
     return queue
-
-
-def remember(
-    player_id: str, npc_id: str, tick: int, message: str, text: str, model: str = ""
-) -> None:
-    """把模型台词放进进程内缓存，供事务提交后的旁路写入；不进事件。"""
-    key = (str(player_id), str(npc_id), int(tick), str(message))
-    with _CACHE_LOCK:
-        _CACHE[key] = (str(text), str(model))
-        _CACHE.move_to_end(key)
-        while len(_CACHE) > _CACHE_LIMIT:
-            _CACHE.popitem(last=False)
-
-
-def overlay_reply(
-    result: dict[str, Any],
-    args: dict[str, Any],
-    aside: Any = None,
-    model: str = "",
-) -> None:
-    """事务提交后调用：把本次模型的台词写入旁路，并只覆盖 HTTP 的 `details.reply`。"""
-    if not isinstance(result, dict) or str(result.get("verb") or "") != "talk":
-        return
-    details = result.get("details")
-    if not isinstance(details, dict):
-        details = {}
-        result["details"] = details
-    details.setdefault("dialogue_source", "template")
-    if not result.get("ok"):
-        return
-    target = str(args.get("target") or "")
-    message = str(args.get("message") or "").strip()
-    tick = int(result.get("tick") or 0)
-    player = str(result.get("player") or "")
-    key = (player, target, tick, message)
-    with _CACHE_LOCK:
-        item = _CACHE.pop(key, None)
-    if not item:
-        return
-    text, cached_model = item
-    if not text:
-        return
-    if aside is not None:
-        try:
-            aside.put(int(result.get("event_seq") or 0), target, text, cached_model or model)
-        except Exception:  # noqa: BLE001 - 旁路写失败不能影响玩家操作
-            pass
-    details["reply"] = text
-    details["dialogue_source"] = "model"
-    details["dialogue_model"] = cached_model or model

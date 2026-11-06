@@ -47,13 +47,16 @@
 
 - `turn/last_message/last_reply` 从 NPC memory 读取并传入：`social.py:49`、`social.py:136`；`turn` 由 `talk:npc` 条数推导，不新增 `talk_ledger` 字段，避免 `state_hash` / golden 基线漂移。
 - `_pick_quote` 增加 `turn`，人设台词参与所有意图并按轮次轮换：`dialogue.py:742`；`_trim` 优先保留台词：`dialogue.py:768`；同文再取变体：`dialogue.py:824-832`。
-- 模型接入双路：管理台 provider 注册表优先、env 回退，挂载点 `registry.py:148-153`、`agent/dialogue_runtime.py`；API 启动固定 `XKX_RUN/XKX_SERVICE_DB`：`api/__main__.py`。
+- 模型接入双路（管理台优先、env 回退）统一到**唯一调用路径**：`api/session.py::WorldSession.finalize_dialogue`
+  （事务提交后、锁外）→ `agent/dialogue_async.py::AsyncDialogueQueue.reply_sync`；开关 `XKX_DIALOGUE_MODEL=1`（默认关）。
+  API 启动固定 `XKX_RUN/XKX_SERVICE_DB`：`api/__main__.py`。
 - 当前实际走的是**管理台 8032 的 `local-gw` provider**（`base_url=127.0.0.1:3425/v1`，`model=auto/deepseek-v4.1-flash`），不是 env 回退；env 回退由 `test_dialogue_runtime_supports_admin_and_env_sources` 单测覆盖。
 
 ### 红线实现
 
 - 状态/事件只写 `compose_talk` 模板：`social.py` 不再用模型文本覆盖 `reply`。
-- 模型文本只进入 `dialogue.jsonl` 与进程内缓存，HTTP 层覆盖 `details.reply`：`api/server.py:742`。
+- 模型文本只进入 `dialogue_aside.jsonl`（键 `(event_seq, npc_id)`，字段 `event_seq/npc/text/model/created_at`）
+  与本次 HTTP `details.reply`（`api/server.py` 在 `session.action()` 返回后调用 `finalize_dialogue`）。
 - 验证：`events.sqlite` 中模型句“我好得很，天没亮就杀完一口猪”出现 **0** 次；“腰都酸” **0** 次；模板句“金掌柜那三百文，我段五斗认”按轮次出现 3 次。模型句只在 `dialogue.jsonl` 出现 1 次。
 - `content_hash` 仍为启动值 `5267a8a84f7c`；模型文本不参与目标、关系、经济与回放。
 
@@ -106,4 +109,23 @@
 
 - 新增 `tests/test_dialogue_variety.py`（4 项）与更新 `tests/test_dialogue_guard_integration.py` 红线断言；对话相关测试 `101 passed`。
 - 指标与红线写入 [`docs/DIALOGUE-QUALITY.md`](../docs/DIALOGUE-QUALITY.md)，作为发布回归项。
-- 未修改 `src/wsim/api/session.py`，未修改 `ui/**`。
+- `src/wsim/api/session.py` 的模型接线由后端线提交（`3a293bb`），本线只读引用，不改其实现；`ui/**` 未动。
+
+## 7. 统一模型旁路（2026-11-07）
+
+两条历史实现（本线 `dialogue_runtime.py` 的同步直出 + 后端线 `dialogue_aside.py` 的旁路）合并为**一条**：
+
+- **唯一模型调用路径**：`src/wsim/api/session.py::WorldSession.finalize_dialogue`（[L992](../src/wsim/api/session.py#L992)）
+  → `AsyncDialogueQueue.reply_sync`（[dialogue_async.py:202](../src/wsim/agent/dialogue_async.py#L202)）。
+- 本线删除第二条链：`TalkAction.apply` 内的同步 `reply_sync` 与 `dialogue_runtime.remember/overlay_reply`
+  全部移除；`sim/headless.py` 不再构造 `AsyncDialogueQueue`（离线 `dialogue_calls=0`）。
+- 模板侧能力保留并继续生效：`turn` 由 memory 推导、人设台词参与全部意图、同文防重。
+- **开关**：`XKX_DIALOGUE_MODEL=1`（默认关，显式 opt-in）；判定顺序“开关 → 管理台 provider 优先 → env 兜底”，
+  任一步不满足即模板。实测 8031 `admin_registry`（local-gw）、8036 关（`talk.dialogue=None`）。
+- **超时/重试**：`XKX_DIALOGUE_TIMEOUT_S` 默认 8s（clamp 0.5–20）；对话槽 `max_retries=0`（管理台降级链同样钳制），
+  超时/异常保留模板、不写事件、不阻塞 tick。
+- **延迟**（统一后新代码 20 次 `talk`，8037/8038）：关模型 p50/p95 `0.0023s/0.0037s`（20/20 模板）；
+  开模型 `3.35s/7.56s`（19/20 模型，1 次 8s 超时降级，`max=8.01s`）。
+- **旁路字段**：`dialogue_aside.jsonl` 每行 `event_seq/npc/text/model/created_at`，键 `(event_seq, npc_id)`，
+  与 `specs/dialogue-model-aside/spec.md` 一致；仓库不再有第二套旁路存储。
+- **三个多样性指标不变**：`unique 15/15`、同 NPC 相邻相同 `0`、同意图跨 NPC 完全相同 `0`（同文断言在测试中固化）。

@@ -4,7 +4,6 @@ from __future__ import annotations
 import threading
 from collections import OrderedDict
 
-from ..agent import dialogue_runtime
 from ..agent.dialogue import PLAYER_NAME, compose_talk, place_names
 from ..core.clock import TICKS_PER_DAY
 from ..core.models import Effect, Intent, Reject
@@ -208,31 +207,11 @@ class TalkAction(Action):
                 "last_reply": last_npc,
             }
             if getattr(self.dialogue, "defer_calls", False):
-                # API 会话：事务内不发起网络调用，提交后由 finalize_dialogue 处理。
+                # 模型只有一条路径：API 事务提交后由 session.finalize_dialogue 调用。
                 self._remember_pending(
                     pid, target.id, tick, message,
                     persona=persona, summary=summary, day=day,
                 )
-            else:
-                try:
-                    dlg = self.dialogue.reply_sync(
-                        npc=target.id,
-                        player_text=message,
-                        day=day,
-                        tick=tick,
-                        persona=persona,
-                        state_summary=summary,
-                        timeout_s=8.0,
-                    )
-                    if dlg.ok and dlg.text.strip():
-                        client = getattr(self.dialogue, "client", None)
-                        cfg = getattr(client, "config", None)
-                        model = str(getattr(cfg, "model", "") or "")
-                        dialogue_runtime.remember(
-                            pid, target.id, tick, message, dlg.text.strip(), model
-                        )
-                except Exception:  # noqa: BLE001 - 对话失败不得影响动作落地
-                    pass
         req_aff = float(server["affection_delta"])
         req_trust = float(server["trust_delta"])
 

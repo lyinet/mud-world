@@ -350,6 +350,9 @@ DIALOGUE_VARIETY_BASELINE_REASON = (
     "条数推导），NPC 对话 memory 文本随之变化，state/event 哈希显式更新；事件条数、"
     "买卖与燃烧计数不变。该漂移与寻路基线叠加，故同步更新 V6 两组哈希；"
     "旧 V3/V4/V5 基线原样保留。"
+    "统一模型旁路后离线模拟不再挂第二条模型链（headless 不构造 AsyncDialogueQueue，"
+    "模型唯一入口为 API 会话 `WorldSession.finalize_dialogue`），因此 dialogue 开启路径"
+    "的 `dialogue_calls` 由 65 降为 0，两组哈希与纯模板路径相同（模板文本仍按轮次变化）。"
 )
 GOLDEN_MILESTONE_V6 = {
     "events_total": 791,
@@ -366,7 +369,8 @@ DIALOGUE_GOLDEN_MILESTONE_V6 = {
     "events_total": 791,
     "state_final": "6be665b533b778f2afb7d4a3fd57cd5ff6dc968509c11d238d40d5fed5870a55",
     "event_final": "0c15b0d8892e52b89f4d9e022fd7fabde6b5283b4aa8c924e3bc5760d8a30d49",
-    "dialogue_calls": 65,
+    # 统一模型旁路：离线/headless 不再挂模型队列，模型调用只发生在 API finalize 之后。
+    "dialogue_calls": 0,
 }
 
 
@@ -871,13 +875,14 @@ def test_p4_milestone_v6_deterministic_2d_fake_run_is_golden(tmp_path):
 
 
 def test_p4_milestone_v6_dialogue_enabled_fake_run_is_golden(tmp_path):
-    """P4 v6 基线（dialogue 开启路径）：765 events，dialogue 调用数不变。"""
+    """P4 v6 基线（dialogue 开关路径）：离线世界不挂模型，dialogue 调用数为 0。"""
     summary = _run_two_day(tmp_path, "golden-milestone-dialogue-v6", dialogue=True)
+    stats = summary["llm"]["dialogue_async"] or {}
     got = {
         "events_total": summary["events"]["total"],
         "state_final": summary["hashes"]["state_final"],
         "event_final": summary["hashes"]["event_final"],
-        "dialogue_calls": summary["llm"]["dialogue_async"]["calls"],
+        "dialogue_calls": int(stats.get("calls", 0)),
     }
     drift = {k: (DIALOGUE_GOLDEN_MILESTONE_V6[k], got[k])
              for k in DIALOGUE_GOLDEN_MILESTONE_V6 if got[k] != DIALOGUE_GOLDEN_MILESTONE_V6[k]}

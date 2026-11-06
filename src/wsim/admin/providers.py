@@ -52,7 +52,7 @@ CAPABILITY_KIND: dict[str, str] = {
 }
 
 CAPABILITY_EVIDENCE: dict[str, str] = {
-    "dialogue": "agent/dialogue_async.py::AsyncDialogueQueue -> sim/headless.py 挂到 talk 动作（WSIM_DIALOGUE=1）",
+    "dialogue": "agent/dialogue_async.py::AsyncDialogueQueue -> api/session.py::WorldSession.finalize_dialogue（唯一模型路径，XKX_DIALOGUE_MODEL=1 才挂载）",
     "strategy": "agent/strategy_client.py::StrategyClient -> sim/headless.py 真实模式（--strategy，非 fake）",
     "night_batch": "sim/headless.py::run_night_batch -> LLMReasoner.decide_batch（decision 槽，与实时决策共用 client）",
     "self_goal": "sim/self_goal.py 为确定性规则台账，无 model 调用",

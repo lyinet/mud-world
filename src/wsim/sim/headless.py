@@ -20,7 +20,6 @@ from ..actions.common import treasury_balance, treasury_guard_threshold
 from ..actions.social import PLAYER_SOURCES
 from ..agent.budget import BudgetGuard, BudgetLimits
 from ..agent.cost import CostTelemetry, load_cost_rates
-from ..agent.dialogue_async import AsyncDialogueQueue
 from ..agent.intent_model import load_intent_catalog
 from ..agent.provider import (
     LLMReasoner,
@@ -367,19 +366,10 @@ def run_headless(
                     "mode": "replay" if decision_replay_path else ("record" if decision_record_path else "off"),
                 },
             }
-            # 对话默认关闭，避免改变 deterministic 基线与离线成本；
-            # WSIM_DIALOGUE=1 时把模型回复真正接到 TalkAction。
-            dialogue_enabled = os.environ.get("WSIM_DIALOGUE", "").strip().lower() in (
-                "1", "true", "yes", "on",
-            )
-            dialogue_async = AsyncDialogueQueue(
-                dialogue_client, budget=budget, log_dir=out_dir, telemetry=telemetry
-            ) if dialogue_client is not None and dialogue_enabled else None
-            if dialogue_async is not None:
-                talk = registry.get("talk")
-                if talk is not None:
-                    talk.dialogue = dialogue_async
-            llm_info["dialogue_async"] = dialogue_async is not None
+            # 模型台词统一走 API 会话事务后的旁路（session.finalize_dialogue）；
+            # 离线模拟不再挂第二条模型调用链，避免重复调用/双份存储。
+            dialogue_async = None
+            llm_info["dialogue_async"] = False
             if cfg.strategy_enabled and not cfg.strategy_fake:
                 strategy_replay_path = os.environ.get("WSIM_STRATEGY_REPLAY", "").strip()
                 strategy_record_path = os.environ.get("WSIM_STRATEGY_RECORD", "").strip()

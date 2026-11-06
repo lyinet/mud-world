@@ -4,8 +4,10 @@ from __future__ import annotations
 from pathlib import Path
 
 from wsim.agent.dialogue import compose_talk, place_names
+from wsim.agent.dialogue_async import AsyncDialogueQueue
 from wsim.agent.dialogue_runtime import build_queue, enabled
-from wsim.agent.provider import ProviderConfig, ProviderClient
+from wsim.agent.provider import Completion, ProviderClient, ProviderConfig
+from wsim.api import WorldSession
 
 ROOT = Path(__file__).resolve().parents[1]
 NPC_IDS = ("duan_wudou", "jin_mancang", "liu_sanniang", "meng_jiuniang", "ruan_qingfu")
@@ -88,6 +90,7 @@ def test_dialogue_runtime_supports_admin_and_env_sources(tmp_path, monkeypatch):
     monkeypatch.setattr(runtime, "resolve_admin_provider", lambda _slot: cfg)
     q = build_queue(tmp_path, tmp_path / "run-admin")
     assert q is not None and q.config_source == "admin_registry"
+    assert q.client.config.max_retries == 0, "对话槽不得在 provider 层重试"
     q.close()
 
     monkeypatch.setattr(
@@ -97,12 +100,55 @@ def test_dialogue_runtime_supports_admin_and_env_sources(tmp_path, monkeypatch):
     monkeypatch.setenv("LLM_API_KEY", "local")
     q = build_queue(ROOT, tmp_path / "run-env")
     assert q is not None and q.config_source == "env"
+    assert q.client.config.max_retries == 0
     q.close()
 
 
 def test_dialogue_enabled_flag(monkeypatch):
-    monkeypatch.delenv("WSIM_DIALOGUE", raising=False)
+    monkeypatch.delenv("XKX_DIALOGUE_MODEL", raising=False)
     assert not enabled()
-    monkeypatch.setenv("WSIM_DIALOGUE", "1")
+    monkeypatch.setenv("XKX_DIALOGUE_MODEL", "1")
     assert enabled()
     assert ProviderClient is not None  # 保持导入路径可用
+
+
+def test_talk_never_calls_model_without_defer(tmp_path):
+    """唯一模型路径：未标记 defer_calls 的队列在 TalkAction 内不得发起调用。"""
+    calls = []
+
+    def transport(_cfg, _system, _user):
+        calls.append(1)
+        return Completion(text="模型句不应出现")
+
+    queue = AsyncDialogueQueue(
+        ProviderClient(
+            ProviderConfig(
+                base_url="http://127.0.0.1:1/v1", key="k", model="m",
+                offline=False, max_retries=0,
+            ),
+            transport=transport,
+        ),
+        log_dir=tmp_path,
+    )
+    session = WorldSession(
+        ROOT, run_id="single-path", seed=42, npc_limit=12,
+        tick_step=6, run_dir=tmp_path,
+    )
+    session.registry.get("talk").dialogue = queue
+    try:
+        assert session.perform(
+            "u_demo", "enter", {"account_id": "u_demo", "display_name": "陈捕快"}
+        )["ok"]
+        res = session.perform(
+            "u_demo", "talk", {"target": "duan_wudou", "message": "肉怎么卖？"}
+        )
+        assert res["ok"]
+        assert calls == []
+        answers = [
+            m["text"] for m in (session.state.memories.get("duan_wudou") or [])
+            if m.get("source") == "talk:npc"
+        ]
+        assert answers and answers[-1].startswith("我答：")
+    finally:
+        queue.close()
+        session.close()

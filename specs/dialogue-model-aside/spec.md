@@ -29,7 +29,7 @@
 | `src/wsim/api/session.py:740-756` | `public_messages()` 匿名返回空列表，无需处理。 |
 | `src/wsim/api/server.py:162-179, 641-647` | 健康/指标里的 `llm_calls` 只读 ambient 状态文件，API 对话调用不会计入。 |
 | `src/wsim/agent/dialogue_async.py:264-329` | `_finish_sync` 记录 `slot="dialogue"` 的遥测、预算与 `dialogue.jsonl`；预算/超时/异常均返回 `fallback=True`。 |
-| `src/wsim/sim/headless.py:372-382` | headless 通过 `WSIM_DIALOGUE=1` 把队列直接挂到 `TalkAction`，用于既有 golden 的 `dialogue_calls` 基线。 |
+| `src/wsim/sim/headless.py:372-382` | headless 曾通过 `WSIM_DIALOGUE=1` 把队列直接挂到 `TalkAction`。**已移除**：离线/headless 不再构造 `AsyncDialogueQueue`，模型调用只发生在 API 会话事务提交之后。 |
 
 关键风险：`reply_sync` 在 `apply` 内同步执行会占用 Writer 事务；API 侧若直接沿用会阻塞 tick。必须把 API 的模型调用移到事务提交之后。
 
@@ -78,7 +78,7 @@ class DialogueAside:
 
 `src/wsim/agent/dialogue_async.py` 构造函数新增 `defer_calls: bool = False`，默认保持 headless 现有行为：
 
-- `defer_calls=False`（headless / 既有 golden）：`TalkAction.apply` 仍同步调用 `reply_sync`，调用计数与 `dialogue.jsonl` 不变。
+- `defer_calls=False`（离线/headless）：**不挂队列**，`TalkAction.apply` 不发起模型调用（统一后离线 `dialogue_calls=0`，golden V6 已同步）。
 - `defer_calls=True`（API 会话）：`TalkAction.apply` **不发起模型调用**，只在实例内暂存一份对话上下文；HTTP 层在事务提交、锁释放后调用 `reply_sync`。
 
 `TalkAction` 新增（`social.py`）：

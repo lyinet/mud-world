@@ -24,10 +24,26 @@
 
 1. `memory_add` / `events.sqlite` / 世界状态只写 `compose_talk` 的确定性模板回复。
 2. 模型台词只进入：
-   - `runs/<run>/dialogue.jsonl`（审计日志）；
-   - 本次 HTTP 响应的 `details.reply`（进程内缓存覆盖，`details.dialogue_source="model"`）。
+   - `runs/<run>/dialogue_aside.jsonl`（旁路存储，键 `(event_seq, npc_id)`，字段
+     `event_seq` / `npc` / `text` / `model` / `created_at`）；
+   - 本次 HTTP 响应的 `details.reply`（`details.dialogue_source="model"`）。
+   `dialogue.jsonl` 仅作队列审计日志（调用/降级/延迟），不是第二套旁路。
 3. 模型台词不写 `content_hash`，不参与目标选择、关系增量、经济与事件回放。
 4. 回放同一 `(npc, message, tick, turn)` 永远得到同一模板句；`turn` 由 NPC memory 的 `talk:npc` 条数推导，是持久化确定值，不新增世界状态字段。
+
+## 模型路径与调用时机（只有一条）
+
+- 唯一入口：`src/wsim/api/session.py::WorldSession.finalize_dialogue`（[session.py:992](../src/wsim/api/session.py#L992)）
+  → `AsyncDialogueQueue.reply_sync`（[dialogue_async.py:202](../src/wsim/agent/dialogue_async.py#L202)）。
+- 时机：`TalkAction.apply` 只写模板记忆与事件；API 在 `session.action()` 返回（事件事务已提交）后调用
+  `finalize_dialogue`。该方法不持 `WorldSession.lock`，模型慢只拖慢**这次 HTTP 响应**，
+  不拖 tick / Writer / 其他请求；离线 `sim/headless.py` 不再挂模型队列（`dialogue_calls=0`）。
+- 超时：`XKX_DIALOGUE_TIMEOUT_S`，默认 8 秒，clamp 0.5–20 秒；超时/网络/auth/预算失败一律保留模板
+  （`details.dialogue_source="template"`），动作照常成功。
+- 重试：对话槽强制 `max_retries=0`（含管理台降级链），失败即模板，不为同一句话重打网关。
+- 实测 p95（统一后新代码、同机 20 次 `talk`，run `latency-on-final` / `latency-off-final`）：
+  关模型 p50/p95 `0.0023s/0.0037s`（8038，`llm.status=disabled`，20/20 模板）；
+  开模型 p50/p95 `3.35s/7.56s`（8037，`source=env`，19/20 模型、1 次 8s 超时降级，`max=8.01s`）。
 
 验证方式：
 
@@ -44,21 +60,24 @@ for text in ["我好得很，天没亮就杀完一口猪", "腰都酸"]:
 PY
 ```
 
-期望：模型台词计数为 0；`grep -c` 只在 `dialogue.jsonl` 命中。
+期望：模型台词计数为 0；`grep -c` 只在 `dialogue_aside.jsonl`（与队列审计的 `dialogue.jsonl`）命中。
 
 ## 模型配置（两条路都支持）
 
-`dialogue_runtime.build_queue` 的解析顺序：
+`dialogue_runtime.build_queue` 的解析顺序（仅在开关开启时才执行）：
 
 1. 管理台 provider 注册表：`wsim.admin.providers.resolve("dialogue")`（8032 注册，DB 优先）；
 2. 环境变量 / `config/llm.yaml`：`ProviderConfig.from_env`（`LLM_API_KEY`、`LLM_BASE_URL`、`LLM_MODEL`）。
 
-启用开关：`WSIM_DIALOGUE=1`。API 启动时需同时设置：
+启用开关：`XKX_DIALOGUE_MODEL=1`（**显式 opt-in，默认关**；取值 `1/true/yes/on`）。
+判定顺序：先看开关 → 关则一律模板（不解析 provider、不构造队列）；开则管理台优先、env 兜底，
+两条都拿不到可用 provider 时同样一律模板。API 启动时需同时设置：
 
 - `XKX_RUN=<run_id>`、`XKX_SERVICE_DB=<run>/service.sqlite`（供管理台 DB 解析）；
 - 走管理台 DB 时还需 `XKX_SECRET_KEY`（与 8032 管理进程一致，用于解密 provider key）。
 
-若两条路都拿不到可用配置，`talk.dialogue` 保持 `None`，能力位显示 `unconfigured`，全部走模板；报告必须如实标注 `model_generated=0`。
+实际生效值（2026-11-07 实测）：8031 为 `XKX_DIALOGUE_MODEL=1` + 管理台 `local-gw`（`config_source=admin_registry`）；
+8036 未开开关且无 provider，`talk.dialogue` 保持 `None`，能力位 `unconfigured`，`model_generated=0`。
 
 ## 回归命令
 
