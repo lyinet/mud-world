@@ -52,6 +52,7 @@ _RECONNECT_ROUTE = "/api/player/reconnect"
 _SERVICE_INFO = "/api/service/info"
 _HEALTH = "/api/health"
 _WORLD_FEED = "/api/world/feed"
+_WORLD_MAP = "/api/world/map"
 _INTENTS_PREFIX = "/api/player/intents/"
 _METRICS = "/api/metrics"
 
@@ -510,6 +511,10 @@ class _Handler(BaseHTTPRequestHandler):
         if path == _WORLD_FEED:
             # 公共世界事件流：匿名可读（service/legacy 两种模式相同），不含玩家私有状态。
             self._send(200, session.world_feed(query.get("limit", "20")))
+            return
+        if path == _WORLD_MAP:
+            # 公共世界地图：节点/邻接/可达性，只读，无价格库存等敏感字段。
+            self._send(200, session.world_map())
             return
         if path == _AUTH_ME:
             row, err = self._resolve_token()

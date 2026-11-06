@@ -66,6 +66,7 @@ from ..actions.common import (
     business_selling,
     business_with_cash,
     cheapest_food,
+    path_between,
     quest_required_units,
     reputation_points,
     sell_price,
@@ -807,6 +808,86 @@ class WorldSession:
                 "tick": int(self.state.tick),
                 "limit": n,
                 "events": events,
+            }
+
+    def world_map(self) -> dict[str, Any]:
+        """`GET /api/world/map`：全城节点与真实邻接边（公共、只读、匿名可读）。
+
+        数据直接来自世界状态的 `locations`（genesis 从 locations.yaml 复制），
+        边由 `exits` 逐对推出；可达性逐对复用 `path_between`，保证与寻路一致。
+        区域字段内容里没有，就如实返回 null，不在接口里补边/编区域。
+        """
+        with self.lock:
+            locs = self.state.locations
+            loc_ids = sorted(str(k) for k in locs)
+            nodes: list[dict[str, Any]] = []
+            edges: list[dict[str, Any]] = []
+            seen_pairs: set[tuple[str, str]] = set()
+            reachable: dict[str, list[str]] = {}
+            for lid in loc_ids:
+                data = locs.get(lid) or {}
+                exits = sorted({str(x) for x in (data.get("exits") or []) if str(x) in locs})
+                neighbors = [x for x in exits if path_between(self.state, lid, x)]
+                nodes.append(
+                    {
+                        "id": lid,
+                        "name": str(data.get("name") or lid),
+                        "region": data.get("region"),
+                        "region_name": data.get("region_name"),
+                        "exits": exits,
+                        "neighbors": neighbors,
+                    }
+                )
+                reachable[lid] = sorted(
+                    other for other in loc_ids if other != lid and path_between(self.state, lid, other)
+                )
+                for other in exits:
+                    pair = (lid, other) if lid < other else (other, lid)
+                    if pair in seen_pairs:
+                        continue
+                    seen_pairs.add(pair)
+                    a, b = pair
+                    a_to_b = bool(path_between(self.state, a, b))
+                    b_to_a = bool(path_between(self.state, b, a))
+                    edges.append(
+                        {
+                            "from": a,
+                            "to": b,
+                            "from_name": str((locs.get(a) or {}).get("name") or a),
+                            "to_name": str((locs.get(b) or {}).get("name") or b),
+                            # 内容未提供方位标签，如实返回 null（不编造“东/西”）。
+                            "direction": None,
+                            "walkable": a_to_b and b_to_a,
+                            "walkable_a_to_b": a_to_b,
+                            "walkable_b_to_a": b_to_a,
+                            "bidirectional": a_to_b and b_to_a,
+                        }
+                    )
+            edges.sort(key=lambda row: (row["from"], row["to"]))
+            has_region = any(
+                (locs.get(lid) or {}).get("region") not in (None, "")
+                for lid in loc_ids
+            )
+            return {
+                "ok": True,
+                "tick": int(self.state.tick),
+                "run": self.run_id,
+                "counts": {
+                    "locations": len(nodes),
+                    "edges": len(edges),
+                    "directed_edges": sum(
+                        int(row["walkable_a_to_b"]) + int(row["walkable_b_to_a"]) for row in edges
+                    ),
+                },
+                "region_supported": has_region,
+                "region_note": (
+                    "location 内含 region 字段。"
+                    if has_region
+                    else "locations.yaml 未提供区域字段；所有地点 region/region_name 如实为 null，未编造。"
+                ),
+                "nodes": nodes,
+                "edges": edges,
+                "reachable": reachable,
             }
 
     def _entity_name(self, ent_id: str) -> str:

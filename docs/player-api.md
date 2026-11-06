@@ -1993,3 +1993,52 @@ curl -s 'http://127.0.0.1:8848/api/world/feed?limit=5'
 `locked[]` 行与 `rows[]` 行结构一致，`acceptable=false`、`can_accept_here=false`。
 `counts` 口径不变：`open` 只统计未锁定的可展示单。
 
+## 15. 世界地图（2026-11-07，只读公共端点）
+
+`GET /api/world/map`：匿名可读，不带令牌；不写事件、不改状态、不参与任何哈希。
+数据直接来自世界状态 `locations`（genesis 从 `locations.yaml` 及内容包复制），
+边由每个地点的 `exits` 推出，可达性逐对复用 `path_between`，不做任何接口侧补边。
+
+### 15.1 响应字段
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `ok` | bool | 固定 `true` |
+| `tick` | int | 当前世界钟 |
+| `run` | string | 运行 id |
+| `counts.locations` | int | 地点数 |
+| `counts.edges` | int | 无向边数（每条真实邻接只算一次） |
+| `counts.directed_edges` | int | 有向可走次数（双向边贡献 2） |
+| `region_supported` | bool | 内容是否提供区域字段 |
+| `region_note` | string | 区域缺失时的如实说明 |
+| `nodes[]` | array | `id` / `name` / `region`(可能为 null) / `region_name` / `exits` / `neighbors` |
+| `edges[]` | array | `from` / `to` / `from_name` / `to_name` / `direction`(无方位数据时为 null) / `walkable` / `walkable_a_to_b` / `walkable_b_to_a` / `bidirectional` |
+| `reachable` | object | 每个地点经 `path_between` 实际可达的其他地点 id 列表 |
+
+不含价格、库存、NPC、任务等敏感或动态字段。
+
+### 15.2 当前样例（2026-11-07，tick 2430）
+
+```json
+{
+  "ok": true,
+  "counts": {"locations": 9, "edges": 11, "directed_edges": 22},
+  "region_supported": false,
+  "region_note": "locations.yaml 未提供区域字段；所有地点 region/region_name 如实为 null，未编造。",
+  "nodes": [
+    {"id": "market", "name": "集市", "region": null, "region_name": null,
+     "exits": ["academy","inn","pharmacy","smithy","teahouse"],
+     "neighbors": ["academy","inn","pharmacy","smithy","teahouse"]}
+  ],
+  "edges": [
+    {"from": "academy", "to": "market", "from_name": "书院", "to_name": "集市",
+     "direction": null, "walkable": true, "walkable_a_to_b": true,
+     "walkable_b_to_a": true, "bidirectional": true}
+  ]
+}
+```
+
+区域名缺口：当前 9 个地点（academy/escort_agency/ferry/inn/market/pharmacy/smithy/
+teahouse/temple）全部没有区域字段，均返回 `region: null`。
+
+

@@ -9,6 +9,33 @@
 
 ---
 
+## [后端] 2026-11-07 — 新增只读世界地图 `GET /api/world/map`
+
+- **改了什么**：新增匿名可读端点，返回全城地点（id/name/region/region_name）、
+  真实无向边（from/to/from_name/to_name/direction/walkable/双向标记）、
+  每个地点的一跳邻居、以及全地点两两可达性（复用 `path_between`）。
+  数据源为世界状态 `locations`（genesis 由 `locations.yaml` + 内容包复制），
+  不补边、不编区域。
+- **为什么**：前端目前只有当前地点 + 一跳出口，只能画周边图；`map` 需要全城邻接。
+- **红线验证**：纯读端点，不加事件/不改状态/不参与哈希；现有 golden/复现测试
+  未改动（本条目只新增 server 路由与 session 纯读方法）。
+- **真实响应（tick 2430，匿名无令牌）**：
+  - HTTP 200；`counts={locations:9, edges:11, directed_edges:22}`。
+  - `region_supported=false`；`region_note="locations.yaml 未提供区域字段；
+    所有地点 region/region_name 如实为 null，未编造。"`
+  - 样例节点：`{"id":"academy","name":"书院","region":null,"region_name":null,
+    "exits":["market","temple"],"neighbors":["market","temple"]}`。
+  - 样例边：`{"from":"academy","to":"market","from_name":"书院","to_name":"集市",
+    "direction":null,"walkable":true,"walkable_a_to_b":true,
+    "walkable_b_to_a":true,"bidirectional":true}`。
+- **地点/边数**：9 个地点、11 条无向边、22 个有向可走方向。
+- **无区域名的地点**：`academy / escort_agency / ferry / inn / market / pharmacy /
+  smithy / teahouse / temple`（全部 9 个）。
+- **服务说明**：只重启玩家 API（8031）；管理台 8032/8039、前端 8000 未动。
+- **commit**：见本条目所在提交。
+
+---
+
 ## [后端] 2026-11-07 — 任务过程化：接单记进度、交付校验目标动作、locked[] 可见
 
 - **改了什么**：
