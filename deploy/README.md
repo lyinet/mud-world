@@ -1,6 +1,8 @@
 # XKX / world-sim 对外试玩包（p3l）
 
-本版在 `delivery-p3k` 冻结基线 `b23827a` 上叠加 p3l 活世界增量，内容冻结
+本版在 `delivery-p3k` 冻结基线 `b23827a` 上叠加 p3l 活世界增量（该哈希是**历史基线**，
+等于 `delivery-p3k^{commit}`，不等于当前 HEAD；当前交付由新的 `delivery-*` tag 冻结，见
+[docs/RELEASE-ROLLBACK.md](docs/RELEASE-ROLLBACK.md)），内容冻结
 `content_hash = 7ec670c1…`（关闭态）；`delivery-p3f`–`p3k` 为前序交付，tag 均不改写。
 
 这是一个可离线运行的 MUD 世界：Python 引擎 `wsim.api` + 浏览器前端 `ui/player`
@@ -51,6 +53,59 @@ CPU 上限用 `XKX_AMBIENT_CPU=70`（百分比）调整。
    这是只读回放，专门用来看 NPC 的移动/干活/买卖；实时会话是玩家动作驱动的（见已知限制）。
 3. **自己的动作生效**：点“书院”出门 → 地点变化；点 NPC 说话 → 出现回应；
    回集市接任务并交付 → 钱包增加；也可开摊或入会；刷新页面后位置/钱包/任务都还在。
+
+## 滚动重启（长跑容量）
+
+`deploy/rolling_restart.py` 在宿主机巡检容器，三项阈值任一连续命中才重启：
+
+- **内存主判据是当前 RSS**：`docker exec` 进容器，按 cmdline 含 `wsim.api` 定位 API
+  进程（容器 PID 1 是 `deploy/entrypoint.sh`，不是 API），读 `/proc/<pid>/status`
+  的 `VmRSS`。连续 3 个采样窗严格单调上涨且斜率 > 0.5 MB/min（约 800MB 时
+  3.75%/h，低于验收线 5%/h）才重启；绝对上限 800MB 同样要求连续 3 窗。
+  `VmHWM`（峰值，等价 `ru_maxrss`）只写日志，不参与决策——峰值只增不减，
+  一次备份/GC 尖峰会永久超阈值，无法区分尖峰与泄漏。
+- 读 P95：取 `/api/metrics` 直方图两次采样的增量，连续 3 窗 > 500ms 才重启。
+  容器内 API 绑 `0.0.0.0`，`/api/metrics` 默认按“非回环”处理返回 404；需要
+  `XKX_METRICS_TOKEN=<token>` 注入容器，并用 `--metrics-token <token>`（或同名
+  环境变量）传给脚本。取不到时脚本只告警一次、停用 P95 判据，RSS/CPU 仍生效。
+- CPU：`docker stats` 进程 CPU% 连续 2 窗 > 2× 基线才重启。
+
+脚本每次采样打印一行 JSON，其中 `api_pid` 是被采样的 API 进程号（该容器里 PID 1
+是 entrypoint，API 通常是 8 之类的子进程），`peak_rss_mb`（=`VmHWM`）仅供记录。
+
+CPU 基线是本机采样值，**不入库**（已加入 `.gitignore`）：
+
+```bash
+python3 deploy/rolling_restart.py --record-baseline   # 正常负载下采样一次
+cat deploy/.cpu_baseline                              # 例如 42.00
+```
+
+基线漂移判断：正常时段连续 3 次采样相对基线超过 ±30%，说明世界配速/玩家量变了，
+应重录基线；不要拿旧基线做重启判据。
+
+演练（只检查不动作，会打印触发原因并以非零退出）：
+
+```bash
+python3 deploy/rolling_restart.py --once --dry-run --rss-limit-mb 50 --rss-streak 1
+# 输出：{"...","rss_mb":52,"rss_abs_streak":1,"trigger":true,
+#        "reasons":["rss=52MB>=50MB for 1 windows"]}
+#       [rolling-restart] DRY-RUN: 命中阈值，未执行重启   → 退出码 1
+```
+
+真实重启（走 `compose stop` → `stop_grace_period: 45s` → `up -d`，并等待 `/api/health`）：
+
+```bash
+python3 deploy/rolling_restart.py --loop --interval 60
+# 小库空载演练的实际输出（隔离栈）：
+# [rolling-restart] restart service=world: rss=36MB>=30MB for 1 windows
+# [rolling-restart] post-restart {"restart":1,"stop_s":0.41,"health_200":true,
+#   "health_ready_s":1.01,"seq_gap":0,"events_ok":true,"integrity":"ok",
+#   "state_match":true}
+```
+
+`stop_grace_period=45s` 的依据：50 并发 2 小时 soak 实测 SIGTERM→退出 **31.24s**
+（keep-alive 连接收尾 + WAL checkpoint），容器默认 10s 会直接 SIGKILL；45s =
+31.24s × 1.44 余量。
 
 ## 文档
 

@@ -405,6 +405,60 @@ XKX_ADMIN_BASIC_USER=admin XKX_ADMIN_BASIC_PASS='<强口令>' ./gen_admin_basic_
 - `master_key=false` → `unhealthy`（显式拒绝"密钥缺失却静默回退 env"）；
 - 正常 → `healthy: admin v… settings_version=… providers=… master_key=…`，exit 0。
 
+**proxy 自身也必须探管理面**（`docker-compose.yml` 的 proxy healthcheck）：
+
+```text
+wget -q --no-check-certificate -O /dev/null https://127.0.0.1/healthz
+&& wget -q --no-check-certificate -O /dev/null https://127.0.0.1/api/admin/health
+```
+
+只探 `/healthz` 会让 "admin 冷启动 502、proxy 仍 healthy" 的情况被掩盖（独立审计实测
+24/24 502）。`/api/admin/health` 免 Basic，经反代直达 admin：`200`=可达，`502/000`=失败。
+任一失败 → proxy `unhealthy`（`start_period: 60s` 给冷启动留窗口）。
+
+**上游解析必须用变量式 `proxy_pass`**：
+
+```nginx
+resolver 127.0.0.11 valid=10s ipv6=off;   # Docker 内置 DNS
+set $admin_api admin:8031;                # world_api / world_ui 同理
+proxy_pass http://$admin_api;
+```
+
+静态 `proxy_pass http://admin:8031` 只在 nginx 启动时解析一次；冷启动时 admin 还没在
+Docker DNS 注册，nginx 会把错误地址（实测 `198.18.3.188:8031`）缓存下来，之后 admin
+healthy 也持续 502，只能 `docker restart proxy`。变量式让每次请求按当前 DNS 解析。
+
+冷启动实测（`docker compose down` → `up -d`，不 restart）：
+
+```text
+$ docker compose down && docker compose up -d
+xkx-world Healthy / xkx-admin Started / xkx-proxy Started
+all healthy after 6s
+
+$ docker ps --format 'table {{.Names}}\t{{.Status}}'
+NAMES        STATUS
+xkx-proxy    Up 6 seconds (healthy)
+xkx-admin    Up 6 seconds (healthy)
+xkx-world    Up 12 seconds (healthy)
+xkx-backup   Up 12 seconds (healthy)
+
+# 连续 30 轮探测（settings 无 Bearer 应 401，admin health 应 200；502/000 计失败）
+settings=401 admin_health=200   …（30 轮相同）
+FAILURES(502/000)=0 / 30
+```
+
+失败可见性回归（停掉 admin，不 restart proxy）：
+
+```text
+$ docker stop xkx-admin && sleep 55
+xkx-proxy    Up About a minute (unhealthy)
+proxy_health=unhealthy failing=3
+$ docker start xkx-admin && sleep 35
+xkx-proxy    Up 2 minutes (healthy)
+xkx-admin    Up 35 seconds (healthy)
+admin_health=200
+```
+
 **实测（2026-11-06，整套 compose）**
 
 ```text
@@ -498,6 +552,8 @@ xkx-admin	Up 25 seconds (healthy)
 | `/api/admin/*` 401 `unauthorized` | 无 Bearer 或会话过期（24h） | 重新 `POST /api/admin/login` 取会话 |
 | `/api/admin/*` 403 `admin_ip_not_allowed` | 来源不是 proxy 固定 IP | 确认请求经 proxy；直连只允许容器内回环或精确命中 `XKX_ADMIN_ALLOW_IPS`（不支持 CIDR） |
 | `/admin/` 或 `/api/admin/*` 504 | admin 暂停/卡死，反代读超时 30s | `docker ps` 看健康；`docker logs xkx-admin`；必要时 `docker restart xkx-admin` |
+| 冷启动后 `/api/admin/*` 持续 502，`docker restart proxy` 才恢复 | 静态 `proxy_pass` 在启动时缓存了错误上游 | 确认模板用 `resolver 127.0.0.11` + `proxy_pass http://$admin_api`（见上） |
+| `xkx-proxy` healthy 但管理面 502 | proxy 健康检查没覆盖 admin | 确认 healthcheck 同时探 `/api/admin/health` |
 | `/api/admin/login` 502/504 | admin 未启动或不在 `admin-net` | `docker compose ps`；确认 `xkx-proxy` 的 `admin-net` IP 仍为 `172.30.31.10` |
 | `xkx-admin` 一直 `unhealthy`，日志 `master_key=false` | `.env` 缺 `XKX_SECRET_KEY` 或值被覆盖 | 检查 `world-sim/.env`；确认 compose 未用 `${XKX_SECRET_KEY}` 注入；重建 admin |
 | `xkx-admin` `unhealthy`，`admin_ip_not_allowed` 满日志 | `XKX_ADMIN_ALLOW_IPS` 与 proxy 实际 IP 不一致 | 核对 `admin-net` 静态 IP 与 `ALLOW_IPS` |

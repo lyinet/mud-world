@@ -165,12 +165,17 @@ services:
     restart: unless-stopped
     healthcheck:
       # 80 只做 301（无明文探活），所以探 /healthz 必须走 https；自签证书用
-      # --no-check-certificate。后端可用性由 world 的 /api/health 负责。
-      test: ["CMD-SHELL", "wget -q --no-check-certificate -O /dev/null https://127.0.0.1/healthz"]
+      # --no-check-certificate。
+      # 必须同时探管理面：只探 /healthz 时 admin 冷启动 502 而 proxy 仍显示
+      # healthy（独立审计实测 24/24 502）。/api/admin/health 免 Basic、经 proxy
+      # 直连 admin；200=可达，502/000=失败。任一失败即 unhealthy。
+      test: ["CMD-SHELL", "wget -q --no-check-certificate -O /dev/null https://127.0.0.1/healthz && wget -q --no-check-certificate -O /dev/null https://127.0.0.1/api/admin/health"]
       interval: 15s
-      timeout: 5s
+      timeout: 10s
       retries: 3
-      start_period: 10s
+      # admin 依赖 world healthy 才启动，冷启动链路比单个服务长；给足启动窗口，
+      # 避免刚起来就被判 unhealthy（真实的持续故障仍会在 3 次重试后转 unhealthy）。
+      start_period: 60s
 
 networks:
   # 管理面专用内网：不接外网、不映射端口，只有 proxy 能到 admin。

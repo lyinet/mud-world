@@ -55,6 +55,44 @@
   改为尾部两条按主键倒序比较（O(log n)），`test_health_seq_gap_503` 由 200 恢复为 503。
 - **commit**：`059ee45`
 
+## [部署] 2026-11-06 — 修复管理面冷启动 502：变量式上游解析 + proxy 健康检查覆盖管理面
+
+- **改了什么**
+  - nginx 上游改为 `resolver 127.0.0.11 valid=10s` + 变量式 `proxy_pass http://$admin_api`
+    （world API/UI 同样处理）。静态 `proxy_pass` 只在启动时解析一次，冷启动时 admin
+    未注册 DNS 会把错误地址（审计实测 `198.18.3.188:8031`）缓存下来，导致之后持续 502。
+  - proxy 的 HEALTHCHECK 从"只探玩家 `/healthz`"改为同时探
+    `https://127.0.0.1/healthz` 与 `https://127.0.0.1/api/admin/health`（免 Basic），
+    任一失败即 `unhealthy`；`start_period` 10s → 60s，给 admin 冷启动留窗口。
+  - `docs/OPS-RUNBOOK.md` §1.5 补上游解析/健康检查口径、冷启动与失败可见性实测、故障行。
+- **为什么改**：只探 world 的健康检查会掩盖"admin 502 但 proxy healthy"；上游静态解析
+  把冷启动顺序变成必须手工 `docker restart proxy` 才恢复的隐性故障。
+- **验收/实测（`docker compose down` → `up -d`，不 restart）**
+  - 冷启动 6s 后四容器全部 `healthy`；随后连续 30 轮探测
+    `/api/admin/settings`（401）+ `/api/admin/health`（200），`FAILURES(502/000)=0 / 30`。
+  - `docker stop xkx-admin` → 55s 后 `xkx-proxy … (unhealthy)`、`failing=3`；
+    `docker start xkx-admin` 后（未 restart proxy）自动恢复 `healthy`，`admin_health=200`。
+- **commit**：见本条目所在提交。
+
+## [交付] 2026-11-06 — 发布 tag 生成/核对清单；滚动重启脚本入库；基线唯一化
+
+- **改了什么**
+  - `docs/RELEASE-ROLLBACK.md` 新增 §7「发布 tag 生成与核对清单」（既有镜像
+    发布/回滚章节保留）：tag 命名规则、打 tag 前的唯一基线检查、
+    `git ls-tree` 文件数与 HEAD 比对、关键路径（`src/wsim/admin/`、`ui/admin/`、
+    `src/wsim/actions/player_sect.py`）与 `WRITE_ACTIONS`（`restock/set_price/shop_report`
+    + `open_shop/dismiss/withdraw`，实际路径 `src/wsim/api/session.py`）核对、push 与
+    回滚到上一 tag 的步骤。**本轮不打 tag**（版本号待下发），仅记录清单。
+  - `deploy/rolling_restart.py` 与 `deploy/README.md` 的滚动重启说明入库；
+    脚本 `py_compile` 与 `--help` 通过，`.gitignore` 未误忽略脚本。
+  - `deploy/README.md` 基线哈希核对：`b23827a` 等于 `delivery-p3k^{commit}`，是历史冻结
+    基线而非当前 HEAD；补注说明，避免被误读为交付 HEAD。
+- **基线事实（2026-11-06）**：`delivery-p3l^{commit}=d01ba9b`，落后 HEAD 101 个提交；
+  tag 内 541 个文件 vs HEAD 751；不可用于本次交付。
+- **`reports/capacity/*.log`**：`.gitignore` 已含该规则（第 40 行），`git ls-files`
+  统计入库 log 数为 0；本轮无需新增忽略。
+- **commit**：见本条目所在提交。
+
 ## [部署] 2026-11-06 — TLS 硬化：301-only 入口、ACME 例外、强协议/套件与安全响应头
 
 - **改了什么**

@@ -73,6 +73,19 @@ server {
     # 管理面公网开关：由 compose 的 XKX_ADMIN_PUBLIC 渲染。
     set $admin_enabled "${ADMIN_ENABLED}";
 
+    # ---- 上游解析（冷启动正确性）
+    # 静态 `proxy_pass http://admin:8031` 只在 nginx 启动时解析一次。冷启动时
+    # admin 容器可能还没在 Docker DNS 注册，nginx 会把解析结果（实测可能是一个
+    # 错误地址，如 198.18.3.188:8031）缓存下来，之后 admin 已经 healthy 也仍然
+    # 持续 502，只能 docker restart proxy 才恢复。
+    # 改成"变量式 proxy_pass + Docker 内置 DNS resolver"：每次请求按当前 DNS
+    # 记录解析，valid=10s 让容器重建/IP 变化后最多 10 秒自动跟上。
+    resolver 127.0.0.11 valid=10s ipv6=off;
+    resolver_timeout 5s;
+    set $world_api  world:8020;
+    set $world_ui   world:8030;
+    set $admin_api  admin:8031;
+
     # 与后端 src/wsim/api/server.py 的 _MAX_BODY_BYTES（8*1024）一致。
     # 后端超限返回 JSON 413 payload_too_large；nginx 在更早一层也会以 413 拒绝，
     # 两者阈值相同，避免"反代放行、后端拒绝"或反之的错位。
@@ -116,7 +129,7 @@ server {
     # 后端真实探活：单独放行、不记访问日志（高频探活不污染日志）
     location = /api/health {
         access_log off;
-        proxy_pass http://world:8020;
+        proxy_pass http://$world_api;
     }
 
     # ---------------------------------------------------------------- 管理面
@@ -151,23 +164,23 @@ server {
         if ($admin_enabled = "0") { return 404; }
         auth_basic "XKX Admin";
         auth_basic_user_file /etc/nginx/certs/admin.htpasswd;
-        proxy_pass http://admin:8031;
+        proxy_pass http://$admin_api;
     }
 
     location /api/admin/ {
         if ($admin_enabled = "0") { return 404; }
         # 不在这里加 auth_basic：见上，Bearer 会覆盖 Basic。
-        proxy_pass http://admin:8031;
+        proxy_pass http://$admin_api;
     }
 
     # ---------------------------------------------------------------- 玩家面
     # API（引擎/鉴权/状态/动作）
     location /api/ {
-        proxy_pass http://world:8020;
+        proxy_pass http://$world_api;
     }
 
     # 玩家前端（8030 的静态页与同源代理）
     location / {
-        proxy_pass http://world:8030;
+        proxy_pass http://$world_ui;
     }
 }

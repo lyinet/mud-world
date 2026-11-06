@@ -212,3 +212,165 @@ second move ok=True reject=
 未做项：本次实测的两个镜像 `content/` 相同（同一 `content_hash`），因此**没有**验证
 “内容变更后回滚必然 `content_hash_mismatch`”的反向场景；该判定来自
 [DEPLOYMENT-W1.md](DEPLOYMENT-W1.md) 第 6 节的启动校验实现（退出码 3），非本轮实测。
+
+## 7. 发布 tag 生成与核对清单（`delivery-*`）
+
+> 适用：把当前 `master` 冻结成对外交付 tag、核对完整性、推送与按 tag 回滚代码。
+> **本轮（2026-11-06）不实际打 tag**：版本号由发布统一入口下发后再执行本清单。
+
+### 7.1 命名规则
+
+- 格式：`delivery-<milestone>`，全小写、短横线分隔，例：`delivery-p3l`、`delivery-p4`。
+- 一个里程碑只对应一个 tag；已推送的 tag **永不移动**（禁止 `git tag -f`、禁止
+  `git push --force`）。需要修正时发新 tag（如 `delivery-p4a`）并在 CHANGELOG 说明。
+- tag 必须指向 `master` 上已推送的提交（`HEAD == origin/master`），用 annotated tag，
+  不打 lightweight tag（保留打 tag 人/时间/说明）。
+- tag 消息写清里程碑与验收范围，例：
+  `delivery-p4: 门派系统 + 管理控制台 + 店铺五动作（冷启动 30/30）`。
+
+### 7.2 打 tag 前的唯一基线检查
+
+```bash
+git fetch origin
+git status --porcelain          # 必须为空
+git rev-parse HEAD
+git rev-parse origin/master     # 必须与 HEAD 相同
+```
+
+如存在他人的未提交改动：**不要代提交**，先确认它们不属于本次交付，再继续。
+`reports/**/*.log` 等本地产物已由 `.gitignore` 排除，不应出现在 `git status`。
+
+### 7.3 打 tag
+
+```bash
+TAG=delivery-p4          # 用下发版本号替换
+git tag -a "$TAG" -m "delivery-p4: <里程碑内容>"
+```
+
+### 7.4 推送前核对（全部通过才 push）
+
+#### 7.4.1 指向与类型
+
+```bash
+git cat-file -t "$TAG"                                  # 期望：tag（annotated）
+git rev-parse --short "$TAG^{commit}"                   # 期望：与 HEAD 相同的短哈希
+test "$(git rev-parse "$TAG^{commit}")" = "$(git rev-parse HEAD)" && echo "commit OK"
+```
+
+#### 7.4.2 文件数与 HEAD 一致（防 tag 指向旧快照）
+
+```bash
+TAG_FILES=$(git ls-tree -r --name-only "$TAG" | wc -l | tr -d ' ')
+HEAD_FILES=$(git ls-tree -r --name-only HEAD | wc -l | tr -d ' ')
+echo "tag=$TAG_FILES head=$HEAD_FILES"
+test "$TAG_FILES" = "$HEAD_FILES" || { echo "FAIL: 文件数与 HEAD 不一致，tag 可能指向旧提交"; exit 1; }
+```
+
+#### 7.4.3 关键路径必须存在
+
+```bash
+for path in src/wsim/admin/ ui/admin/ src/wsim/actions/player_sect.py; do
+  git ls-tree -r --name-only "$TAG" | grep -q "^$path" \
+    || { echo "FAIL: tag 缺少 $path"; exit 1; }
+done
+echo "关键路径 OK"
+```
+
+#### 7.4.4 店铺五动作进 `WRITE_ACTIONS`
+
+`WRITE_ACTIONS` 的实际位置是 `src/wsim/api/session.py`（不是 `src/wsim/actions/`）：
+
+```bash
+for verb in restock set_price shop_report; do
+  git show "$TAG:src/wsim/api/session.py" | grep -q "\"$verb\"" \
+    || { echo "FAIL: WRITE_ACTIONS 缺少 $verb"; exit 1; }
+done
+echo "店铺动作 OK"
+```
+
+若交付说明包含“店铺五动作”，建议一并核对整组六键：
+
+```bash
+for verb in open_shop restock set_price dismiss withdraw shop_report; do
+  git show "$TAG:src/wsim/api/session.py" | grep -q "\"$verb\"" \
+    || { echo "FAIL: WRITE_ACTIONS 缺少 $verb"; exit 1; }
+done
+```
+
+#### 7.4.5 可构建/可起服务（可选但推荐）
+
+```bash
+git switch --detach "$TAG"
+cd deploy && docker compose build && docker compose up -d
+docker ps --format 'table {{.Names}}\t{{.Status}}'      # 四容器全 healthy
+cd .. && git switch master
+```
+
+### 7.5 推送 tag 并验证远端
+
+```bash
+git push origin "$TAG"
+git ls-remote --tags origin "$TAG" "${TAG}^{}"   # 应看到 tag 对象与 peeled commit
+git rev-parse --short "$TAG^{commit}"            # 与 7.4.1 一致
+```
+
+禁止：`git push --force origin "$TAG"`、`git tag -f`、`git push --tags`（会顺带推送
+本地遗留的临时 tag）。
+
+### 7.6 按 tag 回滚代码（回到上一交付）
+
+#### 7.6.1 找到上一 tag
+
+```bash
+git fetch --tags --prune
+git tag --sort=-creatordate | grep '^delivery-' | head -5   # 最新在前
+PREV=$(git tag --sort=-creatordate | grep '^delivery-' | sed -n '2p')
+echo "$PREV"
+```
+
+#### 7.6.2 先备份数据，再切代码
+
+回滚只回代码，不回数据库 schema：
+
+```bash
+# 1) 先做一次带远端校验的备份（见 docs/BACKUP-RESTORE.md）
+docker exec xkx-backup python /app/tools/backup_snapshot.py \
+  --root /app --run "${RUN_ID:-service}" --backup-dir /app/backups
+docker exec xkx-backup sh -c 'cat /app/backups/last_backup_status.json'
+
+# 2) 切到上一 tag 并重建
+git switch --detach "$PREV"
+docker compose down
+docker compose up -d --build
+docker ps --format 'table {{.Names}}\t{{.Status}}'
+```
+
+#### 7.6.3 若新版本已写过库
+
+旧代码读新 schema 可能失败。此时不要直接跑旧版本，先按第 4、5 节判定，必要时按
+[docs/BACKUP-RESTORE.md](BACKUP-RESTORE.md) 恢复到新版本之前的备份，再起旧 tag。
+
+#### 7.6.4 回到主线
+
+```bash
+git switch master
+git pull --ff-only
+```
+
+已推送的坏 tag **不删除、不移动**：发布一个新 tag（如 `delivery-p4a`）指向修复后的
+提交，并在 CHANGELOG 标注旧 tag 不再用于部署。
+
+### 7.7 当前基线快照（2026-11-06，供对照）
+
+```text
+$ git rev-parse --short 'delivery-p3l^{commit}'
+d01ba9b
+$ git rev-list --count delivery-p3l..HEAD
+101
+$ echo "tag=$(git ls-tree -r --name-only delivery-p3l | wc -l) head=$(git ls-tree -r --name-only HEAD | wc -l)"
+tag=541 head=751
+```
+
+结论：`delivery-p3l` 是旧快照（缺门派、管理控制台、店铺五动作，文件数少 210），
+**不可用于本次交付**；等阻断项修完、版本号下发后按 7.2–7.5 重新打 tag。
+`deploy/README.md` 里的 `b23827a` 是 `delivery-p3k^{commit}` 的历史基线，不是当前 HEAD。
