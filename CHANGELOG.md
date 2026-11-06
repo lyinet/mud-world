@@ -46,6 +46,34 @@
   后续升级全城图可直接接这个端点，不再等后端补字段。
 - **commit**：见本条目所在提交。
 
+## [对话] 2026-11-07 — NPC 对话去同质化：轮次/人格进入模板，模型走管理台注册表
+
+- **改了什么**：
+  - 修复三处“压平”根因：`TalkAction` 不再恒传 `turn=0`；`compose_talk` 的人设台词
+    从“仅 deflection”改为参与全部意图并按轮次轮换；同文防重时取下一轮变体。
+  - `turn/last_message/last_reply` 从 NPC memory 推导后传入模板与模型 `state_summary`；
+    **不新增 `talk_ledger` 字段**，保持 `state_hash` 语义与旧 schema 一致（仅 memory 文本随
+    台词变化，golden V6 哈希已按此显式更新）。
+  - `dialogue` 能力位接真实模型：新增 `agent/dialogue_runtime.py`，**管理台 provider
+    注册表优先、env 兜底**（`provider_id=dialogue` 路由）；`WSIM_DIALOGUE=1` 时挂到 `talk`。
+    当前实测走 8032 的 `local-gw`（`127.0.0.1:3425/v1`，`auto/deepseek-v4.1-flash`），
+    env 回退由单测覆盖。
+- **为什么**：老板首发实测指出“与 NPC 交互都是同样的话”。基线为
+  `dialogue.status=unconfigured`、`llm_calls=0`、100% 确定性模板。
+- **红线**：模型台词**不进**世界状态/事件/`content_hash`。状态与事件只写 `compose_talk`
+  模板；模型文本仅进 `dialogue.jsonl` 与本次 HTTP 响应的 `details.reply`（进程内缓存，
+  `details.dialogue_source="model"`）。回放与关系/经济/目标仍为确定性。
+- **验证**：
+  - 5 NPC × 3 轮同场景：去重 `6/15 → 15/15`；同 NPC 相邻相同 `5 → 0`；
+    同意图跨 NPC 相同 `10 → 0`；同意图最长公共子串 `26 → 1`（模型）/`2`（模板）。
+    模板命中率 `15/15`（未开模型）与模型生成率 `15/15`（开模型）分开报告，不混算。
+  - `events.sqlite` 检索模型句命中 0 次、模板句按轮次出现；`content_hash` 保持 `5267a8a84f7c`。
+  - `tests/test_dialogue_variety.py` + 既有对话/守卫测试全过；`tests/test_p3e_golden.py`
+    2 passed（V6 基线更新原因已写入测试常量 `DIALOGUE_VARIETY_BASELINE_REASON`）。
+  - 原始请求/响应与逐轮对照：[reports/npc-dialogue-variety.md](reports/npc-dialogue-variety.md)；
+    回归指标定义：[docs/DIALOGUE-QUALITY.md](docs/DIALOGUE-QUALITY.md)。
+- **commit**：见本条目所在提交。
+
 ## [后端] 2026-11-07 — 新增只读世界地图 `GET /api/world/map`
 
 - **改了什么**：新增匿名可读端点，返回全城地点（id/name/region/region_name）、
