@@ -1,0 +1,142 @@
+{
+  "run": "player-demo-20261107-002916-86448",
+  "account": "s1check_015105",
+  "state_tick": 2514,
+  "location_from_state": {
+    "id": "market",
+    "name": "集市",
+    "exits": [
+      {
+        "exists": true,
+        "id": "academy",
+        "name": "书院"
+      },
+      {
+        "exists": true,
+        "id": "inn",
+        "name": "客栈"
+      },
+      {
+        "exists": true,
+        "id": "pharmacy",
+        "name": "药铺"
+      },
+      {
+        "exists": true,
+        "id": "smithy",
+        "name": "铁匠铺"
+      },
+      {
+        "exists": true,
+        "id": "teahouse",
+        "name": "茶棚"
+      }
+    ]
+  },
+  "player": {
+    "name": "沈验0151",
+    "location": "market",
+    "location_name": "集市",
+    "stamina": 100.0
+  },
+  "desktop": {
+    "text": [
+      "          ┌── 书院",
+      "          │",
+      "客栈   ───┼── ◆ 集市 ──┬── 药铺",
+      "          │            │",
+      "          └── 铁匠铺   └── 茶棚"
+    ],
+    "textMap": {
+      "clientWidth": 242,
+      "scrollWidth": 242,
+      "left": 48,
+      "right": 292,
+      "width": 244
+    },
+    "page": {
+      "scrollWidth": 1440,
+      "clientWidth": 1440
+    },
+    "mapHint": "◆ 你在这里：集市 · 只画一跳",
+    "mapNote": "◆ 为当前所在地。本图只画「周边一跳」真实出口，未知道的道路留空；区域名、两跳以外地点与自动寻路暂不可用，需等后端邻接表。",
+    "directionHint": "可走 5 个方向 · 每步 1 小时 · -5 体力",
+    "exits": [
+      {
+        "id": "academy",
+        "text": "书院 | academy | 5 力 · 1 小时",
+        "disabled": false
+      },
+      {
+        "id": "inn",
+        "text": "客栈 | inn | 5 力 · 1 小时",
+        "disabled": false
+      },
+      {
+        "id": "pharmacy",
+        "text": "药铺 | pharmacy | 5 力 · 1 小时",
+        "disabled": false
+      },
+      {
+        "id": "smithy",
+        "text": "铁匠铺 | smithy | 5 力 · 1 小时",
+        "disabled": false
+      },
+      {
+        "id": "teahouse",
+        "text": "茶棚 | teahouse | 5 力 · 1 小时",
+        "disabled": false
+      }
+    ]
+  },
+  "mobile": {
+    "text": [
+      "          ┌── 书院",
+      "          │",
+      "客栈   ───┼── ◆ 集市 ──┬── 药铺",
+      "          │            │",
+      "          └── 铁匠铺   └── 茶棚"
+    ],
+    "textMap": {
+      "clientWidth": 293,
+      "scrollWidth": 293,
+      "left": 40,
+      "right": 335,
+      "width": 295
+    },
+    "page": {
+      "scrollWidth": 375,
+      "clientWidth": 375
+    },
+    "mapHint": "◆ 你在这里：集市 · 只画一跳",
+    "mapNote": "◆ 为当前所在地。本图只画「周边一跳」真实出口，未知道的道路留空；区域名、两跳以外地点与自动寻路暂不可用，需等后端邻接表。",
+    "directionHint": "可走 5 个方向 · 每步 1 小时 · -5 体力",
+    "exits": [
+      {
+        "id": "academy",
+        "text": "书院 | academy | 5 力 · 1 小时",
+        "disabled": false
+      },
+      {
+        "id": "inn",
+        "text": "客栈 | inn | 5 力 · 1 小时",
+        "disabled": false
+      },
+      {
+        "id": "pharmacy",
+        "text": "药铺 | pharmacy | 5 力 · 1 小时",
+        "disabled": false
+      },
+      {
+        "id": "smithy",
+        "text": "铁匠铺 | smithy | 5 力 · 1 小时",
+        "disabled": false
+      },
+      {
+        "id": "teahouse",
+        "text": "茶棚 | teahouse | 5 力 · 1 小时",
+        "disabled": false
+      }
+    ]
+  }
+}

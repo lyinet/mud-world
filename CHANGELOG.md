@@ -9,6 +9,43 @@
 
 ---
 
+## [界面] 2026-11-07 — 周边地图返工：xkx 字符分支图，逐字符对齐、桌面/窄屏无溢出
+
+- **改了什么**：
+  - `ui/player/app.js` 的 `buildTextMap` 改为真正的字符线条分支图：`┌ ┐ └ ┘ ├ ┤ ┬ ┴ ┼ ─ │`
+    连接当前地点与真实出口，地点名嵌在节点上，当前地点用 `◆` 标记。
+  - 修正 `┼` 与上下竖线不同列的坐标 bug（原 `hub` 与横线长度不一致），
+    左名 → `─` → `┼` → `◆ 当前地点` → `┬` → 右分支全部按同一列号落位。
+  - 新增 `renderMapGrid`：地图不再用 `<pre>` 赌字体等宽，而是逐字符渲染
+    `.map-cell`（中文 2 格、ASCII/线条 1 格），CSS 固定 `.6em/1.2em` 格宽。
+  - `index.html` 的图注写明「◆ 为当前所在地；只画周边一跳真实出口，未知道路留空；
+    区域名、两跳以外地点、自动寻路暂不可用」。
+- **为什么**：老板否掉「◆ + 一跳地点竖排清单」，要求 xkx `map` 那种用字符线条
+  画出连接关系、地名嵌在图上的文本地图；原 `<pre>` 方案在 Menlo/中文字体下会串列。
+- **只画真实数据**：只使用 `/api/player/state` 的 `location.name` 与 `location.exits[]`，
+  不补两跳地点、不画假全城；`exists=false` 的出口标「（不通）」。
+- **真机验证**（API 8031 / UI 8000，账号 `s1check_015105`，角色 `沈验0151`）：
+  - 真实响应 `GET /api/player/state`：`tick=2514`、`location={id:"market",
+    name:"集市", exits:[academy/inn/pharmacy/smithy/teahouse]}`；5 个出口均 `exists=true`。
+  - 渲染结果：
+    ```
+              ┌── 书院
+              │
+    客栈   ───┼── ◆ 集市 ──┬── 药铺
+              │            │
+              └── 铁匠铺   └── 茶棚
+    ```
+  - 桌面 1440：`#textMap clientWidth=242 / scrollWidth=242`；整页 1440/1440，无横向溢出。
+  - 窄屏 375：`#textMap clientWidth=293 / scrollWidth=293`；整页 375/375，无横向溢出、
+    不糊成一行；上地图下方向排布不变。
+  - 截图：[reports/w4-map/map-desktop.png](reports/w4-map/map-desktop.png)、
+    [reports/w4-map/map-mobile.png](reports/w4-map/map-mobile.png) 及对应 `*-only.png`。
+  - mock 回归：`python tools/ui_check.py --only desktop,mobile` → 42 checks / 0 failed。
+- **全城图边界**：后端 `ba379ea` 已提供只读 `GET /api/world/map`（9 地点 / 11 条无向边 /
+  22 个有向方向），因此「全城邻接」不再是硬缺口；本次按验收范围仍只画一跳，
+  后续升级全城图可直接接这个端点，不再等后端补字段。
+- **commit**：见本条目所在提交。
+
 ## [后端] 2026-11-07 — 新增只读世界地图 `GET /api/world/map`
 
 - **改了什么**：新增匿名可读端点，返回全城地点（id/name/region/region_name）、

@@ -52,10 +52,10 @@
 
           <div class="map-head">
             <h3>周边地图</h3>
-            <span class="hint">只画当前地点与一跳可达</span>
+            <span class="hint" id="mapHint">—</span>
           </div>
-          <div class="text-map" id="textMap" aria-label="周边一跳地图"></div>
-          <div class="map-note">区域名、两跳以外地点与自动寻路暂不可用：接口只下发当前地点和直接出口。</div>
+          <div class="text-map" id="textMap" aria-label="周边一跳字符地图"></div>
+          <div class="map-note">◆ 为当前所在地。本图只画「周边一跳」真实出口，未知道的道路留空；区域名、两跳以外地点与自动寻路暂不可用，需等后端邻接表。</div>
 
           <div class="direction-head">
             <h3>方向</h3>

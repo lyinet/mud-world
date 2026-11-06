@@ -1694,6 +1694,124 @@
     }
   }
 
+  /* 字符地图按显示格计算宽度：中文占 2 格，线条/ASCII 占 1 格。 */
+  function mapCharWide(ch) {
+    const c = ch.codePointAt(0);
+    return (c >= 0x1100 && c <= 0x115F) ||
+      (c >= 0x2E80 && c <= 0xA4CF) ||
+      (c >= 0xAC00 && c <= 0xD7A3) ||
+      (c >= 0xF900 && c <= 0xFAFF) ||
+      (c >= 0xFE30 && c <= 0xFE4F) ||
+      (c >= 0xFF00 && c <= 0xFF60) ||
+      (c >= 0xFFE0 && c <= 0xFFE6);
+  }
+
+  function mapWidth(text) {
+    let width = 0;
+    Array.from(String(text == null ? '' : text)).forEach(function (ch) {
+      width += mapCharWide(ch) ? 2 : 1;
+    });
+    return width;
+  }
+
+  function mapSpaces(count) {
+    return ' '.repeat(Math.max(0, count));
+  }
+
+  function mapPadRight(text, width) {
+    return text + mapSpaces(width - mapWidth(text));
+  }
+
+  /* 以当前地点为中心的星形一跳图：所有分支用字符线条真实连到中心。 */
+  function buildTextMap(loc) {
+    const exits = (loc.exits || []).map(function (exit) {
+      return {
+        name: String(exit.name || exit.id || '') +
+          (exit.exists === false ? '（不通）' : '')
+      };
+    });
+    const count = exits.length;
+    let top = '';
+    let leftTop = '';
+    let leftBottom = '';
+    let rightTop = '';
+    let rightBottom = '';
+    if (count >= 5) {
+      top = exits[0].name;
+      leftTop = exits[1].name;
+      leftBottom = exits[3].name;
+      rightTop = exits[2].name;
+      rightBottom = exits[4].name;
+    } else if (count === 4) {
+      leftTop = exits[0].name;
+      leftBottom = exits[2].name;
+      rightTop = exits[1].name;
+      rightBottom = exits[3].name;
+    } else if (count === 3) {
+      leftTop = exits[0].name;
+      rightTop = exits[1].name;
+      rightBottom = exits[2].name;
+    } else if (count === 2) {
+      leftTop = exits[0].name;
+      rightTop = exits[1].name;
+    } else if (count === 1) {
+      rightTop = exits[0].name;
+    }
+
+    const here = '◆ ' + (loc.name || '未知地点');
+    if (!count) return here + '\n\n（此地没有已知出口）';
+
+    const leftWidth = Math.max(mapWidth(leftTop), mapWidth(leftBottom));
+    /* ┼ 必须与上下竖线同列：左名占 [0,leftWidth)，空格 1 格，横线 3 格，┼ 落在此列。 */
+    const hub = leftTop ? (leftWidth + 1 + 3) : 0;
+    const centerStart = leftTop ? hub + 4 : 0;
+    const rightHub = centerStart + mapWidth(here) + 3;
+    const lines = [];
+
+    if (top) {
+      lines.push(mapSpaces(hub) + '┌── ' + top);
+      lines.push(mapSpaces(hub) + '│');
+    }
+
+    let line = leftTop
+      ? mapPadRight(leftTop, leftWidth) + ' ' + '─'.repeat(3) + '┼── ' + here
+      : here;
+    if (rightTop) {
+      line += ' ──' + (rightBottom ? '┬' : '─') + '── ' + rightTop;
+    }
+    lines.push(line);
+
+    if (leftBottom || rightBottom) {
+      let vertical = leftBottom ? (mapSpaces(hub) + '│') : '';
+      if (rightBottom) {
+        vertical += (vertical ? mapSpaces(rightHub - mapWidth(vertical)) : mapSpaces(rightHub)) + '│';
+      }
+      lines.push(vertical);
+
+      let bottom = leftBottom ? (mapSpaces(hub) + '└── ' + leftBottom) : '';
+      if (rightBottom) {
+        bottom += (bottom ? mapSpaces(rightHub - mapWidth(bottom)) : mapSpaces(rightHub)) +
+          '└── ' + rightBottom;
+      }
+      lines.push(bottom);
+    }
+    return lines.join('\n');
+  }
+
+  /* 逐字符渲染：每格固定宽度，中文占两格；不依赖字体对 CJK/线条的等宽假设。 */
+  function renderMapGrid(text) {
+    return String(text).split('\n').map(function (line) {
+      const chars = Array.from(line);
+      if (!chars.length) {
+        return '<div class="map-row"><span class="map-cell">&nbsp;</span></div>';
+      }
+      return '<div class="map-row">' + chars.map(function (ch) {
+        return '<span class="map-cell' + (mapCharWide(ch) ? ' wide' : '') + '">' +
+          (ch === ' ' ? '&nbsp;' : escapeHtml(ch)) + '</span>';
+      }).join('') + '</div>';
+    }).join('');
+  }
+
   function renderPlace(st) {
     const p = st.player || {};
     const loc = st.location || {};
@@ -1705,29 +1823,8 @@
       (p.role ? '（' + p.role + '）' : '') + ' · tick ' + st.tick;
 
     /* 地图只画当前地点与直接出口；区域与两跳以外不猜测，界面上明确写“周边”。 */
-    const map = el('textMap');
-    map.innerHTML = '';
-    const current = document.createElement('div');
-    current.className = 'map-current';
-    current.innerHTML = '<span class="map-mark">◆</span><b>' +
-      escapeHtml(loc.name || '未知地点') + '</b><span class="map-self">你在这里</span>';
-    map.appendChild(current);
-    if (!exits.length) {
-      const empty = document.createElement('div');
-      empty.className = 'map-empty';
-      empty.textContent = '此地没有已知出口。';
-      map.appendChild(empty);
-    }
-    exits.forEach(function (exit, idx) {
-      const open = exit.exists !== false;
-      const row = document.createElement('div');
-      row.className = 'map-branch' + (open ? '' : ' blocked');
-      row.innerHTML = '<span class="map-connector">' +
-        (idx === exits.length - 1 ? '└─' : '├─') + '</span>' +
-        '<span class="map-node">' + escapeHtml(exit.name || exit.id) + '</span>' +
-        '<span class="map-flag">' + (open ? '可去' : '道路不通') + '</span>';
-      map.appendChild(row);
-    });
+    el('mapHint').textContent = '◆ 你在这里：' + (loc.name || '未知地点') + ' · 只画一跳';
+    el('textMap').innerHTML = '<div class="map-grid">' + renderMapGrid(buildTextMap(loc)) + '</div>';
 
     const dirs = el('exits');
     dirs.innerHTML = '';

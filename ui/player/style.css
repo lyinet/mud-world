@@ -272,30 +272,26 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   border-radius: 10px;
   padding: 9px 11px;
   margin-bottom: 6px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 12.5px;
-  line-height: 1.6;
+  overflow-x: auto;
+  max-width: 100%;
 }
-.map-current,
-.map-branch { display: flex; align-items: center; gap: 7px; }
-.map-mark { color: var(--gold); }
-.map-self {
-  margin-left: auto;
-  color: var(--green);
-  font-family: var(--sans);
-  font-size: 10.5px;
+.map-grid {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  color: var(--ink);
+  font-family: "SFMono-Regular", Menlo, Consolas, "STHeiti", monospace;
+  font-size: clamp(10px, 2.4vw, 11.5px);
+  line-height: 1.55;
 }
-.map-connector { width: 24px; color: var(--line); }
-.map-node { font-family: var(--serif); font-size: 14px; color: var(--ink); }
-.map-flag {
-  margin-left: auto;
-  font-family: var(--sans);
-  font-size: 10.5px;
-  color: var(--green);
+.map-row { display: flex; flex-wrap: nowrap; white-space: nowrap; }
+.map-cell {
+  display: inline-block;
+  width: .6em;
+  text-align: center;
+  white-space: pre;
 }
-.map-branch.blocked .map-node { color: var(--muted); }
-.map-branch.blocked .map-flag { color: var(--red); }
-.map-empty { color: var(--muted); font-size: 12px; padding: 4px 0 0 24px; }
+.map-cell.wide { width: 1.2em; }
 .map-note { font-size: 10.5px; color: var(--muted); line-height: 1.45; margin: 0 0 11px; }
 .direction-head {
   border-top: 1px dashed var(--line-soft);
