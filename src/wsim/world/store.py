@@ -29,6 +29,8 @@ CREATE TABLE IF NOT EXISTS events (
 );
 CREATE INDEX IF NOT EXISTS idx_events_tick ON events(tick);
 CREATE INDEX IF NOT EXISTS idx_events_actor ON events(actor);
+CREATE INDEX IF NOT EXISTS idx_events_intent ON events(intent_id);
+CREATE INDEX IF NOT EXISTS idx_events_actor_tick ON events(actor, tick);
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 """
 
@@ -101,35 +103,60 @@ class EventStore:
         # append-only 且 seq 连续，直接缓存最新 seq，避免每次 COUNT(*) 退化为 O(n^2)
         self._cached_count = event.seq
 
-    def read_all(self) -> list[Event]:
+    def _select_cols(self) -> str:
         cols = "seq,tick,day,intent_id,actor,verb,args,effects,outcome,reason,source"
         if self._has_legacy:
             cols += ",legacy"
+        return cols
+
+    def _row_to_event(self, r: tuple) -> Event:
+        actor = str(r[4])
+        verb = str(r[5])
+        legacy = bool(r[11]) if self._has_legacy else _infer_legacy(actor, verb)
+        return Event(
+            seq=int(r[0]),
+            tick=int(r[1]),
+            day=int(r[2]),
+            intent_id=str(r[3]),
+            actor=actor,
+            verb=verb,
+            args=json.loads(r[6]),
+            effects=json.loads(r[7]),
+            outcome=str(r[8]),
+            reason=str(r[9]),
+            source=str(r[10]),
+            legacy=legacy,
+        )
+
+    def read_all(self) -> list[Event]:
         rows = self.conn.execute(
-            f"SELECT {cols} FROM events ORDER BY seq ASC"
+            f"SELECT {self._select_cols()} FROM events ORDER BY seq ASC"
         ).fetchall()
-        out: list[Event] = []
-        for r in rows:
-            actor = str(r[4])
-            verb = str(r[5])
-            legacy = bool(r[11]) if self._has_legacy else _infer_legacy(actor, verb)
-            out.append(
-                Event(
-                    seq=int(r[0]),
-                    tick=int(r[1]),
-                    day=int(r[2]),
-                    intent_id=str(r[3]),
-                    actor=actor,
-                    verb=verb,
-                    args=json.loads(r[6]),
-                    effects=json.loads(r[7]),
-                    outcome=str(r[8]),
-                    reason=str(r[9]),
-                    source=str(r[10]),
-                    legacy=legacy,
-                )
-            )
-        return out
+        return [self._row_to_event(r) for r in rows]
+
+    def find_intent(self, intent_id: str, actor: str) -> Event | None:
+        """定向查一条意图事件；ASC 与 `read_all()` 首次命中语义一致。"""
+        row = self.conn.execute(
+            f"SELECT {self._select_cols()} FROM events"
+            " WHERE intent_id=? AND actor=? ORDER BY seq ASC LIMIT 1",
+            (str(intent_id), str(actor)),
+        ).fetchone()
+        return None if row is None else self._row_to_event(row)
+
+    def events_for_actor_since(
+        self, actor: str, since_tick: int, limit: int | None = None
+    ) -> list[Event]:
+        """取某 actor 在 `since_tick` 之后的事件（seq 升序）；走 (actor,tick) 索引。"""
+        sql = (
+            f"SELECT {self._select_cols()} FROM events"
+            " WHERE actor=? AND tick>? ORDER BY seq ASC"
+        )
+        params: tuple = (str(actor), int(since_tick))
+        if limit is not None:
+            sql += " LIMIT ?"
+            params += (int(limit),)
+        rows = self.conn.execute(sql, params).fetchall()
+        return [self._row_to_event(r) for r in rows]
 
     def set_meta(self, key: str, value: str) -> None:
         self.conn.execute("INSERT OR REPLACE INTO meta(key,value) VALUES(?,?)", (key, value))
@@ -140,6 +167,7 @@ class EventStore:
         return None if row is None else str(row[0])
 
     def event_hash(self) -> str:
+        # 离线 / 关停 final_summary 专用：全量读日志，禁止请求路径调用。
         return hash_obj([e.to_canonical_dict() for e in self.read_all()])
 
 

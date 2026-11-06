@@ -1058,9 +1058,13 @@ WAL 异常或磁盘满时：先停服，保留 `events.sqlite`/`-wal`/`-shm` 原
 
 判定口径：
 
-- `storage.events_ok`：`EventStore.count()`（COUNT(*) 缓存）与 `EventTail.last_seq`
-  （MAX(seq) 缓存）一致，且 `integrity_check = ok`。两者差异即 `seq_gap`；O(1)，不 `read_all`。
-- `integrity_check` 默认 60 秒缓存（`XKX_INTEGRITY_CACHE_S`）。
+- `storage.events_ok`：独立只读连接取尾部两跳 seq，与 `EventTail.last_seq`
+  比对（O(log n)，不 `read_all`、不持有会话写锁），且缓存 integrity 不为已知损坏。
+  两者差异即 `seq_gap`。
+- `storage.integrity` 是**缓存值**：启动时由 `XKX_STARTUP_INTEGRITY`（默认 `1`）跑一次
+  `PRAGMA integrity_check` 播种（默认 `unknown`）；请求路径不再执行全库校验。
+  需要按需全库校验时用 `tools/check_integrity.py --root . --run <RUN_ID>`。
+- `storage.disk_writable` / `storage.db_openable`：O(1) 便宜检查。
 - `disk_free_pct` 低于 5% → 503（`XKX_DISK_MIN_FREE_PCT`）。
 - 写者最后提交（`events.sqlite` / `-wal` mtime）超过 60 秒 → 503（`XKX_WRITER_IDLE_MAX_S`）；
   刚启动时以进程启动时刻为基准，不会因旧库 mtime 误判。
