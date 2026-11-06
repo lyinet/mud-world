@@ -70,7 +70,7 @@ PROFILE = {
     "money_avg": (800, 1500),
     "location_count": 8,
     "item_count": (20, 45),
-    "verb_count": 19,
+    "verb_count": 24,
     "sect_count": 3,
     "route_count": 4,
     "quest_count": 27,
@@ -86,7 +86,7 @@ PACK_PROFILE = {
     "money_avg": (800, 1500),
     "location_count": 20,
     "item_count": (70, 70),
-    "verb_count": 20,
+    "verb_count": 25,
     "sect_count": 3,       # 本包不新增门派，仍校验 base 的 3 个完整门派
     "route_count": 4,      # 本包不新增镖路
     "quest_count": 60,
@@ -112,10 +112,13 @@ REQUIRED_VERBS = {
     "talk", "recruit", "quest_accept", "quest_deliver", "debt_settle",
     # P3-E 玩家在线心跳：引擎已注册，内容包补齐元数据。
     "player_heartbeat",
+    # 店铺经营（玩家）：引擎注册且会话已放行，内容包补元数据。
+    "restock", "set_price", "dismiss", "withdraw", "shop_report",
 }
 PLAYER_VERBS = {
     "move", "cultivate", "work", "consume", "buy", "sell",
     "trade", "apprentice", "join_sect", "marry", "open_shop", "escort", "found_sect",
+    "restock", "set_price", "dismiss", "withdraw", "shop_report",
 }
 
 

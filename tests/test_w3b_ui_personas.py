@@ -12,8 +12,8 @@ from ui.adapter import WorldUIAdapter  # noqa: E402
 from wsim.core.content import load_content  # noqa: E402
 from wsim.sim.headless import RunConfig, run_headless  # noqa: E402
 
-BASE_HASH = "7ec670c1c83c7b99e9bee35f84602bd7a68ef22126b29c9003529809b2c3d53f"
-PACK_HASH = "3fd99946b44a7dac4c3ea041d114e28d84ef07e67aa90e40e209970c2c43534c"
+BASE_HASH = "5267a8a84f7c2e0200358c92b8e63cebff54db461de8123484732a66aa696da4"
+PACK_HASH = "0fdb83855311896afe8c1f91f8ccaf17b89cd0cf3c5fca5536e9b2c0874d0178"
 PACK = "scaleup_w3"
 
 

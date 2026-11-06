@@ -1,4 +1,4 @@
-# 19 个动词 = 13 个玩家动词 + 5 个内部/计划器动词 + 1 个玩家在线心跳。
+# 24 个动词 = 18 个玩家动词 + 5 个内部/计划器动词 + 1 个玩家在线心跳。
 # P1 不声明冷却字段：引擎以 last_action_tick 做轻量节流。
 # apprentice = 拜师（target 必须是 NPC）；join_sect = 加入门派/讲会（target 是组织或地点）。
 # args 为简化的 JSON-Schema 描述；allowed_roles 中的 "*" 表示所有职业可用。
@@ -82,5 +82,28 @@ verbs:
   # P3-E 玩家在线心跳：由 UI/会话层 propose，不产生资源变化，只刷新在线状态。
   # 与 player_enter / player_leave / player_presence 同属玩家生命周期动词。
   - name: player_heartbeat
+    args: {player_id: "player:<account_id>"}
+    allowed_roles: ["*"]
+
+  # 店铺经营（玩家）：开店后补货 / 定价 / 辞退 / 提现 / 看账。
+  # 动作层为 player-only（player_shop_for 取本人店铺），NPC 不走这五个动词。
+  - name: restock
+    args: {item: item_id, qty: "int>=1", from: "location_id|business_id"}
+    allowed_roles: ["*"]
+
+  - name: set_price
+    args: {item: item_id, price: "int>=0"}
+    allowed_roles: ["*"]
+
+  - name: dismiss
+    args: {target: npc_id}
+    allowed_roles: ["*"]
+
+  - name: withdraw
+    args: {qty: "int>=1"}
+    allowed_roles: ["*"]
+
+  - name: shop_report
+    # 无客户端参数：回看窗口固定 7 日；player_id 由会话层注入（与心跳同式）。
     args: {player_id: "player:<account_id>"}
     allowed_roles: ["*"]

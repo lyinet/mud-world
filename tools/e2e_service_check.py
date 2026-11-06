@@ -224,10 +224,28 @@ def main() -> None:
                 page = ctx.new_page()
                 requests: list[dict] = []
                 responses: list[dict] = []
+
+                def on_response(resp):
+                    entry = {"status": resp.status, "url": resp.url}
+                    # 契约层证据：UI 只展示本地化文案，原始拒绝码仍从真 API 响应体断言。
+                    if "/api/player/action" in resp.url and resp.request.method == "POST":
+                        try:
+                            entry["body"] = resp.json()
+                        except Exception:  # 非 JSON / 响应体已不可读
+                            entry["body"] = None
+                    responses.append(entry)
+
                 page.on("request", lambda r: requests.append(
                     {"method": r.method, "url": r.url}))
-                page.on("response", lambda r: responses.append(
-                    {"status": r.status, "url": r.url}))
+                page.on("response", on_response)
+
+                def last_reject(code: str) -> dict:
+                    """最近一条 /api/player/action 响应里断言原始 reject_reason。"""
+                    for entry in reversed(responses):
+                        body = entry.get("body")
+                        if isinstance(body, dict) and body.get("reject_reason") == code:
+                            return body
+                    return {}
 
                 page.goto(base + "/?ui_check=1")
                 wait_app(page)
@@ -305,13 +323,18 @@ def main() -> None:
 
                 # ------------------------------------------------ 原因码（真服务）
                 click_quest(page, LEDGER_ID, "quest")  # 委托人不在药铺
+                # UI 只展示本地化文案（见 ui/player/app.js REASON_TEXT），原始码走 API 断言。
                 page.wait_for_function(
-                    "() => document.getElementById('errorList').innerText.includes('not_at_giver')",
+                    "() => document.getElementById('errorList').innerText"
+                    ".includes('你不在委托人所在的地点')",
                     timeout=10000)
                 reasons = error_rows(page)
                 results.add("原因码 not_at_giver 走真实 API 到 UI 文案",
                              any("不在委托人" in row or "委托人所在" in row for row in reasons),
                              reasons)
+                raw = last_reject("not_at_giver")
+                results.add("契约层 not_at_giver 原始码（真 /api/player/action 响应体）",
+                             raw.get("ok") is False, raw)
 
                 page.click('[data-exit-id="market"]')
                 page.wait_for_function(
@@ -330,11 +353,15 @@ def main() -> None:
                     timeout=15000)
                 click_quest(page, LEDGER_ID, "deliver")
                 page.wait_for_function(
-                    "() => document.getElementById('errorList').innerText.includes('not_at_target')",
+                    "() => document.getElementById('errorList').innerText"
+                    ".includes('还没到任务目标地点')",
                     timeout=10000)
                 reasons = error_rows(page)
                 results.add("原因码 not_at_target 走真实 API 到 UI 文案",
                              any("没到" in row or "目标地点" in row for row in reasons), reasons)
+                raw = last_reject("not_at_target")
+                results.add("契约层 not_at_target 原始码（真 /api/player/action 响应体）",
+                             raw.get("ok") is False, raw)
 
                 # 离线后继续操作：真 409 player_offline
                 page.evaluate("""async () => {
@@ -346,11 +373,14 @@ def main() -> None:
                 }""")
                 page.locator('#exits button[data-exit-id]').first.click()
                 page.wait_for_function(
-                    "() => document.getElementById('errorList').innerText.includes('player_offline')",
+                    "() => document.getElementById('errorList').innerText.includes('你已离线')",
                     timeout=10000)
                 reasons = error_rows(page)
                 results.add("原因码 player_offline 走真实 API 到 UI 文案",
                              any("离线" in row for row in reasons), reasons)
+                raw = last_reject("player_offline")
+                results.add("契约层 player_offline 原始码（真 /api/player/action 响应体）",
+                             raw.get("ok") is False, raw)
                 page.evaluate("() => document.getElementById('errorToggle').click()")
                 shot(page, "service-reason-codes.png")
 

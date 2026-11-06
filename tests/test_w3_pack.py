@@ -12,7 +12,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 from wsim.core.content import load_content  # noqa: E402
 import content_scale  # noqa: E402
 
-BASE_HASH = "7ec670c1c83c7b99e9bee35f84602bd7a68ef22126b29c9003529809b2c3d53f"
+BASE_HASH = "5267a8a84f7c2e0200358c92b8e63cebff54db461de8123484732a66aa696da4"
 PACK = "scaleup_w3"
 
 
@@ -29,7 +29,7 @@ def test_off_mode_content_hash_and_counts_unchanged():
 def test_pack_materialize_counts_and_hash_changes(tmp_path):
     counts = content_scale.materialize(PACK, tmp_path / "content")
     assert counts == {
-        "npcs": 60, "locations": 20, "items": 70, "verbs": 20,
+        "npcs": 60, "locations": 20, "items": 70, "verbs": 25,
         "roles": 10, "sects": 4, "quests": 60, "routes": 4, "personas": 30,
     }
     enabled = load_content(tmp_path, allow_fixture=False)

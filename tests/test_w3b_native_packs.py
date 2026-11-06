@@ -12,7 +12,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from wsim.core.content import load_content  # noqa: E402
 from wsim.sim.headless import RunConfig, run_headless  # noqa: E402
 
-BASE_HASH = "7ec670c1c83c7b99e9bee35f84602bd7a68ef22126b29c9003529809b2c3d53f"
+BASE_HASH = "5267a8a84f7c2e0200358c92b8e63cebff54db461de8123484732a66aa696da4"
 PACK = "scaleup_w3"
 BASE_COUNTS = (31, 9, 41, 27, 30)
 PACK_COUNTS = (60, 20, 70, 60, 59)

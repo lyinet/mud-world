@@ -9,6 +9,28 @@
 
 ---
 
+## [内容/测试] 2026-11-06 — 补齐店铺五动词内容声明；e2e 原因码断言拆为「UI 文案 + API 原始码」
+
+- **A. selfcheck `verbs_mismatch` 红**：`content/verbs.yaml` 补 `restock` / `set_price` /
+  `dismiss` / `withdraw` / `shop_report` 五个动词声明（args + `allowed_roles: ["*"]`），
+  `content/validate_content.py` 同步 `REQUIRED_VERBS` / `PLAYER_VERBS` / `verb_count`
+  （19→24、20→25）。判定依据：五动词已在 `src/wsim/api/session.py` 的 `WRITE_ACTIONS`
+  且已上线，动作层是 player-only（`player_shop_for` 只取本人店铺），属**内容层缺声明**，
+  不是引擎误暴露；`verbs_mismatch` 检查逻辑未改、未加白名单。
+- **基线核验**：无玩家基线（`--days 2 --seed 42 --npc 0`）加声明前后
+  `state_final` = `009076f0346352e328d8c158a3017a3e26fbc0b2c59ef7ca20c8fc3d1f780ce9`、
+  `event_final` = `02d5f812c427833387e592ad9321ebd72a9c5c719825b958f53af83d795078ae`
+  **两次完全相同**；只有 `content_hash` 因新增声明由 `7ec670c1…` 变为 `5267a8a8…`，
+  三个测试模块里硬编码的基线哈希常量同步更新。
+- **B. e2e 原因码红**：`tools/e2e_service_check.py` 的 UI 等待由原始码改为本地化文案
+  （原始码→中文映射见 `ui/player/app.js` REASON_TEXT），同时在
+  `page.on("response")` 捕获真 `/api/player/action` 响应体，新增三条**契约层**断言：
+  `not_at_giver` / `not_at_target` / `player_offline` 的原始 `reject_reason`。
+  未改 UI、未改 `src/**`。
+- **验证**：`./scripts/selfcheck.sh` → `总结: selfcheck PASS（4 项全部通过）`；
+  `python3 tools/e2e_service_check.py` → `25 checks, 0 failed`。
+- **commit**：待回填
+
 ## [交付] 2026-11-06 — 冻结历史截图/采样，固化报告产物自检口径
 
 - **改了什么**
