@@ -52,6 +52,7 @@ def build_registry(content, seed: int, plugin_dir: Path | None = None) -> Action
         WithdrawAction,
     )
     from .commerce import BuyAction, SellAction, TradeAction
+    from .equipment import EquipAction, UnequipAction, UseItemAction
     from .escort import EscortAction, SystemEscortArriveAction
     from .player import (
         PlayerEndowmentAction,
@@ -99,6 +100,9 @@ def build_registry(content, seed: int, plugin_dir: Path | None = None) -> Action
     reg.register(BuyAction(content))
     reg.register(SellAction(content))
     reg.register(TradeAction(content))
+    reg.register(EquipAction(content))
+    reg.register(UnequipAction(content))
+    reg.register(UseItemAction(content))
     reg.register(ApprenticeAction(content))
     reg.register(JoinSectAction(content))
     reg.register(MarryAction(content))

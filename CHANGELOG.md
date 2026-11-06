@@ -9,6 +9,31 @@
 
 ---
 
+## [后端] 2026-11-07 — 人物四面板：装备/物品/技能字段与 equip/unequip/use_item
+
+- **改了什么**：
+  - 实体新增 `equipped`（按槽位存物品 id），由 `equip` / `unequip` Effect 写入
+    世界状态；装备工具时修炼熟练度 +25%，效果可回放。
+  - 新增玩家写动作 `equip`（`item`）、`unequip`（`slot`）、`use_item`（`item`/`qty`）；
+    非法参数返回 `item_not_equippable` / `equipment_slot_empty` /
+    `unknown_equipment_slot` / `item_not_usable` / `bad_quantity` 及中文文案。
+  - `player.equipment` 输出工具/佩饰槽位、已装备物品与
+    `effects.cultivate_bonus_pct`；`player.skills_detail[]` 与
+    `present_npcs[].skills_detail[]` 输出每个技能的等级/下一级/说明，原 `skills` 不变。
+  - 钱包、`location.services_detail[]`、`shop.buy[]`、`shop.sell[]` 的物品行新增
+    `category` / `description` / `equippable` / `slot`。
+- **为什么**：老板要求人物四面板能看见装备与每个技能的真实进度，而不是只有主修一行；
+  装备效果必须进世界状态、可回放，不能是界面假加成。
+- **验证**（真实 HTTP，临时隔离 run `qa-evidence-20261107` / 8035，未动 8031 以外的服务）：
+  - 空装备 → 在铁匠铺买 `cleaver` → `equip` 成功；`player.equipment` 显示
+    `{"cultivate_bonus_pct":25,"slots":[{"slot":"tool","item":"cleaver",...}]}`；
+    `unequip` 后回到空槽与 0% 加成。
+  - `skills_detail`：捕快 `value=0.35 → 0.3709`（修炼 2h 且装备工具），
+    `level=4`、`next_level=5`、`next_at=0.4`、`to_next=0.0292`。
+  - `use_item` 吃面：体力 `70 → 95`，背包扣 1，事件 `executed`。
+  - `python -m pytest -q tests/test_p3e_api.py tests/test_p4_quest_supply.py` 全绿。
+- **commit**：见本条目所在提交。
+
 ## [界面] 2026-11-07 — 周边地图返工：xkx 字符分支图，逐字符对齐、桌面/窄屏无溢出
 
 - **改了什么**：

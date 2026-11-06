@@ -61,6 +61,7 @@ from ..world.store import EventStore
 from ..world.writer import Writer
 from ..actions.escort import resolve_payer, route_meta
 from ..actions.business import daily_shop_tax
+from ..actions.equipment import SLOT_LABELS, equip_cultivate_bonus, slot_for_item
 from ..actions.registry import build_registry
 from ..actions.common import (
     business_selling,
@@ -137,6 +138,13 @@ WRITE_ACTIONS: dict[str, str] = {
     "pay_disciples": "pay_disciples",
     "sect_deposit": "sect_deposit",
     "sect_withdraw": "sect_withdraw",
+    "equip": "equip",
+    "unequip": "unequip",
+    "use_item": "use_item",
+    # 装备与物品使用：槽位/已装备物品入世界状态；use_item 消耗食物/药品恢复体力。
+    "equip": "equip",
+    "unequip": "unequip",
+    "use_item": "use_item",
 }
 
 # 门派写动作：响应统一附带最新私有快照（details.sect，与 player.sect 同源）。
@@ -252,6 +260,11 @@ REASON_TEXT: dict[str, str] = {
     "not_at_target": "你尚未到达任务目标地点或发布人处。",
     "quest_item_missing": "采购类任务需要你持有目标物品。",
     "quest_step_incomplete": "你还没有真正完成这单的目标动作；请先到指定地点上工/交易/买入或把镖单送到目标地点，再回来交付。",
+    "item_not_equippable": "这件物品不能装备。",
+    "equipment_slot_empty": "该装备槽位没有已装备物品。",
+    "unknown_equipment_slot": "未知的装备槽位。",
+    "item_not_usable": "这件物品不能直接使用；只有食物、酒水和药品可用。",
+    "bad_quantity": "数量不合法。",
     "trade_unfair": "交易价值明显不对等；对方拒绝了这笔买卖。",
     "service_item": "服务类物品不能用于玩家交易。",
     "offer_not_held": "你给出的物品数量不足。",
@@ -626,6 +639,9 @@ class WorldSession:
                 "endowed_tick": int(prof.endowed_tick),
                 "wallet": wallet_view,
                 "skills": {k: round(float(v), 4) for k, v in sorted(ent.skills.items())},
+                # 只增不改：skills 保持字典；skills_detail 给每个技能等级/下一级/说明。
+                "skills_detail": self._skills_detail(ent),
+                "equipment": self._equipment_view(ent),
                 "relations": view["relations"],
                 "active_quests": view["active_quests"],
                 "marriage": view["marriage"],
@@ -1317,6 +1333,99 @@ class WorldSession:
         row = (self.content.items or {}).get(item_id) or {}
         return str(row.get("name") or item_id)
 
+    _ITEM_CATEGORY_TEXT = {
+        "food": "食物，可食用恢复体力。",
+        "drink": "酒水，可饮用恢复体力。",
+        "medicine": "药材，可用于疗伤。",
+        "material": "材料，可用于制作或交易。",
+        "tool": "工具，可装备到工具槽。",
+        "luxury": "奢侈品，可用于馈赠或交易。",
+        "service": "服务，购买后在对应场所使用。",
+    }
+
+    def _item_meta(self, item_id: str) -> dict[str, Any]:
+        """物品的只读派生字段：类别、说明、是否可装备及槽位。
+
+        说明优先取内容 `description`，其次内容包 `item_catalog.usage`，
+        最后按类别给一句如实说明；不修改内容文件。
+        """
+        row = (self.content.items or {}).get(item_id) or {}
+        category = str(row.get("category") or "")
+        description = str(row.get("description") or "")
+        if not description:
+            catalog = (self.content.economy or {}).get("item_catalog") or {}
+            description = str((catalog.get(item_id) or {}).get("usage") or "")
+        if not description:
+            description = self._ITEM_CATEGORY_TEXT.get(category, "普通物品。")
+        slot = slot_for_item(item_id, category)
+        return {
+            "category": category,
+            "description": description,
+            "equippable": bool(slot),
+            "slot": slot or None,
+        }
+
+    _SKILL_TEXT = {
+        "镖师": "武艺与押镖的基本功，影响护镖与近身应对。",
+        "掌柜": "算账与议价的本事，影响店铺经营与买卖。",
+        "捕快": "缉访与追踪的本事，影响查案与交涉。",
+        "账房": "记账与核账的基本功，影响店铺账目。",
+        "铁匠": "打铁与锻造的基本功，影响器物打造。",
+        "郎中": "诊脉与用药的基本功，影响疗伤效果。",
+        "厨子": "烹饪与食材处理的基本功。",
+        "伙计": "跑堂与待客的基本功。",
+        "更夫": "巡夜与守时的基本功。",
+        "车夫": "赶车与认路的基本功。",
+        "船工": "撑船与水性的基本功。",
+        "绣娘": "针线与绣工的基本功。",
+        "学究": "读书与考据的基本功。",
+    }
+
+    def _skills_detail(self, ent) -> list[dict[str, Any]]:
+        """每个技能的等级/下一级/说明（0–1 熟练度按 10 级换算）。"""
+        rows: list[dict[str, Any]] = []
+        for name, value in sorted((ent.skills or {}).items()):
+            val = max(0.0, min(1.0, float(value)))
+            level = min(10, int(val * 10) + 1)
+            next_level = level + 1 if level < 10 else None
+            next_at = round(min(1.0, level * 0.1), 4) if level < 10 else None
+            rows.append(
+                {
+                    "name": str(name),
+                    "value": round(val, 4),
+                    "level": int(level),
+                    "next_level": next_level,
+                    "next_at": next_at,
+                    "to_next": round(max(0.0, (next_at or val) - val), 4) if next_at is not None else 0.0,
+                    "description": self._SKILL_TEXT.get(str(name), f"{name}行当的基本功。"),
+                }
+            )
+        return rows
+
+    def _equipment_view(self, ent) -> dict[str, Any]:
+        slots = []
+        for slot, label in SLOT_LABELS.items():
+            item = ent.equipped.get(slot) or ""
+            meta = self._item_meta(item) if item else {}
+            slots.append(
+                {
+                    "slot": slot,
+                    "slot_name": label,
+                    "empty": not bool(item),
+                    "item": item or None,
+                    "name": self._item_name(item) if item else "",
+                    "category": meta.get("category", ""),
+                    "description": meta.get("description", ""),
+                }
+            )
+        return {
+            "slots": slots,
+            "effects": {
+                "cultivate_bonus_pct": int(round(equip_cultivate_bonus(self.content, ent) * 100)),
+            },
+        }
+
+
     def _item_prices(self, prices: dict[str, tuple[int, int]] | None, item: str) -> tuple[int, int]:
         """一次读取内的成交价缓存：`(买入价, 卖出价)`，未知物品给 (0, 0)。
 
@@ -1354,6 +1463,7 @@ class WorldSession:
                     # 只加不改：原 item/name/qty 语义不变，价格供 UI 直接展示。
                     "price": self._item_prices(prices, item)[0],
                     "sell_price": self._item_prices(prices, item)[1],
+                    **self._item_meta(item),
                 }
                 for item, qty in sorted(ent.inventory.items())
                 if int(qty) > 0
@@ -1412,6 +1522,7 @@ class WorldSession:
                     "business_name": biz.name if biz is not None else "",
                     "buy_limit": self._buy_limit(pid, unit_price, stock) if pid and biz else 0,
                     "sell_limit": self._sell_limit(pid, item, unit_sell, loc_id) if pid else 0,
+                    **self._item_meta(item),
                 }
             )
         return {
@@ -1471,6 +1582,7 @@ class WorldSession:
                         "price": self._item_prices(prices, item)[0],
                         "sell_price": unit_sell,
                         "sell_limit": self._sell_limit(pid, item, unit_sell, loc_id),
+                        **self._item_meta(item),
                     }
                 )
         # 玩家自己的店：优先当前地点，否则按 id 升序取第一；没有则空形状。
@@ -1586,6 +1698,8 @@ class WorldSession:
                         if top is not None
                         else None
                     ),
+                    # 只增不改：每个技能的等级/下一级/说明，不再只有主修一行。
+                    "skills_detail": self._skills_detail(ent),
                     "employed_by": ent.employed_at or ent.business or None,
                     "bond": float(self.state.affection_between(pid, ent.id)),
                     "trust": float(trust_by.get(ent.id, 0.0)),
@@ -2211,6 +2325,16 @@ class WorldSession:
             return base
         if action == "rest":
             base["hours"] = payload.get("hours", 4)
+            return base
+        if action == "equip":
+            base["item"] = str(payload.get("item") or "")
+            return base
+        if action == "unequip":
+            base["slot"] = str(payload.get("slot") or "")
+            return base
+        if action == "use_item":
+            base["item"] = str(payload.get("item") or "")
+            base["qty"] = payload.get("qty", 1)
             return base
         if action == "marriage_propose":
             base["target"] = str(payload.get("target") or "").strip()

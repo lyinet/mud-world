@@ -28,6 +28,7 @@ from .common import (
     transaction_tax,
     wallet,
 )
+from .equipment import equip_cultivate_bonus
 from .registry import Action
 
 
@@ -121,7 +122,8 @@ class CultivateAction(Action):
         hours = arg_int(intent, "hours", 2, minimum=1, maximum=8)
         skill = arg_str(intent, "skill", required=False) or skill_for(self.content, ent.role)
         cost = float(self.content.economy.get("stamina_cultivate", 4)) * hours
-        delta = 0.0025 * hours
+        # 已装备工具提供 25% 熟练度加成（装备状态在世界状态里，可回放）。
+        delta = 0.0025 * hours * (1.0 + equip_cultivate_bonus(self.content, ent))
         before = float(ent.skills.get(skill, 0.0))
         gained = min(delta, max(0.0, 1.0 - before))
         return [

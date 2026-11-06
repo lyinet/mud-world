@@ -87,7 +87,7 @@ def test_state_contract_fields(session):
     assert all(
         set(row) == {
             "id", "name", "role", "location", "presence", "doing",
-            "skills", "employed_by", "bond", "trust",
+            "skills", "skills_detail", "employed_by", "bond", "trust",
         }
         for row in state["present_npcs"]
     )

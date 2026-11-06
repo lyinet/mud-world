@@ -2041,4 +2041,45 @@ curl -s 'http://127.0.0.1:8848/api/world/feed?limit=5'
 区域名缺口：当前 9 个地点（academy/escort_agency/ferry/inn/market/pharmacy/smithy/
 teahouse/temple）全部没有区域字段，均返回 `region: null`。
 
+## 16. 人物四面板与动作耗时（2026-11-07，只增不改）
+
+### 16.1 装备与物品
+
+`player.equipment`：`{"slots": [...], "effects": {"cultivate_bonus_pct": int}}`。
+`slots[]` 固定含 `tool`（工具）与 `accessory`（佩饰），每项
+`slot`、`slot_name`、`empty`、`item`、`name`、`category`、`description`。
+装备状态存于实体 `equipped`，由 `equip` / `unequip` 的 Effect 写入世界状态并可回放。
+装备工具时修炼熟练度 +25%（`cultivate_bonus_pct=25`）。
+
+新增写动作：
+
+| `verb` | `args` | 说明 |
+|---|---|---|
+| `equip` | `item` | 把背包里的工具/佩饰移到对应槽位；不可装备返回 `item_not_equippable` |
+| `unequip` | `slot` | 把槽位物品放回背包；空槽返回 `equipment_slot_empty`，未知槽 `unknown_equipment_slot` |
+| `use_item` | `item`、`qty` | 消耗食物/酒水/药品恢复体力；非消耗品返回 `item_not_usable`，数量非法 `bad_quantity` |
+
+物品行（钱包、`location.services_detail[]`、`shop.buy[]`、`shop.sell[]`）新增
+`category`、`description`、`equippable`、`slot`（不可装备时 `slot=null`）。
+
+### 16.2 技能 `skills_detail[]`
+
+`player.skills_detail[]` 与 `present_npcs[].skills_detail[]`：每项
+`name`、`value`（0–1 熟练度）、`level`（1–10）、`next_level`（满级为 null）、
+`next_at`（下一级阈值）、`to_next`、`description`。原 `skills` 字段保持不变。
+
+### 16.3 动作耗时 `duration_ticks`
+
+所有写动作响应新增 `duration_ticks`（本次实际推进的世界钟）与
+`duration_hours`（`duration_ticks / 6`）。`rest`/`work`/`cultivate` 按声明的
+`hours` 推进 `hours * TICKS_PER_HOUR`（1 小时 = 6 tick），不再固定 1 小时；
+其余动作仍按 `tick_step`。`next_tick` 与 `duration_ticks` 一致。
+
+### 16.4 商店售罄
+
+`shop.buy[]` 每行新增 `available`（bool）与 `unavailable_reason`（string）。
+地点 `services` 是货架目录：库存为 0 的商品不再从列表消失，而是保留该行，
+给 `stock: 0`、`available: false`、`unavailable_reason: "sold_out"`、`buy_limit: 0`。
+有货行为 `available: true`、`unavailable_reason: ""`。
+
 

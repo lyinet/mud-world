@@ -81,6 +81,10 @@ PLAYER_VERBS = frozenset(
         "pay_disciples",
         "sect_deposit",
         "sect_withdraw",
+        # 装备与物品：槽位/已装备物品进世界状态；use_item 消耗背包物品恢复体力。
+        "equip",
+        "unequip",
+        "use_item",
     }
 )
 
