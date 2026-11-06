@@ -9,6 +9,38 @@
 
 ---
 
+## [界面] 2026-11-07 — 地图即操作：点一步可达地名直接移动，方向按钮整块移除
+
+- **改了什么**：
+  - `ui/player/index.html` 删除地图下方的「方向」标题、出口按钮块与出口提示行；
+    地图区保留成本自证行 `每步 5 力 · 1 小时` 与 `◆ 你在这里：… · 一步可走 N 处`。
+  - `ui/player/app.js`：`renderCityGrid` 把地名整体渲染成原生 `<button class="map-node">`，
+    `near`（真实 `neighbors`）才可发移动；`self` 提示「你已经在这里」，
+    `far` 提示「不在一步之内：…，需途经他处」，两者都不发请求。
+    点击走 `#textMap` 事件委托 `onCityNodeClick`，键盘走原生 button 的 Tab/Enter/Space。
+  - `doMove` 不再做体力前置拦截：移动到后端，`409` 的 `reason_text` 原样显示在
+    `#moveHint`（`aria-live="polite"`），成功文案仍由响应里的 `event_seq/tick/next_tick` 生成。
+  - `ui/player/style.css`：`.map-node` 用 `::after` 把触控热区固定为 ≥44×44，不影响字符网格；
+    删除 `.exits`/`.exit`/`.direction-head` 样式；移动端 44px 规则改为排除地图按钮。
+  - `tools/ui_check.py`：mock 邻接升级为真实 9 地点 / 11 边，押镖用例改为
+    `market → smithy → escort_agency`；`state()` 对无 NPC 的地点取空列表
+    （`NPCS.get(loc, [])`），补全 6 个后端原因码的中文文案对照。
+- **为什么**：老板要求方向格子全部去掉，直接点地图地点走；点击等于一次真实移动，
+  不是前端模拟，也不允许静默无反应。
+- **验证**（真服务 API 8031 + UI 代理 8000，run `player-demo-20261107-002916-86448`）：
+  - `reports/w4-map/click-check.json`：20 项全过、`fails: []`；
+    点「客栈」原始响应 `duration_ticks: 6`、`tick: 3355 → next_tick: 3361`、
+    `data.location: "inn"`、`data.stamina: 95`；位置 `market → inn`、体力 `100 → 95`。
+  - 点当前位置：`你已经在这里：集市。`，0 个 `POST /api/player/action`；
+    点「河渡」：`不在一步之内：河渡，需途经他处。`，0 个 `POST /api/player/action`。
+  - 键盘：Tab 聚焦 `market` 按钮后 Enter，真实移动 `tick 3361 → 3367`、体力 `95 → 90`。
+  - 布局：桌面 1440 地图 `242/242`、页面 `1440/1440`；窄屏 375 地图 `293/293`、
+    页面 `375/375`；9 个地名热区均 `44×44`；桌面与窄屏均无脚本错误。
+  - mock 回归 `python3 tools/ui_check.py`：176 项全过、0 failed。
+- **证据**：`reports/w4-map/click-check.json`、`reports/w4-map/click-desktop*.png`、
+  `reports/w4-map/click-mobile*.png`、`reports/w4-ui/checks.json`。
+- **commit**：见本条目所在提交。
+
 ## [对话] 2026-11-07 — 模型配音改为异步交付：请求立即返回模板，迟到台词走旁路
 
 - **改了什么**：

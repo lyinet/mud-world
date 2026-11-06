@@ -55,15 +55,9 @@
             <span class="hint" id="mapHint">—</span>
           </div>
           <div class="map-stats" id="mapStats">—</div>
-          <div class="text-map" id="textMap" aria-label="全城字符地图"></div>
-          <div class="map-note" id="mapNote">◆ 为当前所在地；绿色地名与连线表示从当前位置一步可去，灰字地名不在一步之内。寻路与两跳路线暂不可用；区域名后端为 null 时不显示区域层。</div>
-
-          <div class="direction-head">
-            <h3>方向</h3>
-            <span class="hint" id="directionHint">—</span>
-          </div>
-          <div class="exits" id="exits" aria-label="出口"></div>
-          <div class="hint" id="exitHint">点击方向真实移动；位置以服务端 /state 为准。</div>
+          <div class="text-map" id="textMap" aria-label="全城字符地图：绿色地名可点即走"></div>
+          <div class="map-note" id="mapNote">◆ 为当前所在地；绿色地名可点即走，灰字地名不在一步之内。寻路与两跳路线暂不可用；区域名后端为 null 时不显示区域层。</div>
+          <div class="map-move-hint" id="moveHint" aria-live="polite">点地名即走：每步 5 力 · 1 小时。</div>
         </div>
       </section>
 

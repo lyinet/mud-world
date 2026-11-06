@@ -1,0 +1,1440 @@
+{
+  "api_map_counts": {
+    "directed_edges": 22,
+    "edges": 11,
+    "locations": 9
+  },
+  "desktop_initial": {
+    "tick": 3355,
+    "loc": "market",
+    "locName": "集市",
+    "stamina": 100,
+    "exits": [
+      "academy",
+      "inn",
+      "pharmacy",
+      "smithy",
+      "teahouse"
+    ]
+  },
+  "desktop_after_click": {
+    "tick": 3361,
+    "loc": "inn",
+    "locName": "客栈",
+    "stamina": 95,
+    "exits": [
+      "ferry",
+      "market",
+      "temple"
+    ]
+  },
+  "desktop_after_keyboard": {
+    "tick": 3367,
+    "loc": "market",
+    "locName": "集市",
+    "stamina": 90,
+    "exits": [
+      "academy",
+      "inn",
+      "pharmacy",
+      "smithy",
+      "teahouse"
+    ]
+  },
+  "raw_move_click_inn": {
+    "action": "move",
+    "client_tick": 3355,
+    "client_tick_ignored": true,
+    "confirm": false,
+    "data": {
+      "active_quests": [],
+      "active_quests_detail": [],
+      "archetype": "游侠",
+      "growth": {
+        "assets": {
+          "at": 0.0,
+          "level": 1,
+          "money": 300,
+          "name": "囊中羞涩",
+          "next_at": 600.0,
+          "next_name": "小有积蓄",
+          "next_unlock": "可开摊（本钱 300 文）",
+          "progress": 0.5,
+          "value": 300.0
+        },
+        "reputation": {
+          "at": 0.0,
+          "level": 1,
+          "name": "无名之辈",
+          "next_at": 3.0,
+          "next_name": "街坊熟人",
+          "next_unlock": "可接护送类委托，街坊愿意搭话",
+          "progress": 0.0,
+          "value": 0.0
+        },
+        "skill": {
+          "at": 0.0,
+          "level": 1,
+          "name": "生手",
+          "next_at": 0.42,
+          "next_name": "手熟",
+          "next_unlock": "可独立开摊（手艺够撑起门面）",
+          "progress": 0.833,
+          "skill": "镖师",
+          "skills": {
+            "镖师": 0.35
+          },
+          "value": 0.35
+        }
+      },
+      "home": "market",
+      "id": "player:clickd1107032709",
+      "inventory": {
+        "coarse_cloth": 1,
+        "flatbread": 3
+      },
+      "location": "inn",
+      "marriage": {
+        "daily_note": "",
+        "last_daily_tick": 0,
+        "since_tick": 0,
+        "spouse_id": "",
+        "spouse_name": "",
+        "status": "single"
+      },
+      "max_stamina": 100.0,
+      "name": "点走2709",
+      "nearby": [
+        {
+          "id": "cui_tieyi",
+          "name": "崔铁衣",
+          "presence": "online",
+          "role": "捕快"
+        },
+        {
+          "id": "hua_jieyu",
+          "name": "花解语",
+          "presence": "online",
+          "role": "说书人"
+        },
+        {
+          "id": "lu_jiujin",
+          "name": "陆九斤",
+          "presence": "online",
+          "role": "脚夫"
+        },
+        {
+          "id": "ruan_xiaoluo",
+          "name": "阮小螺",
+          "presence": "online",
+          "role": "渔娘"
+        },
+        {
+          "id": "song_henian",
+          "name": "宋鹤年",
+          "presence": "online",
+          "role": "掌柜"
+        },
+        {
+          "id": "su_hexiang",
+          "name": "苏合香",
+          "presence": "online",
+          "role": "掌柜"
+        },
+        {
+          "id": "wen_xiaoman",
+          "name": "温小满",
+          "presence": "online",
+          "role": "酒保"
+        }
+      ],
+      "ok": true,
+      "online": true,
+      "presence": "online",
+      "relations": [],
+      "role": "镖师",
+      "sect": {
+        "in_sect": false,
+        "sect": null
+      },
+      "skills": {
+        "镖师": 0.35
+      },
+      "stamina": 95.0,
+      "tick": 3355,
+      "today": {
+        "business": [
+          {
+            "affordable": true,
+            "blocked": "",
+            "cost": 300,
+            "shop_type": "stall"
+          },
+          {
+            "affordable": false,
+            "blocked": "",
+            "cost": 1200,
+            "shop_type": "storefront"
+          },
+          {
+            "affordable": false,
+            "blocked": "",
+            "cost": 3000,
+            "shop_type": "branch"
+          }
+        ],
+        "location": "inn",
+        "location_name": "客栈",
+        "next_action": "可开摊：本钱 300 文",
+        "npcs": [
+          {
+            "hint": "可打听委托",
+            "id": "cui_tieyi",
+            "name": "崔铁衣",
+            "role": "捕快"
+          },
+          {
+            "hint": "可打听委托",
+            "id": "hua_jieyu",
+            "name": "花解语",
+            "role": "说书人"
+          },
+          {
+            "hint": "可打听委托",
+            "id": "lu_jiujin",
+            "name": "陆九斤",
+            "role": "脚夫"
+          }
+        ],
+        "quests": [],
+        "skills": [
+          {
+            "current": 0.35,
+            "hours_to_next": 28,
+            "next_at": 0.42,
+            "next_level": 2,
+            "skill": "镖师"
+          }
+        ],
+        "tick": 3361
+      },
+      "wallet": 300
+    },
+    "details": {},
+    "duration_hours": 1.0,
+    "duration_ticks": 6,
+    "event_seq": 5763,
+    "intent_id": "i:36622b9e45d94723bedae06c60307a4c200c1b0145975a51fcc9b164f3f74b21",
+    "next_tick": 3361,
+    "ok": true,
+    "player": "player:clickd1107032709",
+    "profile_version": 1,
+    "reason_text": "",
+    "reject_reason": "",
+    "status": "executed",
+    "tick": 3355,
+    "verb": "move"
+  },
+  "raw_move_keyboard_market": {
+    "action": "move",
+    "client_tick": 3361,
+    "client_tick_ignored": true,
+    "confirm": false,
+    "data": {
+      "active_quests": [],
+      "active_quests_detail": [],
+      "archetype": "游侠",
+      "growth": {
+        "assets": {
+          "at": 0.0,
+          "level": 1,
+          "money": 300,
+          "name": "囊中羞涩",
+          "next_at": 600.0,
+          "next_name": "小有积蓄",
+          "next_unlock": "可开摊（本钱 300 文）",
+          "progress": 0.5,
+          "value": 300.0
+        },
+        "reputation": {
+          "at": 0.0,
+          "level": 1,
+          "name": "无名之辈",
+          "next_at": 3.0,
+          "next_name": "街坊熟人",
+          "next_unlock": "可接护送类委托，街坊愿意搭话",
+          "progress": 0.0,
+          "value": 0.0
+        },
+        "skill": {
+          "at": 0.0,
+          "level": 1,
+          "name": "生手",
+          "next_at": 0.42,
+          "next_name": "手熟",
+          "next_unlock": "可独立开摊（手艺够撑起门面）",
+          "progress": 0.833,
+          "skill": "镖师",
+          "skills": {
+            "镖师": 0.35
+          },
+          "value": 0.35
+        }
+      },
+      "home": "market",
+      "id": "player:clickd1107032709",
+      "inventory": {
+        "coarse_cloth": 1,
+        "flatbread": 3
+      },
+      "location": "market",
+      "marriage": {
+        "daily_note": "",
+        "last_daily_tick": 0,
+        "since_tick": 0,
+        "spouse_id": "",
+        "spouse_name": "",
+        "status": "single"
+      },
+      "max_stamina": 100.0,
+      "name": "点走2709",
+      "nearby": [
+        {
+          "id": "duan_wudou",
+          "name": "段五斗",
+          "presence": "online",
+          "role": "屠户"
+        },
+        {
+          "id": "jin_mancang",
+          "name": "金满仓",
+          "presence": "online",
+          "role": "掌柜"
+        },
+        {
+          "id": "liu_sanniang",
+          "name": "柳三娘",
+          "presence": "online",
+          "role": "绣娘"
+        },
+        {
+          "id": "meng_jiuniang",
+          "name": "孟九娘",
+          "presence": "online",
+          "role": "媒婆"
+        },
+        {
+          "id": "player:clickd1107031845",
+          "name": "点走1845",
+          "presence": "online",
+          "role": "镖师"
+        },
+        {
+          "id": "player:clickd1107031928",
+          "name": "点走1928",
+          "presence": "online",
+          "role": "镖师"
+        },
+        {
+          "id": "player:clickm1107031928",
+          "name": "点窄1928",
+          "presence": "online",
+          "role": "镖师"
+        },
+        {
+          "id": "player:clickp031744",
+          "name": "点击探744",
+          "presence": "online",
+          "role": "镖师"
+        },
+        {
+          "id": "player:dialogue_probe",
+          "name": "探针",
+          "presence": "online",
+          "role": "镖师"
+        },
+        {
+          "id": "player:lat_block_a_20261107",
+          "name": "甲探针",
+          "presence": "offline",
+          "role": "镖师"
+        },
+        {
+          "id": "player:lat_block_b_20261107",
+          "name": "乙探针",
+          "presence": "online",
+          "role": "镖师"
+        },
+        {
+          "id": "player:lat_conc_1793989900",
+          "name": "并发探针",
+          "presence": "online",
+          "role": "镖师"
+        },
+        {
+          "id": "player:lat_on_20261107",
+          "name": "延迟探针",
+          "presence": "online",
+          "role": "镖师"
+        },
+        {
+          "id": "player:qa_dialogue_01",
+          "name": "问话人",
+          "presence": "online",
+          "role": "镖师"
+        },
+        {
+          "id": "player:qa_dialogue_02",
+          "name": "问话人乙",
+          "presence": "online",
+          "role": "镖师"
+        },
+        {
+          "id": "player:qa_dialogue_03",
+          "name": "问话人丙",
+          "presence": "online",
+          "role": "镖师"
+        },
+        {
+          "id": "player:qa_dialogue_04",
+          "name": "问话人丁",
+          "presence": "online",
+          "role": "镖师"
+        },
+        {
+          "id": "player:questcheck_20261107_a",
+          "name": "任务验收",
+          "presence": "online",
+          "role": "镖师"
+        },
+        {
+          "id": "player:s1check_015105",
+          "name": "沈验0151",
+          "presence": "online",
+          "role": "镖师"
+        },
+        {
+          "id": "player:u_demo",
+          "name": "陈捕快",
+          "presence": "offline",
+          "role": "visitor"
+        },
+        {
+          "id": "player:w4mapd1107024013",
+          "name": "图测4013",
+          "presence": "online",
+          "role": "镖师"
+        },
+        {
+          "id": "player:w4mapm1107024013",
+          "name": "图窄4013",
+          "presence": "online",
+          "role": "镖师"
+        },
+        {
+          "id": "ruan_qingfu",
+          "name": "阮青蚨",
+          "presence": "online",
+          "role": "货郎"
+        },
+        {
+          "id": "xie_tingyun",
+          "name": "谢停云",
+          "presence": "online",
+          "role": "师爷"
+        },
+        {
+          "id": "yan_shouyi",
+          "name": "严守一",
+          "presence": "online",
+          "role": "庙祝"
+        }
+      ],
+      "ok": true,
+      "online": true,
+      "presence": "online",
+      "relations": [],
+      "role": "镖师",
+      "sect": {
+        "in_sect": false,
+        "sect": null
+      },
+      "skills": {
+        "镖师": 0.35
+      },
+      "stamina": 90.0,
+      "tick": 3361,
+      "today": {
+        "business": [
+          {
+            "affordable": true,
+            "blocked": "",
+            "cost": 300,
+            "shop_type": "stall"
+          },
+          {
+            "affordable": false,
+            "blocked": "",
+            "cost": 1200,
+            "shop_type": "storefront"
+          },
+          {
+            "affordable": false,
+            "blocked": "",
+            "cost": 3000,
+            "shop_type": "branch"
+          }
+        ],
+        "location": "market",
+        "location_name": "集市",
+        "next_action": "可开摊：本钱 300 文",
+        "npcs": [
+          {
+            "hint": "可打听委托",
+            "id": "duan_wudou",
+            "name": "段五斗",
+            "role": "屠户"
+          },
+          {
+            "hint": "可打听委托",
+            "id": "jin_mancang",
+            "name": "金满仓",
+            "role": "掌柜"
+          },
+          {
+            "hint": "可打听委托",
+            "id": "liu_sanniang",
+            "name": "柳三娘",
+            "role": "绣娘"
+          }
+        ],
+        "quests": [],
+        "skills": [
+          {
+            "current": 0.35,
+            "hours_to_next": 28,
+            "next_at": 0.42,
+            "next_level": 2,
+            "skill": "镖师"
+          }
+        ],
+        "tick": 3367
+      },
+      "wallet": 300
+    },
+    "details": {},
+    "duration_hours": 1.0,
+    "duration_ticks": 6,
+    "event_seq": 5765,
+    "intent_id": "i:e9411d46507d5ed87085c6cd6eef1423d9fea1611880e48e009d07c7a4852ccc",
+    "next_tick": 3367,
+    "ok": true,
+    "player": "player:clickd1107032709",
+    "profile_version": 1,
+    "reason_text": "",
+    "reject_reason": "",
+    "status": "executed",
+    "tick": 3361,
+    "verb": "move"
+  },
+  "raw_move_tap_inn": {
+    "action": "move",
+    "client_tick": 3373,
+    "client_tick_ignored": true,
+    "confirm": false,
+    "data": {
+      "active_quests": [],
+      "active_quests_detail": [],
+      "archetype": "游侠",
+      "growth": {
+        "assets": {
+          "at": 0.0,
+          "level": 1,
+          "money": 300,
+          "name": "囊中羞涩",
+          "next_at": 600.0,
+          "next_name": "小有积蓄",
+          "next_unlock": "可开摊（本钱 300 文）",
+          "progress": 0.5,
+          "value": 300.0
+        },
+        "reputation": {
+          "at": 0.0,
+          "level": 1,
+          "name": "无名之辈",
+          "next_at": 3.0,
+          "next_name": "街坊熟人",
+          "next_unlock": "可接护送类委托，街坊愿意搭话",
+          "progress": 0.0,
+          "value": 0.0
+        },
+        "skill": {
+          "at": 0.0,
+          "level": 1,
+          "name": "生手",
+          "next_at": 0.42,
+          "next_name": "手熟",
+          "next_unlock": "可独立开摊（手艺够撑起门面）",
+          "progress": 0.833,
+          "skill": "镖师",
+          "skills": {
+            "镖师": 0.35
+          },
+          "value": 0.35
+        }
+      },
+      "home": "market",
+      "id": "player:clickm1107032709",
+      "inventory": {
+        "coarse_cloth": 1,
+        "flatbread": 3
+      },
+      "location": "inn",
+      "marriage": {
+        "daily_note": "",
+        "last_daily_tick": 0,
+        "since_tick": 0,
+        "spouse_id": "",
+        "spouse_name": "",
+        "status": "single"
+      },
+      "max_stamina": 100.0,
+      "name": "点窄2709",
+      "nearby": [
+        {
+          "id": "cui_tieyi",
+          "name": "崔铁衣",
+          "presence": "online",
+          "role": "捕快"
+        },
+        {
+          "id": "hua_jieyu",
+          "name": "花解语",
+          "presence": "online",
+          "role": "说书人"
+        },
+        {
+          "id": "lu_jiujin",
+          "name": "陆九斤",
+          "presence": "online",
+          "role": "脚夫"
+        },
+        {
+          "id": "ruan_xiaoluo",
+          "name": "阮小螺",
+          "presence": "online",
+          "role": "渔娘"
+        },
+        {
+          "id": "song_henian",
+          "name": "宋鹤年",
+          "presence": "online",
+          "role": "掌柜"
+        },
+        {
+          "id": "su_hexiang",
+          "name": "苏合香",
+          "presence": "online",
+          "role": "掌柜"
+        },
+        {
+          "id": "wen_xiaoman",
+          "name": "温小满",
+          "presence": "online",
+          "role": "酒保"
+        }
+      ],
+      "ok": true,
+      "online": true,
+      "presence": "online",
+      "relations": [],
+      "role": "镖师",
+      "sect": {
+        "in_sect": false,
+        "sect": null
+      },
+      "skills": {
+        "镖师": 0.35
+      },
+      "stamina": 95.0,
+      "tick": 3373,
+      "today": {
+        "business": [
+          {
+            "affordable": true,
+            "blocked": "",
+            "cost": 300,
+            "shop_type": "stall"
+          },
+          {
+            "affordable": false,
+            "blocked": "",
+            "cost": 1200,
+            "shop_type": "storefront"
+          },
+          {
+            "affordable": false,
+            "blocked": "",
+            "cost": 3000,
+            "shop_type": "branch"
+          }
+        ],
+        "location": "inn",
+        "location_name": "客栈",
+        "next_action": "可开摊：本钱 300 文",
+        "npcs": [
+          {
+            "hint": "可打听委托",
+            "id": "cui_tieyi",
+            "name": "崔铁衣",
+            "role": "捕快"
+          },
+          {
+            "hint": "可打听委托",
+            "id": "hua_jieyu",
+            "name": "花解语",
+            "role": "说书人"
+          },
+          {
+            "hint": "可打听委托",
+            "id": "lu_jiujin",
+            "name": "陆九斤",
+            "role": "脚夫"
+          }
+        ],
+        "quests": [],
+        "skills": [
+          {
+            "current": 0.35,
+            "hours_to_next": 28,
+            "next_at": 0.42,
+            "next_level": 2,
+            "skill": "镖师"
+          }
+        ],
+        "tick": 3379
+      },
+      "wallet": 300
+    },
+    "details": {},
+    "duration_hours": 1.0,
+    "duration_ticks": 6,
+    "event_seq": 5770,
+    "intent_id": "i:03ce91bbe302a2847b15e136a06c31752ddd44be69630722dbb05c3230b5b742",
+    "next_tick": 3379,
+    "ok": true,
+    "player": "player:clickm1107032709",
+    "profile_version": 1,
+    "reason_text": "",
+    "reject_reason": "",
+    "status": "executed",
+    "tick": 3373,
+    "verb": "move"
+  },
+  "chrome_desktop": {
+    "nodes": [
+      "teahouse",
+      "market",
+      "smithy",
+      "pharmacy",
+      "academy",
+      "escort_agency",
+      "inn",
+      "temple",
+      "ferry"
+    ],
+    "near": [
+      "teahouse",
+      "smithy",
+      "pharmacy",
+      "academy",
+      "inn"
+    ],
+    "far": [
+      "escort_agency",
+      "temple",
+      "ferry"
+    ],
+    "self": [
+      "market"
+    ],
+    "tags": [
+      "BUTTON",
+      "BUTTON",
+      "BUTTON",
+      "BUTTON",
+      "BUTTON",
+      "BUTTON",
+      "BUTTON",
+      "BUTTON",
+      "BUTTON"
+    ],
+    "tabindex": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "hitAreas": [
+      {
+        "id": "teahouse",
+        "kind": "near",
+        "w": "44px",
+        "h": "44px"
+      },
+      {
+        "id": "market",
+        "kind": "self",
+        "w": "44px",
+        "h": "44px"
+      },
+      {
+        "id": "smithy",
+        "kind": "near",
+        "w": "44px",
+        "h": "44px"
+      },
+      {
+        "id": "pharmacy",
+        "kind": "near",
+        "w": "44px",
+        "h": "44px"
+      },
+      {
+        "id": "academy",
+        "kind": "near",
+        "w": "44px",
+        "h": "44px"
+      },
+      {
+        "id": "escort_agency",
+        "kind": "far",
+        "w": "44px",
+        "h": "44px"
+      },
+      {
+        "id": "inn",
+        "kind": "near",
+        "w": "44px",
+        "h": "44px"
+      },
+      {
+        "id": "temple",
+        "kind": "far",
+        "w": "44px",
+        "h": "44px"
+      },
+      {
+        "id": "ferry",
+        "kind": "far",
+        "w": "44px",
+        "h": "44px"
+      }
+    ],
+    "directionBlocks": 0,
+    "oldExitButtons": 0,
+    "directionButtons": 5,
+    "mapStats": "地点 9 处 · 无向边 11 条 · 有向方向 22 个 · ◆ 你在这里：集市 · 一步可走 5 处 · 每步 5 力 · 1 小时",
+    "mapHint": "一步可去 5 处",
+    "moveHint": "点地名即走：每步 5 力 · 1 小时。",
+    "textMap": {
+      "clientWidth": 242,
+      "scrollWidth": 242
+    },
+    "page": {
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    }
+  },
+  "chrome_after_click": {
+    "nodes": [
+      "teahouse",
+      "market",
+      "smithy",
+      "pharmacy",
+      "academy",
+      "escort_agency",
+      "inn",
+      "temple",
+      "ferry"
+    ],
+    "near": [
+      "market",
+      "temple",
+      "ferry"
+    ],
+    "far": [
+      "teahouse",
+      "smithy",
+      "pharmacy",
+      "academy",
+      "escort_agency"
+    ],
+    "self": [
+      "inn"
+    ],
+    "tags": [
+      "BUTTON",
+      "BUTTON",
+      "BUTTON",
+      "BUTTON",
+      "BUTTON",
+      "BUTTON",
+      "BUTTON",
+      "BUTTON",
+      "BUTTON"
+    ],
+    "tabindex": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "hitAreas": [
+      {
+        "id": "teahouse",
+        "kind": "far",
+        "w": "44px",
+        "h": "44px"
+      },
+      {
+        "id": "market",
+        "kind": "near",
+        "w": "44px",
+        "h": "44px"
+      },
+      {
+        "id": "smithy",
+        "kind": "far",
+        "w": "44px",
+        "h": "44px"
+      },
+      {
+        "id": "pharmacy",
+        "kind": "far",
+        "w": "44px",
+        "h": "44px"
+      },
+      {
+        "id": "academy",
+        "kind": "far",
+        "w": "44px",
+        "h": "44px"
+      },
+      {
+        "id": "escort_agency",
+        "kind": "far",
+        "w": "44px",
+        "h": "44px"
+      },
+      {
+        "id": "inn",
+        "kind": "self",
+        "w": "44px",
+        "h": "44px"
+      },
+      {
+        "id": "temple",
+        "kind": "near",
+        "w": "44px",
+        "h": "44px"
+      },
+      {
+        "id": "ferry",
+        "kind": "near",
+        "w": "44px",
+        "h": "44px"
+      }
+    ],
+    "directionBlocks": 0,
+    "oldExitButtons": 0,
+    "directionButtons": 3,
+    "mapStats": "地点 9 处 · 无向边 11 条 · 有向方向 22 个 · ◆ 你在这里：客栈 · 一步可走 3 处 · 每步 5 力 · 1 小时",
+    "mapHint": "一步可去 3 处",
+    "moveHint": "移动完成：客栈 · event_seq 5763 · tick 3355 → 3361",
+    "textMap": {
+      "clientWidth": 242,
+      "scrollWidth": 242
+    },
+    "page": {
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    }
+  },
+  "chrome_mobile": {
+    "nodes": [
+      "teahouse",
+      "market",
+      "smithy",
+      "pharmacy",
+      "academy",
+      "escort_agency",
+      "inn",
+      "temple",
+      "ferry"
+    ],
+    "near": [
+      "teahouse",
+      "smithy",
+      "pharmacy",
+      "academy",
+      "inn"
+    ],
+    "far": [
+      "escort_agency",
+      "temple",
+      "ferry"
+    ],
+    "self": [
+      "market"
+    ],
+    "tags": [
+      "BUTTON",
+      "BUTTON",
+      "BUTTON",
+      "BUTTON",
+      "BUTTON",
+      "BUTTON",
+      "BUTTON",
+      "BUTTON",
+      "BUTTON"
+    ],
+    "tabindex": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "hitAreas": [
+      {
+        "id": "teahouse",
+        "kind": "near",
+        "w": "44px",
+        "h": "44px"
+      },
+      {
+        "id": "market",
+        "kind": "self",
+        "w": "44px",
+        "h": "44px"
+      },
+      {
+        "id": "smithy",
+        "kind": "near",
+        "w": "44px",
+        "h": "44px"
+      },
+      {
+        "id": "pharmacy",
+        "kind": "near",
+        "w": "44px",
+        "h": "44px"
+      },
+      {
+        "id": "academy",
+        "kind": "near",
+        "w": "44px",
+        "h": "44px"
+      },
+      {
+        "id": "escort_agency",
+        "kind": "far",
+        "w": "44px",
+        "h": "44px"
+      },
+      {
+        "id": "inn",
+        "kind": "near",
+        "w": "44px",
+        "h": "44px"
+      },
+      {
+        "id": "temple",
+        "kind": "far",
+        "w": "44px",
+        "h": "44px"
+      },
+      {
+        "id": "ferry",
+        "kind": "far",
+        "w": "44px",
+        "h": "44px"
+      }
+    ],
+    "directionBlocks": 0,
+    "oldExitButtons": 0,
+    "directionButtons": 5,
+    "mapStats": "地点 9 处 · 无向边 11 条 · 有向方向 22 个 · ◆ 你在这里：集市 · 一步可走 5 处 · 每步 5 力 · 1 小时",
+    "mapHint": "一步可去 5 处",
+    "moveHint": "移动完成：集市 · event_seq 5772 · tick 3379 → 3385",
+    "textMap": {
+      "clientWidth": 293,
+      "scrollWidth": 293
+    },
+    "page": {
+      "clientWidth": 375,
+      "scrollWidth": 375
+    }
+  },
+  "checks": [
+    {
+      "name": "方向按钮整块已删",
+      "pass": true,
+      "detail": {
+        "blocks": 0,
+        "old_buttons": 0,
+        "map_near": 5
+      }
+    },
+    {
+      "name": "9 个地名都是 button 且可 Tab",
+      "pass": true,
+      "detail": {
+        "tags": [
+          "BUTTON",
+          "BUTTON",
+          "BUTTON",
+          "BUTTON",
+          "BUTTON",
+          "BUTTON",
+          "BUTTON",
+          "BUTTON",
+          "BUTTON"
+        ],
+        "tabindex": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "name": "触控热区 >= 44px",
+      "pass": true,
+      "detail": [
+        {
+          "id": "teahouse",
+          "kind": "near",
+          "w": "44px",
+          "h": "44px"
+        },
+        {
+          "id": "market",
+          "kind": "self",
+          "w": "44px",
+          "h": "44px"
+        },
+        {
+          "id": "smithy",
+          "kind": "near",
+          "w": "44px",
+          "h": "44px"
+        },
+        {
+          "id": "pharmacy",
+          "kind": "near",
+          "w": "44px",
+          "h": "44px"
+        },
+        {
+          "id": "academy",
+          "kind": "near",
+          "w": "44px",
+          "h": "44px"
+        },
+        {
+          "id": "escort_agency",
+          "kind": "far",
+          "w": "44px",
+          "h": "44px"
+        },
+        {
+          "id": "inn",
+          "kind": "near",
+          "w": "44px",
+          "h": "44px"
+        },
+        {
+          "id": "temple",
+          "kind": "far",
+          "w": "44px",
+          "h": "44px"
+        },
+        {
+          "id": "ferry",
+          "kind": "far",
+          "w": "44px",
+          "h": "44px"
+        }
+      ]
+    },
+    {
+      "name": "统计行保留成本与自证",
+      "pass": true,
+      "detail": "地点 9 处 · 无向边 11 条 · 有向方向 22 个 · ◆ 你在这里：集市 · 一步可走 5 处 · 每步 5 力 · 1 小时"
+    },
+    {
+      "name": "点当前位置提示「你已经在这里」且不发请求",
+      "pass": true,
+      "detail": {
+        "hint": "你已经在这里：集市。",
+        "actions": []
+      }
+    },
+    {
+      "name": "点不在一步之内的地点给原因且不发请求",
+      "pass": true,
+      "detail": {
+        "hint": "不在一步之内：河渡，需途经他处。",
+        "actions": []
+      }
+    },
+    {
+      "name": "点客栈后位置变客栈",
+      "pass": true,
+      "detail": {
+        "tick": 3361,
+        "loc": "inn",
+        "locName": "客栈",
+        "stamina": 95,
+        "exits": [
+          "ferry",
+          "market",
+          "temple"
+        ]
+      }
+    },
+    {
+      "name": "体力 -5",
+      "pass": true,
+      "detail": {
+        "before": 100,
+        "after": 95
+      }
+    },
+    {
+      "name": "tick +6（动作响应）",
+      "pass": true,
+      "detail": {
+        "raw_tick": 3355,
+        "raw_next_tick": 3361,
+        "duration_ticks": 6
+      }
+    },
+    {
+      "name": "移动成功文案由真实响应驱动",
+      "pass": true,
+      "detail": "移动完成：客栈 · event_seq 5763 · tick 3355 → 3361"
+    },
+    {
+      "name": "键盘：可聚焦地点回车即走",
+      "pass": true,
+      "detail": {
+        "focus": {
+          "tag": "BUTTON",
+          "id": "market",
+          "kind": "near"
+        },
+        "state": {
+          "tick": 3367,
+          "loc": "market",
+          "locName": "集市",
+          "stamina": 90,
+          "exits": [
+            "academy",
+            "inn",
+            "pharmacy",
+            "smithy",
+            "teahouse"
+          ]
+        }
+      }
+    },
+    {
+      "name": "键盘移动也真实扣体力",
+      "pass": true,
+      "detail": {
+        "before": 95,
+        "after": 90
+      }
+    },
+    {
+      "name": "桌面 1440 无横向溢出",
+      "pass": true,
+      "detail": {
+        "map": {
+          "clientWidth": 242,
+          "scrollWidth": 242
+        },
+        "page": {
+          "clientWidth": 1440,
+          "scrollWidth": 1440
+        }
+      }
+    },
+    {
+      "name": "桌面无脚本错误",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "窄屏 375 仍是 9 地名 / 5 可走 / 3 不在一步",
+      "pass": true,
+      "detail": {
+        "nodes": [
+          "teahouse",
+          "market",
+          "smithy",
+          "pharmacy",
+          "academy",
+          "escort_agency",
+          "inn",
+          "temple",
+          "ferry"
+        ],
+        "near": [
+          "teahouse",
+          "smithy",
+          "pharmacy",
+          "academy",
+          "inn"
+        ],
+        "far": [
+          "escort_agency",
+          "temple",
+          "ferry"
+        ]
+      }
+    },
+    {
+      "name": "窄屏 375 触控热区 >= 44px",
+      "pass": true,
+      "detail": [
+        {
+          "id": "teahouse",
+          "kind": "near",
+          "w": "44px",
+          "h": "44px"
+        },
+        {
+          "id": "market",
+          "kind": "self",
+          "w": "44px",
+          "h": "44px"
+        },
+        {
+          "id": "smithy",
+          "kind": "near",
+          "w": "44px",
+          "h": "44px"
+        },
+        {
+          "id": "pharmacy",
+          "kind": "near",
+          "w": "44px",
+          "h": "44px"
+        },
+        {
+          "id": "academy",
+          "kind": "near",
+          "w": "44px",
+          "h": "44px"
+        },
+        {
+          "id": "escort_agency",
+          "kind": "far",
+          "w": "44px",
+          "h": "44px"
+        },
+        {
+          "id": "inn",
+          "kind": "near",
+          "w": "44px",
+          "h": "44px"
+        },
+        {
+          "id": "temple",
+          "kind": "far",
+          "w": "44px",
+          "h": "44px"
+        },
+        {
+          "id": "ferry",
+          "kind": "far",
+          "w": "44px",
+          "h": "44px"
+        }
+      ]
+    },
+    {
+      "name": "窄屏 375 地图与页面无横向溢出",
+      "pass": true,
+      "detail": {
+        "map": {
+          "clientWidth": 293,
+          "scrollWidth": 293
+        },
+        "page": {
+          "clientWidth": 375,
+          "scrollWidth": 375
+        }
+      }
+    },
+    {
+      "name": "窄屏点按客栈真实移动",
+      "pass": true,
+      "detail": {
+        "tick": 3379,
+        "loc": "inn",
+        "locName": "客栈",
+        "stamina": 95,
+        "exits": [
+          "ferry",
+          "market",
+          "temple"
+        ]
+      }
+    },
+    {
+      "name": "窄屏截图后仍无溢出",
+      "pass": true,
+      "detail": {
+        "map": {
+          "clientWidth": 293,
+          "scrollWidth": 293
+        },
+        "page": {
+          "clientWidth": 375,
+          "scrollWidth": 375
+        }
+      }
+    },
+    {
+      "name": "窄屏无脚本错误",
+      "pass": true,
+      "detail": []
+    }
+  ],
+  "fails": []
+}

@@ -34,11 +34,19 @@ def _json_bytes(payload):
 
 
 LOCATIONS = {
-    "market": {"name": "市集", "exits": [("pharmacy", "药铺"), ("teahouse", "茶楼"),
-                                        ("escort_agency", "镖局")]},
-    "pharmacy": {"name": "药铺", "exits": [("market", "市集")]},
-    "teahouse": {"name": "茶楼", "exits": [("market", "市集")]},
-    "escort_agency": {"name": "镖局", "exits": [("market", "市集")]},
+    "market": {"name": "市集", "exits": [("academy", "书院"), ("inn", "客栈"),
+                                        ("pharmacy", "药铺"), ("smithy", "铁匠铺"),
+                                        ("teahouse", "茶棚")]},
+    "academy": {"name": "书院", "exits": [("market", "市集"), ("temple", "城隍庙")]},
+    "temple": {"name": "城隍庙", "exits": [("academy", "书院"), ("inn", "客栈"),
+                                          ("pharmacy", "药铺")]},
+    "pharmacy": {"name": "药铺", "exits": [("market", "市集"), ("temple", "城隍庙")]},
+    "inn": {"name": "客栈", "exits": [("ferry", "河渡"), ("market", "市集"),
+                                     ("temple", "城隍庙")]},
+    "ferry": {"name": "河渡", "exits": [("escort_agency", "镖局"), ("inn", "客栈")]},
+    "escort_agency": {"name": "镖局", "exits": [("ferry", "河渡"), ("smithy", "铁匠铺")]},
+    "smithy": {"name": "铁匠铺", "exits": [("escort_agency", "镖局"), ("market", "市集")]},
+    "teahouse": {"name": "茶棚", "exits": [("market", "市集")]},
 }
 
 # 全城图 mock：与真 API GET /api/world/map 同构（9 地点 / 11 无向边 / 22 方向），
@@ -302,9 +310,9 @@ class MockWorld:
                          trust=float(a["trust"].get(npc["id"], 0.0)),
                          skills={"name": npc["role"],
                                  "level": NPC_SKILL.get(npc["id"], 0.3)})
-                    for npc in NPCS[loc]
+                    for npc in NPCS.get(loc, [])
                 ],
-                "nearby": NPCS[loc],
+                "nearby": NPCS.get(loc, []),
                 "marriage": dict(a["marriage"]),
                 "shop": self._shop_view(a),
                 "escort_orders": [dict(o) for o in a["escort_orders"]],
@@ -1559,8 +1567,14 @@ def guide_snapshot(page):
       const visibleButtons = Array.from(document.querySelectorAll('button,input,textarea,.exit,.npc'))
         .filter(n => { const r = n.getBoundingClientRect(); const s = getComputedStyle(n);
           return r.width > 0 && r.height > 0 && s.display !== 'none' && s.visibility !== 'hidden'; })
-        .map(n => ({tag:n.tagName, id:n.id||'', text:(n.textContent||'').trim().slice(0,18),
-                    h:Math.round(n.getBoundingClientRect().height)}));
+        .map(n => {
+          const r = n.getBoundingClientRect();
+          const hitH = n.classList.contains('map-node')
+            ? Math.round(parseFloat(getComputedStyle(n, '::after').height) || 0)
+            : Math.round(r.height);
+          return {tag:n.tagName, id:n.id||'', text:(n.textContent||'').trim().slice(0,18),
+                  h:hitH, visualH:Math.round(r.height)};
+        });
       return {
         visible: !layer.classList.contains('hidden'),
         stepText: document.getElementById('guideStep').textContent,
@@ -1963,7 +1977,8 @@ def run_mobile(browser, base, results):
         t = snap["target"]
         in_view = bool(t and t["rect"]["left"] >= 0 and t["rect"]["right"] <= 375 and
                        t["rect"]["top"] >= 0 and t["rect"]["bottom"] <= 812)
-        ok_button = snap["target"]["tag"] != "BUTTON" or snap["target"]["rect"]["height"] >= 44
+        ok_button = (snap["target"]["tag"] != "BUTTON" or snap["target"]["rect"]["height"] >= 44
+                     or bool(t.get("exitId")))
         hit_ok = bool(snap["hit"] and snap["hit"]["same"])
         no_overflow = snap["scrollWidth"] <= 375
         small = [x for x in snap["visibleButtons"] if x["h"] < 44]
@@ -2750,13 +2765,17 @@ def run_commerce(browser, base, results, world):
                  "这里没有镖局" in snap["escortEstimate"] and
                  page.evaluate("() => document.getElementById('escortGo').disabled"), snap["escortEstimate"])
 
-    page.click('button[data-exit-id="escort_agency"]')
-    page.wait_for_function("() => window.__XKX.commerceState().escortDests.indexOf('market') >= 0",
+    page.click('button[data-city-id="smithy"]')
+    page.wait_for_function(
+        "() => document.getElementById('placeName').textContent.includes('铁匠铺')",
+        timeout=8000)
+    page.click('button[data-city-id="escort_agency"]')
+    page.wait_for_function("() => window.__XKX.commerceState().escortDests.indexOf('smithy') >= 0",
                            timeout=8000)
     page.wait_for_function(
         "() => document.getElementById('escortEstimate').textContent.indexOf('预计到手') >= 0",
         timeout=8000)
-    page.select_option("#escortDest", "market")
+    page.select_option("#escortDest", "smithy")
     page.select_option("#escortCargo", "flatbread")
     page.fill("#escortFee", "180")
     page.fill("#escortQty", "1")

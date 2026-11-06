@@ -224,7 +224,14 @@
     reputation_too_low: '声望还不够接这一单；先做小委托或经营人情，达到门槛再来。',
     not_at_target: '还没到任务目标地点或委托人处；先移动过去再交付。',
     quest_item_missing: '采购类委托需要你持有目标物品；先取得物品再交付。',
+    quest_step_incomplete: '你还没有真正完成这单的目标动作；请先到指定地点上工/交易/买入或把镖单送到目标地点，再回来交付。',
     item_not_held: '你身上没有这件物品或数量不足。',
+    /* 装备与使用（actions/equipment.py）。 */
+    item_not_equippable: '这件物品不能装备。',
+    equipment_slot_empty: '该装备槽位没有已装备物品。',
+    unknown_equipment_slot: '未知的装备槽位。',
+    item_not_usable: '这件物品不能直接使用；只有食物、酒水和药品可用。',
+    bad_quantity: '数量不合法。',
     trade_unfair: '交易价值明显不对等；对方拒绝了这笔买卖。',
     service_item: '服务类物品不能用于玩家交易。',
     offer_not_held: '你给出的物品数量不足。',
@@ -1159,11 +1166,11 @@
       const locId = ((state.st && state.st.location) || {}).id || '';
       const need = quest.target_location || quest.giver_location || '';
       if (need && need !== locId) {
-        const node = document.querySelector('#exits button[data-exit-id="' + need + '"]') ||
-          document.querySelector('#exits button[data-exit-id]');
+        const node = document.querySelector('#textMap button[data-city-kind="near"][data-city-id="' + need + '"]') ||
+          document.querySelector('#textMap button[data-city-kind="near"]');
         return { node: node, title: '③ 移动到委托人处',
           why: '「' + (quest.name || '这条委托') + '」在' + locationLabel(need) +
-            '；点出口逐段走过去，到了才能交付。' };
+            '；点地图上绿色地名逐段走过去，到了才能交付。' };
       }
       return { node: document.querySelector('.quest button[data-deliver]'), title: '③ 已到委托地点',
         why: '委托人就在当前地点，不用再移动；下一步直接在任务卡上交付。' };
@@ -1881,8 +1888,9 @@
     CITY_LAYOUT.nodes.forEach(function (slot) {
       const node = cityNodeById(map, slot.id);
       const kind = slot.id === currentId ? 'self' : (near[slot.id] ? 'near' : 'far');
-      cityPlaceText(grid, meta, slot.row, slot.col, String(node.name || slot.name),
-        { node: kind, id: slot.id });
+      const label = String(node.name || slot.name);
+      cityPlaceText(grid, meta, slot.row, slot.col, label,
+        { node: kind, id: slot.id, name: label });
       if (slot.id === currentId) {
         cityPlaceCell(grid, meta, slot.mark[0], slot.mark[1], '◆', { node: 'mark', id: slot.id });
       }
@@ -1899,26 +1907,52 @@
     return { grid: grid, meta: meta, current: current, near: near };
   }
 
-  /* 逐格渲染：每格固定宽度，中文整字占 2 格；不依赖字体对 CJK/线条的等宽假设。 */
+  /* 逐格渲染：每格固定宽度，中文整字占 2 格；不依赖字体对 CJK/线条的等宽假设。
+     地名整体渲染成一个原生 button：可 Tab 聚焦、Enter/Space 触发，
+     真实一步可达（near）才发移动；self / far 只给中文原因，不发请求。 */
   function renderCityGrid(view) {
     return view.grid.map(function (row, r) {
       let html = '';
-      row.forEach(function (ch, c) {
-        if (ch === '') return;
+      let c = 0;
+      while (c < row.length) {
         const m = view.meta[r][c] || {};
-        const cls = ['map-cell'];
-        if (mapCharWide(ch)) cls.push('wide');
-        if (m.node === 'self') cls.push('node-self');
-        else if (m.node === 'near') cls.push('node-near');
-        else if (m.node === 'far') cls.push('node-far');
-        if (m.node === 'mark') cls.push('node-mark');
-        if (m.linkOn) cls.push('link-on');
-        let attrs = '';
-        if (m.id) attrs += ' data-node-id="' + escapeHtml(m.id) + '"';
-        if (m.edge) attrs += ' data-edge="' + escapeHtml(m.edge) + '"';
-        html += '<span class="' + cls.join(' ') + '"' + attrs + '>' +
-          (ch === ' ' ? '&nbsp;' : escapeHtml(ch)) + '</span>';
-      });
+        if (m.id && (m.node === 'self' || m.node === 'near' || m.node === 'far')) {
+          const width = mapWidth(m.name || '');
+          const kind = m.node;
+          const tip = kind === 'self'
+            ? '你在这里'
+            : (kind === 'near' ? '一步可走：每步 ' + MOVE_STAMINA_COST + ' 力 · 1 小时' : '不在一步之内');
+          let inner = '';
+          for (let k = 0; k < width; k++) {
+            const ch = row[c + k];
+            if (ch === '') continue;
+            inner += '<span class="map-cell' + (mapCharWide(ch) ? ' wide' : '') + '">' +
+              escapeHtml(ch) + '</span>';
+          }
+          html += '<button type="button" class="map-node node-' + kind +
+            '" data-node-id="' + escapeHtml(m.id) + '" data-city-id="' + escapeHtml(m.id) +
+            '" data-city-kind="' + kind + '" data-city-name="' + escapeHtml(m.name || '') +
+            '" aria-label="' + escapeHtml((m.name || '') + '，' + tip) +
+            '" title="' + escapeHtml(tip) + '"' +
+            (kind === 'near' ? ' data-exit-id="' + escapeHtml(m.id) + '"' : '') +
+            '>' + inner + '</button>';
+          c += width;
+          continue;
+        }
+        const ch = row[c];
+        if (ch !== '') {
+          const cls = ['map-cell'];
+          if (mapCharWide(ch)) cls.push('wide');
+          if (m.node === 'mark') cls.push('node-mark');
+          if (m.linkOn) cls.push('link-on');
+          let attrs = '';
+          if (m.id) attrs += ' data-node-id="' + escapeHtml(m.id) + '"';
+          if (m.edge) attrs += ' data-edge="' + escapeHtml(m.edge) + '"';
+          html += '<span class="' + cls.join(' ') + '"' + attrs + '>' +
+            escapeHtml(ch) + '</span>';
+        }
+        c += 1;
+      }
       return '<div class="map-row">' + html + '</div>';
     }).join('');
   }
@@ -1957,8 +1991,6 @@
   function renderPlace(st) {
     const p = st.player || {};
     const loc = st.location || {};
-    const exits = (loc.exits || []).slice();
-    const stamina = Number(p.stamina || 0);
     el('locId').textContent = loc.id || '—';
     el('placeName').textContent = loc.name || '未知地点';
     el('placeMe').textContent = '你在这里：' + (p.name || '') +
@@ -1978,10 +2010,10 @@
         el('mapStats').textContent = '地点 ' + nLoc + ' 处 · 无向边 ' + nEdge + ' 条' +
           (counts.directed_edges == null ? '' : ' · 有向方向 ' + counts.directed_edges + ' 个') +
           ' · ◆ 你在这里：' + (view.current.name || loc.name || '—') +
-          ' · 一步可走 ' + nearCount + ' 处';
+          ' · 一步可走 ' + nearCount + ' 处 · 每步 ' + MOVE_STAMINA_COST + ' 力 · 1 小时';
         el('textMap').innerHTML = '<div class="map-grid">' + renderCityGrid(view) + '</div>';
-        el('mapNote').textContent = '◆ 为当前所在地；绿色地名与连线表示从当前位置一步可去，' +
-          '灰字地名不在一步之内。寻路与两跳路线暂不可用；区域名后端为 null 时不显示区域层。';
+        el('mapNote').textContent = '◆ 为当前所在地；绿色地名可点即走，灰字地名不在一步之内。' +
+          '寻路与两跳路线暂不可用；区域名后端为 null 时不显示区域层。';
       } catch (err) {
         renderCityError('全城图布局失败：' + ((err && err.message) || '未知错误') + '。未画图。');
       }
@@ -1992,47 +2024,38 @@
       el('mapStats').textContent = '—';
       el('textMap').innerHTML = '<div class="map-loading">正在读取 /api/world/map…</div>';
     }
+  }
 
-    const dirs = el('exits');
-    dirs.innerHTML = '';
-    const openCount = exits.filter(function (x) { return x.exists !== false; }).length;
-    el('directionHint').textContent = exits.length
-      ? ('可走 ' + openCount + (openCount < exits.length ? ' / ' + exits.length : '')
-        + ' 个方向 · 每步 1 小时 · -' + MOVE_STAMINA_COST + ' 体力')
-      : '无方向可走';
-    exits.forEach(function (exit) {
-      const open = exit.exists !== false;
-      const reason = !open
-        ? '道路不通'
-        : (stamina < MOVE_STAMINA_COST
-          ? ('体力不足：需 ' + MOVE_STAMINA_COST + '，当前 ' + Math.round(stamina))
-          : '');
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'exit' + (reason ? ' disabled' : '');
-      btn.setAttribute('data-exit-id', exit.id || '');
-      btn.innerHTML = '<span class="exit-main"><span class="exit-name">' +
-        escapeHtml(exit.name || exit.id) + '</span><span class="id">' +
-        escapeHtml(exit.id || '') + '</span></span>' +
-        (reason
-          ? '<span class="exit-reason">' + escapeHtml(reason) + '</span>'
-          : '<span class="exit-cost">' + MOVE_STAMINA_COST + ' 力 · 1 小时</span>');
-      if (reason) {
-        btn.disabled = true;
-        btn.title = reason;
-      } else {
-        btn.title = '移动到' + exit.name;
-        btn.addEventListener('click', function () { doMove(exit); });
-      }
-      dirs.appendChild(btn);
-    });
-    if (!exits.length) {
-      dirs.innerHTML = '<div class="hint">没有可用出口。</div>';
+  /* 地图点击：near = 真实一步可达，直接发移动；self / far 只给中文原因，不发请求。 */
+  function onCityNodeClick(ev) {
+    const btn = ev.target && ev.target.closest ? ev.target.closest('.map-node') : null;
+    if (!btn) return;
+    const id = btn.getAttribute('data-city-id') || '';
+    const kind = btn.getAttribute('data-city-kind') || '';
+    const name = btn.getAttribute('data-city-name') || id;
+    if (kind === 'self') {
+      setMoveHint('你已经在这里：' + name + '。');
+      return;
     }
+    if (kind === 'near') {
+      doMove({ id: id, name: name });
+      return;
+    }
+    setMoveHint('不在一步之内：' + name + '，需途经他处。');
+  }
+
+  function setMoveHint(text, tone) {
+    const hint = el('moveHint');
+    if (!hint) return;
+    hint.textContent = text;
+    hint.style.color = tone === 'bad' ? '#9b3b2f' : (tone === 'ok' ? '#3f6b57' : '');
   }
 
   async function doMove(exit) {
-    if (state.busy) return;
+    if (state.busy) {
+      setMoveHint('正在移动，请稍候…');
+      return;
+    }
     if (!state.session || !state.session.accountId) {
       toast('先进入世界，才能移动。', true);
       showEntry(true);
@@ -2041,32 +2064,30 @@
     if (!requireAuthForWrite()) return;
     const beforeTick = state.st ? Number(state.st.tick) : 0;
     state.busy = true;
-    el('exitHint').style.color = '';
+    setMoveHint('正在移动到 ' + exit.name + '…');
     try {
       const res = await API.action(state.session.accountId, 'move', { to: exit.id }, beforeTick);
       const data = res.data || {};
       if (res.authRequired || res.status === 401) return;
       if (res.status === 409 || data.ok === false || res.status === 0) {
         const r = notifyError('移动 ' + exit.name, data, res.status);
-        el('exitHint').style.color = '#9b3b2f';
-        el('exitHint').textContent = r.text;
+        setMoveHint(r.text, 'bad');
         return;
       }
       if (data.status === 'proposed' || data.readonly) {
-        el('exitHint').style.color = '#8a5a1c';
-        el('exitHint').textContent = '只读模式：已提交移动提案 ' + (data.intent_id || '') + '（未落地）';
+        setMoveHint('只读模式：已提交移动提案 ' + (data.intent_id || '') + '（未落地）');
         pushLog('proposal', '移动提案：' + exit.name, data.intent_id || '');
         return;
       }
-      el('exitHint').style.color = '#3f6b57';
-      el('exitHint').textContent = '移动完成：' + exit.name +
+      setMoveHint('移动完成：' + exit.name +
         ' · event_seq ' + (data.event_seq == null ? '?' : data.event_seq) +
-        ' · tick ' + (data.tick == null ? '?' : data.tick) + ' → ' + (data.next_tick == null ? '?' : data.next_tick);
+        ' · tick ' + (data.tick == null ? '?' : data.tick) + ' → ' + (data.next_tick == null ? '?' : data.next_tick), 'ok');
       pushLog('ok', '移动到 ' + exit.name + ' · event_seq ' + (data.event_seq == null ? '?' : data.event_seq),
         'tick ' + (data.tick == null ? '?' : data.tick));
       await loadState(state.session.accountId);
       guideAdvanceOn('move');
     } catch (err) {
+      setMoveHint('移动请求失败：' + (err.message || err), 'bad');
       toast('移动请求失败：' + (err.message || err), true);
       recordError('移动 ' + exit.name, '', '网络请求失败：' + (err.message || err));
     } finally {
@@ -5112,6 +5133,7 @@
     el('talkInput').addEventListener('keydown', function (ev) {
       if (ev.key === 'Enter') { ev.preventDefault(); doTalk(); }
     });
+    el('textMap').addEventListener('click', onCityNodeClick);
     el('npcClose').addEventListener('click', closeNpcModal);
     el('npcModal').addEventListener('click', function (ev) {
       if (ev.target === el('npcModal')) closeNpcModal();
@@ -5646,7 +5668,7 @@
           id: ctx.node.id || '',
           quest: ctx.node.getAttribute('data-quest') || '',
           deliver: ctx.node.getAttribute('data-deliver') || '',
-          exitId: ctx.node.getAttribute('data-exit-id') || '',
+          exitId: ctx.node.getAttribute('data-city-id') || '',
           disabled: !!ctx.node.disabled
         };
       }
