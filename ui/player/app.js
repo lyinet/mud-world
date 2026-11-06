@@ -32,6 +32,8 @@
       '/api/player/quests?account_id=' + encodeURIComponent(account || ''),
       true
     ),
+    /* 全城图是公共只读数据：节点 + 无向边，匿名可读，不依赖玩家令牌。 */
+    worldMap: () => getJSON('/api/world/map', false),
     /* 世界动态是公共事件：匿名可读，故意不带令牌，避免与登录/刷新链路互相牵制。 */
     feed: (limit) => getJSON('/api/world/feed?limit=' + encodeURIComponent(String(limit || 20)), false)
   };
@@ -369,6 +371,12 @@
     health: null,
     session: null,     // {accountId, entityId, displayName, archetype, role, mode}
     st: null,          // 最近一次 GET /api/player/state 的契约响应
+    cityMap: {
+      data: null,      // GET /api/world/map 的完整邻接响应
+      loading: false,
+      error: '',       // 读取失败 / 布局校验失败的玩家可读原因
+      retryAt: 0       // 失败后 30 秒内不重复请求，期间不画假图
+    },
     selected: null,
     busy: false,
     pollTimer: null,
@@ -1714,102 +1722,236 @@
     return width;
   }
 
-  function mapSpaces(count) {
-    return ' '.repeat(Math.max(0, count));
+  /* 全城固定布局：行列都按“显示格”计（中文占 2 格）。
+     坐标是人工排版，不来自后端；渲染前必须用 /api/world/map 校验节点与边集合，
+     对不上就报错，不按猜测补画。 */
+  const CITY_LAYOUT = {
+    rows: 9,
+    cols: 30,
+    nodes: [
+      { id: 'teahouse',      name: '茶棚',   row: 0, col: 14, mark: [1, 16] },
+      { id: 'market',        name: '集市',   row: 2, col: 14, mark: [2, 18] },
+      { id: 'smithy',        name: '铁匠铺', row: 4, col: 4,  mark: [3, 4] },
+      { id: 'pharmacy',      name: '药铺',   row: 4, col: 20, mark: [3, 20] },
+      { id: 'academy',       name: '书院',   row: 4, col: 26, mark: [3, 28] },
+      { id: 'escort_agency', name: '镖局',   row: 6, col: 4,  mark: [7, 4] },
+      { id: 'inn',           name: '客栈',   row: 6, col: 12, mark: [5, 12] },
+      { id: 'temple',        name: '城隍庙', row: 6, col: 22, mark: [5, 22] },
+      { id: 'ferry',         name: '河渡',   row: 8, col: 12, mark: [7, 12] }
+    ]
+  };
+
+  /* 11 条无向边的字符路径；路径坐标与 CITY_LAYOUT 一起构成固定排版。 */
+  const CITY_EDGES = [
+    { from: 'teahouse', to: 'market', path: [['│', 1, 15]] },
+    { from: 'market', to: 'inn', path: [['│', 3, 15], ['│', 4, 15], ['│', 5, 15]] },
+    { from: 'market', to: 'academy', path: [
+      ['─', 2, 19], ['─', 2, 20], ['─', 2, 21], ['─', 2, 22],
+      ['─', 2, 23], ['─', 2, 24], ['─', 2, 25], ['┐', 2, 26], ['│', 3, 26]
+    ] },
+    { from: 'academy', to: 'temple', path: [['│', 5, 27]] },
+    { from: 'pharmacy', to: 'temple', path: [['│', 5, 23]] },
+    { from: 'market', to: 'pharmacy', path: [['│', 3, 18], ['└', 4, 18], ['─', 4, 19]] },
+    { from: 'market', to: 'smithy', path: [
+      ['┌', 2, 10], ['─', 2, 11], ['─', 2, 12], ['─', 2, 13], ['│', 3, 10], ['┘', 4, 10]
+    ] },
+    { from: 'smithy', to: 'escort_agency', path: [['│', 5, 5]] },
+    { from: 'escort_agency', to: 'ferry', path: [
+      ['│', 7, 5], ['└', 8, 5], ['─', 8, 6], ['─', 8, 7],
+      ['─', 8, 8], ['─', 8, 9], ['─', 8, 10], ['─', 8, 11]
+    ] },
+    { from: 'ferry', to: 'inn', path: [['│', 7, 13]] },
+    { from: 'inn', to: 'temple', path: [
+      ['─', 6, 16], ['─', 6, 17], ['─', 6, 18], ['─', 6, 19], ['─', 6, 20], ['─', 6, 21]
+    ] }
+  ];
+
+  function cityEdgeKey(a, b) {
+    return [String(a), String(b)].sort().join('|');
   }
 
-  function mapPadRight(text, width) {
-    return text + mapSpaces(width - mapWidth(text));
+  function cityNodeById(map, id) {
+    const nodes = (map && map.nodes) || [];
+    for (let i = 0; i < nodes.length; i++) {
+      if (String(nodes[i].id) === String(id)) return nodes[i];
+    }
+    return null;
   }
 
-  /* 以当前地点为中心的星形一跳图：所有分支用字符线条真实连到中心。 */
-  function buildTextMap(loc) {
-    const exits = (loc.exits || []).map(function (exit) {
-      return {
-        name: String(exit.name || exit.id || '') +
-          (exit.exists === false ? '（不通）' : '')
-      };
+  /* 校验：地点/边集合与固定布局逐项一致；任何一项对不上都不画图。 */
+  function validateCityMap(map) {
+    const problems = [];
+    if (!map || map.ok === false) problems.push('接口返回不可用');
+    const nodes = (map && map.nodes) || [];
+    const edges = (map && map.edges) || [];
+    const layout = CITY_LAYOUT.nodes;
+    if (nodes.length !== layout.length) {
+      problems.push('地点数：接口 ' + nodes.length + '，布局 ' + layout.length);
+    }
+    if (edges.length !== CITY_EDGES.length) {
+      problems.push('边数：接口 ' + edges.length + '，布局 ' + CITY_EDGES.length);
+    }
+    const counts = (map && map.counts) || {};
+    if (counts.locations != null && counts.locations !== nodes.length) {
+      problems.push('counts.locations=' + counts.locations + ' 与 nodes=' + nodes.length + ' 不一致');
+    }
+    if (counts.edges != null && counts.edges !== edges.length) {
+      problems.push('counts.edges=' + counts.edges + ' 与 edges=' + edges.length + ' 不一致');
+    }
+    layout.forEach(function (slot) {
+      const node = cityNodeById(map, slot.id);
+      if (!node) {
+        problems.push('缺少地点 ' + slot.id);
+        return;
+      }
+      const name = String(node.name || '');
+      if (!name) {
+        problems.push('地点 ' + slot.id + ' 没有名称');
+      } else if (mapWidth(name) !== mapWidth(slot.name)) {
+        problems.push('地点 ' + slot.id + ' 名称宽度 ' + mapWidth(name) +
+          '，布局预留 ' + mapWidth(slot.name));
+      }
+      const exits = (node.exits || node.neighbors || []).length;
+      const degree = edges.filter(function (edge) {
+        return String(edge.from) === slot.id || String(edge.to) === slot.id;
+      }).length;
+      if (exits !== degree) {
+        problems.push('地点 ' + slot.id + ' 出口 ' + exits + ' 与边 ' + degree + ' 不一致');
+      }
     });
-    const count = exits.length;
-    let top = '';
-    let leftTop = '';
-    let leftBottom = '';
-    let rightTop = '';
-    let rightBottom = '';
-    if (count >= 5) {
-      top = exits[0].name;
-      leftTop = exits[1].name;
-      leftBottom = exits[3].name;
-      rightTop = exits[2].name;
-      rightBottom = exits[4].name;
-    } else if (count === 4) {
-      leftTop = exits[0].name;
-      leftBottom = exits[2].name;
-      rightTop = exits[1].name;
-      rightBottom = exits[3].name;
-    } else if (count === 3) {
-      leftTop = exits[0].name;
-      rightTop = exits[1].name;
-      rightBottom = exits[2].name;
-    } else if (count === 2) {
-      leftTop = exits[0].name;
-      rightTop = exits[1].name;
-    } else if (count === 1) {
-      rightTop = exits[0].name;
-    }
-
-    const here = '◆ ' + (loc.name || '未知地点');
-    if (!count) return here + '\n\n（此地没有已知出口）';
-
-    const leftWidth = Math.max(mapWidth(leftTop), mapWidth(leftBottom));
-    /* ┼ 必须与上下竖线同列：左名占 [0,leftWidth)，空格 1 格，横线 3 格，┼ 落在此列。 */
-    const hub = leftTop ? (leftWidth + 1 + 3) : 0;
-    const centerStart = leftTop ? hub + 4 : 0;
-    const rightHub = centerStart + mapWidth(here) + 3;
-    const lines = [];
-
-    if (top) {
-      lines.push(mapSpaces(hub) + '┌── ' + top);
-      lines.push(mapSpaces(hub) + '│');
-    }
-
-    let line = leftTop
-      ? mapPadRight(leftTop, leftWidth) + ' ' + '─'.repeat(3) + '┼── ' + here
-      : here;
-    if (rightTop) {
-      line += ' ──' + (rightBottom ? '┬' : '─') + '── ' + rightTop;
-    }
-    lines.push(line);
-
-    if (leftBottom || rightBottom) {
-      let vertical = leftBottom ? (mapSpaces(hub) + '│') : '';
-      if (rightBottom) {
-        vertical += (vertical ? mapSpaces(rightHub - mapWidth(vertical)) : mapSpaces(rightHub)) + '│';
-      }
-      lines.push(vertical);
-
-      let bottom = leftBottom ? (mapSpaces(hub) + '└── ' + leftBottom) : '';
-      if (rightBottom) {
-        bottom += (bottom ? mapSpaces(rightHub - mapWidth(bottom)) : mapSpaces(rightHub)) +
-          '└── ' + rightBottom;
-      }
-      lines.push(bottom);
-    }
-    return lines.join('\n');
+    const actualEdges = {};
+    edges.forEach(function (edge) {
+      actualEdges[cityEdgeKey(edge.from, edge.to)] = true;
+    });
+    const layoutEdges = {};
+    CITY_EDGES.forEach(function (edge) {
+      layoutEdges[cityEdgeKey(edge.from, edge.to)] = true;
+    });
+    Object.keys(layoutEdges).forEach(function (key) {
+      if (!actualEdges[key]) problems.push('缺少边 ' + key);
+    });
+    Object.keys(actualEdges).forEach(function (key) {
+      if (!layoutEdges[key]) problems.push('多出边 ' + key);
+    });
+    return { ok: problems.length === 0, problems: problems };
   }
 
-  /* 逐字符渲染：每格固定宽度，中文占两格；不依赖字体对 CJK/线条的等宽假设。 */
-  function renderMapGrid(text) {
-    return String(text).split('\n').map(function (line) {
-      const chars = Array.from(line);
-      if (!chars.length) {
-        return '<div class="map-row"><span class="map-cell">&nbsp;</span></div>';
+  function cityPlaceText(grid, meta, row, col, text, value) {
+    let c = col;
+    Array.from(text).forEach(function (ch) {
+      if (grid[row][c] !== ' ') {
+        throw new Error('布局重叠：第 ' + row + ' 行第 ' + c + ' 列已有内容');
       }
-      return '<div class="map-row">' + chars.map(function (ch) {
-        return '<span class="map-cell' + (mapCharWide(ch) ? ' wide' : '') + '">' +
+      grid[row][c] = ch;
+      meta[row][c] = value;
+      if (mapCharWide(ch)) {
+        if (grid[row][c + 1] !== ' ') {
+          throw new Error('布局重叠：第 ' + row + ' 行第 ' + (c + 1) + ' 列已有内容');
+        }
+        grid[row][c + 1] = '';
+        c += 2;
+      } else {
+        c += 1;
+      }
+    });
+  }
+
+  function cityPlaceCell(grid, meta, row, col, ch, value) {
+    if (grid[row][col] !== ' ') {
+      throw new Error('布局重叠：第 ' + row + ' 行第 ' + col + ' 列已有内容');
+    }
+    grid[row][col] = ch;
+    meta[row][col] = value;
+  }
+
+  function buildCityView(map, currentId) {
+    const grid = [];
+    const meta = [];
+    for (let r = 0; r < CITY_LAYOUT.rows; r++) {
+      grid.push(new Array(CITY_LAYOUT.cols).fill(' '));
+      meta.push(new Array(CITY_LAYOUT.cols).fill(null));
+    }
+    const current = cityNodeById(map, currentId);
+    if (!current) throw new Error('当前地点 ' + currentId + ' 不在全城图里');
+    const near = {};
+    (current.neighbors || current.exits || []).forEach(function (id) {
+      near[String(id)] = true;
+    });
+
+    CITY_LAYOUT.nodes.forEach(function (slot) {
+      const node = cityNodeById(map, slot.id);
+      const kind = slot.id === currentId ? 'self' : (near[slot.id] ? 'near' : 'far');
+      cityPlaceText(grid, meta, slot.row, slot.col, String(node.name || slot.name),
+        { node: kind, id: slot.id });
+      if (slot.id === currentId) {
+        cityPlaceCell(grid, meta, slot.mark[0], slot.mark[1], '◆', { node: 'mark', id: slot.id });
+      }
+    });
+
+    CITY_EDGES.forEach(function (edge) {
+      const on = edge.from === currentId || edge.to === currentId;
+      edge.path.forEach(function (cell) {
+        cityPlaceCell(grid, meta, cell[1], cell[2], cell[0],
+          { linkOn: on, edge: edge.from + '|' + edge.to });
+      });
+    });
+
+    return { grid: grid, meta: meta, current: current, near: near };
+  }
+
+  /* 逐格渲染：每格固定宽度，中文整字占 2 格；不依赖字体对 CJK/线条的等宽假设。 */
+  function renderCityGrid(view) {
+    return view.grid.map(function (row, r) {
+      let html = '';
+      row.forEach(function (ch, c) {
+        if (ch === '') return;
+        const m = view.meta[r][c] || {};
+        const cls = ['map-cell'];
+        if (mapCharWide(ch)) cls.push('wide');
+        if (m.node === 'self') cls.push('node-self');
+        else if (m.node === 'near') cls.push('node-near');
+        else if (m.node === 'far') cls.push('node-far');
+        if (m.node === 'mark') cls.push('node-mark');
+        if (m.linkOn) cls.push('link-on');
+        let attrs = '';
+        if (m.id) attrs += ' data-node-id="' + escapeHtml(m.id) + '"';
+        if (m.edge) attrs += ' data-edge="' + escapeHtml(m.edge) + '"';
+        html += '<span class="' + cls.join(' ') + '"' + attrs + '>' +
           (ch === ' ' ? '&nbsp;' : escapeHtml(ch)) + '</span>';
-      }).join('') + '</div>';
+      });
+      return '<div class="map-row">' + html + '</div>';
     }).join('');
+  }
+
+  function renderCityError(text) {
+    el('mapHint').textContent = '全城图不可用';
+    el('mapStats').textContent = '未按猜测作图';
+    el('textMap').innerHTML = '<div class="map-error">' + escapeHtml(text) + '</div>';
+  }
+
+  /* 全城图是静态公共数据：进世界后取一次；失败 30 秒后重试，期间不做假图。 */
+  function ensureCityMap() {
+    const cm = state.cityMap;
+    if (cm.loading || cm.data) return;
+    if (cm.error && Date.now() < cm.retryAt) return;
+    cm.loading = true;
+    cm.error = '';
+    API.worldMap().then(function (map) {
+      cm.loading = false;
+      const check = validateCityMap(map || {});
+      if (!check.ok) {
+        cm.error = '全城图数据与固定布局不一致：' + check.problems.join('；') + '。未画图。';
+        cm.retryAt = Date.now() + 30000;
+      } else {
+        cm.data = map;
+      }
+      if (state.st) renderPlace(state.st);
+    }, function (err) {
+      cm.loading = false;
+      cm.error = '全城图读取失败：' + ((err && (err.message || err.code)) || '请求失败') + '。未按猜测作图。';
+      cm.retryAt = Date.now() + 30000;
+      if (state.st) renderPlace(state.st);
+    });
   }
 
   function renderPlace(st) {
@@ -1822,9 +1964,34 @@
     el('placeMe').textContent = '你在这里：' + (p.name || '') +
       (p.role ? '（' + p.role + '）' : '') + ' · tick ' + st.tick;
 
-    /* 地图只画当前地点与直接出口；区域与两跳以外不猜测，界面上明确写“周边”。 */
-    el('mapHint').textContent = '◆ 你在这里：' + (loc.name || '未知地点') + ' · 只画一跳';
-    el('textMap').innerHTML = '<div class="map-grid">' + renderMapGrid(buildTextMap(loc)) + '</div>';
+    /* 全城图：固定人工布局 + 真实 /api/world/map 邻接校验；对不上就报错，不按猜测作图。 */
+    const cm = state.cityMap;
+    if (!cm.data && !cm.loading && (!cm.error || Date.now() >= cm.retryAt)) ensureCityMap();
+    if (cm.data) {
+      try {
+        const view = buildCityView(cm.data, loc.id || '');
+        const nearCount = Object.keys(view.near).length;
+        const counts = cm.data.counts || {};
+        const nLoc = counts.locations == null ? cm.data.nodes.length : counts.locations;
+        const nEdge = counts.edges == null ? cm.data.edges.length : counts.edges;
+        el('mapHint').textContent = '一步可去 ' + nearCount + ' 处';
+        el('mapStats').textContent = '地点 ' + nLoc + ' 处 · 无向边 ' + nEdge + ' 条' +
+          (counts.directed_edges == null ? '' : ' · 有向方向 ' + counts.directed_edges + ' 个') +
+          ' · ◆ 你在这里：' + (view.current.name || loc.name || '—') +
+          ' · 一步可走 ' + nearCount + ' 处';
+        el('textMap').innerHTML = '<div class="map-grid">' + renderCityGrid(view) + '</div>';
+        el('mapNote').textContent = '◆ 为当前所在地；绿色地名与连线表示从当前位置一步可去，' +
+          '灰字地名不在一步之内。寻路与两跳路线暂不可用；区域名后端为 null 时不显示区域层。';
+      } catch (err) {
+        renderCityError('全城图布局失败：' + ((err && err.message) || '未知错误') + '。未画图。');
+      }
+    } else if (cm.error) {
+      renderCityError(cm.error);
+    } else {
+      el('mapHint').textContent = '读取中…';
+      el('mapStats').textContent = '—';
+      el('textMap').innerHTML = '<div class="map-loading">正在读取 /api/world/map…</div>';
+    }
 
     const dirs = el('exits');
     dirs.innerHTML = '';

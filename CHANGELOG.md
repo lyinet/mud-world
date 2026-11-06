@@ -9,6 +9,50 @@
 
 ---
 
+## [界面] 2026-11-07 — 全城文本图：9 地点 / 11 条真实边、固定布局与邻接校验
+
+- **改了什么**：
+  - `ui/player/app.js` 新增 `API.worldMap`（匿名读 `GET /api/world/map`）、
+    `CITY_LAYOUT`（9 行 × 30 显示格的人工坐标）与 `CITY_EDGES`（11 条无向边的字符路径）。
+  - `validateCityMap` 在渲染前逐项校验：地点数/边数/`counts`/地名宽度/每个地点出口数与
+    边度数一致/边集合逐条一致；任何一项对不上就显示「未画图」，不按猜测硬画。
+  - `buildCityView` 以真实 `neighbors` 生成一步可去集合：当前地点标 `◆`，
+    可去地名与连线用绿色，其余地点灰色；`renderCityGrid` 仍逐字符固定格宽（中文 2 格）。
+  - 图上自证信息取接口原值：`counts.locations` / `counts.edges` / `counts.directed_edges`、
+    当前地点名、`一步可走 N 处`；寻路与两跳路线才写「暂不可用」。
+    `region` 全为 `null`，不显示区域层、不编区域名。
+  - `ui/player/server.py` 的 GET 白名单加入 `/api/world/map`；`tools/ui_check.py`
+    新增同构 mock（9 地点 / 11 边 / 22 方向）。
+- **为什么**：xkx 的 `map` 是全城图，不是只画周边一跳；后端 `ba379ea` 已提供真实邻接，
+  前端应整城入图，并用邻接数据自校验，避免手工坐标与后端漂移后画错。
+- **真机验证**（API 8031 / UI 8000，run `player-demo-20261107-002916-86448`，tick 2810）：
+  - 原始响应 `GET /api/world/map`：`counts={locations:9, edges:11, directed_edges:22}`、
+    `region_supported=false`、`region_note` 说明 `locations.yaml` 无区域字段、
+    所有地点 `region/region_name=null`。
+  - 渲染结果（当前在集市）：
+    ```
+                  茶棚
+                   │
+              ┌───集市◆───────┐
+              │    │  │       │
+        铁匠铺┘    │  └─药铺  书院
+         │         │       │   │
+        镖局    客栈──────城隍庙
+         │       │
+         └──────河渡
+    ```
+  - 断言 22 项全过：渲染地点 9 = 接口 9、渲染连线 11 = 接口 11、边集合逐条相同、
+    `◆` 唯一且等于当前地点、一步可去 5 处 = `market.neighbors`、其余 3 处标灰。
+  - 桌面 1440：`#textMap clientWidth=242 / scrollWidth=242`，整页 1440/1440。
+  - 窄屏 375：`#textMap clientWidth=293 / scrollWidth=293`，整页 375/375；
+    9 地点与 11 条连线全部保留、无横向溢出。
+  - 刷新两次同一份邻接数据：9 行图完全一致，无随机摆位。
+  - 证据：[reports/w4-map/map-check-v2.json](reports/w4-map/map-check-v2.json)、
+    [map-desktop.png](reports/w4-map/map-desktop.png)、
+    [map-mobile.png](reports/w4-map/map-mobile.png) 及对应 `*-only.png`。
+  - mock 回归：`python tools/ui_check.py --only desktop,mobile` → 42 checks / 0 failed。
+- **commit**：见本条目所在提交。
+
 ## [架构] 2026-11-07 — 对话模型旁路：账本记剧本，模型只做配音
 
 - **改了什么**：

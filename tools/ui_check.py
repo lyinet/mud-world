@@ -41,6 +41,26 @@ LOCATIONS = {
     "escort_agency": {"name": "镖局", "exits": [("market", "市集")]},
 }
 
+# 全城图 mock：与真 API GET /api/world/map 同构（9 地点 / 11 无向边 / 22 方向），
+# 名称用真服务地名，保证前端固定布局的名称宽度校验通过。
+CITY_MAP_NODES = [
+    {"id": "market", "name": "集市", "exits": ["academy", "inn", "pharmacy", "smithy", "teahouse"]},
+    {"id": "academy", "name": "书院", "exits": ["market", "temple"]},
+    {"id": "temple", "name": "城隍庙", "exits": ["academy", "inn", "pharmacy"]},
+    {"id": "pharmacy", "name": "药铺", "exits": ["market", "temple"]},
+    {"id": "inn", "name": "客栈", "exits": ["ferry", "market", "temple"]},
+    {"id": "ferry", "name": "河渡", "exits": ["escort_agency", "inn"]},
+    {"id": "escort_agency", "name": "镖局", "exits": ["ferry", "smithy"]},
+    {"id": "smithy", "name": "铁匠铺", "exits": ["escort_agency", "market"]},
+    {"id": "teahouse", "name": "茶棚", "exits": ["market"]},
+]
+CITY_MAP_EDGES = [
+    ("market", "academy"), ("academy", "temple"), ("market", "inn"),
+    ("market", "pharmacy"), ("pharmacy", "temple"), ("inn", "temple"),
+    ("market", "smithy"), ("smithy", "escort_agency"), ("escort_agency", "ferry"),
+    ("ferry", "inn"), ("market", "teahouse"),
+]
+
 # 商业面板 mock：与真服务 shop/escort 视图字段同名。
 SHOP_BUY = [
     {"item": "flatbread", "name": "炊饼", "category": "food", "price": 3, "tax": 0,
@@ -1170,6 +1190,23 @@ class Handler(SimpleHTTPRequestHandler):
             self.world.feed_calls += 1
             self.world.feed_headers.append(self.headers.get("Authorization") or "")
             self._json(200, self.world.feed((q.get("limit") or ["20"])[0]))
+            return
+        if path == "/api/world/map":
+            nodes = [{"id": row["id"], "name": row["name"],
+                      "exits": list(row["exits"]), "neighbors": list(row["exits"]),
+                      "region": None, "region_name": None}
+                     for row in CITY_MAP_NODES]
+            edges = [{"from": a, "to": b, "walkable": True, "bidirectional": True}
+                     for a, b in CITY_MAP_EDGES]
+            self._json(200, {
+                "ok": True, "tick": 40, "run": "ui-check-mock",
+                "counts": {"locations": len(nodes), "edges": len(edges),
+                           "directed_edges": len(edges) * 2},
+                "nodes": nodes, "edges": edges,
+                "reachable": [row["id"] for row in CITY_MAP_NODES],
+                "region_supported": False,
+                "region_note": "locations.yaml 没有区域字段，region 为 null。",
+            })
             return
         if path == "/api/player/messages":
             q = parse_qs(urlsplit(self.path).query)

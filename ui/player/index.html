@@ -51,11 +51,12 @@
           <div class="place-me" id="placeMe">—</div>
 
           <div class="map-head">
-            <h3>周边地图</h3>
+            <h3>全城地图</h3>
             <span class="hint" id="mapHint">—</span>
           </div>
-          <div class="text-map" id="textMap" aria-label="周边一跳字符地图"></div>
-          <div class="map-note">◆ 为当前所在地。本图只画「周边一跳」真实出口，未知道的道路留空；区域名、两跳以外地点与自动寻路暂不可用，需等后端邻接表。</div>
+          <div class="map-stats" id="mapStats">—</div>
+          <div class="text-map" id="textMap" aria-label="全城字符地图"></div>
+          <div class="map-note" id="mapNote">◆ 为当前所在地；绿色地名与连线表示从当前位置一步可去，灰字地名不在一步之内。寻路与两跳路线暂不可用；区域名后端为 null 时不显示区域层。</div>
 
           <div class="direction-head">
             <h3>方向</h3>

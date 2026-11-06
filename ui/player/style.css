@@ -292,6 +292,19 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   white-space: pre;
 }
 .map-cell.wide { width: 1.2em; }
+.map-cell.node-self { color: var(--gold); font-weight: 700; }
+.map-cell.node-near { color: var(--green); }
+.map-cell.node-far { color: var(--muted); }
+.map-cell.node-mark { color: var(--gold); font-weight: 700; }
+.map-cell.link-on { color: var(--green); }
+.map-stats {
+  font-size: 10.5px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+  margin: 0 0 6px;
+}
+.map-error { color: var(--red); font-size: 11.5px; line-height: 1.5; padding: 4px 2px; }
+.map-loading { color: var(--muted); font-size: 11.5px; padding: 4px 2px; }
 .map-note { font-size: 10.5px; color: var(--muted); line-height: 1.45; margin: 0 0 11px; }
 .direction-head {
   border-top: 1px dashed var(--line-soft);

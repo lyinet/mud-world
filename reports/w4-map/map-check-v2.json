@@ -1,0 +1,572 @@
+{
+  "run": "player-demo-20261107-002916-86448",
+  "tick": 2810,
+  "api": {
+    "counts": {
+      "directed_edges": 22,
+      "edges": 11,
+      "locations": 9
+    },
+    "nodes": [
+      {
+        "id": "academy",
+        "name": "书院",
+        "exits": [
+          "market",
+          "temple"
+        ],
+        "region": null
+      },
+      {
+        "id": "escort_agency",
+        "name": "镖局",
+        "exits": [
+          "ferry",
+          "smithy"
+        ],
+        "region": null
+      },
+      {
+        "id": "ferry",
+        "name": "河渡",
+        "exits": [
+          "escort_agency",
+          "inn"
+        ],
+        "region": null
+      },
+      {
+        "id": "inn",
+        "name": "客栈",
+        "exits": [
+          "ferry",
+          "market",
+          "temple"
+        ],
+        "region": null
+      },
+      {
+        "id": "market",
+        "name": "集市",
+        "exits": [
+          "academy",
+          "inn",
+          "pharmacy",
+          "smithy",
+          "teahouse"
+        ],
+        "region": null
+      },
+      {
+        "id": "pharmacy",
+        "name": "药铺",
+        "exits": [
+          "market",
+          "temple"
+        ],
+        "region": null
+      },
+      {
+        "id": "smithy",
+        "name": "铁匠铺",
+        "exits": [
+          "escort_agency",
+          "market"
+        ],
+        "region": null
+      },
+      {
+        "id": "teahouse",
+        "name": "茶棚",
+        "exits": [
+          "market"
+        ],
+        "region": null
+      },
+      {
+        "id": "temple",
+        "name": "城隍庙",
+        "exits": [
+          "academy",
+          "inn",
+          "pharmacy"
+        ],
+        "region": null
+      }
+    ],
+    "edges": [
+      {
+        "from": "academy",
+        "to": "market",
+        "walkable": true,
+        "bidirectional": true
+      },
+      {
+        "from": "academy",
+        "to": "temple",
+        "walkable": true,
+        "bidirectional": true
+      },
+      {
+        "from": "escort_agency",
+        "to": "ferry",
+        "walkable": true,
+        "bidirectional": true
+      },
+      {
+        "from": "escort_agency",
+        "to": "smithy",
+        "walkable": true,
+        "bidirectional": true
+      },
+      {
+        "from": "ferry",
+        "to": "inn",
+        "walkable": true,
+        "bidirectional": true
+      },
+      {
+        "from": "inn",
+        "to": "market",
+        "walkable": true,
+        "bidirectional": true
+      },
+      {
+        "from": "inn",
+        "to": "temple",
+        "walkable": true,
+        "bidirectional": true
+      },
+      {
+        "from": "market",
+        "to": "pharmacy",
+        "walkable": true,
+        "bidirectional": true
+      },
+      {
+        "from": "market",
+        "to": "smithy",
+        "walkable": true,
+        "bidirectional": true
+      },
+      {
+        "from": "market",
+        "to": "teahouse",
+        "walkable": true,
+        "bidirectional": true
+      },
+      {
+        "from": "pharmacy",
+        "to": "temple",
+        "walkable": true,
+        "bidirectional": true
+      }
+    ],
+    "region_supported": false,
+    "region_note": "locations.yaml 未提供区域字段；所有地点 region/region_name 如实为 null，未编造。"
+  },
+  "desktop": {
+    "rows": [
+      "              茶棚            ",
+      "               │              ",
+      "          ┌───集市◆───────┐   ",
+      "          │    │  │       │   ",
+      "    铁匠铺┘    │  └─药铺  书院",
+      "     │         │       │   │  ",
+      "    镖局    客栈──────城隍庙  ",
+      "     │       │                ",
+      "     └──────河渡              "
+    ],
+    "cells": 250,
+    "node_ids": [
+      "teahouse",
+      "market",
+      "smithy",
+      "pharmacy",
+      "academy",
+      "escort_agency",
+      "inn",
+      "temple",
+      "ferry"
+    ],
+    "self": [
+      "market"
+    ],
+    "near": [
+      "teahouse",
+      "smithy",
+      "pharmacy",
+      "academy",
+      "inn"
+    ],
+    "far": [
+      "escort_agency",
+      "temple",
+      "ferry"
+    ],
+    "marks": [
+      "market"
+    ],
+    "edges": [
+      "teahouse|market",
+      "market|smithy",
+      "market|academy",
+      "market|inn",
+      "market|pharmacy",
+      "smithy|escort_agency",
+      "pharmacy|temple",
+      "academy|temple",
+      "inn|temple",
+      "escort_agency|ferry",
+      "ferry|inn"
+    ],
+    "on_edges": [
+      "teahouse|market",
+      "market|smithy",
+      "market|academy",
+      "market|inn",
+      "market|pharmacy"
+    ],
+    "guess_classes": 0,
+    "mapStats": "地点 9 处 · 无向边 11 条 · 有向方向 22 个 · ◆ 你在这里：集市 · 一步可走 5 处",
+    "mapHint": "一步可去 5 处",
+    "mapNote": "◆ 为当前所在地；绿色地名与连线表示从当前位置一步可去，灰字地名不在一步之内。寻路与两跳路线暂不可用；区域名后端为 null 时不显示区域层。",
+    "mapError": "",
+    "textMap": {
+      "clientWidth": 242,
+      "scrollWidth": 242,
+      "left": 48,
+      "right": 292
+    },
+    "page": {
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    }
+  },
+  "desktop_reload_rows": [
+    "              茶棚            ",
+    "               │              ",
+    "          ┌───集市◆───────┐   ",
+    "          │    │  │       │   ",
+    "    铁匠铺┘    │  └─药铺  书院",
+    "     │         │       │   │  ",
+    "    镖局    客栈──────城隍庙  ",
+    "     │       │                ",
+    "     └──────河渡              "
+  ],
+  "mobile": {
+    "rows": [
+      "              茶棚            ",
+      "               │              ",
+      "          ┌───集市◆───────┐   ",
+      "          │    │  │       │   ",
+      "    铁匠铺┘    │  └─药铺  书院",
+      "     │         │       │   │  ",
+      "    镖局    客栈──────城隍庙  ",
+      "     │       │                ",
+      "     └──────河渡              "
+    ],
+    "cells": 250,
+    "node_ids": [
+      "teahouse",
+      "market",
+      "smithy",
+      "pharmacy",
+      "academy",
+      "escort_agency",
+      "inn",
+      "temple",
+      "ferry"
+    ],
+    "self": [
+      "market"
+    ],
+    "near": [
+      "teahouse",
+      "smithy",
+      "pharmacy",
+      "academy",
+      "inn"
+    ],
+    "far": [
+      "escort_agency",
+      "temple",
+      "ferry"
+    ],
+    "marks": [
+      "market"
+    ],
+    "edges": [
+      "teahouse|market",
+      "market|smithy",
+      "market|academy",
+      "market|inn",
+      "market|pharmacy",
+      "smithy|escort_agency",
+      "pharmacy|temple",
+      "academy|temple",
+      "inn|temple",
+      "escort_agency|ferry",
+      "ferry|inn"
+    ],
+    "on_edges": [
+      "teahouse|market",
+      "market|smithy",
+      "market|academy",
+      "market|inn",
+      "market|pharmacy"
+    ],
+    "guess_classes": 0,
+    "mapStats": "地点 9 处 · 无向边 11 条 · 有向方向 22 个 · ◆ 你在这里：集市 · 一步可走 5 处",
+    "mapHint": "一步可去 5 处",
+    "mapNote": "◆ 为当前所在地；绿色地名与连线表示从当前位置一步可去，灰字地名不在一步之内。寻路与两跳路线暂不可用；区域名后端为 null 时不显示区域层。",
+    "mapError": "",
+    "textMap": {
+      "clientWidth": 293,
+      "scrollWidth": 293,
+      "left": 40,
+      "right": 335
+    },
+    "page": {
+      "clientWidth": 375,
+      "scrollWidth": 375
+    }
+  },
+  "checks": [
+    {
+      "name": "接口地点数 9",
+      "pass": true,
+      "detail": {
+        "counts": {
+          "directed_edges": 22,
+          "edges": 11,
+          "locations": 9
+        },
+        "nodes": 9
+      }
+    },
+    {
+      "name": "接口无向边 11 / 方向 22",
+      "pass": true,
+      "detail": {
+        "counts": {
+          "directed_edges": 22,
+          "edges": 11,
+          "locations": 9
+        },
+        "edges": 11
+      }
+    },
+    {
+      "name": "接口 region 全为 null",
+      "pass": true,
+      "detail": [
+        "None"
+      ]
+    },
+    {
+      "name": "渲染地点数 = 9",
+      "pass": true,
+      "detail": [
+        "teahouse",
+        "market",
+        "smithy",
+        "pharmacy",
+        "academy",
+        "escort_agency",
+        "inn",
+        "temple",
+        "ferry"
+      ]
+    },
+    {
+      "name": "渲染地点与接口逐一相同",
+      "pass": true,
+      "detail": {
+        "missing": [],
+        "extra": []
+      }
+    },
+    {
+      "name": "渲染连线数 = 11",
+      "pass": true,
+      "detail": [
+        "teahouse|market",
+        "market|smithy",
+        "market|academy",
+        "market|inn",
+        "market|pharmacy",
+        "smithy|escort_agency",
+        "pharmacy|temple",
+        "academy|temple",
+        "inn|temple",
+        "escort_agency|ferry",
+        "ferry|inn"
+      ]
+    },
+    {
+      "name": "渲染连线与接口逐条相同",
+      "pass": true,
+      "detail": {
+        "missing": [],
+        "extra": []
+      }
+    },
+    {
+      "name": "◆ 标记唯一且在当前地点",
+      "pass": true,
+      "detail": {
+        "marks": [
+          "market"
+        ],
+        "current": "market"
+      }
+    },
+    {
+      "name": "一步可去 = 真实邻接",
+      "pass": true,
+      "detail": {
+        "near_rendered": [
+          "teahouse",
+          "smithy",
+          "pharmacy",
+          "academy",
+          "inn"
+        ],
+        "near_api": [
+          "academy",
+          "inn",
+          "pharmacy",
+          "smithy",
+          "teahouse"
+        ]
+      }
+    },
+    {
+      "name": "其余地点标为不在一步之内",
+      "pass": true,
+      "detail": {
+        "far": [
+          "escort_agency",
+          "temple",
+          "ferry"
+        ]
+      }
+    },
+    {
+      "name": "可去连线 = 当前点所有入射边",
+      "pass": true,
+      "detail": [
+        "teahouse|market",
+        "market|smithy",
+        "market|academy",
+        "market|inn",
+        "market|pharmacy"
+      ]
+    },
+    {
+      "name": "统计行含真实数字",
+      "pass": true,
+      "detail": "地点 9 处 · 无向边 11 条 · 有向方向 22 个 · ◆ 你在这里：集市 · 一步可走 5 处"
+    },
+    {
+      "name": "提示行写明一步可去数",
+      "pass": true,
+      "detail": "一步可去 5 处"
+    },
+    {
+      "name": "地图本身未标暂不可用",
+      "pass": true,
+      "detail": {
+        "mapNote": "◆ 为当前所在地；绿色地名与连线表示从当前位置一步可去，灰字地名不在一步之内。寻路与两跳路线暂不可用；区域名后端为 null 时不显示区域层。",
+        "error": ""
+      }
+    },
+    {
+      "name": "桌面 1440 地图无横向溢出",
+      "pass": true,
+      "detail": {
+        "map": {
+          "clientWidth": 242,
+          "scrollWidth": 242,
+          "left": 48,
+          "right": 292
+        },
+        "page": {
+          "clientWidth": 1440,
+          "scrollWidth": 1440
+        }
+      }
+    },
+    {
+      "name": "刷新后图完全相同",
+      "pass": true,
+      "detail": {
+        "rows_equal": true
+      }
+    },
+    {
+      "name": "桌面无脚本错误",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "窄屏 375 仍渲染 9 地点 / 11 连线",
+      "pass": true,
+      "detail": {
+        "nodes": [
+          "teahouse",
+          "market",
+          "smithy",
+          "pharmacy",
+          "academy",
+          "escort_agency",
+          "inn",
+          "temple",
+          "ferry"
+        ],
+        "edges": 11
+      }
+    },
+    {
+      "name": "窄屏 375 地图无横向溢出",
+      "pass": true,
+      "detail": {
+        "clientWidth": 293,
+        "scrollWidth": 293,
+        "left": 40,
+        "right": 335
+      }
+    },
+    {
+      "name": "窄屏 375 页面无横向溢出",
+      "pass": true,
+      "detail": {
+        "clientWidth": 375,
+        "scrollWidth": 375
+      }
+    },
+    {
+      "name": "窄屏 ◆ 与可去标记仍在",
+      "pass": true,
+      "detail": {
+        "marks": [
+          "market"
+        ],
+        "near": [
+          "teahouse",
+          "smithy",
+          "pharmacy",
+          "academy",
+          "inn"
+        ]
+      }
+    },
+    {
+      "name": "窄屏无脚本错误",
+      "pass": true,
+      "detail": []
+    }
+  ],
+  "fails": []
+}

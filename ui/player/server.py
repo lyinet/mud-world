@@ -1485,7 +1485,8 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/health":
                 self._health()
                 return
-            if path.startswith("/api/player/") or path == "/api/world/feed":
+            if (path.startswith("/api/player/") or path == "/api/world/feed"
+                    or path == "/api/world/map"):
                 self._read(path, query)
                 return
             if path in ("/api/auth/me", "/api/service/info", "/api/state"):
