@@ -990,10 +990,10 @@ class WorldSession:
         return response
 
     def finalize_dialogue(self, result: dict[str, Any], args: dict[str, Any]) -> None:
-        """事件事务提交后补配音：只写旁路与 HTTP `details.reply`，失败静默退回模板。
+        """事务提交后把配音排到后台：本次响应立即返回模板，旁路写入模型句。
 
-        硬约束：本方法不在 Writer 事务内、不持有 `self.lock`；模型慢/超时/预算耗尽
-        一律丢弃该句，不重试、不写事件、不影响动作结果。
+        硬约束：本方法不在 Writer 事务内、不持有 `self.lock`、不等待模型；成功结果
+        只写 `dialogue_aside.jsonl`，由 `GET /api/player/messages?since_seq=` 取回。
         """
         try:
             if not isinstance(result, dict) or str(result.get("verb") or "") != "talk":
@@ -1002,7 +1002,8 @@ class WorldSession:
             if not isinstance(details, dict):
                 details = {}
                 result["details"] = details
-            details.setdefault("dialogue_source", "template")
+            # 快路径：模板句立即成立，模型只做后台配音，不进入本次 HTTP 等待。
+            details["dialogue_source"] = "template"
             queue = self.dialogue_queue
             if not result.get("ok") or queue is None:
                 return
@@ -1015,35 +1016,31 @@ class WorldSession:
             target = str(args.get("target") or "")
             message = str(args.get("message") or "").strip()
             tick = int(result.get("tick") or 0)
+            seq = int(result.get("event_seq") or 0)
             player = str(result.get("player") or "")
             pending = take(player, target, tick, message)
-            if not pending:
+            if not pending or seq <= 0:
                 return
-            try:
-                timeout_s = float(os.environ.get("XKX_DIALOGUE_TIMEOUT_S") or 8.0)
-            except ValueError:
-                timeout_s = 8.0
-            timeout_s = max(0.5, min(20.0, timeout_s))
-            dlg = queue.reply_sync(
+
+            def _deliver(reply: Any) -> None:
+                text = str(getattr(reply, "text", "") or "").strip()
+                if not text:
+                    return
+                try:
+                    self.dialogue_aside.put(seq, target, text, self.dialogue_model)
+                except Exception:  # noqa: BLE001 - 旁路失败不能影响本次玩家操作
+                    pass
+
+            accepted = queue.submit_background(
                 npc=target,
                 player_text=message,
                 day=int(pending.get("day") or 0),
                 tick=tick,
                 persona=str(pending.get("persona") or ""),
                 state_summary=dict(pending.get("summary") or {}),
-                timeout_s=timeout_s,
+                on_done=_deliver,
             )
-            text = str(getattr(dlg, "text", "") or "").strip()
-            if not bool(getattr(dlg, "ok", False)) or not text:
-                return
-            seq = int(result.get("event_seq") or 0)
-            try:
-                self.dialogue_aside.put(seq, target, text, self.dialogue_model)
-            except Exception:  # noqa: BLE001 - 旁路失败不能影响本次玩家操作
-                pass
-            details["reply"] = text
-            details["dialogue_source"] = "model"
-            details["dialogue_model"] = self.dialogue_model
+            details["dialogue_pending"] = bool(accepted)
         except Exception:  # noqa: BLE001 - 配音失败一律退回模板，绝不向 HTTP 抛错
             return
 
@@ -1082,10 +1079,59 @@ class WorldSession:
                 "reason_text": "没有找到这个请求；请确认 request_id 或事件 seq。",
             }
 
-    def messages(self, account: str, since_tick: int = 0) -> dict[str, Any]:
-        """`GET /api/player/messages?since_tick=`：拉取该玩家 tick 之后的对话回复。"""
+    def messages(self, account: str, since_tick: int = 0, since_seq: int | None = None) -> dict[str, Any]:
+        """`GET /api/player/messages`：按 `since_tick` 拉对话回复，或按 `since_seq` 取回迟到配音。
+
+        `since_seq` 模式只返回旁路覆盖的条目（模型已到），模型文本只来自
+        `dialogue_aside.jsonl`，不含模板句冒充模型。
+        """
         account = str(account or "").strip().lower()
         pid = self._pid(account)
+        if since_seq is not None:
+            try:
+                since_seq_value = max(0, int(since_seq))
+            except (TypeError, ValueError):
+                since_seq_value = 0
+            rows_since_seq: list[dict[str, Any]] = []
+            with self.lock:
+                for event in self.store.read_all():
+                    seq = int(event.seq)
+                    if seq <= since_seq_value or event.actor != pid:
+                        continue
+                    for eff in event.effects or []:
+                        if eff.get("op") != "memory_add":
+                            continue
+                        data = eff.get("data") or {}
+                        if data.get("source") != "talk:npc":
+                            continue
+                        npc = str(data.get("npc") or "")
+                        row = self.dialogue_aside.get_row(seq, npc)
+                        if not row:
+                            continue
+                        rows_since_seq.append(
+                            {
+                                "id": f"msg:{seq}",
+                                "seq": seq,
+                                "tick": int(event.tick),
+                                "kind": "talk_reply",
+                                "from": npc,
+                                "to": pid,
+                                "text": str(row.get("text") or ""),
+                                "dialogue_source": "model",
+                                "model": str(row.get("model") or ""),
+                                "created_at": row.get("created_at"),
+                            }
+                        )
+                next_seq = max([since_seq_value] + [r["seq"] for r in rows_since_seq])
+                return {
+                    "ok": True,
+                    "profile_version": PROFILE_VERSION,
+                    "account_id": account,
+                    "tick": int(self.state.tick),
+                    "since_seq": since_seq_value,
+                    "next_since_seq": int(next_seq),
+                    "messages": rows_since_seq,
+                }
         try:
             since = max(0, int(since_tick))
         except (TypeError, ValueError):

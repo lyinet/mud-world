@@ -56,6 +56,13 @@ def _run_talk(tmp_path: Path, run_id: str, monkeypatch) -> WorldSession:
     reply = session.action("qa_test", "talk", {"target": npc, "message": message})
     assert reply["ok"], reply
     session.finalize_dialogue(reply, {"target": npc, "message": message})
+    # 配音已改为后台交付：响应先回模板，这里等旁路落盘后再断言。
+    seq = int(reply.get("event_seq") or 0)
+    deadline = time.time() + 5
+    while time.time() < deadline:
+        if session.dialogue_aside.get(seq, npc):
+            break
+        time.sleep(0.02)
     session._test_dialogue = {  # noqa: SLF001 - 仅测试断言用
         "npc": npc,
         "message": message,
@@ -86,8 +93,10 @@ def test_same_seed_worlds_identical_and_model_text_stays_out(tmp_path, monkeypat
     assert _hashes(first) == _hashes(second)
 
     meta = first._test_dialogue  # noqa: SLF001
-    assert meta["reply"]["details"]["dialogue_source"] == "model"
-    assert meta["reply"]["details"]["reply"] == MODEL_TEXT
+    details = meta["reply"]["details"]
+    assert details["dialogue_source"] == "template"
+    assert details["dialogue_pending"] is True
+    assert details["reply"] != MODEL_TEXT
 
     template = _template_reply(first, int(meta["reply"]["event_seq"]))
     assert template
@@ -97,6 +106,9 @@ def test_same_seed_worlds_identical_and_model_text_stays_out(tmp_path, monkeypat
 
     aside = first.dialogue_aside.get(int(meta["reply"]["event_seq"]), meta["npc"])
     assert aside == MODEL_TEXT
+    fetched = first.messages("qa_test", 0, since_seq=int(meta["reply"]["event_seq"]) - 1)
+    row = next(r for r in fetched["messages"] if r["seq"] == int(meta["reply"]["event_seq"]))
+    assert row["dialogue_source"] == "model" and row["text"] == MODEL_TEXT
     rows = [json.loads(line) for line in first.dialogue_aside.path.read_text(encoding="utf-8").splitlines()]
     assert rows and rows[-1]["model"] == "fake/dialogue-model"
 
@@ -154,7 +166,13 @@ def test_timeout_falls_back_template_and_action_succeeds(tmp_path, monkeypatch):
     session.finalize_dialogue(reply, args)
     assert reply["details"]["dialogue_source"] == "template"
     assert reply["details"]["reply"] != MODEL_TEXT
+    deadline = time.time() + 4
+    while time.time() < deadline and int(queue.stats()["calls"]) < 1:
+        time.sleep(0.02)
+    while time.time() < deadline and int(queue.stats()["fallback"]) < 1:
+        time.sleep(0.02)
     assert not session.dialogue_aside.path.exists()
     stats = queue.stats()
     assert stats["calls"] == 1 and stats["fallback"] == 1
     assert stats["fallback_by_reason"].get("timeout") == 1
+    assert stats["timeouts"] == 1

@@ -201,6 +201,7 @@ def _dialogue_llm_payload(session: WorldSession) -> dict[str, Any]:
         "ok": 0,
         "failures": 0,
         "timeouts": 0,
+        "dropped_backlog": 0,
         "last_latency_s": 0.0,
         "by_slot": {"dialogue": 0},
         "decision_calls": 0,
@@ -213,7 +214,8 @@ def _dialogue_llm_payload(session: WorldSession) -> dict[str, Any]:
             calls=calls,
             ok=int(stats.get("ok") or 0),
             failures=int(stats.get("fallback") or 0),
-            timeouts=int(by_reason.get("timeout") or 0),
+            timeouts=int(stats.get("timeouts") or by_reason.get("timeout") or 0),
+            dropped_backlog=int(stats.get("dropped_backlog") or 0),
             last_latency_s=float(stats.get("last_latency_s") or 0.0),
             by_slot={"dialogue": calls},
         )
@@ -603,10 +605,11 @@ class _Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/player/messages":
             since = query.get("since_tick", "0")
+            since_seq = query.get("since_seq")
             if anonymous:
                 self._send(200, session.public_messages(target, since))
             else:
-                self._send(200, session.messages(target, since))
+                self._send(200, session.messages(target, since, since_seq))
             return
         route = _GET_ROUTES.get(path)
         if route is None:

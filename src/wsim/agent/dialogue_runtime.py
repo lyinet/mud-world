@@ -28,7 +28,7 @@ from typing import Any
 from ..admin.providers import resolve as resolve_admin_provider
 from .budget import BudgetGuard, BudgetLimits
 from .cost import CostTelemetry, load_cost_rates
-from .dialogue_async import AsyncDialogueQueue
+from .dialogue_async import AsyncDialogueQueue, dialogue_timeout_s
 from .provider import ProviderClient, ProviderConfig, ProviderConfigError
 from .provider import load_model_slots, load_provider_settings
 
@@ -36,11 +36,19 @@ _ENABLED_VALUES = ("1", "true", "yes", "on")
 
 
 class _DialogueClient(ProviderClient):
-    """对话槽不重试：管理台降级链会在每次调用时重新解析，这里逐个钳制为 0。"""
+    """对话槽不重试、单次调用硬超时：管理台降级链在调用时重新解析，这里逐个钳制。"""
 
     def _config_chain(self) -> tuple[list[ProviderConfig], str]:
         chain, blocked = super()._config_chain()
-        return [replace(cfg, max_retries=0) if cfg.max_retries else cfg for cfg in chain], blocked
+        limit = dialogue_timeout_s()
+        return [
+            replace(
+                cfg,
+                max_retries=0,
+                timeout_s=min(float(cfg.timeout_s or limit), limit),
+            )
+            for cfg in chain
+        ], blocked
 
 
 def enabled() -> bool:

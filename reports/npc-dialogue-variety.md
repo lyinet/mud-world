@@ -116,7 +116,8 @@
 两条历史实现（本线 `dialogue_runtime.py` 的同步直出 + 后端线 `dialogue_aside.py` 的旁路）合并为**一条**：
 
 - **唯一模型调用路径**：`src/wsim/api/session.py::WorldSession.finalize_dialogue`（[L992](../src/wsim/api/session.py#L992)）
-  → `AsyncDialogueQueue.reply_sync`（[dialogue_async.py:202](../src/wsim/agent/dialogue_async.py#L202)）。
+  → `AsyncDialogueQueue.submit_background`（[dialogue_async.py:306](../src/wsim/agent/dialogue_async.py#L306)）。
+  事务提交后只登记后台任务，**不等待模型**；成功结果写 `dialogue_aside.jsonl`。
 - 本线删除第二条链：`TalkAction.apply` 内的同步 `reply_sync` 与 `dialogue_runtime.remember/overlay_reply`
   全部移除；`sim/headless.py` 不再构造 `AsyncDialogueQueue`（离线 `dialogue_calls=0`）。
 - 模板侧能力保留并继续生效：`turn` 由 memory 推导、人设台词参与全部意图、同文防重。
@@ -124,8 +125,117 @@
   任一步不满足即模板。实测 8031 `admin_registry`（local-gw）、8036 关（`talk.dialogue=None`）。
 - **超时/重试**：`XKX_DIALOGUE_TIMEOUT_S` 默认 8s（clamp 0.5–20）；对话槽 `max_retries=0`（管理台降级链同样钳制），
   超时/异常保留模板、不写事件、不阻塞 tick。
-- **延迟**（统一后新代码 20 次 `talk`，8037/8038）：关模型 p50/p95 `0.0023s/0.0037s`（20/20 模板）；
-  开模型 `3.35s/7.56s`（19/20 模型，1 次 8s 超时降级，`max=8.01s`）。
+- **延迟**（统一后、改造为异步前，20 次 `talk`，8037/8038）：关模型 p50/p95 `0.0023s/0.0037s`（20/20 模板）；
+  开模型 `3.35s/7.56s`（19/20 模型，1 次 8s 超时降级，`max=8.01s`）。同步等待模型导致产品级延迟，
+  因此改造为异步配音，见 7.1。
 - **旁路字段**：`dialogue_aside.jsonl` 每行 `event_seq/npc/text/model/created_at`，键 `(event_seq, npc_id)`，
   与 `specs/dialogue-model-aside/spec.md` 一致；仓库不再有第二套旁路存储。
 - **三个多样性指标不变**：`unique 15/15`、同 NPC 相邻相同 `0`、同意图跨 NPC 完全相同 `0`（同文断言在测试中固化）。
+
+### 7.1 异步配音（2026-11-07）
+
+- **立即返回**：`POST /api/player/action` 的 `details.reply` 只用模板句，附
+  `dialogue_source="template"`；开关开启且后台受理时 `dialogue_pending=true`。
+- **后台交付**：`finalize_dialogue` → `submit_background`（[dialogue_async.py:306](../src/wsim/agent/dialogue_async.py#L306)）
+  → `_answer_background`；事务已提交、不持 `WorldSession.lock`。成功回调写
+  `dialogue_aside.jsonl`，字段与格式不变。
+- **背压**：`ThreadPoolExecutor(max_workers=2)`，在飞 + 排队上限 `2 + 5 = 7`；超出直接丢弃、
+  不排队、不重试，计 `health.llm.dropped_backlog`。硬超时 `XKX_DIALOGUE_TIMEOUT_S`
+  （默认 8s，clamp 0.5–20），超时计 `health.llm.timeouts`。
+- **取回通道**：`GET /api/player/messages?since_seq=N&account_id=<account>`，只返回
+  `seq > N` 且旁路已有条目的 `talk:npc` 事件；`dialogue_source="model"`，模型文本只来自
+  `dialogue_aside.jsonl`，无旁路条目不返回、不以模板冒充模型。
+
+**20 次样本（run `accept-async-on2-20261107` / `accept-async-off2-20261107`，两个独立进程）**
+
+| 模式 | 请求 | p50 | p95 | max |
+|---|---|---|---|---|
+| 开模型（8041，env provider） | talk ×20 | 0.0019s | 0.0027s | 0.0027s |
+| 开模型 | rest ×20 | 0.0014s | 0.0027s | 0.0040s |
+| 关模型（8040） | talk ×20 | 0.0018s | 0.0034s | 0.0041s |
+| 关模型 | rest ×20 | 0.0019s | 0.0029s | 0.0047s |
+
+开模型响应样例（第 1 条）：
+
+```json
+{"i":0,"seq":7,"latency_s":0.0027,"ok":true,"source":"template","pending":true,
+ "reply":"我在呢，屠户这行我干惯了，从早忙到晚；你有话直说，我不爱绕弯子。金掌柜那三百文，我段五斗认！"}
+```
+
+字段名（动作响应）：
+
+| 字段 | 类型 | 含义 |
+|---|---|---|
+| `details.reply` | string | 本次 HTTP 响应的模板句（立即返回） |
+| `details.dialogue_source` | `"template"` | 本次响应文本来源；模板永远是模板 |
+| `details.dialogue_pending` | bool | 后台配音已被受理；开关开启且未触发背压时为 `true` |
+| `health.llm.dropped_backlog` | int | 背压丢弃计数 |
+| `health.llm.timeouts` | int | 后台配音超时计数 |
+
+真实 `POST /api/player/action` 响应（run `accept-sample-20261107`，`data` 玩家状态视图省略）：
+
+```json
+{"action":"talk","client_tick":null,"client_tick_ignored":false,"confirm":false,
+ "event_seq":7,"ok":true,"player":"player:qa_sample_async","profile_version":1,
+ "status":"executed","tick":6,"verb":"talk",
+ "details":{"dialogue_pending":true,"dialogue_source":"template",
+   "reply":"我在呢，屠户这行我干惯了，从早忙到晚；你有话直说，我不爱绕弯子。金掌柜那三百文，我段五斗认！",
+   "relation":{"affection":-1.0,"kind":"acquaintance","target":"duan_wudou","trust":39.5}}}
+```
+
+同一次请求的迟到配音（`GET /api/player/messages?since_seq=0&account_id=qa_sample_async`）：
+
+```json
+{"account_id":"qa_sample_async","messages":[{"created_at":"2026-11-06T19:05:23+00:00",
+ "dialogue_source":"model","from":"duan_wudou","id":"msg:7","kind":"talk_reply",
+ "model":"auto/deepseek-v4.1-flash","seq":7,
+ "text":"好着呢，天没亮就宰了一头，刀口还热。兄弟你来得巧，这块后腿肥瘦正好，我拿砍刀给你比划比划，要哪块说一声。",
+ "tick":6,"to":"player:qa_sample_async"}],
+ "next_since_seq":7,"ok":true,"profile_version":1,"since_seq":0,"tick":12}
+```
+
+字段名（取回响应）：`since_seq`（请求水位）、`next_since_seq`（下次水位）、
+`messages[].seq/tick/from/to/text/dialogue_source/model/created_at`；
+`dialogue_source` 只会是 `"model"`，文本只来自旁路。
+
+背压实测（20 次突发）：受理 7，`dropped_backlog=13`，`timeouts=0`，`calls=7/ok=7`。
+7 条旁路全部落地（`aside_file_rows=7`）。
+
+3 条迟到旁路记录（`dialogue_aside.jsonl` 原文）：
+
+```json
+{"created_at":"2026-11-06T19:02:43+00:00","event_seq":7,"model":"auto/deepseek-v4.1-flash","npc":"duan_wudou","text":"好！天没亮就杀了一头猪，刀都磨亮了。你要肥要瘦？我这儿刚开摊。"}
+{"created_at":"2026-11-06T19:02:44+00:00","event_seq":9,"model":"auto/deepseek-v4.1-flash","npc":"duan_wudou","text":"嘿，托你的福，还站得住！天没亮就起来放血剔骨，手上有油，心上也有账。金满仓那三百文我还认，就是这阵子手头紧，你别跟着来催。要肉不，割一块肥的？"}
+{"created_at":"2026-11-06T19:02:48+00:00","event_seq":11,"model":"auto/deepseek-v4.1-flash","npc":"duan_wudou","text":"新鲜事多着呢，我手里这把刀还热着。金满仓那账又催上门了，赌摊昨儿也挤破头——官爷可别顺耳听，我可没押。"}
+```
+
+`since_seq=0` 取回 7 条（前 2 条）：
+
+```json
+{"id":"msg:7","seq":7,"tick":6,"kind":"talk_reply","from":"duan_wudou","to":"player:qa_async_on3",
+ "text":"好！天没亮就杀了一头猪，刀都磨亮了。你要肥要瘦？我这儿刚开摊。",
+ "dialogue_source":"model","model":"auto/deepseek-v4.1-flash","created_at":"2026-11-06T19:02:43+00:00"}
+{"id":"msg:9","seq":9,"tick":12,"kind":"talk_reply","from":"duan_wudou","to":"player:qa_async_on3",
+ "text":"嘿，托你的福，还站得住！天没亮就起来放血剔骨，手上有油，心上也有账。金满仓那三百文我还认，就是这阵子手头紧，你别跟着来催。要肉不，割一块肥的？",
+ "dialogue_source":"model","model":"auto/deepseek-v4.1-flash","created_at":"2026-11-06T19:02:44+00:00"}
+```
+
+`since_seq=7` 只回 6 条（`next_since_seq=19`），seq=7 那条被排除。
+
+**三条死线（原始哈希）**
+
+1. 开关前后 golden 逐字节一致：同一 2 天 headless world（`/tmp/xkx-deadline`）跑三次，
+   `off_a == off_b == on_c`，`events_total=791`，`content_hash=5267a8a84f7c2e0200358c92b8e63cebff54db461de8123484732a66aa696da4`，
+   `state_final=6be665b533b778f2afb7d4a3fd57cd5ff6dc968509c11d238d40d5fed5870a55`，
+   `event_final=0c15b0d8892e52b89f4d9e022fd7fabde6b5283b4aa8c924e3bc5760d8a30d49`；
+   `events.jsonl` sha256 `670e09592afdafb8b5bcc4d7976b2372ff4219124520982f88261df08cc9b19d`，
+   `state_final.json` sha256 `63b8979afac03183a4e09c6be99e3b22f2390263960d9bda62ada6b10dcf6811`；
+   开关开启时离线 `dialogue_calls=0`（模型只走 API 会话）。
+2. 同 seed 两次一致：`off_a == off_b`，上述全部哈希逐项相同。
+3. 删旁路世界照常：`accept-async-on2-20261107` 删 `dialogue_aside.jsonl` 前后，
+   `tick=246`、`events=86`、`state=9a073d9d0cce408faf62210b56551dfe33f2c75528e36a4748e2f3b3bcb54bd5`、
+   `event=fdb87bc68f1212aabc82c094026c1158ca477b03536eb6f54aa42223a7193f7d`；
+   重开后 `messages` 20 条全为 `dialogue_source="template"`，`since_seq=0` 返回 0 条模型。
+
+**事件库检索**：7 条模型句在 `events.sqlite` 的 `effects/args/outcome` 命中 **0**；
+模板 `我答：` 20 条。多样性指标维持 `15/15`、相邻雷同 `0`、跨 NPC 同文 `0`。

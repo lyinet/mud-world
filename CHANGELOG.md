@@ -9,6 +9,41 @@
 
 ---
 
+## [对话] 2026-11-07 — 模型配音改为异步交付：请求立即返回模板，迟到台词走旁路
+
+- **改了什么**：
+  - `WorldSession.finalize_dialogue`（`src/wsim/api/session.py:992`）不再等待模型：动作/对话
+    响应立即返回 `details.reply` 模板句，并带 `details.dialogue_source="template"`；
+    后台受理时附 `details.dialogue_pending=true`（仅开关开启时）。
+  - 新增 `AsyncDialogueQueue.submit_background`（`src/wsim/agent/dialogue_async.py:306`）、
+    `_answer_background`、`_finish_background`：事务提交后、锁外后台打模型；成功写
+    `dialogue_aside.jsonl`，字段不变（`event_seq/npc/text/model/created_at`）。
+  - 背压：`ThreadPoolExecutor(max_workers=2)`，在飞 + 排队上限 `2 + 5 = 7`；超出直接丢弃
+    该句、保留模板，不排队、不重试，计 `health.llm.dropped_backlog`。硬超时
+    `XKX_DIALOGUE_TIMEOUT_S`（默认 8s，clamp 0.5–20），超时计 `health.llm.timeouts`。
+  - `GET /api/player/messages?since_seq=N` 新增迟到台词取回：只返回 `seq > N` 且旁路已有
+    条目的 `talk:npc` 事件，`dialogue_source="model"`；无旁路条目不返回、不以模板冒充模型。
+  - health `llm` 块新增 `dropped_backlog` / `timeouts` 分项计数。
+- **为什么**：同步配音让开模型时 `talk` p50 3.35s / p95 7.56s / max 8.01s，玩家等模型不可接受；
+  账本规则是模板立即成立、模型只配音，配音不应卡在响应里。
+- **验证**（20 次 `talk` + 20 次 `rest`，run `accept-async-on2-20261107` / `accept-async-off2-20261107`）：
+  - 开模型 `talk` p50/p95/max `0.0019/0.0027/0.0027s`、`rest` `0.0014/0.0027/0.0040s`；
+    关模型 `talk` `0.0018/0.0034/0.0041s`、`rest` `0.0019/0.0029/0.0047s`；两组同一量级（<50ms）。
+  - 背压：20 次突发受理 7、`dropped_backlog=13`、`timeouts=0`；7 条旁路全部落地。
+  - 取回：`since_seq=0` 返回 7 条模型句；`since_seq=7` 只回 6 条（`next_since_seq=19`）。
+  - 死线：开关前后 golden 三次逐项一致（791 events，
+    `state_final=6be665b533b778f2afb7d4a3fd57cd5ff6dc968509c11d238d40d5fed5870a55`，
+    `event_final=0c15b0d8892e52b89f4d9e022fd7fabde6b5283b4aa8c924e3bc5760d8a30d49`，
+    `events.jsonl` sha256 `670e09592afdafb8b5bcc4d7976b2372ff4219124520982f88261df08cc9b19d`）；
+    同 seed 两次一致；删旁路前后 `state=9a073d9d0cce408faf62210b56551dfe33f2c75528e36a4748e2f3b3bcb54bd5`、
+    `event=fdb87bc68f1212aabc82c094026c1158ca477b03536eb6f54aa42223a7193f7d` 不变。
+  - 事件库检索 7 条模型句命中 0；模板 `我答：` 20 条。
+  - 测试：`pytest -q tests/test_dialogue_aside.py tests/test_dialogue_guard_integration.py
+    tests/test_dialogue_variety.py tests/test_p3e_golden.py` → 13 passed / 18 skipped（旧基线显式 skip）。
+- **证据**：[reports/npc-dialogue-variety.md](reports/npc-dialogue-variety.md) 7.1、
+  `reports/dialogue-async/acceptance-{on,off}.json`、[docs/DIALOGUE-QUALITY.md](docs/DIALOGUE-QUALITY.md)。
+- **commit**：见本条目所在提交。
+
 ## [界面] 2026-11-07 — 全城文本图：9 地点 / 11 条真实边、固定布局与邻接校验
 
 - **改了什么**：

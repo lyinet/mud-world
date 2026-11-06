@@ -1,0 +1,435 @@
+{
+  "mode": "off",
+  "base": "http://127.0.0.1:8040",
+  "account": "qa_async_off3",
+  "npc": "duan_wudou",
+  "talk": {
+    "n": 20,
+    "p50": 0.0018,
+    "p95": 0.0034,
+    "max": 0.0041,
+    "samples": [
+      0.0041,
+      0.0017,
+      0.0017,
+      0.0017,
+      0.0017,
+      0.0016,
+      0.0017,
+      0.0017,
+      0.002,
+      0.0016,
+      0.0018,
+      0.0016,
+      0.0018,
+      0.0034,
+      0.0027,
+      0.0034,
+      0.0026,
+      0.0031,
+      0.0022,
+      0.0019
+    ]
+  },
+  "talk_samples": [
+    {
+      "i": 0,
+      "latency_s": 0.0041,
+      "ok": true,
+      "event_seq": 7,
+      "source": "template",
+      "pending": null,
+      "reply": "我在呢，屠户这行我干惯了，从早忙到晚；你有话直说，我不爱绕弯子。金掌柜那三百文，我段五斗认！",
+      "reject_reason": ""
+    },
+    {
+      "i": 1,
+      "latency_s": 0.0017,
+      "ok": true,
+      "event_seq": 9,
+      "source": "template",
+      "pending": null,
+      "reply": "来啦，我正守着摊子；做屠户的没别的本事，你有事尽管开口。崔捕快，您别老盯着我，我又没犯法。",
+      "reject_reason": ""
+    },
+    {
+      "i": 2,
+      "latency_s": 0.0017,
+      "ok": true,
+      "event_seq": 11,
+      "source": "template",
+      "pending": null,
+      "reply": "街面上传得凶，一版比一版玄；我只看亲眼见的，你别再往外传。一刀下去，斤两不会错！",
+      "reject_reason": ""
+    },
+    {
+      "i": 3,
+      "latency_s": 0.0017,
+      "ok": true,
+      "event_seq": 13,
+      "source": "template",
+      "pending": null,
+      "reply": "肉价我这儿看货定价，好的贵两文，次的折一文；称完你验秤，短一两我赔。肉是肉，账是账，你别拿一句兄弟糊弄我。",
+      "reject_reason": ""
+    },
+    {
+      "i": 4,
+      "latency_s": 0.0017,
+      "ok": true,
+      "event_seq": 15,
+      "source": "template",
+      "pending": null,
+      "reply": "肉价这条，我按今日行情走，一斤上下浮动两文；你诚心要，零头我抹，秤上不少你。一刀下去，斤两不会错！",
+      "reject_reason": ""
+    },
+    {
+      "i": 5,
+      "latency_s": 0.0016,
+      "ok": true,
+      "event_seq": 17,
+      "source": "template",
+      "pending": null,
+      "reply": "来啦，我正守着摊子；做屠户的没别的本事，你有事尽管开口。崔捕快，您别老盯着我，我又没犯法。",
+      "reject_reason": ""
+    },
+    {
+      "i": 6,
+      "latency_s": 0.0017,
+      "ok": true,
+      "event_seq": 19,
+      "source": "template",
+      "pending": null,
+      "reply": "我在呢，屠户这行我干惯了，从早忙到晚；你有话直说，我不爱绕弯子。一刀下去，斤两不会错！",
+      "reject_reason": ""
+    },
+    {
+      "i": 7,
+      "latency_s": 0.0017,
+      "ok": true,
+      "event_seq": 21,
+      "source": "template",
+      "pending": null,
+      "reply": "这事我听到两耳朵，真真假假掺着；你要沾边，先把日子过稳。肉是肉，账是账，你别拿一句兄弟糊弄我。",
+      "reject_reason": ""
+    },
+    {
+      "i": 8,
+      "latency_s": 0.002,
+      "ok": true,
+      "event_seq": 23,
+      "source": "template",
+      "pending": null,
+      "reply": "肉价这条，我按今日行情走，一斤上下浮动两文；你诚心要，零头我抹，秤上不少你。一刀下去，斤两不会错！",
+      "reject_reason": ""
+    },
+    {
+      "i": 9,
+      "latency_s": 0.0016,
+      "ok": true,
+      "event_seq": 25,
+      "source": "template",
+      "pending": null,
+      "reply": "肉价我这儿看货定价，好的贵两文，次的折一文；称完你验秤，短一两我赔。金掌柜那三百文，我段五斗认！",
+      "reject_reason": ""
+    },
+    {
+      "i": 10,
+      "latency_s": 0.0018,
+      "ok": true,
+      "event_seq": 27,
+      "source": "template",
+      "pending": null,
+      "reply": "我在呢，屠户这行我干惯了，从早忙到晚；你有话直说，我不爱绕弯子。一刀下去，斤两不会错！",
+      "reject_reason": ""
+    },
+    {
+      "i": 11,
+      "latency_s": 0.0016,
+      "ok": true,
+      "event_seq": 29,
+      "source": "template",
+      "pending": null,
+      "reply": "来啦，我正守着摊子；做屠户的没别的本事，你有事尽管开口。肉是肉，账是账，你别拿一句兄弟糊弄我。",
+      "reject_reason": ""
+    },
+    {
+      "i": 12,
+      "latency_s": 0.0018,
+      "ok": true,
+      "event_seq": 31,
+      "source": "template",
+      "pending": null,
+      "reply": "街面上传得凶，一版比一版玄；我只看亲眼见的，你别再往外传。金掌柜那三百文，我段五斗认！",
+      "reject_reason": ""
+    },
+    {
+      "i": 13,
+      "latency_s": 0.0034,
+      "ok": true,
+      "event_seq": 33,
+      "source": "template",
+      "pending": null,
+      "reply": "肉价我这儿看货定价，好的贵两文，次的折一文；称完你验秤，短一两我赔。崔捕快，您别老盯着我，我又没犯法。",
+      "reject_reason": ""
+    },
+    {
+      "i": 14,
+      "latency_s": 0.0027,
+      "ok": true,
+      "event_seq": 35,
+      "source": "template",
+      "pending": null,
+      "reply": "肉价这条，我按今日行情走，一斤上下浮动两文；你诚心要，零头我抹，秤上不少你。肉是肉，账是账，你别拿一句兄弟糊弄我。",
+      "reject_reason": ""
+    },
+    {
+      "i": 15,
+      "latency_s": 0.0034,
+      "ok": true,
+      "event_seq": 37,
+      "source": "template",
+      "pending": null,
+      "reply": "来啦，我正守着摊子；做屠户的没别的本事，你有事尽管开口。金掌柜那三百文，我段五斗认！",
+      "reject_reason": ""
+    },
+    {
+      "i": 16,
+      "latency_s": 0.0026,
+      "ok": true,
+      "event_seq": 39,
+      "source": "template",
+      "pending": null,
+      "reply": "我在呢，屠户这行我干惯了，从早忙到晚；你有话直说，我不爱绕弯子。崔捕快，您别老盯着我，我又没犯法。",
+      "reject_reason": ""
+    },
+    {
+      "i": 17,
+      "latency_s": 0.0031,
+      "ok": true,
+      "event_seq": 41,
+      "source": "template",
+      "pending": null,
+      "reply": "这事我听到两耳朵，真真假假掺着；你要沾边，先把日子过稳。一刀下去，斤两不会错！",
+      "reject_reason": ""
+    },
+    {
+      "i": 18,
+      "latency_s": 0.0022,
+      "ok": true,
+      "event_seq": 43,
+      "source": "template",
+      "pending": null,
+      "reply": "肉价这条，我按今日行情走，一斤上下浮动两文；你诚心要，零头我抹，秤上不少你。崔捕快，您别老盯着我，我又没犯法。",
+      "reject_reason": ""
+    },
+    {
+      "i": 19,
+      "latency_s": 0.0019,
+      "ok": true,
+      "event_seq": 45,
+      "source": "template",
+      "pending": null,
+      "reply": "肉价我这儿看货定价，好的贵两文，次的折一文；称完你验秤，短一两我赔。肉是肉，账是账，你别拿一句兄弟糊弄我。",
+      "reject_reason": ""
+    }
+  ],
+  "action": {
+    "n": 20,
+    "p50": 0.0019,
+    "p95": 0.0029,
+    "max": 0.0047,
+    "samples": [
+      0.0016,
+      0.0016,
+      0.0029,
+      0.0016,
+      0.002,
+      0.002,
+      0.0019,
+      0.002,
+      0.0028,
+      0.0027,
+      0.0018,
+      0.0019,
+      0.0022,
+      0.0016,
+      0.0015,
+      0.0015,
+      0.0016,
+      0.0047,
+      0.0015,
+      0.0016
+    ]
+  },
+  "action_samples": [
+    {
+      "i": 0,
+      "latency_s": 0.0016,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 1,
+      "latency_s": 0.0016,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 2,
+      "latency_s": 0.0029,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 3,
+      "latency_s": 0.0016,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 4,
+      "latency_s": 0.002,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 5,
+      "latency_s": 0.002,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 6,
+      "latency_s": 0.0019,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 7,
+      "latency_s": 0.002,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 8,
+      "latency_s": 0.0028,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 9,
+      "latency_s": 0.0027,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 10,
+      "latency_s": 0.0018,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 11,
+      "latency_s": 0.0019,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 12,
+      "latency_s": 0.0022,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 13,
+      "latency_s": 0.0016,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 14,
+      "latency_s": 0.0015,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 15,
+      "latency_s": 0.0015,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 16,
+      "latency_s": 0.0016,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 17,
+      "latency_s": 0.0047,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 18,
+      "latency_s": 0.0015,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 19,
+      "latency_s": 0.0016,
+      "ok": true,
+      "reject_reason": ""
+    }
+  ],
+  "health_before": {
+    "by_slot": {
+      "dialogue": 0
+    },
+    "calls": 0,
+    "decision_calls": 0,
+    "dropped_backlog": 0,
+    "enabled": false,
+    "failures": 0,
+    "last_latency_s": 0.0,
+    "model": "",
+    "ok": 0,
+    "source": "",
+    "status": "disabled",
+    "timeouts": 0
+  },
+  "health_after": {
+    "by_slot": {
+      "dialogue": 0
+    },
+    "calls": 0,
+    "decision_calls": 0,
+    "dropped_backlog": 0,
+    "enabled": false,
+    "failures": 0,
+    "last_latency_s": 0.0,
+    "model": "",
+    "ok": 0,
+    "source": "",
+    "status": "disabled",
+    "timeouts": 0
+  },
+  "aside_file_rows": 0,
+  "aside_rows": [],
+  "fetch_since_0": {
+    "account_id": "qa_async_off3",
+    "messages": [],
+    "next_since_seq": 0,
+    "ok": true,
+    "profile_version": 1,
+    "since_seq": 0,
+    "tick": 246
+  },
+  "fetch_since_first_seq": {
+    "since_seq": 0,
+    "next_since_seq": 0,
+    "count": 0,
+    "messages": []
+  }
+}

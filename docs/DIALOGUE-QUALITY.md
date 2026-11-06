@@ -26,7 +26,8 @@
 2. 模型台词只进入：
    - `runs/<run>/dialogue_aside.jsonl`（旁路存储，键 `(event_seq, npc_id)`，字段
      `event_seq` / `npc` / `text` / `model` / `created_at`）；
-   - 本次 HTTP 响应的 `details.reply`（`details.dialogue_source="model"`）。
+   - `GET /api/player/messages?since_seq=N` 的返回（只从旁路读取，`dialogue_source="model"`）。
+   本次 HTTP 动作响应**只回模板句**，并带 `dialogue_source="template"`、`dialogue_pending=true`。
    `dialogue.jsonl` 仅作队列审计日志（调用/降级/延迟），不是第二套旁路。
 3. 模型台词不写 `content_hash`，不参与目标选择、关系增量、经济与事件回放。
 4. 回放同一 `(npc, message, tick, turn)` 永远得到同一模板句；`turn` 由 NPC memory 的 `talk:npc` 条数推导，是持久化确定值，不新增世界状态字段。
@@ -34,16 +35,43 @@
 ## 模型路径与调用时机（只有一条）
 
 - 唯一入口：`src/wsim/api/session.py::WorldSession.finalize_dialogue`（[session.py:992](../src/wsim/api/session.py#L992)）
-  → `AsyncDialogueQueue.reply_sync`（[dialogue_async.py:202](../src/wsim/agent/dialogue_async.py#L202)）。
+  → `AsyncDialogueQueue.submit_background`（[dialogue_async.py:306](../src/wsim/agent/dialogue_async.py#L306)）
+  → `_answer_background` 内的 `client.complete`。
 - 时机：`TalkAction.apply` 只写模板记忆与事件；API 在 `session.action()` 返回（事件事务已提交）后调用
-  `finalize_dialogue`。该方法不持 `WorldSession.lock`，模型慢只拖慢**这次 HTTP 响应**，
-  不拖 tick / Writer / 其他请求；离线 `sim/headless.py` 不再挂模型队列（`dialogue_calls=0`）。
-- 超时：`XKX_DIALOGUE_TIMEOUT_S`，默认 8 秒，clamp 0.5–20 秒；超时/网络/auth/预算失败一律保留模板
-  （`details.dialogue_source="template"`），动作照常成功。
+  `finalize_dialogue`，**只登记后台任务、不等待模型**。该方法不持 `WorldSession.lock`，tick / Writer /
+  其他请求都不受影响；离线 `sim/headless.py` 不挂模型队列（`dialogue_calls=0`）。
+- 超时：`XKX_DIALOGUE_TIMEOUT_S`，默认 8 秒，clamp 0.5–20 秒；超时/网络/auth/预算失败一律保留模板，
+  `health.llm.timeouts` 单独计数。
 - 重试：对话槽强制 `max_retries=0`（含管理台降级链），失败即模板，不为同一句话重打网关。
-- 实测 p95（统一后新代码、同机 20 次 `talk`，run `latency-on-final` / `latency-off-final`）：
-  关模型 p50/p95 `0.0023s/0.0037s`（8038，`llm.status=disabled`，20/20 模板）；
-  开模型 p50/p95 `3.35s/7.56s`（8037，`source=env`，19/20 模型、1 次 8s 超时降级，`max=8.01s`）。
+- 背压：同时最多 2 条在飞，排队积压超过 5 条直接丢弃该句（不排队、不重试），计入
+  `health.llm.dropped_backlog`；`health.llm.calls/ok/failures/timeouts/dropped_backlog` 为分项计数。
+- 实测（20 次 `talk` + 20 次 `rest`，run `accept-async-on2-20261107` / `accept-async-off2-20261107`）：
+  开模型 `talk` p50/p95/max `0.0019s/0.0027s/0.0027s`、`rest` `0.0014s/0.0027s/0.0040s`
+  （7 受理、13 突发丢弃、0 超时）；关模型 `talk` `0.0018s/0.0034s/0.0041s`、
+  `rest` `0.0019s/0.0029s/0.0047s`。两组同一量级（<50ms）。
+
+迟到台词取回：
+
+```http
+GET /api/player/messages?since_seq=6&account_id=<account>
+```
+
+```json
+{"ok":true,"since_seq":6,"next_since_seq":19,
+ "messages":[{"id":"msg:7","seq":7,"tick":6,"kind":"talk_reply",
+   "from":"duan_wudou","to":"player:qa_async_on",
+   "text":"我把刀往案板上一搁，笑起来露金牙。今日还行……你要肥要瘦？",
+   "dialogue_source":"model","model":"auto/deepseek-v4.1-flash",
+   "created_at":"2026-11-06T18:56:04+00:00"}]}
+```
+
+动作响应字段样例（开关开启时）：
+
+```json
+{"ok":true,"event_seq":7,"details":{
+  "reply":"我在呢，屠户这行我干惯了，从早忙到晚；你有话直说……",
+  "dialogue_source":"template","dialogue_pending":true}}
+```
 
 验证方式：
 

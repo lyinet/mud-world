@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import queue
 import threading
 import time
@@ -21,6 +22,19 @@ from .text_guard import PhraseLedger, sanitize_reply
 
 FALLBACK_BUDGET = "今日对话额度用尽，请明天再来。"
 FALLBACK_ERROR = "（对方似乎没听清，稍后再试。）"
+
+# 异步配音背压：同时在飞最多 2 条，排队积压超过 5 条即丢弃（不排队、不重试）。
+MAX_INFLIGHT = 2
+MAX_BACKLOG = 5
+
+
+def dialogue_timeout_s() -> float:
+    """配音超时阈值：默认 8 秒，clamp 0.5–20 秒（与 API 会话一致）。"""
+    try:
+        value = float(os.environ.get("XKX_DIALOGUE_TIMEOUT_S") or 8.0)
+    except ValueError:
+        value = 8.0
+    return max(0.5, min(20.0, value))
 
 
 @dataclass
@@ -45,6 +59,26 @@ class DialogueReply:
     after_guard: bool = False
     guard_flags: tuple[str, ...] = ()
     repeated_phrase: str = ""
+
+
+def _call_with_timeout(fn: Any, timeout_s: float) -> Any:
+    """在 daemon 线程里执行一次调用并在超时后放弃（后台配音专用）。"""
+    result: queue.Queue = queue.Queue(maxsize=1)
+
+    def _run() -> None:
+        try:
+            result.put((True, fn()))
+        except BaseException as exc:  # noqa: BLE001 - 交给等待方统一分类
+            result.put((False, exc))
+
+    threading.Thread(target=_run, name="dialogue-timeout", daemon=True).start()
+    try:
+        ok, value = result.get(timeout=timeout_s)
+    except queue.Empty:
+        raise TimeoutError(f"dialogue timeout after {timeout_s}s")
+    if not ok:
+        raise value
+    return value
 
 
 class AsyncDialogueQueue:
@@ -86,7 +120,10 @@ class AsyncDialogueQueue:
         # reply_sync 由多个动作线程调用，单飞保护避免同一 NPC 并发打爆网关。
         self._sync_lock = threading.Lock()
         self._closed = False
-        self._sync_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="dialogue-sync")
+        self._sync_executor = ThreadPoolExecutor(max_workers=MAX_INFLIGHT, thread_name_prefix="dialogue-sync")
+        # 异步配音背压计数：outstanding = 在飞 + 排队；积压上限 MAX_BACKLOG。
+        self._outstanding = 0
+        self._bg_stats: dict[str, int] = {"dropped_backlog": 0, "timeouts": 0}
         self._sync_stats: dict[str, Any] = {
             "calls": 0, "ok": 0, "fallback": 0,
             "fallback_by_reason": {},
@@ -266,6 +303,160 @@ class AsyncDialogueQueue:
             repeated_phrase=guard_result.repeated_phrase if guard_result else "",
         )
 
+    def submit_background(
+        self,
+        *,
+        npc: str,
+        player_text: str,
+        day: int,
+        tick: int,
+        persona: str = "",
+        state_summary: dict[str, Any] | None = None,
+        on_done: Any = None,
+    ) -> bool:
+        """把配音排到后台：立即返回是否受理，调用方据此决定 `dialogue_pending`。
+
+        背压：在飞 + 排队超过 `MAX_INFLIGHT + MAX_BACKLOG` 即丢弃（计入
+        `dropped_backlog`），不排队、不重试；成功结果交给 `on_done(reply)`。
+        """
+        summary = dict(state_summary or {})
+        with self._lock:
+            if self._outstanding >= MAX_INFLIGHT + MAX_BACKLOG:
+                self._bg_stats["dropped_backlog"] += 1
+                return False
+            self._outstanding += 1
+            self._sync_stats["calls"] += 1
+        request_id = f"dlg-{uuid.uuid4().hex[:10]}"
+        try:
+            future = self._sync_executor.submit(
+                self._answer_background,
+                request_id, str(npc), str(player_text), int(day), int(tick),
+                str(persona), summary,
+            )
+        except RuntimeError:
+            with self._lock:
+                self._outstanding -= 1
+                self._bg_stats["dropped_backlog"] += 1
+            return False
+
+        def _done(fut: Future) -> None:
+            self._finish_background(fut, request_id, str(npc), int(tick), int(day), on_done)
+
+        future.add_done_callback(_done)
+        return True
+
+    def _answer_background(
+        self,
+        request_id: str,
+        npc: str,
+        player_text: str,
+        day: int,
+        tick: int,
+        persona: str,
+        summary: dict[str, Any],
+    ) -> tuple[DialogueReply, str, str, str, dict[str, Any]]:
+        started = time.perf_counter()
+        if self.budget is not None:
+            ok, reason = self.budget.check_dialogue(int(day))
+            if not ok:
+                reply = DialogueReply(
+                    request_id, npc, self.fallback_budget, False, True, 0.0
+                )
+                return reply, reason or "dialogue_budget_exceeded", "", "", {}
+            self.budget.record_dialogue(int(day))
+        system = DIALOGUE_SYSTEM_PROMPT
+        user = json.dumps(
+            {"npc": npc, "persona": persona, "state": summary, "message": player_text},
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+        try:
+            text = str(_call_with_timeout(
+                lambda: self.client.complete(system, user), dialogue_timeout_s()
+            )).strip()
+            usage = dict(self.client.last_usage or {})
+            guard = self._guard(npc, str(text)[:800], summary)
+            reply = DialogueReply(
+                request_id, npc, guard.text, True, False,
+                round(time.perf_counter() - started, 4),
+                after_guard=guard.changed,
+                guard_flags=guard.flags,
+                repeated_phrase=guard.repeated_phrase,
+            )
+            return reply, "", system, user, usage
+        except Exception as exc:  # noqa: BLE001 - 后台失败只记原因，不重试
+            name = type(exc).__name__.lower()
+            reason = "timeout" if isinstance(exc, TimeoutError) or "timeout" in name else f"error:{type(exc).__name__}"
+            reply = DialogueReply(
+                request_id, npc, self.fallback_error, False, True,
+                round(time.perf_counter() - started, 4),
+            )
+            return reply, reason, system, user, {}
+
+    def _finish_background(
+        self,
+        future: Future,
+        request_id: str,
+        npc: str,
+        tick: int,
+        day: int,
+        on_done: Any,
+    ) -> None:
+        with self._lock:
+            self._outstanding = max(0, self._outstanding - 1)
+        if future.cancelled() or future.exception() is not None:
+            reply = DialogueReply(request_id, npc, self.fallback_error, False, True, 0.0)
+            reason, system, user, usage = "error:cancelled", "", "", {}
+        else:
+            reply, reason, system, user, usage = future.result()
+        latency = float(reply.latency_s)
+        in_tok = int(usage.get("prompt_tokens") or usage.get("input_tokens") or 0) or None
+        out_tok = int(usage.get("completion_tokens") or usage.get("output_tokens") or 0) or None
+        rec = None
+        if self.telemetry is not None and reason != "dialogue_budget_exceeded":
+            rec = self.telemetry.record(
+                tick=int(tick), npc=npc, tier=self.tier,
+                prompt_text=(system + "\n" + user) if system else "",
+                output_text=reply.text, model=self.client.config.model,
+                slot="dialogue", calls=1, fallback=reply.fallback, error=reason,
+                input_tokens=in_tok, output_tokens=out_tok, latency_s=latency,
+            )
+        if self.budget is not None and rec is not None:
+            self.budget.record(
+                int(day),
+                int(rec.get("input_tokens") or 0),
+                int(rec.get("output_tokens") or 0),
+                float(rec.get("estimated_cost") or 0.0),
+            )
+        with self._lock:
+            self._sync_stats["ok" if reply.ok else "fallback"] += 1
+            self._sync_stats["latencies"].append(latency)
+            self._sync_stats["last_latency"] = latency
+            if reason == "timeout":
+                self._bg_stats["timeouts"] += 1
+            if not reply.ok:
+                by = self._sync_stats["fallback_by_reason"]
+                by[reason or "unknown"] = by.get(reason or "unknown", 0) + 1
+            if rec is not None:
+                self._sync_stats["input_tokens"] += int(rec.get("input_tokens") or 0)
+                self._sync_stats["output_tokens"] += int(rec.get("output_tokens") or 0)
+                self._sync_stats["estimated_cost"] += float(rec.get("estimated_cost") or 0.0)
+        self._log({
+            "request_id": request_id, "npc": npc, "tick": int(tick), "day": int(day),
+            "text": reply.text, "ok": reply.ok, "fallback": reply.fallback,
+            "fallback_reason": reason, "latency_s": latency,
+            "input_tokens": in_tok, "output_tokens": out_tok,
+            "after_guard": reply.after_guard, "guard_flags": list(reply.guard_flags),
+            "repeated_phrase": reply.repeated_phrase,
+            "prompt_sha256": hashlib.sha256((system + "\n" + user).encode("utf-8")).hexdigest(),
+            "prompt_text": (system + "\n" + user)[:2000],
+        })
+        if reply.ok and reply.text and on_done is not None:
+            try:
+                on_done(reply)
+            except Exception:  # noqa: BLE001 - 回调失败不得影响队列
+                pass
+
     def _finish_sync(
         self,
         request_id: str,
@@ -376,6 +567,9 @@ class AsyncDialogueQueue:
                 "input_tokens": int(self._sync_stats["input_tokens"]),
                 "output_tokens": int(self._sync_stats["output_tokens"]),
                 "estimated_cost": round(float(self._sync_stats["estimated_cost"]), 6),
+                "dropped_backlog": int(self._bg_stats["dropped_backlog"]),
+                "timeouts": int(self._bg_stats["timeouts"]),
+                "inflight": int(self._outstanding),
             }
 
     def close(self) -> None:

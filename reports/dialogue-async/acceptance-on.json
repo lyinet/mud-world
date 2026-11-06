@@ -1,0 +1,643 @@
+{
+  "mode": "on",
+  "base": "http://127.0.0.1:8041",
+  "account": "qa_async_on3",
+  "npc": "duan_wudou",
+  "talk": {
+    "n": 20,
+    "p50": 0.0019,
+    "p95": 0.0027,
+    "max": 0.0027,
+    "samples": [
+      0.0027,
+      0.0024,
+      0.0021,
+      0.0022,
+      0.0019,
+      0.0019,
+      0.0019,
+      0.0018,
+      0.0027,
+      0.0019,
+      0.0017,
+      0.0017,
+      0.0017,
+      0.0022,
+      0.0018,
+      0.0018,
+      0.0019,
+      0.0017,
+      0.0018,
+      0.002
+    ]
+  },
+  "talk_samples": [
+    {
+      "i": 0,
+      "latency_s": 0.0027,
+      "ok": true,
+      "event_seq": 7,
+      "source": "template",
+      "pending": true,
+      "reply": "我在呢，屠户这行我干惯了，从早忙到晚；你有话直说，我不爱绕弯子。金掌柜那三百文，我段五斗认！",
+      "reject_reason": ""
+    },
+    {
+      "i": 1,
+      "latency_s": 0.0024,
+      "ok": true,
+      "event_seq": 9,
+      "source": "template",
+      "pending": true,
+      "reply": "来啦，我正守着摊子；做屠户的没别的本事，你有事尽管开口。崔捕快，您别老盯着我，我又没犯法。",
+      "reject_reason": ""
+    },
+    {
+      "i": 2,
+      "latency_s": 0.0021,
+      "ok": true,
+      "event_seq": 11,
+      "source": "template",
+      "pending": true,
+      "reply": "街面上传得凶，一版比一版玄；我只看亲眼见的，你别再往外传。一刀下去，斤两不会错！",
+      "reject_reason": ""
+    },
+    {
+      "i": 3,
+      "latency_s": 0.0022,
+      "ok": true,
+      "event_seq": 13,
+      "source": "template",
+      "pending": true,
+      "reply": "肉价我这儿看货定价，好的贵两文，次的折一文；称完你验秤，短一两我赔。肉是肉，账是账，你别拿一句兄弟糊弄我。",
+      "reject_reason": ""
+    },
+    {
+      "i": 4,
+      "latency_s": 0.0019,
+      "ok": true,
+      "event_seq": 15,
+      "source": "template",
+      "pending": true,
+      "reply": "肉价这条，我按今日行情走，一斤上下浮动两文；你诚心要，零头我抹，秤上不少你。一刀下去，斤两不会错！",
+      "reject_reason": ""
+    },
+    {
+      "i": 5,
+      "latency_s": 0.0019,
+      "ok": true,
+      "event_seq": 17,
+      "source": "template",
+      "pending": true,
+      "reply": "来啦，我正守着摊子；做屠户的没别的本事，你有事尽管开口。崔捕快，您别老盯着我，我又没犯法。",
+      "reject_reason": ""
+    },
+    {
+      "i": 6,
+      "latency_s": 0.0019,
+      "ok": true,
+      "event_seq": 19,
+      "source": "template",
+      "pending": true,
+      "reply": "我在呢，屠户这行我干惯了，从早忙到晚；你有话直说，我不爱绕弯子。一刀下去，斤两不会错！",
+      "reject_reason": ""
+    },
+    {
+      "i": 7,
+      "latency_s": 0.0018,
+      "ok": true,
+      "event_seq": 21,
+      "source": "template",
+      "pending": false,
+      "reply": "这事我听到两耳朵，真真假假掺着；你要沾边，先把日子过稳。肉是肉，账是账，你别拿一句兄弟糊弄我。",
+      "reject_reason": ""
+    },
+    {
+      "i": 8,
+      "latency_s": 0.0027,
+      "ok": true,
+      "event_seq": 23,
+      "source": "template",
+      "pending": false,
+      "reply": "肉价这条，我按今日行情走，一斤上下浮动两文；你诚心要，零头我抹，秤上不少你。一刀下去，斤两不会错！",
+      "reject_reason": ""
+    },
+    {
+      "i": 9,
+      "latency_s": 0.0019,
+      "ok": true,
+      "event_seq": 25,
+      "source": "template",
+      "pending": false,
+      "reply": "肉价我这儿看货定价，好的贵两文，次的折一文；称完你验秤，短一两我赔。金掌柜那三百文，我段五斗认！",
+      "reject_reason": ""
+    },
+    {
+      "i": 10,
+      "latency_s": 0.0017,
+      "ok": true,
+      "event_seq": 27,
+      "source": "template",
+      "pending": false,
+      "reply": "我在呢，屠户这行我干惯了，从早忙到晚；你有话直说，我不爱绕弯子。一刀下去，斤两不会错！",
+      "reject_reason": ""
+    },
+    {
+      "i": 11,
+      "latency_s": 0.0017,
+      "ok": true,
+      "event_seq": 29,
+      "source": "template",
+      "pending": false,
+      "reply": "来啦，我正守着摊子；做屠户的没别的本事，你有事尽管开口。肉是肉，账是账，你别拿一句兄弟糊弄我。",
+      "reject_reason": ""
+    },
+    {
+      "i": 12,
+      "latency_s": 0.0017,
+      "ok": true,
+      "event_seq": 31,
+      "source": "template",
+      "pending": false,
+      "reply": "街面上传得凶，一版比一版玄；我只看亲眼见的，你别再往外传。金掌柜那三百文，我段五斗认！",
+      "reject_reason": ""
+    },
+    {
+      "i": 13,
+      "latency_s": 0.0022,
+      "ok": true,
+      "event_seq": 33,
+      "source": "template",
+      "pending": false,
+      "reply": "肉价我这儿看货定价，好的贵两文，次的折一文；称完你验秤，短一两我赔。崔捕快，您别老盯着我，我又没犯法。",
+      "reject_reason": ""
+    },
+    {
+      "i": 14,
+      "latency_s": 0.0018,
+      "ok": true,
+      "event_seq": 35,
+      "source": "template",
+      "pending": false,
+      "reply": "肉价这条，我按今日行情走，一斤上下浮动两文；你诚心要，零头我抹，秤上不少你。肉是肉，账是账，你别拿一句兄弟糊弄我。",
+      "reject_reason": ""
+    },
+    {
+      "i": 15,
+      "latency_s": 0.0018,
+      "ok": true,
+      "event_seq": 37,
+      "source": "template",
+      "pending": false,
+      "reply": "来啦，我正守着摊子；做屠户的没别的本事，你有事尽管开口。金掌柜那三百文，我段五斗认！",
+      "reject_reason": ""
+    },
+    {
+      "i": 16,
+      "latency_s": 0.0019,
+      "ok": true,
+      "event_seq": 39,
+      "source": "template",
+      "pending": false,
+      "reply": "我在呢，屠户这行我干惯了，从早忙到晚；你有话直说，我不爱绕弯子。崔捕快，您别老盯着我，我又没犯法。",
+      "reject_reason": ""
+    },
+    {
+      "i": 17,
+      "latency_s": 0.0017,
+      "ok": true,
+      "event_seq": 41,
+      "source": "template",
+      "pending": false,
+      "reply": "这事我听到两耳朵，真真假假掺着；你要沾边，先把日子过稳。一刀下去，斤两不会错！",
+      "reject_reason": ""
+    },
+    {
+      "i": 18,
+      "latency_s": 0.0018,
+      "ok": true,
+      "event_seq": 43,
+      "source": "template",
+      "pending": false,
+      "reply": "肉价这条，我按今日行情走，一斤上下浮动两文；你诚心要，零头我抹，秤上不少你。崔捕快，您别老盯着我，我又没犯法。",
+      "reject_reason": ""
+    },
+    {
+      "i": 19,
+      "latency_s": 0.002,
+      "ok": true,
+      "event_seq": 45,
+      "source": "template",
+      "pending": false,
+      "reply": "肉价我这儿看货定价，好的贵两文，次的折一文；称完你验秤，短一两我赔。肉是肉，账是账，你别拿一句兄弟糊弄我。",
+      "reject_reason": ""
+    }
+  ],
+  "action": {
+    "n": 20,
+    "p50": 0.0014,
+    "p95": 0.0027,
+    "max": 0.004,
+    "samples": [
+      0.0015,
+      0.0015,
+      0.0027,
+      0.0014,
+      0.0015,
+      0.0013,
+      0.0015,
+      0.0015,
+      0.0013,
+      0.0013,
+      0.0014,
+      0.0013,
+      0.0014,
+      0.0013,
+      0.0012,
+      0.0013,
+      0.004,
+      0.0014,
+      0.0014,
+      0.0014
+    ]
+  },
+  "action_samples": [
+    {
+      "i": 0,
+      "latency_s": 0.0015,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 1,
+      "latency_s": 0.0015,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 2,
+      "latency_s": 0.0027,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 3,
+      "latency_s": 0.0014,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 4,
+      "latency_s": 0.0015,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 5,
+      "latency_s": 0.0013,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 6,
+      "latency_s": 0.0015,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 7,
+      "latency_s": 0.0015,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 8,
+      "latency_s": 0.0013,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 9,
+      "latency_s": 0.0013,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 10,
+      "latency_s": 0.0014,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 11,
+      "latency_s": 0.0013,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 12,
+      "latency_s": 0.0014,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 13,
+      "latency_s": 0.0013,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 14,
+      "latency_s": 0.0012,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 15,
+      "latency_s": 0.0013,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 16,
+      "latency_s": 0.004,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 17,
+      "latency_s": 0.0014,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 18,
+      "latency_s": 0.0014,
+      "ok": true,
+      "reject_reason": ""
+    },
+    {
+      "i": 19,
+      "latency_s": 0.0014,
+      "ok": true,
+      "reject_reason": ""
+    }
+  ],
+  "health_before": {
+    "by_slot": {
+      "dialogue": 0
+    },
+    "calls": 0,
+    "decision_calls": 0,
+    "dropped_backlog": 0,
+    "enabled": true,
+    "failures": 0,
+    "last_latency_s": 0.0,
+    "model": "auto/deepseek-v4.1-flash",
+    "ok": 0,
+    "source": "env",
+    "status": "active",
+    "timeouts": 0
+  },
+  "health_after": {
+    "by_slot": {
+      "dialogue": 7
+    },
+    "calls": 7,
+    "decision_calls": 0,
+    "dropped_backlog": 13,
+    "enabled": true,
+    "failures": 0,
+    "last_latency_s": 3.457,
+    "model": "auto/deepseek-v4.1-flash",
+    "ok": 7,
+    "source": "env",
+    "status": "active",
+    "timeouts": 0
+  },
+  "aside_file_rows": 7,
+  "aside_rows": [
+    {
+      "created_at": "2026-11-06T19:02:43+00:00",
+      "event_seq": 7,
+      "model": "auto/deepseek-v4.1-flash",
+      "npc": "duan_wudou",
+      "text": "好！天没亮就杀了一头猪，刀都磨亮了。你要肥要瘦？我这儿刚开摊。"
+    },
+    {
+      "created_at": "2026-11-06T19:02:44+00:00",
+      "event_seq": 9,
+      "model": "auto/deepseek-v4.1-flash",
+      "npc": "duan_wudou",
+      "text": "嘿，托你的福，还站得住！天没亮就起来放血剔骨，手上有油，心上也有账。金满仓那三百文我还认，就是这阵子手头紧，你别跟着来催。要肉不，割一块肥的？"
+    },
+    {
+      "created_at": "2026-11-06T19:02:48+00:00",
+      "event_seq": 11,
+      "model": "auto/deepseek-v4.1-flash",
+      "npc": "duan_wudou",
+      "text": "新鲜事多着呢，我手里这把刀还热着。金满仓那账又催上门了，赌摊昨儿也挤破头——官爷可别顺耳听，我可没押。"
+    },
+    {
+      "created_at": "2026-11-06T19:02:48+00:00",
+      "event_seq": 13,
+      "model": "auto/deepseek-v4.1-flash",
+      "npc": "duan_wudou",
+      "text": "肥瘦随你挑，肋条三文一斤，后腿四文。清早刚宰的，还热乎着。你要实在想问鲜事，等称完肉再唠。"
+    },
+    {
+      "created_at": "2026-11-06T19:02:52+00:00",
+      "event_seq": 17,
+      "model": "auto/deepseek-v4.1-flash",
+      "npc": "duan_wudou",
+      "text": "忙得很，刚宰了半片猪，刀还热着。您要肥要瘦？不过昨日那点赊账先清了，我也好安心动刀。"
+    },
+    {
+      "created_at": "2026-11-06T19:02:52+00:00",
+      "event_seq": 15,
+      "model": "auto/deepseek-v4.1-flash",
+      "npc": "duan_wudou",
+      "text": "这阵子嘛，也就凑合。天不亮我就起来剁骨头，摊前围的人还算多。零钱进袋、整钱出门，日子紧是紧，肉我照旧不短秤。"
+    },
+    {
+      "created_at": "2026-11-06T19:02:55+00:00",
+      "event_seq": 19,
+      "model": "auto/deepseek-v4.1-flash",
+      "npc": "duan_wudou",
+      "text": "还成，一早开了半扇猪，手都没停。你要肥要瘦？我拿刀背敲敲案板，今儿这肉新鲜，昨儿在赌摊上还赢了两把。"
+    }
+  ],
+  "fetch_since_0": {
+    "account_id": "qa_async_on3",
+    "messages": [
+      {
+        "created_at": "2026-11-06T19:02:43+00:00",
+        "dialogue_source": "model",
+        "from": "duan_wudou",
+        "id": "msg:7",
+        "kind": "talk_reply",
+        "model": "auto/deepseek-v4.1-flash",
+        "seq": 7,
+        "text": "好！天没亮就杀了一头猪，刀都磨亮了。你要肥要瘦？我这儿刚开摊。",
+        "tick": 6,
+        "to": "player:qa_async_on3"
+      },
+      {
+        "created_at": "2026-11-06T19:02:44+00:00",
+        "dialogue_source": "model",
+        "from": "duan_wudou",
+        "id": "msg:9",
+        "kind": "talk_reply",
+        "model": "auto/deepseek-v4.1-flash",
+        "seq": 9,
+        "text": "嘿，托你的福，还站得住！天没亮就起来放血剔骨，手上有油，心上也有账。金满仓那三百文我还认，就是这阵子手头紧，你别跟着来催。要肉不，割一块肥的？",
+        "tick": 12,
+        "to": "player:qa_async_on3"
+      },
+      {
+        "created_at": "2026-11-06T19:02:48+00:00",
+        "dialogue_source": "model",
+        "from": "duan_wudou",
+        "id": "msg:11",
+        "kind": "talk_reply",
+        "model": "auto/deepseek-v4.1-flash",
+        "seq": 11,
+        "text": "新鲜事多着呢，我手里这把刀还热着。金满仓那账又催上门了，赌摊昨儿也挤破头——官爷可别顺耳听，我可没押。",
+        "tick": 18,
+        "to": "player:qa_async_on3"
+      },
+      {
+        "created_at": "2026-11-06T19:02:48+00:00",
+        "dialogue_source": "model",
+        "from": "duan_wudou",
+        "id": "msg:13",
+        "kind": "talk_reply",
+        "model": "auto/deepseek-v4.1-flash",
+        "seq": 13,
+        "text": "肥瘦随你挑，肋条三文一斤，后腿四文。清早刚宰的，还热乎着。你要实在想问鲜事，等称完肉再唠。",
+        "tick": 24,
+        "to": "player:qa_async_on3"
+      },
+      {
+        "created_at": "2026-11-06T19:02:52+00:00",
+        "dialogue_source": "model",
+        "from": "duan_wudou",
+        "id": "msg:15",
+        "kind": "talk_reply",
+        "model": "auto/deepseek-v4.1-flash",
+        "seq": 15,
+        "text": "这阵子嘛，也就凑合。天不亮我就起来剁骨头，摊前围的人还算多。零钱进袋、整钱出门，日子紧是紧，肉我照旧不短秤。",
+        "tick": 30,
+        "to": "player:qa_async_on3"
+      },
+      {
+        "created_at": "2026-11-06T19:02:52+00:00",
+        "dialogue_source": "model",
+        "from": "duan_wudou",
+        "id": "msg:17",
+        "kind": "talk_reply",
+        "model": "auto/deepseek-v4.1-flash",
+        "seq": 17,
+        "text": "忙得很，刚宰了半片猪，刀还热着。您要肥要瘦？不过昨日那点赊账先清了，我也好安心动刀。",
+        "tick": 36,
+        "to": "player:qa_async_on3"
+      },
+      {
+        "created_at": "2026-11-06T19:02:55+00:00",
+        "dialogue_source": "model",
+        "from": "duan_wudou",
+        "id": "msg:19",
+        "kind": "talk_reply",
+        "model": "auto/deepseek-v4.1-flash",
+        "seq": 19,
+        "text": "还成，一早开了半扇猪，手都没停。你要肥要瘦？我拿刀背敲敲案板，今儿这肉新鲜，昨儿在赌摊上还赢了两把。",
+        "tick": 42,
+        "to": "player:qa_async_on3"
+      }
+    ],
+    "next_since_seq": 19,
+    "ok": true,
+    "profile_version": 1,
+    "since_seq": 0,
+    "tick": 246
+  },
+  "fetch_since_first_seq": {
+    "since_seq": 7,
+    "next_since_seq": 19,
+    "count": 6,
+    "messages": [
+      {
+        "created_at": "2026-11-06T19:02:44+00:00",
+        "dialogue_source": "model",
+        "from": "duan_wudou",
+        "id": "msg:9",
+        "kind": "talk_reply",
+        "model": "auto/deepseek-v4.1-flash",
+        "seq": 9,
+        "text": "嘿，托你的福，还站得住！天没亮就起来放血剔骨，手上有油，心上也有账。金满仓那三百文我还认，就是这阵子手头紧，你别跟着来催。要肉不，割一块肥的？",
+        "tick": 12,
+        "to": "player:qa_async_on3"
+      },
+      {
+        "created_at": "2026-11-06T19:02:48+00:00",
+        "dialogue_source": "model",
+        "from": "duan_wudou",
+        "id": "msg:11",
+        "kind": "talk_reply",
+        "model": "auto/deepseek-v4.1-flash",
+        "seq": 11,
+        "text": "新鲜事多着呢，我手里这把刀还热着。金满仓那账又催上门了，赌摊昨儿也挤破头——官爷可别顺耳听，我可没押。",
+        "tick": 18,
+        "to": "player:qa_async_on3"
+      },
+      {
+        "created_at": "2026-11-06T19:02:48+00:00",
+        "dialogue_source": "model",
+        "from": "duan_wudou",
+        "id": "msg:13",
+        "kind": "talk_reply",
+        "model": "auto/deepseek-v4.1-flash",
+        "seq": 13,
+        "text": "肥瘦随你挑，肋条三文一斤，后腿四文。清早刚宰的，还热乎着。你要实在想问鲜事，等称完肉再唠。",
+        "tick": 24,
+        "to": "player:qa_async_on3"
+      },
+      {
+        "created_at": "2026-11-06T19:02:52+00:00",
+        "dialogue_source": "model",
+        "from": "duan_wudou",
+        "id": "msg:15",
+        "kind": "talk_reply",
+        "model": "auto/deepseek-v4.1-flash",
+        "seq": 15,
+        "text": "这阵子嘛，也就凑合。天不亮我就起来剁骨头，摊前围的人还算多。零钱进袋、整钱出门，日子紧是紧，肉我照旧不短秤。",
+        "tick": 30,
+        "to": "player:qa_async_on3"
+      },
+      {
+        "created_at": "2026-11-06T19:02:52+00:00",
+        "dialogue_source": "model",
+        "from": "duan_wudou",
+        "id": "msg:17",
+        "kind": "talk_reply",
+        "model": "auto/deepseek-v4.1-flash",
+        "seq": 17,
+        "text": "忙得很，刚宰了半片猪，刀还热着。您要肥要瘦？不过昨日那点赊账先清了，我也好安心动刀。",
+        "tick": 36,
+        "to": "player:qa_async_on3"
+      },
+      {
+        "created_at": "2026-11-06T19:02:55+00:00",
+        "dialogue_source": "model",
+        "from": "duan_wudou",
+        "id": "msg:19",
+        "kind": "talk_reply",
+        "model": "auto/deepseek-v4.1-flash",
+        "seq": 19,
+        "text": "还成，一早开了半扇猪，手都没停。你要肥要瘦？我拿刀背敲敲案板，今儿这肉新鲜，昨儿在赌摊上还赢了两把。",
+        "tick": 42,
+        "to": "player:qa_async_on3"
+      }
+    ]
+  }
+}

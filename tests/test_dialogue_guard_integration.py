@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import json
 import re
+import threading
+import time
 from pathlib import Path
 
 from wsim.agent.dialogue_async import AsyncDialogueQueue
@@ -98,6 +100,31 @@ def test_reply_sync_uses_dialogue_prompt_and_guards_output(tmp_path):
     assert log[-1]["prompt_text"].startswith(DIALOGUE_SYSTEM_PROMPT)
 
 
+def test_async_backlog_drops_and_counts(tmp_path):
+    """背压：在飞 2 + 排队 5，超出直接丢弃并计入 dropped_backlog。"""
+    gate = threading.Event()
+
+    def transport(_cfg, _system, _user):
+        gate.wait(2)
+        return Completion(text="迟到的模型句")
+
+    queue = AsyncDialogueQueue(
+        ProviderClient(_cfg(), transport=transport),
+        log_dir=tmp_path,
+        defer_calls=True,
+    )
+    try:
+        accepted = [
+            queue.submit_background(npc=NPC, player_text="你好", day=1, tick=1)
+            for _ in range(10)
+        ]
+        assert sum(accepted) == 7
+        assert queue.stats()["dropped_backlog"] == 3
+    finally:
+        gate.set()
+        queue.close()
+
+
 def test_world_session_talk_path_returns_guarded_text(tmp_path):
     def transport(_cfg, _system, _user):
         return Completion(text="段五斗把砍刀往案板上一按：“兄弟，要肥要瘦？”")
@@ -125,8 +152,14 @@ def test_world_session_talk_path_returns_guarded_text(tmp_path):
         args = {"target": NPC, "message": "肉怎么卖？"}
         res = session.perform("u_demo", "talk", args)
         assert res["ok"]
-        # 唯一模型路径：事务提交后调用 finalize_dialogue。
+        seq = int(res["event_seq"])
+        # 唯一模型路径：事务提交后排队配音；本次响应立即返回模板。
+        started = time.perf_counter()
         session.finalize_dialogue(res, args)
+        assert time.perf_counter() - started < 0.5
+        assert res["details"]["dialogue_source"] == "template"
+        assert res["details"]["dialogue_pending"] is True
+        assert "兄弟，要肥要瘦" not in res["details"]["reply"]
         memories = session.state.memories.get(NPC) or []
         answers = [m["text"] for m in memories if m.get("source") == "talk:npc"]
         assert answers
@@ -136,18 +169,27 @@ def test_world_session_talk_path_returns_guarded_text(tmp_path):
         # 红线：模型台词不落状态/事件；memory 里必须是确定性模板。
         assert "兄弟，要肥要瘦" not in latest
         assert latest.startswith("我答：")
+
+        # 后台交付：等待旁路落盘，再用 since_seq 取回迟到台词。
+        deadline = time.time() + 5
+        aside = None
+        while time.time() < deadline:
+            aside = session.dialogue_aside.get(seq, NPC)
+            if aside:
+                break
+            time.sleep(0.02)
+        assert aside and "兄弟，要肥要瘦" in aside
         log = [
             line for line in (tmp_path / "run" / "dialogue.jsonl").read_text(
                 encoding="utf-8"
             ).splitlines() if line.strip()
         ]
         assert "兄弟，要肥要瘦" in log[-1]
-
-        # 模型台词写入唯一旁路，并只覆盖本次 HTTP 响应的 details.reply。
-        aside = session.dialogue_aside.get(int(res["event_seq"]), NPC)
-        assert aside and "兄弟，要肥要瘦" in aside
-        assert res["details"]["dialogue_source"] == "model"
-        assert "兄弟，要肥要瘦" in res["details"]["reply"]
+        fetched = session.messages("u_demo", 0, since_seq=seq - 1)
+        assert fetched["ok"] and fetched["next_since_seq"] >= seq
+        rows = [r for r in fetched["messages"] if int(r["seq"]) == seq]
+        assert rows and rows[0]["dialogue_source"] == "model"
+        assert "兄弟，要肥要瘦" in rows[0]["text"]
         assert latest.startswith("我答：")  # 状态里的模板未变
     finally:
         queue.close()

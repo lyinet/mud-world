@@ -90,5 +90,26 @@ class DialogueAside:
             self._index[(seq, npc)] = row
             self._count += 1
 
+    def entries_after(self, event_seq: int, limit: int = 100) -> list[dict[str, Any]]:
+        """返回 `event_seq > since` 的旁路条目（按 seq 升序），供迟到台词取回。"""
+        try:
+            since = int(event_seq)
+        except (TypeError, ValueError):
+            since = 0
+        with self._lock:
+            rows = [dict(row) for (seq, _npc), row in self._index.items() if int(seq) > since]
+        rows.sort(key=lambda row: (int(row.get("event_seq") or 0), str(row.get("npc") or "")))
+        return rows[: max(0, int(limit))]
+
+    def get_row(self, event_seq: int, npc_id: str) -> dict[str, Any] | None:
+        """按 `(event_seq, npc_id)` 返回整条旁路记录（含 model/created_at）。"""
+        try:
+            seq = int(event_seq)
+        except (TypeError, ValueError):
+            return None
+        with self._lock:
+            row = self._index.get((seq, str(npc_id)))
+            return dict(row) if row else None
+
     def count(self) -> int:
         return self._count
