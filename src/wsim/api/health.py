@@ -66,12 +66,22 @@ class HealthProbe:
 
     # ---------------------------------------------------------------- storage
     def _events(self) -> tuple[bool, int]:
+        # 尾部两跳的连续性检查：O(log n) 主键倒序，不扫全表，也不依赖会过期的 count 缓存。
+        # `store.count()` 是全局 MAX(seq)（切库后仍单调），不能直接与行数相减来判洞。
         try:
-            count = int(self.session.store.count())
+            with self.session.lock:
+                rows = self.session.store.conn.execute(
+                    "SELECT seq FROM events ORDER BY seq DESC LIMIT 2"
+                ).fetchall()
             last = int(self.session.tail.last_seq)
         except Exception:
             return False, -1
-        gap = max(0, last - count)
+        if not rows:
+            return self.integrity() == "ok", 0
+        newest = int(rows[0][0])
+        gap = max(0, last - newest)
+        if len(rows) >= 2:
+            gap = max(gap, max(0, newest - int(rows[1][0]) - 1))
         return (gap == 0 and self.integrity() == "ok"), gap
 
     def _disk(self) -> tuple[bool, int, float]:
