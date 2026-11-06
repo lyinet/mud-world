@@ -47,6 +47,7 @@ from ..actions.player_sect import (
     PlayerRecruitDiscipleAction,
     PlayerSectDepositAction,
     PlayerSectWithdrawAction,
+    _bond,
     active_disciples,
 )
 from ..core.clock import TICKS_PER_DAY, TICKS_PER_HOUR, day_of
@@ -998,6 +999,12 @@ class WorldSession:
         marker = f"{SETTLE_MARKER}:{fac.id}:D{int(self.state.tick) // TICKS_PER_DAY}"
         return any(marker in str(m.get("text", "")) for m in self.state.memories.get(pid, ()))
 
+    def _disciple_settled_today(self, did: str) -> bool:
+        """逐人日结状态：日结成功时每名在册弟子都会写下「…日结：第 N 日…」记忆。"""
+        day = int(self.state.tick) // TICKS_PER_DAY
+        needle = f"日结：第{day}日"
+        return any(needle in str(m.get("text", "")) for m in self.state.memories.get(did, ()))
+
     def _sect_arrears(self, fid: str, did: str) -> int:
         total = 0
         for debt in self.state.debts.values():
@@ -1024,6 +1031,7 @@ class WorldSession:
             d = self.state.entities.get(did)
             if d is None:
                 continue
+            affection, trust = _bond(self.state, pid, did)
             disciples.append(
                 {
                     "id": did,
@@ -1034,6 +1042,10 @@ class WorldSession:
                     "presence": d.presence,
                     "at_sect": d.location == fac.location,
                     "arrears": self._sect_arrears(fac.id, did),
+                    # 与收徒裁决同一份关系数据（`_bond`）；门主视角即裁决值。
+                    "affection": float(affection),
+                    "trust": float(trust),
+                    "settled_today": self._disciple_settled_today(did),
                 }
             )
         return {
@@ -1062,6 +1074,54 @@ class WorldSession:
                 "settled_today": self._settled_today(pid, fac) if role == "leader" else None,
             },
         }
+
+    def sects_view(self, account: str = "") -> dict[str, Any]:
+        """`GET /api/player/sects`：公开的可加入门派列表。
+
+        只给安全字段（名号、门主、驻地、门众数、声望、`joinable`），不含金库金额
+        与弟子明细；排序固定按 `faction.id`。`joinable` 仅在没有本人令牌时才只看
+        门主是否存在；带本人令牌时叠加“尚未入派”（已入派者 `join_sect` 必然拒绝）。
+        """
+        account = str(account or "").strip().lower()
+        with self._read_snapshot() as snapshot:
+            viewer = (
+                snapshot.entities.get(self._pid(account))
+                if ACCOUNT_RE.match(account)
+                else None
+            )
+            viewer_in_faction = viewer is not None and str(viewer.faction or "") != ""
+            rows = []
+            for fac in sorted(snapshot.factions.values(), key=lambda f: (f.id, f.name)):
+                if not str(fac.id).startswith("sect:"):
+                    continue  # 地点行会（org:*）不是玩家门派，不进本列表
+                leader = str(fac.leader or fac.founder or "")
+                if not leader:
+                    continue  # 无门主的内容行会（如茶行）不可“择派加入”
+                rows.append(
+                    {
+                        "id": fac.id.removeprefix("sect:"),
+                        "faction_id": fac.id,
+                        "name": fac.name,
+                        "leader": leader,
+                        "leader_name": self._entity_name(leader),
+                        "location": fac.location,
+                        "location_name": self._loc_name(fac.location),
+                        "member_count": 1 + len(active_disciples(snapshot, fac)),
+                        "reputation": (
+                            round(float(reputation_points(snapshot, leader)), 1)
+                            if leader
+                            else 0.0
+                        ),
+                        "joinable": not viewer_in_faction,
+                    }
+                )
+            return {
+                "ok": True,
+                "profile_version": PROFILE_VERSION,
+                "tick": int(snapshot.tick),
+                "count": len(rows),
+                "sects": rows,
+            }
 
     def _quests_view(self, pid: str) -> dict[str, Any]:
         ent = self.state.entities.get(pid)

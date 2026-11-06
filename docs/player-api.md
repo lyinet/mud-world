@@ -420,7 +420,8 @@ PYTHONPATH=src python3 -m wsim.api --run player-demo --seed-account alice --port
     "treasury": {"account": "treasury:sect:u_demo", "balance": 600},
     "disciples": [
       {"id": "duan_wudou", "name": "段无斗", "skill": 0.51, "presence": "online",
-       "at_sect": true, "arrears": 0}
+       "at_sect": true, "arrears": 0, "affection": 45.0, "trust": 55.0,
+       "settled_today": true}
     ],
     "limits": {"disciple_cap": 3, "dues_daily": 5, "stipend_daily": 10, "arrears_expel": 30},
     "settled_today": true
@@ -429,12 +430,65 @@ PYTHONPATH=src python3 -m wsim.api --run player-demo --seed-account alice --port
 ```
 
 - 未入派：`{"in_sect": false, "sect": null}`。
-- `role`：`leader`（立派者/门主）或 `disciple`；`settled_today` 只对掌门有意义，弟子为 `null`。
+- `role`：`leader`（立派者/门主）或 `disciple`；门级 `settled_today` 只对掌门有意义，弟子为 `null`。
 - `disciples` 只含 `entity.faction` 指向本派且 `status=alive` 的弟子；`arrears` 是未结清的
   `unpaid_stipend` 债务合计（达到 30 即当日离派）。
+- `disciples[].affection` / `trust`：**查看者 ↔ 该弟子**的双向关系取值，直接来自
+  `player_sect._bond`（缺失关系为 `0.0`）。门主视角与 `recruit_disciple` 裁决用同一份数据，
+  不会出现“页面显示 30、后端却判 `favor_too_low`”。
+- `disciples[].settled_today`：该弟子**今日**是否已参与日结（布尔）。由日结成功时写入该弟子的
+  「…日结：第 N 日…」记忆判定；日结后加入的新弟子当天为 `false`。门级 `settled_today` 保持原语义。
 - `treasury.balance` 是门派金库账户真实余额，不是缓存。
 - **匿名 `GET /api/player/state` 不返回 `player.sect` / `sect`**；公共摘要里只有顶层
   `sect_name`（门派显示名）。`/api/world/feed` 只收 NPC 事件，玩家门派事件不进入公共流。
+
+### 3.4 `GET /api/player/sects`（可加入门派列表，2026-11-06 新增）
+
+只读、无副作用；**匿名可读**，带本人令牌时只叠加“自己是否已入派”。只暴露安全字段，
+不含金库金额、弟子明细、账目或任何账号私有信息。
+
+请求：`GET /api/player/sects`（可选 `Authorization: Bearer <token>`；不接受 `account_id`
+个性化，避免匿名借他人 id 探测其门派归属）。
+
+响应（`tick` 为当前世界 tick）：
+
+```json
+{
+  "ok": true,
+  "profile_version": 1,
+  "tick": 54,
+  "count": 1,
+  "sects": [
+    {
+      "id": "u_gapdemo",
+      "faction_id": "sect:u_gapdemo",
+      "name": "缺口门",
+      "leader": "player:u_gapdemo",
+      "leader_name": "缺口验证",
+      "location": "market",
+      "location_name": "集市",
+      "member_count": 4,
+      "reputation": 265.0,
+      "joinable": true
+    }
+  ]
+}
+```
+
+| 字段 | 说明 |
+|---|---|
+| `id` / `faction_id` | 去掉 `sect:` 前缀的门派 id / 完整 faction id |
+| `name` | 门派名号 |
+| `leader` / `leader_name` | 门主实体 id / 显示名；无门主的内容行会不出现在列表 |
+| `location` / `location_name` | 驻地 id / 显示名 |
+| `member_count` | 在册人数 = 门主 + 活跃弟子（不含已离派者） |
+| `reputation` | 门派声望 = 门主的 `reputation_points`（P2 才有独立门派声望），保留 1 位 |
+| `joinable` | 匿名：`true`（列表中的门派均有门主与驻地）；本人令牌且已在任何门派中：`false`（`join_sect` 会返回 `already_in_faction`） |
+
+- 排序固定按 `faction_id` 升序（同一 id 再按名号），不依赖字典插入序或运行时状态。
+- 列表只含 `sect:*` 且有门主的内容门派；地点行会 `org:*` 与其无名号行会（如 `sect:tea_guild`）不出现。
+- 匿名响应与本人令牌响应的字段集合完全一致，仅 `joinable` 按上文规则变化；匿名传
+  `account_id` 不会触发任何个性化。
 
 ---
 
@@ -1800,6 +1854,7 @@ curl -s 'http://127.0.0.1:8848/api/world/feed?limit=5'
 | `1.1` | 2026-11-04 | **P0 修复：运行中新账号首次进入一次性发放**。新增独立事件 `player_endowment`（显式 mint + 造物，计入 `minted`，`reason=first_entry`）；`details.endowment` 新增 `granted` / `already_granted` / `event_seq` / `endowed_tick` / `endowment_total` / `cap` / `reject_reason` / `reason_text`；`granted_at_genesis` **语义修正**为“来源是否创世预置”；`/state` 新增顶层 `endowment_total` 与 `player.endowed` / `player.endowed_tick`；新增拒绝码 `player_cap_reached` / `endowment_already_granted` / `endowment_cap_reached` / `account_missing`；补充 `event_seq +2` 与首次进入 `+3` 的说明 | 前端：新增字段可忽略；`granted_at_genesis` 判断需改为读 `granted`；后端：`player_enter` 仍不铸币，发放由独立事件完成 |
 | `1.2` | 2026-11-06 | 新增 §13「门派动作设计」：冻结 `found_sect` / `recruit_disciple` / `expel_disciple` / `pay_disciples` / `sect_deposit` / `sect_withdraw` 的契约、门槛、拒绝码与钱流（当时未接线，已由 `1.3` 取代） | 历史记录：当时动作层已实现但调用仍被拒 |
 | `1.3` | 2026-11-06 | **门派动作接线开放**：六个写动词进白名单/别名/`_args`/`PLAYER_VERBS`，`found_sect` 不再返回 `not_implemented_for_player`；新增私有 `player.sect`（§3.3）与 `details.sect`/`details.settlement`；拒绝码统一为 `no_sect` / `already_in_sect` / `not_sect_leader` / `sect_full` / `insufficient_rep` / `insufficient_funds` / `disciple_not_found` / `favor_too_low` / `trust_too_low` / `arrears_too_high`，全部并入 §7；§13 改为真实契约 | 前端可接入口；匿名状态仍无门派私有字段；NPC/无玩家世界逐字节不变 |
+| `1.4` | 2026-11-06 | **门派面板缺口补齐**：`disciples[]` 增 `affection` / `trust`（与收徒裁决同一 `_bond`）与逐人 `settled_today`；新增只读 `GET /api/player/sects`（§3.4，安全字段 + 匿名可读 + 固定排序） | 只加字段/新 handler，既有视图字段不变；无玩家 2 日 golden 逐字节不变 |
 
 ---
 

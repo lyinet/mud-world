@@ -26,6 +26,7 @@ _GET_ROUTES = {
     "/api/state": "state",  # 只读别名，与主路径共用同一 handler/鉴权
     "/api/player/status": "status",
     "/api/player/quests": "quests",
+    "/api/player/sects": "sects",
 }
 _POST_ROUTES = {
     "/api/player/action": "action",
@@ -492,6 +493,9 @@ class _Handler(BaseHTTPRequestHandler):
         if anonymous:
             if route == "quests":
                 other = session.public_quests()
+            elif route == "sects":
+                # 公共门派列表：匿名只给门派自身的公开字段，不按 account_id 个性化。
+                other = session.sects_view("")
             else:
                 other = session.public_state(target)
             self._send(200, other)
@@ -500,6 +504,8 @@ class _Handler(BaseHTTPRequestHandler):
             payload = session.player_state(target)
         elif route == "status":
             payload = session.status(target)
+        elif route == "sects":
+            payload = session.sects_view(identity or "")
         else:
             payload = session.quests(target)
         payload.setdefault("profile_version", 1)
