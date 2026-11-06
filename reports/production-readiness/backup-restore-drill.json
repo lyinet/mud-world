@@ -1,0 +1,71 @@
+{
+  "started_at": "2026-11-06 01:13:56 CST",
+  "source": "/Users/lyinet/projects/XKX/world-sim/runs/service-10d-fix",
+  "before": {
+    "events": {
+      "event_count": 509,
+      "min_seq": 1,
+      "max_seq": 509,
+      "seq_contiguous": true,
+      "gaps": [],
+      "event_hash_sha256": "a095259a00f97215d4207eb8e1a11298fccb9876e6bff72f32ca365393841f7e",
+      "content_hash": "7ec670c1c83c7b99e9bee35f84602bd7a68ef22126b29c9003529809b2c3d53f",
+      "seed": "42",
+      "integrity_check": "ok"
+    },
+    "service": {
+      "users": 0,
+      "sessions": 0,
+      "active_sessions": 0,
+      "integrity_check": "ok"
+    }
+  },
+  "source_file_bytes": {
+    "events.sqlite": 466944,
+    "service.sqlite": 28672,
+    "events.sqlite-wal": 0
+  },
+  "backup_seconds": 0.025,
+  "backup_sha256": {
+    "events.sqlite": "5363468dfe39f6292c81d1100a7d754626b5b3c5533937d489ede4e392e983cd",
+    "service.sqlite": "ade01c6d82ed39ac5e876eec05a66757066b7f40a8ee96157b608795976e92b0"
+  },
+  "backup_bytes": {
+    "events.sqlite": 466944,
+    "service.sqlite": 28672
+  },
+  "restore_sha256": {
+    "events.sqlite": "5363468dfe39f6292c81d1100a7d754626b5b3c5533937d489ede4e392e983cd",
+    "service.sqlite": "ade01c6d82ed39ac5e876eec05a66757066b7f40a8ee96157b608795976e92b0"
+  },
+  "after": {
+    "events": {
+      "event_count": 509,
+      "min_seq": 1,
+      "max_seq": 509,
+      "seq_contiguous": true,
+      "gaps": [],
+      "event_hash_sha256": "a095259a00f97215d4207eb8e1a11298fccb9876e6bff72f32ca365393841f7e",
+      "content_hash": "7ec670c1c83c7b99e9bee35f84602bd7a68ef22126b29c9003529809b2c3d53f",
+      "seed": "42",
+      "integrity_check": "ok"
+    },
+    "service": {
+      "users": 0,
+      "sessions": 0,
+      "active_sessions": 0,
+      "integrity_check": "ok"
+    }
+  },
+  "checks": {
+    "event_hash_match": true,
+    "seq_contiguous_after": true,
+    "seq_range_match": true,
+    "content_hash_match": true,
+    "service_user_count_match": true,
+    "service_session_count_match": true,
+    "integrity_ok": true
+  },
+  "all_pass": true,
+  "finished_at": "2026-11-06 01:13:56 CST"
+}

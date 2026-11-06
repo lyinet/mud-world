@@ -1,0 +1,61 @@
+{
+  "backup_dir": "/tmp/xkx-audit/bk/20261105T173704Z",
+  "created_at": "2026-11-05T17:37:04Z",
+  "created_at_unix": 1793900224,
+  "databases": {
+    "events.sqlite": {
+      "content_hash": "7ec670c1c83c7b99e9bee35f84602bd7a68ef22126b29c9003529809b2c3d53f",
+      "current_content_hash": "7ec670c1c83c7b99e9bee35f84602bd7a68ef22126b29c9003529809b2c3d53f",
+      "event_hash": "1a03c530fca94d382a812449d29d74ae6c0de288d5a8d51056c62c57333a5f03",
+      "integrity_check": "ok",
+      "meta": {
+        "content_hash": "7ec670c1c83c7b99e9bee35f84602bd7a68ef22126b29c9003529809b2c3d53f",
+        "player_id": "player:u_demo",
+        "seed": "42"
+      },
+      "present": true,
+      "seq": {
+        "contiguous": true,
+        "count": 2117,
+        "distinct": 2117,
+        "holes": [],
+        "max": 2117,
+        "min": 1
+      },
+      "sha256": "cc1c17ee0ef2e87317429fb53adb608d82f48c1306ae480727ae17460f6e6f10",
+      "size_bytes": 1499136,
+      "source_path": "/Users/lyinet/projects/XKX/world-sim/runs/prod-audit-50/events.sqlite",
+      "state_hash": "5ede900108ae0c0fd1b64253ba7a59b4cae2b15eef9dbf8a650962f0a64c5919",
+      "timing": {
+        "backup_api_ms": 8.615,
+        "max_step_ms": 8.615,
+        "steps": 1,
+        "total_ms": 6.119
+      }
+    },
+    "service.sqlite": {
+      "integrity_check": "ok",
+      "present": true,
+      "sha256": "8003aff53f4fa4091f59ab582d3ca95c2de782913f78b96fb221f3b35e0e196a",
+      "size_bytes": 49152,
+      "source_path": "/Users/lyinet/projects/XKX/world-sim/runs/prod-audit-50/service.sqlite",
+      "timing": {
+        "backup_api_ms": 3.379,
+        "max_step_ms": 3.379,
+        "steps": 1,
+        "total_ms": 2.253
+      }
+    }
+  },
+  "duration_ms": 503.866,
+  "failures": [],
+  "generator": "tools/backup_snapshot.py",
+  "run_dir": "/Users/lyinet/projects/XKX/world-sim/runs/prod-audit-50",
+  "run_id": "prod-audit-50",
+  "schema_version": 1,
+  "source": {
+    "events.sqlite": "/Users/lyinet/projects/XKX/world-sim/runs/prod-audit-50/events.sqlite",
+    "service.sqlite": "/Users/lyinet/projects/XKX/world-sim/runs/prod-audit-50/service.sqlite"
+  },
+  "verification_ok": true
+}

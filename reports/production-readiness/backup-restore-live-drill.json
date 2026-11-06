@@ -1,0 +1,127 @@
+{
+  "started_at": "2026-11-06 01:21:06 CST",
+  "source_run": "/Users/lyinet/projects/XKX/world-sim/runs/prod-audit-50",
+  "server_start": true,
+  "server_pid": 47857,
+  "login_live": {
+    "status": 200,
+    "ms": 32,
+    "body": "{\"account_id\": \"audit50a50001\", \"expires_at\": 1793985667, \"expires_in\": 86400, \"ok\": true, \"session_id\": \"s:c739f248f6636b2d1e95274546a47171\", \"token\": \"GWkanaa2GJVrPDODsQG5-F0zZ1A6ckBLUxd1sf5Gh5I\", \"token_type\": \"Bearer\", \"username\": \"audit50a50001\"}"
+  },
+  "live_write_load": {
+    "rc": 0,
+    "stdout_tail": "长 10.98s\n请求: 46  错误: 0 (0.0%)  5xx: 0  429容量: 0  业务拒绝: 0\n全端点延迟 ms: {'count': 46, 'p50': 8.683, 'p95': 49.557, 'p99': 63.279, 'mean': 12.964, 'max': 63.279}\n/api/state P95: 12.51ms  (门槛 <300ms: PASS)\nRSS: baseline=NoneMB peak=NoneMB end=NoneMB; CPU peak=None% mean=None% total=Nones\n不变量: PASS  events=2117 钱包delta=0 seq连续=True integrity=ok\n验收: {\"state_p95_under_300ms\": true, \"error_rate_under_0_5pct\": true, \"zero_http_500\": true, \"invariants_pass\": true, \"event_count_monotonic\": true, \"all\": true}\n"
+  },
+  "before_live": {
+    "events": {
+      "count": 2117,
+      "min_seq": 1,
+      "max_seq": 2117,
+      "gaps": 0,
+      "content_hash": "7ec670c1c83c7b99e9bee35f84602bd7a68ef22126b29c9003529809b2c3d53f",
+      "seed": "42",
+      "file_bytes": 1478656
+    },
+    "service": {
+      "users": 52,
+      "sessions": 55,
+      "active": 55,
+      "file_bytes": 45056
+    },
+    "wal_bytes": 683952
+  },
+  "hot_backup": {
+    "seconds": 0.044,
+    "events": {
+      "count": 2117,
+      "min_seq": 1,
+      "max_seq": 2117,
+      "gaps": 0,
+      "content_hash": "7ec670c1c83c7b99e9bee35f84602bd7a68ef22126b29c9003529809b2c3d53f",
+      "seed": "42",
+      "file_bytes": 1499136
+    },
+    "service": {
+      "users": 52,
+      "sessions": 55,
+      "active": 55,
+      "file_bytes": 49152
+    }
+  },
+  "naive_cp_without_wal": {
+    "count": 2071,
+    "min_seq": 1,
+    "max_seq": 2071,
+    "gaps": 0,
+    "content_hash": "7ec670c1c83c7b99e9bee35f84602bd7a68ef22126b29c9003529809b2c3d53f",
+    "seed": "42",
+    "file_bytes": 1478656
+  },
+  "after_restore_files": {
+    "events.sqlite": 1499136,
+    "service.sqlite": 49152
+  },
+  "after_restore_dbstats": {
+    "events": {
+      "count": 2117,
+      "min_seq": 1,
+      "max_seq": 2117,
+      "gaps": 0,
+      "content_hash": "7ec670c1c83c7b99e9bee35f84602bd7a68ef22126b29c9003529809b2c3d53f",
+      "seed": "42",
+      "file_bytes": 1499136
+    },
+    "service": {
+      "users": 52,
+      "sessions": 55,
+      "active": 55,
+      "file_bytes": 49152
+    }
+  },
+  "restored_server_start": true,
+  "restored_server_pid": 47991,
+  "login_restored": {
+    "status": 200,
+    "ms": 48,
+    "body": "{\"account_id\": \"audit50a50001\", \"expires_at\": 1793985680, \"expires_in\": 86400, \"ok\": true, \"session_id\": \"s:638da3fe2c4f40c19d657807efed86f3\", \"token\": \"d06KlyXQ2YUdy0POontR3Pl8gmosa0BwpfkWClD2GfA\", \"token_type\": \"Bearer\", \"username\": \"audit50a50001\"}"
+  },
+  "health_restored": {
+    "status": 200,
+    "body": "{\"ambient\": \"stopped\", \"ambient_last_tick_at\": \"\", \"ambient_pid\": null, \"ambient_reason\": \"status_file_missing\", \"ambient_speed\": null, \"ambient_tick\": null, \"mode\": \"live\", \"ok\": true, \"profile_version\": 1, \"readonly\": false, \"run\": \"prod-audit-restore\", \"tick\": 6186, \"upstream_ok\": true}"
+  },
+  "enter_restored": {
+    "status": 200,
+    "body": "{\"action\": \"enter\", \"data\": {}, \"details\": {}, \"event_seq\": 2118, \"intent_id\": \"i:a7c82319b6a55a371d7f60b27a0b745442e941d3be149f2fbed6dd911b7b0c07\", \"next_tick\": 6192, \"ok\": false, \"player\": \"player:audit50a50001\", \"profile_version\": 1, \"reason_text\": \"你已经在线，无需重复进入。\", \"reject_reason\": \"already_onlin"
+  },
+  "after_write": {
+    "events": {
+      "count": 2119,
+      "min_seq": 1,
+      "max_seq": 2119,
+      "gaps": 0,
+      "content_hash": "7ec670c1c83c7b99e9bee35f84602bd7a68ef22126b29c9003529809b2c3d53f",
+      "seed": "42",
+      "file_bytes": 1499136
+    },
+    "service": {
+      "users": 52,
+      "sessions": 56,
+      "active": 56,
+      "file_bytes": 49152
+    }
+  },
+  "checks": {
+    "live_vs_hot_backup_count": true,
+    "live_vs_hot_backup_hash": true,
+    "naive_cp_lost_events": true,
+    "restore_seq_contiguous": true,
+    "restore_count_match": true,
+    "restore_hash_match": true,
+    "restore_service_users_match": true,
+    "restore_login_ok": true,
+    "restored_server_healthy": true,
+    "append_after_restore_ok": true
+  },
+  "all_pass": true,
+  "finished_at": "2026-11-06 01:21:20 CST"
+}

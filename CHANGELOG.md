@@ -9,6 +9,22 @@
 
 ---
 
+## [交付] 2026-11-06 — 报告产物入库口径落地：JSON/MD 入库，截图/日志/采样流忽略
+
+- **改了什么**
+  - `.gitignore` 新增报告产物口径（附理由注释）：入库只保留 `reports/**/*.json`、
+    `reports/**/*.md`；忽略截图（png/jpg/jpeg/webp）、运行日志（log/txt）、采样流
+    （jsonl）与探针脚手架（`_probe/`）；保留既有 `!reports/evidence/runs/**` 白名单。
+  - 按该口径入库 22 个报告文件：6 个更新的验收 JSON（`w4-e2e`/`w4-feed`/`w4-marriage`/
+    `w4-shopops`/`w4-ui`）与 16 个未跟踪 JSON/MD（`production-readiness/`、`soak/preflight-fix/summary.json`、
+    `playability-audit.md`）。
+- **为什么改**：截图与运行日志是一次性产物，可由报告 JSON 与脚本重跑复现；仓库只留
+  结构化、可复核的证据，避免交付基线被二进制噪音撑大。**历史已入库的 png 不追溯、不改写**。
+- **验证**：`git check-ignore -v` 命中 png/log/txt/jsonl/_probe 样例；加规则后
+  `git status --untracked-files=all -- reports/` 只剩上述 JSON/MD（其余均被忽略）。
+  未提交 `content/`、`src/wsim/api/session.py`、`src/wsim/world/store.py`（属其他工作线）。
+- **commit**：见本条目所在提交。
+
 ## [测试] 2026-11-06 — 修正 `found_sect` 陈旧断言，干净 HEAD 恢复全绿
 
 - **改了什么**：`tests/test_player_commerce.py` 的

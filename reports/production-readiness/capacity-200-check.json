@@ -1,0 +1,132 @@
+{
+  "schema": "w5-capacity-report/v1",
+  "config": {
+    "base_url": "http://127.0.0.1:8154",
+    "seats": 199,
+    "probes": 1,
+    "tag": "cap",
+    "preexisting_seats": 1
+  },
+  "auth": {
+    "accounts": 200,
+    "tokens": 200
+  },
+  "fill": {
+    "attempted": 199,
+    "filled": 199,
+    "failed": 0,
+    "preexisting": 1,
+    "effective_seats": 200,
+    "failures": []
+  },
+  "probes": [
+    {
+      "i": 200,
+      "status": 429,
+      "code": "player_cap_reached",
+      "is_429_capacity": true,
+      "state_status": 200,
+      "state_reject": "player_not_entered",
+      "player_registered": false
+    }
+  ],
+  "totals": {
+    "requests": 601,
+    "ok": 599,
+    "errors": 0,
+    "http_5xx": 0,
+    "http_401": 0,
+    "capacity_rejections": 1,
+    "business_rejections": 1,
+    "error_rate_pct": 0.0,
+    "latency_ms": {
+      "all": {
+        "count": 601,
+        "p50": 35.088,
+        "p95": 2074.113,
+        "p99": 2493.58,
+        "mean": 390.12,
+        "max": 2552.875
+      },
+      "by_endpoint": {
+        "GET /api/player/state": {
+          "count": 1,
+          "p50": 1.04,
+          "p95": 1.04,
+          "p99": 1.04,
+          "mean": 1.04,
+          "max": 1.04
+        },
+        "POST /api/auth/login": {
+          "count": 200,
+          "p50": 31.991,
+          "p95": 45.71,
+          "p99": 86.416,
+          "mean": 35.169,
+          "max": 152.192
+        },
+        "POST /api/auth/register": {
+          "count": 200,
+          "p50": 31.707,
+          "p95": 48.258,
+          "p99": 87.699,
+          "mean": 35.463,
+          "max": 202.505
+        },
+        "POST /api/player/enter": {
+          "count": 200,
+          "p50": 1060.9,
+          "p95": 2475.828,
+          "p99": 2547.472,
+          "mean": 1101.673,
+          "max": 2552.875
+        }
+      }
+    },
+    "rejections_by_code": {
+      "player_not_entered": 1
+    },
+    "error_samples": []
+  },
+  "ok": true,
+  "checks": {
+    "effective_seats_reached": true,
+    "no_unexpected_enter_failure": true,
+    "201st_is_429_capacity": true,
+    "all_probes_429_capacity": true,
+    "no_probe_player_created": true,
+    "no_http_500": true
+  },
+  "invariants": {
+    "run_dir": "runs/prod-audit-cap",
+    "db_exists": true,
+    "ok": true,
+    "errors": [],
+    "integrity_check": "ok",
+    "event_count": 602,
+    "seq": {
+      "first": 1,
+      "last": 602,
+      "count": 602,
+      "distinct": 602,
+      "contiguous": true
+    },
+    "wallet": {
+      "accounts": 241,
+      "sum_balance": 107150,
+      "minted_total": 107150,
+      "burned_total": 0,
+      "expected_sum": 107150,
+      "delta": 0,
+      "transfers": 0
+    },
+    "negative_rows": [],
+    "half_write_rows": [],
+    "genesis_events": 2,
+    "genesis_ok_events": 1,
+    "outcomes": {
+      "ok": 601,
+      "rejected": 1
+    }
+  }
+}

@@ -1,0 +1,291 @@
+{
+  "schema": "w5-load-report/v1",
+  "started_at": "2026-11-05T17:13:09+00:00",
+  "duration_s": 60.0,
+  "actual_duration_s": 63.57,
+  "config": {
+    "base_url": "http://127.0.0.1:8151",
+    "players": 50,
+    "think_time_s": 3.0,
+    "ramp_up_s": 8.0,
+    "tag": "a50",
+    "run_dir": "/Users/lyinet/projects/XKX/world-sim/runs/prod-audit-50",
+    "server_pid": 40934
+  },
+  "players": {
+    "started": 50,
+    "entered": 50,
+    "failed_enter": 0,
+    "cycles": 959,
+    "player_errors": []
+  },
+  "totals": {
+    "requests": 2068,
+    "ok": 2068,
+    "errors": 0,
+    "http_5xx": 0,
+    "http_401": 0,
+    "capacity_rejections": 0,
+    "business_rejections": 0,
+    "error_rate_pct": 0.0,
+    "latency_ms": {
+      "all": {
+        "count": 2068,
+        "p50": 7.283,
+        "p95": 31.686,
+        "p99": 132.682,
+        "mean": 11.069,
+        "max": 353.961
+      },
+      "by_endpoint": {
+        "GET /api/player/state": {
+          "count": 959,
+          "p50": 1.083,
+          "p95": 11.777,
+          "p99": 141.122,
+          "mean": 5.457,
+          "max": 350.521
+        },
+        "POST /api/auth/login": {
+          "count": 50,
+          "p50": 31.642,
+          "p95": 34.687,
+          "p99": 127.783,
+          "mean": 33.894,
+          "max": 127.783
+        },
+        "POST /api/auth/register": {
+          "count": 50,
+          "p50": 31.605,
+          "p95": 58.29,
+          "p99": 62.097,
+          "mean": 33.458,
+          "max": 62.097
+        },
+        "POST /api/player/action": {
+          "count": 959,
+          "p50": 10.24,
+          "p95": 28.013,
+          "p99": 132.682,
+          "mean": 14.437,
+          "max": 353.961
+        },
+        "POST /api/player/enter": {
+          "count": 50,
+          "p50": 8.333,
+          "p95": 12.259,
+          "p99": 27.226,
+          "mean": 8.911,
+          "max": 27.226
+        }
+      }
+    },
+    "rejections_by_code": {},
+    "error_samples": []
+  },
+  "resources": {
+    "samples": [
+      {
+        "t": 0.0,
+        "rss_mb": 44.78,
+        "cpu_pct": 0.0,
+        "cpu_s": 0.2,
+        "alive": true
+      },
+      {
+        "t": 5.01,
+        "rss_mb": 38.66,
+        "cpu_pct": 48.93,
+        "cpu_s": 2.7,
+        "alive": true
+      },
+      {
+        "t": 10.02,
+        "rss_mb": 38.0,
+        "cpu_pct": 39.11,
+        "cpu_s": 4.6,
+        "alive": true
+      },
+      {
+        "t": 15.03,
+        "rss_mb": 38.91,
+        "cpu_pct": 14.57,
+        "cpu_s": 5.4,
+        "alive": true
+      },
+      {
+        "t": 20.04,
+        "rss_mb": 39.75,
+        "cpu_pct": 13.58,
+        "cpu_s": 6.0,
+        "alive": true
+      },
+      {
+        "t": 25.05,
+        "rss_mb": 40.42,
+        "cpu_pct": 16.77,
+        "cpu_s": 6.9,
+        "alive": true
+      },
+      {
+        "t": 30.06,
+        "rss_mb": 41.25,
+        "cpu_pct": 17.17,
+        "cpu_s": 7.8,
+        "alive": true
+      },
+      {
+        "t": 35.07,
+        "rss_mb": 42.38,
+        "cpu_pct": 17.16,
+        "cpu_s": 8.6,
+        "alive": true
+      },
+      {
+        "t": 40.08,
+        "rss_mb": 43.11,
+        "cpu_pct": 19.74,
+        "cpu_s": 9.6,
+        "alive": true
+      },
+      {
+        "t": 45.09,
+        "rss_mb": 43.69,
+        "cpu_pct": 18.97,
+        "cpu_s": 10.6,
+        "alive": true
+      },
+      {
+        "t": 50.11,
+        "rss_mb": 44.75,
+        "cpu_pct": 18.34,
+        "cpu_s": 11.5,
+        "alive": true
+      },
+      {
+        "t": 55.14,
+        "rss_mb": 45.73,
+        "cpu_pct": 20.68,
+        "cpu_s": 12.5,
+        "alive": true
+      },
+      {
+        "t": 60.15,
+        "rss_mb": 46.5,
+        "cpu_pct": 17.56,
+        "cpu_s": 13.4,
+        "alive": true
+      }
+    ],
+    "rss_baseline_mb": 44.78,
+    "rss_peak_mb": 46.5,
+    "rss_end_mb": 46.5,
+    "rss_growth_mb": 1.72,
+    "cpu_peak_pct": 48.93,
+    "cpu_mean_pct": 20.2,
+    "cpu_seconds_total": 13.2,
+    "event_count_samples": [
+      {
+        "at": "2026-11-05T17:13:14+00:00",
+        "count": 188
+      },
+      {
+        "at": "2026-11-05T17:13:19+00:00",
+        "count": 411
+      },
+      {
+        "at": "2026-11-05T17:13:24+00:00",
+        "count": 579
+      },
+      {
+        "at": "2026-11-05T17:13:29+00:00",
+        "count": 741
+      },
+      {
+        "at": "2026-11-05T17:13:34+00:00",
+        "count": 907
+      },
+      {
+        "at": "2026-11-05T17:13:39+00:00",
+        "count": 1067
+      },
+      {
+        "at": "2026-11-05T17:13:44+00:00",
+        "count": 1244
+      },
+      {
+        "at": "2026-11-05T17:13:49+00:00",
+        "count": 1411
+      },
+      {
+        "at": "2026-11-05T17:13:54+00:00",
+        "count": 1569
+      },
+      {
+        "at": "2026-11-05T17:13:59+00:00",
+        "count": 1737
+      },
+      {
+        "at": "2026-11-05T17:14:04+00:00",
+        "count": 1909
+      },
+      {
+        "at": "2026-11-05T17:14:09+00:00",
+        "count": 2071
+      }
+    ],
+    "event_count_monotonic": true
+  },
+  "event_growth": {
+    "count_before": 3,
+    "count_after": 2071,
+    "delta": 2068,
+    "monotonic": true
+  },
+  "invariants": {
+    "run_dir": "/Users/lyinet/projects/XKX/world-sim/runs/prod-audit-50",
+    "db_exists": true,
+    "ok": true,
+    "errors": [],
+    "integrity_check": "ok",
+    "event_count": 2071,
+    "seq": {
+      "first": 1,
+      "last": 2071,
+      "count": 2071,
+      "distinct": 2071,
+      "contiguous": true
+    },
+    "wallet": {
+      "accounts": 92,
+      "sum_balance": 62450,
+      "minted_total": 62450,
+      "burned_total": 0,
+      "expected_sum": 62450,
+      "delta": 0,
+      "transfers": 0
+    },
+    "negative_rows": [],
+    "half_write_rows": [],
+    "genesis_events": 2,
+    "genesis_ok_events": 1,
+    "outcomes": {
+      "ok": 2071
+    }
+  },
+  "pass": {
+    "state_p95_under_300ms": true,
+    "error_rate_under_0_5pct": true,
+    "zero_http_500": true,
+    "invariants_pass": true,
+    "event_count_monotonic": true,
+    "all": true
+  },
+  "per_seat": {
+    "requests_per_seat": 41.36,
+    "requests_per_seat_second": 0.6506,
+    "cpu_seconds_total": 13.2,
+    "cpu_seconds_per_request": 0.006383,
+    "rss_growth_mb_per_seat": 0.034
+  }
+}

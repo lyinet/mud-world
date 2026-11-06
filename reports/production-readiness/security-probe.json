@@ -1,0 +1,112 @@
+{
+  "started_at": "2026-11-06 01:18:46 CST",
+  "base": "http://127.0.0.1:8152",
+  "/api/health": {
+    "status": 200,
+    "body": "{\"ambient\": \"stopped\", \"ambient_last_tick_at\": \"\", \"ambient_pid\": null, \"ambient_reason\": \"status_file_missing\", \"ambient_speed\": null, \"ambient_tick\": null, \"mode\": \"live\", \"ok\": true, \"profile_version\": 1, \"readonly\": false, \"run\": \"prod-audit-sec\", \"tick\": 0, \"upstream_ok\": true}",
+    "error": null
+  },
+  "/api/service/info": {
+    "status": 200,
+    "body": "{\"ambient\": \"stopped\", \"ambient_last_tick_at\": \"\", \"ambient_pid\": null, \"ambient_reason\": \"status_file_missing\", \"ambient_speed\": null, \"ambient_tick\": null, \"auth_required\": true, \"ok\": true, \"profile_version\": 1, \"run\": \"prod-audit-sec\", \"tick\": 0}",
+    "error": null
+  },
+  "/api/metrics": {
+    "status": 404,
+    "body": "{\"ok\": false, \"reason_text\": \"未知接口；可用接口见 docs/player-api.md。\", \"reject_reason\": \"unknown_action\"}",
+    "error": null
+  },
+  "/metrics": {
+    "status": 404,
+    "body": "{\"ok\": false, \"reason_text\": \"未知接口；可用接口见 docs/player-api.md。\", \"reject_reason\": \"unknown_action\"}",
+    "error": null
+  },
+  "/api/world/feed?limit=2": {
+    "status": 200,
+    "body": "{\"events\": [], \"limit\": 2, \"ok\": true, \"tick\": 0}",
+    "error": null
+  },
+  "cors_preflight": {
+    "status": 501,
+    "headers": {},
+    "error": null
+  },
+  "cors_simple": {},
+  "auth_baseline": {
+    "register": {
+      "status": 200,
+      "body": "{\"account_id\": \"secu99126\", \"created\": true, \"ok\": true, \"username\": \"secu99126\"}",
+      "ms": 30.7
+    },
+    "login": {
+      "status": 200,
+      "ms": 35.76,
+      "body": "{\"account_id\": \"secu99126\", \"expires_at\": 1793985526, \"expires_in\": 86400, \"ok\": true, \"session_id\": \"s:241a1270a27249c7c52ae6f004318979\", \"token\": \"4_AXuvGrB0um7woyJ35FAbjIvrtn0eomKEiIAeDDVpQ\", \"toke"
+    }
+  },
+  "brute_force_50": {
+    "status_counts": {
+      "401": 50
+    },
+    "lockout_observed": false,
+    "latency_ms": {
+      "min": 29.58,
+      "median": 30.64,
+      "max": 68.8
+    },
+    "first5_status": [
+      401,
+      401,
+      401,
+      401,
+      401
+    ],
+    "last5_status": [
+      401,
+      401,
+      401,
+      401,
+      401
+    ],
+    "note": "同一账号连续 50 次错误口令；任何 429/锁定视为有限流"
+  },
+  "register_flood_30": {
+    "status_counts": {
+      "200": 30
+    },
+    "limited": false
+  },
+  "token_revocation": {
+    "logout_status": 200,
+    "reuse_me_status": 401,
+    "reuse_me_body": "{\"code\": \"auth_expired_token\", \"ok\": false, \"reason_text\": \"令牌已过期；请重新登录。\", \"reject_reason\": \"auth_expired_token\", \"tick\": 0}",
+    "refresh_after_logout": 401
+  },
+  "body_limit_2mb": {
+    "status": 401,
+    "ms": 33.22,
+    "body": "{\"code\": \"auth_invalid_credentials\", \"ok\": false, \"reason_text\": \"用户名或口令不正确。\", \"reject_reason\": \"auth_invalid_credentials\", \"tick\": 0}",
+    "error": null
+  },
+  "lifecycle_/api/auth/password/reset": {
+    "status": 404,
+    "body": "{\"ok\": false, \"reason_text\": \"未知接口；可用接口见 docs/player-api.md。\", \"reject_reason\": \"unknown_action\"}"
+  },
+  "lifecycle_/api/auth/account/delete": {
+    "status": 404,
+    "body": "{\"ok\": false, \"reason_text\": \"未知接口；可用接口见 docs/player-api.md。\", \"reject_reason\": \"unknown_action\"}"
+  },
+  "lifecycle_/api/account/export": {
+    "status": 404,
+    "body": "{\"ok\": false, \"reason_text\": \"未知接口；可用接口见 docs/player-api.md。\", \"reject_reason\": \"unknown_action\"}"
+  },
+  "lifecycle_/api/player/export": {
+    "status": 404,
+    "body": "{\"ok\": false, \"reason_text\": \"未知接口；可用接口见 docs/player-api.md。\", \"reject_reason\": \"unknown_action\"}"
+  },
+  "tls": {
+    "ok": false,
+    "error": "URLError: <urlopen error [SSL: WRONG_VERSION_NUMBER] wrong version number (_ssl.c:1000)>"
+  },
+  "finished_at": "2026-11-06 01:18:49 CST"
+}

@@ -31,7 +31,7 @@
         "hasFoldBtn": false,
         "announced": 2,
         "logWorld": 2,
-        "toast": "已跳过新手引导；下次进入不会再自动出现。",
+        "toast": "附近动静：刘三娘在市集清点新到的粗布。",
         "errors": 0,
         "money": "300 文",
         "placeholder": "",
@@ -71,7 +71,7 @@
         "hasFoldBtn": false,
         "announced": 2,
         "logWorld": 2,
-        "toast": "已跳过新手引导；下次进入不会再自动出现。",
+        "toast": "附近动静：刘三娘在市集清点新到的粗布。",
         "errors": 0,
         "money": "300 文",
         "placeholder": "",
@@ -122,7 +122,7 @@
       "detail": {
         "announced": 2,
         "logWorld": 2,
-        "toast": "已跳过新手引导；下次进入不会再自动出现。"
+        "toast": "附近动静：刘三娘在市集清点新到的粗布。"
       }
     },
     {
@@ -372,7 +372,7 @@
       "ok": true,
       "detail": {
         "inside": true,
-        "bottom": 522,
+        "bottom": 521,
         "innerHeight": 812,
         "scrollWidth": 375,
         "quests": 1
@@ -383,7 +383,7 @@
       "ok": true,
       "detail": {
         "inside": true,
-        "bottom": 522,
+        "bottom": 521,
         "innerHeight": 812,
         "scrollWidth": 375,
         "quests": 1
@@ -391,8 +391,35 @@
     }
   ],
   "failed": 0,
-  "feed_calls": 19,
+  "feed_calls": 46,
   "authorization_headers": [
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
     "",
     "",
     "",

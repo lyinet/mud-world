@@ -87,8 +87,29 @@
           "hasAccess": true,
           "required": false,
           "username": "proxy_user",
-          "expiresAt": 1793807306000
+          "expiresAt": 1793905100000
         }
+      }
+    },
+    {
+      "name": "服务模式 经代理世界动态匿名可读（5 条、倒序）",
+      "ok": true,
+      "detail": {
+        "count": 5,
+        "ticks": [
+          37,
+          34,
+          31,
+          28,
+          25
+        ]
+      }
+    },
+    {
+      "name": "服务模式 世界动态 important 强调样式",
+      "ok": true,
+      "detail": {
+        "important": 2
       }
     }
   ],

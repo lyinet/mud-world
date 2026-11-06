@@ -1,0 +1,165 @@
+{
+ "schema": "xkx-disk-growth-projection/v1",
+ "generated_at": "2026-11-06 01:53 CST",
+ "method": "events_per_second = event_count/actual_duration_s from capacity-*.json; bytes_per_event = (events.sqlite+mcp_audit.jsonl) bytes / event_count from runs/prod-audit-*/",
+ "sources": [
+  {
+   "seats": 50,
+   "run_dir": "runs/prod-audit-50",
+   "events": 2071,
+   "duration_s": 63.57,
+   "events_per_s": 32.578,
+   "events_per_seat_s": 0.6516,
+   "events_sqlite_bytes": 1499136,
+   "mcp_audit_jsonl_bytes": 1567682,
+   "bytes_per_event": {
+    "events_db": 723.9,
+    "mcp_audit": 757.0,
+    "combined": 1480.8
+   }
+  },
+  {
+   "seats": 100,
+   "run_dir": "runs/prod-audit-100",
+   "events": 4085,
+   "duration_s": 63.44,
+   "events_per_s": 64.392,
+   "events_per_seat_s": 0.6439,
+   "events_sqlite_bytes": 3063808,
+   "mcp_audit_jsonl_bytes": 3036688,
+   "bytes_per_event": {
+    "events_db": 750.0,
+    "mcp_audit": 743.4,
+    "combined": 1493.4
+   }
+  },
+  {
+   "seats": 150,
+   "run_dir": "runs/prod-audit-150",
+   "events": 6115,
+   "duration_s": 63.87,
+   "events_per_s": 95.741,
+   "events_per_seat_s": 0.6383,
+   "events_sqlite_bytes": 5009408,
+   "mcp_audit_jsonl_bytes": 4555728,
+   "bytes_per_event": {
+    "events_db": 819.2,
+    "mcp_audit": 745.0,
+    "combined": 1564.2
+   }
+  },
+  {
+   "seats": 199,
+   "run_dir": "runs/prod-audit-199",
+   "events": 7080,
+   "duration_s": 69.74,
+   "events_per_s": 101.52,
+   "events_per_seat_s": 0.5102,
+   "events_sqlite_bytes": 6201344,
+   "mcp_audit_jsonl_bytes": 5297175,
+   "bytes_per_event": {
+    "events_db": 875.9,
+    "mcp_audit": 748.2,
+    "combined": 1624.1
+   }
+  }
+ ],
+ "rows": [
+  {
+   "seats": 50,
+   "scenario": "24h_7d",
+   "events_per_day": 19703331,
+   "gb_per_day": 29.18,
+   "gb_30d": 875.3,
+   "gb_90d": 2626.0
+  },
+  {
+   "seats": 50,
+   "scenario": "8h_day",
+   "events_per_day": 938253,
+   "gb_per_day": 1.39,
+   "gb_30d": 41.7,
+   "gb_90d": 125.0
+  },
+  {
+   "seats": 50,
+   "scenario": "8h_day_1/10_rate",
+   "events_per_day": 93825,
+   "gb_per_day": 0.14,
+   "gb_30d": 4.2,
+   "gb_90d": 12.5
+  },
+  {
+   "seats": 100,
+   "scenario": "24h_7d",
+   "events_per_day": 38944010,
+   "gb_per_day": 58.16,
+   "gb_30d": 1744.8,
+   "gb_90d": 5234.3
+  },
+  {
+   "seats": 100,
+   "scenario": "8h_day",
+   "events_per_day": 1854476,
+   "gb_per_day": 2.77,
+   "gb_30d": 83.1,
+   "gb_90d": 249.3
+  },
+  {
+   "seats": 100,
+   "scenario": "8h_day_1/10_rate",
+   "events_per_day": 185447,
+   "gb_per_day": 0.28,
+   "gb_30d": 8.3,
+   "gb_90d": 24.9
+  },
+  {
+   "seats": 150,
+   "scenario": "24h_7d",
+   "events_per_day": 57904368,
+   "gb_per_day": 90.57,
+   "gb_30d": 2717.2,
+   "gb_90d": 8151.7
+  },
+  {
+   "seats": 150,
+   "scenario": "8h_day",
+   "events_per_day": 2757350,
+   "gb_per_day": 4.31,
+   "gb_30d": 129.4,
+   "gb_90d": 388.2
+  },
+  {
+   "seats": 150,
+   "scenario": "8h_day_1/10_rate",
+   "events_per_day": 275735,
+   "gb_per_day": 0.43,
+   "gb_30d": 12.9,
+   "gb_90d": 38.8
+  },
+  {
+   "seats": 199,
+   "scenario": "24h_7d",
+   "events_per_day": 61399254,
+   "gb_per_day": 99.72,
+   "gb_30d": 2991.5,
+   "gb_90d": 8974.6
+  },
+  {
+   "seats": 199,
+   "scenario": "8h_day",
+   "events_per_day": 2923774,
+   "gb_per_day": 4.75,
+   "gb_30d": 142.5,
+   "gb_90d": 427.4
+  },
+  {
+   "seats": 199,
+   "scenario": "8h_day_1/10_rate",
+   "events_per_day": 292377,
+   "gb_per_day": 0.47,
+   "gb_30d": 14.2,
+   "gb_90d": 42.7
+  }
+ ]
+}

@@ -1,0 +1,25 @@
+{
+  "started_at": "2026-11-06 01:19:32 CST",
+  "login_5mb": {
+    "status": 401,
+    "body": "{\"code\": \"auth_invalid_credentials\", \"ok\": false, \"reason_text\": \"用户名或口令不正确。\", \"reject_reason\": \"auth_invalid_credentials\", \"tick\": 0}",
+    "ms": 39,
+    "request_bytes": 5242918
+  },
+  "login_20mb": {
+    "status": 401,
+    "body": "{\"code\": \"auth_invalid_credentials\", \"ok\": false, \"reason_text\": \"用户名或口令不正确。\", \"reject_reason\": \"auth_invalid_credentials\", \"tick\": 0}",
+    "ms": 28,
+    "request_bytes": 20971558
+  },
+  "feed_limit_100000": {
+    "status": 200,
+    "returned_bytes": 50,
+    "items": 0
+  },
+  "alive_after": {
+    "status": 200,
+    "body": "{\"ambient\": \"stopped\", \"ambient_last_tick_at\": \"\", \"ambient_pid\": null, \"ambient_reason\": \"status_file_missing\", \"ambien"
+  },
+  "finished_at": "2026-11-06 01:19:32 CST"
+}

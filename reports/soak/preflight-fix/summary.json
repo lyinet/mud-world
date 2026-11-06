@@ -1,0 +1,266 @@
+{
+  "schema": "soak-report/v1",
+  "run_id": "preflight-fix",
+  "started_at": "2026-11-06T03:13:40+00:00",
+  "finished_at": "2026-11-06T03:18:48+00:00",
+  "config": {
+    "duration_s": 300.0,
+    "duration_actual_s": 304.19,
+    "players": 50,
+    "think_time_s": 2.0,
+    "sample_interval_s": 30.0,
+    "warmup_s": 76.0475,
+    "ambient": true,
+    "ambient_cpu_pct": 70.0,
+    "auth": "off",
+    "service_cmd": "python -m wsim.api --auth off --run preflight-fix --port 59310"
+  },
+  "service": {
+    "pid": 95864,
+    "port": 59310,
+    "run_dir": "/Users/lyinet/projects/XKX/world-sim/runs/preflight-fix",
+    "report_dir": "/Users/lyinet/projects/XKX/world-sim/reports/soak/preflight-fix",
+    "spawn_to_health_s": 0.265
+  },
+  "players": {
+    "started": 50,
+    "entered": 50,
+    "cycles": 7335,
+    "player_errors": 0,
+    "cycles_per_second": 24.113
+  },
+  "totals": {
+    "requests": 14720,
+    "ok": 14389,
+    "errors": 0,
+    "http_5xx": 0,
+    "http_401": 0,
+    "capacity_rejections": 0,
+    "business_rejections": 331,
+    "error_rate_pct": 0.0,
+    "rejections_by_code": {
+      "quest_expired": 261,
+      "quest_not_open": 70
+    },
+    "error_samples": []
+  },
+  "resources": {
+    "rss": {
+      "baseline_mb": 58.92,
+      "warmup_start_mb": 68.2,
+      "end_mb": 85.64,
+      "peak_sampled_mb": 89.45,
+      "warmup_s": 76.0475,
+      "warm_mean_mb": 75.04,
+      "slope_mb_per_hour": 286.1309,
+      "growth_pct_per_hour": 381.305,
+      "peak_slope_mb_per_hour": null,
+      "peak_growth_pct_per_hour": null,
+      "r2": 0.3095,
+      "samples": 10
+    },
+    "cpu": {
+      "mean_pct": 19.38,
+      "peak_pct": 22.03,
+      "total_seconds": 59.17
+    }
+  },
+  "db": {
+    "start_bytes": 5557776,
+    "end_bytes": 18374256,
+    "start_events": 1469,
+    "end_events": 14823,
+    "warmup_start_bytes": 8425072,
+    "warmup_start_events": 4487,
+    "slope_mb_per_hour": 162.406,
+    "slope_mb_per_hour_incl_warmup": 162.557,
+    "slope_rows_per_hour": 176115.0,
+    "r2_db": 0.9994,
+    "r2_rows": 0.9997,
+    "wal_bytes_at_end": 4144752,
+    "events_per_mb": 845.9
+  },
+  "latency": {
+    "window_span_s": 152.095,
+    "window_10m": {
+      "first": {
+        "read": {
+          "count": 4433,
+          "p50": 2.526,
+          "p95": 8.91,
+          "p99": 33.491,
+          "mean": 4.394,
+          "max": 317.13
+        },
+        "write": {
+          "count": 4483,
+          "p50": 6.087,
+          "p95": 20.247,
+          "p99": 101.774,
+          "mean": 9.985,
+          "max": 375.749
+        }
+      },
+      "last": {
+        "read": {
+          "count": 3661,
+          "p50": 2.505,
+          "p95": 8.859,
+          "p99": 25.783,
+          "mean": 4.038,
+          "max": 151.42
+        },
+        "write": {
+          "count": 3661,
+          "p50": 6.674,
+          "p95": 19.803,
+          "p99": 51.424,
+          "mean": 9.692,
+          "max": 231.152
+        }
+      },
+      "p95_ratio": {
+        "read": 0.994,
+        "write": 0.978
+      }
+    },
+    "overall": {
+      "read": {
+        "count": 7335,
+        "p50": 2.528,
+        "p95": 9.144,
+        "p99": 32.938,
+        "mean": 4.326,
+        "max": 317.13
+      },
+      "write": {
+        "count": 7385,
+        "p50": 6.413,
+        "p95": 20.938,
+        "p99": 77.491,
+        "mean": 10.042,
+        "max": 375.749
+      }
+    },
+    "tail_requests": 7322,
+    "tail_errors": 0
+  },
+  "invariants": {
+    "verify": {
+      "run_dir": "/Users/lyinet/projects/XKX/world-sim/runs/preflight-fix",
+      "db_exists": true,
+      "ok": true,
+      "errors": [],
+      "integrity_check": "ok",
+      "event_count": 14823,
+      "seq": {
+        "first": 1,
+        "last": 14823,
+        "count": 14823,
+        "distinct": 14823,
+        "contiguous": true
+      },
+      "wallet": {
+        "accounts": 92,
+        "sum_balance": 62450,
+        "minted_total": 62450,
+        "burned_total": 0,
+        "expected_sum": 62450,
+        "delta": 0,
+        "transfers": 198
+      },
+      "negative_rows": [],
+      "half_write_rows": [],
+      "genesis_events": 2,
+      "genesis_ok_events": 1,
+      "outcomes": {
+        "ok": 14492,
+        "rejected": 331
+      }
+    },
+    "seq_contiguous": true,
+    "seq_first": 1,
+    "seq_last": 14823,
+    "seq_count": 14823,
+    "wallet_delta": 0,
+    "integrity_check": "ok"
+  },
+  "shutdown": {
+    "signal": "SIGTERM",
+    "exit_code": 0,
+    "shutdown_s": 1.474,
+    "note": "SIGTERM 正常退出"
+  },
+  "restart": {
+    "started": true,
+    "recovery_s": 0.84,
+    "pre_events": 14823,
+    "post_events": 14823,
+    "pre_seq_last": 14823,
+    "post_seq_last": 14823,
+    "seq_ok": true,
+    "pre_tick": 44310,
+    "post_tick": 44310,
+    "state_match": true,
+    "state_diff": null,
+    "restart_exit": {
+      "signal": "SIGTERM",
+      "exit_code": 0,
+      "shutdown_s": 0.555,
+      "note": "SIGTERM 正常退出"
+    }
+  },
+  "memory_profile": null,
+  "checks": {
+    "rss_growth_lt_5pct_per_hour": false,
+    "p95_drift_read_lt_1_3": true,
+    "p95_drift_write_lt_1_3": true,
+    "zero_errors": true,
+    "zero_5xx": true,
+    "seq_contiguous": true,
+    "wallet_delta_zero": true,
+    "integrity_ok": true,
+    "sigterm_graceful": true,
+    "restart_state_match": true
+  },
+  "extrapolation": {
+    "basis": {
+      "db_mb_per_hour": 162.406,
+      "rows_per_hour": 176115.0,
+      "rss_mb_per_hour": 286.1309,
+      "end_db_mb": 17.5,
+      "end_events": 14823,
+      "end_rss_mb": 85.64
+    },
+    "horizons": [
+      {
+        "horizon": "7d",
+        "days": 7,
+        "events_total": 29602143,
+        "db_mb": 27301.7,
+        "db_gb": 26.66,
+        "rss_mb": 48155.6,
+        "rss_gb": 47.03
+      },
+      {
+        "horizon": "30d",
+        "days": 30,
+        "events_total": 126817623,
+        "db_mb": 116949.8,
+        "db_gb": 114.21,
+        "rss_mb": 206099.9,
+        "rss_gb": 201.27
+      },
+      {
+        "horizon": "90d",
+        "days": 90,
+        "events_total": 380423223,
+        "db_mb": 350814.5,
+        "db_gb": 342.59,
+        "rss_mb": 618128.4,
+        "rss_gb": 603.64
+      }
+    ]
+  },
+  "passed": false
+}

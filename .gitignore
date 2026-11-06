@@ -31,6 +31,18 @@ reports/**/*-check.txt
 .git/push.log
 # 滚动重启的 CPU 基线是本机采样值，不入库（生成方式见 deploy/README.md）
 deploy/.cpu_baseline
+# 报告产物入库口径（2026-11-06 定稿；只约束新增/未入库文件，不改写历史里已有的 png）
+# 入库：reports/**/*.json、reports/**/*.md —— 验收证据，体量小、可复核。
+# 不入库：截图与运行日志/采样流（png/jpg/jpeg/webp、log/txt/jsonl）以及探针脚手架，
+# 都是一次性产物，可由报告 JSON 与脚本重跑复现；仓库只留结构化结论。
+reports/**/*.png
+reports/**/*.jpg
+reports/**/*.jpeg
+reports/**/*.webp
+reports/**/*.log
+reports/**/*.txt
+reports/**/*.jsonl
+reports/**/_probe/
 # 交付证据里的 run 目录需要入库，供干净 clone 直接事件回放。
 !reports/evidence/runs/
 !reports/evidence/runs/**

@@ -1,0 +1,9 @@
+{
+ "journal_mode": "wal",
+ "synchronous": 2,
+ "wal_autocheckpoint": 1000,
+ "during_load_wal_bytes": 4128272,
+ "during_load_db_bytes": 282624,
+ "events": 437,
+ "service_wal_bytes": 1384352
+}

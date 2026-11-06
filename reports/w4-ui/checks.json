@@ -27,9 +27,9 @@
     "detail": {
       "visible": true,
       "items": [
-        "测试错误21:52:37对方不在你当前所在的地点；先移动到对方所在处。原因码：not_together",
-        "测试错误21:52:37你手上已有 2 个进行中任务；先交付其中一个，再接新单。原因码：too_many_quests",
-        "测试错误21:52:37声望还不够接这一单；先做小委托或经营人情，达到门槛再来。原因码：reputation_too_low"
+        "测试错误07:54:20对方不在你当前所在的地点；先移动到对方所在处。",
+        "测试错误07:54:20你手上已有 2 个进行中任务；先交付其中一个，再接新单。",
+        "测试错误07:54:20声望还不够接这一单；先做小委托或经营人情，达到门槛再来。"
       ],
       "expanded": "true"
     }
@@ -38,14 +38,2767 @@
     "name": "错误历史：显示中文原因文案",
     "ok": true,
     "detail": [
-      "测试错误21:52:37对方不在你当前所在的地点；先移动到对方所在处。原因码：not_together",
-      "测试错误21:52:37你手上已有 2 个进行中任务；先交付其中一个，再接新单。原因码：too_many_quests",
-      "测试错误21:52:37声望还不够接这一单；先做小委托或经营人情，达到门槛再来。原因码：reputation_too_low"
+      "测试错误07:54:20对方不在你当前所在的地点；先移动到对方所在处。",
+      "测试错误07:54:20你手上已有 2 个进行中任务；先交付其中一个，再接新单。",
+      "测试错误07:54:20声望还不够接这一单；先做小委托或经营人情，达到门槛再来。"
     ]
   },
   {
     "name": "错误 toast 自动消失（不长期遮挡）",
     "ok": true
+  },
+  {
+    "name": "feed 默认可见（不在折叠组内）",
+    "ok": true,
+    "detail": {
+      "blockVisible": true,
+      "count": 5,
+      "feedRows": 5,
+      "ticks": [
+        37,
+        34,
+        31,
+        28,
+        25
+      ],
+      "important": 2,
+      "texts": [
+        "· [37] 王铁匠 在 药铺：王铁匠在药铺修好一口药碾。",
+        "· [34] 刘三娘 在 市集：刘三娘在市集清点新到的粗布。",
+        "· [31] 茶楼老板 在 茶楼：茶楼老板给客人续了三壶茶。",
+        "· [28] 更夫 在 市集：更夫敲着梆子走过市集。",
+        "· [25] 药铺掌柜 在 药铺：药铺掌柜把陈皮摊在竹匾里。"
+      ],
+      "height": 168,
+      "overflowY": "auto",
+      "scrollHeight": 168,
+      "clientHeight": 168,
+      "scrollWidth": 1280,
+      "inFold": false,
+      "hasFoldBtn": false,
+      "announced": 2,
+      "logWorld": 2,
+      "toast": "附近动静：刘三娘在市集清点新到的粗布。",
+      "errors": 0,
+      "money": "300 文",
+      "placeholder": "",
+      "statusHidden": true,
+      "statusText": "世界暂时安静",
+      "screenshot": "reports/w4-feed/feed-desktop.png"
+    }
+  },
+  {
+    "name": "feed 20 条上限内、样本 5 条全渲染",
+    "ok": true,
+    "detail": {
+      "blockVisible": true,
+      "count": 5,
+      "feedRows": 5,
+      "ticks": [
+        37,
+        34,
+        31,
+        28,
+        25
+      ],
+      "important": 2,
+      "texts": [
+        "· [37] 王铁匠 在 药铺：王铁匠在药铺修好一口药碾。",
+        "· [34] 刘三娘 在 市集：刘三娘在市集清点新到的粗布。",
+        "· [31] 茶楼老板 在 茶楼：茶楼老板给客人续了三壶茶。",
+        "· [28] 更夫 在 市集：更夫敲着梆子走过市集。",
+        "· [25] 药铺掌柜 在 药铺：药铺掌柜把陈皮摊在竹匾里。"
+      ],
+      "height": 168,
+      "overflowY": "auto",
+      "scrollHeight": 168,
+      "clientHeight": 168,
+      "scrollWidth": 1280,
+      "inFold": false,
+      "hasFoldBtn": false,
+      "announced": 2,
+      "logWorld": 2,
+      "toast": "附近动静：刘三娘在市集清点新到的粗布。",
+      "errors": 0,
+      "money": "300 文",
+      "placeholder": "",
+      "statusHidden": true,
+      "statusText": "世界暂时安静",
+      "screenshot": "reports/w4-feed/feed-desktop.png"
+    }
+  },
+  {
+    "name": "feed 按 tick 倒序",
+    "ok": true,
+    "detail": [
+      37,
+      34,
+      31,
+      28,
+      25
+    ]
+  },
+  {
+    "name": "feed 每行格式 · [tick] actor 在 place：summary",
+    "ok": true,
+    "detail": [
+      "· [37] 王铁匠 在 药铺：王铁匠在药铺修好一口药碾。",
+      "· [34] 刘三娘 在 市集：刘三娘在市集清点新到的粗布。",
+      "· [31] 茶楼老板 在 茶楼：茶楼老板给客人续了三壶茶。",
+      "· [28] 更夫 在 市集：更夫敲着梆子走过市集。",
+      "· [25] 药铺掌柜 在 药铺：药铺掌柜把陈皮摊在竹匾里。"
+    ]
+  },
+  {
+    "name": "feed important 使用强调样式",
+    "ok": true,
+    "detail": {
+      "important": 2
+    }
+  },
+  {
+    "name": "feed 请求匿名、不带 Authorization",
+    "ok": true,
+    "detail": {
+      "feed_calls": 3
+    }
+  },
+  {
+    "name": "feed 附近 important 走现有提示体系（toast + 操作记录）",
+    "ok": true,
+    "detail": {
+      "announced": 2,
+      "logWorld": 2,
+      "toast": "附近动静：刘三娘在市集清点新到的粗布。"
+    }
+  },
+  {
+    "name": "feed 列表溢出时固定高度内滚动",
+    "ok": true,
+    "detail": {}
+  },
+  {
+    "name": "feed 下滚阅读时插入新条目不跳动",
+    "ok": true,
+    "detail": {
+      "before": {
+        "top": 58,
+        "height": 226
+      },
+      "after": {
+        "top": 87,
+        "height": 255
+      },
+      "delta": 29
+    }
+  },
+  {
+    "name": "feed 停在顶部时自动跟随最新一条",
+    "ok": true,
+    "detail": {
+      "scrollTop": 0
+    }
+  },
+  {
+    "name": "feed important 新事件仍会提示",
+    "ok": true,
+    "detail": {
+      "announced": 3
+    }
+  },
+  {
+    "name": "feed 空摘要按 verb 映射中文动作（move→赶路、quest_accept→接单）",
+    "ok": true,
+    "detail": {
+      "25": "· [25] 药铺掌柜 在 药铺：药铺掌柜把陈皮摊在竹匾里。",
+      "28": "· [28] 更夫 在 市集：更夫敲着梆子走过市集。",
+      "31": "· [31] 茶楼老板 在 茶楼：茶楼老板给客人续了三壶茶。",
+      "34": "· [34] 刘三娘 在 市集：刘三娘在市集清点新到的粗布。",
+      "37": "· [37] 王铁匠 在 药铺：王铁匠在药铺修好一口药碾。",
+      "40": "· [40] 更夫 在 市集：街上有人走过。",
+      "41": "· [41] 更夫 在 市集：街上有人走过。",
+      "42": "· [42] 更夫 在 市集：街上有人走过。",
+      "43": "· [43] 更夫 在 市集：更夫在西街敲了一声梆子。",
+      "45": "· [45] 更夫 在 市集：一队镖车进了市集。",
+      "50": "· [50] 更夫 在 药铺：赶路",
+      "51": "· [51] 更夫 在 市集：接单",
+      "52": "· [52] 更夫 在 茶楼：有事发生",
+      "53": "· [53] 更夫 在 市集：赶路"
+    }
+  },
+  {
+    "name": "feed 未知动词兜底「有事发生」且不漏原始英文",
+    "ok": true,
+    "detail": {
+      "25": "· [25] 药铺掌柜 在 药铺：药铺掌柜把陈皮摊在竹匾里。",
+      "28": "· [28] 更夫 在 市集：更夫敲着梆子走过市集。",
+      "31": "· [31] 茶楼老板 在 茶楼：茶楼老板给客人续了三壶茶。",
+      "34": "· [34] 刘三娘 在 市集：刘三娘在市集清点新到的粗布。",
+      "37": "· [37] 王铁匠 在 药铺：王铁匠在药铺修好一口药碾。",
+      "40": "· [40] 更夫 在 市集：街上有人走过。",
+      "41": "· [41] 更夫 在 市集：街上有人走过。",
+      "42": "· [42] 更夫 在 市集：街上有人走过。",
+      "43": "· [43] 更夫 在 市集：更夫在西街敲了一声梆子。",
+      "45": "· [45] 更夫 在 市集：一队镖车进了市集。",
+      "50": "· [50] 更夫 在 药铺：赶路",
+      "51": "· [51] 更夫 在 市集：接单",
+      "52": "· [52] 更夫 在 茶楼：有事发生",
+      "53": "· [53] 更夫 在 市集：赶路"
+    }
+  },
+  {
+    "name": "feed 摘要混入内部动词同样替换（move→赶路）",
+    "ok": true,
+    "detail": {
+      "25": "· [25] 药铺掌柜 在 药铺：药铺掌柜把陈皮摊在竹匾里。",
+      "28": "· [28] 更夫 在 市集：更夫敲着梆子走过市集。",
+      "31": "· [31] 茶楼老板 在 茶楼：茶楼老板给客人续了三壶茶。",
+      "34": "· [34] 刘三娘 在 市集：刘三娘在市集清点新到的粗布。",
+      "37": "· [37] 王铁匠 在 药铺：王铁匠在药铺修好一口药碾。",
+      "40": "· [40] 更夫 在 市集：街上有人走过。",
+      "41": "· [41] 更夫 在 市集：街上有人走过。",
+      "42": "· [42] 更夫 在 市集：街上有人走过。",
+      "43": "· [43] 更夫 在 市集：更夫在西街敲了一声梆子。",
+      "45": "· [45] 更夫 在 市集：一队镖车进了市集。",
+      "50": "· [50] 更夫 在 药铺：赶路",
+      "51": "· [51] 更夫 在 市集：接单",
+      "52": "· [52] 更夫 在 茶楼：有事发生",
+      "53": "· [53] 更夫 在 市集：赶路"
+    }
+  },
+  {
+    "name": "feed 渲染文本不含内部英文动词（[a-z_]+）",
+    "ok": true,
+    "detail": [
+      "· [53] 更夫 在 市集：赶路",
+      "· [52] 更夫 在 茶楼：有事发生",
+      "· [51] 更夫 在 市集：接单",
+      "· [50] 更夫 在 药铺：赶路",
+      "· [45] 更夫 在 市集：一队镖车进了市集。",
+      "· [43] 更夫 在 市集：更夫在西街敲了一声梆子。",
+      "· [42] 更夫 在 市集：街上有人走过。",
+      "· [41] 更夫 在 市集：街上有人走过。",
+      "· [40] 更夫 在 市集：街上有人走过。",
+      "· [37] 王铁匠 在 药铺：王铁匠在药铺修好一口药碾。",
+      "· [34] 刘三娘 在 市集：刘三娘在市集清点新到的粗布。",
+      "· [31] 茶楼老板 在 茶楼：茶楼老板给客人续了三壶茶。",
+      "· [28] 更夫 在 市集：更夫敲着梆子走过市集。",
+      "· [25] 药铺掌柜 在 药铺：药铺掌柜把陈皮摊在竹匾里。"
+    ]
+  },
+  {
+    "name": "feed 失败显示「世界暂时安静」占位",
+    "ok": true,
+    "detail": {
+      "blockVisible": true,
+      "count": 14,
+      "feedRows": 14,
+      "ticks": [
+        53,
+        52,
+        51,
+        50,
+        45,
+        43,
+        42,
+        41,
+        40,
+        37,
+        34,
+        31,
+        28,
+        25
+      ],
+      "important": 3,
+      "texts": [
+        "· [53] 更夫 在 市集：赶路",
+        "· [52] 更夫 在 茶楼：有事发生",
+        "· [51] 更夫 在 市集：接单",
+        "· [50] 更夫 在 药铺：赶路",
+        "· [45] 更夫 在 市集：一队镖车进了市集。",
+        "· [43] 更夫 在 市集：更夫在西街敲了一声梆子。",
+        "· [42] 更夫 在 市集：街上有人走过。",
+        "· [41] 更夫 在 市集：街上有人走过。",
+        "· [40] 更夫 在 市集：街上有人走过。",
+        "· [37] 王铁匠 在 药铺：王铁匠在药铺修好一口药碾。",
+        "· [34] 刘三娘 在 市集：刘三娘在市集清点新到的粗布。",
+        "· [31] 茶楼老板 在 茶楼：茶楼老板给客人续了三壶茶。",
+        "· [28] 更夫 在 市集：更夫敲着梆子走过市集。",
+        "· [25] 药铺掌柜 在 药铺：药铺掌柜把陈皮摊在竹匾里。"
+      ],
+      "height": 168,
+      "overflowY": "auto",
+      "scrollHeight": 398,
+      "clientHeight": 168,
+      "scrollWidth": 1280,
+      "inFold": false,
+      "hasFoldBtn": false,
+      "announced": 3,
+      "logWorld": 3,
+      "toast": "附近动静：一队镖车进了市集。",
+      "errors": 0,
+      "money": "300 文",
+      "placeholder": "",
+      "statusHidden": false,
+      "statusText": "世界暂时安静"
+    }
+  },
+  {
+    "name": "feed 失败不弹红字、不写错误历史、主状态不变",
+    "ok": true,
+    "detail": {
+      "errors": [
+        0,
+        0
+      ],
+      "money": [
+        "300 文",
+        "300 文"
+      ]
+    }
+  },
+  {
+    "name": "婚姻 候选列表（好感/信任/已婚/同地点）",
+    "ok": true,
+    "detail": {
+      "candidates": [
+        {
+          "id": "npc:liu_sanniang",
+          "name": "刘三娘",
+          "role": "商户",
+          "affection": 0,
+          "trust": 0,
+          "married": "已婚状态：接口未提供",
+          "isSpouse": false,
+          "sameLocation": true
+        },
+        {
+          "id": "npc:wang_tiejiang",
+          "name": "王铁匠",
+          "role": "铁匠",
+          "affection": 7,
+          "trust": 7,
+          "married": "已婚状态：接口未提供",
+          "isSpouse": false,
+          "sameLocation": true
+        },
+        {
+          "id": "npc:afu",
+          "name": "阿福",
+          "role": "药童",
+          "affection": 7,
+          "trust": 45,
+          "married": "已婚状态：接口未提供",
+          "isSpouse": false,
+          "sameLocation": true
+        },
+        {
+          "id": "npc:chen_huolang",
+          "name": "陈货郎",
+          "role": "货郎",
+          "affection": 7,
+          "trust": 7,
+          "married": "已婚状态：接口未提供",
+          "isSpouse": false,
+          "sameLocation": true
+        }
+      ]
+    }
+  },
+  {
+    "name": "婚姻 候选行显示四项字段",
+    "ok": true,
+    "detail": {
+      "text": "刘三娘商户\n好感 0.0 · 信任 0.0 · 同地点 · 已婚状态：接口未提供\n已选\n王铁匠铁匠\n好感 7.0 · 信任 7.0 · 同地点 · 已婚状态：接口未提供\n选此人\n阿福药童\n好感 7.0 · 信任 45.0 · 同地点 · 已婚状态：接口未提供\n选此人\n陈货郎货郎\n好感 7.0 · 信任 7.0 · 同地"
+    }
+  },
+  {
+    "name": "婚姻 候选数据（王铁匠 7.0/7.0）",
+    "ok": true,
+    "detail": {
+      "id": "npc:wang_tiejiang",
+      "name": "王铁匠",
+      "role": "铁匠",
+      "affection": 7,
+      "trust": 7,
+      "married": "已婚状态：接口未提供",
+      "isSpouse": false,
+      "sameLocation": true
+    }
+  },
+  {
+    "name": "婚姻 婉拒为中文且不露 code",
+    "ok": true,
+    "detail": {
+      "result": "对方婉拒了这次提亲：信任还不足（好感 10.0 / 信任 10.0）；聘礼与信物未扣除。"
+    }
+  },
+  {
+    "name": "婚姻 13 个原因码均有中文映射",
+    "ok": true,
+    "detail": {
+      "mapped": [
+        [
+          "bond_too_low",
+          "感情还没到谈婚论嫁的地步；先多相处、经营人情。"
+        ],
+        [
+          "trust_too_low",
+          "对方对你的信任不足，尚不能收为弟子。"
+        ],
+        [
+          "gift_missing",
+          "提亲需要带一件像样的礼物。"
+        ],
+        [
+          "not_enough_money",
+          "你的钱不够（买入价含交易税）。"
+        ],
+        [
+          "already_married",
+          "你已经成婚了，不能再结一次。"
+        ],
+        [
+          "target_in_couple",
+          "对方已有婚约或配偶，不能再谈。"
+        ],
+        [
+          "not_together",
+          "对方不在你当前所在的地点；先移动到对方所在处。"
+        ],
+        [
+          "self_propose",
+          "不能向自己提亲。"
+        ],
+        [
+          "spouse_not_here",
+          "你的配偶不在当前地点；先走到对方那里。"
+        ],
+        [
+          "not_married",
+          "你还没有婚约，无法进行这个操作。"
+        ],
+        [
+          "no_payer_funds",
+          "付款方资金不足，这单暂时接不了。"
+        ],
+        [
+          "cannot_rest_while_escorting",
+          "押镖途中不能休息；先完成这趟镖。"
+        ],
+        [
+          "cannot_rest_now",
+          "现在不能休息；请稍后再试。"
+        ]
+      ],
+      "bad": []
+    }
+  },
+  {
+    "name": "婚姻 再处处看不扣聘礼",
+    "ok": true,
+    "detail": {
+      "before": 300,
+      "after": 300
+    }
+  },
+  {
+    "name": "婚姻 成婚结果含姓名与 tick",
+    "ok": true,
+    "detail": {
+      "result": "与 王铁匠 成婚，tick 24"
+    }
+  },
+  {
+    "name": "婚姻 配偶常驻栏出现",
+    "ok": true,
+    "detail": {
+      "spouseInfo": "配偶：王铁匠 · 成婚 tick 24",
+      "spouseNote": "今日已陪伴（tick 24）。"
+    }
+  },
+  {
+    "name": "婚姻 今日陪伴口径可见",
+    "ok": true,
+    "detail": {
+      "spouseNote": "今日已陪伴（tick 24）。"
+    }
+  },
+  {
+    "name": "婚姻 聘礼与信物真实扣除",
+    "ok": true,
+    "detail": {
+      "money": 260,
+      "before": 300,
+      "giftRows": [
+        "flatbread"
+      ],
+      "gift_before": [
+        "coarse_cloth"
+      ]
+    }
+  },
+  {
+    "name": "婚姻 配偶对话标记（配偶）并高亮",
+    "ok": true,
+    "detail": {
+      "talkTarget": "王\n王铁匠（配偶）配偶\n铁匠 · 市集 · 在场",
+      "reply": "王铁匠（配偶）\n配偶回应\ntick 26 · /api/player/messages?since_tick=25\n王铁匠（配偶）：锅里温着饭，早点回来。"
+    }
+  },
+  {
+    "name": "婚姻 和离弹层写清聘礼不退还",
+    "ok": true,
+    "detail": {
+      "modal": "×\n王\n和离\n\n这一步不可撤销。\n\n与 王铁匠 和离后恢复单身。聘礼不退还，共同财产不分割。\n\n和离后双方恢复单身；聘礼不退还，共同财产不分割。\n取消\n确认和离"
+    }
+  },
+  {
+    "name": "婚姻 取消和离不改变婚姻态",
+    "ok": true,
+    "detail": {
+      "status": "married"
+    }
+  },
+  {
+    "name": "婚姻 和离成功回单身且配偶栏隐藏",
+    "ok": true,
+    "detail": {
+      "result": "已与 王铁匠 和离，tick 29",
+      "tick_before": 26,
+      "tick_after": 29
+    }
+  },
+  {
+    "name": "婚姻 未开放页不再重复立派/收徒，仅留拜师",
+    "ok": true,
+    "detail": {
+      "soon": "拜师\n该玩法尚未开放；门派招募请用「门派」页签。\n尚未开放\n这些玩法暂未开放；入口先留在这里。"
+    }
+  },
+  {
+    "name": "婚姻 rest 占位只提示，不发请求",
+    "ok": true,
+    "detail": {
+      "rest": "体力恢复中（休息接口尚未接入；这里只做占位提示，不发请求）。",
+      "tick_before": 29,
+      "tick_after": 29
+    }
+  },
+  {
+    "name": "婚姻 375×812 不横向溢出",
+    "ok": true,
+    "detail": {
+      "scrollWidth": 375,
+      "innerWidth": 375,
+      "controls": {
+        "#proposeGo": 44,
+        "#proposeMoney": 44,
+        "#proposeItem": 44,
+        "#proposeQty": 44,
+        "#restBtn": 44
+      }
+    }
+  },
+  {
+    "name": "婚姻 375×812 新增控件 ≥44px",
+    "ok": true,
+    "detail": {
+      "scrollWidth": 375,
+      "innerWidth": 375,
+      "controls": {
+        "#proposeGo": 44,
+        "#proposeMoney": 44,
+        "#proposeItem": 44,
+        "#proposeQty": 44,
+        "#restBtn": 44
+      }
+    }
+  },
+  {
+    "name": "婚姻 键盘可聚焦并切换页签",
+    "ok": true,
+    "detail": {
+      "focused": "marriage"
+    }
+  },
+  {
+    "name": "商业 入口可见（顶栏按钮 + 面板）",
+    "ok": true,
+    "detail": {
+      "money": 300,
+      "buy": [
+        {
+          "item": "flatbread",
+          "text": "炊饼单价 3 文 · 税 0 文 · 含税 3 文/份 · 库存 6 · 限购 5 · 市集杂货铺买",
+          "qty": true,
+          "button": true
+        },
+        {
+          "item": "noodle",
+          "text": "汤面单价 5 文 · 税 0 文 · 含税 5 文/份 · 库存 4 · 限购 4 · 市集杂货铺买",
+          "qty": true,
+          "button": true
+        },
+        {
+          "item": "coarse_cloth",
+          "text": "粗布（一匹）单价 25 文 · 税 1 文 · 含税 26 文/份 · 库存 3 · 限购 3 · 市集杂货铺买",
+          "qty": true,
+          "button": true
+        }
+      ],
+      "sell": [
+        {
+          "item": "coarse_cloth",
+          "text": "粗布（一匹）售价 15 文/件 · 持有 1 · 上限 1卖",
+          "button": true
+        },
+        {
+          "item": "flatbread",
+          "text": "炊饼售价 2 文/件 · 持有 3 · 上限 3卖",
+          "button": true
+        }
+      ],
+      "tiers": [
+        {
+          "kind": "stall",
+          "text": "摊铺面 300 文 + 初始进货 45 文 = 共需 345 文开摊还差 45 文",
+          "disabled": true
+        },
+        {
+          "kind": "storefront",
+          "text": "店面铺面 1200 文 + 初始进货 272 文 = 共需 1472 文开店面还差 1172 文",
+          "disabled": true
+        },
+        {
+          "kind": "branch",
+          "text": "分号铺面 3000 文 + 初始进货 450 文 = 共需 3450 文开分号还差 3150 文",
+          "disabled": true
+        }
+      ],
+      "hires": [
+        {
+          "id": "npc:liu_sanniang",
+          "text": "刘三娘商户好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 18 文（可 14-27）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇先开店",
+          "pos": "脚夫",
+          "disabled": true
+        },
+        {
+          "id": "npc:wang_tiejiang",
+          "text": "王铁匠铁匠好感 7.0 · 技能 接口未提供 · 受雇 接口未提供 · 市价 32 文（可 26-48）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇先开店",
+          "pos": "铁匠",
+          "disabled": true
+        },
+        {
+          "id": "npc:afu",
+          "text": "阿福药童好感 7.0 · 技能 接口未提供 · 受雇 接口未提供 · 市价 15 文（可 12-23）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇先开店",
+          "pos": "药童",
+          "disabled": true
+        },
+        {
+          "id": "npc:chen_huolang",
+          "text": "陈货郎货郎好感 7.0 · 技能 接口未提供 · 受雇 接口未提供 · 市价 26 文（可 21-39）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇先开店",
+          "pos": "货郎",
+          "disabled": true
+        }
+      ],
+      "commerceVisible": true,
+      "jumpVisible": true,
+      "own": null,
+      "ownText": "你还没有店铺。当前位置可以开摊、店面或分号。",
+      "employeeText": "先开一家店，才能看到店内雇工。",
+      "consumeText": "现吃 炊饼：3 文/份，体力 +25。",
+      "escortEstimate": "这里没有镖局；起点必须有镖局才能接镖。先走到镖局所在地。",
+      "escortResult": "",
+      "hireHint": "先开一家店铺，再来雇人。",
+      "soon": "拜师该玩法尚未开放；门派招募请用「门派」页签。尚未开放",
+      "errors": [],
+      "log": [
+        "原因码 world_important · tick 34世界动态附近动静：刘三娘在市集清点新到的粗布。",
+        "原因码 world_important · tick 37世界动态附近动静：王铁匠在药铺修好一口药碾。",
+        "原因码 world_important · tick 45世界动态附近动静：一队镖车进了市集。"
+      ]
+    }
+  },
+  {
+    "name": "商业 商店页列出可买物品（单价/含税/库存/限购）",
+    "ok": true,
+    "detail": [
+      {
+        "item": "flatbread",
+        "text": "炊饼单价 3 文 · 税 0 文 · 含税 3 文/份 · 库存 6 · 限购 5 · 市集杂货铺买",
+        "qty": true,
+        "button": true
+      },
+      {
+        "item": "noodle",
+        "text": "汤面单价 5 文 · 税 0 文 · 含税 5 文/份 · 库存 4 · 限购 4 · 市集杂货铺买",
+        "qty": true,
+        "button": true
+      },
+      {
+        "item": "coarse_cloth",
+        "text": "粗布（一匹）单价 25 文 · 税 1 文 · 含税 26 文/份 · 库存 3 · 限购 3 · 市集杂货铺买",
+        "qty": true,
+        "button": true
+      }
+    ]
+  },
+  {
+    "name": "商业 可卖物品显示 sell_price 与持有数量",
+    "ok": true,
+    "detail": [
+      {
+        "item": "coarse_cloth",
+        "text": "粗布（一匹）售价 15 文/件 · 持有 1 · 上限 1卖",
+        "button": true
+      },
+      {
+        "item": "flatbread",
+        "text": "炊饼售价 2 文/件 · 持有 3 · 上限 3卖",
+        "button": true
+      }
+    ]
+  },
+  {
+    "name": "商业 buy 数量 2 真调用（钱包 300→294）",
+    "ok": true,
+    "detail": [
+      {
+        "item": "flatbread",
+        "text": "炊饼单价 3 文 · 税 0 文 · 含税 3 文/份 · 库存 4 · 限购 4 · 市集杂货铺买",
+        "qty": true,
+        "button": true
+      },
+      {
+        "item": "noodle",
+        "text": "汤面单价 5 文 · 税 0 文 · 含税 5 文/份 · 库存 4 · 限购 4 · 市集杂货铺买",
+        "qty": true,
+        "button": true
+      },
+      {
+        "item": "coarse_cloth",
+        "text": "粗布（一匹）单价 25 文 · 税 1 文 · 含税 26 文/份 · 库存 3 · 限购 3 · 市集杂货铺买",
+        "qty": true,
+        "button": true
+      }
+    ]
+  },
+  {
+    "name": "商业 consume 一键现吃并显示体力变化",
+    "ok": true,
+    "detail": "现吃 炊饼×1：体力 82 → 100（+18）· 钱包 294 → 291 文（-3）"
+  },
+  {
+    "name": "商业 sell 数量 1 真调用（钱包 291→306）",
+    "ok": true,
+    "detail": [
+      {
+        "item": "flatbread",
+        "text": "炊饼售价 2 文/件 · 持有 5 · 上限 5卖",
+        "button": true
+      }
+    ]
+  },
+  {
+    "name": "商业 价格/库存 8 秒内刷新（无输入时）",
+    "ok": true,
+    "detail": {
+      "elapsed": 7.33
+    }
+  },
+  {
+    "name": "商业 刷新不打断正在输入的数量",
+    "ok": true,
+    "detail": {
+      "value": "7",
+      "focused": true,
+      "deferred": true
+    }
+  },
+  {
+    "name": "商业 资金不足时开店按钮禁用并给原因",
+    "ok": true,
+    "detail": {
+      "kind": "stall",
+      "text": "摊铺面 300 文 + 初始进货 45 文 = 共需 345 文开摊还差 39 文",
+      "disabled": true
+    }
+  },
+  {
+    "name": "商业 open_shop 三档开店成功并显示店内现金/库存",
+    "ok": true,
+    "detail": "铺面 · 店面 · 店内现金 100 文 · 库存 4 件 · 店址 market"
+  },
+  {
+    "name": "商业 已有店铺后三档按钮禁用并给原因",
+    "ok": true,
+    "detail": [
+      {
+        "kind": "stall",
+        "text": "摊铺面 300 文 + 初始进货 45 文 = 共需 345 文开摊你已经有店铺了",
+        "disabled": true
+      },
+      {
+        "kind": "storefront",
+        "text": "店面铺面 1200 文 + 初始进货 272 文 = 共需 1472 文开店面你已经有店铺了",
+        "disabled": true
+      },
+      {
+        "kind": "branch",
+        "text": "分号铺面 3000 文 + 初始进货 450 文 = 共需 3450 文开分号你已经有店铺了",
+        "disabled": true
+      }
+    ]
+  },
+  {
+    "name": "商业 雇人列表显示好感/技能/受雇状态",
+    "ok": true,
+    "detail": {
+      "id": "npc:wang_tiejiang",
+      "text": "王铁匠铁匠好感 7.0 · 技能 接口未提供 · 受雇 接口未提供 · 市价 32 文（可 26-48）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇",
+      "pos": "铁匠",
+      "disabled": false
+    }
+  },
+  {
+    "name": "商业 低好感 NPC 明确标出",
+    "ok": true,
+    "detail": {
+      "id": "npc:liu_sanniang",
+      "text": "刘三娘商户好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 18 文（可 14-27）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇",
+      "pos": "脚夫",
+      "disabled": false
+    }
+  },
+  {
+    "name": "商业 wage_too_low 映射中文且不露原始码",
+    "ok": true,
+    "detail": [
+      "雇王铁匠07:54:46日薪低于市价的 0.8 倍，对方不会接受。"
+    ]
+  },
+  {
+    "name": "商业 recruit 成功并显示岗位/日薪/到店",
+    "ok": true,
+    "detail": "王铁匠岗位 铁匠 · 日薪 32 文 · 到店 · 欠薪 32 文辞退"
+  },
+  {
+    "name": "商业 relation_too_low 映射中文",
+    "ok": true,
+    "detail": [
+      "雇刘三娘07:54:46好感不足 6.0；先多交谈、经营人情再来雇。",
+      "雇王铁匠07:54:46日薪低于市价的 0.8 倍，对方不会接受。"
+    ]
+  },
+  {
+    "name": "商业 skill_too_low 映射中文",
+    "ok": true,
+    "detail": [
+      "雇陈货郎07:54:46对方手艺还不够（技能低于 0.15）。",
+      "雇刘三娘07:54:46好感不足 6.0；先多交谈、经营人情再来雇。",
+      "雇王铁匠07:54:46日薪低于市价的 0.8 倍，对方不会接受。"
+    ]
+  },
+  {
+    "name": "商业 shop_full 映射中文（满员按钮禁用并给原因）",
+    "ok": true,
+    "detail": {
+      "id": "npc:liu_sanniang",
+      "text": "刘三娘商户好感 0.0（不足 6.0） · 技能 接口未提供 · 受雇 接口未提供 · 市价 18 文（可 14-27）香客（14 文）抄经人（14 文）药童（15 文）更夫（16 文）脚夫（18 文）庙祝（18 文）酒保（20 文）船夫（20 文）渔娘（20 文）菜农（20 文）说书人（22 文）算命先生（22 文）茶博士（22 文）绣娘（24 文）学究（24 文）媒婆（24 文）捕快（26 文）货郎（26 文）游医（28 文）石匠（28 文）镖师（30 文）师爷（30 文）屠户（30 文）铁匠（32 文）掌柜（36 文）雇已满员",
+      "pos": "脚夫",
+      "disabled": true
+    }
+  },
+  {
+    "name": "商业 无镖局时押镖入口禁用并说明原因",
+    "ok": true,
+    "detail": "这里没有镖局；起点必须有镖局才能接镖。先走到镖局所在地。"
+  },
+  {
+    "name": "商业 押镖显示预计收入与到货 tick",
+    "ok": true,
+    "detail": "路线 镖局 → 市集（相邻）· 炊饼×1（持有 5）· 预计到手 126 文（镖费 180 文，镖局抽 30%）· 到货 tick 192"
+  },
+  {
+    "name": "商业 镖费越界本地给出中文原因",
+    "ok": true,
+    "detail": "镖费需在 120-260 文之间。"
+  },
+  {
+    "name": "商业 escort 真调用并显示到货 tick",
+    "ok": true,
+    "detail": "镖单已接：镖局 → 市集 · 炊饼×1 · 镖费 180 文 · 预计到手 126 文 · 到货 tick 193"
+  },
+  {
+    "name": "商业 未开放玩法只留拜师，立派/收徒已移入「门派」页签",
+    "ok": true,
+    "detail": "拜师该玩法尚未开放；门派招募请用「门派」页签。尚未开放"
+  },
+  {
+    "name": "商业 not_implemented_for_player 中文映射",
+    "ok": true,
+    "detail": "该玩法尚未开放。"
+  },
+  {
+    "name": "移动 商业 375×812 无横向溢出且触控≥44px",
+    "ok": true,
+    "detail": [
+      {
+        "tab": "shop",
+        "overflow": 0,
+        "small": [],
+        "controls": 19,
+        "tabsFit": true
+      },
+      {
+        "tab": "business",
+        "overflow": 0,
+        "small": [],
+        "controls": 12,
+        "tabsFit": true
+      },
+      {
+        "tab": "hire",
+        "overflow": 0,
+        "small": [],
+        "controls": 16,
+        "tabsFit": true
+      },
+      {
+        "tab": "escort",
+        "overflow": 0,
+        "small": [],
+        "controls": 12,
+        "tabsFit": true
+      },
+      {
+        "tab": "soon",
+        "overflow": 0,
+        "small": [],
+        "controls": 8,
+        "tabsFit": true
+      }
+    ]
+  },
+  {
+    "name": "商业 键盘可切换页签并完成购买",
+    "ok": true,
+    "detail": {
+      "money": 297
+    }
+  },
+  {
+    "name": "店铺经营 无店时四区禁用并提示开店",
+    "ok": true,
+    "detail": {
+      "op": {
+        "reason": "你还没有店铺；先开一家再经营",
+        "cash": 0,
+        "stock": [],
+        "employees": 0,
+        "days": [],
+        "total": {
+          "revenue": 0,
+          "restock": 0,
+          "wage": 0,
+          "tax": 0,
+          "net_profit": 0,
+          "trades": 0
+        },
+        "busy": [],
+        "reportLoaded": false,
+        "reportUnavailable": false,
+        "stockouts": 0,
+        "lowStock": 0,
+        "dismissTarget": ""
+      },
+      "restockRows": [],
+      "priceRows": [],
+      "employees": [],
+      "withdrawDisabled": true,
+      "withdrawText": "当前店现 0 文",
+      "restockTotal": "合计 0 文",
+      "ledger": {
+        "emptyVisible": true,
+        "emptyText": "你还没有店铺；开张后才有日结账本",
+        "wrapVisible": false,
+        "rows": [],
+        "totalText": "",
+        "stockoutVisible": false,
+        "stockoutText": "",
+        "wrapScroll": 0,
+        "wrapClient": 0
+      },
+      "modalVisible": false,
+      "modalText": "×\n    \n      辞\n      \n        辞退雇工\n        辞退后不再到店，日结也不再计当日工资。\n      \n    \n    \n      —\n      欠薪仍计：已经记在店铺账上的欠薪不会因为辞退而消失，仍需结清。\n      \n    \n    \n      取消\n      确认辞退",
+      "toast": "附近动静：刘三娘在市集清点新到的粗布。",
+      "errors": [],
+      "log": [
+        "原因码 world_important · tick 34世界动态附近动静：刘三娘在市集清点新到的粗布。",
+        "原因码 world_important · tick 37世界动态附近动静：王铁匠在药铺修好一口药碾。",
+        "原因码 world_important · tick 45世界动态附近动静：一队镖车进了市集。"
+      ]
+    }
+  },
+  {
+    "name": "店铺经营 开店后四区启用（进货/定价/辞退/提现）",
+    "ok": true,
+    "detail": {
+      "op": {
+        "reason": "",
+        "cash": 100,
+        "stock": [
+          {
+            "item": "cleaver",
+            "name": "菜刀",
+            "qty": 2,
+            "price": 40,
+            "base_price": 40,
+            "restock_price": 40,
+            "priced": true,
+            "zero_stock": false
+          },
+          {
+            "item": "coarse_cloth",
+            "name": "粗布（一匹）",
+            "qty": 4,
+            "price": 25,
+            "base_price": 25,
+            "restock_price": 25,
+            "priced": true,
+            "zero_stock": false
+          },
+          {
+            "item": "flatbread",
+            "name": "炊饼",
+            "qty": 10,
+            "price": 3,
+            "base_price": 3,
+            "restock_price": 3,
+            "priced": true,
+            "zero_stock": false
+          },
+          {
+            "item": "needle",
+            "name": "绣花针",
+            "qty": 2,
+            "price": 12,
+            "base_price": 12,
+            "restock_price": 12,
+            "priced": true,
+            "zero_stock": false
+          },
+          {
+            "item": "noodle",
+            "name": "汤面",
+            "qty": 8,
+            "price": 5,
+            "base_price": 5,
+            "restock_price": 5,
+            "priced": true,
+            "zero_stock": false
+          },
+          {
+            "item": "rice",
+            "name": "米饭",
+            "qty": 6,
+            "price": 4,
+            "base_price": 4,
+            "restock_price": 4,
+            "priced": true,
+            "zero_stock": false
+          }
+        ],
+        "employees": 0,
+        "days": [
+          {
+            "day": 1,
+            "revenue": 60,
+            "restock": 18,
+            "wage": 32,
+            "tax": 3,
+            "net_profit": 7,
+            "trades": 9
+          },
+          {
+            "day": 2,
+            "revenue": 0,
+            "restock": 0,
+            "wage": 32,
+            "tax": 0,
+            "net_profit": -32,
+            "trades": 0
+          },
+          {
+            "day": 3,
+            "revenue": 30,
+            "restock": 0,
+            "wage": 70,
+            "tax": 1,
+            "net_profit": -41,
+            "trades": 4
+          },
+          {
+            "day": 4,
+            "revenue": 20,
+            "restock": 25,
+            "wage": 0,
+            "tax": 1,
+            "net_profit": -6,
+            "trades": 3
+          },
+          {
+            "day": 5,
+            "revenue": 100,
+            "restock": 20,
+            "wage": 32,
+            "tax": 5,
+            "net_profit": 43,
+            "trades": 12
+          },
+          {
+            "day": 6,
+            "revenue": 45,
+            "restock": 40,
+            "wage": 0,
+            "tax": 2,
+            "net_profit": 3,
+            "trades": 6
+          },
+          {
+            "day": 7,
+            "revenue": 80,
+            "restock": 10,
+            "wage": 32,
+            "tax": 4,
+            "net_profit": 34,
+            "trades": 10
+          }
+        ],
+        "total": {
+          "revenue": 335,
+          "restock": 113,
+          "wage": 198,
+          "tax": 16,
+          "net_profit": 8,
+          "trades": 44
+        },
+        "busy": [],
+        "reportLoaded": true,
+        "reportUnavailable": false,
+        "stockouts": 0,
+        "lowStock": 2,
+        "dismissTarget": ""
+      },
+      "restockRows": [
+        {
+          "item": "cleaver",
+          "text": "菜刀现有 2 件 · 进货单价 40 文/件 · 库存不足（低于 3 件）补到 15 件进货合计 40 文",
+          "qty": true,
+          "disabled": false,
+          "alerts": [
+            "库存不足（低于 3 件）"
+          ],
+          "fill": {
+            "text": "补到 15 件",
+            "qty": "13"
+          }
+        },
+        {
+          "item": "coarse_cloth",
+          "text": "粗布（一匹）现有 4 件 · 进货单价 25 文/件进货合计 25 文",
+          "qty": true,
+          "disabled": false,
+          "alerts": [],
+          "fill": null
+        },
+        {
+          "item": "flatbread",
+          "text": "炊饼现有 10 件 · 进货单价 3 文/件进货合计 3 文",
+          "qty": true,
+          "disabled": false,
+          "alerts": [],
+          "fill": null
+        },
+        {
+          "item": "needle",
+          "text": "绣花针现有 2 件 · 进货单价 12 文/件 · 库存不足（低于 3 件）补到 15 件进货合计 12 文",
+          "qty": true,
+          "disabled": false,
+          "alerts": [
+            "库存不足（低于 3 件）"
+          ],
+          "fill": {
+            "text": "补到 15 件",
+            "qty": "13"
+          }
+        },
+        {
+          "item": "noodle",
+          "text": "汤面现有 8 件 · 进货单价 5 文/件进货合计 5 文",
+          "qty": true,
+          "disabled": false,
+          "alerts": [],
+          "fill": null
+        },
+        {
+          "item": "rice",
+          "text": "米饭现有 6 件 · 进货单价 4 文/件进货合计 4 文",
+          "qty": true,
+          "disabled": false,
+          "alerts": [],
+          "fill": null
+        }
+      ],
+      "priceRows": [
+        {
+          "item": "cleaver",
+          "text": "菜刀当前价 40 文 · 基准价 40 文 · 库存 2 件0%改价当前基准价 40 文，你的价 40 文，比基准持平 0% · 与基准持平",
+          "note": "当前基准价 40 文，你的价 40 文，比基准持平 0% · 与基准持平",
+          "disabled": false
+        },
+        {
+          "item": "coarse_cloth",
+          "text": "粗布（一匹）当前价 25 文 · 基准价 25 文 · 库存 4 件0%改价当前基准价 25 文，你的价 25 文，比基准持平 0% · 与基准持平",
+          "note": "当前基准价 25 文，你的价 25 文，比基准持平 0% · 与基准持平",
+          "disabled": false
+        },
+        {
+          "item": "flatbread",
+          "text": "炊饼当前价 3 文 · 基准价 3 文 · 库存 10 件0%改价当前基准价 3 文，你的价 3 文，比基准持平 0% · 与基准持平",
+          "note": "当前基准价 3 文，你的价 3 文，比基准持平 0% · 与基准持平",
+          "disabled": false
+        },
+        {
+          "item": "needle",
+          "text": "绣花针当前价 12 文 · 基准价 12 文 · 库存 2 件0%改价当前基准价 12 文，你的价 12 文，比基准持平 0% · 与基准持平",
+          "note": "当前基准价 12 文，你的价 12 文，比基准持平 0% · 与基准持平",
+          "disabled": false
+        },
+        {
+          "item": "noodle",
+          "text": "汤面当前价 5 文 · 基准价 5 文 · 库存 8 件0%改价当前基准价 5 文，你的价 5 文，比基准持平 0% · 与基准持平",
+          "note": "当前基准价 5 文，你的价 5 文，比基准持平 0% · 与基准持平",
+          "disabled": false
+        },
+        {
+          "item": "rice",
+          "text": "米饭当前价 4 文 · 基准价 4 文 · 库存 6 件0%改价当前基准价 4 文，你的价 4 文，比基准持平 0% · 与基准持平",
+          "note": "当前基准价 4 文，你的价 4 文，比基准持平 0% · 与基准持平",
+          "disabled": false
+        }
+      ],
+      "employees": [],
+      "withdrawDisabled": false,
+      "withdrawText": "当前店现 100 文",
+      "restockTotal": "合计 89 文",
+      "ledger": {
+        "emptyVisible": false,
+        "emptyText": "尚无日结记录，世界日结束后来看",
+        "wrapVisible": true,
+        "rows": [
+          {
+            "day": "1",
+            "text": "第 1 日6018323+79",
+            "reason": "",
+            "netClass": "profit-pos",
+            "netColor": "rgb(31, 122, 61)"
+          },
+          {
+            "day": "2",
+            "text": "第 2 日00320-320当日无客流",
+            "reason": "当日无客流",
+            "netClass": "profit-neg",
+            "netColor": "rgb(178, 59, 59)"
+          },
+          {
+            "day": "3",
+            "text": "第 3 日300701-414工资高于营收",
+            "reason": "工资高于营收",
+            "netClass": "profit-neg",
+            "netColor": "rgb(178, 59, 59)"
+          },
+          {
+            "day": "4",
+            "text": "第 4 日202501-63进货占去营收",
+            "reason": "进货占去营收",
+            "netClass": "profit-neg",
+            "netColor": "rgb(178, 59, 59)"
+          },
+          {
+            "day": "5",
+            "text": "第 5 日10020325+4312",
+            "reason": "",
+            "netClass": "profit-pos",
+            "netColor": "rgb(31, 122, 61)"
+          },
+          {
+            "day": "6",
+            "text": "第 6 日454002+36",
+            "reason": "",
+            "netClass": "profit-pos",
+            "netColor": "rgb(31, 122, 61)"
+          },
+          {
+            "day": "7",
+            "text": "第 7 日8010324+3410",
+            "reason": "",
+            "netClass": "profit-pos",
+            "netColor": "rgb(31, 122, 61)"
+          }
+        ],
+        "totalText": "7 日合计33511319816+844",
+        "stockoutVisible": false,
+        "stockoutText": "",
+        "wrapScroll": 640,
+        "wrapClient": 308
+      },
+      "modalVisible": false,
+      "modalText": "×\n    \n      辞\n      \n        辞退雇工\n        辞退后不再到店，日结也不再计当日工资。\n      \n    \n    \n      —\n      欠薪仍计：已经记在店铺账上的欠薪不会因为辞退而消失，仍需结清。\n      \n    \n    \n      取消\n      确认辞退",
+      "toast": "已开店面 · 店内现金 100 文",
+      "errors": [],
+      "log": [
+        "event_seq 2你开店面（1200 + 272 文）",
+        "原因码 world_important · tick 34世界动态附近动静：刘三娘在市集清点新到的粗布。",
+        "原因码 world_important · tick 37世界动态附近动静：王铁匠在药铺修好一口药碾。",
+        "原因码 world_important · tick 45世界动态附近动静：一队镖车进了市集。"
+      ]
+    }
+  },
+  {
+    "name": "店铺经营 账本 7 行与「7 日合计」行渲染",
+    "ok": true,
+    "detail": {
+      "emptyVisible": false,
+      "emptyText": "尚无日结记录，世界日结束后来看",
+      "wrapVisible": true,
+      "rows": [
+        {
+          "day": "1",
+          "text": "第 1 日6018323+79",
+          "reason": "",
+          "netClass": "profit-pos",
+          "netColor": "rgb(31, 122, 61)"
+        },
+        {
+          "day": "2",
+          "text": "第 2 日00320-320当日无客流",
+          "reason": "当日无客流",
+          "netClass": "profit-neg",
+          "netColor": "rgb(178, 59, 59)"
+        },
+        {
+          "day": "3",
+          "text": "第 3 日300701-414工资高于营收",
+          "reason": "工资高于营收",
+          "netClass": "profit-neg",
+          "netColor": "rgb(178, 59, 59)"
+        },
+        {
+          "day": "4",
+          "text": "第 4 日202501-63进货占去营收",
+          "reason": "进货占去营收",
+          "netClass": "profit-neg",
+          "netColor": "rgb(178, 59, 59)"
+        },
+        {
+          "day": "5",
+          "text": "第 5 日10020325+4312",
+          "reason": "",
+          "netClass": "profit-pos",
+          "netColor": "rgb(31, 122, 61)"
+        },
+        {
+          "day": "6",
+          "text": "第 6 日454002+36",
+          "reason": "",
+          "netClass": "profit-pos",
+          "netColor": "rgb(31, 122, 61)"
+        },
+        {
+          "day": "7",
+          "text": "第 7 日8010324+3410",
+          "reason": "",
+          "netClass": "profit-pos",
+          "netColor": "rgb(31, 122, 61)"
+        }
+      ],
+      "totalText": "7 日合计33511319816+844",
+      "stockoutVisible": false,
+      "stockoutText": "",
+      "wrapScroll": 640,
+      "wrapClient": 308
+    }
+  },
+  {
+    "name": "店铺经营 正负净利着色且负行由数值推导原因",
+    "ok": true,
+    "detail": {
+      "emptyVisible": false,
+      "emptyText": "尚无日结记录，世界日结束后来看",
+      "wrapVisible": true,
+      "rows": [
+        {
+          "day": "1",
+          "text": "第 1 日6018323+79",
+          "reason": "",
+          "netClass": "profit-pos",
+          "netColor": "rgb(31, 122, 61)"
+        },
+        {
+          "day": "2",
+          "text": "第 2 日00320-320当日无客流",
+          "reason": "当日无客流",
+          "netClass": "profit-neg",
+          "netColor": "rgb(178, 59, 59)"
+        },
+        {
+          "day": "3",
+          "text": "第 3 日300701-414工资高于营收",
+          "reason": "工资高于营收",
+          "netClass": "profit-neg",
+          "netColor": "rgb(178, 59, 59)"
+        },
+        {
+          "day": "4",
+          "text": "第 4 日202501-63进货占去营收",
+          "reason": "进货占去营收",
+          "netClass": "profit-neg",
+          "netColor": "rgb(178, 59, 59)"
+        },
+        {
+          "day": "5",
+          "text": "第 5 日10020325+4312",
+          "reason": "",
+          "netClass": "profit-pos",
+          "netColor": "rgb(31, 122, 61)"
+        },
+        {
+          "day": "6",
+          "text": "第 6 日454002+36",
+          "reason": "",
+          "netClass": "profit-pos",
+          "netColor": "rgb(31, 122, 61)"
+        },
+        {
+          "day": "7",
+          "text": "第 7 日8010324+3410",
+          "reason": "",
+          "netClass": "profit-pos",
+          "netColor": "rgb(31, 122, 61)"
+        }
+      ],
+      "totalText": "7 日合计33511319816+844",
+      "stockoutVisible": false,
+      "stockoutText": "",
+      "wrapScroll": 640,
+      "wrapClient": 308
+    }
+  },
+  {
+    "name": "店铺经营 缺货日在账本里用中文直说（含具体 SKU）",
+    "ok": true,
+    "detail": [
+      {
+        "day": "8",
+        "text": "第 8 日00320-320缺货导致零成交（炊饼/阳春面）",
+        "reason": "缺货导致零成交（炊饼/阳春面）",
+        "netClass": "profit-neg",
+        "netColor": "rgb(178, 59, 59)"
+      },
+      {
+        "day": "9",
+        "text": "第 9 日40602+325",
+        "reason": "",
+        "netClass": "profit-pos",
+        "netColor": "rgb(31, 122, 61)"
+      }
+    ]
+  },
+  {
+    "name": "店铺经营 账本提示最近缺货天数，空账本不显示",
+    "ok": true,
+    "detail": {
+      "emptyVisible": false,
+      "emptyText": "尚无日结记录，世界日结束后来看",
+      "wrapVisible": true,
+      "rows": [
+        {
+          "day": "8",
+          "text": "第 8 日00320-320缺货导致零成交（炊饼/阳春面）",
+          "reason": "缺货导致零成交（炊饼/阳春面）",
+          "netClass": "profit-neg",
+          "netColor": "rgb(178, 59, 59)"
+        },
+        {
+          "day": "9",
+          "text": "第 9 日40602+325",
+          "reason": "",
+          "netClass": "profit-pos",
+          "netColor": "rgb(31, 122, 61)"
+        }
+      ],
+      "totalText": "2 日合计40632205",
+      "stockoutVisible": true,
+      "stockoutText": "最近 2 个日结里，有 1 天缺货导致零成交；低于 3 件的 SKU 请优先补货。",
+      "wrapScroll": 640,
+      "wrapClient": 308
+    }
+  },
+  {
+    "name": "店铺经营 低库存/售罄 SKU 有显式提示与建议量入口",
+    "ok": true,
+    "detail": [
+      {
+        "item": "cleaver",
+        "text": "菜刀现有 2 件 · 进货单价 40 文/件 · 库存不足（低于 3 件）补到 15 件进货合计 40 文",
+        "qty": true,
+        "disabled": false,
+        "alerts": [
+          "库存不足（低于 3 件）"
+        ],
+        "fill": {
+          "text": "补到 15 件",
+          "qty": "13"
+        }
+      },
+      {
+        "item": "coarse_cloth",
+        "text": "粗布（一匹）现有 4 件 · 进货单价 25 文/件进货合计 25 文",
+        "qty": true,
+        "disabled": false,
+        "alerts": [],
+        "fill": null
+      },
+      {
+        "item": "flatbread",
+        "text": "炊饼现有 1 件 · 进货单价 3 文/件 · 库存不足（低于 3 件）补到 15 件进货合计 3 文",
+        "qty": true,
+        "disabled": false,
+        "alerts": [
+          "库存不足（低于 3 件）"
+        ],
+        "fill": {
+          "text": "补到 15 件",
+          "qty": "14"
+        }
+      },
+      {
+        "item": "needle",
+        "text": "绣花针现有 2 件 · 进货单价 12 文/件 · 库存不足（低于 3 件）补到 15 件进货合计 12 文",
+        "qty": true,
+        "disabled": false,
+        "alerts": [
+          "库存不足（低于 3 件）"
+        ],
+        "fill": {
+          "text": "补到 15 件",
+          "qty": "13"
+        }
+      },
+      {
+        "item": "noodle",
+        "text": "汤面现有 0 件 · 进货单价 5 文/件 · 已售罄 · 优先补货补到 15 件进货合计 5 文",
+        "qty": true,
+        "disabled": false,
+        "alerts": [
+          "已售罄 · 优先补货"
+        ],
+        "fill": {
+          "text": "补到 15 件",
+          "qty": "15"
+        }
+      },
+      {
+        "item": "rice",
+        "text": "米饭现有 2 件 · 进货单价 4 文/件 · 库存不足（低于 3 件）补到 15 件进货合计 4 文",
+        "qty": true,
+        "disabled": false,
+        "alerts": [
+          "库存不足（低于 3 件）"
+        ],
+        "fill": {
+          "text": "补到 15 件",
+          "qty": "13"
+        }
+      }
+    ]
+  },
+  {
+    "name": "店铺经营 一键补货只预填建议量，仍要玩家点「进货」确认",
+    "ok": true,
+    "detail": {
+      "filled": "15",
+      "calls": 0,
+      "toast": "已按建议量填好 15 件，点「进货」确认。"
+    }
+  },
+  {
+    "name": "店铺经营 进货行显示该行合计 18 文",
+    "ok": true,
+    "detail": "炊饼现有 1 件 · 进货单价 3 文/件 · 库存不足（低于 3 件）补到 15 件进货合计 18 文"
+  },
+  {
+    "name": "店铺经营 进货成功文案含件数/花费/库存前后",
+    "ok": true,
+    "detail": [
+      "event_seq 3你进货 炊饼×6，花费 18 文，库存 10 → 16",
+      "event_seq 2你开店面（1200 + 272 文）",
+      "原因码 world_important · tick 34世界动态附近动静：刘三娘在市集清点新到的粗布。",
+      "原因码 world_important · tick 37世界动态附近动静：王铁匠在药铺修好一口药碾。",
+      "原因码 world_important · tick 45世界动态附近动静：一队镖车进了市集。"
+    ]
+  },
+  {
+    "name": "店铺经营 not_enough_money 映射中文且不露原始码",
+    "ok": true,
+    "detail": [
+      "进货汤面07:54:52你的钱不够（买入价含交易税）。"
+    ]
+  },
+  {
+    "name": "店铺经营 bad_arg:qty 映射中文",
+    "ok": true,
+    "detail": [
+      "进货汤面07:54:52数量必须是 1-20 的整数。",
+      "进货汤面07:54:52你的钱不够（买入价含交易税）。"
+    ]
+  },
+  {
+    "name": "店铺经营 进行中按钮禁用并防重复请求",
+    "ok": true,
+    "detail": {
+      "busy": {
+        "disabled": true,
+        "text": "处理中…"
+      },
+      "calls": 1
+    }
+  },
+  {
+    "name": "店铺经营 定价后果提示（基准/我的价/高低百分比）",
+    "ok": true,
+    "detail": "当前基准价 3 文，你的价 4 文，比基准高 33% · 过高可能没人买"
+  },
+  {
+    "name": "店铺经营 改价成功显示 3 → 4 文（+33%）",
+    "ok": true,
+    "detail": [
+      "event_seq 5你改价 炊饼 → 4 文（+33%）",
+      "event_seq 4你进货 米饭×1，花费 4 文，库存 6 → 7",
+      "bad_arg:qty被拒进货汤面：数量必须是 1-20 的整数。",
+      "not_enough_money被拒进货汤面：你的钱不够（买入价含交易税）。",
+      "event_seq 3你进货 炊饼×6，花费 18 文，库存 10 → 16",
+      "event_seq 2你开店面（1200 + 272 文）",
+      "原因码 world_important · tick 34世界动态附近动静：刘三娘在市集清点新到的粗布。",
+      "原因码 world_important · tick 37世界动态附近动静：王铁匠在药铺修好一口药碾。",
+      "原因码 world_important · tick 45世界动态附近动静：一队镖车进了市集。"
+    ]
+  },
+  {
+    "name": "店铺经营 price_out_of_range 映射中文",
+    "ok": true,
+    "detail": [
+      "改价炊饼07:54:53定价只能在基准价的 ±20% 以内；超出范围没人敢应价。",
+      "进货汤面07:54:52数量必须是 1-20 的整数。",
+      "进货汤面07:54:52你的钱不够（买入价含交易税）。"
+    ]
+  },
+  {
+    "name": "店铺经营 辞退二次确认写明欠薪仍计",
+    "ok": true,
+    "detail": "×\n    \n      辞\n      \n        辞退雇工\n        辞退后不再到店，日结也不再计当日工资。\n      \n    \n    \n      确定辞退 王铁匠？岗位 铁匠，日薪 32 文。\n      欠薪仍计：已经记在店铺账上的欠薪不会因为辞退而消失，仍需结清。\n      \n    \n    \n      取消\n      确认辞退"
+  },
+  {
+    "name": "店铺经营 辞退成功返回欠薪数字并从名单移除",
+    "ok": true,
+    "detail": {
+      "op": {
+        "reason": "",
+        "cash": 100,
+        "stock": [
+          {
+            "item": "cleaver",
+            "name": "菜刀",
+            "qty": 2,
+            "price": 40,
+            "base_price": 40,
+            "restock_price": 40,
+            "priced": true,
+            "zero_stock": false
+          },
+          {
+            "item": "coarse_cloth",
+            "name": "粗布（一匹）",
+            "qty": 4,
+            "price": 25,
+            "base_price": 25,
+            "restock_price": 25,
+            "priced": true,
+            "zero_stock": false
+          },
+          {
+            "item": "flatbread",
+            "name": "炊饼",
+            "qty": 16,
+            "price": 4,
+            "base_price": 3,
+            "restock_price": 3,
+            "priced": true,
+            "zero_stock": false
+          },
+          {
+            "item": "needle",
+            "name": "绣花针",
+            "qty": 2,
+            "price": 12,
+            "base_price": 12,
+            "restock_price": 12,
+            "priced": true,
+            "zero_stock": false
+          },
+          {
+            "item": "noodle",
+            "name": "汤面",
+            "qty": 8,
+            "price": 5,
+            "base_price": 5,
+            "restock_price": 5,
+            "priced": true,
+            "zero_stock": false
+          },
+          {
+            "item": "rice",
+            "name": "米饭",
+            "qty": 7,
+            "price": 4,
+            "base_price": 4,
+            "restock_price": 4,
+            "priced": true,
+            "zero_stock": false
+          }
+        ],
+        "employees": 0,
+        "days": [
+          {
+            "day": 1,
+            "revenue": 60,
+            "restock": 18,
+            "wage": 32,
+            "tax": 3,
+            "net_profit": 7,
+            "trades": 9
+          },
+          {
+            "day": 2,
+            "revenue": 0,
+            "restock": 0,
+            "wage": 32,
+            "tax": 0,
+            "net_profit": -32,
+            "trades": 0
+          },
+          {
+            "day": 3,
+            "revenue": 30,
+            "restock": 0,
+            "wage": 70,
+            "tax": 1,
+            "net_profit": -41,
+            "trades": 4
+          },
+          {
+            "day": 4,
+            "revenue": 20,
+            "restock": 25,
+            "wage": 0,
+            "tax": 1,
+            "net_profit": -6,
+            "trades": 3
+          },
+          {
+            "day": 5,
+            "revenue": 100,
+            "restock": 20,
+            "wage": 32,
+            "tax": 5,
+            "net_profit": 43,
+            "trades": 12
+          },
+          {
+            "day": 6,
+            "revenue": 45,
+            "restock": 40,
+            "wage": 0,
+            "tax": 2,
+            "net_profit": 3,
+            "trades": 6
+          },
+          {
+            "day": 7,
+            "revenue": 80,
+            "restock": 10,
+            "wage": 32,
+            "tax": 4,
+            "net_profit": 34,
+            "trades": 10
+          }
+        ],
+        "total": {
+          "revenue": 335,
+          "restock": 113,
+          "wage": 198,
+          "tax": 16,
+          "net_profit": 8,
+          "trades": 44
+        },
+        "busy": [],
+        "reportLoaded": true,
+        "reportUnavailable": false,
+        "stockouts": 0,
+        "lowStock": 2,
+        "dismissTarget": ""
+      },
+      "restockRows": [
+        {
+          "item": "cleaver",
+          "text": "菜刀现有 2 件 · 进货单价 40 文/件 · 库存不足（低于 3 件）补到 15 件进货合计 40 文",
+          "qty": true,
+          "disabled": false,
+          "alerts": [
+            "库存不足（低于 3 件）"
+          ],
+          "fill": {
+            "text": "补到 15 件",
+            "qty": "13"
+          }
+        },
+        {
+          "item": "coarse_cloth",
+          "text": "粗布（一匹）现有 4 件 · 进货单价 25 文/件进货合计 25 文",
+          "qty": true,
+          "disabled": false,
+          "alerts": [],
+          "fill": null
+        },
+        {
+          "item": "flatbread",
+          "text": "炊饼现有 16 件 · 进货单价 3 文/件进货合计 18 文",
+          "qty": true,
+          "disabled": false,
+          "alerts": [],
+          "fill": null
+        },
+        {
+          "item": "needle",
+          "text": "绣花针现有 2 件 · 进货单价 12 文/件 · 库存不足（低于 3 件）补到 15 件进货合计 12 文",
+          "qty": true,
+          "disabled": false,
+          "alerts": [
+            "库存不足（低于 3 件）"
+          ],
+          "fill": {
+            "text": "补到 15 件",
+            "qty": "13"
+          }
+        },
+        {
+          "item": "noodle",
+          "text": "汤面现有 8 件 · 进货单价 5 文/件进货合计 5 文",
+          "qty": true,
+          "disabled": false,
+          "alerts": [],
+          "fill": null
+        },
+        {
+          "item": "rice",
+          "text": "米饭现有 7 件 · 进货单价 4 文/件进货合计 4 文",
+          "qty": true,
+          "disabled": false,
+          "alerts": [],
+          "fill": null
+        }
+      ],
+      "priceRows": [
+        {
+          "item": "cleaver",
+          "text": "菜刀当前价 40 文 · 基准价 40 文 · 库存 2 件0%改价当前基准价 40 文，你的价 40 文，比基准持平 0% · 与基准持平",
+          "note": "当前基准价 40 文，你的价 40 文，比基准持平 0% · 与基准持平",
+          "disabled": false
+        },
+        {
+          "item": "coarse_cloth",
+          "text": "粗布（一匹）当前价 25 文 · 基准价 25 文 · 库存 4 件0%改价当前基准价 25 文，你的价 25 文，比基准持平 0% · 与基准持平",
+          "note": "当前基准价 25 文，你的价 25 文，比基准持平 0% · 与基准持平",
+          "disabled": false
+        },
+        {
+          "item": "flatbread",
+          "text": "炊饼当前价 4 文 · 基准价 3 文 · 库存 16 件超出 ±20%改价当前基准价 3 文，你的价 10 文，比基准高 233% · 过高可能没人买",
+          "note": "当前基准价 3 文，你的价 10 文，比基准高 233% · 过高可能没人买",
+          "disabled": false
+        },
+        {
+          "item": "needle",
+          "text": "绣花针当前价 12 文 · 基准价 12 文 · 库存 2 件0%改价当前基准价 12 文，你的价 12 文，比基准持平 0% · 与基准持平",
+          "note": "当前基准价 12 文，你的价 12 文，比基准持平 0% · 与基准持平",
+          "disabled": false
+        },
+        {
+          "item": "noodle",
+          "text": "汤面当前价 5 文 · 基准价 5 文 · 库存 8 件0%改价当前基准价 5 文，你的价 5 文，比基准持平 0% · 与基准持平",
+          "note": "当前基准价 5 文，你的价 5 文，比基准持平 0% · 与基准持平",
+          "disabled": false
+        },
+        {
+          "item": "rice",
+          "text": "米饭当前价 4 文 · 基准价 4 文 · 库存 7 件0%改价当前基准价 4 文，你的价 4 文，比基准持平 0% · 与基准持平",
+          "note": "当前基准价 4 文，你的价 4 文，比基准持平 0% · 与基准持平",
+          "disabled": false
+        }
+      ],
+      "employees": [],
+      "withdrawDisabled": false,
+      "withdrawText": "当前店现 100 文",
+      "restockTotal": "合计 104 文",
+      "ledger": {
+        "emptyVisible": false,
+        "emptyText": "尚无日结记录，世界日结束后来看",
+        "wrapVisible": true,
+        "rows": [
+          {
+            "day": "1",
+            "text": "第 1 日6018323+79",
+            "reason": "",
+            "netClass": "profit-pos",
+            "netColor": "rgb(31, 122, 61)"
+          },
+          {
+            "day": "2",
+            "text": "第 2 日00320-320当日无客流",
+            "reason": "当日无客流",
+            "netClass": "profit-neg",
+            "netColor": "rgb(178, 59, 59)"
+          },
+          {
+            "day": "3",
+            "text": "第 3 日300701-414工资高于营收",
+            "reason": "工资高于营收",
+            "netClass": "profit-neg",
+            "netColor": "rgb(178, 59, 59)"
+          },
+          {
+            "day": "4",
+            "text": "第 4 日202501-63进货占去营收",
+            "reason": "进货占去营收",
+            "netClass": "profit-neg",
+            "netColor": "rgb(178, 59, 59)"
+          },
+          {
+            "day": "5",
+            "text": "第 5 日10020325+4312",
+            "reason": "",
+            "netClass": "profit-pos",
+            "netColor": "rgb(31, 122, 61)"
+          },
+          {
+            "day": "6",
+            "text": "第 6 日454002+36",
+            "reason": "",
+            "netClass": "profit-pos",
+            "netColor": "rgb(31, 122, 61)"
+          },
+          {
+            "day": "7",
+            "text": "第 7 日8010324+3410",
+            "reason": "",
+            "netClass": "profit-pos",
+            "netColor": "rgb(31, 122, 61)"
+          }
+        ],
+        "totalText": "7 日合计33511319816+844",
+        "stockoutVisible": false,
+        "stockoutText": "",
+        "wrapScroll": 640,
+        "wrapClient": 308
+      },
+      "modalVisible": false,
+      "modalText": "×\n    \n      辞\n      \n        辞退雇工\n        辞退后不再到店，日结也不再计当日工资。\n      \n    \n    \n      确定辞退 王铁匠？岗位 铁匠，日薪 32 文。\n      欠薪仍计：已经记在店铺账上的欠薪不会因为辞退而消失，仍需结清。\n      \n    \n    \n      取消\n      处理中…",
+      "toast": "已辞退 王铁匠，欠薪 32 文仍计",
+      "errors": [
+        "改价炊饼07:54:53定价只能在基准价的 ±20% 以内；超出范围没人敢应价。",
+        "进货汤面07:54:52数量必须是 1-20 的整数。",
+        "进货汤面07:54:52你的钱不够（买入价含交易税）。"
+      ],
+      "log": [
+        "event_seq 7你辞退 王铁匠 · 欠薪 32 文仍计",
+        "event_seq 6你雇佣 王铁匠 · 铁匠 · 32 文/日",
+        "price_out_of_range被拒改价炊饼：定价只能在基准价的 ±20% 以内；超出范围没人敢应价。",
+        "event_seq 5你改价 炊饼 → 4 文（+33%）",
+        "event_seq 4你进货 米饭×1，花费 4 文，库存 6 → 7",
+        "bad_arg:qty被拒进货汤面：数量必须是 1-20 的整数。",
+        "not_enough_money被拒进货汤面：你的钱不够（买入价含交易税）。",
+        "event_seq 3你进货 炊饼×6，花费 18 文，库存 10 → 16",
+        "event_seq 2你开店面（1200 + 272 文）",
+        "原因码 world_important · tick 34世界动态附近动静：刘三娘在市集清点新到的粗布。",
+        "原因码 world_important · tick 37世界动态附近动静：王铁匠在药铺修好一口药碾。",
+        "原因码 world_important · tick 45世界动态附近动静：一队镖车进了市集。"
+      ]
+    }
+  },
+  {
+    "name": "店铺经营 target_not_employed 映射中文",
+    "ok": true,
+    "detail": [
+      "测试错误07:54:54这个人不在你的店里做工，无法辞退。",
+      "改价炊饼07:54:53定价只能在基准价的 ±20% 以内；超出范围没人敢应价。",
+      "进货汤面07:54:52数量必须是 1-20 的整数。"
+    ]
+  },
+  {
+    "name": "店铺经营 提现成功显示店现前后",
+    "ok": true,
+    "detail": {
+      "op": {
+        "reason": "",
+        "cash": 80,
+        "stock": [
+          {
+            "item": "cleaver",
+            "name": "菜刀",
+            "qty": 2,
+            "price": 40,
+            "base_price": 40,
+            "restock_price": 40,
+            "priced": true,
+            "zero_stock": false
+          },
+          {
+            "item": "coarse_cloth",
+            "name": "粗布（一匹）",
+            "qty": 4,
+            "price": 25,
+            "base_price": 25,
+            "restock_price": 25,
+            "priced": true,
+            "zero_stock": false
+          },
+          {
+            "item": "flatbread",
+            "name": "炊饼",
+            "qty": 16,
+            "price": 4,
+            "base_price": 3,
+            "restock_price": 3,
+            "priced": true,
+            "zero_stock": false
+          },
+          {
+            "item": "needle",
+            "name": "绣花针",
+            "qty": 2,
+            "price": 12,
+            "base_price": 12,
+            "restock_price": 12,
+            "priced": true,
+            "zero_stock": false
+          },
+          {
+            "item": "noodle",
+            "name": "汤面",
+            "qty": 8,
+            "price": 5,
+            "base_price": 5,
+            "restock_price": 5,
+            "priced": true,
+            "zero_stock": false
+          },
+          {
+            "item": "rice",
+            "name": "米饭",
+            "qty": 7,
+            "price": 4,
+            "base_price": 4,
+            "restock_price": 4,
+            "priced": true,
+            "zero_stock": false
+          }
+        ],
+        "employees": 0,
+        "days": [
+          {
+            "day": 1,
+            "revenue": 60,
+            "restock": 18,
+            "wage": 32,
+            "tax": 3,
+            "net_profit": 7,
+            "trades": 9
+          },
+          {
+            "day": 2,
+            "revenue": 0,
+            "restock": 0,
+            "wage": 32,
+            "tax": 0,
+            "net_profit": -32,
+            "trades": 0
+          },
+          {
+            "day": 3,
+            "revenue": 30,
+            "restock": 0,
+            "wage": 70,
+            "tax": 1,
+            "net_profit": -41,
+            "trades": 4
+          },
+          {
+            "day": 4,
+            "revenue": 20,
+            "restock": 25,
+            "wage": 0,
+            "tax": 1,
+            "net_profit": -6,
+            "trades": 3
+          },
+          {
+            "day": 5,
+            "revenue": 100,
+            "restock": 20,
+            "wage": 32,
+            "tax": 5,
+            "net_profit": 43,
+            "trades": 12
+          },
+          {
+            "day": 6,
+            "revenue": 45,
+            "restock": 40,
+            "wage": 0,
+            "tax": 2,
+            "net_profit": 3,
+            "trades": 6
+          },
+          {
+            "day": 7,
+            "revenue": 80,
+            "restock": 10,
+            "wage": 32,
+            "tax": 4,
+            "net_profit": 34,
+            "trades": 10
+          }
+        ],
+        "total": {
+          "revenue": 335,
+          "restock": 113,
+          "wage": 198,
+          "tax": 16,
+          "net_profit": 8,
+          "trades": 44
+        },
+        "busy": [],
+        "reportLoaded": true,
+        "reportUnavailable": false,
+        "stockouts": 0,
+        "lowStock": 2,
+        "dismissTarget": ""
+      },
+      "restockRows": [
+        {
+          "item": "cleaver",
+          "text": "菜刀现有 2 件 · 进货单价 40 文/件 · 库存不足（低于 3 件）补到 15 件进货合计 40 文",
+          "qty": true,
+          "disabled": false,
+          "alerts": [
+            "库存不足（低于 3 件）"
+          ],
+          "fill": {
+            "text": "补到 15 件",
+            "qty": "13"
+          }
+        },
+        {
+          "item": "coarse_cloth",
+          "text": "粗布（一匹）现有 4 件 · 进货单价 25 文/件进货合计 25 文",
+          "qty": true,
+          "disabled": false,
+          "alerts": [],
+          "fill": null
+        },
+        {
+          "item": "flatbread",
+          "text": "炊饼现有 16 件 · 进货单价 3 文/件进货合计 18 文",
+          "qty": true,
+          "disabled": false,
+          "alerts": [],
+          "fill": null
+        },
+        {
+          "item": "needle",
+          "text": "绣花针现有 2 件 · 进货单价 12 文/件 · 库存不足（低于 3 件）补到 15 件进货合计 12 文",
+          "qty": true,
+          "disabled": false,
+          "alerts": [
+            "库存不足（低于 3 件）"
+          ],
+          "fill": {
+            "text": "补到 15 件",
+            "qty": "13"
+          }
+        },
+        {
+          "item": "noodle",
+          "text": "汤面现有 8 件 · 进货单价 5 文/件进货合计 5 文",
+          "qty": true,
+          "disabled": false,
+          "alerts": [],
+          "fill": null
+        },
+        {
+          "item": "rice",
+          "text": "米饭现有 7 件 · 进货单价 4 文/件进货合计 4 文",
+          "qty": true,
+          "disabled": false,
+          "alerts": [],
+          "fill": null
+        }
+      ],
+      "priceRows": [
+        {
+          "item": "cleaver",
+          "text": "菜刀当前价 40 文 · 基准价 40 文 · 库存 2 件0%改价当前基准价 40 文，你的价 40 文，比基准持平 0% · 与基准持平",
+          "note": "当前基准价 40 文，你的价 40 文，比基准持平 0% · 与基准持平",
+          "disabled": false
+        },
+        {
+          "item": "coarse_cloth",
+          "text": "粗布（一匹）当前价 25 文 · 基准价 25 文 · 库存 4 件0%改价当前基准价 25 文，你的价 25 文，比基准持平 0% · 与基准持平",
+          "note": "当前基准价 25 文，你的价 25 文，比基准持平 0% · 与基准持平",
+          "disabled": false
+        },
+        {
+          "item": "flatbread",
+          "text": "炊饼当前价 4 文 · 基准价 3 文 · 库存 16 件超出 ±20%改价当前基准价 3 文，你的价 10 文，比基准高 233% · 过高可能没人买",
+          "note": "当前基准价 3 文，你的价 10 文，比基准高 233% · 过高可能没人买",
+          "disabled": false
+        },
+        {
+          "item": "needle",
+          "text": "绣花针当前价 12 文 · 基准价 12 文 · 库存 2 件0%改价当前基准价 12 文，你的价 12 文，比基准持平 0% · 与基准持平",
+          "note": "当前基准价 12 文，你的价 12 文，比基准持平 0% · 与基准持平",
+          "disabled": false
+        },
+        {
+          "item": "noodle",
+          "text": "汤面当前价 5 文 · 基准价 5 文 · 库存 8 件0%改价当前基准价 5 文，你的价 5 文，比基准持平 0% · 与基准持平",
+          "note": "当前基准价 5 文，你的价 5 文，比基准持平 0% · 与基准持平",
+          "disabled": false
+        },
+        {
+          "item": "rice",
+          "text": "米饭当前价 4 文 · 基准价 4 文 · 库存 7 件0%改价当前基准价 4 文，你的价 4 文，比基准持平 0% · 与基准持平",
+          "note": "当前基准价 4 文，你的价 4 文，比基准持平 0% · 与基准持平",
+          "disabled": false
+        }
+      ],
+      "employees": [],
+      "withdrawDisabled": false,
+      "withdrawText": "当前店现 80 文",
+      "restockTotal": "合计 104 文",
+      "ledger": {
+        "emptyVisible": false,
+        "emptyText": "尚无日结记录，世界日结束后来看",
+        "wrapVisible": true,
+        "rows": [
+          {
+            "day": "1",
+            "text": "第 1 日6018323+79",
+            "reason": "",
+            "netClass": "profit-pos",
+            "netColor": "rgb(31, 122, 61)"
+          },
+          {
+            "day": "2",
+            "text": "第 2 日00320-320当日无客流",
+            "reason": "当日无客流",
+            "netClass": "profit-neg",
+            "netColor": "rgb(178, 59, 59)"
+          },
+          {
+            "day": "3",
+            "text": "第 3 日300701-414工资高于营收",
+            "reason": "工资高于营收",
+            "netClass": "profit-neg",
+            "netColor": "rgb(178, 59, 59)"
+          },
+          {
+            "day": "4",
+            "text": "第 4 日202501-63进货占去营收",
+            "reason": "进货占去营收",
+            "netClass": "profit-neg",
+            "netColor": "rgb(178, 59, 59)"
+          },
+          {
+            "day": "5",
+            "text": "第 5 日10020325+4312",
+            "reason": "",
+            "netClass": "profit-pos",
+            "netColor": "rgb(31, 122, 61)"
+          },
+          {
+            "day": "6",
+            "text": "第 6 日454002+36",
+            "reason": "",
+            "netClass": "profit-pos",
+            "netColor": "rgb(31, 122, 61)"
+          },
+          {
+            "day": "7",
+            "text": "第 7 日8010324+3410",
+            "reason": "",
+            "netClass": "profit-pos",
+            "netColor": "rgb(31, 122, 61)"
+          }
+        ],
+        "totalText": "7 日合计33511319816+844",
+        "stockoutVisible": false,
+        "stockoutText": "",
+        "wrapScroll": 640,
+        "wrapClient": 308
+      },
+      "modalVisible": false,
+      "modalText": "×\n    \n      辞\n      \n        辞退雇工\n        辞退后不再到店，日结也不再计当日工资。\n      \n    \n    \n      确定辞退 王铁匠？岗位 铁匠，日薪 32 文。\n      欠薪仍计：已经记在店铺账上的欠薪不会因为辞退而消失，仍需结清。\n      \n    \n    \n      取消\n      处理中…",
+      "toast": "提现 20 文，店现 100 → 80",
+      "errors": [
+        "测试错误07:54:54这个人不在你的店里做工，无法辞退。",
+        "改价炊饼07:54:53定价只能在基准价的 ±20% 以内；超出范围没人敢应价。",
+        "进货汤面07:54:52数量必须是 1-20 的整数。"
+      ],
+      "log": [
+        "event_seq 8你提现 20 文 · 店现 100 → 80",
+        "target_not_employed被拒测试错误：这个人不在你的店里做工，无法辞退。",
+        "event_seq 7你辞退 王铁匠 · 欠薪 32 文仍计",
+        "event_seq 6你雇佣 王铁匠 · 铁匠 · 32 文/日",
+        "price_out_of_range被拒改价炊饼：定价只能在基准价的 ±20% 以内；超出范围没人敢应价。",
+        "event_seq 5你改价 炊饼 → 4 文（+33%）",
+        "event_seq 4你进货 米饭×1，花费 4 文，库存 6 → 7",
+        "bad_arg:qty被拒进货汤面：数量必须是 1-20 的整数。",
+        "not_enough_money被拒进货汤面：你的钱不够（买入价含交易税）。",
+        "event_seq 3你进货 炊饼×6，花费 18 文，库存 10 → 16",
+        "event_seq 2你开店面（1200 + 272 文）",
+        "原因码 world_important · tick 34世界动态附近动静：刘三娘在市集清点新到的粗布。",
+        "原因码 world_important · tick 37世界动态附近动静：王铁匠在药铺修好一口药碾。",
+        "原因码 world_important · tick 45世界动态附近动静：一队镖车进了市集。"
+      ]
+    }
+  },
+  {
+    "name": "店铺经营 提现本地校验与店铺现金不足中文提示",
+    "ok": true,
+    "detail": [
+      "提现07:54:55店铺现金不足；先等日结回款，或把数量调小。",
+      "提现07:54:54提现金额必须是正整数。",
+      "测试错误07:54:54这个人不在你的店里做工，无法辞退。"
+    ]
+  },
+  {
+    "name": "店铺经营 空账本显示「尚无日结记录，世界日结束后来看」",
+    "ok": true,
+    "detail": {
+      "emptyVisible": true,
+      "emptyText": "尚无日结记录，世界日结束后来看",
+      "wrapVisible": false,
+      "rows": [],
+      "totalText": "",
+      "stockoutVisible": false,
+      "stockoutText": "",
+      "wrapScroll": 0,
+      "wrapClient": 0
+    }
+  },
+  {
+    "name": "店铺经营 375×812 账本横向滚动且页面不溢出",
+    "ok": true,
+    "detail": {
+      "pageOverflow": false,
+      "innerWidth": 375,
+      "scrollWidth": 375,
+      "ledgerScrollable": true,
+      "controlCount": 34,
+      "small": []
+    }
+  },
+  {
+    "name": "店铺经营 移动端新增控件均 ≥44px",
+    "ok": true,
+    "detail": {
+      "pageOverflow": false,
+      "innerWidth": 375,
+      "scrollWidth": 375,
+      "ledgerScrollable": true,
+      "controlCount": 34,
+      "small": []
+    }
+  },
+  {
+    "name": "门派 未入派显示 800 文/声望 20 的当前值、需要值与差额",
+    "ok": true,
+    "detail": "立派800 文（注册费 200 + 启动金 600） · 声望 20门派名宗旨立派费用：当前 1200 文 / 需要 800 文 / 已达标声望：当前 30 / 需要 20 / 已达标门派名需 2-12 字；当前 3 字。立派加入已有门派join_sect 已开放门派 id / 驻地暂不可用：后端未提供门派列表接口（无 factions[]），需填写门派 id 或驻地 id。加入已有门派"
+  },
+  {
+    "name": "门派 未入派不出现名册/金库假数据",
+    "ok": true,
+    "detail": "立派800 文（注册费 200 + 启动金 600） · 声望 20门派名宗旨立派费用：当前 1200 文 / 需要 800 文 / 已达标声望：当前 30 / 需要 20 / 已达标门派名需 2-12 字；当前 3 字。立派加入已有门派join_sect 已开放门派 id / 驻地暂不可用：后端未提供门派列表接口（无 factions[]），需填写门派 id 或驻地 id。加入已有门派"
+  },
+  {
+    "name": "门派 立派门槛不足时按钮禁用并写清差额",
+    "ok": true,
+    "detail": "立派800 文（注册费 200 + 启动金 600） · 声望 20门派名宗旨立派费用：当前 300 文 / 需要 800 文 / 差 500 文声望：当前 5 / 需要 20 / 差 15门派名需 2-12 字；当前 0 字。立派加入已有门派join_sect 已开放门派 id / 驻地暂不可用：后端未提供门派列表接口（无 factions[]），需填写门派 id 或驻地 id。加入已有门派"
+  },
+  {
+    "name": "门派 立派成功带真实金库余额与名册人数",
+    "ok": true,
+    "detail": "立派成功：青竹派 · 金库 600 文 · 名册 1 人"
+  },
+  {
+    "name": "门派 弟子视角显示门派、门主与自己的欠饷天数",
+    "ok": true,
+    "detail": "门派：青竹派 · 门主：刘三娘名册 3 / 上限 3 / 已满 · 金库：500 文名册名册 3 / 上限 3 / 已满门级结算：今日未结算 · 逐人结算：暂不可用（缺 disciples[].settled_today）门下弟子你在驻地在场技能 0.35 · 好感/信任：暂不可用（缺 disciples[].affection/trust）逐人结算：暂不可用（缺 disciples[].settled_today） · 俸禄：欠饷 20 文（约 2 天，日俸 10 文，满 30 文离派）王铁匠在驻地在场技能 0.55 · 好感 35 · 信任 31逐人结算：暂不可用（缺 disciples[].settled_today） · 欠饷 20 文（约 2 天）只有门主可以收徒、派俸、驱逐与金库操作。你的俸禄：日俸 10 文；欠饷满 30 文当日离派（债务保留）。"
+  },
+  {
+    "name": "门派 弟子视角不出现门主写操作",
+    "ok": true,
+    "detail": "门派：青竹派 · 门主：刘三娘名册 3 / 上限 3 / 已满 · 金库：500 文名册名册 3 / 上限 3 / 已满门级结算：今日未结算 · 逐人结算：暂不可用（缺 disciples[].settled_today）门下弟子你在驻地在场技能 0.35 · 好感/信任：暂不可用（缺 disciples[].affection/trust）逐人结算：暂不可用（缺 disciples[].settled_today） · 俸禄：欠饷 20 文（约 2 天，日俸 10 文，满 30 文离派）王铁匠在驻地在场技能 0.55 · 好感 35 · 信任 31逐人结算：暂不可用（缺 disciples[].settled_today） · 欠饷 20 文（约 2 天）只有门主可以收徒、派俸、驱逐与金库操作。你的俸禄：日俸 10 文；欠饷满 30 文当日离派（债务保留）。"
+  },
+  {
+    "name": "门派 门主名册含技能/好感/信任/欠饷与结算状态缺口标注",
+    "ok": true,
+    "detail": {
+      "id": "npc:wang_tiejiang",
+      "cls": "sect-row",
+      "recruit": false,
+      "text": "王铁匠在驻地在场技能 0.55 · 好感 35 · 信任 31逐人结算：暂不可用（缺 disciples[].settled_today） · 欠饷 20 文（约 2 天）驱逐",
+      "button": "驱逐",
+      "disabled": false
+    }
+  },
+  {
+    "name": "门派 收徒门槛显示当前/需要/差额且未达标禁用",
+    "ok": true,
+    "detail": {
+      "id": "npc:afu",
+      "cls": "commerce-row sect-row",
+      "recruit": true,
+      "text": "阿福药童好感 12/30（差 18） · 信任 8/30（差 22） · 技能 0.20/0.2名额已满",
+      "button": "名额已满",
+      "disabled": true
+    }
+  },
+  {
+    "name": "门派 派俸成功回显真实会费/俸禄/金库与名册",
+    "ok": true,
+    "detail": "日结完成：收会费 10 文，发俸禄 20 文，金库 590 文，名册 3 人"
+  },
+  {
+    "name": "门派 当日已结算后派俸按钮禁用并回显今日已结算",
+    "ok": true,
+    "detail": {
+      "disabled": true,
+      "text": "今日已结算"
+    }
+  },
+  {
+    "name": "门派 驱逐二次确认写明欠薪债务仍保留",
+    "ok": true,
+    "detail": "×\n    \n      王\n      \n        驱逐弟子\n        这一步不可撤销。\n      \n    \n    \n      把 王铁匠 逐出 青竹派？\n      欠薪债务仍保留：驱逐只解除门派归属与师徒关系，门派欠该弟子的俸禄（欠饷）不会消失。\n      \n    \n    \n      取消\n      确认驱逐"
+  },
+  {
+    "name": "门派 驱逐成功回显真实名册人数",
+    "ok": true,
+    "detail": "已驱逐 王铁匠 · 金库 590 文 · 名册 2 人"
+  },
+  {
+    "name": "门派 金库显示保留金 100 与单次上限/可提上限",
+    "ok": true,
+    "detail": "门派：青竹派 · 门主：门派掌门名册 2 / 上限 3 / 还差 1 人金库：590 文 · 门级结算：今日已结算名册名册 2 / 上限 3 / 还差 1 人门级结算：今日已结算 · 逐人结算：暂不可用（缺 disciples[].settled_today）阿福在驻地在场技能 0.30 · 好感 12 · 信任 8逐人结算：暂不可用（缺 disciples[].settled_today） · 欠饷 0 文驱逐派俸禄每日一次；会费 5 文/人，俸禄 10 文/人今日已结算 · 弟子 1 人今日已结算收徒好感 30 / 信任 30 / 掌门技能 0.4名册人数：当前 2 / 上限 3 / 还差 1 人掌门技能：当前 0.3 / 需要 0.4 / 差 0.1刘三娘商户好感 0/30（差 30） · 信任 0/30（差 30） · 技能 0.30/0.2收徒王铁匠铁匠好感 35/30（达标） · 信任 31/30（达标） · 技能 0.40/0.2收徒阿福药童好感 12/30（差 18） · 信任 8/30（差 22） · 技能 0.20/0.2收徒陈货郎货郎好感 7/30（差 23） · 信任 7/30（差 23） · 技能 0.05/0.2收徒金库存入 / 取出（单次上限 500 文，须留 100 文）当前余额 590 文 / 保留金 100 文 / 单次上限 500 文 / 最多可提 490 文存入钱包 300 文存入取出可提上限 490 文取出"
+  },
+  {
+    "name": "门派 取出超限按钮禁用并给可提上限",
+    "ok": true,
+    "detail": "门派：青竹派 · 门主：门派掌门名册 2 / 上限 3 / 还差 1 人金库：590 文 · 门级结算：今日已结算名册名册 2 / 上限 3 / 还差 1 人门级结算：今日已结算 · 逐人结算：暂不可用（缺 disciples[].settled_today）阿福在驻地在场技能 0.30 · 好感 12 · 信任 8逐人结算：暂不可用（缺 disciples[].settled_today） · 欠饷 0 文驱逐派俸禄每日一次；会费 5 文/人，俸禄 10 文/人今日已结算 · 弟子 1 人今日已结算收徒好感 30 / 信任 30 / 掌门技能 0.4名册人数：当前 2 / 上限 3 / 还差 1 人掌门技能：当前 0.3 / 需要 0.4 / 差 0.1刘三娘商户好感 0/30（差 30） · 信任 0/30（差 30） · 技能 0.30/0.2收徒王铁匠铁匠好感 35/30（达标） · 信任 31/30（达标） · 技能 0.40/0.2收徒阿福药童好感 12/30（差 18） · 信任 8/30（差 22） · 技能 0.20/0.2收徒陈货郎货郎好感 7/30（差 23） · 信任 7/30（差 23） · 技能 0.05/0.2收徒金库存入 / 取出（单次上限 500 文，须留 100 文）当前余额 590 文 / 保留金 100 文 / 单次上限 500 文 / 最多可提 490 文存入钱包 300 文存入取出可提上限 490 文取出"
+  },
+  {
+    "name": "门派 取出成功回显金库真实余额",
+    "ok": true,
+    "detail": "已取出 50 文 · 金库 540 文"
+  },
+  {
+    "name": "门派 存入成功回显金库真实余额",
+    "ok": true,
+    "detail": "已存入 100 文 · 金库 640 文"
+  },
+  {
+    "name": "门派 写动作在途按钮禁用并显示处理中",
+    "ok": true,
+    "detail": {
+      "missing": false,
+      "inSect": true,
+      "role": "leader",
+      "name": "青竹派",
+      "leader": "门派掌门",
+      "memberCount": 3,
+      "cap": 3,
+      "treasury": 600,
+      "settledToday": false,
+      "disciples": [
+        {
+          "id": "npc:wang_tiejiang",
+          "name": "王铁匠",
+          "skill": 0.55,
+          "atSect": true,
+          "arrears": 0,
+          "affection": 35,
+          "trust": 31,
+          "settledToday": null
+        },
+        {
+          "id": "npc:afu",
+          "name": "阿福",
+          "skill": 0.3,
+          "atSect": true,
+          "arrears": 0,
+          "affection": 12,
+          "trust": 8,
+          "settledToday": null
+        }
+      ],
+      "candidates": [
+        {
+          "id": "npc:liu_sanniang",
+          "name": "刘三娘",
+          "bond": 0,
+          "trust": 0,
+          "skill": 0.3
+        },
+        {
+          "id": "npc:wang_tiejiang",
+          "name": "王铁匠",
+          "bond": 35,
+          "trust": 31,
+          "skill": 0.4
+        },
+        {
+          "id": "npc:afu",
+          "name": "阿福",
+          "bond": 12,
+          "trust": 8,
+          "skill": 0.2
+        },
+        {
+          "id": "npc:chen_huolang",
+          "name": "陈货郎",
+          "bond": 7,
+          "trust": 7,
+          "skill": 0.05
+        }
+      ],
+      "reputation": 0.2,
+      "money": 250,
+      "maxSkill": 0.35,
+      "busy": [
+        "pay"
+      ],
+      "result": "已存入 100 文 · 金库 640 文",
+      "resultBad": false,
+      "confirmTarget": "",
+      "confirmOpen": false,
+      "foundDisabled": null,
+      "bodyText": "门派：青竹派 · 门主：门派掌门名册 3 / 上限 3 / 已满金库：600 文 · 门级结算：今日未结算名册名册 3 / 上限 3 / 已满门级结算：今日未结算 · 逐人结算：暂不可用（缺 disciples[].settled_today）王铁匠在驻地在场技能 0.55 · 好感 35 · 信任 31逐人结算：暂不可用（缺 disciples[].settled_today） · 欠饷 0 文驱逐阿福在驻地在场技能 0.30 · 好感 12 · 信任 8逐人结算：暂不可用（缺 disciples[].settled_today） · 欠饷 0 文驱逐派俸禄每日一次；会费 5 文/人，俸禄 10 文/人今日未结算 · 弟子 2 人处理中…收徒好感 30 / 信任 30 / 掌门技能 0.4名册人数：当前 3 / 上限 3 / 已满掌门技能：当前 0.3 / 需要 0.4 / 差 0.1刘三娘商户好感 0/30（差 30） · 信任 0/30（差 30） · 技能 0.30/0.2名额已满王铁匠铁匠好感 35/30（达标） · 信任 31/30（达标） · 技能 0.40/0.2名额已满阿福药童好感 12/30（差 18） · 信任 8/30（差 22） · 技能 0.20/0.2名额已满陈货郎货郎好感 7/30（差 23） · 信任 7/30（差 23） · 技能 0.05/0.",
+      "hint": "青竹派 · 门主 · 市集 · tick 22",
+      "rows": [
+        {
+          "id": "npc:wang_tiejiang",
+          "cls": "sect-row",
+          "recruit": false,
+          "text": "王铁匠在驻地在场技能 0.55 · 好感 35 · 信任 31逐人结算：暂不可用（缺 disciples[].settled_today） · 欠饷 0 文驱逐",
+          "button": "驱逐",
+          "disabled": false
+        },
+        {
+          "id": "npc:afu",
+          "cls": "sect-row",
+          "recruit": false,
+          "text": "阿福在驻地在场技能 0.30 · 好感 12 · 信任 8逐人结算：暂不可用（缺 disciples[].settled_today） · 欠饷 0 文驱逐",
+          "button": "驱逐",
+          "disabled": false
+        },
+        {
+          "id": "npc:liu_sanniang",
+          "cls": "commerce-row sect-row",
+          "recruit": true,
+          "text": "刘三娘商户好感 0/30（差 30） · 信任 0/30（差 30） · 技能 0.30/0.2名额已满",
+          "button": "名额已满",
+          "disabled": true
+        },
+        {
+          "id": "npc:wang_tiejiang",
+          "cls": "commerce-row sect-row",
+          "recruit": true,
+          "text": "王铁匠铁匠好感 35/30（达标） · 信任 31/30（达标） · 技能 0.40/0.2名额已满",
+          "button": "名额已满",
+          "disabled": true
+        },
+        {
+          "id": "npc:afu",
+          "cls": "commerce-row sect-row",
+          "recruit": true,
+          "text": "阿福药童好感 12/30（差 18） · 信任 8/30（差 22） · 技能 0.20/0.2名额已满",
+          "button": "名额已满",
+          "disabled": true
+        },
+        {
+          "id": "npc:chen_huolang",
+          "cls": "commerce-row sect-row",
+          "recruit": true,
+          "text": "陈货郎货郎好感 7/30（差 23） · 信任 7/30（差 23） · 技能 0.05/0.2名额已满",
+          "button": "名额已满",
+          "disabled": true
+        }
+      ],
+      "body": "门派：青竹派 · 门主：门派掌门名册 3 / 上限 3 / 已满金库：600 文 · 门级结算：今日未结算名册名册 3 / 上限 3 / 已满门级结算：今日未结算 · 逐人结算：暂不可用（缺 disciples[].settled_today）王铁匠在驻地在场技能 0.55 · 好感 35 · 信任 31逐人结算：暂不可用（缺 disciples[].settled_today） · 欠饷 0 文驱逐阿福在驻地在场技能 0.30 · 好感 12 · 信任 8逐人结算：暂不可用（缺 disciples[].settled_today） · 欠饷 0 文驱逐派俸禄每日一次；会费 5 文/人，俸禄 10 文/人今日未结算 · 弟子 2 人处理中…收徒好感 30 / 信任 30 / 掌门技能 0.4名册人数：当前 3 / 上限 3 / 已满掌门技能：当前 0.3 / 需要 0.4 / 差 0.1刘三娘商户好感 0/30（差 30） · 信任 0/30（差 30） · 技能 0.30/0.2名额已满王铁匠铁匠好感 35/30（达标） · 信任 31/30（达标） · 技能 0.40/0.2名额已满阿福药童好感 12/30（差 18） · 信任 8/30（差 22） · 技能 0.20/0.2名额已满陈货郎货郎好感 7/30（差 23） · 信任 7/30（差 23） · 技能 0.05/0.2名额已满金库存入 / 取出（单次上限 500 文，须留 100 文）当前余额 600 文 / 保留金 100 文 / 单次上限 500 文 / 最多可提 500 文存入钱包 250 文存入取出可提上限 500 文取出",
+      "foundText": "",
+      "joinDisabled": null,
+      "payDisabled": true,
+      "payText": "处理中…",
+      "depositDisabled": false,
+      "depositText": "存入",
+      "withdrawDisabled": false,
+      "withdrawText": "取出",
+      "modalVisible": false,
+      "modalText": "把 王铁匠 逐出 青竹派？",
+      "modalAll": "×\n    \n      王\n      \n        驱逐弟子\n        这一步不可撤销。\n      \n    \n    \n      把 王铁匠 逐出 青竹派？\n      欠薪债务仍保留：驱逐只解除门派归属与师徒关系，门派欠该弟子的俸禄（欠饷）不会消失。\n      \n    \n    \n      取消\n      确认驱逐",
+      "modalError": "",
+      "toast": "已存入 100 文。",
+      "errors": [],
+      "log": [
+        "金库 640 文你金库存入 100 文",
+        "金库 540 文你金库取出 50 文",
+        "event_seq 3你驱逐弟子：王铁匠",
+        "日结完成：收会费 10 文，发俸禄 20 文，金库 590 文，名册 3 人你派俸禄",
+        "原因码 world_important · tick 34世界动态附近动静：刘三娘在市集清点新到的粗布。",
+        "原因码 world_important · tick 37世界动态附近动静：王铁匠在药铺修好一口药碾。",
+        "原因码 world_important · tick 45世界动态附近动静：一队镖车进了市集。"
+      ]
+    }
+  },
+  {
+    "name": "门派 13 个拒绝码全部有中文文案",
+    "ok": true,
+    "detail": [
+      [
+        "no_sect",
+        "你还没有加入门派。"
+      ],
+      [
+        "insufficient_funds",
+        "你的钱不够支付这笔费用。"
+      ],
+      [
+        "insufficient_rep",
+        "声望不足；先攒够声望再来。"
+      ],
+      [
+        "already_in_sect",
+        "你已经在门派中，不能重复加入或另立门户。"
+      ],
+      [
+        "not_sect_leader",
+        "只有门主能执行这个操作。"
+      ],
+      [
+        "favor_too_low",
+        "对方对你好感不足，还不愿拜入门下。"
+      ],
+      [
+        "trust_too_low",
+        "对方对你的信任不足，尚不能收为弟子。"
+      ],
+      [
+        "sect_full",
+        "门派弟子已满，暂时不能再收徒。"
+      ],
+      [
+        "disciple_not_found",
+        "门派名册里没有这名弟子。"
+      ],
+      [
+        "withdraw_over_cap",
+        "提取金额超过可提上限。"
+      ],
+      [
+        "treasury_reserve",
+        "金库需保留底金，不能全部取走。"
+      ],
+      [
+        "insufficient_treasury",
+        "门派金库余额不足。"
+      ],
+      [
+        "already_settled_today",
+        "今日俸禄已经发放，明日再来。"
+      ]
+    ]
+  },
+  {
+    "name": "门派 缺顶层 sect 字段时显示暂不可用且不造假数据",
+    "ok": true,
+    "detail": "门派数据暂不可用：GET /api/player/state 未返回顶层 sect 字段。"
+  },
+  {
+    "name": "门派 未登录不渲染空壳假数据",
+    "ok": true,
+    "detail": {
+      "body": "",
+      "hint": "登录并进入世界后查看门派。",
+      "state": {
+        "missing": true,
+        "inSect": false,
+        "role": "",
+        "name": "",
+        "leader": "",
+        "memberCount": null,
+        "cap": 3,
+        "treasury": null,
+        "settledToday": null,
+        "disciples": [],
+        "candidates": [],
+        "reputation": null,
+        "money": null,
+        "maxSkill": null,
+        "busy": [],
+        "result": "",
+        "resultBad": false,
+        "confirmTarget": "",
+        "confirmOpen": false,
+        "foundDisabled": false,
+        "bodyText": "",
+        "hint": "登录并进入世界后查看门派。"
+      }
+    }
+  },
+  {
+    "name": "门派 移动端 375px 按钮 ≥44px 且页面不溢出",
+    "ok": true,
+    "detail": {
+      "pageOverflow": false,
+      "scrollWidth": 375,
+      "innerWidth": 375,
+      "buttons": 9,
+      "small": []
+    }
   },
   {
     "name": "桌面 引导①出现并高亮「先做这个」",
@@ -58,11 +2811,11 @@
         "text": "先做这个接「送一匹粗布到药铺」，发布人刘三娘就在市集（12 文）",
         "rect": {
           "left": 935,
-          "top": 140.90625,
+          "top": 165.546875,
           "width": 310,
           "height": 51,
           "right": 1245,
-          "bottom": 191.90625
+          "bottom": 216.546875
         },
         "tag": "DIV",
         "id": "todayNext",
@@ -87,11 +2840,11 @@
         "text": "去接",
         "rect": {
           "left": 1186,
-          "top": 754.59375,
+          "top": 450.234375,
           "width": 48,
           "height": 32.59375,
           "right": 1234,
-          "bottom": 787.1875
+          "bottom": 482.828125
         },
         "tag": "BUTTON",
         "id": "",
@@ -116,11 +2869,11 @@
         "text": "药铺pharmacy走 →",
         "rect": {
           "left": 48,
-          "top": 225.5,
+          "top": 250.140625,
           "width": 118.5,
           "height": 56.75,
           "right": 166.5,
-          "bottom": 282.25
+          "bottom": 306.890625
         },
         "tag": "BUTTON",
         "id": "",
@@ -141,11 +2894,11 @@
         "text": "交付",
         "rect": {
           "left": 1186,
-          "top": 754.8125,
+          "top": 449.453125,
           "width": 48,
           "height": 32.59375,
           "right": 1234,
-          "bottom": 787.40625
+          "bottom": 482.046875
         },
         "tag": "BUTTON",
         "id": "",
@@ -172,7 +2925,7 @@
         "u_guide_desktop": {
           "status": "completed",
           "step": 4,
-          "updated": 1793800365891
+          "updated": 1793922907567
         }
       },
       "localKeys": [
@@ -188,7 +2941,7 @@
       "u_guide_desktop": {
         "status": "completed",
         "step": 4,
-        "updated": 1793800365891
+        "updated": 1793922907567
       }
     }
   },
@@ -219,7 +2972,7 @@
         "u_skip_desktop": {
           "status": "skipped",
           "step": 1,
-          "updated": 1793800367760
+          "updated": 1793922909490
         }
       }
     }
@@ -348,11 +3101,11 @@
       "text": "药铺pharmacy走 →",
       "rect": {
         "left": 40,
-        "top": 377.9375,
+        "top": 377.890625,
         "width": 144,
         "height": 56.75,
         "right": 184,
-        "bottom": 434.6875
+        "bottom": 434.640625
       },
       "tag": "BUTTON",
       "id": "",
@@ -488,6 +3241,85 @@
     "detail": 375
   },
   {
+    "name": "移动 世界动态默认可见且固定高度（≤200px）",
+    "ok": true,
+    "detail": {
+      "blockVisible": true,
+      "count": 14,
+      "feedRows": 14,
+      "ticks": [
+        53,
+        52,
+        51,
+        50,
+        45,
+        43,
+        42,
+        41,
+        40,
+        37,
+        34,
+        31,
+        28,
+        25
+      ],
+      "important": 3,
+      "texts": [
+        "· [53] 更夫 在 市集：赶路",
+        "· [52] 更夫 在 茶楼：有事发生",
+        "· [51] 更夫 在 市集：接单",
+        "· [50] 更夫 在 药铺：赶路",
+        "· [45] 更夫 在 市集：一队镖车进了市集。",
+        "· [43] 更夫 在 市集：更夫在西街敲了一声梆子。",
+        "· [42] 更夫 在 市集：街上有人走过。",
+        "· [41] 更夫 在 市集：街上有人走过。",
+        "· [40] 更夫 在 市集：街上有人走过。",
+        "· [37] 王铁匠 在 药铺：王铁匠在药铺修好一口药碾。",
+        "· [34] 刘三娘 在 市集：刘三娘在市集清点新到的粗布。",
+        "· [31] 茶楼老板 在 茶楼：茶楼老板给客人续了三壶茶。",
+        "· [28] 更夫 在 市集：更夫敲着梆子走过市集。",
+        "· [25] 药铺掌柜 在 药铺：药铺掌柜把陈皮摊在竹匾里。"
+      ],
+      "height": 148,
+      "overflowY": "auto",
+      "scrollHeight": 398,
+      "clientHeight": 148,
+      "scrollWidth": 375,
+      "inFold": false,
+      "hasFoldBtn": false,
+      "announced": 3,
+      "logWorld": 3,
+      "toast": "引导完成：你已经走完「看推荐 → 接单 → 移动 → 交付」。",
+      "errors": 0,
+      "money": "312 文",
+      "placeholder": "",
+      "statusHidden": true,
+      "statusText": "世界暂时安静"
+    }
+  },
+  {
+    "name": "移动 世界动态不被底部安全区/浮层遮挡",
+    "ok": true,
+    "detail": {
+      "inside": true,
+      "bottom": 521,
+      "innerHeight": 812,
+      "scrollWidth": 375,
+      "quests": 1
+    }
+  },
+  {
+    "name": "移动 世界动态无横向溢出、主线任务仍渲染",
+    "ok": true,
+    "detail": {
+      "inside": true,
+      "bottom": 521,
+      "innerHeight": 812,
+      "scrollWidth": 375,
+      "quests": 1
+    }
+  },
+  {
     "name": "键盘 Tab 到达「去接」并显示焦点样式",
     "ok": true,
     "detail": {
@@ -536,25 +3368,25 @@
     "name": "键盘 Enter 走完接单→移动→交付",
     "ok": true,
     "detail": {
-      "tabs": 28,
+      "tabs": 65,
       "focusSequence": [
-        "quest:silk_sample:0",
-        "guideSkip",
-        "guideNext",
-        "入\n      \n        入世\n    ",
         "switchBtn",
         "pharmacy",
+        "商店",
+        "restBtn",
         "guideSkip",
         "guideNext",
         "入\n      \n        入世\n    ",
+        "commerceJump",
         "switchBtn",
         "market",
         "药药铺掌柜掌柜核对药柜库存在场",
         "npcSearch",
+        "log",
+        "feedList",
         "talkInput",
         "talkSend",
         "练 2 小时",
-        "开摊（120 文）",
         "quest:silk_sample:0"
       ]
     }
@@ -566,7 +3398,7 @@
       "可接委托送一匹粗",
       "可学技能算账 1",
       "可拜访 NPC刘",
-      "可买产业stal"
+      "可买产业摊 共需"
     ]
   },
   {
@@ -631,9 +3463,9 @@
         "hasAccess": true,
         "required": false,
         "username": "ui_user",
-        "expiresAt": 1793803974000
+        "expiresAt": 1793926516000
       },
-      "raw": "{\"access_token\":\"tok_ui_user_1\",\"expires_at\":1793803974000,\"username\":\"ui_user\",\"session_id\":\"s:1\"}",
+      "raw": "{\"access_token\":\"tok_ui_user_1\",\"expires_at\":1793926516000,\"username\":\"ui_user\",\"session_id\":\"s:1\"}",
       "hasPassword": false,
       "btn": "已登录 · ui_user"
     }
@@ -657,7 +3489,7 @@
           "hasAccess": true,
           "required": false,
           "username": "ui_user",
-          "expiresAt": 1793803974000
+          "expiresAt": 1793926517000
         },
         "btn": "已登录 · ui_user"
       },
