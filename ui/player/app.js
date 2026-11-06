@@ -4999,6 +4999,7 @@
       state.health = await API.health();
       renderRunTag();
       if (!state.health.ok) {
+        showEntry(true);
         const box = el('entryError');
         box.textContent = '世界不可用：' + (state.health.message || state.health.error || '未知错误');
         box.classList.remove('hidden');
@@ -5033,6 +5034,7 @@
         }
       }, STATE_INTERVAL_MS);
     } catch (err) {
+      showEntry(true);
       const box = el('entryError');
       box.textContent = '无法连接服务端：' + (err.message || err);
       box.classList.remove('hidden');

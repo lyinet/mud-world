@@ -26,9 +26,11 @@
   - 弹层新增出口：右上角 × 与底部「关闭」；未进入世界时关闭给出明确提示。
   - 刷新恢复了令牌优先：`probeAuth()` 先完成令牌轮换，再由 `restoreAccount()` 用
     令牌账号优先读取状态；有效且角色已在世界内时直接落主界面，不再弹进入框。
+  - 进入弹层首屏默认隐藏，鉴权/恢复判定后再显示：已在线刷新连短暂闪现都不会出现。
 - **验证（真实服务，API 8031 / UI 8000，`content=5267a8a8…`）**：
-  - 已在线刷新：`entryOverlay hidden=true`、世界动态 20 条、位置「集市」、钱包 300 文、tick 301；
-    截图 `/tmp/xkx-verify-A-refresh-main.png`。
+  - 已在线刷新：`entryOverlay hidden=true`（页面加载 120ms 与 2s 时均隐藏、无闪现）、
+    世界动态 20 条、位置「集市」、钱包 300 文、tick 301；
+    截图 `/tmp/xkx-verify-A-refresh-main.png`。未登录上下文仍正常显示进入框（账号可自定义）。
   - 进入弹层锁定：`accountId=lyinet`、`readonly=true`、「随机」隐藏、两个关闭按钮可见；
     截图 `/tmp/xkx-verify-B-locked-entry.png`。
   - 选捕快提交：服务端 `reject_reason:"identity_locked"`，界面回显
@@ -42,7 +44,7 @@
     `location=academy`，世界动态仍 20 条；截图 `/tmp/xkx-verify-E-refresh.png`、`/tmp/xkx-verify-F-moved.png`。
 - **测试痕迹**：验收用的临时 session 已删除（仅删凭证）；移动与拒绝事件按
   `docs/OPS-RUNBOOK.md §5.1` 保留（append-only），未做删除式清理。
-- **commit**：见本条目所在提交。
+- **commit**：`117e656`（UX 主修复）；“首屏不闪现”随本条目所在提交。
 
 ---
 

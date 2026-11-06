@@ -290,7 +290,8 @@
 </div>
 
 <!-- 进入弹层 -->
-<div class="overlay" id="entryOverlay">
+<!-- 首屏默认隐藏：令牌有效且角色已在世界内时，刷新不该再闪一次进入框；由 init 判定后再显示。 -->
+<div class="overlay hidden" id="entryOverlay">
   <div class="entry-card" role="dialog" aria-modal="true" aria-labelledby="entryTitle">
     <div class="entry-head">
       <span class="seal big" aria-hidden="true">入</span>
