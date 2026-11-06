@@ -9,6 +9,43 @@
 
 ---
 
+## [修复] 2026-11-07 — 进入世界 UX：账号锁定 / 「已在线」当成功 / 身份回显与一键重进
+
+- **现象**：已登录 `lyinet`，进入弹层的「玩家 id」却默认 `u_demo`、可手填；选捕快点进入
+  先被 `auth_account_mismatch`（403）拒绝；改成 `lyinet` + 原身份后服务端返回
+  `already_online`（HTTP 200 / `status:"rejected"`），前端把它当错误显示红字，
+  弹层不关、无关闭出口，人卡在弹层。
+- **改了什么**（`ui/player/app.js`、`ui/player/index.html`、`ui/player/style.css`）：
+  - 已登录时「玩家 id」自动填令牌账号并 `readOnly`，隐藏「随机」按钮，提示
+    「已锁定为当前账号 `lyinet`；要换账号请先右上角退出登录。」；未登录才允许自定义。
+    `renderAuthUI()` 与「换人」都会重新应用，覆盖注册后进入与重新进入两条路径。
+  - `already_online` / `already_entered` 按**成功**处理：关闭弹层、渲染主界面、
+    拉一次状态与世界动态，toast 回显「位置 · 钱包 · tick」。
+  - `identity_locked` 回显该账号已有身份：「该账号已以『游侠』进入过世界，请选「游侠」。」
+    并内嵌「用原身份进入（游侠）」按钮，点击即选中原身份并重新提交。
+  - 弹层新增出口：右上角 × 与底部「关闭」；未进入世界时关闭给出明确提示。
+  - 刷新恢复了令牌优先：`probeAuth()` 先完成令牌轮换，再由 `restoreAccount()` 用
+    令牌账号优先读取状态；有效且角色已在世界内时直接落主界面，不再弹进入框。
+- **验证（真实服务，API 8031 / UI 8000，`content=5267a8a8…`）**：
+  - 已在线刷新：`entryOverlay hidden=true`、世界动态 20 条、位置「集市」、钱包 300 文、tick 301；
+    截图 `/tmp/xkx-verify-A-refresh-main.png`。
+  - 进入弹层锁定：`accountId=lyinet`、`readonly=true`、「随机」隐藏、两个关闭按钮可见；
+    截图 `/tmp/xkx-verify-B-locked-entry.png`。
+  - 选捕快提交：服务端 `reject_reason:"identity_locked"`，界面回显
+    「该账号已以『游侠』进入过世界，请选「游侠」…」+「用原身份进入（游侠）」；
+    截图 `/tmp/xkx-verify-C-identity-locked.png`。
+  - 点「用原身份进入」：`POST /api/player/enter` 返回
+    `{"status":"rejected","reject_reason":"already_online","reason_text":"你已经在线，无需重复进入。"}`
+    （UI 代理 409），前端关闭弹层并 toast「你已经在这个世界里：集市 · 300 文 · tick 301」；
+    截图 `/tmp/xkx-verify-D-use-original-main.png`。
+  - 移动：`POST /api/player/action {"verb":"move","args":{"to":"academy"}}` → 200，
+    `location=academy`，世界动态仍 20 条；截图 `/tmp/xkx-verify-E-refresh.png`、`/tmp/xkx-verify-F-moved.png`。
+- **测试痕迹**：验收用的临时 session 已删除（仅删凭证）；移动与拒绝事件按
+  `docs/OPS-RUNBOOK.md §5.1` 保留（append-only），未做删除式清理。
+- **commit**：见本条目所在提交。
+
+---
+
 ## [运维] 2026-11-06 — 固化“世界库不做删除式清理”纪律；清理验证账号凭证
 
 - **改了什么**：`docs/OPS-RUNBOOK.md` 新增 §5.1：

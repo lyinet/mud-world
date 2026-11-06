@@ -536,6 +536,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   overflow: auto;
 }
 .entry-card {
+  position: relative;
   width: min(820px, 100%);
   background: var(--paper-2);
   border: 1px solid var(--line);
@@ -550,6 +551,23 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 .entry-head { display: flex; gap: 14px; align-items: center; margin-bottom: 20px; }
 .entry-head h2 { margin: 0; font-family: var(--serif); font-size: 25px; letter-spacing: .1em; }
 .entry-head p { margin: 4px 0 0; color: var(--muted); font-size: 12.5px; }
+.entry-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.entry-close:hover { background: rgba(30, 22, 12, .06); color: var(--ink); }
+.field input[readonly] { background: #f1ece0; color: #6f6250; cursor: default; }
 .entry-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .field { margin-bottom: 16px; }
 .field > label, .field > .label { display: block; font-size: 12px; color: var(--ink-soft); margin-bottom: 6px; font-weight: 600; }

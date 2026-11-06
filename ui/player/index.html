@@ -298,6 +298,7 @@
         <h2 id="entryTitle">进入世界</h2>
         <p id="entrySub">选择身份，世界会把你当作一个有位置、有钱物、会被看见的人。创世预置账号（如 <code>u_demo</code>）带 300 文、炊饼×3、粗布×1；运行中新建账号按契约不铸币，钱包从 0 开始。</p>
       </div>
+      <button class="entry-close" id="entryClose" type="button" aria-label="关闭进入世界">×</button>
     </div>
 
     <div class="entry-grid">
@@ -307,7 +308,7 @@
           <input id="accountId" type="text" maxlength="32" placeholder="3-32 位小写字母/数字/-/_" autocomplete="off" />
           <button class="ghost" id="genId" type="button">随机</button>
         </div>
-        <p class="tiny">服务端会映射为实体 <code>player:&lt;账号&gt;</code>；客户端不自带实体 id。</p>
+        <p class="tiny" id="accountHint">服务端会映射为实体 <code>player:&lt;账号&gt;</code>；客户端不自带实体 id。</p>
       </div>
       <div class="field">
         <label for="displayName">角色名</label>
@@ -354,6 +355,7 @@
     </div>
     <div class="entry-actions">
       <button class="primary" id="enterBtn" type="button">进入世界</button>
+      <button class="ghost" id="entryCloseBtn" type="button">关闭</button>
     </div>
     <div class="entry-result hidden" id="entryResult"></div>
     <div class="entry-error hidden" id="entryError"></div>

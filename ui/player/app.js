@@ -186,7 +186,7 @@
     player_offline: '你已离线；请重新进入世界后再操作。',
     already_offline: '你已经是离线状态。',
     already_online: '你已经在线，无需重复进入。',
-    identity_locked: '身份进入后不可更改；请用原身份重新登录。',
+    identity_locked: '该账号已有进入身份，身份进入后不可更改；请选原来的身份。',
     bad_archetype: '身份必须是游侠、商人或捕快。',
     bad_display_name: '角色名需 2-12 字，且不能与现有角色重名。',
     bad_location: '地点不存在。',
@@ -874,6 +874,7 @@
       }
     }
     renderAuthNotice();
+    syncEntryAccountLock();
   }
 
   function notifyAuthRequired(text) {
@@ -1250,6 +1251,43 @@
     // 默认用创世预置账号，首次进入才有契约 §2 的 300 文/炊饼/粗布；点“随机”可换运行中新建账号（钱包为 0）。
     el('accountId').value = el('accountId').value || 'u_demo';
     el('displayName').value = el('displayName').value || '无名客';
+    syncEntryAccountLock();
+  }
+
+  /* 已登录时账号是令牌的唯一事实源：自动填入并锁成只读，避免手填成别人后 403/身份错位。 */
+  function syncEntryAccountLock() {
+    const input = el('accountId');
+    const gen = el('genId');
+    const hint = el('accountHint');
+    if (!input) return;
+    const logged = !!(state.auth.access && state.auth.username) && state.auth.mode !== 'legacy';
+    if (logged) {
+      input.value = state.auth.username;
+      input.readOnly = true;
+      input.setAttribute('aria-readonly', 'true');
+      if (gen) { gen.disabled = true; gen.classList.add('hidden'); }
+      if (hint) {
+        hint.innerHTML = '已锁定为当前账号 <code>' + escapeHtml(state.auth.username) +
+          '</code>；要换账号请先右上角退出登录。';
+      }
+    } else {
+      input.readOnly = false;
+      input.removeAttribute('aria-readonly');
+      if (gen) { gen.disabled = false; gen.classList.remove('hidden'); }
+      if (hint) {
+        hint.innerHTML = '服务端会映射为实体 <code>player:&lt;账号&gt;</code>；客户端不自带实体 id。';
+      }
+    }
+  }
+
+  function selectArchetype(value) {
+    const nodes = Array.prototype.slice.call(el('archetypes').querySelectorAll('.archetype'));
+    nodes.forEach(function (node) {
+      const hit = node.getAttribute('data-value') === value;
+      node.classList.toggle('selected', hit);
+      const input = node.querySelector('input');
+      if (input) input.checked = hit;
+    });
   }
 
   function selectedArchetype() {
@@ -1265,6 +1303,18 @@
       el('enterBtn').textContent = '进入世界';
       el('enterBtn').removeAttribute('data-open');
     }
+  }
+
+  /* 弹层出口：已进入世界就直接回到主界面，没有可关的也给出明确去处，避免落在分支里死锁。 */
+  function closeEntry() {
+    showEntry(false);
+    if (state.st) {
+      render(state.st);
+      maybeStartGuide();
+      loadFeed();
+      return;
+    }
+    toast('你还没进入世界；点右上角「换人」可重新打开进入面板。', true);
   }
 
   function rememberAccount(accountId, displayName, archetype) {
@@ -1423,6 +1473,51 @@
       }
       if (res.status === 409 || result.ok === false || res.status === 0) {
         const r = reasonOf(result, res.status);
+        const effAccount = (state.auth.access && state.auth.username) ? state.auth.username : accountId;
+        if (r.code === 'already_online' || r.code === 'already_entered') {
+          // “已在世界内”是成功，不是错误：关弹窗、进主界面、拉状态，并回显位置/钱/tick。
+          const st = await loadState(effAccount);
+          const p = (st && st.player) || {};
+          const wallet = (p.wallet && p.wallet.money != null) ? p.wallet.money : 0;
+          showEntry(false);
+          render(st);
+          maybeStartGuide();
+          loadFeed();
+          toast('你已经在这个世界里：' + (p.location_name || p.location || '—') +
+            ' · ' + wallet + ' 文 · tick ' + (st.tick != null ? st.tick : '—'));
+          btn.textContent = '进入画面';
+          btn.setAttribute('data-open', '1');
+          return;
+        }
+        if (r.code === 'identity_locked') {
+          // 回显该账号已有身份，并给一键“用原身份进入”，不让玩家猜。
+          let existing = '';
+          try {
+            const st = await API.state(effAccount);
+            if (st && st.ok && st.player) existing = String(st.player.archetype || '');
+          } catch (err) { existing = ''; }
+          const box = el('entryError');
+          const msg = existing
+            ? ('该账号已以『' + existing + '』进入过世界，请选「' + existing + '」。身份进入后不可更改。')
+            : (r.text || '身份进入后不可更改；请用原身份重新进入。');
+          box.innerHTML = '<div>' + escapeHtml(msg) + '</div>';
+          if (existing) {
+            const pick = document.createElement('button');
+            pick.type = 'button';
+            pick.className = 'ghost';
+            pick.id = 'useOriginalArchetype';
+            pick.textContent = '用原身份进入（' + existing + '）';
+            pick.addEventListener('click', function () {
+              selectArchetype(existing);
+              doEnter();
+            });
+            box.appendChild(pick);
+          }
+          box.classList.remove('hidden');
+          recordError('进入世界', r.code, msg);
+          btn.textContent = '进入世界';
+          return;
+        }
         const box = el('entryError');
         box.textContent = r.text;
         box.classList.remove('hidden');
@@ -4482,24 +4577,35 @@
     try { localStorage.removeItem('ws_player_session'); } catch (e) { /* ignore */ }
     let raw = null;
     try { raw = localStorage.getItem('ws_player_account'); } catch (e) { raw = null; }
-    if (!raw) return false;
     let saved = null;
-    try { saved = JSON.parse(raw); } catch (e) { saved = null; }
-    if (!saved || !saved.account_id) {
-      try { localStorage.removeItem('ws_player_account'); } catch (e) { /* ignore */ }
-      return false;
-    }
-    try {
-      const st = await API.state(saved.account_id);
-      if (st && st.ok && st.player) {
-        applyState(st);
-        return true;
+    if (raw) {
+      try { saved = JSON.parse(raw); } catch (e) { saved = null; }
+      if (!saved || !saved.account_id) {
+        try { localStorage.removeItem('ws_player_account'); } catch (e) { /* ignore */ }
+        saved = null;
       }
-    } catch (err) {
-      // 上游暂时不可达：回进入页，不伪造位置；若是鉴权问题，保留已记住的账号。
-      if (err && err.authRequired) return false;
     }
-    try { localStorage.removeItem('ws_player_account'); } catch (e) { /* ignore */ }
+    // 令牌账号优先：刷新时只要令牌有效且该角色已在世界内，就直接落主界面，不再弹进入框。
+    const authAccount = (state.auth.access && state.auth.username) ? state.auth.username : '';
+    const candidates = [];
+    if (authAccount) candidates.push(authAccount);
+    if (saved && saved.account_id && saved.account_id !== authAccount) candidates.push(saved.account_id);
+    if (!candidates.length) return false;
+    for (let i = 0; i < candidates.length; i++) {
+      try {
+        const st = await API.state(candidates[i]);
+        if (st && st.ok && st.player) {
+          applyState(st);
+          return true;
+        }
+      } catch (err) {
+        // 上游暂时不可达：回进入页，不伪造位置；若是鉴权问题，保留已记住的账号。
+        if (err && err.authRequired) return false;
+      }
+    }
+    if (saved) {
+      try { localStorage.removeItem('ws_player_account'); } catch (e) { /* ignore */ }
+    }
     return false;
   }
 
@@ -4581,6 +4687,8 @@
     });
     el('genId').addEventListener('click', function () { el('accountId').value = randomAccount(); });
     el('enterBtn').addEventListener('click', doOpenWorld);
+    el('entryClose').addEventListener('click', closeEntry);
+    el('entryCloseBtn').addEventListener('click', closeEntry);
     el('switchBtn').addEventListener('click', function () {
       state.session = null;
       state.selected = null;
@@ -4590,9 +4698,13 @@
       hideGuide();
       el('log').innerHTML = '';
       try { localStorage.removeItem('ws_player_account'); } catch (e) { /* ignore */ }
-      el('accountId').value = randomAccount();
+      // 登录态下账号跟着令牌走，不能随机成别人的 id；未登录才给随机账号。
+      el('accountId').value = (state.auth.access && state.auth.username)
+        ? state.auth.username
+        : randomAccount();
       el('displayName').value = '无名客';
       showEntry(true);
+      syncEntryAccountLock();
     });
     el('talkSend').addEventListener('click', doTalk);
     el('talkInput').addEventListener('keydown', function (ev) {
@@ -4894,8 +5006,9 @@
         return;
       }
       loadStoredAuth();  // 先载入本地令牌：restore 的首次读必须带 Authorization，否则服务模式只拿到公共摘要
-      const results = await Promise.all([restoreAccount(), probeAuth()]);
-      const restored = results[0];
+      // 先跑鉴权探针（它会轮换令牌），再按最新令牌恢复角色，避免并发轮换把首读打成 401。
+      await probeAuth();
+      const restored = await restoreAccount();
       renderNotice(state.st);
       if (restored) {
         showEntry(false);
