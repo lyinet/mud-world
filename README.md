@@ -51,11 +51,13 @@ diff runs/rev10d/world_hash.txt runs/rev10d-repro/world_hash.txt && echo SAME
 ```
 
 `--npc 0` 表示使用全部 NPC；`--dump-state` 会额外写出 `state_final.json`（大文件，调试用）。
-本轮运行对应的内容包 hash 是 `b639ab91a99918b4297b034617b94cc67da7591255c695f97ec48f13a5edf3d4`
-（`content/` 已由另一会话更新：补了 `home` / `goal_targets`，删除了 `cooldown`）。
-**本轮数字不能与更新前的内容包直接比较。**
+下表是 **2026-11-03 的历史基线**，对应内容包 hash
+`b639ab91a99918b4297b034617b94cc67da7591255c695f97ec48f13a5edf3d4`；
+它**不是当前版本的数字**。当前 `content_hash = 5267a8a8…`（2026-11-06），
+未在新内容下复跑 10/72 日，因此事件数（2877 / 19322）、K1 等数字已不对应当前代码，
+只作历史对照，不能拿来下当前版本的结论。
 
-## 本次实跑结果（seed=42，30 NPC，单区域）
+## 历史实跑结果（2026-11-03，seed=42，30 NPC，单区域）
 
 | 指标 | 10 日 `rev10d` | 72 日 `rev72d` |
 |---|---|---|

@@ -226,6 +226,10 @@ python -m pytest -q tests/test_w3b_native_packs.py tests/test_w3b_personas.py
 
 ### 关闭态（逐位不变）
 
+> **以下数值是 p3i 时点（2026-11-04，`content_hash = 7ec670c1…`）的记录**，不是当前内容：
+> 2026-11-06 关闭态 `content_hash` 已变为 `5267a8a8…`（店铺五动词声明补齐），
+> 2 日种子世界事件数实测为 735（不是表里的 800）。保留此表仅作历史对照。
+
 | 项目 | 数值 |
 |---|---|
 | `content_hash` | `7ec670c1c83c7b99e9bee35f84602bd7a68ef22126b29c9003529809b2c3d53f` |

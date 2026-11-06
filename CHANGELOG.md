@@ -9,6 +9,27 @@
 
 ---
 
+## [文档] 2026-11-06 — 修正过期数字：种子世界 836→735、自检 414→658、README 表格标注为历史基线
+
+- **改了什么**：
+  - `docs/QUICKSTART.md`：2 日种子世界由 `836 条事件 / NPC 行动 736` 改为
+    **`735 / 637`**（两处示例输出），并注明事件数是 `content/` 的函数、以当次输出为准；
+    §3.1 自检计数由 `414 passed, 10 skipped`（2026-11-04 p3k）更新为
+    **`658 passed, 18 skipped`**（2026-11-06 HEAD `9022dfb` 实测）；
+    §5 的“当前 `content_hash`”由 `7ec670c1…` 更新为 **`5267a8a8…`**。
+  - `README.md`：“本次实跑结果”改为“**历史实跑结果（2026-11-03）**”，并明确
+    表格对应 `content=b639ab91…`、当前为 `5267a8a8…`，事件数 2877/19322 等
+    **已不对应当前代码**；未重跑，避免用旧数字下当前结论。
+  - `docs/CONTENT-SCALE.md`：给“关闭态（逐位不变）”表加时点注记
+    （p3i / `7ec670c1…` / 800 events），并写明当前为 `5267a8a8…`、实测 735。
+- **依据**：2026-11-06 在本机实际跑 `./start.sh`（`content=5267a8a8…`）得到
+  种子世界 735 条事件 / NPC 637 条；`pytest` 676 collected / 18 skipped / 0 failed
+  （= 658 passed）；`./scripts/selfcheck.sh` 4 项 PASS。
+- **未改（历史事实，保留原数字与时点）**：`docs/DELIVERY-TEST-p3f/p3g/p3i/p3j/p3k`
+  （各自带日期与基线哈希）、`CHANGELOG.md` 旧条目、`deploy/README.md`（p3l 包说明，
+  明确写 `content_hash=7ec670c1…`）、`specs/delivery-p3j/**`。
+- **commit**：见本条目所在提交。
+
 ## [文档] 2026-11-06 — 生产就绪审计与 player-commerce 规格入库（纯文档，无代码改动）
 
 - **改了什么**：新增 `docs/PRODUCTION-READINESS.md`、
