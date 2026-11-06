@@ -9,6 +9,33 @@
 
 ---
 
+## [修复] 2026-11-06 — MCP 令牌/提案队列改为确定性上限 + 背压（不丢未投递提案）
+
+- **改了什么**
+  - `src/wsim/mcp/gateway.py`
+    - `gateway.tokens`：过期只按世界 tick 判定（`XKX_MCP_TOKEN_TTL_TICKS`，默认 144 tick
+      = 1 世界日），到硬上限 `XKX_MCP_TOKEN_MAX=4096` 时**拒绝签发新令牌**
+      （`token_capacity_exceeded`），不再 FIFO 静默淘汰仍有效的旧令牌；
+      `admin.approve/apply` 命中过期令牌返回 `token_expired`（原有
+      `unknown_token/token_used/second_person_required/apply_by_approver_only` 判定顺序不变）。
+    - `gateway.outbox`：删除“超 TTL 丢弃 + 超上限截断队首”，改为只移除**已投递**提案
+      （`admin.apply` 成功后按内容键精确出队）；达到 `XKX_MCP_OUTBOX_MAX=4096` 时返回
+      `outbox_full` 背压，任何未投递提案都不会被静默丢弃。
+    - `admin.apply` 成功后把 `_AdminToken.intent` 置空，令牌不再常驻一份 Intent。
+  - `tests/test_mcp.py`：新增 4 个回归用例（满额背压不丢未投递、满额不淘汰有效令牌、
+    按世界 tick 过期、apply 后令牌释放 Intent 且提案出队）。
+- **为什么**：2 小时基线 soak 的 GC 探针显示 `_AdminToken` 6,833→129,001、`Intent`
+  13,668→258,032（= tokens + outbox 各一份），是 RSS 80.8%/h 与 p95 漂移的主要常驻来源。
+- **验证方式**
+  - `pytest tests/test_mcp.py` → `12 passed`。
+  - `pytest tests/test_p3e_golden.py tests/test_reproducibility.py` → `5 passed, 16 skipped`
+    （无玩家 2 日 golden `state_final`/`event_final` 逐字节不变）。
+  - `pytest tests/test_player_shop_customers.py tests/test_quest_health.py tests/test_mcp.py`
+    与上面合并跑 → `41 passed, 16 skipped`。
+- **commit**：见本提交
+
+---
+
 ## [功能] 2026-11-06 — 门派面板后端缺口补齐（弟子关系/逐人日结 + 可加入门派列表）
 
 - **改了什么**

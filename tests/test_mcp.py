@@ -197,3 +197,84 @@ def test_mock_server_handles_request_and_denies_escalation(state, tmp_path):
     })
     assert escalated["ok"] is False and "permission_denied" in escalated["error"]
     store.close()
+
+
+def _tick_gateway(state, tmp_path):
+    """tick 由测试显式推进，验证令牌过期只依赖世界 tick、与墙钟无关。"""
+    clock = {"tick": 0}
+    store = EventStore(tmp_path / "events.sqlite")
+    writer = Writer(state, store, _EmptyRegistry(), seed=42)
+    gateway = MCPGateway(
+        state_provider=lambda: writer.state,
+        writer=writer,
+        audit=AuditLog(tmp_path / "audit.jsonl"),
+        tick_provider=lambda: clock["tick"],
+        identities={"alice": PERMISSION_ADMIN, "bob": PERMISSION_ADMIN, "planner": PERMISSION_PROPOSE},
+    )
+    return gateway, writer, store, clock
+
+
+def test_outbox_at_cap_backpressures_and_never_drops_undelivered(state, tmp_path):
+    gw, writer, store, _ = _tick_gateway(state, tmp_path)
+    gw.outbox_max = 2
+    payload = {"actor": "n1", "verb": "move", "args": {"to": "b"}, "tick": 1, "source": "mcp"}
+    assert gw.call("planner", "world.propose_intent", payload)["accepted"] is True
+    assert gw.call("planner", "world.propose_intent", payload)["accepted"] is True
+    with pytest.raises(GatewayError, match="outbox_full"):
+        gw.call("planner", "world.propose_intent", payload)
+    # 两条未投递提案原样保留，没有被静默淘汰
+    assert len(gw.outbox) == 2 and len(gw.outbox_keys) == 2
+    store.close()
+
+
+def test_token_at_capacity_refuses_new_token_but_keeps_valid_ones(state, tmp_path):
+    gw, writer, store, clock = _tick_gateway(state, tmp_path)
+    gw.token_max = 2
+    tokens = [
+        gw.call("alice", "admin.request", {
+            "intent": {"actor": "n1", "verb": "move", "args": {"to": "b"}, "tick": 1},
+        })["token"]
+        for _ in range(2)
+    ]
+    with pytest.raises(GatewayError, match="token_capacity_exceeded"):
+        gw.call("alice", "admin.request", {
+            "intent": {"actor": "n1", "verb": "move", "args": {"to": "b"}, "tick": 1},
+        })
+    # 满额后仍不淘汰旧令牌：旧令牌仍可走完两人审批
+    assert set(gw.tokens) >= set(tokens)
+    gw.call("bob", "admin.approve", {"token": tokens[0]})
+    applied = gw.call("bob", "admin.apply", {"token": tokens[0]})
+    assert applied["token"] == tokens[0]
+    store.close()
+
+
+def test_token_expires_by_world_tick_only(state, tmp_path):
+    gw, writer, store, clock = _tick_gateway(state, tmp_path)
+    gw.token_ttl_ticks = 2
+    token = gw.call("alice", "admin.request", {
+        "intent": {"actor": "n1", "verb": "move", "args": {"to": "b"}, "tick": 1},
+    })["token"]
+    clock["tick"] = 3  # 超过 2 个世界 tick，即使墙钟只过了几毫秒也已过期
+    with pytest.raises(GatewayError, match="token_expired"):
+        gw.call("bob", "admin.approve", {"token": token})
+    gw._prune_tokens(clock["tick"])
+    assert token not in gw.tokens
+    assert gw.token_expired == 1
+    store.close()
+
+
+def test_apply_frees_token_intent_and_removes_outbox_entry(state, tmp_path):
+    gw, writer, store, _ = _tick_gateway(state, tmp_path)
+    payload = {"actor": "n1", "verb": "move", "args": {"to": "b"}, "tick": 1, "source": "mcp"}
+    gw.call("planner", "world.propose_intent", payload)
+    token = gw.call("alice", "admin.request", {
+        "intent": {"actor": "n1", "verb": "move", "args": {"to": "b"}, "tick": 1},
+    })["token"]
+    gw.call("bob", "admin.approve", {"token": token})
+    gw.call("bob", "admin.apply", {"token": token})
+    # 已投递的提案出队，令牌不再持有 Intent（避免 2 小时 soak 里常驻）
+    assert gw.outbox == [] and gw.outbox_keys == []
+    assert gw.tokens[token].used is True
+    assert gw.tokens[token].intent is None
+    store.close()
+
