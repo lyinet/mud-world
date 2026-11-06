@@ -105,3 +105,17 @@ PYTHONPATH=src .venv/bin/python tools/p3e_report_stats.py
 > 真实模型调用不可逐字复现。P3-E 只录了 intent 槽，decision 槽未录制；
 > 第 2 条命令**不能复现原 run**，只用于证明缺记录会报 `replay_miss`，不伪造返回。
 > P3-E 与 P3-D（Xing）使用不同内容 hash 与不同端点，两份数据**不可直接比较**，只作并列观察。
+
+## 5. 截图与重跑产物（2026-11-06 入库口径）
+
+- **历史已入库的截图/采样是冻结证据**：`reports/w4-*/**.png`、`reports/w5-sect/*.png`、
+  `reports/evidence/**/world_hash.txt` 等已入库文件保持跟踪、**不再随重跑更新**。
+  其中 `world_hash.txt` / `event_hash.txt` 是“干净 clone 可直接回放/可复现”的证据，见
+  第 4 节的 run 目录与 [specs/delivery-p3h/spec.md](../specs/delivery-p3h/spec.md)。
+- 2026-11-06 已把被重跑覆盖的 43 个截图/键盘采样（42 png + `reports/w4-ui/keyboard.txt`）
+  用 `git rm --cached` 移出索引，**本地文件保留**、由 `.gitignore` 忽略；不改写历史。
+- **重跑产出一律不入库**：`reports/**/*.json`、`reports/**/*.md` 才是入库证据；
+  png/jpg/jpeg/webp、log/txt/jsonl、`_probe/` 都是一次性产物，可由报告 JSON 与脚本复现。
+- **自检**：`git status --short reports/` 应始终为空——被跟踪文件无未提交修改，
+  未跟踪产物已按口径忽略。若出现新的 png/log/txt 条目，说明有人绕过了 `rm --cached`
+  或改动了已冻结证据，按本节口径处理，不要把它们提交回索引。

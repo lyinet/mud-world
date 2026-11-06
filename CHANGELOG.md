@@ -9,6 +9,20 @@
 
 ---
 
+## [交付] 2026-11-06 — 冻结历史截图/采样，固化报告产物自检口径
+
+- **改了什么**
+  - `.gitignore` 口径注释补一句：历史已入库的截图/采样作为**冻结证据**保留、不再随重跑
+    更新；新产出一律按本口径不入库。
+  - `docs/evidence.md` 新增 §5：冻结范围（含被 `docs/evidence.md` / 交付规格引用的
+    `world_hash.txt`、`event_hash.txt`）、43 条 `git rm --cached` 的处理、重跑产物不入库、
+    以及 `git status --short reports/` 应始终为空的自检方法。
+- **为什么改**：把“基线唯一、工作树干净”的判定写死，避免下一个人再按 png 计数来问
+  “为什么不提交截图”。剩余 72 个已跟踪 png/txt **保持不动**。
+- **验证**：`git status --short -- reports/` 为空；`git ls-files reports` 仍保留 72 个
+  历史 png/txt（冻结证据）。
+- **commit**：见本条目所在提交。
+
 ## [交付] 2026-11-06 — 被重跑覆盖的 43 个历史产物移出索引（本地保留）
 
 - **改了什么**：对 42 张 `reports/w4-*/**.png` 与 `reports/w4-ui/keyboard.txt` 执行

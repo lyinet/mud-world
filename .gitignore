@@ -35,6 +35,8 @@ deploy/.cpu_baseline
 # 入库：reports/**/*.json、reports/**/*.md —— 验收证据，体量小、可复核。
 # 不入库：截图与运行日志/采样流（png/jpg/jpeg/webp、log/txt/jsonl）以及探针脚手架，
 # 都是一次性产物，可由报告 JSON 与脚本重跑复现；仓库只留结构化结论。
+# 历史已入库的截图/采样（如 reports/w4-*/**.png、reports/evidence/**/world_hash.txt）
+# 作为冻结证据保留、不再随重跑更新；新产出一律按本口径不入库，不要再问是否补交。
 reports/**/*.png
 reports/**/*.jpg
 reports/**/*.jpeg
