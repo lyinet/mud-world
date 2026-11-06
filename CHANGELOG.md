@@ -9,6 +9,18 @@
 
 ---
 
+## [交付] 2026-11-06 — 被重跑覆盖的 43 个历史产物移出索引（本地保留）
+
+- **改了什么**：对 42 张 `reports/w4-*/**.png` 与 `reports/w4-ui/keyboard.txt` 执行
+  `git rm --cached`（本地文件保留、由 `.gitignore` 忽略），不改写历史。
+- **为什么改**：这些是一次性截图与键盘采样，工作区被重跑覆盖后长期显示为已跟踪修改，
+  按 2026-11-06 定下的产物口径不应继续留在索引里。
+- **范围**：仅这 43 个被覆盖条目；其余 72 个历史 png/txt（含 `event_hash.txt` /
+  `world_hash.txt` 等被 `docs/evidence.md`、`specs/delivery-p3h` 引用的可复现性证据）
+  未动。未夹带 `content/`、`src/wsim/api/session.py`、`src/wsim/world/store.py`。
+- **验证**：`git status --short -- reports/` 为空；本地 png/txt 文件仍在。
+- **commit**：见本条目所在提交。
+
 ## [交付] 2026-11-06 — 报告产物入库口径落地：JSON/MD 入库，截图/日志/采样流忽略
 
 - **改了什么**
