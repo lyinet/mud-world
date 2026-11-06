@@ -9,6 +9,21 @@
 
 ---
 
+## [测试] 2026-11-06 — 修正 `found_sect` 陈旧断言，干净 HEAD 恢复全绿
+
+- **改了什么**：`tests/test_player_commerce.py` 的
+  `test_npc_only_verbs_return_not_implemented_for_player` 不再把 `found_sect` 当作未开放
+  动词——保护性断言保留给真正未开放的 `marry` / `apprentice`；新增
+  `test_found_sect_is_open_and_returns_real_rejection` 断言已上线契约：空参 →
+  `missing_arg:name`，有名字进动作层 → `insufficient_funds`（新手 300 文 < 800 文门槛），
+  并显式断言不再是 `not_implemented_for_player`。
+- **为什么改**：`docs/player-api.md` 1.3 已把门派六动词接线开放，
+  `PLAYER_UNIMPLEMENTED_VERBS` 只剩 `marry` / `apprentice`；旧断言仍要求
+  `found_sect` 返回未开放码，干净 HEAD 长期带着 1 failed。
+- **验证**：只改 `tests/**`，未动 `src/**`；`tests/test_player_commerce.py` +
+  `tests/test_player_sect_api.py` 28 passed；干净 worktree 全量见下。
+- **commit**：待回填
+
 ## [安全 P0] 2026-11-06 — 反代后采信真实客户端 IP（可信代理），限流键不再退化
 
 - **改了什么**

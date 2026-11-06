@@ -196,12 +196,33 @@ def test_shop_closed_branch_is_reachable(session: WorldSession) -> None:
 
 
 def test_npc_only_verbs_return_not_implemented_for_player(session: WorldSession) -> None:
+    """真正未开放的 NPC 专有动词对玩家仍返回未开放码（保护性断言，不随门派上线放宽）。"""
     _enter(session)
-    for verb in ("marry", "found_sect", "apprentice"):
+    for verb in ("marry", "apprentice"):
         resp = session.action(ACCOUNT, verb, {})
         assert not resp["ok"], resp
         assert resp["reject_reason"] == "not_implemented_for_player", (verb, resp)
         assert resp["reason_text"] == "这个玩法还没对玩家开放。"
+
+
+def test_found_sect_is_open_and_returns_real_rejection(session: WorldSession) -> None:
+    """`found_sect` 已按 docs/player-api.md §13（1.3）接线：空参走参数校验，
+
+    有名字则进动作层前置（新手 300 文低于 800 文立派门槛），不再是未开放码。
+    """
+    _enter(session)
+    pid = session._pid(ACCOUNT)
+    at = session.state.entities[pid].location
+
+    empty = session.action(ACCOUNT, "found_sect", {})
+    assert not empty["ok"], empty
+    assert empty["reject_reason"] == "missing_arg:name", empty
+
+    blocked = session.action(ACCOUNT, "found_sect", {"name": "无望门", "at": at})
+    assert not blocked["ok"], blocked
+    assert blocked["reject_reason"] == "insufficient_funds", blocked
+    assert blocked["reject_reason"] != "not_implemented_for_player", blocked
+    assert "800" in blocked["reason_text"], blocked
 
 
 def test_escort_closed_loop_records_cargo_route_fee_and_settles(session: WorldSession) -> None:
