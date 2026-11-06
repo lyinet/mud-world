@@ -11,7 +11,7 @@
 2. 环境变量 / `config/llm.yaml`（`ProviderConfig.from_env`）。
 两条路都走同一个 `ProviderClient`，因此能力位回写、预算与降级链一致。
 
-开关：`WSIM_DIALOGUE=1`（默认关）。关闭时不构造任何 provider，
+开关：`XKX_DIALOGUE_MODEL=1`（默认关）。关闭时不构造任何 provider，
 也不会影响 `llm_enabled` / decision / intent / strategy 槽。
 """
 from __future__ import annotations
@@ -37,7 +37,7 @@ _CACHE_LOCK = threading.Lock()
 
 
 def enabled() -> bool:
-    return os.environ.get("WSIM_DIALOGUE", "").strip().lower() in _ENABLED_VALUES
+    return os.environ.get("XKX_DIALOGUE_MODEL", "").strip().lower() in _ENABLED_VALUES
 
 
 def _env_client(root: Path) -> ProviderClient | None:
@@ -107,13 +107,15 @@ def build_queue(root: Path | str, run_dir: Path | str) -> AsyncDialogueQueue | N
         telemetry=CostTelemetry(rates=load_cost_rates(root_path)),
         log_dir=Path(run_dir),
         tier="active",
+        # API 会话：模型调用延迟到事件事务提交之后，避免占用 Writer 锁。
+        defer_calls=True,
     )
     queue.config_source = source  # 运行态说明用，不写世界状态
     return queue
 
 
 def attach_if_enabled(talk: Any, root: Path | str, run_dir: Path | str) -> AsyncDialogueQueue | None:
-    """`WSIM_DIALOGUE=1` 时把队列挂到 TalkAction；失败不阻断服务。"""
+    """`XKX_DIALOGUE_MODEL=1` 时把队列挂到 TalkAction；失败不阻断服务。"""
     if talk is None or not enabled():
         return None
     try:

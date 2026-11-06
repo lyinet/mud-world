@@ -33,6 +33,62 @@ curl -s http://127.0.0.1:8020/api/service/info   # {"ok": true, ...}
 curl -s http://127.0.0.1:8030/api/health         # {"ok": true, ...}
 ```
 
+> **坑：启动不加载 `.env` = 模型开关等效关闭。** `wsim.api`、`wsim.admin`、`sim/run_headless.py`
+> 都不会自动读 `world-sim/.env`；必须先 `set -a; . ./.env; set +a` 再启动。
+> 验证进程是否真的拿到配置：`ps eww -p <pid> | grep -o 'LLM_[A-Z_]*' | sort -u`；
+> 只有文件里有 `LLM_*`、进程环境里没有，模型仍然不会工作。
+> 另：玩家 API 的对话模型走独立旁路，开关是 `XKX_DIALOGUE_MODEL=1`（默认关），
+> 只挂 `TalkAction`，不会打开 decision / intent / strategy / night_batch 槽。
+> `WSIM_DIALOGUE=1` 仅保留给 `sim/run_headless.py` 的自走对话路径；给 `wsim.api`
+> 设 `WSIM_DIALOGUE=1` 不会生效。
+
+#### 1.1.1 对话模型旁路（可选，默认关）
+
+**为什么模型台词不能进账本**：`events.sqlite` / `state` / `state_final` / `event_final`
+必须逐字节可复现，回放、审计、对账都依赖这一点。模型输出带随机性，一旦写进
+`memory_add` 或世界状态，同 seed 两次跑出的哈希就会分叉，golden 也失效。
+因此账本永远只写 `agent/dialogue.py::compose_talk` 的确定性模板；模型台词单独落在
+`runs/<RUN_ID>/dialogue_aside.jsonl`，键为 `(event_seq, npc_id)`，不属于世界状态，
+删掉只影响“听到的那句话”，不影响事件、存档和哈希。
+
+开启（**必须先加载 `.env`**，否则等效关闭）：
+
+```bash
+set -a; . ./.env; set +a
+export XKX_DIALOGUE_MODEL=1
+# 可选：单次模型调用等待上限，默认 8 秒；中转站慢可调大
+export XKX_DIALOGUE_TIMEOUT_S=30
+PYTHONPATH=src .venv/bin/python -m wsim.api --root . --run <RUN_ID> --port 8031
+```
+
+关闭：删除 `XKX_DIALOGUE_MODEL` 或置 `0`，重启进程即可；已落盘的旁路不会再生效，
+但可保留供排查。
+
+失败语义（一律静默）：中转站不可用、key 无效、402/预算耗尽、超时，全部丢弃该句，
+保留模板台词；玩家动作仍然成功，tick 照常推进，不重试、不回写事件。
+
+排查：
+
+```bash
+curl -s http://127.0.0.1:8031/api/health | jq '.llm'
+# status: active | disabled | unconfigured
+# calls / ok / failures / timeouts / last_latency_s / by_slot.dialogue
+# decision_calls 恒为 0（本开关不碰决策槽）
+```
+
+清空旁路（可在线删，重启后索引为空，历史对话自动退回模板）：
+
+```bash
+rm -f runs/<RUN_ID>/dialogue_aside.jsonl
+```
+
+对照文件：
+
+- `runs/<RUN_ID>/dialogue_aside.jsonl`：模型配音，可删，不影响世界；
+- `runs/<RUN_ID>/dialogue.jsonl`：对话队列的运行日志（含 fallback 原因），可删；
+- `runs/<RUN_ID>/events.sqlite`：唯一世界账本，**里面永远是模板台词**。
+
+
 ### 1.2 容器（一条命令）
 
 ```bash

@@ -4,7 +4,6 @@
 """
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 from ..core.models import Effect, Intent
@@ -149,14 +148,8 @@ def build_registry(content, seed: int, plugin_dir: Path | None = None) -> Action
     reg.register(SystemTickAction())
 
     root = Path(__file__).resolve().parents[3]
-    # 对话模型：WSIM_DIALOGUE=1 时按「管理台 provider 注册表优先、env 兜底」挂载。
-    if os.environ.get("WSIM_DIALOGUE", "").strip().lower() in ("1", "true", "yes", "on"):
-        from ..agent import dialogue_runtime
-
-        run_id = os.environ.get("XKX_RUN") or "player-demo"
-        dialogue_runtime.attach_if_enabled(talk, root, root / "runs" / run_id)
-
-    # 规则层：扫描插件目录。插件 verb 不得覆盖内核内置 verb。
+    # 对话队列不进注册表自动挂载：由会话层（WorldSession）按实际 run 目录注入，
+    # 避免按环境变量猜目录、也避免把 decision/intent 槽一起打开。
     pdir = Path(plugin_dir) if plugin_dir is not None else root / "plugins" / "actions"
     if pdir.is_dir():
         from ..plugins.loader import PluginError, load_plugins

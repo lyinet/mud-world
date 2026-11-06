@@ -53,6 +53,8 @@ from ..actions.player_sect import (
 from ..core.clock import TICKS_PER_DAY, TICKS_PER_HOUR, day_of
 from ..core.content import load_content
 from ..core.models import Intent
+from ..agent import dialogue_runtime
+from ..agent.dialogue_aside import DialogueAside
 from ..mcp.gateway import MCPGateway, GatewayError
 from ..sim.genesis import build_genesis
 from ..sim.scheduler import AmbientConfig, AmbientScheduler
@@ -138,9 +140,6 @@ WRITE_ACTIONS: dict[str, str] = {
     "pay_disciples": "pay_disciples",
     "sect_deposit": "sect_deposit",
     "sect_withdraw": "sect_withdraw",
-    "equip": "equip",
-    "unequip": "unequip",
-    "use_item": "use_item",
     # 装备与物品使用：槽位/已装备物品入世界状态；use_item 消耗食物/药品恢复体力。
     "equip": "equip",
     "unequip": "unequip",
@@ -199,6 +198,9 @@ ACTION_ALIASES: dict[str, str] = {
     "pay_disciples": "pay_disciples",
     "sect_deposit": "sect_deposit",
     "sect_withdraw": "sect_withdraw",
+    "equip": "equip",
+    "unequip": "unequip",
+    "use_item": "use_item",
 }
 
 # NPC 专属动作：玩家请求必须得到明确的“未开放”，而不是未知操作。
@@ -423,6 +425,16 @@ class WorldSession:
             npcs = npcs[:npc_limit]
         self.store = EventStore(self.run_dir / "events.sqlite", check_same_thread=False)
         self.registry = build_registry(self.content, seed)
+        # 对话模型只挂 TalkAction；不构造 decision provider，不改 llm_enabled。
+        # 旁路不属于世界状态：删掉只影响台词，不影响事件/状态/哈希。
+        self.dialogue_aside = DialogueAside(self.run_dir)
+        self.dialogue_queue = dialogue_runtime.attach_if_enabled(
+            self.registry.get("talk"), self.root, self.run_dir
+        )
+        self.dialogue_model = ""
+        if self.dialogue_queue is not None:
+            cfg = getattr(getattr(self.dialogue_queue, "client", None), "config", None)
+            self.dialogue_model = str(getattr(cfg, "model", "") or "")
         # 日界结算并入 system_tick（见 SystemTickAction）；此处把动作实例换成带 content 的版本。
         self.registry.register(SystemTickAction(self.content))
         # 玩家专属休息动词：只经 API 会话注册，不进入 NPC/系统动作链。
@@ -977,6 +989,64 @@ class WorldSession:
         response["status"] = "executed" if response.get("ok") else "rejected"
         return response
 
+    def finalize_dialogue(self, result: dict[str, Any], args: dict[str, Any]) -> None:
+        """事件事务提交后补配音：只写旁路与 HTTP `details.reply`，失败静默退回模板。
+
+        硬约束：本方法不在 Writer 事务内、不持有 `self.lock`；模型慢/超时/预算耗尽
+        一律丢弃该句，不重试、不写事件、不影响动作结果。
+        """
+        try:
+            if not isinstance(result, dict) or str(result.get("verb") or "") != "talk":
+                return
+            details = result.get("details")
+            if not isinstance(details, dict):
+                details = {}
+                result["details"] = details
+            details.setdefault("dialogue_source", "template")
+            queue = self.dialogue_queue
+            if not result.get("ok") or queue is None:
+                return
+            if not getattr(queue, "defer_calls", False):
+                return
+            talk = self.registry.get("talk")
+            take = getattr(talk, "take_pending", None)
+            if take is None:
+                return
+            target = str(args.get("target") or "")
+            message = str(args.get("message") or "").strip()
+            tick = int(result.get("tick") or 0)
+            player = str(result.get("player") or "")
+            pending = take(player, target, tick, message)
+            if not pending:
+                return
+            try:
+                timeout_s = float(os.environ.get("XKX_DIALOGUE_TIMEOUT_S") or 8.0)
+            except ValueError:
+                timeout_s = 8.0
+            timeout_s = max(0.5, min(20.0, timeout_s))
+            dlg = queue.reply_sync(
+                npc=target,
+                player_text=message,
+                day=int(pending.get("day") or 0),
+                tick=tick,
+                persona=str(pending.get("persona") or ""),
+                state_summary=dict(pending.get("summary") or {}),
+                timeout_s=timeout_s,
+            )
+            text = str(getattr(dlg, "text", "") or "").strip()
+            if not bool(getattr(dlg, "ok", False)) or not text:
+                return
+            seq = int(result.get("event_seq") or 0)
+            try:
+                self.dialogue_aside.put(seq, target, text, self.dialogue_model)
+            except Exception:  # noqa: BLE001 - 旁路失败不能影响本次玩家操作
+                pass
+            details["reply"] = text
+            details["dialogue_source"] = "model"
+            details["dialogue_model"] = self.dialogue_model
+        except Exception:  # noqa: BLE001 - 配音失败一律退回模板，绝不向 HTTP 抛错
+            return
+
     def intent(self, account: str, intent_id: str) -> dict[str, Any]:
         """`GET /api/player/intents/<id>`：按 request_id 或事件 intent_id 查询。"""
         account = str(account or "").strip().lower()
@@ -1031,15 +1101,19 @@ class WorldSession:
                     data = eff.get("data") or {}
                     if data.get("source") != "talk:npc":
                         continue
+                    npc = str(data.get("npc") or "")
+                    template_text = str(data.get("text") or "").removeprefix("我答：")
+                    aside_text = self.dialogue_aside.get(int(event.seq), npc)
                     rows.append(
                         {
                             "id": f"msg:{event.seq}",
                             "seq": int(event.seq),
                             "tick": int(event.tick),
                             "kind": "talk_reply",
-                            "from": str(data.get("npc") or ""),
+                            "from": npc,
                             "to": pid,
-                            "text": str(data.get("text") or "").removeprefix("我答："),
+                            "text": aside_text or template_text,
+                            "dialogue_source": "model" if aside_text else "template",
                         }
                     )
             return {
@@ -1562,11 +1636,40 @@ class WorldSession:
                         "tax": tax,
                         "total": unit_price + tax,
                         "stock": int(qty),
+                        "available": True,
+                        "unavailable_reason": "",
                         "business": biz.id,
                         "business_name": biz.name,
                         "buy_limit": self._buy_limit(pid, unit_price, int(qty)),
+                        **self._item_meta(item),
                     }
                 )
+        # 售罄商品仍留在面板里：地点 services 是货架目录，库存为 0 时给 stock=0
+        # 与明确原因，避免商品“凭空消失”让玩家以为店铺坏了。
+        loc_row = self.state.locations.get(loc_id) or {}
+        for item in sorted(str(x) for x in (loc_row.get("services") or [])):
+            if item in seen or item not in self.content.items:
+                continue
+            seen.add(item)
+            unit_price = self._item_prices(prices, item)[0]
+            tax = int(transaction_tax(self.content, unit_price))
+            buy_rows.append(
+                {
+                    "item": item,
+                    "name": self._item_name(item),
+                    "category": str((self.content.items.get(item) or {}).get("category", "")),
+                    "price": unit_price,
+                    "tax": tax,
+                    "total": unit_price + tax,
+                    "stock": 0,
+                    "available": False,
+                    "unavailable_reason": "sold_out",
+                    "business": "",
+                    "business_name": "",
+                    "buy_limit": 0,
+                    **self._item_meta(item),
+                }
+            )
         sell_rows = []
         if ent is not None:
             for item, qty in sorted(ent.inventory.items()):

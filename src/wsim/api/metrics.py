@@ -78,6 +78,7 @@ class HttpMetrics:
         players_online: int,
         ambient_paused_total: int,
         llm_calls: int,
+        dialogue_llm_calls: int = 0,
         db_sizes: dict[str, int] | None = None,
     ) -> str:
         """渲染 Prometheus 文本格式（version 0.0.4）。"""
@@ -141,6 +142,10 @@ class HttpMetrics:
         lines.append("# HELP xkx_llm_calls_total LLM calls made by the ambient reasoner.")
         lines.append("# TYPE xkx_llm_calls_total counter")
         lines.append(f"xkx_llm_calls_total {int(llm_calls)}")
+
+        lines.append("# HELP xkx_dialogue_llm_calls_total LLM calls made by the dialogue slot.")
+        lines.append("# TYPE xkx_dialogue_llm_calls_total counter")
+        lines.append(f"xkx_dialogue_llm_calls_total {int(dialogue_llm_calls)}")
 
         lines.append("# HELP xkx_db_bytes SQLite database file size in bytes.")
         lines.append("# TYPE xkx_db_bytes gauge")

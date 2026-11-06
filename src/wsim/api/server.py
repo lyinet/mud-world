@@ -180,6 +180,46 @@ def _ambient_counts(session: WorldSession) -> tuple[int, int]:
     return max(0, paused), max(0, calls)
 
 
+def _dialogue_llm_payload(session: WorldSession) -> dict[str, Any]:
+    """只读进程内计数器与开关状态；探活里不发网络请求、不读全库。"""
+    from ..agent import dialogue_runtime
+
+    on = dialogue_runtime.enabled()
+    queue = getattr(session, "dialogue_queue", None)
+    if not on:
+        status = "disabled"
+    elif queue is None:
+        status = "unconfigured"
+    else:
+        status = "active"
+    payload: dict[str, Any] = {
+        "status": status,
+        "enabled": on,
+        "model": str(getattr(session, "dialogue_model", "") or ""),
+        "source": str(getattr(queue, "config_source", "") or "") if queue else "",
+        "calls": 0,
+        "ok": 0,
+        "failures": 0,
+        "timeouts": 0,
+        "last_latency_s": 0.0,
+        "by_slot": {"dialogue": 0},
+        "decision_calls": 0,
+    }
+    if queue is not None:
+        stats = queue.stats()
+        calls = int(stats.get("calls") or 0)
+        by_reason = dict(stats.get("fallback_by_reason") or {})
+        payload.update(
+            calls=calls,
+            ok=int(stats.get("ok") or 0),
+            failures=int(stats.get("fallback") or 0),
+            timeouts=int(by_reason.get("timeout") or 0),
+            last_latency_s=float(stats.get("last_latency_s") or 0.0),
+            by_slot={"dialogue": calls},
+        )
+    return payload
+
+
 def _ambient_health_payload(session: WorldSession) -> dict[str, Any]:
     """只读 ambient_status.json；缺失/过期/进程消失都收敛为 stopped。"""
     base: dict[str, Any] = {
@@ -493,6 +533,9 @@ class _Handler(BaseHTTPRequestHandler):
             # 既有键（ok/mode/readonly/profile_version/upstream_ok）语义保持不变。
             payload = self.server.health_probe.snapshot()  # type: ignore[attr-defined]
             payload.update(_ambient_health_payload(session))
+            payload["llm"] = _dialogue_llm_payload(session)
+            payload["llm_calls"] = payload["llm"]["calls"]
+            payload["llm_by_slot"] = dict(payload["llm"]["by_slot"])
             self._send(200 if payload.get("ok") else 503, payload)
             return
         if path == _SERVICE_INFO:
@@ -644,12 +687,14 @@ class _Handler(BaseHTTPRequestHandler):
             except OSError:
                 db_sizes[label] = 0
         paused, llm_calls = _ambient_counts(session)
+        dialogue_calls = int(_dialogue_llm_payload(session)["calls"])
         text = metrics.render(
             world_tick=int(session.state.tick),
             events_total=int(session.store.count()),
             players_online=sum(1 for p in session.state.players.values() if getattr(p, "online", False)),
             ambient_paused_total=paused,
             llm_calls=llm_calls,
+            dialogue_llm_calls=dialogue_calls,
             db_sizes=db_sizes,
         )
         self._send_text(200, text, "text/plain; version=0.0.4; charset=utf-8")
@@ -743,15 +788,17 @@ class _Handler(BaseHTTPRequestHandler):
                 bool(body.get("confirm")),
             )
             # 模型台词只覆盖本次 HTTP 响应的 details.reply；状态/事件仍是模板。
+            # 事务已提交、会话锁已释放，模型慢/失败都不会阻塞 tick。
             result.setdefault("verb", verb)
-            from ..agent import dialogue_runtime
-
-            dialogue_runtime.overlay_reply(result, args)
+            session.finalize_dialogue(result, args)
         elif route == "heartbeat" and bool(body.get("keepalive")):
             # 页面停留保活：只刷新活跃时钟，不写事件；离线仍返回 player_offline 供客户端自愈。
             result = session.keepalive(account)
         else:
             result = session.perform(account, route, body, request_id)
+            if route == "talk":
+                # 专用 /api/player/talk 走 perform 分支，同样要在事务提交后补配音。
+                session.finalize_dialogue(result, body)
         status = 429 if str(result.get("reject_reason") or "") in _CAPACITY_CODES else 200
         if status == 429:
             # 原因码双写：老客户端读 reject_reason，新客户端读 code。

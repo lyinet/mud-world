@@ -1,6 +1,9 @@
 """社交/组织动词：apprentice（仅拜师）、join_sect（入会/入门派）、marry、talk。"""
 from __future__ import annotations
 
+import threading
+from collections import OrderedDict
+
 from ..agent import dialogue_runtime
 from ..agent.dialogue import PLAYER_NAME, compose_talk, place_names
 from ..core.clock import TICKS_PER_DAY
@@ -103,6 +106,40 @@ class TalkAction(Action):
         self.content = content
         # 可选：AsyncDialogueQueue。未注入时保持纯模板路径（golden/离线 deterministic）。
         self.dialogue = dialogue
+        # API 会话（defer_calls=True）在事务提交后取走上下文再调模型；
+        # 这里只存进程内上下文，不是世界状态，也不写任何事件。
+        self._pending: "OrderedDict[tuple[str, str, int, str], dict]" = OrderedDict()
+        self._pending_lock = threading.Lock()
+        self._pending_limit = 256
+
+    def _remember_pending(
+        self,
+        pid: str,
+        npc: str,
+        tick: int,
+        message: str,
+        *,
+        persona: str,
+        summary: dict,
+        day: int,
+    ) -> None:
+        key = (str(pid), str(npc), int(tick), str(message))
+        with self._pending_lock:
+            self._pending[key] = {
+                "persona": persona,
+                "summary": dict(summary),
+                "day": int(day),
+            }
+            self._pending.move_to_end(key)
+            while len(self._pending) > self._pending_limit:
+                self._pending.popitem(last=False)
+
+    def take_pending(
+        self, player: str, npc: str, tick: int, message: str
+    ) -> dict | None:
+        key = (str(player), str(npc), int(tick), str(message))
+        with self._pending_lock:
+            return self._pending.pop(key, None)
 
     def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
         pid = _speaker_id(state, intent)
@@ -143,7 +180,22 @@ class TalkAction(Action):
         )
         # 红线：状态/事件只写确定性模板回复；模型台词仅进旁路与 HTTP 响应。
         reply = str(server["reply"])
-        if self.dialogue is not None:
+        # 配偶专属回应：确定性台词按世界日轮换，覆盖模板/模型回复。
+        spouse_override = (
+            pid.startswith("player:")
+            and target.spouse == pid
+            and pid in state.entities
+            and str(state.entities[pid].spouse or "") == target.id
+        )
+        if spouse_override:
+            pname = state.entities[pid].name
+            spouse_lines = (
+                f"{pname}，我温着汤呢，忙完早些回来。",
+                f"我把{pname}的换洗衣裳叠在柜头了，出门别又忘了带伞。",
+                f"{pname}，米缸见底了，今日该缴租，你回来顺路去一趟。",
+            )
+            reply = spouse_lines[day % len(spouse_lines)]
+        if self.dialogue is not None and not spouse_override:
             summary = {
                 "name": target.name,
                 "role": target.role,
@@ -155,38 +207,34 @@ class TalkAction(Action):
                 "last_message": last_player,
                 "last_reply": last_npc,
             }
-            try:
-                dlg = self.dialogue.reply_sync(
-                    npc=target.id,
-                    player_text=message,
-                    day=day,
-                    tick=tick,
-                    persona=persona,
-                    state_summary=summary,
-                    timeout_s=8.0,
+            if getattr(self.dialogue, "defer_calls", False):
+                # API 会话：事务内不发起网络调用，提交后由 finalize_dialogue 处理。
+                self._remember_pending(
+                    pid, target.id, tick, message,
+                    persona=persona, summary=summary, day=day,
                 )
-                if dlg.ok and dlg.text.strip():
-                    dialogue_runtime.remember(
-                        pid, target.id, tick, message, dlg.text.strip()
+            else:
+                try:
+                    dlg = self.dialogue.reply_sync(
+                        npc=target.id,
+                        player_text=message,
+                        day=day,
+                        tick=tick,
+                        persona=persona,
+                        state_summary=summary,
+                        timeout_s=8.0,
                     )
-            except Exception:  # noqa: BLE001 - 对话失败不得影响动作落地
-                pass
+                    if dlg.ok and dlg.text.strip():
+                        client = getattr(self.dialogue, "client", None)
+                        cfg = getattr(client, "config", None)
+                        model = str(getattr(cfg, "model", "") or "")
+                        dialogue_runtime.remember(
+                            pid, target.id, tick, message, dlg.text.strip(), model
+                        )
+                except Exception:  # noqa: BLE001 - 对话失败不得影响动作落地
+                    pass
         req_aff = float(server["affection_delta"])
         req_trust = float(server["trust_delta"])
-        # 配偶专属回应：确定性台词按世界日轮换，覆盖模板/模型回复。
-        if (
-            pid.startswith("player:")
-            and target.spouse == pid
-            and pid in state.entities
-            and str(state.entities[pid].spouse or "") == target.id
-        ):
-            pname = state.entities[pid].name
-            spouse_lines = (
-                f"{pname}，我温着汤呢，忙完早些回来。",
-                f"我把{pname}的换洗衣裳叠在柜头了，出门别又忘了带伞。",
-                f"{pname}，米缸见底了，今日该缴租，你回来顺路去一趟。",
-            )
-            reply = spouse_lines[day % len(spouse_lines)]
 
         ledger = dict(state.talk_ledger.get(target.id) or {})
         day_aff = float(ledger.get("day_affection", 0.0))

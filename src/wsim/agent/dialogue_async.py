@@ -60,8 +60,12 @@ class AsyncDialogueQueue:
         telemetry: CostTelemetry | None = None,
         tier: str = "active",
         guard_state_path: Path | str | None = None,
+        defer_calls: bool = False,
     ):
         self.client = client
+        # True 时由调用方在事务提交后自行调用 reply_sync（API 会话）；
+        # False 时保持 headless 既有行为（TalkAction.apply 内同步调用）。
+        self.defer_calls = bool(defer_calls)
         self.budget = budget
         self.fallback_budget = fallback_budget
         self.fallback_error = fallback_error
@@ -87,6 +91,7 @@ class AsyncDialogueQueue:
             "calls": 0, "ok": 0, "fallback": 0,
             "fallback_by_reason": {},
             "latencies": [],
+            "last_latency": 0.0,
             "input_tokens": 0, "output_tokens": 0, "estimated_cost": 0.0,
         }
         self._worker = threading.Thread(target=self._run, name="dialogue-worker", daemon=True)
@@ -309,6 +314,7 @@ class AsyncDialogueQueue:
         with self._lock:
             self._sync_stats["ok" if ok else "fallback"] += 1
             self._sync_stats["latencies"].append(float(latency_s))
+            self._sync_stats["last_latency"] = float(latency_s)
             if not ok:
                 by = self._sync_stats["fallback_by_reason"]
                 by[reason or "unknown"] = by.get(reason or "unknown", 0) + 1
@@ -366,6 +372,7 @@ class AsyncDialogueQueue:
                 "fallback_by_reason": dict(self._sync_stats["fallback_by_reason"]),
                 "p50_latency_s": quantile(0.50),
                 "p95_latency_s": quantile(0.95),
+                "last_latency_s": round(float(self._sync_stats["last_latency"]), 3),
                 "input_tokens": int(self._sync_stats["input_tokens"]),
                 "output_tokens": int(self._sync_stats["output_tokens"]),
                 "estimated_cost": round(float(self._sync_stats["estimated_cost"]), 6),
