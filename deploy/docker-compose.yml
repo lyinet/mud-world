@@ -45,7 +45,10 @@ services:
     volumes:
       - xkx-data:/app/runs
     restart: unless-stopped
-    stop_grace_period: 20s
+    # 2 小时 soak（50 并发、keep-alive 连接未断）实测 SIGTERM→进程退出 31.24s；
+    # 默认 10s 会在 WAL checkpoint/连接收尾前 SIGKILL。45s = 31.24s × 1.44 余量，
+    # 覆盖未来数据库变大后的 checkpoint 时间。
+    stop_grace_period: 45s
     healthcheck:
       test: ["CMD", "python", "/app/deploy/healthcheck.py"]
       interval: 15s
@@ -130,9 +133,11 @@ services:
       start_period: 30s
 
   # 对外唯一入口：TLS 终止、HTTP→HTTPS、X-Forwarded-* 透传。
-  # 证书目录 deploy/nginx/certs/ 由 deploy/gen_selfsigned_cert.sh 生成；
-  # 生产替换为运维签发的 xkx.crt / xkx.key（同文件名，不提交到仓库）。
-  # 管理面 Basic 凭据由 deploy/gen_admin_basic_auth.sh 生成 admin.htpasswd。
+  # 证书目录 deploy/certs/（gitignore）由 deploy/gen_selfsigned_cert.sh 生成演练证书；
+  # 生产替换为运维签发的正式证书，文件名保持 xkx.crt / xkx.key（fullchain 放 .crt），
+  # 私钥权限 600，容器只读挂载。任何证书/私钥都不提交、不进镜像。
+  # 续期用 ACME HTTP-01 时把 challenge 文件写到 deploy/certs/acme/（只读挂进容器）。
+  # 管理面 Basic 凭据由 deploy/gen_admin_basic_auth.sh 生成 admin.htpasswd（同目录）。
   proxy:
     image: nginx:1.27-alpine
     container_name: xkx-proxy
@@ -147,9 +152,11 @@ services:
       - "${PUBLIC_HTTPS_PORT:-443}:443"
     volumes:
       # 模板必须叫 default.conf.template：渲染结果覆盖镜像自带 default.conf，
-      # 避免默认站点抢占 80 端口（否则 Host 不匹配时 308/healthz 全部落到 404）。
+      # 避免默认站点抢占 80 端口（否则 Host 不匹配时跳转/healthz 全部落到 404）。
       - ./nginx/templates:/etc/nginx/templates:ro
-      - ./nginx/certs:/etc/nginx/certs:ro
+      - ./certs:/etc/nginx/certs:ro
+      # ACME HTTP-01 webroot：certbot 写宿主 deploy/certs/acme/，容器内只读。
+      - ./certs/acme:/var/www/certbot:ro
       - ../ui/admin:/usr/share/nginx/admin:ro
     networks:
       default: {}
@@ -157,8 +164,9 @@ services:
         ipv4_address: 172.30.31.10
     restart: unless-stopped
     healthcheck:
-      # 明文 /healthz 只做 proxy 自身存活；后端可用性由 world 的 /api/health 负责。
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/healthz"]
+      # 80 只做 301（无明文探活），所以探 /healthz 必须走 https；自签证书用
+      # --no-check-certificate。后端可用性由 world 的 /api/health 负责。
+      test: ["CMD-SHELL", "wget -q --no-check-certificate -O /dev/null https://127.0.0.1/healthz"]
       interval: 15s
       timeout: 5s
       retries: 3

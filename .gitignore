@@ -14,8 +14,12 @@ dist/
 .env.local
 *.pem
 *.key
-# 反向代理的本地自签证书（由 deploy/gen_selfsigned_cert.sh 生成，不入库）
-deploy/nginx/certs/
+# 反向代理的证书/私钥/Basic 凭据（由 deploy/gen_* 脚本生成，不入库）
+deploy/certs/*
+# 只保留 ACME HTTP-01 的 webroot 占位目录（其他内容仍忽略）
+!deploy/certs/acme/
+deploy/certs/acme/*
+!deploy/certs/acme/.gitkeep
 # 演练/压测产物中的凭证默认不入库（令牌只允许留摘要）
 **/token.txt
 **/*.token
@@ -25,6 +29,8 @@ reports/**/token*.txt
 reports/**/*-check.txt
 # 本地自动推送日志
 .git/push.log
+# 滚动重启的 CPU 基线是本机采样值，不入库（生成方式见 deploy/README.md）
+deploy/.cpu_baseline
 # 交付证据里的 run 目录需要入库，供干净 clone 直接事件回放。
 !reports/evidence/runs/
 !reports/evidence/runs/**

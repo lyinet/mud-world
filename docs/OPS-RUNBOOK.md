@@ -96,7 +96,7 @@ docker run --rm --entrypoint sh xkx/world-sim:w5 -c 'env | grep -Ei "api[_-]?key
 ```text
 $ netstat -an -f inet | grep LISTEN | grep -E '\.(80|443|8020|8030) '
 tcp4  0 0  *.443       *.*  LISTEN     ← proxy 对外
-tcp4  0 0  *.80        *.*  LISTEN     ← proxy 对外（只做 308）
+tcp4  0 0  *.80        *.*  LISTEN     ← proxy 对外（只做 301）
 tcp4  0 0  127.0.0.1.8020  *.*  LISTEN  ← 仅回环
 tcp4  0 0  127.0.0.1.8030  *.*  LISTEN  ← 仅回环
 
@@ -117,9 +117,10 @@ $ curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8020/api/service/info
 
 ```bash
 cd deploy
-./gen_selfsigned_cert.sh              # 仅演练：生成 deploy/nginx/certs/xkx.crt|key
+./gen_selfsigned_cert.sh              # 仅演练：生成 deploy/certs/xkx.crt|key
 XKX_ADMIN_BASIC_PASS='<强口令>' ./gen_admin_basic_auth.sh   # 管理面 Basic 凭据
-# 生产：把运维签发的证书按同名放进去（不入库，deploy/nginx/certs/ 已在 .gitignore）
+# 生产：把运维签发的证书按同名放进去（不入库，deploy/certs/ 已在 .gitignore）
+mkdir -p certs/acme                   # ACME HTTP-01 webroot（已随仓库保留占位）
 
 docker compose up -d                  # world + admin + backup + proxy 一起起
 docker compose ps                     # xkx-proxy / xkx-admin 应为 healthy
@@ -128,83 +129,212 @@ docker exec xkx-proxy nginx -t        # 配置语法校验
 
 证书替换后：`docker compose restart proxy`（nginx 启动时读证书，不热加载）。
 
+**证书放置与续期**
+
+| 文件 | 宿主路径 | 容器内 | 权限 |
+|---|---|---|---|
+| 证书链 | `deploy/certs/xkx.crt` | `/etc/nginx/certs/xkx.crt`（只读） | `644` |
+| 私钥 | `deploy/certs/xkx.key` | `/etc/nginx/certs/xkx.key`（只读） | `600` |
+| ACME webroot | `deploy/certs/acme/` | `/var/www/certbot`（只读） | 目录 `755` |
+
+- **正式证书**：把 CA 签发的 fullchain 覆盖为 `xkx.crt`、私钥覆盖为 `xkx.key`，
+  `docker compose restart proxy`，再用 `openssl s_client -connect <域名>:443 -servername <域名>`
+  核对 `Verify return code: 0` 与证书 SAN。
+- **ACME HTTP-01 续期**（80 只需放行 `/.well-known/acme-challenge/`，其余是 301）：
+
+```bash
+certbot certonly --webroot -w deploy/certs/acme -d xkx.example.com \
+  --deploy-hook 'cp /etc/letsencrypt/live/xkx.example.com/fullchain.pem deploy/certs/xkx.crt && \
+                 cp /etc/letsencrypt/live/xkx.example.com/privkey.pem deploy/certs/xkx.key && \
+                 chmod 600 deploy/certs/xkx.key && docker compose -f deploy/docker-compose.yml restart proxy'
+```
+
+  续期失败不会自动降级为 HTTP：证书过期时客户端握手失败，按下方"回滚到 HTTP"处置。
+  建议用 `systemd timer`/cron 每天跑一次 `certbot renew --quiet`，并监控
+  `openssl s_client` 的 `notAfter`。
+- **不要**把证书/私钥写进 compose 或镜像；`deploy/certs/` 只允许保留 `acme/.gitkeep`。
+
+**应急回滚到 HTTP（仅在 TLS 无法恢复时）**
+
+1. 备份模板：`cp deploy/nginx/templates/default.conf.template /tmp/default.conf.template.https.bak`
+2. 把 80 端口的 `location /` 从 `return 301 …` 改成玩家后端，并把 443 整段删除（或注释）：
+   ```nginx
+   location /api/ { proxy_pass http://world:8020; }
+   location /        { proxy_pass http://world:8030; }
+   ```
+   （同时把 443 的 `ssl_*` 行与 `listen 443` 移除；`docker exec xkx-proxy nginx -t` 必须通过）
+3. `docker compose up -d --force-recreate proxy`，用 `http://<host>/api/health` 验证。
+4. 恢复 TLS：`git checkout -- deploy/nginx/templates/default.conf.template` 后重建 proxy；
+   若仓库不可用，用第 1 步的备份覆盖。
+5. 回滚期间 HSTS 仍可能让**已经访问过**的浏览器强制 https（`max-age=300`，5 分钟后失效）；
+   这也是 HSTS 先给短 max-age 的原因。
+
 **路由与安全策略**（`deploy/nginx/templates/default.conf.template`）：
 
 | 项 | 配置 | 说明 |
 |---|---|---|
-| HTTP→HTTPS | `return 308 https://$host$request_uri` | 308 保留方法与请求体（POST 不会退化成 GET） |
-| 探活放行 | `location = /healthz`（80/443 均有） | 明文可用、`access_log off`，供容器 HEALTHCHECK/LB |
+| HTTP→HTTPS | `return 301 https://$host$request_uri` | 唯一例外：`/.well-known/acme-challenge/`（HTTP-01） |
+| 探活 | `location = /healthz` 只在 443 | 80 无明文探活；容器 HEALTHCHECK 用 `wget --no-check-certificate https://…` |
+| TLS 协议 | `ssl_protocols TLSv1.2 TLSv1.3` | 1.0/1.1 已废弃，实测握手被拒 |
+| 套件 | Mozilla intermediate（仅 AEAD GCM/CHACHA20） | 无 RSA 密钥交换、无 CBC；`ssl_prefer_server_ciphers off` |
+| 会话 | `ssl_session_cache shared:SSL:10m`、`timeout 1d`、`ssl_session_tickets off` | 减少握手开销，禁用可被重放的 ticket |
+| HSTS | `Strict-Transport-Security: max-age=300` | 先短；调长条件见下 |
+| 其他响应头 | `X-Content-Type-Options: nosniff`、`X-Frame-Options: DENY`、`Referrer-Policy: no-referrer` | `always` 生效；带 `add_header` 的 location 内需重复声明 |
 | 请求体上限 | `client_max_body_size 8k` | 与后端 `_MAX_BODY_BYTES = 8*1024` 一致 |
 | 头部/读超时 | `client_header_timeout 15s`、`proxy_read_timeout 30s` | 与 `XKX_REQUEST_TIMEOUT` 默认 30s 对齐 |
-| 来源头 | `X-Real-IP`、`X-Forwarded-For $proxy_add_x_forwarded_for`、`X-Forwarded-Proto $scheme`、`X-Forwarded-Host` | 见下方实测 |
+| 来源头 | `X-Real-IP`、`X-Forwarded-For $remote_addr`、`X-Forwarded-Proto $scheme`、`X-Forwarded-Host $host` | XFF 直接写实测来源，客户端自带的 XFF 被覆盖（防伪造）；见下方实测 |
 | 隐藏版本 | `server_tokens off` | 不回显 nginx 版本 |
 
-**实测（自签，2026-11-06）**
+HSTS `max-age` 调长条件：连续 ≥7 天无 https 故障、页面无混合内容、所有入口都走 443
+之后，再改 `max-age=31536000`；`includeSubDomains` 要等所有子域都支持 https；
+`preload` 需先做子域清单审计且难以快速撤销，最后再做。
+
+**实测（自签，2026-11-06；先贴健康状态）**
 
 ```text
+$ docker ps --format 'table {{.Names}}\t{{.Status}}'
+NAMES        STATUS
+xkx-proxy    Up 18 seconds (healthy)
+xkx-world    Up 2 minutes (healthy)
+xkx-admin    Up 8 hours (healthy)
+xkx-backup   Up 8 hours (healthy)
+```
+
+```text
+# 证书与 https（CA=自签证书本体）
 $ echo | openssl s_client -connect 127.0.0.1:443 -servername localhost | openssl x509 -noout -subject -ext subjectAltName
 subject=CN = localhost, O = XKX-DEV
 X509v3 Subject Alternative Name:
     DNS:localhost, IP Address:127.0.0.1, IP Address:0:0:0:0:0:0:0:1
 
-$ curl -sk -w '%{http_code}\n' https://127.0.0.1/api/service/info
-{"ambient": "running", … "auth_required": true, "ok": true, "run": "service", "tick": 84}
-200
+$ curl -s --cacert deploy/certs/xkx.crt -o /dev/null \
+    -w 'code=%{http_code} http_version=%{http_version} ssl_verify=%{ssl_verify_result}\n' https://127.0.0.1/api/state
+code=200 http_version=2 ssl_verify=0
 
-# 注册 → 登录 → 进入世界 → 取状态，全走 HTTPS
-$ curl -sk -X POST -d '{"username":"tlsgate3","password":"…"}' https://127.0.0.1/api/auth/register
-{"account_id": "tlsgate3", "created": true, "ok": true, "username": "tlsgate3"}
-$ curl -sk -H "Authorization: Bearer $TOKEN" 'https://127.0.0.1/api/state?account_id=tlsgate3'
-HTTPS /api/state -> CODE=200
-ok= True account= tlsgate3 location= market
+$ curl -s --cacert deploy/certs/xkx.crt https://127.0.0.1/api/health
+{"ambient": "running", "ambient_last_tick_at": "2026-11-06T03:32:34+0000", …, "ok": true, …}
 
-# HTTP 跳转
-$ curl -s -o /dev/null -D - http://127.0.0.1/api/state?account_id=tlsgate3
-HTTP/1.1 308 Permanent Redirect
-Location: https://127.0.0.1/api/state?account_id=tlsgate3
+# 80 只做 301（路径与查询串保留）
+$ curl -s -o /dev/null -D - http://127.0.0.1/api/state?x=1
+HTTP/1.1 301 Moved Permanently
+Location: https://127.0.0.1/api/state?x=1
+$ curl -s -o /dev/null -w '%{http_code} -> %{redirect_url}\n' http://127.0.0.1/healthz
+301 -> https://127.0.0.1/healthz
+
+# TLS 版本与套件
+$ curl -s --cacert deploy/certs/xkx.crt --tlsv1.2 --tls-max 1.2 -o /dev/null -w 'code=%{http_code}\n' https://127.0.0.1/api/health
+code=200
+$ echo | openssl s_client -connect 127.0.0.1:443 -servername localhost -tls1_3 -CAfile deploy/certs/xkx.crt 2>&1 | grep -E 'New,|Verify return code'
+New, TLSv1.3, Cipher is TLS_AES_256_GCM_SHA384
+Verify return code: 0 (ok)
+$ curl -s --cacert deploy/certs/xkx.crt --tlsv1.1 --tls-max 1.1 -o /dev/null https://127.0.0.1/api/health; echo "curl_exit=$?"
+curl_exit=35            ← 握手被拒
+$ echo | openssl s_client -connect 127.0.0.1:443 -tls1_1 2>&1 | grep -E 'alert|Protocol'
+tlsv1 alert protocol version (SSL alert number 70), Protocol: TLSv1.1 (NONE)
+$ curl -s --cacert deploy/certs/xkx.crt --tlsv1.2 --tls-max 1.2 --ciphers AES128-SHA -o /dev/null https://127.0.0.1/api/health; echo "curl_exit=$?"
+curl_exit=35            ← 弱套件（CBC/RSA 密钥交换）不在白名单
+
+# 安全响应头（/api/health 与 /admin/ 各取一次）
+$ curl -sI --cacert deploy/certs/xkx.crt https://127.0.0.1/api/health | grep -iE 'strict-transport|x-content-type|x-frame|referrer|server:'
+server: nginx
+strict-transport-security: max-age=300
+x-content-type-options: nosniff
+x-frame-options: DENY
+referrer-policy: no-referrer
+$ curl -sI --cacert deploy/certs/xkx.crt -u 'admin:<口令>' https://127.0.0.1/admin/ | grep -iE 'strict-transport|x-content-type|x-frame|referrer|cache-control'
+strict-transport-security: max-age=300
+x-content-type-options: nosniff
+x-frame-options: DENY
+referrer-policy: no-referrer
+cache-control: no-store
+
+# ACME HTTP-01 例外（唯一不跳转的明文路径）
+$ curl -s -o /dev/null -w 'acme=%{http_code}\n' http://127.0.0.1/.well-known/acme-challenge/probe.txt
+acme=200
+$ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1/.well-known/acme-challenge-nope
+301
 ```
 
-`X-Forwarded-*` 是否真的到达后端（用同一组指令指向回显上游实测，避免"只写在配置里"）：
+管理台（改配置后回归）：`https://127.0.0.1/admin/` 无凭证 **401**、正确 Basic **200
+size=8967**；`/api/admin/settings` 无 Bearer 401（Bearer 会话流程见 §1.5）。
+
+`X-Forwarded-*` 是否真的到达后端（临时回显上游，验收后已删除；客户端故意自带伪造 XFF）：
 
 ```text
-$ curl -sk https://127.0.0.1:9443/probe?x=1
-{"ok": true}
-$ docker logs xkx-echo
-{"path": "/probe?x=1", "headers": {"Host": "127.0.0.1", "X-Real-IP": "172.18.0.1",
- "X-Forwarded-For": "172.18.0.1", "X-Forwarded-Proto": "https", "X-Forwarded-Host": "127.0.0.1"}}
+$ curl -s --cacert deploy/certs/xkx.crt -H 'X-Forwarded-For: 1.2.3.4, 5.6.7.8' \
+    'https://127.0.0.1/_echo?probe=1'
+{
+  "client_address": "172.18.0.4",
+  "headers": {
+    "Host": "127.0.0.1",
+    "X-Real-IP": "172.18.0.1",
+    "X-Forwarded-For": "172.18.0.1",
+    "X-Forwarded-Proto": "https",
+    "X-Forwarded-Host": "127.0.0.1"
+  }
+}
 ```
+
+`X-Forwarded-For` 里输入的两段伪造地址没有出现——被 `$remote_addr` 覆盖。
+`client_address` 是 upstream 看到的 TCP 对端 = proxy 容器地址 `172.18.0.4`。
 
 请求体上限对齐：
 
 ```text
-$ curl -sk -o /dev/null -w '%{http_code}\n' -X POST --data-binary @9KB.json https://127.0.0.1/api/auth/login
+$ curl -s --cacert deploy/certs/xkx.crt -o /dev/null -w '%{http_code}\n' -X POST --data-binary @9KB.json https://127.0.0.1/api/auth/login
 413                    ← nginx 先拒
 $ curl -s -o /dev/null -w '%{http_code}\n' -X POST --data-binary @9KB.json http://127.0.0.1:8020/api/auth/login
 413                    ← 后端同为 8KB 上限，直连也拒
-$ curl -sk -o /dev/null -w '%{http_code}\n' -X POST --data-binary @7KB.json https://127.0.0.1/api/auth/login
+$ curl -s --cacert deploy/certs/xkx.crt -o /dev/null -w '%{http_code}\n' -X POST --data-binary @7KB.json https://127.0.0.1/api/auth/login
 401                    ← 未超限，正常到达后端
 ```
 
-**限流粒度（重要，未改代码）**：后端 `_client_ip()` 取 TCP 对端地址，且**不信任**
-`X-Forwarded-For`（`src/wsim/api/server.py`）。经 proxy 后所有请求的对端 IP 都是 proxy
-容器地址，因此登录失败限流、按 IP 的审计会**退化为全局限流**。本门不改 `src/wsim/api/**`，
-处置：
+**来源 IP 的实际语义（重要，未改代码）**
 
-- 单机/单入口部署可接受（等于"全局失败预算"），发生误锁时用
+TLS 终止本身不丢来源：nginx 用 `$remote_addr` 生成 `X-Real-IP` / `X-Forwarded-For`，
+上面回显已证实。但**应用侧不读这些头**：
+
+- 玩家 API `src/wsim/api/server.py::_client_ip()` 明确只取 TCP 对端，
+  注释即"不信任 X-Forwarded-For（可伪造）"。经 proxy 后，对端固定是 proxy 容器地址。
+- 管理台 `src/wsim/admin/server.py::_check_ip()` 同样取 TCP 对端；proxy 的
+  `172.30.31.10` 是白名单里唯一放行的地址。
+
+实测（经 https 反代发起一次失败登录后查库）：
+
+```text
+$ curl -s --cacert deploy/certs/xkx.crt -H 'Content-Type: application/json' \
+    -d '{"username":"ghost-probe","password":"wrong-pass-123"}' https://127.0.0.1/api/auth/login
+{"code": "auth_invalid_credentials", "ok": false, …}
+$ docker exec xkx-world python -c "import sqlite3; c=sqlite3.connect('/app/runs/service/service.sqlite'); \
+    print(c.execute(\"select ip,account from login_failures where account='ghost-probe'\").fetchall())"
+[('172.18.0.4', 'ghost-probe')]      ← proxy 在默认网络中的地址，不是真实客户端
+```
+
+因此登录失败限流（键为 `(ip, account)`）与按 IP 审计**按 proxy 地址计数，即全局
+per-account 预算**，不是"每个真实客户端一份"。这不是 TLS 终止造成的（明文反代也一样），
+而是后端有意不信任 XFF。处置：
+
+- 单机/单入口部署可接受（等于"全局失败预算"），误锁用
   `accounts.clear_login_locks()` 解锁（见 §5）。
-- 若要按真实客户端限流，需后端改为在可信代理后读取 XFF（属于 API 域，另立任务）。
-- 因此**不要把 proxy 直接暴露到不可信网络而不加额外限流/WAF**；公网部署建议在
-  proxy 前再加一层按 IP 的连接/请求速率限制。
+- 若要按真实客户端限流，需后端在可信代理后读取 XFF（属于 API 域，另立任务）；
+  在那之前，公网入口前应再加一层按真实 IP 的连接/请求速率限制（WAF/LB）。
+- 管理台白名单只放行 proxy 固定 IP 是**预期行为**：不要为了"看到真实 IP"把
+  `XKX_ADMIN_ALLOW_IPS` 放宽成公网网段。
 
 **故障排查**：
 
 | 现象 | 原因 | 处置 |
 |---|---|---|
-| `xkx-proxy` 起不来，日志 `cannot load certificate` | 证书缺失/文件名不符/权限 | 跑 `deploy/gen_selfsigned_cert.sh`，确认 `xkx.crt`/`xkx.key` 存在且 `644`/`600` |
+| `xkx-proxy` 起不来，日志 `cannot load certificate` | 证书缺失/文件名不符/权限 | 跑 `deploy/gen_selfsigned_cert.sh`，确认 `deploy/certs/xkx.crt`/`xkx.key` 存在且 `644`/`600` |
+| `xkx-proxy` 一直 `unhealthy`，`/healthz` 404 | 模板名不是 `default.conf.template`，镜像自带站点抢占 80 | 改回文件名并重建 proxy（见文件头注释） |
 | 443 握手成功但 `/api/*` 502 | world 未 healthy 或服务名解析失败 | `docker compose ps`、`docker logs xkx-world`；确认 upstream 为 `world:8020` |
 | 浏览器提示证书不受信任 | 自签证书 | 演练预期；生产换正式证书 |
+| 浏览器仍强制 https（已回滚到 HTTP） | HSTS 已缓存 | `max-age=300`，最多 5 分钟自动失效；期间用无痕/新配置访问 |
+| ACME 校验 404 | 文件路径不是 `<webroot>/.well-known/acme-challenge/<token>` | 确认 `deploy/certs/acme/.well-known/acme-challenge/` 下有文件；`root` 指向 webroot |
+| 弱协议客户端连不上 | TLS1.0/1.1 已禁用 | 升级客户端；不要为兼容降级 `ssl_protocols` |
+| 管理页缺少安全头 | location 内 `add_header` 覆盖 server 级 | 在 `/admin/` 内重复声明（模板已处理） |
 | 大请求返回 nginx 的 413 HTML 而非 API JSON | 请求体 > 8KB 在 proxy 层被拒 | 预期行为（阈值与后端一致）；客户端应按 8KB 控制 |
-| 所有客户端共享登录失败计数 | 后端按 TCP 对端限流且不读 XFF | 见上"限流粒度"；单入口下按全局预算处理 |
+| 所有客户端共享登录失败计数 | 后端按 TCP 对端限流且不读 XFF | 见上"来源 IP 的实际语义"；单入口下按全局预算处理 |
 
 ### 1.5 管理控制台（admin 服务 + 反代隔离）
 
@@ -252,7 +382,7 @@ $ docker exec xkx-admin sh -c 'ls -l /app/runs/service/service.sqlite'
 
 | 路径 | 反代层 | 应用层 | 说明 |
 |---|---|---|---|
-| `/admin`、`/admin/` | HTTP Basic（`admin.htpasswd`） | 静态页 | `deploy/nginx/certs/admin.htpasswd` 由 `deploy/gen_admin_basic_auth.sh` 生成，不入库 |
+| `/admin`、`/admin/` | HTTP Basic（`admin.htpasswd`） | 静态页 | `deploy/certs/admin.htpasswd` 由 `deploy/gen_admin_basic_auth.sh` 生成，不入库 |
 | `/api/admin/login` | HTTP Basic | `XKX_ADMIN_TOKEN` 换 24h 会话 | 浏览器已缓存 Basic，登录请求自动带 |
 | `/api/admin/*`（其余） | 不加 Basic | `Authorization: Bearer <session>` | **不能加 Basic**：前端发 Bearer 会覆盖同一个 `Authorization` 头，导致 401 |
 | 玩家 `/api/*`、`/` | 无 | 原样 | 管理路径是独立前缀，玩家入口不受影响 |
@@ -262,7 +392,7 @@ Basic 凭据生成：
 ```bash
 cd deploy
 XKX_ADMIN_BASIC_USER=admin XKX_ADMIN_BASIC_PASS='<强口令>' ./gen_admin_basic_auth.sh
-# 写入 deploy/nginx/certs/admin.htpasswd（600），该目录已被 .gitignore 忽略
+# 写入 deploy/certs/admin.htpasswd（600），该目录已被 .gitignore 忽略
 ```
 
 **公网屏蔽开关**：compose 的 `XKX_ADMIN_PUBLIC=0` → 渲染 `ADMIN_ENABLED=0` →
@@ -364,7 +494,7 @@ xkx-admin	Up 25 seconds (healthy)
 | 现象 | 原因 | 处置 |
 |---|---|---|
 | `/admin/` 401（浏览器弹 Basic 框） | 未带/错 Basic 凭据 | 用 `admin.htpasswd` 对应账号；htpasswd 丢了重跑 `gen_admin_basic_auth.sh` |
-| `/admin/` 404 | `XKX_ADMIN_PUBLIC=0` 或少了尾部 `/` | 改回 `1` 并重建 proxy；`/admin` 会 308 到 `/admin/` |
+| `/admin/` 404 | `XKX_ADMIN_PUBLIC=0` 或少了尾部 `/` | 改回 `1` 并重建 proxy；`/admin` 会 301 到 `/admin/` |
 | `/api/admin/*` 401 `unauthorized` | 无 Bearer 或会话过期（24h） | 重新 `POST /api/admin/login` 取会话 |
 | `/api/admin/*` 403 `admin_ip_not_allowed` | 来源不是 proxy 固定 IP | 确认请求经 proxy；直连只允许容器内回环或精确命中 `XKX_ADMIN_ALLOW_IPS`（不支持 CIDR） |
 | `/admin/` 或 `/api/admin/*` 504 | admin 暂停/卡死，反代读超时 30s | `docker ps` 看健康；`docker logs xkx-admin`；必要时 `docker restart xkx-admin` |

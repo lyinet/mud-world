@@ -9,6 +9,42 @@
 
 ---
 
+## [部署] 2026-11-06 — TLS 硬化：301-only 入口、ACME 例外、强协议/套件与安全响应头
+
+- **改了什么**
+  - 80 端口只做 `301` 到 HTTPS；唯一明文例外 `/.well-known/acme-challenge/`
+    （`root /var/www/certbot`，宿主 `deploy/certs/acme/` 只读挂载）。proxy 的
+    HEALTHCHECK 改为 `wget --no-check-certificate https://127.0.0.1/healthz`。
+  - 443 明确 `ssl_protocols TLSv1.2 TLSv1.3`、Mozilla intermediate AEAD 套件、
+    `ssl_session_tickets off`；新增 `HSTS max-age=300`、`X-Content-Type-Options: nosniff`、
+    `X-Frame-Options: DENY`、`Referrer-Policy: no-referrer`（`always`；`/admin/` 内重复声明，
+    避免 `add_header` 继承被覆盖）。
+  - `X-Forwarded-For` 由 `$proxy_add_x_forwarded_for` 改为 `$remote_addr`：客户端自带的
+    XFF 被覆盖，防伪造；`X-Real-IP`/`X-Forwarded-Proto`/`X-Forwarded-Host` 保持透传。
+  - 证书/私钥/Basic 凭据从 `deploy/nginx/certs/` 迁到 `deploy/certs/`（gitignore，
+    仅保留 `acme/.gitkeep`）；`gen_selfsigned_cert.sh` 与 `gen_admin_basic_auth.sh` 同步。
+  - `docs/OPS-RUNBOOK.md` §1.4 补齐：证书放置、ACME 续期、应急回滚到 HTTP、HSTS 调长条件、
+    来源 IP 实际语义、实测输出与故障表。
+- **为什么改**：公网入口必须只信 HTTPS；弱协议/弱套件与缺失安全头是开服前的硬缺口。
+  同时把"回滚到 HTTP"写成可执行步骤，避免证书事故时临时改配置无据可依。
+- **验收/实测（自签，整套 compose）**
+  - 先贴健康：`xkx-proxy/xkx-world/xkx-admin/xkx-backup` 全部 `healthy`。
+  - `curl --cacert deploy/certs/xkx.crt https://127.0.0.1/api/state` → `200`（HTTP/2，
+    `ssl_verify=0`）；`/api/health` → `200`；`/admin/` 无凭证 `401`、正确 Basic `200`。
+  - `http://…/api/state?x=1` → `301`，`Location` 保留路径与查询串；`/healthz` 也 301。
+  - TLS 1.2 `200`、TLS 1.3 `New, TLSv1.3, TLS_AES_256_GCM_SHA384`；TLS 1.1/弱套件
+    （`AES128-SHA`）握手失败（curl exit 35 / openssl alert 70）。
+  - 响应头：HSTS `max-age=300`、nosniff、DENY、no-referrer 均在 `/api/health` 与 `/admin/` 出现。
+  - ACME：`/.well-known/acme-challenge/probe.txt` → `200`，相邻近似路径仍 `301`。
+  - 转发头（临时回显上游，已删除）：伪造 `X-Forwarded-For: 1.2.3.4, 5.6.7.8` 被覆盖为
+    `$remote_addr`；`X-Forwarded-Proto=https`、`X-Forwarded-Host` 正确。
+  - 来源 IP：经反代失败登录后 `service.sqlite.login_failures` 记录 `ip=172.18.0.4`
+    （proxy 地址），证实应用按 TCP 对端计数——限流是全局 per-account，不是按真实客户端；
+    与 TLS 终止无关，后端 `_client_ip()` 有意不读 XFF，已写入 §1.4。
+- **未做/边界**：未实际执行 certbot 续期（无正式域名/CA）；演练用自签证书。
+  "按真实客户端限流"仍需 API 域改造（本轮不动 `src/wsim/api/**`）。
+- **commit**：见本条目所在提交。
+
 ## [性能] 2026-11-06 — 写路径无 Effect 时跳过整世界深拷贝
 
 - **改了什么**

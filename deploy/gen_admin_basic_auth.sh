@@ -2,7 +2,7 @@
 # 生成反代层的管理面 HTTP Basic 凭据（admin.htpasswd）。
 #
 # 这是**第一层**访问控制；控制台自身还有 XKX_ADMIN_TOKEN 登录（第二层）。
-# 不要把 .htpasswd 提交到仓库：deploy/nginx/certs/ 已在 .gitignore。
+# 不要把 .htpasswd 提交到仓库：deploy/certs/ 已在 .gitignore。
 #
 # 用法：
 #   deploy/gen_admin_basic_auth.sh admin 'your-strong-password'
@@ -11,7 +11,7 @@
 set -eu
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-OUT="$HERE/nginx/certs"
+OUT="$HERE/certs"
 USER_NAME="${1:-${XKX_ADMIN_BASIC_USER:-}}"
 PASS="${2:-${XKX_ADMIN_BASIC_PASS:-}}"
 
