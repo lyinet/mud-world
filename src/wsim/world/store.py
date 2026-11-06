@@ -39,6 +39,8 @@ CREATE TABLE IF NOT EXISTS events (
 );
 CREATE INDEX IF NOT EXISTS idx_events_tick ON events(tick);
 CREATE INDEX IF NOT EXISTS idx_events_actor ON events(actor);
+CREATE INDEX IF NOT EXISTS idx_events_intent ON events(intent_id);
+CREATE INDEX IF NOT EXISTS idx_events_actor_tick ON events(actor, tick);
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 """
 
@@ -222,6 +224,7 @@ class EventStore:
         return None if row is None else str(row[0])
 
     def event_hash(self) -> str:
+        # 离线 / 关停 final_summary 专用：全量读日志，禁止请求路径调用。
         return hash_obj([e.to_canonical_dict() for e in self.read_all()])
 
 
