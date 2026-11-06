@@ -1,0 +1,4506 @@
+{
+  "run_probe": {
+    "base": "http://127.0.0.1:8031",
+    "account": "qa_dialogue_04",
+    "npc_ids": [
+      "duan_wudou",
+      "jin_mancang",
+      "liu_sanniang",
+      "meng_jiuniang",
+      "ruan_qingfu"
+    ]
+  },
+  "metrics": {
+    "replies": 15,
+    "unique_replies": 15,
+    "unique_rate": 1.0,
+    "same_npc_consecutive_identical": 0,
+    "same_intent_cross_npc_identical": 0,
+    "longest_common_substring_global": 0,
+    "longest_common_substring_by_intent": {
+      "greeting": 0,
+      "gossip": 1
+    },
+    "longest_common_substring_by_intent_max": 1,
+    "unique_replies_by_intent": {
+      "greeting": 5,
+      "gossip": 5
+    },
+    "template_hit": 0,
+    "template_hit_rate": 0.0,
+    "model_generated": 15,
+    "model_generated_rate": 1.0
+  },
+  "rows": [
+    {
+      "seq": 1,
+      "npc": "duan_wudou",
+      "round": 1,
+      "intent": "greeting",
+      "request": {
+        "action": "talk",
+        "target": "duan_wudou",
+        "message": "你好，今日可好？",
+        "request_id": "qa_dialogue_04-probe-1"
+      },
+      "reply": "我好得很，天没亮就杀完一口猪，这会儿腰都酸。你要肥要瘦？先说来路，我才好下刀。",
+      "source": "model",
+      "ok": true,
+      "status": "executed",
+      "reject_reason": "",
+      "tick": 2190,
+      "event_seq": 4963,
+      "intent_id": "i:08090dee1c34041241475989d95cc4d9a90a9c87bfe82bce0149ff285a53e792",
+      "response": {
+        "action": "talk",
+        "client_tick": null,
+        "client_tick_ignored": false,
+        "confirm": false,
+        "data": {
+          "active_quests": [],
+          "active_quests_detail": [],
+          "archetype": "游侠",
+          "growth": {
+            "assets": {
+              "at": 0.0,
+              "level": 1,
+              "money": 300,
+              "name": "囊中羞涩",
+              "next_at": 600.0,
+              "next_name": "小有积蓄",
+              "next_unlock": "可开摊（本钱 300 文）",
+              "progress": 0.5,
+              "value": 300.0
+            },
+            "reputation": {
+              "at": 0.0,
+              "level": 1,
+              "name": "无名之辈",
+              "next_at": 3.0,
+              "next_name": "街坊熟人",
+              "next_unlock": "可接护送类委托，街坊愿意搭话",
+              "progress": 0.167,
+              "value": 0.5
+            },
+            "skill": {
+              "at": 0.0,
+              "level": 1,
+              "name": "生手",
+              "next_at": 0.42,
+              "next_name": "手熟",
+              "next_unlock": "可独立开摊（手艺够撑起门面）",
+              "progress": 0.833,
+              "skill": "镖师",
+              "skills": {
+                "镖师": 0.35
+              },
+              "value": 0.35
+            }
+          },
+          "home": "market",
+          "id": "player:qa_dialogue_04",
+          "inventory": {
+            "coarse_cloth": 1,
+            "flatbread": 3
+          },
+          "location": "market",
+          "marriage": {
+            "daily_note": "",
+            "last_daily_tick": 0,
+            "since_tick": 0,
+            "spouse_id": "",
+            "spouse_name": "",
+            "status": "single"
+          },
+          "max_stamina": 100.0,
+          "name": "问话人丁",
+          "nearby": [
+            {
+              "id": "chang_banxia",
+              "name": "常半夏",
+              "presence": "online",
+              "role": "游医"
+            },
+            {
+              "id": "duan_wudou",
+              "name": "段五斗",
+              "presence": "online",
+              "role": "屠户"
+            },
+            {
+              "id": "jin_mancang",
+              "name": "金满仓",
+              "presence": "online",
+              "role": "掌柜"
+            },
+            {
+              "id": "liu_sanniang",
+              "name": "柳三娘",
+              "presence": "online",
+              "role": "绣娘"
+            },
+            {
+              "id": "meng_jiuniang",
+              "name": "孟九娘",
+              "presence": "online",
+              "role": "媒婆"
+            },
+            {
+              "id": "player:qa_dialogue_01",
+              "name": "问话人",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_02",
+              "name": "问话人乙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_03",
+              "name": "问话人丙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:s1check_015105",
+              "name": "沈验0151",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:u_demo",
+              "name": "陈捕快",
+              "presence": "offline",
+              "role": "visitor"
+            },
+            {
+              "id": "ruan_qingfu",
+              "name": "阮青蚨",
+              "presence": "online",
+              "role": "货郎"
+            },
+            {
+              "id": "xie_tingyun",
+              "name": "谢停云",
+              "presence": "online",
+              "role": "师爷"
+            },
+            {
+              "id": "yan_shouyi",
+              "name": "严守一",
+              "presence": "online",
+              "role": "庙祝"
+            }
+          ],
+          "ok": true,
+          "online": true,
+          "presence": "online",
+          "relations": [
+            {
+              "affection": 1.0,
+              "kind": "acquaintance",
+              "name": "段五斗",
+              "target": "duan_wudou",
+              "trust": 40.5
+            }
+          ],
+          "role": "镖师",
+          "sect": {
+            "in_sect": false,
+            "sect": null
+          },
+          "skills": {
+            "镖师": 0.35
+          },
+          "stamina": 100.0,
+          "tick": 2190,
+          "today": {
+            "business": [
+              {
+                "affordable": true,
+                "blocked": "",
+                "cost": 300,
+                "shop_type": "stall"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 1200,
+                "shop_type": "storefront"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 3000,
+                "shop_type": "branch"
+              }
+            ],
+            "location": "market",
+            "location_name": "集市",
+            "next_action": "先接委托：【轻】打听客栈酒价",
+            "npcs": [
+              {
+                "hint": "可打听委托",
+                "id": "chang_banxia",
+                "name": "常半夏",
+                "role": "游医"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "duan_wudou",
+                "name": "段五斗",
+                "role": "屠户"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "jin_mancang",
+                "name": "金满仓",
+                "role": "掌柜"
+              }
+            ],
+            "quests": [
+              {
+                "giver_name": "阮青蚨",
+                "id": "quest:daily_market_inquiry:2020",
+                "name": "【轻】打听客栈酒价",
+                "reward_money": 9
+              },
+              {
+                "giver_name": "金满仓",
+                "id": "quest:debt_duan_to_jin:2020",
+                "name": "代金满仓讨债",
+                "reward_money": 25
+              },
+              {
+                "giver_name": "严守一",
+                "id": "quest:errand_academy_notice:2164",
+                "name": "送书院口信",
+                "reward_money": 8
+              }
+            ],
+            "skills": [
+              {
+                "current": 0.35,
+                "hours_to_next": 28,
+                "next_at": 0.42,
+                "next_level": 2,
+                "skill": "镖师"
+              }
+            ],
+            "tick": 2196
+          },
+          "wallet": 300
+        },
+        "details": {
+          "dialogue_source": "model",
+          "relation": {
+            "affection": 1.0,
+            "kind": "acquaintance",
+            "target": "duan_wudou",
+            "trust": 40.5
+          },
+          "reply": "我好得很，天没亮就杀完一口猪，这会儿腰都酸。你要肥要瘦？先说来路，我才好下刀。"
+        },
+        "event_seq": 4963,
+        "intent_id": "i:08090dee1c34041241475989d95cc4d9a90a9c87bfe82bce0149ff285a53e792",
+        "next_tick": 2196,
+        "ok": true,
+        "player": "player:qa_dialogue_04",
+        "profile_version": 1,
+        "reason_text": "",
+        "reject_reason": "",
+        "status": "executed",
+        "tick": 2190,
+        "verb": "talk"
+      }
+    },
+    {
+      "seq": 2,
+      "npc": "duan_wudou",
+      "round": 2,
+      "intent": "greeting",
+      "request": {
+        "action": "talk",
+        "target": "duan_wudou",
+        "message": "幸会，近来可好？",
+        "request_id": "qa_dialogue_04-probe-2"
+      },
+      "reply": "好着呢，寅时刚放倒一头，肉还热。我把刀往案板上一搁，你要肥要瘦？账的事先不提，我段五斗认账，就是手头紧。",
+      "source": "model",
+      "ok": true,
+      "status": "executed",
+      "reject_reason": "",
+      "tick": 2202,
+      "event_seq": 4967,
+      "intent_id": "i:4e5e2c194dc044cd481a352516018c89102d690c505edd5ab1f37a7460721003",
+      "response": {
+        "action": "talk",
+        "client_tick": null,
+        "client_tick_ignored": false,
+        "confirm": false,
+        "data": {
+          "active_quests": [],
+          "active_quests_detail": [],
+          "archetype": "游侠",
+          "growth": {
+            "assets": {
+              "at": 0.0,
+              "level": 1,
+              "money": 300,
+              "name": "囊中羞涩",
+              "next_at": 600.0,
+              "next_name": "小有积蓄",
+              "next_unlock": "可开摊（本钱 300 文）",
+              "progress": 0.5,
+              "value": 300.0
+            },
+            "reputation": {
+              "at": 0.0,
+              "level": 1,
+              "name": "无名之辈",
+              "next_at": 3.0,
+              "next_name": "街坊熟人",
+              "next_unlock": "可接护送类委托，街坊愿意搭话",
+              "progress": 0.333,
+              "value": 1.0
+            },
+            "skill": {
+              "at": 0.0,
+              "level": 1,
+              "name": "生手",
+              "next_at": 0.42,
+              "next_name": "手熟",
+              "next_unlock": "可独立开摊（手艺够撑起门面）",
+              "progress": 0.833,
+              "skill": "镖师",
+              "skills": {
+                "镖师": 0.35
+              },
+              "value": 0.35
+            }
+          },
+          "home": "market",
+          "id": "player:qa_dialogue_04",
+          "inventory": {
+            "coarse_cloth": 1,
+            "flatbread": 3
+          },
+          "location": "market",
+          "marriage": {
+            "daily_note": "",
+            "last_daily_tick": 0,
+            "since_tick": 0,
+            "spouse_id": "",
+            "spouse_name": "",
+            "status": "single"
+          },
+          "max_stamina": 100.0,
+          "name": "问话人丁",
+          "nearby": [
+            {
+              "id": "chang_banxia",
+              "name": "常半夏",
+              "presence": "online",
+              "role": "游医"
+            },
+            {
+              "id": "duan_wudou",
+              "name": "段五斗",
+              "presence": "online",
+              "role": "屠户"
+            },
+            {
+              "id": "jin_mancang",
+              "name": "金满仓",
+              "presence": "online",
+              "role": "掌柜"
+            },
+            {
+              "id": "liu_sanniang",
+              "name": "柳三娘",
+              "presence": "online",
+              "role": "绣娘"
+            },
+            {
+              "id": "meng_jiuniang",
+              "name": "孟九娘",
+              "presence": "online",
+              "role": "媒婆"
+            },
+            {
+              "id": "player:qa_dialogue_01",
+              "name": "问话人",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_02",
+              "name": "问话人乙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_03",
+              "name": "问话人丙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:s1check_015105",
+              "name": "沈验0151",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:u_demo",
+              "name": "陈捕快",
+              "presence": "offline",
+              "role": "visitor"
+            },
+            {
+              "id": "ruan_qingfu",
+              "name": "阮青蚨",
+              "presence": "online",
+              "role": "货郎"
+            },
+            {
+              "id": "xie_tingyun",
+              "name": "谢停云",
+              "presence": "online",
+              "role": "师爷"
+            },
+            {
+              "id": "yan_shouyi",
+              "name": "严守一",
+              "presence": "online",
+              "role": "庙祝"
+            }
+          ],
+          "ok": true,
+          "online": true,
+          "presence": "online",
+          "relations": [
+            {
+              "affection": 2.0,
+              "kind": "acquaintance",
+              "name": "段五斗",
+              "target": "duan_wudou",
+              "trust": 41.0
+            }
+          ],
+          "role": "镖师",
+          "sect": {
+            "in_sect": false,
+            "sect": null
+          },
+          "skills": {
+            "镖师": 0.35
+          },
+          "stamina": 100.0,
+          "tick": 2202,
+          "today": {
+            "business": [
+              {
+                "affordable": true,
+                "blocked": "",
+                "cost": 300,
+                "shop_type": "stall"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 1200,
+                "shop_type": "storefront"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 3000,
+                "shop_type": "branch"
+              }
+            ],
+            "location": "market",
+            "location_name": "集市",
+            "next_action": "先接委托：【轻】打听客栈酒价",
+            "npcs": [
+              {
+                "hint": "可打听委托",
+                "id": "chang_banxia",
+                "name": "常半夏",
+                "role": "游医"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "duan_wudou",
+                "name": "段五斗",
+                "role": "屠户"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "jin_mancang",
+                "name": "金满仓",
+                "role": "掌柜"
+              }
+            ],
+            "quests": [
+              {
+                "giver_name": "阮青蚨",
+                "id": "quest:daily_market_inquiry:2020",
+                "name": "【轻】打听客栈酒价",
+                "reward_money": 9
+              },
+              {
+                "giver_name": "金满仓",
+                "id": "quest:debt_duan_to_jin:2020",
+                "name": "代金满仓讨债",
+                "reward_money": 25
+              },
+              {
+                "giver_name": "严守一",
+                "id": "quest:errand_academy_notice:2164",
+                "name": "送书院口信",
+                "reward_money": 8
+              }
+            ],
+            "skills": [
+              {
+                "current": 0.35,
+                "hours_to_next": 28,
+                "next_at": 0.42,
+                "next_level": 2,
+                "skill": "镖师"
+              }
+            ],
+            "tick": 2208
+          },
+          "wallet": 300
+        },
+        "details": {
+          "dialogue_source": "model",
+          "relation": {
+            "affection": 1.0,
+            "kind": "acquaintance",
+            "target": "duan_wudou",
+            "trust": 0.5
+          },
+          "reply": "好着呢，寅时刚放倒一头，肉还热。我把刀往案板上一搁，你要肥要瘦？账的事先不提，我段五斗认账，就是手头紧。"
+        },
+        "event_seq": 4967,
+        "intent_id": "i:4e5e2c194dc044cd481a352516018c89102d690c505edd5ab1f37a7460721003",
+        "next_tick": 2208,
+        "ok": true,
+        "player": "player:qa_dialogue_04",
+        "profile_version": 1,
+        "reason_text": "",
+        "reject_reason": "",
+        "status": "executed",
+        "tick": 2202,
+        "verb": "talk"
+      }
+    },
+    {
+      "seq": 3,
+      "npc": "duan_wudou",
+      "round": 3,
+      "intent": "gossip",
+      "request": {
+        "action": "talk",
+        "target": "duan_wudou",
+        "message": "听说镇上最近有新鲜事？",
+        "request_id": "qa_dialogue_04-probe-3"
+      },
+      "reply": "我把刀往案板上一搁，新事嘛，崔捕快这几天老在赌摊边转，闹得人心里发毛。金掌柜那三百文我认，慢慢还。你听谁说的？",
+      "source": "model",
+      "ok": true,
+      "status": "executed",
+      "reject_reason": "",
+      "tick": 2214,
+      "event_seq": 4971,
+      "intent_id": "i:fda83e60f870cc929970a6d8273daa79448df84ba9b997be8ec9fd4bb70ce238",
+      "response": {
+        "action": "talk",
+        "client_tick": null,
+        "client_tick_ignored": false,
+        "confirm": false,
+        "data": {
+          "active_quests": [],
+          "active_quests_detail": [],
+          "archetype": "游侠",
+          "growth": {
+            "assets": {
+              "at": 0.0,
+              "level": 1,
+              "money": 300,
+              "name": "囊中羞涩",
+              "next_at": 600.0,
+              "next_name": "小有积蓄",
+              "next_unlock": "可开摊（本钱 300 文）",
+              "progress": 0.5,
+              "value": 300.0
+            },
+            "reputation": {
+              "at": 0.0,
+              "level": 1,
+              "name": "无名之辈",
+              "next_at": 3.0,
+              "next_name": "街坊熟人",
+              "next_unlock": "可接护送类委托，街坊愿意搭话",
+              "progress": 0.167,
+              "value": 0.5
+            },
+            "skill": {
+              "at": 0.0,
+              "level": 1,
+              "name": "生手",
+              "next_at": 0.42,
+              "next_name": "手熟",
+              "next_unlock": "可独立开摊（手艺够撑起门面）",
+              "progress": 0.833,
+              "skill": "镖师",
+              "skills": {
+                "镖师": 0.35
+              },
+              "value": 0.35
+            }
+          },
+          "home": "market",
+          "id": "player:qa_dialogue_04",
+          "inventory": {
+            "coarse_cloth": 1,
+            "flatbread": 3
+          },
+          "location": "market",
+          "marriage": {
+            "daily_note": "",
+            "last_daily_tick": 0,
+            "since_tick": 0,
+            "spouse_id": "",
+            "spouse_name": "",
+            "status": "single"
+          },
+          "max_stamina": 100.0,
+          "name": "问话人丁",
+          "nearby": [
+            {
+              "id": "chang_banxia",
+              "name": "常半夏",
+              "presence": "online",
+              "role": "游医"
+            },
+            {
+              "id": "duan_wudou",
+              "name": "段五斗",
+              "presence": "online",
+              "role": "屠户"
+            },
+            {
+              "id": "jin_mancang",
+              "name": "金满仓",
+              "presence": "online",
+              "role": "掌柜"
+            },
+            {
+              "id": "liu_sanniang",
+              "name": "柳三娘",
+              "presence": "online",
+              "role": "绣娘"
+            },
+            {
+              "id": "meng_jiuniang",
+              "name": "孟九娘",
+              "presence": "online",
+              "role": "媒婆"
+            },
+            {
+              "id": "player:qa_dialogue_01",
+              "name": "问话人",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_02",
+              "name": "问话人乙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_03",
+              "name": "问话人丙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:s1check_015105",
+              "name": "沈验0151",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:u_demo",
+              "name": "陈捕快",
+              "presence": "offline",
+              "role": "visitor"
+            },
+            {
+              "id": "ruan_qingfu",
+              "name": "阮青蚨",
+              "presence": "online",
+              "role": "货郎"
+            },
+            {
+              "id": "xie_tingyun",
+              "name": "谢停云",
+              "presence": "online",
+              "role": "师爷"
+            },
+            {
+              "id": "yan_shouyi",
+              "name": "严守一",
+              "presence": "online",
+              "role": "庙祝"
+            }
+          ],
+          "ok": true,
+          "online": true,
+          "presence": "online",
+          "relations": [
+            {
+              "affection": 1.0,
+              "kind": "acquaintance",
+              "name": "段五斗",
+              "target": "duan_wudou",
+              "trust": 40.5
+            }
+          ],
+          "role": "镖师",
+          "sect": {
+            "in_sect": false,
+            "sect": null
+          },
+          "skills": {
+            "镖师": 0.35
+          },
+          "stamina": 100.0,
+          "tick": 2214,
+          "today": {
+            "business": [
+              {
+                "affordable": true,
+                "blocked": "",
+                "cost": 300,
+                "shop_type": "stall"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 1200,
+                "shop_type": "storefront"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 3000,
+                "shop_type": "branch"
+              }
+            ],
+            "location": "market",
+            "location_name": "集市",
+            "next_action": "先接委托：【轻】打听客栈酒价",
+            "npcs": [
+              {
+                "hint": "可打听委托",
+                "id": "chang_banxia",
+                "name": "常半夏",
+                "role": "游医"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "duan_wudou",
+                "name": "段五斗",
+                "role": "屠户"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "jin_mancang",
+                "name": "金满仓",
+                "role": "掌柜"
+              }
+            ],
+            "quests": [
+              {
+                "giver_name": "阮青蚨",
+                "id": "quest:daily_market_inquiry:2020",
+                "name": "【轻】打听客栈酒价",
+                "reward_money": 9
+              },
+              {
+                "giver_name": "金满仓",
+                "id": "quest:debt_duan_to_jin:2020",
+                "name": "代金满仓讨债",
+                "reward_money": 25
+              },
+              {
+                "giver_name": "严守一",
+                "id": "quest:errand_academy_notice:2164",
+                "name": "送书院口信",
+                "reward_money": 8
+              }
+            ],
+            "skills": [
+              {
+                "current": 0.35,
+                "hours_to_next": 28,
+                "next_at": 0.42,
+                "next_level": 2,
+                "skill": "镖师"
+              }
+            ],
+            "tick": 2220
+          },
+          "wallet": 300
+        },
+        "details": {
+          "dialogue_source": "model",
+          "relation": {
+            "affection": -1.0,
+            "kind": "acquaintance",
+            "target": "duan_wudou",
+            "trust": -0.5
+          },
+          "reply": "我把刀往案板上一搁，新事嘛，崔捕快这几天老在赌摊边转，闹得人心里发毛。金掌柜那三百文我认，慢慢还。你听谁说的？"
+        },
+        "event_seq": 4971,
+        "intent_id": "i:fda83e60f870cc929970a6d8273daa79448df84ba9b997be8ec9fd4bb70ce238",
+        "next_tick": 2220,
+        "ok": true,
+        "player": "player:qa_dialogue_04",
+        "profile_version": 1,
+        "reason_text": "",
+        "reject_reason": "",
+        "status": "executed",
+        "tick": 2214,
+        "verb": "talk"
+      }
+    },
+    {
+      "seq": 4,
+      "npc": "jin_mancang",
+      "round": 1,
+      "intent": "greeting",
+      "request": {
+        "action": "talk",
+        "target": "jin_mancang",
+        "message": "你好，今日可好？",
+        "request_id": "qa_dialogue_04-probe-4"
+      },
+      "reply": "今日还行，刚把仓窗开了通通风，手上这把算盘还闲不下来。你问得客气，我便说实话：日子要稳着过，账也得一笔一笔算。",
+      "source": "model",
+      "ok": true,
+      "status": "executed",
+      "reject_reason": "",
+      "tick": 2226,
+      "event_seq": 4975,
+      "intent_id": "i:bca289f0e5c1c220f5a5a1a382661f7db6fd85282b46b952f16b0925dcd26e7d",
+      "response": {
+        "action": "talk",
+        "client_tick": null,
+        "client_tick_ignored": false,
+        "confirm": false,
+        "data": {
+          "active_quests": [],
+          "active_quests_detail": [],
+          "archetype": "游侠",
+          "growth": {
+            "assets": {
+              "at": 0.0,
+              "level": 1,
+              "money": 300,
+              "name": "囊中羞涩",
+              "next_at": 600.0,
+              "next_name": "小有积蓄",
+              "next_unlock": "可开摊（本钱 300 文）",
+              "progress": 0.5,
+              "value": 300.0
+            },
+            "reputation": {
+              "at": 0.0,
+              "level": 1,
+              "name": "无名之辈",
+              "next_at": 3.0,
+              "next_name": "街坊熟人",
+              "next_unlock": "可接护送类委托，街坊愿意搭话",
+              "progress": 0.167,
+              "value": 0.5
+            },
+            "skill": {
+              "at": 0.0,
+              "level": 1,
+              "name": "生手",
+              "next_at": 0.42,
+              "next_name": "手熟",
+              "next_unlock": "可独立开摊（手艺够撑起门面）",
+              "progress": 0.833,
+              "skill": "镖师",
+              "skills": {
+                "镖师": 0.35
+              },
+              "value": 0.35
+            }
+          },
+          "home": "market",
+          "id": "player:qa_dialogue_04",
+          "inventory": {
+            "coarse_cloth": 1,
+            "flatbread": 3
+          },
+          "location": "market",
+          "marriage": {
+            "daily_note": "",
+            "last_daily_tick": 0,
+            "since_tick": 0,
+            "spouse_id": "",
+            "spouse_name": "",
+            "status": "single"
+          },
+          "max_stamina": 100.0,
+          "name": "问话人丁",
+          "nearby": [
+            {
+              "id": "chang_banxia",
+              "name": "常半夏",
+              "presence": "online",
+              "role": "游医"
+            },
+            {
+              "id": "duan_wudou",
+              "name": "段五斗",
+              "presence": "online",
+              "role": "屠户"
+            },
+            {
+              "id": "jin_mancang",
+              "name": "金满仓",
+              "presence": "online",
+              "role": "掌柜"
+            },
+            {
+              "id": "liu_sanniang",
+              "name": "柳三娘",
+              "presence": "online",
+              "role": "绣娘"
+            },
+            {
+              "id": "meng_jiuniang",
+              "name": "孟九娘",
+              "presence": "online",
+              "role": "媒婆"
+            },
+            {
+              "id": "player:qa_dialogue_01",
+              "name": "问话人",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_02",
+              "name": "问话人乙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_03",
+              "name": "问话人丙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:s1check_015105",
+              "name": "沈验0151",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:u_demo",
+              "name": "陈捕快",
+              "presence": "offline",
+              "role": "visitor"
+            },
+            {
+              "id": "ruan_qingfu",
+              "name": "阮青蚨",
+              "presence": "online",
+              "role": "货郎"
+            },
+            {
+              "id": "xie_tingyun",
+              "name": "谢停云",
+              "presence": "online",
+              "role": "师爷"
+            },
+            {
+              "id": "yan_shouyi",
+              "name": "严守一",
+              "presence": "online",
+              "role": "庙祝"
+            }
+          ],
+          "ok": true,
+          "online": true,
+          "presence": "online",
+          "relations": [
+            {
+              "affection": 1.0,
+              "kind": "acquaintance",
+              "name": "段五斗",
+              "target": "duan_wudou",
+              "trust": 40.5
+            },
+            {
+              "affection": -1.0,
+              "kind": "acquaintance",
+              "name": "金满仓",
+              "target": "jin_mancang",
+              "trust": 39.5
+            }
+          ],
+          "role": "镖师",
+          "sect": {
+            "in_sect": false,
+            "sect": null
+          },
+          "skills": {
+            "镖师": 0.35
+          },
+          "stamina": 100.0,
+          "tick": 2226,
+          "today": {
+            "business": [
+              {
+                "affordable": true,
+                "blocked": "",
+                "cost": 300,
+                "shop_type": "stall"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 1200,
+                "shop_type": "storefront"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 3000,
+                "shop_type": "branch"
+              }
+            ],
+            "location": "market",
+            "location_name": "集市",
+            "next_action": "先接委托：【轻】打听客栈酒价",
+            "npcs": [
+              {
+                "hint": "可打听委托",
+                "id": "chang_banxia",
+                "name": "常半夏",
+                "role": "游医"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "duan_wudou",
+                "name": "段五斗",
+                "role": "屠户"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "jin_mancang",
+                "name": "金满仓",
+                "role": "掌柜"
+              }
+            ],
+            "quests": [
+              {
+                "giver_name": "阮青蚨",
+                "id": "quest:daily_market_inquiry:2020",
+                "name": "【轻】打听客栈酒价",
+                "reward_money": 9
+              },
+              {
+                "giver_name": "金满仓",
+                "id": "quest:debt_duan_to_jin:2020",
+                "name": "代金满仓讨债",
+                "reward_money": 25
+              },
+              {
+                "giver_name": "严守一",
+                "id": "quest:errand_academy_notice:2164",
+                "name": "送书院口信",
+                "reward_money": 8
+              }
+            ],
+            "skills": [
+              {
+                "current": 0.35,
+                "hours_to_next": 28,
+                "next_at": 0.42,
+                "next_level": 2,
+                "skill": "镖师"
+              }
+            ],
+            "tick": 2232
+          },
+          "wallet": 300
+        },
+        "details": {
+          "dialogue_source": "model",
+          "relation": {
+            "affection": -1.0,
+            "kind": "acquaintance",
+            "target": "jin_mancang",
+            "trust": 39.5
+          },
+          "reply": "今日还行，刚把仓窗开了通通风，手上这把算盘还闲不下来。你问得客气，我便说实话：日子要稳着过，账也得一笔一笔算。"
+        },
+        "event_seq": 4975,
+        "intent_id": "i:bca289f0e5c1c220f5a5a1a382661f7db6fd85282b46b952f16b0925dcd26e7d",
+        "next_tick": 2232,
+        "ok": true,
+        "player": "player:qa_dialogue_04",
+        "profile_version": 1,
+        "reason_text": "",
+        "reject_reason": "",
+        "status": "executed",
+        "tick": 2226,
+        "verb": "talk"
+      }
+    },
+    {
+      "seq": 5,
+      "npc": "jin_mancang",
+      "round": 2,
+      "intent": "greeting",
+      "request": {
+        "action": "talk",
+        "target": "jin_mancang",
+        "message": "幸会，近来可好？",
+        "request_id": "qa_dialogue_04-probe-5"
+      },
+      "reply": "还算顺当。五更我进仓捻了把米，成色压得住；午时柜上排了几笔赊账，利钱照旧。你先坐，我把算盘归了位，再听你细说。",
+      "source": "model",
+      "ok": true,
+      "status": "executed",
+      "reject_reason": "",
+      "tick": 2238,
+      "event_seq": 4979,
+      "intent_id": "i:a6accccf8ee78fe9d0309aec1104d20736d3d6a23f6e7a071fce5db5b0bfab31",
+      "response": {
+        "action": "talk",
+        "client_tick": null,
+        "client_tick_ignored": false,
+        "confirm": false,
+        "data": {
+          "active_quests": [],
+          "active_quests_detail": [],
+          "archetype": "游侠",
+          "growth": {
+            "assets": {
+              "at": 0.0,
+              "level": 1,
+              "money": 300,
+              "name": "囊中羞涩",
+              "next_at": 600.0,
+              "next_name": "小有积蓄",
+              "next_unlock": "可开摊（本钱 300 文）",
+              "progress": 0.5,
+              "value": 300.0
+            },
+            "reputation": {
+              "at": 0.0,
+              "level": 1,
+              "name": "无名之辈",
+              "next_at": 3.0,
+              "next_name": "街坊熟人",
+              "next_unlock": "可接护送类委托，街坊愿意搭话",
+              "progress": 0.167,
+              "value": 0.5
+            },
+            "skill": {
+              "at": 0.0,
+              "level": 1,
+              "name": "生手",
+              "next_at": 0.42,
+              "next_name": "手熟",
+              "next_unlock": "可独立开摊（手艺够撑起门面）",
+              "progress": 0.833,
+              "skill": "镖师",
+              "skills": {
+                "镖师": 0.35
+              },
+              "value": 0.35
+            }
+          },
+          "home": "market",
+          "id": "player:qa_dialogue_04",
+          "inventory": {
+            "coarse_cloth": 1,
+            "flatbread": 3
+          },
+          "location": "market",
+          "marriage": {
+            "daily_note": "",
+            "last_daily_tick": 0,
+            "since_tick": 0,
+            "spouse_id": "",
+            "spouse_name": "",
+            "status": "single"
+          },
+          "max_stamina": 100.0,
+          "name": "问话人丁",
+          "nearby": [
+            {
+              "id": "chang_banxia",
+              "name": "常半夏",
+              "presence": "online",
+              "role": "游医"
+            },
+            {
+              "id": "duan_wudou",
+              "name": "段五斗",
+              "presence": "online",
+              "role": "屠户"
+            },
+            {
+              "id": "jin_mancang",
+              "name": "金满仓",
+              "presence": "online",
+              "role": "掌柜"
+            },
+            {
+              "id": "liu_sanniang",
+              "name": "柳三娘",
+              "presence": "online",
+              "role": "绣娘"
+            },
+            {
+              "id": "meng_jiuniang",
+              "name": "孟九娘",
+              "presence": "online",
+              "role": "媒婆"
+            },
+            {
+              "id": "player:qa_dialogue_01",
+              "name": "问话人",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_02",
+              "name": "问话人乙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_03",
+              "name": "问话人丙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:s1check_015105",
+              "name": "沈验0151",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:u_demo",
+              "name": "陈捕快",
+              "presence": "offline",
+              "role": "visitor"
+            },
+            {
+              "id": "ruan_qingfu",
+              "name": "阮青蚨",
+              "presence": "online",
+              "role": "货郎"
+            },
+            {
+              "id": "xie_tingyun",
+              "name": "谢停云",
+              "presence": "online",
+              "role": "师爷"
+            },
+            {
+              "id": "yan_shouyi",
+              "name": "严守一",
+              "presence": "online",
+              "role": "庙祝"
+            }
+          ],
+          "ok": true,
+          "online": true,
+          "presence": "online",
+          "relations": [
+            {
+              "affection": 1.0,
+              "kind": "acquaintance",
+              "name": "段五斗",
+              "target": "duan_wudou",
+              "trust": 40.5
+            },
+            {
+              "affection": 0.0,
+              "kind": "acquaintance",
+              "name": "金满仓",
+              "target": "jin_mancang",
+              "trust": 40.0
+            }
+          ],
+          "role": "镖师",
+          "sect": {
+            "in_sect": false,
+            "sect": null
+          },
+          "skills": {
+            "镖师": 0.35
+          },
+          "stamina": 100.0,
+          "tick": 2238,
+          "today": {
+            "business": [
+              {
+                "affordable": true,
+                "blocked": "",
+                "cost": 300,
+                "shop_type": "stall"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 1200,
+                "shop_type": "storefront"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 3000,
+                "shop_type": "branch"
+              }
+            ],
+            "location": "market",
+            "location_name": "集市",
+            "next_action": "先接委托：【轻】打听客栈酒价",
+            "npcs": [
+              {
+                "hint": "可打听委托",
+                "id": "chang_banxia",
+                "name": "常半夏",
+                "role": "游医"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "duan_wudou",
+                "name": "段五斗",
+                "role": "屠户"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "jin_mancang",
+                "name": "金满仓",
+                "role": "掌柜"
+              }
+            ],
+            "quests": [
+              {
+                "giver_name": "阮青蚨",
+                "id": "quest:daily_market_inquiry:2020",
+                "name": "【轻】打听客栈酒价",
+                "reward_money": 9
+              },
+              {
+                "giver_name": "金满仓",
+                "id": "quest:debt_duan_to_jin:2020",
+                "name": "代金满仓讨债",
+                "reward_money": 25
+              },
+              {
+                "giver_name": "严守一",
+                "id": "quest:errand_academy_notice:2164",
+                "name": "送书院口信",
+                "reward_money": 8
+              }
+            ],
+            "skills": [
+              {
+                "current": 0.35,
+                "hours_to_next": 28,
+                "next_at": 0.42,
+                "next_level": 2,
+                "skill": "镖师"
+              }
+            ],
+            "tick": 2244
+          },
+          "wallet": 300
+        },
+        "details": {
+          "dialogue_source": "model",
+          "relation": {
+            "affection": 1.0,
+            "kind": "acquaintance",
+            "target": "jin_mancang",
+            "trust": 0.5
+          },
+          "reply": "还算顺当。五更我进仓捻了把米，成色压得住；午时柜上排了几笔赊账，利钱照旧。你先坐，我把算盘归了位，再听你细说。"
+        },
+        "event_seq": 4979,
+        "intent_id": "i:a6accccf8ee78fe9d0309aec1104d20736d3d6a23f6e7a071fce5db5b0bfab31",
+        "next_tick": 2244,
+        "ok": true,
+        "player": "player:qa_dialogue_04",
+        "profile_version": 1,
+        "reason_text": "",
+        "reject_reason": "",
+        "status": "executed",
+        "tick": 2238,
+        "verb": "talk"
+      }
+    },
+    {
+      "seq": 6,
+      "npc": "jin_mancang",
+      "round": 3,
+      "intent": "gossip",
+      "request": {
+        "action": "talk",
+        "target": "jin_mancang",
+        "message": "听说镇上最近有新鲜事？",
+        "request_id": "qa_dialogue_04-probe-6"
+      },
+      "reply": "新鲜事啊，我五更验粮时倒见着一桩：仓里新米成色不差。柜上赊账的也排了名，熟户三个月，生户一个月。你要问价，先说说今年收成如何。",
+      "source": "model",
+      "ok": true,
+      "status": "executed",
+      "reject_reason": "",
+      "tick": 2250,
+      "event_seq": 4983,
+      "intent_id": "i:a95cba674f939befe5d01d66a7e404e9f39fb9fb2b9b656518199459d1099e11",
+      "response": {
+        "action": "talk",
+        "client_tick": null,
+        "client_tick_ignored": false,
+        "confirm": false,
+        "data": {
+          "active_quests": [],
+          "active_quests_detail": [],
+          "archetype": "游侠",
+          "growth": {
+            "assets": {
+              "at": 0.0,
+              "level": 1,
+              "money": 300,
+              "name": "囊中羞涩",
+              "next_at": 600.0,
+              "next_name": "小有积蓄",
+              "next_unlock": "可开摊（本钱 300 文）",
+              "progress": 0.5,
+              "value": 300.0
+            },
+            "reputation": {
+              "at": 0.0,
+              "level": 1,
+              "name": "无名之辈",
+              "next_at": 3.0,
+              "next_name": "街坊熟人",
+              "next_unlock": "可接护送类委托，街坊愿意搭话",
+              "progress": 0.167,
+              "value": 0.5
+            },
+            "skill": {
+              "at": 0.0,
+              "level": 1,
+              "name": "生手",
+              "next_at": 0.42,
+              "next_name": "手熟",
+              "next_unlock": "可独立开摊（手艺够撑起门面）",
+              "progress": 0.833,
+              "skill": "镖师",
+              "skills": {
+                "镖师": 0.35
+              },
+              "value": 0.35
+            }
+          },
+          "home": "market",
+          "id": "player:qa_dialogue_04",
+          "inventory": {
+            "coarse_cloth": 1,
+            "flatbread": 3
+          },
+          "location": "market",
+          "marriage": {
+            "daily_note": "",
+            "last_daily_tick": 0,
+            "since_tick": 0,
+            "spouse_id": "",
+            "spouse_name": "",
+            "status": "single"
+          },
+          "max_stamina": 100.0,
+          "name": "问话人丁",
+          "nearby": [
+            {
+              "id": "chang_banxia",
+              "name": "常半夏",
+              "presence": "online",
+              "role": "游医"
+            },
+            {
+              "id": "duan_wudou",
+              "name": "段五斗",
+              "presence": "online",
+              "role": "屠户"
+            },
+            {
+              "id": "jin_mancang",
+              "name": "金满仓",
+              "presence": "online",
+              "role": "掌柜"
+            },
+            {
+              "id": "liu_sanniang",
+              "name": "柳三娘",
+              "presence": "online",
+              "role": "绣娘"
+            },
+            {
+              "id": "meng_jiuniang",
+              "name": "孟九娘",
+              "presence": "online",
+              "role": "媒婆"
+            },
+            {
+              "id": "player:qa_dialogue_01",
+              "name": "问话人",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_02",
+              "name": "问话人乙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_03",
+              "name": "问话人丙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:s1check_015105",
+              "name": "沈验0151",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:u_demo",
+              "name": "陈捕快",
+              "presence": "offline",
+              "role": "visitor"
+            },
+            {
+              "id": "ruan_qingfu",
+              "name": "阮青蚨",
+              "presence": "online",
+              "role": "货郎"
+            },
+            {
+              "id": "xie_tingyun",
+              "name": "谢停云",
+              "presence": "online",
+              "role": "师爷"
+            },
+            {
+              "id": "yan_shouyi",
+              "name": "严守一",
+              "presence": "online",
+              "role": "庙祝"
+            }
+          ],
+          "ok": true,
+          "online": true,
+          "presence": "online",
+          "relations": [
+            {
+              "affection": 1.0,
+              "kind": "acquaintance",
+              "name": "段五斗",
+              "target": "duan_wudou",
+              "trust": 40.5
+            },
+            {
+              "affection": -1.0,
+              "kind": "acquaintance",
+              "name": "金满仓",
+              "target": "jin_mancang",
+              "trust": 39.5
+            }
+          ],
+          "role": "镖师",
+          "sect": {
+            "in_sect": false,
+            "sect": null
+          },
+          "skills": {
+            "镖师": 0.35
+          },
+          "stamina": 100.0,
+          "tick": 2250,
+          "today": {
+            "business": [
+              {
+                "affordable": true,
+                "blocked": "",
+                "cost": 300,
+                "shop_type": "stall"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 1200,
+                "shop_type": "storefront"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 3000,
+                "shop_type": "branch"
+              }
+            ],
+            "location": "market",
+            "location_name": "集市",
+            "next_action": "先接委托：【轻】打听客栈酒价",
+            "npcs": [
+              {
+                "hint": "可打听委托",
+                "id": "chang_banxia",
+                "name": "常半夏",
+                "role": "游医"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "duan_wudou",
+                "name": "段五斗",
+                "role": "屠户"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "jin_mancang",
+                "name": "金满仓",
+                "role": "掌柜"
+              }
+            ],
+            "quests": [
+              {
+                "giver_name": "阮青蚨",
+                "id": "quest:daily_market_inquiry:2020",
+                "name": "【轻】打听客栈酒价",
+                "reward_money": 9
+              },
+              {
+                "giver_name": "金满仓",
+                "id": "quest:debt_duan_to_jin:2020",
+                "name": "代金满仓讨债",
+                "reward_money": 25
+              },
+              {
+                "giver_name": "严守一",
+                "id": "quest:errand_academy_notice:2164",
+                "name": "送书院口信",
+                "reward_money": 8
+              }
+            ],
+            "skills": [
+              {
+                "current": 0.35,
+                "hours_to_next": 28,
+                "next_at": 0.42,
+                "next_level": 2,
+                "skill": "镖师"
+              }
+            ],
+            "tick": 2256
+          },
+          "wallet": 300
+        },
+        "details": {
+          "dialogue_source": "model",
+          "relation": {
+            "affection": -1.0,
+            "kind": "acquaintance",
+            "target": "jin_mancang",
+            "trust": -0.5
+          },
+          "reply": "新鲜事啊，我五更验粮时倒见着一桩：仓里新米成色不差。柜上赊账的也排了名，熟户三个月，生户一个月。你要问价，先说说今年收成如何。"
+        },
+        "event_seq": 4983,
+        "intent_id": "i:a95cba674f939befe5d01d66a7e404e9f39fb9fb2b9b656518199459d1099e11",
+        "next_tick": 2256,
+        "ok": true,
+        "player": "player:qa_dialogue_04",
+        "profile_version": 1,
+        "reason_text": "",
+        "reject_reason": "",
+        "status": "executed",
+        "tick": 2250,
+        "verb": "talk"
+      }
+    },
+    {
+      "seq": 7,
+      "npc": "liu_sanniang",
+      "round": 1,
+      "intent": "greeting",
+      "request": {
+        "action": "talk",
+        "target": "liu_sanniang",
+        "message": "你好，今日可好？",
+        "request_id": "qa_dialogue_04-probe-7"
+      },
+      "reply": "好呀，我这摊上刚理完晨市新到的丝，你来得正巧。这两日绸价往上抬了些，我还没把话报死。你这眼光，先坐下看看料子，阿是？",
+      "source": "model",
+      "ok": true,
+      "status": "executed",
+      "reject_reason": "",
+      "tick": 2262,
+      "event_seq": 4987,
+      "intent_id": "i:ec26929733d05cb6b680ba9eb9d3b7adb326aca3473ef877638afe2e2b0e67c3",
+      "response": {
+        "action": "talk",
+        "client_tick": null,
+        "client_tick_ignored": false,
+        "confirm": false,
+        "data": {
+          "active_quests": [],
+          "active_quests_detail": [],
+          "archetype": "游侠",
+          "growth": {
+            "assets": {
+              "at": 0.0,
+              "level": 1,
+              "money": 300,
+              "name": "囊中羞涩",
+              "next_at": 600.0,
+              "next_name": "小有积蓄",
+              "next_unlock": "可开摊（本钱 300 文）",
+              "progress": 0.5,
+              "value": 300.0
+            },
+            "reputation": {
+              "at": 0.0,
+              "level": 1,
+              "name": "无名之辈",
+              "next_at": 3.0,
+              "next_name": "街坊熟人",
+              "next_unlock": "可接护送类委托，街坊愿意搭话",
+              "progress": 0.333,
+              "value": 1.0
+            },
+            "skill": {
+              "at": 0.0,
+              "level": 1,
+              "name": "生手",
+              "next_at": 0.42,
+              "next_name": "手熟",
+              "next_unlock": "可独立开摊（手艺够撑起门面）",
+              "progress": 0.833,
+              "skill": "镖师",
+              "skills": {
+                "镖师": 0.35
+              },
+              "value": 0.35
+            }
+          },
+          "home": "market",
+          "id": "player:qa_dialogue_04",
+          "inventory": {
+            "coarse_cloth": 1,
+            "flatbread": 3
+          },
+          "location": "market",
+          "marriage": {
+            "daily_note": "",
+            "last_daily_tick": 0,
+            "since_tick": 0,
+            "spouse_id": "",
+            "spouse_name": "",
+            "status": "single"
+          },
+          "max_stamina": 100.0,
+          "name": "问话人丁",
+          "nearby": [
+            {
+              "id": "chang_banxia",
+              "name": "常半夏",
+              "presence": "online",
+              "role": "游医"
+            },
+            {
+              "id": "duan_wudou",
+              "name": "段五斗",
+              "presence": "online",
+              "role": "屠户"
+            },
+            {
+              "id": "jin_mancang",
+              "name": "金满仓",
+              "presence": "online",
+              "role": "掌柜"
+            },
+            {
+              "id": "liu_sanniang",
+              "name": "柳三娘",
+              "presence": "online",
+              "role": "绣娘"
+            },
+            {
+              "id": "meng_jiuniang",
+              "name": "孟九娘",
+              "presence": "online",
+              "role": "媒婆"
+            },
+            {
+              "id": "player:qa_dialogue_01",
+              "name": "问话人",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_02",
+              "name": "问话人乙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_03",
+              "name": "问话人丙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:s1check_015105",
+              "name": "沈验0151",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:u_demo",
+              "name": "陈捕快",
+              "presence": "offline",
+              "role": "visitor"
+            },
+            {
+              "id": "ruan_qingfu",
+              "name": "阮青蚨",
+              "presence": "online",
+              "role": "货郎"
+            },
+            {
+              "id": "xie_tingyun",
+              "name": "谢停云",
+              "presence": "online",
+              "role": "师爷"
+            },
+            {
+              "id": "yan_shouyi",
+              "name": "严守一",
+              "presence": "online",
+              "role": "庙祝"
+            }
+          ],
+          "ok": true,
+          "online": true,
+          "presence": "online",
+          "relations": [
+            {
+              "affection": 1.0,
+              "kind": "acquaintance",
+              "name": "段五斗",
+              "target": "duan_wudou",
+              "trust": 40.5
+            },
+            {
+              "affection": -1.0,
+              "kind": "acquaintance",
+              "name": "金满仓",
+              "target": "jin_mancang",
+              "trust": 39.5
+            },
+            {
+              "affection": 1.0,
+              "kind": "acquaintance",
+              "name": "柳三娘",
+              "target": "liu_sanniang",
+              "trust": 40.5
+            }
+          ],
+          "role": "镖师",
+          "sect": {
+            "in_sect": false,
+            "sect": null
+          },
+          "skills": {
+            "镖师": 0.35
+          },
+          "stamina": 100.0,
+          "tick": 2262,
+          "today": {
+            "business": [
+              {
+                "affordable": true,
+                "blocked": "",
+                "cost": 300,
+                "shop_type": "stall"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 1200,
+                "shop_type": "storefront"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 3000,
+                "shop_type": "branch"
+              }
+            ],
+            "location": "market",
+            "location_name": "集市",
+            "next_action": "先接委托：【轻】打听客栈酒价",
+            "npcs": [
+              {
+                "hint": "可打听委托",
+                "id": "chang_banxia",
+                "name": "常半夏",
+                "role": "游医"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "duan_wudou",
+                "name": "段五斗",
+                "role": "屠户"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "jin_mancang",
+                "name": "金满仓",
+                "role": "掌柜"
+              }
+            ],
+            "quests": [
+              {
+                "giver_name": "阮青蚨",
+                "id": "quest:daily_market_inquiry:2020",
+                "name": "【轻】打听客栈酒价",
+                "reward_money": 9
+              },
+              {
+                "giver_name": "金满仓",
+                "id": "quest:debt_duan_to_jin:2020",
+                "name": "代金满仓讨债",
+                "reward_money": 25
+              },
+              {
+                "giver_name": "严守一",
+                "id": "quest:errand_academy_notice:2164",
+                "name": "送书院口信",
+                "reward_money": 8
+              }
+            ],
+            "skills": [
+              {
+                "current": 0.35,
+                "hours_to_next": 28,
+                "next_at": 0.42,
+                "next_level": 2,
+                "skill": "镖师"
+              }
+            ],
+            "tick": 2268
+          },
+          "wallet": 300
+        },
+        "details": {
+          "dialogue_source": "model",
+          "relation": {
+            "affection": 1.0,
+            "kind": "acquaintance",
+            "target": "liu_sanniang",
+            "trust": 40.5
+          },
+          "reply": "好呀，我这摊上刚理完晨市新到的丝，你来得正巧。这两日绸价往上抬了些，我还没把话报死。你这眼光，先坐下看看料子，阿是？"
+        },
+        "event_seq": 4987,
+        "intent_id": "i:ec26929733d05cb6b680ba9eb9d3b7adb326aca3473ef877638afe2e2b0e67c3",
+        "next_tick": 2268,
+        "ok": true,
+        "player": "player:qa_dialogue_04",
+        "profile_version": 1,
+        "reason_text": "",
+        "reject_reason": "",
+        "status": "executed",
+        "tick": 2262,
+        "verb": "talk"
+      }
+    },
+    {
+      "seq": 8,
+      "npc": "liu_sanniang",
+      "round": 2,
+      "intent": "greeting",
+      "request": {
+        "action": "talk",
+        "target": "liu_sanniang",
+        "message": "幸会，近来可好？",
+        "request_id": "qa_dialogue_04-probe-8"
+      },
+      "reply": "好呀，劳你记挂。今早我看过丝价，回来又把样布理了一遍。你这趟来，先别急着问价，瞧瞧我这匹熟绸的色头——家里人都还安顺吧？",
+      "source": "model",
+      "ok": true,
+      "status": "executed",
+      "reject_reason": "",
+      "tick": 2274,
+      "event_seq": 4991,
+      "intent_id": "i:b7fab4e2947af340ac6352deb954bba5ccbf6c60b51c88b6b4ee0265db423f9d",
+      "response": {
+        "action": "talk",
+        "client_tick": null,
+        "client_tick_ignored": false,
+        "confirm": false,
+        "data": {
+          "active_quests": [],
+          "active_quests_detail": [],
+          "archetype": "游侠",
+          "growth": {
+            "assets": {
+              "at": 0.0,
+              "level": 1,
+              "money": 300,
+              "name": "囊中羞涩",
+              "next_at": 600.0,
+              "next_name": "小有积蓄",
+              "next_unlock": "可开摊（本钱 300 文）",
+              "progress": 0.5,
+              "value": 300.0
+            },
+            "reputation": {
+              "at": 0.0,
+              "level": 1,
+              "name": "无名之辈",
+              "next_at": 3.0,
+              "next_name": "街坊熟人",
+              "next_unlock": "可接护送类委托，街坊愿意搭话",
+              "progress": 0.5,
+              "value": 1.5
+            },
+            "skill": {
+              "at": 0.0,
+              "level": 1,
+              "name": "生手",
+              "next_at": 0.42,
+              "next_name": "手熟",
+              "next_unlock": "可独立开摊（手艺够撑起门面）",
+              "progress": 0.833,
+              "skill": "镖师",
+              "skills": {
+                "镖师": 0.35
+              },
+              "value": 0.35
+            }
+          },
+          "home": "market",
+          "id": "player:qa_dialogue_04",
+          "inventory": {
+            "coarse_cloth": 1,
+            "flatbread": 3
+          },
+          "location": "market",
+          "marriage": {
+            "daily_note": "",
+            "last_daily_tick": 0,
+            "since_tick": 0,
+            "spouse_id": "",
+            "spouse_name": "",
+            "status": "single"
+          },
+          "max_stamina": 100.0,
+          "name": "问话人丁",
+          "nearby": [
+            {
+              "id": "chang_banxia",
+              "name": "常半夏",
+              "presence": "online",
+              "role": "游医"
+            },
+            {
+              "id": "duan_wudou",
+              "name": "段五斗",
+              "presence": "online",
+              "role": "屠户"
+            },
+            {
+              "id": "jin_mancang",
+              "name": "金满仓",
+              "presence": "online",
+              "role": "掌柜"
+            },
+            {
+              "id": "liu_sanniang",
+              "name": "柳三娘",
+              "presence": "online",
+              "role": "绣娘"
+            },
+            {
+              "id": "meng_jiuniang",
+              "name": "孟九娘",
+              "presence": "online",
+              "role": "媒婆"
+            },
+            {
+              "id": "player:qa_dialogue_01",
+              "name": "问话人",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_02",
+              "name": "问话人乙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_03",
+              "name": "问话人丙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:s1check_015105",
+              "name": "沈验0151",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:u_demo",
+              "name": "陈捕快",
+              "presence": "offline",
+              "role": "visitor"
+            },
+            {
+              "id": "ruan_qingfu",
+              "name": "阮青蚨",
+              "presence": "online",
+              "role": "货郎"
+            },
+            {
+              "id": "xie_tingyun",
+              "name": "谢停云",
+              "presence": "online",
+              "role": "师爷"
+            },
+            {
+              "id": "yan_shouyi",
+              "name": "严守一",
+              "presence": "online",
+              "role": "庙祝"
+            }
+          ],
+          "ok": true,
+          "online": true,
+          "presence": "online",
+          "relations": [
+            {
+              "affection": 1.0,
+              "kind": "acquaintance",
+              "name": "段五斗",
+              "target": "duan_wudou",
+              "trust": 40.5
+            },
+            {
+              "affection": -1.0,
+              "kind": "acquaintance",
+              "name": "金满仓",
+              "target": "jin_mancang",
+              "trust": 39.5
+            },
+            {
+              "affection": 2.0,
+              "kind": "acquaintance",
+              "name": "柳三娘",
+              "target": "liu_sanniang",
+              "trust": 41.0
+            }
+          ],
+          "role": "镖师",
+          "sect": {
+            "in_sect": false,
+            "sect": null
+          },
+          "skills": {
+            "镖师": 0.35
+          },
+          "stamina": 100.0,
+          "tick": 2274,
+          "today": {
+            "business": [
+              {
+                "affordable": true,
+                "blocked": "",
+                "cost": 300,
+                "shop_type": "stall"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 1200,
+                "shop_type": "storefront"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 3000,
+                "shop_type": "branch"
+              }
+            ],
+            "location": "market",
+            "location_name": "集市",
+            "next_action": "先接委托：【轻】打听客栈酒价",
+            "npcs": [
+              {
+                "hint": "可打听委托",
+                "id": "chang_banxia",
+                "name": "常半夏",
+                "role": "游医"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "duan_wudou",
+                "name": "段五斗",
+                "role": "屠户"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "jin_mancang",
+                "name": "金满仓",
+                "role": "掌柜"
+              }
+            ],
+            "quests": [
+              {
+                "giver_name": "阮青蚨",
+                "id": "quest:daily_market_inquiry:2020",
+                "name": "【轻】打听客栈酒价",
+                "reward_money": 9
+              },
+              {
+                "giver_name": "金满仓",
+                "id": "quest:debt_duan_to_jin:2020",
+                "name": "代金满仓讨债",
+                "reward_money": 25
+              },
+              {
+                "giver_name": "严守一",
+                "id": "quest:errand_academy_notice:2164",
+                "name": "送书院口信",
+                "reward_money": 8
+              }
+            ],
+            "skills": [
+              {
+                "current": 0.35,
+                "hours_to_next": 28,
+                "next_at": 0.42,
+                "next_level": 2,
+                "skill": "镖师"
+              }
+            ],
+            "tick": 2280
+          },
+          "wallet": 300
+        },
+        "details": {
+          "dialogue_source": "model",
+          "relation": {
+            "affection": 1.0,
+            "kind": "acquaintance",
+            "target": "liu_sanniang",
+            "trust": 0.5
+          },
+          "reply": "好呀，劳你记挂。今早我看过丝价，回来又把样布理了一遍。你这趟来，先别急着问价，瞧瞧我这匹熟绸的色头——家里人都还安顺吧？"
+        },
+        "event_seq": 4991,
+        "intent_id": "i:b7fab4e2947af340ac6352deb954bba5ccbf6c60b51c88b6b4ee0265db423f9d",
+        "next_tick": 2280,
+        "ok": true,
+        "player": "player:qa_dialogue_04",
+        "profile_version": 1,
+        "reason_text": "",
+        "reject_reason": "",
+        "status": "executed",
+        "tick": 2274,
+        "verb": "talk"
+      }
+    },
+    {
+      "seq": 9,
+      "npc": "liu_sanniang",
+      "round": 3,
+      "intent": "gossip",
+      "request": {
+        "action": "talk",
+        "target": "liu_sanniang",
+        "message": "听说镇上最近有新鲜事？",
+        "request_id": "qa_dialogue_04-probe-9"
+      },
+      "reply": "新鲜事倒有一桩。罗家妹妹拿了块新花样来比，我看了半晌。她那六十文赊了两季，也不知还记不记得。阿是？",
+      "source": "model",
+      "ok": true,
+      "status": "executed",
+      "reject_reason": "",
+      "tick": 2286,
+      "event_seq": 4995,
+      "intent_id": "i:4bb147467503597b86d1269233e7215f51eee870adda52bc9133241f07956762",
+      "response": {
+        "action": "talk",
+        "client_tick": null,
+        "client_tick_ignored": false,
+        "confirm": false,
+        "data": {
+          "active_quests": [],
+          "active_quests_detail": [],
+          "archetype": "游侠",
+          "growth": {
+            "assets": {
+              "at": 0.0,
+              "level": 1,
+              "money": 300,
+              "name": "囊中羞涩",
+              "next_at": 600.0,
+              "next_name": "小有积蓄",
+              "next_unlock": "可开摊（本钱 300 文）",
+              "progress": 0.5,
+              "value": 300.0
+            },
+            "reputation": {
+              "at": 0.0,
+              "level": 1,
+              "name": "无名之辈",
+              "next_at": 3.0,
+              "next_name": "街坊熟人",
+              "next_unlock": "可接护送类委托，街坊愿意搭话",
+              "progress": 0.333,
+              "value": 1.0
+            },
+            "skill": {
+              "at": 0.0,
+              "level": 1,
+              "name": "生手",
+              "next_at": 0.42,
+              "next_name": "手熟",
+              "next_unlock": "可独立开摊（手艺够撑起门面）",
+              "progress": 0.833,
+              "skill": "镖师",
+              "skills": {
+                "镖师": 0.35
+              },
+              "value": 0.35
+            }
+          },
+          "home": "market",
+          "id": "player:qa_dialogue_04",
+          "inventory": {
+            "coarse_cloth": 1,
+            "flatbread": 3
+          },
+          "location": "market",
+          "marriage": {
+            "daily_note": "",
+            "last_daily_tick": 0,
+            "since_tick": 0,
+            "spouse_id": "",
+            "spouse_name": "",
+            "status": "single"
+          },
+          "max_stamina": 100.0,
+          "name": "问话人丁",
+          "nearby": [
+            {
+              "id": "chang_banxia",
+              "name": "常半夏",
+              "presence": "online",
+              "role": "游医"
+            },
+            {
+              "id": "duan_wudou",
+              "name": "段五斗",
+              "presence": "online",
+              "role": "屠户"
+            },
+            {
+              "id": "jin_mancang",
+              "name": "金满仓",
+              "presence": "online",
+              "role": "掌柜"
+            },
+            {
+              "id": "liu_sanniang",
+              "name": "柳三娘",
+              "presence": "online",
+              "role": "绣娘"
+            },
+            {
+              "id": "meng_jiuniang",
+              "name": "孟九娘",
+              "presence": "online",
+              "role": "媒婆"
+            },
+            {
+              "id": "player:qa_dialogue_01",
+              "name": "问话人",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_02",
+              "name": "问话人乙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_03",
+              "name": "问话人丙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:s1check_015105",
+              "name": "沈验0151",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:u_demo",
+              "name": "陈捕快",
+              "presence": "offline",
+              "role": "visitor"
+            },
+            {
+              "id": "ruan_qingfu",
+              "name": "阮青蚨",
+              "presence": "online",
+              "role": "货郎"
+            },
+            {
+              "id": "xie_tingyun",
+              "name": "谢停云",
+              "presence": "online",
+              "role": "师爷"
+            },
+            {
+              "id": "yan_shouyi",
+              "name": "严守一",
+              "presence": "online",
+              "role": "庙祝"
+            }
+          ],
+          "ok": true,
+          "online": true,
+          "presence": "online",
+          "relations": [
+            {
+              "affection": 1.0,
+              "kind": "acquaintance",
+              "name": "段五斗",
+              "target": "duan_wudou",
+              "trust": 40.5
+            },
+            {
+              "affection": -1.0,
+              "kind": "acquaintance",
+              "name": "金满仓",
+              "target": "jin_mancang",
+              "trust": 39.5
+            },
+            {
+              "affection": 1.0,
+              "kind": "acquaintance",
+              "name": "柳三娘",
+              "target": "liu_sanniang",
+              "trust": 40.5
+            }
+          ],
+          "role": "镖师",
+          "sect": {
+            "in_sect": false,
+            "sect": null
+          },
+          "skills": {
+            "镖师": 0.35
+          },
+          "stamina": 100.0,
+          "tick": 2286,
+          "today": {
+            "business": [
+              {
+                "affordable": true,
+                "blocked": "",
+                "cost": 300,
+                "shop_type": "stall"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 1200,
+                "shop_type": "storefront"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 3000,
+                "shop_type": "branch"
+              }
+            ],
+            "location": "market",
+            "location_name": "集市",
+            "next_action": "先接委托：【轻】打听客栈酒价",
+            "npcs": [
+              {
+                "hint": "可打听委托",
+                "id": "chang_banxia",
+                "name": "常半夏",
+                "role": "游医"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "duan_wudou",
+                "name": "段五斗",
+                "role": "屠户"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "jin_mancang",
+                "name": "金满仓",
+                "role": "掌柜"
+              }
+            ],
+            "quests": [
+              {
+                "giver_name": "阮青蚨",
+                "id": "quest:daily_market_inquiry:2020",
+                "name": "【轻】打听客栈酒价",
+                "reward_money": 9
+              },
+              {
+                "giver_name": "金满仓",
+                "id": "quest:debt_duan_to_jin:2020",
+                "name": "代金满仓讨债",
+                "reward_money": 25
+              },
+              {
+                "giver_name": "严守一",
+                "id": "quest:errand_academy_notice:2164",
+                "name": "送书院口信",
+                "reward_money": 8
+              }
+            ],
+            "skills": [
+              {
+                "current": 0.35,
+                "hours_to_next": 28,
+                "next_at": 0.42,
+                "next_level": 2,
+                "skill": "镖师"
+              }
+            ],
+            "tick": 2292
+          },
+          "wallet": 300
+        },
+        "details": {
+          "dialogue_source": "model",
+          "relation": {
+            "affection": -1.0,
+            "kind": "acquaintance",
+            "target": "liu_sanniang",
+            "trust": -0.5
+          },
+          "reply": "新鲜事倒有一桩。罗家妹妹拿了块新花样来比，我看了半晌。她那六十文赊了两季，也不知还记不记得。阿是？"
+        },
+        "event_seq": 4995,
+        "intent_id": "i:4bb147467503597b86d1269233e7215f51eee870adda52bc9133241f07956762",
+        "next_tick": 2292,
+        "ok": true,
+        "player": "player:qa_dialogue_04",
+        "profile_version": 1,
+        "reason_text": "",
+        "reject_reason": "",
+        "status": "executed",
+        "tick": 2286,
+        "verb": "talk"
+      }
+    },
+    {
+      "seq": 10,
+      "npc": "meng_jiuniang",
+      "round": 1,
+      "intent": "greeting",
+      "request": {
+        "action": "talk",
+        "target": "meng_jiuniang",
+        "message": "你好，今日可好？",
+        "request_id": "qa_dialogue_04-probe-10"
+      },
+      "reply": "好着呢，刚在茶摊听了一耳朵闲话。你来得巧，我这儿正翻庚帖，你家里可有待议的亲事？",
+      "source": "model",
+      "ok": true,
+      "status": "executed",
+      "reject_reason": "",
+      "tick": 2298,
+      "event_seq": 4999,
+      "intent_id": "i:c7f7f81128f5f54bf2c4cdccc74029f45807917c4b095dee42845c8041431ee7",
+      "response": {
+        "action": "talk",
+        "client_tick": null,
+        "client_tick_ignored": false,
+        "confirm": false,
+        "data": {
+          "active_quests": [],
+          "active_quests_detail": [],
+          "archetype": "游侠",
+          "growth": {
+            "assets": {
+              "at": 0.0,
+              "level": 1,
+              "money": 300,
+              "name": "囊中羞涩",
+              "next_at": 600.0,
+              "next_name": "小有积蓄",
+              "next_unlock": "可开摊（本钱 300 文）",
+              "progress": 0.5,
+              "value": 300.0
+            },
+            "reputation": {
+              "at": 0.0,
+              "level": 1,
+              "name": "无名之辈",
+              "next_at": 3.0,
+              "next_name": "街坊熟人",
+              "next_unlock": "可接护送类委托，街坊愿意搭话",
+              "progress": 0.5,
+              "value": 1.5
+            },
+            "skill": {
+              "at": 0.0,
+              "level": 1,
+              "name": "生手",
+              "next_at": 0.42,
+              "next_name": "手熟",
+              "next_unlock": "可独立开摊（手艺够撑起门面）",
+              "progress": 0.833,
+              "skill": "镖师",
+              "skills": {
+                "镖师": 0.35
+              },
+              "value": 0.35
+            }
+          },
+          "home": "market",
+          "id": "player:qa_dialogue_04",
+          "inventory": {
+            "coarse_cloth": 1,
+            "flatbread": 3
+          },
+          "location": "market",
+          "marriage": {
+            "daily_note": "",
+            "last_daily_tick": 0,
+            "since_tick": 0,
+            "spouse_id": "",
+            "spouse_name": "",
+            "status": "single"
+          },
+          "max_stamina": 100.0,
+          "name": "问话人丁",
+          "nearby": [
+            {
+              "id": "chang_banxia",
+              "name": "常半夏",
+              "presence": "online",
+              "role": "游医"
+            },
+            {
+              "id": "duan_wudou",
+              "name": "段五斗",
+              "presence": "online",
+              "role": "屠户"
+            },
+            {
+              "id": "jin_mancang",
+              "name": "金满仓",
+              "presence": "online",
+              "role": "掌柜"
+            },
+            {
+              "id": "liu_sanniang",
+              "name": "柳三娘",
+              "presence": "online",
+              "role": "绣娘"
+            },
+            {
+              "id": "meng_jiuniang",
+              "name": "孟九娘",
+              "presence": "online",
+              "role": "媒婆"
+            },
+            {
+              "id": "player:qa_dialogue_01",
+              "name": "问话人",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_02",
+              "name": "问话人乙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_03",
+              "name": "问话人丙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:s1check_015105",
+              "name": "沈验0151",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:u_demo",
+              "name": "陈捕快",
+              "presence": "offline",
+              "role": "visitor"
+            },
+            {
+              "id": "ruan_qingfu",
+              "name": "阮青蚨",
+              "presence": "online",
+              "role": "货郎"
+            },
+            {
+              "id": "xie_tingyun",
+              "name": "谢停云",
+              "presence": "online",
+              "role": "师爷"
+            },
+            {
+              "id": "yan_shouyi",
+              "name": "严守一",
+              "presence": "online",
+              "role": "庙祝"
+            }
+          ],
+          "ok": true,
+          "online": true,
+          "presence": "online",
+          "relations": [
+            {
+              "affection": 1.0,
+              "kind": "acquaintance",
+              "name": "段五斗",
+              "target": "duan_wudou",
+              "trust": 40.5
+            },
+            {
+              "affection": -1.0,
+              "kind": "acquaintance",
+              "name": "金满仓",
+              "target": "jin_mancang",
+              "trust": 39.5
+            },
+            {
+              "affection": 1.0,
+              "kind": "acquaintance",
+              "name": "柳三娘",
+              "target": "liu_sanniang",
+              "trust": 40.5
+            },
+            {
+              "affection": 1.0,
+              "kind": "acquaintance",
+              "name": "孟九娘",
+              "target": "meng_jiuniang",
+              "trust": 40.5
+            }
+          ],
+          "role": "镖师",
+          "sect": {
+            "in_sect": false,
+            "sect": null
+          },
+          "skills": {
+            "镖师": 0.35
+          },
+          "stamina": 100.0,
+          "tick": 2298,
+          "today": {
+            "business": [
+              {
+                "affordable": true,
+                "blocked": "",
+                "cost": 300,
+                "shop_type": "stall"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 1200,
+                "shop_type": "storefront"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 3000,
+                "shop_type": "branch"
+              }
+            ],
+            "location": "market",
+            "location_name": "集市",
+            "next_action": "先接委托：【轻】打听客栈酒价",
+            "npcs": [
+              {
+                "hint": "可打听委托",
+                "id": "chang_banxia",
+                "name": "常半夏",
+                "role": "游医"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "duan_wudou",
+                "name": "段五斗",
+                "role": "屠户"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "jin_mancang",
+                "name": "金满仓",
+                "role": "掌柜"
+              }
+            ],
+            "quests": [
+              {
+                "giver_name": "阮青蚨",
+                "id": "quest:daily_market_inquiry:2020",
+                "name": "【轻】打听客栈酒价",
+                "reward_money": 9
+              },
+              {
+                "giver_name": "金满仓",
+                "id": "quest:debt_duan_to_jin:2020",
+                "name": "代金满仓讨债",
+                "reward_money": 25
+              },
+              {
+                "giver_name": "严守一",
+                "id": "quest:errand_academy_notice:2164",
+                "name": "送书院口信",
+                "reward_money": 8
+              }
+            ],
+            "skills": [
+              {
+                "current": 0.35,
+                "hours_to_next": 28,
+                "next_at": 0.42,
+                "next_level": 2,
+                "skill": "镖师"
+              }
+            ],
+            "tick": 2304
+          },
+          "wallet": 300
+        },
+        "details": {
+          "dialogue_source": "model",
+          "relation": {
+            "affection": 1.0,
+            "kind": "acquaintance",
+            "target": "meng_jiuniang",
+            "trust": 40.5
+          },
+          "reply": "好着呢，刚在茶摊听了一耳朵闲话。你来得巧，我这儿正翻庚帖，你家里可有待议的亲事？"
+        },
+        "event_seq": 4999,
+        "intent_id": "i:c7f7f81128f5f54bf2c4cdccc74029f45807917c4b095dee42845c8041431ee7",
+        "next_tick": 2304,
+        "ok": true,
+        "player": "player:qa_dialogue_04",
+        "profile_version": 1,
+        "reason_text": "",
+        "reject_reason": "",
+        "status": "executed",
+        "tick": 2298,
+        "verb": "talk"
+      }
+    },
+    {
+      "seq": 11,
+      "npc": "meng_jiuniang",
+      "round": 2,
+      "intent": "greeting",
+      "request": {
+        "action": "talk",
+        "target": "meng_jiuniang",
+        "message": "幸会，近来可好？",
+        "request_id": "qa_dialogue_04-probe-11"
+      },
+      "reply": "好着呢，刚在茶摊上听了一耳朵闲话，手里这几张庚帖又得重排。你今日来，是替谁问八字，还是只陪我嗑会儿瓜子？",
+      "source": "model",
+      "ok": true,
+      "status": "executed",
+      "reject_reason": "",
+      "tick": 2310,
+      "event_seq": 5003,
+      "intent_id": "i:1efa1dbd03afe138810e3f17cd5dd8688e9e183bf517f07621758fe56b458c26",
+      "response": {
+        "action": "talk",
+        "client_tick": null,
+        "client_tick_ignored": false,
+        "confirm": false,
+        "data": {
+          "active_quests": [],
+          "active_quests_detail": [],
+          "archetype": "游侠",
+          "growth": {
+            "assets": {
+              "at": 0.0,
+              "level": 1,
+              "money": 300,
+              "name": "囊中羞涩",
+              "next_at": 600.0,
+              "next_name": "小有积蓄",
+              "next_unlock": "可开摊（本钱 300 文）",
+              "progress": 0.5,
+              "value": 300.0
+            },
+            "reputation": {
+              "at": 0.0,
+              "level": 1,
+              "name": "无名之辈",
+              "next_at": 3.0,
+              "next_name": "街坊熟人",
+              "next_unlock": "可接护送类委托，街坊愿意搭话",
+              "progress": 0.333,
+              "value": 1.0
+            },
+            "skill": {
+              "at": 0.0,
+              "level": 1,
+              "name": "生手",
+              "next_at": 0.42,
+              "next_name": "手熟",
+              "next_unlock": "可独立开摊（手艺够撑起门面）",
+              "progress": 0.833,
+              "skill": "镖师",
+              "skills": {
+                "镖师": 0.35
+              },
+              "value": 0.35
+            }
+          },
+          "home": "market",
+          "id": "player:qa_dialogue_04",
+          "inventory": {
+            "coarse_cloth": 1,
+            "flatbread": 3
+          },
+          "location": "market",
+          "marriage": {
+            "daily_note": "",
+            "last_daily_tick": 0,
+            "since_tick": 0,
+            "spouse_id": "",
+            "spouse_name": "",
+            "status": "single"
+          },
+          "max_stamina": 100.0,
+          "name": "问话人丁",
+          "nearby": [
+            {
+              "id": "chang_banxia",
+              "name": "常半夏",
+              "presence": "online",
+              "role": "游医"
+            },
+            {
+              "id": "duan_wudou",
+              "name": "段五斗",
+              "presence": "online",
+              "role": "屠户"
+            },
+            {
+              "id": "jin_mancang",
+              "name": "金满仓",
+              "presence": "online",
+              "role": "掌柜"
+            },
+            {
+              "id": "liu_sanniang",
+              "name": "柳三娘",
+              "presence": "online",
+              "role": "绣娘"
+            },
+            {
+              "id": "meng_jiuniang",
+              "name": "孟九娘",
+              "presence": "online",
+              "role": "媒婆"
+            },
+            {
+              "id": "player:qa_dialogue_01",
+              "name": "问话人",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_02",
+              "name": "问话人乙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_03",
+              "name": "问话人丙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:s1check_015105",
+              "name": "沈验0151",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:u_demo",
+              "name": "陈捕快",
+              "presence": "offline",
+              "role": "visitor"
+            },
+            {
+              "id": "ruan_qingfu",
+              "name": "阮青蚨",
+              "presence": "online",
+              "role": "货郎"
+            },
+            {
+              "id": "xie_tingyun",
+              "name": "谢停云",
+              "presence": "online",
+              "role": "师爷"
+            },
+            {
+              "id": "yan_shouyi",
+              "name": "严守一",
+              "presence": "online",
+              "role": "庙祝"
+            }
+          ],
+          "ok": true,
+          "online": true,
+          "presence": "online",
+          "relations": [
+            {
+              "affection": 1.0,
+              "kind": "acquaintance",
+              "name": "段五斗",
+              "target": "duan_wudou",
+              "trust": 40.5
+            },
+            {
+              "affection": -1.0,
+              "kind": "acquaintance",
+              "name": "金满仓",
+              "target": "jin_mancang",
+              "trust": 39.5
+            },
+            {
+              "affection": 1.0,
+              "kind": "acquaintance",
+              "name": "柳三娘",
+              "target": "liu_sanniang",
+              "trust": 40.5
+            },
+            {
+              "affection": 0.0,
+              "kind": "acquaintance",
+              "name": "孟九娘",
+              "target": "meng_jiuniang",
+              "trust": 40.0
+            }
+          ],
+          "role": "镖师",
+          "sect": {
+            "in_sect": false,
+            "sect": null
+          },
+          "skills": {
+            "镖师": 0.35
+          },
+          "stamina": 100.0,
+          "tick": 2310,
+          "today": {
+            "business": [
+              {
+                "affordable": true,
+                "blocked": "",
+                "cost": 300,
+                "shop_type": "stall"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 1200,
+                "shop_type": "storefront"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 3000,
+                "shop_type": "branch"
+              }
+            ],
+            "location": "market",
+            "location_name": "集市",
+            "next_action": "先接委托：代金满仓讨债",
+            "npcs": [
+              {
+                "hint": "可打听委托",
+                "id": "chang_banxia",
+                "name": "常半夏",
+                "role": "游医"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "duan_wudou",
+                "name": "段五斗",
+                "role": "屠户"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "jin_mancang",
+                "name": "金满仓",
+                "role": "掌柜"
+              }
+            ],
+            "quests": [
+              {
+                "giver_name": "金满仓",
+                "id": "quest:debt_duan_to_jin:2020",
+                "name": "代金满仓讨债",
+                "reward_money": 25
+              },
+              {
+                "giver_name": "严守一",
+                "id": "quest:errand_academy_notice:2164",
+                "name": "送书院口信",
+                "reward_money": 8
+              },
+              {
+                "giver_name": "孟九娘",
+                "id": "quest:errand_market_sweet:2164",
+                "name": "捎一包喜糖到书院",
+                "reward_money": 9
+              }
+            ],
+            "skills": [
+              {
+                "current": 0.35,
+                "hours_to_next": 28,
+                "next_at": 0.42,
+                "next_level": 2,
+                "skill": "镖师"
+              }
+            ],
+            "tick": 2316
+          },
+          "wallet": 300
+        },
+        "details": {
+          "dialogue_source": "model",
+          "relation": {
+            "affection": -1.0,
+            "kind": "acquaintance",
+            "target": "meng_jiuniang",
+            "trust": -0.5
+          },
+          "reply": "好着呢，刚在茶摊上听了一耳朵闲话，手里这几张庚帖又得重排。你今日来，是替谁问八字，还是只陪我嗑会儿瓜子？"
+        },
+        "event_seq": 5003,
+        "intent_id": "i:1efa1dbd03afe138810e3f17cd5dd8688e9e183bf517f07621758fe56b458c26",
+        "next_tick": 2316,
+        "ok": true,
+        "player": "player:qa_dialogue_04",
+        "profile_version": 1,
+        "reason_text": "",
+        "reject_reason": "",
+        "status": "executed",
+        "tick": 2310,
+        "verb": "talk"
+      }
+    },
+    {
+      "seq": 12,
+      "npc": "meng_jiuniang",
+      "round": 3,
+      "intent": "gossip",
+      "request": {
+        "action": "talk",
+        "target": "meng_jiuniang",
+        "message": "听说镇上最近有新鲜事？",
+        "request_id": "qa_dialogue_04-probe-12"
+      },
+      "reply": "新鲜事哪日没有？我今早坐茶摊，听来一桩也没敢说准。你先告诉我，问的是娶亲还是铺子里的闲话？",
+      "source": "model",
+      "ok": true,
+      "status": "executed",
+      "reject_reason": "",
+      "tick": 2322,
+      "event_seq": 5007,
+      "intent_id": "i:0aa88c71ecbfefcc481cb2e41aaed7d56109e87bd41abc80f356f5c2d70d7d0b",
+      "response": {
+        "action": "talk",
+        "client_tick": null,
+        "client_tick_ignored": false,
+        "confirm": false,
+        "data": {
+          "active_quests": [],
+          "active_quests_detail": [],
+          "archetype": "游侠",
+          "growth": {
+            "assets": {
+              "at": 0.0,
+              "level": 1,
+              "money": 300,
+              "name": "囊中羞涩",
+              "next_at": 600.0,
+              "next_name": "小有积蓄",
+              "next_unlock": "可开摊（本钱 300 文）",
+              "progress": 0.5,
+              "value": 300.0
+            },
+            "reputation": {
+              "at": 0.0,
+              "level": 1,
+              "name": "无名之辈",
+              "next_at": 3.0,
+              "next_name": "街坊熟人",
+              "next_unlock": "可接护送类委托，街坊愿意搭话",
+              "progress": 0.333,
+              "value": 1.0
+            },
+            "skill": {
+              "at": 0.0,
+              "level": 1,
+              "name": "生手",
+              "next_at": 0.42,
+              "next_name": "手熟",
+              "next_unlock": "可独立开摊（手艺够撑起门面）",
+              "progress": 0.833,
+              "skill": "镖师",
+              "skills": {
+                "镖师": 0.35
+              },
+              "value": 0.35
+            }
+          },
+          "home": "market",
+          "id": "player:qa_dialogue_04",
+          "inventory": {
+            "coarse_cloth": 1,
+            "flatbread": 3
+          },
+          "location": "market",
+          "marriage": {
+            "daily_note": "",
+            "last_daily_tick": 0,
+            "since_tick": 0,
+            "spouse_id": "",
+            "spouse_name": "",
+            "status": "single"
+          },
+          "max_stamina": 100.0,
+          "name": "问话人丁",
+          "nearby": [
+            {
+              "id": "chang_banxia",
+              "name": "常半夏",
+              "presence": "online",
+              "role": "游医"
+            },
+            {
+              "id": "duan_wudou",
+              "name": "段五斗",
+              "presence": "online",
+              "role": "屠户"
+            },
+            {
+              "id": "jin_mancang",
+              "name": "金满仓",
+              "presence": "online",
+              "role": "掌柜"
+            },
+            {
+              "id": "liu_sanniang",
+              "name": "柳三娘",
+              "presence": "online",
+              "role": "绣娘"
+            },
+            {
+              "id": "meng_jiuniang",
+              "name": "孟九娘",
+              "presence": "online",
+              "role": "媒婆"
+            },
+            {
+              "id": "player:qa_dialogue_01",
+              "name": "问话人",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_02",
+              "name": "问话人乙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_03",
+              "name": "问话人丙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:s1check_015105",
+              "name": "沈验0151",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:u_demo",
+              "name": "陈捕快",
+              "presence": "offline",
+              "role": "visitor"
+            },
+            {
+              "id": "ruan_qingfu",
+              "name": "阮青蚨",
+              "presence": "online",
+              "role": "货郎"
+            },
+            {
+              "id": "xie_tingyun",
+              "name": "谢停云",
+              "presence": "online",
+              "role": "师爷"
+            },
+            {
+              "id": "yan_shouyi",
+              "name": "严守一",
+              "presence": "online",
+              "role": "庙祝"
+            }
+          ],
+          "ok": true,
+          "online": true,
+          "presence": "online",
+          "relations": [
+            {
+              "affection": 1.0,
+              "kind": "acquaintance",
+              "name": "段五斗",
+              "target": "duan_wudou",
+              "trust": 40.5
+            },
+            {
+              "affection": -1.0,
+              "kind": "acquaintance",
+              "name": "金满仓",
+              "target": "jin_mancang",
+              "trust": 39.5
+            },
+            {
+              "affection": 1.0,
+              "kind": "acquaintance",
+              "name": "柳三娘",
+              "target": "liu_sanniang",
+              "trust": 40.5
+            },
+            {
+              "affection": -1.0,
+              "kind": "acquaintance",
+              "name": "孟九娘",
+              "target": "meng_jiuniang",
+              "trust": 39.5
+            }
+          ],
+          "role": "镖师",
+          "sect": {
+            "in_sect": false,
+            "sect": null
+          },
+          "skills": {
+            "镖师": 0.35
+          },
+          "stamina": 100.0,
+          "tick": 2322,
+          "today": {
+            "business": [
+              {
+                "affordable": true,
+                "blocked": "",
+                "cost": 300,
+                "shop_type": "stall"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 1200,
+                "shop_type": "storefront"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 3000,
+                "shop_type": "branch"
+              }
+            ],
+            "location": "market",
+            "location_name": "集市",
+            "next_action": "先接委托：代金满仓讨债",
+            "npcs": [
+              {
+                "hint": "可打听委托",
+                "id": "chang_banxia",
+                "name": "常半夏",
+                "role": "游医"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "duan_wudou",
+                "name": "段五斗",
+                "role": "屠户"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "jin_mancang",
+                "name": "金满仓",
+                "role": "掌柜"
+              }
+            ],
+            "quests": [
+              {
+                "giver_name": "金满仓",
+                "id": "quest:debt_duan_to_jin:2020",
+                "name": "代金满仓讨债",
+                "reward_money": 25
+              },
+              {
+                "giver_name": "严守一",
+                "id": "quest:errand_academy_notice:2164",
+                "name": "送书院口信",
+                "reward_money": 8
+              },
+              {
+                "giver_name": "孟九娘",
+                "id": "quest:errand_market_sweet:2164",
+                "name": "捎一包喜糖到书院",
+                "reward_money": 9
+              }
+            ],
+            "skills": [
+              {
+                "current": 0.35,
+                "hours_to_next": 28,
+                "next_at": 0.42,
+                "next_level": 2,
+                "skill": "镖师"
+              }
+            ],
+            "tick": 2328
+          },
+          "wallet": 300
+        },
+        "details": {
+          "dialogue_source": "model",
+          "relation": {
+            "affection": -1.0,
+            "kind": "acquaintance",
+            "target": "meng_jiuniang",
+            "trust": -0.5
+          },
+          "reply": "新鲜事哪日没有？我今早坐茶摊，听来一桩也没敢说准。你先告诉我，问的是娶亲还是铺子里的闲话？"
+        },
+        "event_seq": 5007,
+        "intent_id": "i:0aa88c71ecbfefcc481cb2e41aaed7d56109e87bd41abc80f356f5c2d70d7d0b",
+        "next_tick": 2328,
+        "ok": true,
+        "player": "player:qa_dialogue_04",
+        "profile_version": 1,
+        "reason_text": "",
+        "reject_reason": "",
+        "status": "executed",
+        "tick": 2322,
+        "verb": "talk"
+      }
+    },
+    {
+      "seq": 13,
+      "npc": "ruan_qingfu",
+      "round": 1,
+      "intent": "greeting",
+      "request": {
+        "action": "talk",
+        "target": "ruan_qingfu",
+        "message": "你好，今日可好？",
+        "request_id": "qa_dialogue_04-probe-13"
+      },
+      "reply": "好什么呀，担绳上那枚压担钱今早晃得叮当响。我这腿脚跑三个村，卖的多是针头线脑，本钱轻得风一吹就跑。你站我摊前，是看布还是问秤？先开口，我好琢磨这价怎么让。",
+      "source": "model",
+      "ok": true,
+      "status": "executed",
+      "reject_reason": "",
+      "tick": 2334,
+      "event_seq": 5011,
+      "intent_id": "i:6782e9059ceac648f20a2c1da69878f676c49c3c02f61c13e8beac2d02f5a716",
+      "response": {
+        "action": "talk",
+        "client_tick": null,
+        "client_tick_ignored": false,
+        "confirm": false,
+        "data": {
+          "active_quests": [],
+          "active_quests_detail": [],
+          "archetype": "游侠",
+          "growth": {
+            "assets": {
+              "at": 0.0,
+              "level": 1,
+              "money": 300,
+              "name": "囊中羞涩",
+              "next_at": 600.0,
+              "next_name": "小有积蓄",
+              "next_unlock": "可开摊（本钱 300 文）",
+              "progress": 0.5,
+              "value": 300.0
+            },
+            "reputation": {
+              "at": 0.0,
+              "level": 1,
+              "name": "无名之辈",
+              "next_at": 3.0,
+              "next_name": "街坊熟人",
+              "next_unlock": "可接护送类委托，街坊愿意搭话",
+              "progress": 0.5,
+              "value": 1.5
+            },
+            "skill": {
+              "at": 0.0,
+              "level": 1,
+              "name": "生手",
+              "next_at": 0.42,
+              "next_name": "手熟",
+              "next_unlock": "可独立开摊（手艺够撑起门面）",
+              "progress": 0.833,
+              "skill": "镖师",
+              "skills": {
+                "镖师": 0.35
+              },
+              "value": 0.35
+            }
+          },
+          "home": "market",
+          "id": "player:qa_dialogue_04",
+          "inventory": {
+            "coarse_cloth": 1,
+            "flatbread": 3
+          },
+          "location": "market",
+          "marriage": {
+            "daily_note": "",
+            "last_daily_tick": 0,
+            "since_tick": 0,
+            "spouse_id": "",
+            "spouse_name": "",
+            "status": "single"
+          },
+          "max_stamina": 100.0,
+          "name": "问话人丁",
+          "nearby": [
+            {
+              "id": "chang_banxia",
+              "name": "常半夏",
+              "presence": "online",
+              "role": "游医"
+            },
+            {
+              "id": "duan_wudou",
+              "name": "段五斗",
+              "presence": "online",
+              "role": "屠户"
+            },
+            {
+              "id": "jin_mancang",
+              "name": "金满仓",
+              "presence": "online",
+              "role": "掌柜"
+            },
+            {
+              "id": "liu_sanniang",
+              "name": "柳三娘",
+              "presence": "online",
+              "role": "绣娘"
+            },
+            {
+              "id": "meng_jiuniang",
+              "name": "孟九娘",
+              "presence": "online",
+              "role": "媒婆"
+            },
+            {
+              "id": "player:qa_dialogue_01",
+              "name": "问话人",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_02",
+              "name": "问话人乙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_03",
+              "name": "问话人丙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:s1check_015105",
+              "name": "沈验0151",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:u_demo",
+              "name": "陈捕快",
+              "presence": "offline",
+              "role": "visitor"
+            },
+            {
+              "id": "ruan_qingfu",
+              "name": "阮青蚨",
+              "presence": "online",
+              "role": "货郎"
+            },
+            {
+              "id": "xie_tingyun",
+              "name": "谢停云",
+              "presence": "online",
+              "role": "师爷"
+            },
+            {
+              "id": "yan_shouyi",
+              "name": "严守一",
+              "presence": "online",
+              "role": "庙祝"
+            }
+          ],
+          "ok": true,
+          "online": true,
+          "presence": "online",
+          "relations": [
+            {
+              "affection": 1.0,
+              "kind": "acquaintance",
+              "name": "段五斗",
+              "target": "duan_wudou",
+              "trust": 40.5
+            },
+            {
+              "affection": -1.0,
+              "kind": "acquaintance",
+              "name": "金满仓",
+              "target": "jin_mancang",
+              "trust": 39.5
+            },
+            {
+              "affection": 1.0,
+              "kind": "acquaintance",
+              "name": "柳三娘",
+              "target": "liu_sanniang",
+              "trust": 40.5
+            },
+            {
+              "affection": -1.0,
+              "kind": "acquaintance",
+              "name": "孟九娘",
+              "target": "meng_jiuniang",
+              "trust": 39.5
+            },
+            {
+              "affection": 1.0,
+              "kind": "acquaintance",
+              "name": "阮青蚨",
+              "target": "ruan_qingfu",
+              "trust": 40.5
+            }
+          ],
+          "role": "镖师",
+          "sect": {
+            "in_sect": false,
+            "sect": null
+          },
+          "skills": {
+            "镖师": 0.35
+          },
+          "stamina": 100.0,
+          "tick": 2334,
+          "today": {
+            "business": [
+              {
+                "affordable": true,
+                "blocked": "",
+                "cost": 300,
+                "shop_type": "stall"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 1200,
+                "shop_type": "storefront"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 3000,
+                "shop_type": "branch"
+              }
+            ],
+            "location": "market",
+            "location_name": "集市",
+            "next_action": "先接委托：代金满仓讨债",
+            "npcs": [
+              {
+                "hint": "可打听委托",
+                "id": "chang_banxia",
+                "name": "常半夏",
+                "role": "游医"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "duan_wudou",
+                "name": "段五斗",
+                "role": "屠户"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "jin_mancang",
+                "name": "金满仓",
+                "role": "掌柜"
+              }
+            ],
+            "quests": [
+              {
+                "giver_name": "金满仓",
+                "id": "quest:debt_duan_to_jin:2020",
+                "name": "代金满仓讨债",
+                "reward_money": 25
+              },
+              {
+                "giver_name": "严守一",
+                "id": "quest:errand_academy_notice:2164",
+                "name": "送书院口信",
+                "reward_money": 8
+              },
+              {
+                "giver_name": "孟九娘",
+                "id": "quest:errand_market_sweet:2164",
+                "name": "捎一包喜糖到书院",
+                "reward_money": 9
+              }
+            ],
+            "skills": [
+              {
+                "current": 0.35,
+                "hours_to_next": 28,
+                "next_at": 0.42,
+                "next_level": 2,
+                "skill": "镖师"
+              }
+            ],
+            "tick": 2340
+          },
+          "wallet": 300
+        },
+        "details": {
+          "dialogue_source": "model",
+          "relation": {
+            "affection": 1.0,
+            "kind": "acquaintance",
+            "target": "ruan_qingfu",
+            "trust": 40.5
+          },
+          "reply": "好什么呀，担绳上那枚压担钱今早晃得叮当响。我这腿脚跑三个村，卖的多是针头线脑，本钱轻得风一吹就跑。你站我摊前，是看布还是问秤？先开口，我好琢磨这价怎么让。"
+        },
+        "event_seq": 5011,
+        "intent_id": "i:6782e9059ceac648f20a2c1da69878f676c49c3c02f61c13e8beac2d02f5a716",
+        "next_tick": 2340,
+        "ok": true,
+        "player": "player:qa_dialogue_04",
+        "profile_version": 1,
+        "reason_text": "",
+        "reject_reason": "",
+        "status": "executed",
+        "tick": 2334,
+        "verb": "talk"
+      }
+    },
+    {
+      "seq": 14,
+      "npc": "ruan_qingfu",
+      "round": 2,
+      "intent": "greeting",
+      "request": {
+        "action": "talk",
+        "target": "ruan_qingfu",
+        "message": "幸会，近来可好？",
+        "request_id": "qa_dialogue_04-probe-14"
+      },
+      "reply": "担子翻两个村，还行，就是腿比嘴累。粗布炭头都在这，赊账还是老规矩，名字日子写清楚。",
+      "source": "model",
+      "ok": true,
+      "status": "executed",
+      "reject_reason": "",
+      "tick": 2346,
+      "event_seq": 5015,
+      "intent_id": "i:7d2912dbdbd15f96893d1fb9119c9bdfd3a70a8784d5f4cec62000f6e7975be9",
+      "response": {
+        "action": "talk",
+        "client_tick": null,
+        "client_tick_ignored": false,
+        "confirm": false,
+        "data": {
+          "active_quests": [],
+          "active_quests_detail": [],
+          "archetype": "游侠",
+          "growth": {
+            "assets": {
+              "at": 0.0,
+              "level": 1,
+              "money": 300,
+              "name": "囊中羞涩",
+              "next_at": 600.0,
+              "next_name": "小有积蓄",
+              "next_unlock": "可开摊（本钱 300 文）",
+              "progress": 0.5,
+              "value": 300.0
+            },
+            "reputation": {
+              "at": 0.0,
+              "level": 1,
+              "name": "无名之辈",
+              "next_at": 3.0,
+              "next_name": "街坊熟人",
+              "next_unlock": "可接护送类委托，街坊愿意搭话",
+              "progress": 0.333,
+              "value": 1.0
+            },
+            "skill": {
+              "at": 0.0,
+              "level": 1,
+              "name": "生手",
+              "next_at": 0.42,
+              "next_name": "手熟",
+              "next_unlock": "可独立开摊（手艺够撑起门面）",
+              "progress": 0.833,
+              "skill": "镖师",
+              "skills": {
+                "镖师": 0.35
+              },
+              "value": 0.35
+            }
+          },
+          "home": "market",
+          "id": "player:qa_dialogue_04",
+          "inventory": {
+            "coarse_cloth": 1,
+            "flatbread": 3
+          },
+          "location": "market",
+          "marriage": {
+            "daily_note": "",
+            "last_daily_tick": 0,
+            "since_tick": 0,
+            "spouse_id": "",
+            "spouse_name": "",
+            "status": "single"
+          },
+          "max_stamina": 100.0,
+          "name": "问话人丁",
+          "nearby": [
+            {
+              "id": "chang_banxia",
+              "name": "常半夏",
+              "presence": "online",
+              "role": "游医"
+            },
+            {
+              "id": "duan_wudou",
+              "name": "段五斗",
+              "presence": "online",
+              "role": "屠户"
+            },
+            {
+              "id": "jin_mancang",
+              "name": "金满仓",
+              "presence": "online",
+              "role": "掌柜"
+            },
+            {
+              "id": "liu_sanniang",
+              "name": "柳三娘",
+              "presence": "online",
+              "role": "绣娘"
+            },
+            {
+              "id": "meng_jiuniang",
+              "name": "孟九娘",
+              "presence": "online",
+              "role": "媒婆"
+            },
+            {
+              "id": "player:qa_dialogue_01",
+              "name": "问话人",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_02",
+              "name": "问话人乙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_03",
+              "name": "问话人丙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:s1check_015105",
+              "name": "沈验0151",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:u_demo",
+              "name": "陈捕快",
+              "presence": "offline",
+              "role": "visitor"
+            },
+            {
+              "id": "ruan_qingfu",
+              "name": "阮青蚨",
+              "presence": "online",
+              "role": "货郎"
+            },
+            {
+              "id": "xie_tingyun",
+              "name": "谢停云",
+              "presence": "online",
+              "role": "师爷"
+            },
+            {
+              "id": "yan_shouyi",
+              "name": "严守一",
+              "presence": "online",
+              "role": "庙祝"
+            }
+          ],
+          "ok": true,
+          "online": true,
+          "presence": "online",
+          "relations": [
+            {
+              "affection": 1.0,
+              "kind": "acquaintance",
+              "name": "段五斗",
+              "target": "duan_wudou",
+              "trust": 40.5
+            },
+            {
+              "affection": -1.0,
+              "kind": "acquaintance",
+              "name": "金满仓",
+              "target": "jin_mancang",
+              "trust": 39.5
+            },
+            {
+              "affection": 1.0,
+              "kind": "acquaintance",
+              "name": "柳三娘",
+              "target": "liu_sanniang",
+              "trust": 40.5
+            },
+            {
+              "affection": -1.0,
+              "kind": "acquaintance",
+              "name": "孟九娘",
+              "target": "meng_jiuniang",
+              "trust": 39.5
+            },
+            {
+              "affection": 0.0,
+              "kind": "acquaintance",
+              "name": "阮青蚨",
+              "target": "ruan_qingfu",
+              "trust": 40.0
+            }
+          ],
+          "role": "镖师",
+          "sect": {
+            "in_sect": false,
+            "sect": null
+          },
+          "skills": {
+            "镖师": 0.35
+          },
+          "stamina": 100.0,
+          "tick": 2346,
+          "today": {
+            "business": [
+              {
+                "affordable": true,
+                "blocked": "",
+                "cost": 300,
+                "shop_type": "stall"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 1200,
+                "shop_type": "storefront"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 3000,
+                "shop_type": "branch"
+              }
+            ],
+            "location": "market",
+            "location_name": "集市",
+            "next_action": "先接委托：代金满仓讨债",
+            "npcs": [
+              {
+                "hint": "可打听委托",
+                "id": "chang_banxia",
+                "name": "常半夏",
+                "role": "游医"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "duan_wudou",
+                "name": "段五斗",
+                "role": "屠户"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "jin_mancang",
+                "name": "金满仓",
+                "role": "掌柜"
+              }
+            ],
+            "quests": [
+              {
+                "giver_name": "金满仓",
+                "id": "quest:debt_duan_to_jin:2020",
+                "name": "代金满仓讨债",
+                "reward_money": 25
+              },
+              {
+                "giver_name": "严守一",
+                "id": "quest:errand_academy_notice:2164",
+                "name": "送书院口信",
+                "reward_money": 8
+              },
+              {
+                "giver_name": "孟九娘",
+                "id": "quest:errand_market_sweet:2164",
+                "name": "捎一包喜糖到书院",
+                "reward_money": 9
+              }
+            ],
+            "skills": [
+              {
+                "current": 0.35,
+                "hours_to_next": 28,
+                "next_at": 0.42,
+                "next_level": 2,
+                "skill": "镖师"
+              }
+            ],
+            "tick": 2352
+          },
+          "wallet": 300
+        },
+        "details": {
+          "dialogue_source": "model",
+          "relation": {
+            "affection": -1.0,
+            "kind": "acquaintance",
+            "target": "ruan_qingfu",
+            "trust": -0.5
+          },
+          "reply": "担子翻两个村，还行，就是腿比嘴累。粗布炭头都在这，赊账还是老规矩，名字日子写清楚。"
+        },
+        "event_seq": 5015,
+        "intent_id": "i:7d2912dbdbd15f96893d1fb9119c9bdfd3a70a8784d5f4cec62000f6e7975be9",
+        "next_tick": 2352,
+        "ok": true,
+        "player": "player:qa_dialogue_04",
+        "profile_version": 1,
+        "reason_text": "",
+        "reject_reason": "",
+        "status": "executed",
+        "tick": 2346,
+        "verb": "talk"
+      }
+    },
+    {
+      "seq": 15,
+      "npc": "ruan_qingfu",
+      "round": 3,
+      "intent": "gossip",
+      "request": {
+        "action": "talk",
+        "target": "ruan_qingfu",
+        "message": "听说镇上最近有新鲜事？",
+        "request_id": "qa_dialogue_04-probe-15"
+      },
+      "reply": "新鲜事倒有一桩，东村井边听人嚼的，我不说没影的。河湾有人嫁女，红布头问价问到我这担上了。我摸着算盘珠跟你讲，这价也就眼下能看。",
+      "source": "model",
+      "ok": true,
+      "status": "executed",
+      "reject_reason": "",
+      "tick": 2358,
+      "event_seq": 5019,
+      "intent_id": "i:8dab44cf4b712187f43303d5b898dc50ee5f4e93a3e55254b76d724a9facb12d",
+      "response": {
+        "action": "talk",
+        "client_tick": null,
+        "client_tick_ignored": false,
+        "confirm": false,
+        "data": {
+          "active_quests": [],
+          "active_quests_detail": [],
+          "archetype": "游侠",
+          "growth": {
+            "assets": {
+              "at": 0.0,
+              "level": 1,
+              "money": 300,
+              "name": "囊中羞涩",
+              "next_at": 600.0,
+              "next_name": "小有积蓄",
+              "next_unlock": "可开摊（本钱 300 文）",
+              "progress": 0.5,
+              "value": 300.0
+            },
+            "reputation": {
+              "at": 0.0,
+              "level": 1,
+              "name": "无名之辈",
+              "next_at": 3.0,
+              "next_name": "街坊熟人",
+              "next_unlock": "可接护送类委托，街坊愿意搭话",
+              "progress": 0.5,
+              "value": 1.5
+            },
+            "skill": {
+              "at": 0.0,
+              "level": 1,
+              "name": "生手",
+              "next_at": 0.42,
+              "next_name": "手熟",
+              "next_unlock": "可独立开摊（手艺够撑起门面）",
+              "progress": 0.833,
+              "skill": "镖师",
+              "skills": {
+                "镖师": 0.35
+              },
+              "value": 0.35
+            }
+          },
+          "home": "market",
+          "id": "player:qa_dialogue_04",
+          "inventory": {
+            "coarse_cloth": 1,
+            "flatbread": 3
+          },
+          "location": "market",
+          "marriage": {
+            "daily_note": "",
+            "last_daily_tick": 0,
+            "since_tick": 0,
+            "spouse_id": "",
+            "spouse_name": "",
+            "status": "single"
+          },
+          "max_stamina": 100.0,
+          "name": "问话人丁",
+          "nearby": [
+            {
+              "id": "chang_banxia",
+              "name": "常半夏",
+              "presence": "online",
+              "role": "游医"
+            },
+            {
+              "id": "duan_wudou",
+              "name": "段五斗",
+              "presence": "online",
+              "role": "屠户"
+            },
+            {
+              "id": "jin_mancang",
+              "name": "金满仓",
+              "presence": "online",
+              "role": "掌柜"
+            },
+            {
+              "id": "liu_sanniang",
+              "name": "柳三娘",
+              "presence": "online",
+              "role": "绣娘"
+            },
+            {
+              "id": "meng_jiuniang",
+              "name": "孟九娘",
+              "presence": "online",
+              "role": "媒婆"
+            },
+            {
+              "id": "player:qa_dialogue_01",
+              "name": "问话人",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_02",
+              "name": "问话人乙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:qa_dialogue_03",
+              "name": "问话人丙",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:s1check_015105",
+              "name": "沈验0151",
+              "presence": "online",
+              "role": "镖师"
+            },
+            {
+              "id": "player:u_demo",
+              "name": "陈捕快",
+              "presence": "offline",
+              "role": "visitor"
+            },
+            {
+              "id": "ruan_qingfu",
+              "name": "阮青蚨",
+              "presence": "online",
+              "role": "货郎"
+            },
+            {
+              "id": "xie_tingyun",
+              "name": "谢停云",
+              "presence": "online",
+              "role": "师爷"
+            },
+            {
+              "id": "yan_shouyi",
+              "name": "严守一",
+              "presence": "online",
+              "role": "庙祝"
+            }
+          ],
+          "ok": true,
+          "online": true,
+          "presence": "online",
+          "relations": [
+            {
+              "affection": 1.0,
+              "kind": "acquaintance",
+              "name": "段五斗",
+              "target": "duan_wudou",
+              "trust": 40.5
+            },
+            {
+              "affection": -1.0,
+              "kind": "acquaintance",
+              "name": "金满仓",
+              "target": "jin_mancang",
+              "trust": 39.5
+            },
+            {
+              "affection": 1.0,
+              "kind": "acquaintance",
+              "name": "柳三娘",
+              "target": "liu_sanniang",
+              "trust": 40.5
+            },
+            {
+              "affection": -1.0,
+              "kind": "acquaintance",
+              "name": "孟九娘",
+              "target": "meng_jiuniang",
+              "trust": 39.5
+            },
+            {
+              "affection": 1.0,
+              "kind": "acquaintance",
+              "name": "阮青蚨",
+              "target": "ruan_qingfu",
+              "trust": 40.5
+            }
+          ],
+          "role": "镖师",
+          "sect": {
+            "in_sect": false,
+            "sect": null
+          },
+          "skills": {
+            "镖师": 0.35
+          },
+          "stamina": 100.0,
+          "tick": 2358,
+          "today": {
+            "business": [
+              {
+                "affordable": true,
+                "blocked": "",
+                "cost": 300,
+                "shop_type": "stall"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 1200,
+                "shop_type": "storefront"
+              },
+              {
+                "affordable": false,
+                "blocked": "",
+                "cost": 3000,
+                "shop_type": "branch"
+              }
+            ],
+            "location": "market",
+            "location_name": "集市",
+            "next_action": "先接委托：代金满仓讨债",
+            "npcs": [
+              {
+                "hint": "可打听委托",
+                "id": "chang_banxia",
+                "name": "常半夏",
+                "role": "游医"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "duan_wudou",
+                "name": "段五斗",
+                "role": "屠户"
+              },
+              {
+                "hint": "可打听委托",
+                "id": "jin_mancang",
+                "name": "金满仓",
+                "role": "掌柜"
+              }
+            ],
+            "quests": [
+              {
+                "giver_name": "金满仓",
+                "id": "quest:debt_duan_to_jin:2020",
+                "name": "代金满仓讨债",
+                "reward_money": 25
+              },
+              {
+                "giver_name": "严守一",
+                "id": "quest:errand_academy_notice:2164",
+                "name": "送书院口信",
+                "reward_money": 8
+              },
+              {
+                "giver_name": "孟九娘",
+                "id": "quest:errand_market_sweet:2164",
+                "name": "捎一包喜糖到书院",
+                "reward_money": 9
+              }
+            ],
+            "skills": [
+              {
+                "current": 0.35,
+                "hours_to_next": 28,
+                "next_at": 0.42,
+                "next_level": 2,
+                "skill": "镖师"
+              }
+            ],
+            "tick": 2364
+          },
+          "wallet": 300
+        },
+        "details": {
+          "dialogue_source": "model",
+          "relation": {
+            "affection": 1.0,
+            "kind": "acquaintance",
+            "target": "ruan_qingfu",
+            "trust": 0.5
+          },
+          "reply": "新鲜事倒有一桩，东村井边听人嚼的，我不说没影的。河湾有人嫁女，红布头问价问到我这担上了。我摸着算盘珠跟你讲，这价也就眼下能看。"
+        },
+        "event_seq": 5019,
+        "intent_id": "i:8dab44cf4b712187f43303d5b898dc50ee5f4e93a3e55254b76d724a9facb12d",
+        "next_tick": 2364,
+        "ok": true,
+        "player": "player:qa_dialogue_04",
+        "profile_version": 1,
+        "reason_text": "",
+        "reject_reason": "",
+        "status": "executed",
+        "tick": 2358,
+        "verb": "talk"
+      }
+    }
+  ]
+}

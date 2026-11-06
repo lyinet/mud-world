@@ -220,6 +220,8 @@ REPLY_HARD_CONSTRAINTS = (
 DIALOGUE_SYSTEM_PROMPT = (
     "你在扮演一个武侠世界中的 NPC，只能用第一人称回答，保持人设，"
     "不要解释、不要复述问题、不要出戏；最多 80 个汉字，可带一句自然口语动作。"
+    "必须利用 state.last_message / state.last_reply 延续上一轮，不得重复上一轮原句；"
+    "不同角色的身份、性格、关系与处境必须在措辞上体现差异。"
     + REPLY_HARD_CONSTRAINTS
 )
 

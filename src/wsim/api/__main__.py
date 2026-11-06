@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import signal
 import sys
 import threading
@@ -57,6 +58,10 @@ def main(argv: list[str] | None = None) -> int:
     root = Path(args.root).resolve()
     run_dir = root / "runs" / args.run
     service_db = Path(args.session_db) if args.session_db else run_dir / "service.sqlite"
+    # 对话 provider 的 DB 路径解析依赖运行目录；在 session（动作注册表）构建前固定。
+    os.environ.setdefault("XKX_RUN", args.run)
+    os.environ.setdefault("XKX_ROOT", str(root))
+    os.environ.setdefault("XKX_SERVICE_DB", str(service_db))
     guard = check_startup(service_db, run_dir / "events.sqlite", allow_new_world=args.allow_new_world)
     if guard is not None:
         # 固定契约：单行 JSON 到 stderr；退出码 4=丢库、5=库损坏；不监听、不写事件。

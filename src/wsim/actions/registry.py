@@ -4,6 +4,7 @@
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from ..core.models import Effect, Intent
@@ -108,7 +109,8 @@ def build_registry(content, seed: int, plugin_dir: Path | None = None) -> Action
     reg.register(MarriageEndAction())
     reg.register(SpouseTimeAction(content))
     reg.register(RecruitAction(content))
-    reg.register(TalkAction(content))
+    talk = TalkAction(content)
+    reg.register(talk)
     reg.register(OpenShopAction(content))
     reg.register(RestockAction(content))
     reg.register(SetPriceAction(content))
@@ -142,8 +144,15 @@ def build_registry(content, seed: int, plugin_dir: Path | None = None) -> Action
     reg.register(SystemPlayerPresenceAction())
     reg.register(SystemTickAction())
 
-    # 规则层：扫描插件目录。插件 verb 不得覆盖内核内置 verb。
     root = Path(__file__).resolve().parents[3]
+    # 对话模型：WSIM_DIALOGUE=1 时按「管理台 provider 注册表优先、env 兜底」挂载。
+    if os.environ.get("WSIM_DIALOGUE", "").strip().lower() in ("1", "true", "yes", "on"):
+        from ..agent import dialogue_runtime
+
+        run_id = os.environ.get("XKX_RUN") or "player-demo"
+        dialogue_runtime.attach_if_enabled(talk, root, root / "runs" / run_id)
+
+    # 规则层：扫描插件目录。插件 verb 不得覆盖内核内置 verb。
     pdir = Path(plugin_dir) if plugin_dir is not None else root / "plugins" / "actions"
     if pdir.is_dir():
         from ..plugins.loader import PluginError, load_plugins

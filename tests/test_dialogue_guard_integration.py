@@ -129,7 +129,27 @@ def test_world_session_talk_path_returns_guarded_text(tmp_path):
         latest = answers[-1]
         assert not BANNED.search(latest)
         assert not latest.startswith(NPC_NAME)
-        assert latest.startswith("我答：“兄弟，要肥要瘦？”")
+        # 红线：模型台词不落状态/事件；memory 里必须是确定性模板。
+        assert "兄弟，要肥要瘦" not in latest
+        assert latest.startswith("我答：")
+        log = [
+            line for line in (tmp_path / "run" / "dialogue.jsonl").read_text(
+                encoding="utf-8"
+            ).splitlines() if line.strip()
+        ]
+        assert "兄弟，要肥要瘦" in log[-1]
+
+        # 模型台词只覆盖本次 HTTP 响应的 details.reply。
+        from wsim.agent import dialogue_runtime
+
+        result = {
+            "verb": "talk", "ok": True, "tick": res["tick"],
+            "player": "player:u_demo", "details": {"reply": latest},
+        }
+        dialogue_runtime.overlay_reply(result, {"target": NPC, "message": "肉怎么卖？"})
+        assert result["details"]["dialogue_source"] == "model"
+        assert "兄弟，要肥要瘦" in result["details"]["reply"]
+        assert latest.startswith("我答：")  # 状态里的模板未变
     finally:
         queue.close()
         session.close()

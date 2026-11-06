@@ -223,8 +223,17 @@ TEMPLATES: dict[str, tuple[str, ...]] = {
     "deflection.b": ("你说的我一时没摸着门道，换个说法，我再答你。",),
 }
 
-# 只有“回避”骨架保留人设台词；避免同一句口号跨类别复用。
-QUOTE_HINTS: dict[str, tuple[str, ...]] = {}
+# 意向相关的台词优先；没有命中时按轮次在全部人设台词里轮换。
+QUOTE_HINTS: dict[str, tuple[str, ...]] = {
+    "greeting": ("您", "阿是", "施主", "姑娘", "掌柜", "来啦"),
+    "directions": ("城隍", "庙", "路", "摊子", "门", "街", "三尺"),
+    "gossip": ("金掌柜", "罗家", "蒋施主", "苏掌柜", "崔捕快", "曹半仙", "听说"),
+    "price": ("文", "钱", "价", "斤两", "称", "米"),
+    "credit": ("文", "账", "利", "还", "赊", "红绳"),
+    "chitchat": ("酒", "刀", "庙", "摊", "面", "夜"),
+    "help": ("跑腿", "帮", "催", "挪", "打", "忙"),
+    "rejection": ("不", "别", "没", "认", "等着"),
+}
 
 # 具体话题优先于从原句里切出来的短语。
 TOPIC_HINTS: tuple[tuple[str, str], ...] = (
@@ -730,13 +739,15 @@ def _skeleton(intent: str, message: str, turn: int, obj: str) -> str:
     return ab(intent)
 
 
-def _pick_quote(voice: dict[str, Any], intent: str, digest: str, last_reply: str) -> str:
+def _pick_quote(
+    voice: dict[str, Any], intent: str, digest: str, last_reply: str, turn: int = 0
+) -> str:
     quotes = list(voice["quotes"])
     if not quotes:
         return ""
     hints = QUOTE_HINTS.get(intent, ())
     base = int(digest[:8], 16) % len(quotes)
-    ordered = sorted(
+    ranked = sorted(
         range(len(quotes)),
         key=lambda i: (
             -sum(1 for h in hints if h in quotes[i]),
@@ -744,26 +755,38 @@ def _pick_quote(voice: dict[str, Any], intent: str, digest: str, last_reply: str
             (i - base) % len(quotes),
         ),
     )
-    for i in ordered:
+    # 在有序候选里按轮次轮换，保证同一 NPC 连续 3 轮不会复用同一句台词。
+    pool = [ranked[(turn + k) % len(ranked)] for k in range(len(ranked))]
+    for i in pool:
         quote = quotes[i]
         if len(quotes) > 1 and quote in (last_reply or ""):
             continue
         return quote
-    return quotes[ordered[0]]
+    return quotes[pool[0]]
 
 
 def _trim(body: str, quote: str) -> str:
-    """优先保留台词，同时把长度压进 20–60 字。"""
-    if len(body) + len(quote) <= 60:
+    """优先保留人设台词，同时把长度压进 20–60 字。"""
+    if not quote:
+        if len(body) <= 60:
+            return body
+        cut = body[:60]
+        for mark in ("。", "；", "，", "！"):
+            pos = cut.rfind(mark)
+            if pos >= 19:
+                return cut[: pos + 1]
+        return cut
+    budget = 60 - len(quote)
+    if budget < 19:
+        return _trim(body, "")
+    if len(body) <= budget:
         return body + quote
-    if len(body) <= 60:
-        return body
-    cut = body[:60]
+    cut = body[:budget]
     for mark in ("。", "；", "，", "！"):
         pos = cut.rfind(mark)
         if pos >= 19:
-            return cut[: pos + 1]
-    return cut
+            return cut[: pos + 1] + quote
+    return cut.rstrip("，。； ") + quote
 
 
 def compose_talk(
@@ -797,9 +820,16 @@ def compose_talk(
     body = TEMPLATES[skeleton][0].format(
         role=profile["role"], place=profile["place"], topic=topic
     )
-    # 台词只挂在“回避”骨架上，避免不同意图复用同一句尾口号。
-    quote = _pick_quote(voice, intent, digest, last_reply) if intent == "deflection" else ""
+    # 人设台词参与所有意图：不同 NPC 对同一问题各说各话，同一 NPC 按轮次轮换。
+    quote = _pick_quote(voice, intent, digest, last_reply, turn)
     reply = _trim(body, quote)
+    if last_reply and reply == last_reply:
+        alt_quote = _pick_quote(voice, intent, digest, last_reply, turn + 1)
+        alt_body = TEMPLATES[_skeleton(intent, message, turn + 1, obj)][0].format(
+            role=profile["role"], place=profile["place"], topic=topic
+        )
+        reply = _trim(alt_body, alt_quote)
+        quote = alt_quote
     aff, trust = _sentiment(message, sent_digest)
     return {
         "reply": reply,

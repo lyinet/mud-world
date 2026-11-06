@@ -1,6 +1,7 @@
 """社交/组织动词：apprentice（仅拜师）、join_sect（入会/入门派）、marry、talk。"""
 from __future__ import annotations
 
+from ..agent import dialogue_runtime
 from ..agent.dialogue import PLAYER_NAME, compose_talk, place_names
 from ..core.clock import TICKS_PER_DAY
 from ..core.models import Effect, Intent, Reject
@@ -43,6 +44,28 @@ def _clamp_delta(requested: float, tick_used: float, day_used: float) -> float:
     if lower > upper:
         return 0.0
     return max(lower, min(upper, requested))
+
+
+def _talk_context(state: WorldState, npc_id: str) -> tuple[int, str, str]:
+    """取该 NPC 的对话轮次与上一轮原文；只读状态，不写任何字段。
+
+    turn 由 NPC memory 中 `talk:npc` 条数推导，不新增世界状态字段，避免
+    state_hash / golden 基线漂移；memory 本身是确定性、可回放的事件产物。
+    """
+    mem = state.memories.get(npc_id) or []
+    turns = sum(1 for e in mem if str(e.get("source") or "") == "talk:npc")
+    last_player = ""
+    last_npc = ""
+    for entry in reversed(mem):
+        source = str(entry.get("source") or "")
+        text = str(entry.get("text") or "")
+        if source == "talk:npc" and not last_npc:
+            last_npc = text.removeprefix("我答：").strip()
+        elif source == "talk:player" and not last_player:
+            last_player = text.split("说：", 1)[-1].strip()
+        if last_player and last_npc:
+            break
+    return turns, last_player, last_npc
 
 
 def _speaker_id(state: WorldState, intent: Intent) -> str:
@@ -113,11 +136,13 @@ class TalkAction(Action):
         # 服务端按人设卡重新生成回复与情感增量；调用方字段全部忽略。
         persona = self.content.personas.get(target.id, "") if self.content is not None else ""
         places = place_names(self.content) if self.content is not None else {}
+        turns, last_player, last_npc = _talk_context(state, target.id)
         server = compose_talk(
-            persona, target.id, target.name, target.role, message, tick, places=places
+            persona, target.id, target.name, target.role, message, tick,
+            turn=turns, last_message=last_player, last_reply=last_npc, places=places,
         )
+        # 红线：状态/事件只写确定性模板回复；模型台词仅进旁路与 HTTP 响应。
         reply = str(server["reply"])
-        # 模型回复：成功则替换台词，失败/超时保留上面的模板回复（关系增量不变）。
         if self.dialogue is not None:
             summary = {
                 "name": target.name,
@@ -126,6 +151,9 @@ class TalkAction(Action):
                 "faction": target.faction or "",
                 "stamina": round(float(target.stamina), 1),
                 "affection": round(state.affection_between(pid, target.id), 1),
+                "turn": turns,
+                "last_message": last_player,
+                "last_reply": last_npc,
             }
             try:
                 dlg = self.dialogue.reply_sync(
@@ -138,7 +166,9 @@ class TalkAction(Action):
                     timeout_s=8.0,
                 )
                 if dlg.ok and dlg.text.strip():
-                    reply = dlg.text.strip()
+                    dialogue_runtime.remember(
+                        pid, target.id, tick, message, dlg.text.strip()
+                    )
             except Exception:  # noqa: BLE001 - 对话失败不得影响动作落地
                 pass
         req_aff = float(server["affection_delta"])

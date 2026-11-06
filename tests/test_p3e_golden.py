@@ -345,10 +345,16 @@ PATHFINDING_BASELINE_REASON = (
     "NPC 不再因移动落空而原地空转、按原计划上工与买卖，成交与燃烧节奏随之改变；"
     "state/event 哈希变化；旧 V3/V4/V5 基线原样保留。"
 )
+DIALOGUE_VARIETY_BASELINE_REASON = (
+    "对话模板修复：人设台词参与所有意图并按轮次轮换（turn 由 NPC memory 的 talk:npc "
+    "条数推导），NPC 对话 memory 文本随之变化，state/event 哈希显式更新；事件条数、"
+    "买卖与燃烧计数不变。该漂移与寻路基线叠加，故同步更新 V6 两组哈希；"
+    "旧 V3/V4/V5 基线原样保留。"
+)
 GOLDEN_MILESTONE_V6 = {
     "events_total": 791,
-    "state_final": "03b784697bf9de1c2db60d0925f11ebde4d3d956e2e7a188842e4c760915b8c7",
-    "event_final": "3be92716396b88d086571e40968581806549240ecaf6a13ca2debd7c317c16e4",
+    "state_final": "6be665b533b778f2afb7d4a3fd57cd5ff6dc968509c11d238d40d5fed5870a55",
+    "event_final": "0c15b0d8892e52b89f4d9e022fd7fabde6b5283b4aa8c924e3bc5760d8a30d49",
     "sell_in": 584,
     "buy_out": 657,
     "burned": 72,
@@ -358,8 +364,8 @@ GOLDEN_MILESTONE_V6 = {
 }
 DIALOGUE_GOLDEN_MILESTONE_V6 = {
     "events_total": 791,
-    "state_final": "e4a6b5f7ee645331ac281a69891e0ff7f28bb220eb2f8668489b7e774b99a626",
-    "event_final": "e98e395ad6647a264f9ec615c502f73a11a84d2a9cdbe8d7d2af80c5abf64367",
+    "state_final": "6be665b533b778f2afb7d4a3fd57cd5ff6dc968509c11d238d40d5fed5870a55",
+    "event_final": "0c15b0d8892e52b89f4d9e022fd7fabde6b5283b4aa8c924e3bc5760d8a30d49",
     "dialogue_calls": 65,
 }
 
@@ -854,7 +860,7 @@ def test_p4_milestone_v6_deterministic_2d_fake_run_is_golden(tmp_path):
     assert not drift, (
         "P4 里程碑 v6 基线漂移（golden_milestone_v6, actual）："
         + json.dumps(drift, ensure_ascii=False)
-        + "；原因: " + PATHFINDING_BASELINE_REASON
+        + "；原因: " + PATHFINDING_BASELINE_REASON + DIALOGUE_VARIETY_BASELINE_REASON
     )
 
     pruned_file = tmp_path / "golden-milestone-v6" / "pruned.jsonl"
@@ -878,5 +884,5 @@ def test_p4_milestone_v6_dialogue_enabled_fake_run_is_golden(tmp_path):
     assert not drift, (
         "P4 里程碑 v6 dialogue 基线漂移（golden_milestone_dialogue_v6, actual）："
         + json.dumps(drift, ensure_ascii=False)
-        + "；原因: " + PATHFINDING_BASELINE_REASON
+        + "；原因: " + PATHFINDING_BASELINE_REASON + DIALOGUE_VARIETY_BASELINE_REASON
     )

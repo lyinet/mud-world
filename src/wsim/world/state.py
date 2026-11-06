@@ -385,8 +385,8 @@ class WorldState:
     schedule: dict[str, ScheduleItem] = field(default_factory=dict)
     memories: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
     # 玩家对话的关系增量台账：npc -> {day, day_affection, day_trust,
-    # last_tick, tick_affection, tick_trust, turns}。用于 ±2/tick、±8/日 上限，
-    # turns 只驱动确定性模板的轮次变体，不参与世界演进。
+    # last_tick, tick_affection, tick_trust}。用于 ±2/tick、±8/日 上限；
+    # 对话轮次由 NPC memory 的 talk:npc 条数推导，不在此新增字段。
     talk_ledger: dict[str, dict[str, Any]] = field(default_factory=dict)
     # 任务模板历史统计：template_id -> {created, completed, failed, expired}。
     quest_stats: dict[str, dict[str, int]] = field(default_factory=dict)

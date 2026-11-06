@@ -742,6 +742,11 @@ class _Handler(BaseHTTPRequestHandler):
                 request_id,
                 bool(body.get("confirm")),
             )
+            # 模型台词只覆盖本次 HTTP 响应的 details.reply；状态/事件仍是模板。
+            result.setdefault("verb", verb)
+            from ..agent import dialogue_runtime
+
+            dialogue_runtime.overlay_reply(result, args)
         elif route == "heartbeat" and bool(body.get("keepalive")):
             # 页面停留保活：只刷新活跃时钟，不写事件；离线仍返回 player_offline 供客户端自愈。
             result = session.keepalive(account)
