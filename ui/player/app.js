@@ -42,6 +42,9 @@
   const HEARTBEAT_INTERVAL_MS = 20000;
   /* 商店价格/库存随世界 tick 变化：主状态 8 秒刷新一次，商业面板随之更新。 */
   const STATE_INTERVAL_MS = 8000;
+  /* 移动口径：对齐 content/economy 的 stamina_move 默认值与会话推进步长。 */
+  const MOVE_STAMINA_COST = 5;
+  const SIM_TICKS_PER_HOUR = 6;
 
   /* 后端 feed 的 verb 是内部动词（move / quest_accept / open_shop …）。
      玩家侧只走这张表：集中映射成中文动作；表里没有的一律「有事发生」，
@@ -1694,25 +1697,73 @@
   function renderPlace(st) {
     const p = st.player || {};
     const loc = st.location || {};
+    const exits = (loc.exits || []).slice();
+    const stamina = Number(p.stamina || 0);
     el('locId').textContent = loc.id || '—';
     el('placeName').textContent = loc.name || '未知地点';
     el('placeMe').textContent = '你在这里：' + (p.name || '') +
       (p.role ? '（' + p.role + '）' : '') + ' · tick ' + st.tick;
-    const exits = el('exits');
-    exits.innerHTML = '';
-    (loc.exits || []).filter(function (x) { return x.exists !== false; }).forEach(function (exit) {
+
+    /* 地图只画当前地点与直接出口；区域与两跳以外不猜测，界面上明确写“周边”。 */
+    const map = el('textMap');
+    map.innerHTML = '';
+    const current = document.createElement('div');
+    current.className = 'map-current';
+    current.innerHTML = '<span class="map-mark">◆</span><b>' +
+      escapeHtml(loc.name || '未知地点') + '</b><span class="map-self">你在这里</span>';
+    map.appendChild(current);
+    if (!exits.length) {
+      const empty = document.createElement('div');
+      empty.className = 'map-empty';
+      empty.textContent = '此地没有已知出口。';
+      map.appendChild(empty);
+    }
+    exits.forEach(function (exit, idx) {
+      const open = exit.exists !== false;
+      const row = document.createElement('div');
+      row.className = 'map-branch' + (open ? '' : ' blocked');
+      row.innerHTML = '<span class="map-connector">' +
+        (idx === exits.length - 1 ? '└─' : '├─') + '</span>' +
+        '<span class="map-node">' + escapeHtml(exit.name || exit.id) + '</span>' +
+        '<span class="map-flag">' + (open ? '可去' : '道路不通') + '</span>';
+      map.appendChild(row);
+    });
+
+    const dirs = el('exits');
+    dirs.innerHTML = '';
+    const openCount = exits.filter(function (x) { return x.exists !== false; }).length;
+    el('directionHint').textContent = exits.length
+      ? ('可走 ' + openCount + (openCount < exits.length ? ' / ' + exits.length : '')
+        + ' 个方向 · 每步 1 小时 · -' + MOVE_STAMINA_COST + ' 体力')
+      : '无方向可走';
+    exits.forEach(function (exit) {
+      const open = exit.exists !== false;
+      const reason = !open
+        ? '道路不通'
+        : (stamina < MOVE_STAMINA_COST
+          ? ('体力不足：需 ' + MOVE_STAMINA_COST + '，当前 ' + Math.round(stamina))
+          : '');
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'exit';
+      btn.className = 'exit' + (reason ? ' disabled' : '');
       btn.setAttribute('data-exit-id', exit.id || '');
-      btn.innerHTML = '<span>' + escapeHtml(exit.name) + '<br><span class="id">' +
-        escapeHtml(exit.id) + '</span></span><span class="go">走 →</span>';
-      btn.title = '移动到' + exit.name;
-      btn.addEventListener('click', function () { doMove(exit); });
-      exits.appendChild(btn);
+      btn.innerHTML = '<span class="exit-main"><span class="exit-name">' +
+        escapeHtml(exit.name || exit.id) + '</span><span class="id">' +
+        escapeHtml(exit.id || '') + '</span></span>' +
+        (reason
+          ? '<span class="exit-reason">' + escapeHtml(reason) + '</span>'
+          : '<span class="exit-cost">' + MOVE_STAMINA_COST + ' 力 · 1 小时</span>');
+      if (reason) {
+        btn.disabled = true;
+        btn.title = reason;
+      } else {
+        btn.title = '移动到' + exit.name;
+        btn.addEventListener('click', function () { doMove(exit); });
+      }
+      dirs.appendChild(btn);
     });
-    if (!(loc.exits || []).length) {
-      exits.innerHTML = '<div class="hint">没有可用出口。</div>';
+    if (!exits.length) {
+      dirs.innerHTML = '<div class="hint">没有可用出口。</div>';
     }
   }
 

@@ -49,8 +49,20 @@
         <div class="place-card">
           <div class="place-name" id="placeName">—</div>
           <div class="place-me" id="placeMe">—</div>
+
+          <div class="map-head">
+            <h3>周边地图</h3>
+            <span class="hint">只画当前地点与一跳可达</span>
+          </div>
+          <div class="text-map" id="textMap" aria-label="周边一跳地图"></div>
+          <div class="map-note">区域名、两跳以外地点与自动寻路暂不可用：接口只下发当前地点和直接出口。</div>
+
+          <div class="direction-head">
+            <h3>方向</h3>
+            <span class="hint" id="directionHint">—</span>
+          </div>
           <div class="exits" id="exits" aria-label="出口"></div>
-          <div class="hint" id="exitHint">点击出口真实移动；位置以服务端 /state 为准。</div>
+          <div class="hint" id="exitHint">点击方向真实移动；位置以服务端 /state 为准。</div>
         </div>
       </section>
 
