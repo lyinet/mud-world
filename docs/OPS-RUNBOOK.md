@@ -955,3 +955,41 @@ records_written=357430 rotation_count=1 records_kept=4096
 
 运维动作：`.1`…`.5` 可直接归档或删除；`service.sqlite` 的 `audit_log`（登录锁定/解锁/吊销）
 是另一套审计，不受此轮转影响。
+
+---
+
+## 12. 反代后的真实客户端 IP（可信代理，2026-11-06 起）
+
+反代终止 TLS 后，API 的 TCP 对端是代理地址（通常是容器网段，如 `172.18.0.4`）。
+**必须**把反代网段写进可信代理，否则登录限流的 `(ip, account)` 键退化为只按账号。
+
+```bash
+# deploy/compose 或进程环境
+XKX_TRUSTED_PROXIES=172.18.0.0/16
+```
+
+nginx 侧保持标准转发头：
+
+```nginx
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header X-Real-IP $remote_addr;
+```
+
+规则：
+
+- 只有 TCP 对端落在 `XKX_TRUSTED_PROXIES` 内，才会采信转发头；XFF 从右向左跳过可信
+  代理，取第一个不可信跳。来源不可信或头畸形时，一律回落 TCP 地址。
+- 默认空值 = 不信任任何转发头（与旧行为一致，安全但会把所有玩家算成同一个 IP）。
+- 管理台走自己的 `XKX_ADMIN_ALLOW_IPS`，与这里无关；不要把管理网段和反代网段混用。
+
+上线后自检（服务运行中只读查询）：
+
+```bash
+sqlite3 runs/<RUN_ID>/service.sqlite \
+  "SELECT ip, account, COUNT(*) FROM login_failures GROUP BY ip, account ORDER BY 3 DESC LIMIT 10;"
+```
+
+预期看到公网客户端 IP，而不是 `172.18.0.4`；若仍是代理地址，说明 `XKX_TRUSTED_PROXIES`
+没配或网段写错（非法项会在 stderr 打印“忽略非法可信代理网段”）。
+
+不配置的后果：跨账号爆破、按 IP 的总体限流全部失效；同代理后的玩家还会共享失败计数。

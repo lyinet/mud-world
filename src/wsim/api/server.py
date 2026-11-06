@@ -6,9 +6,11 @@ Bearer 令牌校验；不存在“配置存在但仍可匿名写”的旁路。
 from __future__ import annotations
 
 import hmac
+import ipaddress
 import json
 import os
 import socket
+import sys
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -81,6 +83,73 @@ _AUTH_STATUS = {
     "auth_disabled": 503,
     "too_many_attempts": 429,
 }
+
+
+def parse_trusted_proxies(raw: str | None) -> tuple[Any, ...]:
+    """把 `XKX_TRUSTED_PROXIES`（逗号分隔 CIDR/IP）解析为网段元组。
+
+    非法项直接忽略并打印告警；空值返回空元组 = 不信任任何转发头。
+    """
+    nets: list[Any] = []
+    for part in str(raw or "").split(","):
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            nets.append(ipaddress.ip_network(part, strict=False))
+        except ValueError:
+            print(f"[auth] 忽略非法可信代理网段: {part!r}", file=sys.stderr, flush=True)
+    return tuple(nets)
+
+
+def _in_net(addr: Any, net: Any) -> bool:
+    try:
+        return addr in net
+    except TypeError:  # IPv4 与 IPv6 网段不互通
+        return False
+
+
+def resolve_client_ip(remote: str, headers: Any, trusted: tuple[Any, ...]) -> str:
+    """解析限流用客户端 IP。
+
+    - 未配置可信代理，或直连来源不在可信网段：一律返回 TCP 对端地址，
+      忽略所有转发头（防伪造）。
+    - 直连来源可信：`X-Forwarded-For` 从右向左跳过可信代理，取第一个
+      不可信跳（标准做法）；全部可信则取最左；无 XFF 时回退 `X-Real-IP`。
+    - 畸形转发头 → 回退 TCP 对端地址（fail-closed）。
+    """
+    remote_s = str(remote or "")
+    if not trusted:
+        return remote_s
+    try:
+        peer = ipaddress.ip_address(remote_s)
+    except ValueError:
+        return remote_s
+    if not any(_in_net(peer, net) for net in trusted):
+        return remote_s
+
+    xff = str(headers.get("X-Forwarded-For") or "") if headers is not None else ""
+    hops = [h.strip() for h in xff.split(",") if h.strip()]
+    if hops:
+        parsed: list[Any] = []
+        for hop in hops:
+            try:
+                parsed.append(ipaddress.ip_address(hop))
+            except ValueError:
+                return remote_s
+        for addr in reversed(parsed):
+            if any(_in_net(addr, net) for net in trusted):
+                continue
+            return str(addr)
+        return str(parsed[0])
+
+    real = str(headers.get("X-Real-IP") or "").strip() if headers is not None else ""
+    if real:
+        try:
+            return str(ipaddress.ip_address(real))
+        except ValueError:
+            return remote_s
+    return remote_s
 
 
 def _ambient_status_path(session: WorldSession) -> Path:
@@ -304,8 +373,14 @@ class _Handler(BaseHTTPRequestHandler):
         return ""
 
     def _client_ip(self) -> str:
-        """按 TCP 对端地址限流；不信任 X-Forwarded-For（可伪造）。"""
-        return str(self.client_address[0]) if self.client_address else ""
+        """限流用客户端 IP。
+
+        默认只信 TCP 对端地址（X-Forwarded-For 可伪造）。仅当对端落在
+        `XKX_TRUSTED_PROXIES` 网段内时，才按“最右侧可信跳”解析转发头。
+        """
+        remote = str(self.client_address[0]) if self.client_address else ""
+        trusted = getattr(self.server, "trusted_proxies", ())  # type: ignore[attr-defined]
+        return resolve_client_ip(remote, self.headers, trusted)
 
     def _send_auth_error(
         self, code: str, status: int | None = None, retry_after: int | None = None
@@ -777,6 +852,7 @@ def create_server(
     disk_min_free_pct: float | None = None,
     writer_idle_max_s: float | None = None,
     integrity_cache_s: float | None = None,
+    trusted_proxies: str | tuple[Any, ...] | None = None,
 ) -> ThreadingHTTPServer:
     server = ThreadingHTTPServer((host, int(port)), _Handler)
     server.session = session  # type: ignore[attr-defined]
@@ -811,6 +887,14 @@ def create_server(
         writer_idle_max_s=writer_idle_max_s,
         integrity_cache_s=integrity_cache_s,
     )
+    # 可信代理：仅这些直连来源的 X-Forwarded-For / X-Real-IP 才被采信。
+    # 默认空（未配置）= 只用 TCP 对端地址，保持原有行为。
+    if trusted_proxies is None:
+        trusted_proxies = os.environ.get("XKX_TRUSTED_PROXIES", "")
+    if isinstance(trusted_proxies, str):
+        server.trusted_proxies = parse_trusted_proxies(trusted_proxies)  # type: ignore[attr-defined]
+    else:
+        server.trusted_proxies = tuple(trusted_proxies)  # type: ignore[attr-defined]
     server.daemon_threads = True
     return server
 

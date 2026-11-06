@@ -9,6 +9,36 @@
 
 ---
 
+## [安全 P0] 2026-11-06 — 反代后采信真实客户端 IP（可信代理），限流键不再退化
+
+- **改了什么**
+  - `api/server.py` 新增 `resolve_client_ip()` / `parse_trusted_proxies()`；
+    `_client_ip()` 仅在 TCP 对端落在 `XKX_TRUSTED_PROXIES`（逗号分隔 CIDR/IP）内时，
+    才采信 `X-Forwarded-For`（从右向左跳过可信代理，取第一个不可信跳）或 `X-Real-IP`；
+    来源不可信、未配置、或头畸形时一律回退 TCP 对端地址。
+  - `create_server(..., trusted_proxies=...)` 支持显式注入；默认读取环境变量，空值 =
+    不信任任何转发头（与改造前行为一致）。
+  - `docs/OPS-RUNBOOK.md` §12、`SECURITY.md` §7 补配置项、采信规则、不配置的后果。
+- **为什么改**：反代终止 TLS 后所有玩家共享代理 IP（实测 `172.18.0.4`），
+  `(ip, account)` 限流键退化为只按账号；跨账号刷与按 IP 的总量限流全部失效。
+- **验证**
+  - `tests/test_w1_trusted_proxy.py`（7 例）：CIDR 解析、默认忽略伪造头、可信代理取
+    最右侧不可信跳、X-Real-IP 回退、畸形头 fail-closed、HTTP 级落库真实 IP、
+    50 次失败 429+`Retry-After` 且换真实 IP 恢复。
+  - 真服务实测（本机 127.0.0.1 模拟可信代理）：
+    ```text
+    ① 未配置 + 伪造 XFF=203.0.113.9 → login_failures: 127.0.0.1|u_demo|1
+    ② 可信 127.0.0.0/8 + XFF="203.0.113.9, 127.0.0.1" → login_failures: 203.0.113.9|u_demo|1
+    ③ 可信 172.18.0.0/16（127.0.0.1 不可信）+ 伪造 XFF → login_failures: 127.0.0.1|u_demo|1
+    ④ XFF=203.0.113.50 ×50：statuses 401=4 429=46，第 5 次起 Retry-After=900；
+       换 XFF=198.51.100.7 正确口令 → HTTP 200
+    ```
+- **边界**：未改 `api/session.py`；管理台 `admin/server.py` 的 `XKX_ADMIN_ALLOW_IPS`
+  与直连地址逻辑保持原样，不读取玩家侧转发头。
+- **顺带修复**（`8bb9f30`）：`api/health.py` 的 seq 断洞检测原用 `last - count()`，
+  但 `EventStore.count()` 是全局 `MAX(seq)` 而非行数，断洞永远检测不到；
+  改为尾部两条按主键倒序比较（O(log n)），`test_health_seq_gap_503` 由 200 恢复为 503。
+
 ## [部署] 2026-11-06 — TLS 硬化：301-only 入口、ACME 例外、强协议/套件与安全响应头
 
 - **改了什么**
