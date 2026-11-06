@@ -9,6 +9,61 @@
 
 ---
 
+## [架构] 2026-11-07 — 对话模型旁路：账本记剧本，模型只做配音
+
+- **改了什么**：
+  - 新增 `src/wsim/agent/dialogue_aside.py`，模型台词写入
+    `runs/<RUN_ID>/dialogue_aside.jsonl`，键 `(event_seq, npc_id)`，只含
+    `text/model/created_at`，不参与 `state_hash` / `event_hash` / `content_hash`。
+  - `TalkAction` 仍是账本唯一写入口：`memory_add` 永远写
+    `agent/dialogue.py::compose_talk` 的模板台词；模型文本只在事务提交后由
+    `WorldSession.finalize_dialogue()` 写入旁路与本次 HTTP `details.reply`。
+  - API 会话通过 `XKX_DIALOGUE_MODEL=1`（默认关）把 `AsyncDialogueQueue` 注入
+    `TalkAction`；不构造 decision provider、不启用 `LLMReasoner`、不改 `llm_enabled`。
+  - 模型调用移到事件事务提交之后、`WorldSession.lock` 之外；超时/网络/auth/预算
+    失败一律丢弃该句、保留模板，动作照常成功，不重试、不回写事件。
+  - `/api/player/messages` 按 `(event_seq,npc)` 优先返回旁路文本；
+    `/api/health` 新增只读 `llm` 块（status/calls/ok/failures/timeouts/last_latency_s）；
+    `/metrics` 新增 `xkx_dialogue_llm_calls_total`。
+  - `docs/OPS-RUNBOOK.md` 补“为什么模型台词不能进账本 / 开启 / 关闭 / 清空旁路 /
+    失败语义 / 排查”。
+- **为什么**：模型输出带随机性，一旦进入 `events`/`state`，同 seed 世界会分叉，
+  golden 与回放审计全部失效。对话应当是“配音”，不是世界事实。
+- **验证**（真实命令与输出）：
+  - 无玩家 2 日 golden，`XKX_DIALOGUE_MODEL=0` 与 `=1` 各跑一次：
+    `state_final=6be665b533b778f2afb7d4a3fd57cd5ff6dc968509c11d238d40d5fed5870a55`、
+    `event_final=0c15b0d8892e52b89f4d9e022fd7fabde6b5283b4aa8c924e3bc5760d8a30d49`、
+    `events.jsonl sha256=670e09592afdafb8b5bcc4d7976b2372ff4219124520982f88261df08cc9b19d`，两次完全一致；
+  - 同 seed 有玩家世界跑两次：
+    `state_final=2b122007e2f62cc647577612a37257cf6705cf3e223dfeee53b170448aa58e1f`、
+    `event_final=a74360ae3731b6dd9696f3695b987233079d862b48d8ebbf1678b0a0901a5021`，两次完全一致；
+  - 删除 `dialogue_aside.jsonl` 后重启：世界哈希不变、新 `talk` 成功、
+    历史消息 `dialogue_source=template`；
+  - 真实中转站开启后 `llm.calls=3`、`by_slot={"dialogue":3}`、`decision_calls=0`，
+    旁路落盘 3 条真实台词，账本 `talk:npc` 仍为模板；
+  - `pytest -q tests/test_p3e_golden.py` → `ssssssssssssssssss..`（2 passed, 18 skipped）；
+    `pytest -q tests/test_dialogue_aside.py` → `...`（3 passed）。
+- **commit**：`3a293bb`
+
+---
+
+## [后端] 2026-11-07 — 商店售罄商品保留在列表并带 stock:0 与原因
+
+- **改了什么**：
+  - `shop.buy[]` 每行新增 `available` 与 `unavailable_reason`。
+  - 地点 `services` 作为货架目录：库存为 0 的商品不再从 `buy[]` 消失，而是保留该行，
+    返回 `stock: 0`、`available: false`、`unavailable_reason: "sold_out"`、`buy_limit: 0`；
+    有货行 `available: true`、`unavailable_reason: ""`。
+  - 新增 `test_shop_keeps_sold_out_rows` 回归售罄保留行为。
+- **为什么**：老板要求售罄商品留在列表里并说明不可买原因，不能让玩家以为店铺坏了。
+- **验证**（真实 HTTP，临时隔离 run `qa-evidence-20261107` / 8035）：
+  - 集市 `shop.buy[]` 共 9 行，与 `location.services` 9 项一一对应，
+    每行均含 `available` / `unavailable_reason` / `stock`；有货行样例
+    `stock=2000, available=true, unavailable_reason=""`。
+  - `pytest -q tests/test_p3e_api.py tests/test_p4_quest_supply.py` 全绿
+    （含售罄后 `stock=0`、`available=false`、`unavailable_reason="sold_out"`）。
+- **commit**：见本条目所在提交。
+
 ## [后端] 2026-11-07 — 动作耗时：上工/修炼按声明小时真实推进世界钟
 
 - **改了什么**：

@@ -173,6 +173,7 @@ def test_leave_and_reenter_keep_state(session):
     assert state["player"]["wallet"]["money"] == 300
     assert state["player"]["last_intent_tick"] == again["tick"]
 
+
 def test_action_duration_matches_declared_hours(session):
     _enter(session)
     work = session.action(ACCOUNT, "work", {"at": "market", "hours": 8})
@@ -187,3 +188,22 @@ def test_action_duration_matches_declared_hours(session):
     assert cultivate["duration_hours"] == 2
     assert cultivate["next_tick"] == cultivate["tick"] + 12
 
+
+def test_shop_keeps_sold_out_rows(session):
+    _enter(session)
+    state = session.player_state(ACCOUNT)
+    row = state["shop"]["buy"][0]
+    assert row["available"] is True
+    assert row["unavailable_reason"] == ""
+    # 模拟售罄：清空该商品的店铺库存（视图必须保留该行，而不是让商品消失）。
+    biz = session.state.businesses[row["business"]]
+    biz.stock.pop(row["item"], None)
+    # 视图按 tick 缓存；真实售罄发生在 buy（会推进 tick）之后，这里用休息推进一档。
+    assert session.action(ACCOUNT, "rest", {"hours": 1})["ok"] is True
+
+    again = session.player_state(ACCOUNT)
+    sold = [r for r in again["shop"]["buy"] if r["item"] == row["item"]]
+    assert len(sold) == 1
+    assert sold[0]["stock"] == 0
+    assert sold[0]["available"] is False
+    assert sold[0]["unavailable_reason"] == "sold_out"
