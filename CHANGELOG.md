@@ -9,6 +9,26 @@
 
 ---
 
+## [修复] 2026-11-06 — completed 委托按世界日/数量保留窗口清理（只走确定性事件）
+
+- **改了什么**
+  - `src/wsim/actions/quests.py`：`SystemQuestFailAction.apply` 末尾对
+    `status == "completed"` 的委托增加保留窗口：`completed_retention_days`（默认 7 世界日）
+    与 `completed_max`（默认 1000 条）二者先触发；按 `(completed_tick, qid)` 排序取前缀，
+    每 512 条一个 `quest_prune` Effect。`open/accepted/expired` 一律不动。
+  - 清理阈值与判定全部基于 `intent.tick`（世界 tick），不读墙钟；同 seed 同事件流可复现。
+  - 无玩家世界不清理 completed（`if state.players` 门控），保证 `state_hash` 与旧基线逐字节一致。
+  - `tests/test_quest_health.py`：补 completed 保留窗口用例（超期清理、上限兜底、在途不清理）。
+- **为什么**：基线 2h soak 中 `state.quests` 276→965 且 completed 永不回收，使每 tick 的
+  `sorted(state.quests)` 与写路径 `state.clone()` 成本随运行时长上升（write p95 222→1122ms）。
+- **验证方式**
+  - `pytest tests/test_quest_health.py` → 全部通过（含新增 completed 用例）。
+  - `pytest tests/test_p3e_golden.py tests/test_reproducibility.py tests/test_player_shop_customers.py`
+    → `5 passed, 16 skipped` + 10 日无玩家事件哈希逐字节不变。
+- **commit**：见本提交
+
+---
+
 ## [修复] 2026-11-06 — MCP 令牌/提案队列改为确定性上限 + 背压（不丢未投递提案）
 
 - **改了什么**

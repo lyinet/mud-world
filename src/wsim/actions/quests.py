@@ -405,4 +405,27 @@ class SystemQuestFailAction(Action):
         ]
         if stale:
             effects.append(Effect("quest_prune", {"ids": stale}))
+        # completed 记录同样会永久累积：保留“7 个世界日”或“数量上限”，二者先触发。
+        # 只清理投影内存（state.quests），事件历史一条不改；清理仍是确定性 Effect，
+        # 回放同一事件流得到逐字节相同的 state_hash。
+        # - retention：与经济包 expired_retention_days 同口径，7 世界日；
+        # - cap 1000：保留期在“快时钟”（1 世界日≈1 秒）下先触发，上限只兜底慢时钟世界，
+        #   1000 条约 1MB 量级，不影响读路径。
+        # 无玩家世界不清理 completed，保证 state_hash 与旧基线逐字节一致
+        # （同 state.py “无玩家世界哈希不变”的约定）。
+        if state.players:
+            qcfg = self.content.economy.get("quests") or {}
+            keep_days = int(qcfg.get("completed_retention_days", 7))
+            keep_max = int(qcfg.get("completed_max", 1000))
+            completed = sorted(
+                (q.completed_tick, qid)
+                for qid, q in state.quests.items()
+                if q.status == "completed" and q.completed_tick >= 0
+            )
+            # 时间维度命中项一定是排序后的前缀，可与数量上限取并集（取较长的前缀）。
+            by_time = sum(1 for ctick, _ in completed if intent.tick - ctick > keep_days * TICKS_PER_DAY)
+            prune_n = max(by_time, len(completed) - keep_max)
+            for start in range(0, prune_n, 512):
+                ids = [qid for _, qid in completed[start:min(start + 512, prune_n)]]
+                effects.append(Effect("quest_prune", {"ids": ids}))
         return effects
