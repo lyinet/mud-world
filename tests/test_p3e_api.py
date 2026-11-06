@@ -172,3 +172,18 @@ def test_leave_and_reenter_keep_state(session):
     assert state["player"]["location"] == "inn"
     assert state["player"]["wallet"]["money"] == 300
     assert state["player"]["last_intent_tick"] == again["tick"]
+
+def test_action_duration_matches_declared_hours(session):
+    _enter(session)
+    work = session.action(ACCOUNT, "work", {"at": "market", "hours": 8})
+    assert work["ok"] is True
+    assert work["duration_ticks"] == 8 * 6
+    assert work["duration_hours"] == 8
+    assert work["next_tick"] == work["tick"] + 48
+
+    cultivate = session.action(ACCOUNT, "cultivate", {"hours": 2})
+    assert cultivate["ok"] is True
+    assert cultivate["duration_ticks"] == 2 * 6
+    assert cultivate["duration_hours"] == 2
+    assert cultivate["next_tick"] == cultivate["tick"] + 12
+

@@ -9,6 +9,24 @@
 
 ---
 
+## [后端] 2026-11-07 — 动作耗时：上工/修炼按声明小时真实推进世界钟
+
+- **改了什么**：
+  - `WorldSession._perform`：`rest` / `work` / `cultivate` 成功时按事件参数
+    `hours * TICKS_PER_HOUR`（1 小时 = 6 tick）推进世界钟，不再固定推进 1 小时。
+  - 所有写动作响应新增 `duration_ticks`（实际推进 tick）与
+    `duration_hours`（`duration_ticks / 6`）；`next_tick` 与之一致。
+  - 玩家供给基线 digest 因真实耗时变化而显式更新；供给量/接单/交付仍为
+    7–8 条/天、13/14。
+- **为什么**：老板要求“上工 8 小时就真的过 8 小时”，不允许只推 1 小时而让界面假装。
+- **验证**（真实 HTTP，临时隔离 run `qa-evidence-20261107` / 8035）：
+  - `work {"at":"smithy","hours":8}` → `tick 162 → 210`，`duration_ticks=48`、
+    `duration_hours=8.0`。
+  - `cultivate {"hours":2}` → `tick 210 → 222`，`duration_ticks=12`、
+    `duration_hours=2.0`。
+  - `pytest -q tests/test_p3e_api.py tests/test_p4_quest_supply.py` 全绿。
+- **commit**：见本条目所在提交。
+
 ## [后端] 2026-11-07 — 人物四面板：装备/物品/技能字段与 equip/unequip/use_item
 
 - **改了什么**：

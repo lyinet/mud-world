@@ -2072,16 +2072,24 @@ class WorldSession:
                     )
                 )
         if advance:
-            # 休息按小时消耗世界钟（1 小时 = TICKS_PER_HOUR tick）；其它动作仍是 tick_step。
+            # 上工/修炼按声明小时真实推进世界钟（1 小时 = TICKS_PER_HOUR tick），
+            # 不能只推 1 小时却让界面假装 N 小时；其余动作仍按 tick_step。
             step = None
-            if action == "rest" and event.outcome == "ok":
+            if action in ("rest", "work", "cultivate") and event.outcome == "ok":
                 hours = event.args.get("hours")
                 if isinstance(hours, int) and not isinstance(hours, bool):
                     step = hours * TICKS_PER_HOUR
+            before = int(self.state.tick)
             self._advance(step)
+            advanced = int(self.state.tick) - before
+        else:
+            advanced = 0
         data = self._status_view(pid) if event.outcome == "ok" else {}
         response = self._response(event, data, action, pid)
         response["next_tick"] = self.state.tick
+        # 实际推进了多少世界钟（所有写动作都带，便于前端按真实耗时动画）。
+        response["duration_ticks"] = int(advanced)
+        response["duration_hours"] = round(float(advanced) / TICKS_PER_HOUR, 2)
         if action in ("marriage_propose", "marriage_end"):
             response["details"]["decision"] = (
                 "ended" if action == "marriage_end" and event.outcome == "ok" else marriage_decision
