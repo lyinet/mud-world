@@ -104,10 +104,15 @@ def _account_id(intent: Intent) -> str:
     return raw if ACCOUNT_RE.match(raw) else ""
 
 
-def _at(intent: Intent, state: WorldState) -> str:
+def _at(intent: Intent, state: WorldState, pid: str = "") -> str:
     value = intent.args.get("at")
     if isinstance(value, str) and value.strip():
         return value.strip()
+    # 已有实体重进必须留在原地：只有新玩家才落到集市/首个地点，
+    # 否则离线久了的玩家一 enter 就被瞬移回 market。
+    ent = state.entities.get(pid) if pid else None
+    if ent is not None and ent.location:
+        return ent.location
     if "market" in state.locations:
         return "market"
     return sorted(state.locations)[0] if state.locations else ""
@@ -184,10 +189,10 @@ class PlayerEnterAction(Action):
             return ["missing_player_id"]
         if not _account_id(intent):
             return ["bad_account"]
-        at = _at(intent, state)
+        prof = state.players.get(pid)
+        at = _at(intent, state, pid)
         if not at or at not in state.locations:
             return ["bad_location"]
-        prof = state.players.get(pid)
         archetype = str(intent.args.get("archetype") or "").strip()
         if prof is None and len(state.players) >= MAX_REGION_PLAYERS:
             return ["player_cap_reached"]
@@ -214,7 +219,7 @@ class PlayerEnterAction(Action):
         account = _account_id(intent)
         if not account:
             raise Reject("bad_account")
-        at = _at(intent, state)
+        at = _at(intent, state, pid)
         tick = int(intent.tick)
         display = str(intent.args.get("display_name") or "").strip()
         archetype = str(intent.args.get("archetype") or "").strip()
@@ -283,7 +288,10 @@ class PlayerEnterAction(Action):
             current = state.entities[pid].location if pid in state.entities else at
             if current != at:
                 effects.append(Effect("set_field", {"entity": pid, "field": "location", "value": at}))
-            effects.append(Effect("set_field", {"entity": pid, "field": "home", "value": at}))
+            # 重进只恢复在线，不改写已有住处；仅历史数据缺 home 时补当前位置。
+            home = state.entities[pid].home if pid in state.entities else ""
+            if not home:
+                effects.append(Effect("set_field", {"entity": pid, "field": "home", "value": at}))
 
         effects.append(Effect("player_presence", {"id": pid, "presence": "online", "tick": tick}))
         effects.append(Effect("set_field", {"entity": pid, "field": "last_action_tick", "value": tick}))

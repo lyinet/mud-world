@@ -544,6 +544,10 @@ PYTHONPATH=src python3 -m wsim.api --run player-demo --seed-account alice --port
 | `sect_deposit` | `sect_deposit` | `amount`、`sect_id?` | 掌门钱包 → 门派金库（真实 transfer） |
 | `sect_withdraw` | `sect_withdraw` | `amount`、`sect_id?` | 门派金库 → 掌门钱包；单次 ≤500，余额须留 ≥100 |
 
+**保活（不写事件）**：`POST /api/player/heartbeat` 传 `{"account_id":"…","keepalive":true}` 时只刷新本机
+活跃时钟（活跃 ≤30s / 离线 >60s），返回 `ok`、`online`、`activity`、`idle_seconds`、`tick`，不写 `events.sqlite`。
+角色已离线时返回 `player_offline`；客户端应调用 `enter` 恢复在线并重试原动作一次（enter 保留实体当前位置，不会瞬移）。
+
 #### 4.2.1 消费类动作与原因码
 
 - 消费类复用既有 `BuyAction` / `SellAction` / `ConsumeAction` / `EscortAction`，不另起交易逻辑；

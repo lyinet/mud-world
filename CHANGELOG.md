@@ -9,6 +9,44 @@
 
 ---
 
+## [修复] 2026-11-07 — 离线自愈：20s 保活 / 离线 enter 恢复且不瞬移 / 动作自动重试一次
+
+- **现象**：`player:lyinet` 停在书院（academy）几分钟后，点任何动作都返回
+  `player_offline`「你已离线；请重新进入世界后再操作。」，界面不自动恢复。
+- **服务端根因**：`WorldSession._perform` 对非 `enter` 动作先按本机活跃时钟判定：
+  活跃 ≤30s、离线 >60s（`_presence_offline`）；静置超过 60s 后首个动作会先写
+  `player_leave` 置离线，再以 `player_offline` 拒绝。前端此前既无保活，也不自愈。
+  复现时 `idle_seconds=901.1`、`activity=offline`、`online=false`。
+- **改了什么**：
+  - `session.keepalive(account)`：只刷新活跃时钟，**不写事件、不推进 tick**；
+    `POST /api/player/heartbeat` 传 `{"keepalive":true}` 走此分支（原 heartbeat 动作保持不变）。
+    离线时如实返回 `player_offline`，由客户端自愈。
+  - `player_enter` 对已存在实体保留当前位置：`_at()` 在缺省 `at` 时优先取实体 location，
+    重进不再被瞬移回 `market`；已有 `home` 也不再被重进改写。
+  - 前端每 20s 轻量保活；切后台/断网暂停，`visibilitychange`/`online` 时立即补一次。
+  - `postJSON` 统一拦截 `player_offline`：单飞调用 enter 恢复（带已有身份与姓名），
+    成功后**重试原动作一次**；失败才把原错误交给调用方，最多一次防循环。
+- **验证（真实服务，API 8031 / UI 8000，`content=5267a8a8…`）**：
+  - 修复前：`state` → `online:false, activity:"offline", idle_seconds:901.1, location:"academy"`；
+    `move` → `{"reject_reason":"player_offline","reason_text":"你已离线；请重新进入世界后再操作。","tick":466}`。
+  - 服务端恢复：离线时 `heartbeat keepalive` → `{"ok":false,"online":false,"reject_reason":"player_offline"}`；
+    `enter` → `{"ok":true,"status":"executed","event_seq":1910}`，随后
+    `state` → `online:true, idle_seconds:0.0, location:"academy", home:"market"`（原地恢复）。
+  - 前端真机：页面停留 70s 不做操作，3 次心跳（01:04:09/01:04:29/01:04:49）均
+    `{"ok":true,"online":true,"idle_seconds":0.0}`，末态 `online:true, idle_seconds:12.4`。
+  - 阻断心跳 70s 后点「移动」：`POST /api/player/action` → 409
+    `{"reject_reason":"player_offline","tick":510}`；自动 `POST /api/player/enter`
+    → 200 `location:"academy"`；自动重试同一 move → 200 `location:"market"`；
+    界面「书院 → 集市」、世界动态 20 条。截图 `/tmp/xkx-offline-A-heartbeat.png`、
+    `/tmp/xkx-offline-B-after-retry.png`。
+  - 网络恢复：立即补发心跳 200 `{"ok":true,"online":true,"idle_seconds":0.0}`。
+  - 全量 `pytest`：通过（0 failed）。
+- **测试痕迹**：验收临时 session 已删除（只删凭证）；离线/重进/移动事件按
+  `docs/OPS-RUNBOOK.md §5.1` 保留。验收把角色从书院移动到集市，属真实动作。
+- **commit**：见本条目所在提交。
+
+---
+
 ## [修复] 2026-11-07 — 进入世界 UX：账号锁定 / 「已在线」当成功 / 身份回显与一键重进
 
 - **现象**：已登录 `lyinet`，进入弹层的「玩家 id」却默认 `u_demo`、可手填；选捕快点进入

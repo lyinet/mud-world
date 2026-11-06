@@ -1640,6 +1640,59 @@ class WorldSession:
                 payload["reason_text"] = str(state.get("reason_text") or "")
             return payload
 
+    def keepalive(self, account: str) -> dict[str, Any]:
+        """轻量保活：只刷新本机会话的活跃时钟，不写事件、不推进 tick。
+
+        与 `player_heartbeat` 写事件不同，这里是页面停留期间的“我还在这里”，
+        避免 60 秒静置被误判离线；真正离线时如实返回 `player_offline`，
+        由客户端走 enter 恢复。
+        """
+        account = str(account or "").strip().lower()
+        with self._read_snapshot() as snapshot:
+            tick = int(snapshot.tick)
+            if not ACCOUNT_RE.match(account):
+                return {
+                    "ok": False,
+                    "online": False,
+                    "profile_version": PROFILE_VERSION,
+                    "reject_reason": "bad_account",
+                    "reason_text": _reason_text("bad_account"),
+                    "tick": tick,
+                    "server_tick": tick,
+                }
+            pid = self._pid(account)
+            prof = snapshot.players.get(pid)
+            if prof is None or pid not in snapshot.entities:
+                return {
+                    "ok": False,
+                    "online": False,
+                    "profile_version": PROFILE_VERSION,
+                    "reject_reason": "player_not_entered",
+                    "reason_text": _reason_text("player_not_entered"),
+                    "tick": tick,
+                    "server_tick": tick,
+                }
+            if not prof.online:
+                return {
+                    "ok": False,
+                    "online": False,
+                    "profile_version": PROFILE_VERSION,
+                    "reject_reason": "player_offline",
+                    "reason_text": _reason_text("player_offline"),
+                    "tick": tick,
+                    "server_tick": tick,
+                }
+            self._last_active[pid] = self._presence_clock()
+            return {
+                "ok": True,
+                "online": True,
+                "activity": "active",
+                "idle_seconds": 0.0,
+                "profile_version": PROFILE_VERSION,
+                "tick": tick,
+                "server_tick": tick,
+            }
+
     def _perform(
         self, account: str, action: str, payload: dict[str, Any], advance: bool = True
     ) -> dict[str, Any]:

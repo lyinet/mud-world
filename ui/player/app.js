@@ -13,6 +13,11 @@
       args: args || {},
       client_tick: clientTick == null ? null : clientTick
     }),
+    /* 停留保活：服务端只刷新活跃时钟、不写事件；离线时会返回 player_offline 触发自愈。 */
+    heartbeat: (account) => postJSON('/api/player/heartbeat', {
+      account_id: account || '',
+      keepalive: true
+    }),
     messages: (account, since) => getJSON(
       '/api/player/messages?account_id=' + encodeURIComponent(account || '') +
       '&since_tick=' + encodeURIComponent(String(since == null ? 0 : since)),
@@ -33,6 +38,8 @@
 
   const FEED_LIMIT = 20;
   const FEED_INTERVAL_MS = 8000;
+  /* 服务端活跃阈值 30s、离线阈值 60s：20s 一次保活足够，页面前台停留不会再被判离线。 */
+  const HEARTBEAT_INTERVAL_MS = 20000;
   /* 商店价格/库存随世界 tick 变化：主状态 8 秒刷新一次，商业面板随之更新。 */
   const STATE_INTERVAL_MS = 8000;
 
@@ -431,7 +438,12 @@
     ui: {
       errors: [],
       foldsReady: false,
-      toastTimer: null
+      toastTimer: null,
+      recovering: null   // 单飞离线自愈：同一时刻只允许一次 enter 恢复
+    },
+    hb: {
+      timer: null,
+      inflight: false
     }
   };
 
@@ -525,6 +537,41 @@
     return p;
   }
 
+  /* 离线自愈：调用 enter 恢复在线（服务端保留实体当前位置，不瞬移），成功后再重试原请求一次。
+     并发多请求共用同一次恢复，避免同时打多个 enter。 */
+  function recoverOnline(account) {
+    if (state.ui.recovering) return state.ui.recovering;
+    const acct = String(
+      (state.auth.access && state.auth.username) || account || ''
+    ).trim().toLowerCase();
+    if (!acct) return Promise.resolve(false);
+    const p = (async function () {
+      const player = (state.st && state.st.player) || {};
+      const body = { account_id: acct };
+      // 带上已有身份/名字：避免 identity_locked 或重名拒绝。
+      if (player.archetype) body.archetype = player.archetype;
+      if (player.name) body.display_name = player.name;
+      let res;
+      try { res = await API.enter(body); } catch (e) { return false; }
+      const d = (res && res.data) || {};
+      const code = String(d.reject_reason || d.code || '');
+      if (!(d.ok === true || code === 'already_online')) return false;
+      try {
+        const st = await API.state(acct);
+        if (st && st.ok && st.player) applyState(st);
+      } catch (e) { /* 恢复已成功；状态刷新失败不阻塞动作重试 */ }
+      startHeartbeat();
+      return true;
+    })();
+    state.ui.recovering = p;
+    p.then(function () {
+      if (state.ui.recovering === p) state.ui.recovering = null;
+    }, function () {
+      if (state.ui.recovering === p) state.ui.recovering = null;
+    });
+    return p;
+  }
+
   async function postJSON(url, body, opts) {
     opts = opts || {};
     const authEndpoint = isAuthEndpoint(url);
@@ -564,6 +611,17 @@
       // 令牌账号是唯一事实源：用令牌身份重写请求账号并重试一次，不当作玩家错误。
       const next = Object.assign({}, body || {}, { account_id: state.auth.username });
       return postJSON(url, next, Object.assign({}, opts, { identityRetried: true }));
+    }
+    // 离线自愈：任何写动作收到 player_offline，先 enter 恢复，再重试该动作一次（最多一次）。
+    const offlineCode = String((data && (data.reject_reason || data.code)) || '');
+    if (offlineCode === 'player_offline' && !authEndpoint && !opts.offlineRetried
+        && url !== '/api/player/enter') {
+      const account = (state.auth.access && state.auth.username) ||
+        (body && body.account_id) || '';
+      const recovered = await recoverOnline(account);
+      if (recovered) {
+        return postJSON(url, body, Object.assign({}, opts, { offlineRetried: true }));
+      }
     }
     return {
       httpOk: res.ok,
@@ -682,6 +740,7 @@
     state.auth.expiresAt = 0;
     state.auth.sessionId = '';
     state.auth.required = reason === 'expired';
+    stopHeartbeat();
     try { localStorage.removeItem(AUTH_KEY); } catch (e) { /* ignore */ }
     renderAuthUI();
   }
@@ -1447,8 +1506,36 @@
       mode: readonly ? 'readonly' : 'live'
     };
     rememberAccount(state.session.accountId, state.session.displayName, state.session.archetype);
+    startHeartbeat();
     render(st);
     return true;
+  }
+
+  /* 前台停留保活：20s 一次、只读时钟刷新；切后台/断网时暂停，回到前台或恢复网络立刻补一次。 */
+  function startHeartbeat() {
+    if (state.hb.timer) return;
+    state.hb.timer = setInterval(heartbeatTick, HEARTBEAT_INTERVAL_MS);
+  }
+
+  function stopHeartbeat() {
+    if (state.hb.timer) {
+      clearInterval(state.hb.timer);
+      state.hb.timer = null;
+    }
+  }
+
+  async function heartbeatTick() {
+    if (!state.session || !state.session.accountId) return;
+    if (!state.auth.access) return;          // legacy 匿名模式不保活
+    if (document.hidden) return;             // 后台/休眠不保活，恢复可见时立即补
+    if (state.hb.inflight) return;
+    state.hb.inflight = true;
+    try {
+      await API.heartbeat(state.session.accountId);
+    } catch (e) { /* 断网：下一次心跳或在线事件再补；离线超时会由动作的 player_offline 自愈 */ }
+    finally {
+      state.hb.inflight = false;
+    }
   }
 
   async function doEnter() {
@@ -4995,6 +5082,11 @@
     initFolds();
     initEntryForm();
     renderAuthUI();
+    // 回到前台 / 网络恢复时立即补一次保活：离线超时的玩家不必等下一个 20s 周期。
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) heartbeatTick();
+    });
+    window.addEventListener('online', function () { heartbeatTick(); });
     try {
       state.health = await API.health();
       renderRunTag();

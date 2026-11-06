@@ -737,6 +737,9 @@ class _Handler(BaseHTTPRequestHandler):
                 request_id,
                 bool(body.get("confirm")),
             )
+        elif route == "heartbeat" and bool(body.get("keepalive")):
+            # 页面停留保活：只刷新活跃时钟，不写事件；离线仍返回 player_offline 供客户端自愈。
+            result = session.keepalive(account)
         else:
             result = session.perform(account, route, body, request_id)
         status = 429 if str(result.get("reject_reason") or "") in _CAPACITY_CODES else 200
