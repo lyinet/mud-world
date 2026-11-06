@@ -23,6 +23,19 @@ EXIT_EVENTS_CORRUPT = 5
 
 WORLD_ID_FILE = "world_id.json"
 
+# 启动守卫已经跑过一次全库校验时，把结果留给 `HealthProbe.run_integrity()` 复用，
+# 避免同一次启动重复跑两遍 `PRAGMA integrity_check`。键为事件库绝对路径。
+_INTEGRITY_RESULTS: dict[str, str] = {}
+
+
+def cached_integrity(events_db: Path | str) -> str | None:
+    """返回本进程内启动守卫跑出的 integrity 结果；没跑过返回 None。"""
+    try:
+        key = str(Path(events_db).resolve())
+    except OSError:
+        return None
+    return _INTEGRITY_RESULTS.get(key)
+
 
 def account_count(service_db: Path) -> int:
     """只读统计账号数；文件不存在或无 accounts 表都按 0（不建库、不建表）。"""
@@ -60,6 +73,7 @@ def events_info(events_db: Path) -> dict[str, Any]:
     try:
         row = conn.execute("PRAGMA integrity_check").fetchone()
         info["integrity"] = str(row[0]) if row else "unknown"
+        _INTEGRITY_RESULTS[str(events_db.resolve())] = info["integrity"]
         tables = {
             str(r[0])
             for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")

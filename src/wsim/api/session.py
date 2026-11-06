@@ -899,9 +899,8 @@ class WorldSession:
                     "reason_text": str(cached.get("reason_text") or ""),
                     "status": "executed" if cached.get("ok") else "rejected",
                 }
-            for event in self.store.read_all():
-                if event.intent_id != intent_id or event.actor != pid:
-                    continue
+            event = self.store.find_intent(intent_id, pid)
+            if event is not None:
                 return self._intent_view(event, found=True)
             return {
                 "ok": False,
@@ -923,9 +922,7 @@ class WorldSession:
             since = 0
         with self.lock:
             rows: list[dict[str, Any]] = []
-            for event in self.store.read_all():
-                if int(event.tick) <= since or event.actor != pid:
-                    continue
+            for event in self.store.events_for_actor_since(pid, since):
                 for eff in event.effects or []:
                     if eff.get("op") != "memory_add":
                         continue

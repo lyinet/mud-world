@@ -360,3 +360,74 @@ XKX_SOAK_PROBE_INTERVAL=300 .venv/bin/python tools/soak_test.py \
 工具：`tools/soak_test.py`（仅标准库 + 复用 `tools/load_test.py` 的虚拟玩家与校验；
 服务进程按规格 `python -m wsim.api --auth off --run <id>` + `XKX_AMBIENT=1` 启动；
 gc 普查通过报告目录内的 `sitecustomize.py` 注入，不改源码）。
+
+---
+
+## 12. 补充归因：探活不得做重活（第二次 2h soak，50 席）
+
+> 本节记录第二次 2 小时 soak（50 席）暴露的**请求路径重活**问题及其修复。
+> 与 §1–§11 的第一次 soak 是不同进程/不同采样窗口；数字按本节口径为准。
+
+### 12.1 现象
+
+| 指标 | 实测 | 判定 |
+|---|---|---|
+| 单窗口 RSS 尖峰 | **816 MB / 1221 MB** | 异常 |
+| `peak_sampled_mb` | **1323 MB** | — |
+| `peak_growth_pct_per_hour` | **485.59%** | `rss_growth_lt_5pct_per_hour` **FAIL** |
+| `p95_drift_write_lt_1_3` | ratio **1.617** | **FAIL** |
+| `write.max` | **4.7s** | 长尾 |
+| `/api/health` 等锁 | **1.07 ~ 18s** | 探活被写路径拖住 |
+
+读/写延迟尾部同时恶化；`/api/health` 每约 30 秒被轮询一次，却经常比业务请求还慢。
+
+### 12.2 归因（已确认，不再靠压测复验）
+
+- `/api/health` 的 `HealthProbe.integrity()` 以 60 秒为缓存周期；一旦过期，就在
+  **`session.lock`（全局 RLock，所有 API 读写都持有）内**执行 `PRAGMA integrity_check`。
+- 实测单次全库 `PRAGMA` 约 **0.68 ~ 1.8s**；health 线程为此等锁 **1.07 ~ 18s**。
+- 同一窗口 `read.max` / `write.max` 达 **2.0 ~ 4.7s**：写/读请求都在等这把被全库校验占住的锁。
+- `read_all` / `event_hash` 在请求路径的调用次数为 **0**（只在启动 replay 与关停
+  `final_summary` 使用）。也就是说，本轮不是全量回放的问题，而是**探活自己在做全库重活**。
+
+### 12.3 修复方式
+
+1. **`/api/health` 只做便宜检查**
+   - `integrity()` 变成**纯只读缓存**：直接返回上次校验结果，不执行 PRAGMA、不拿
+     `session.lock`；默认 `"unknown"`，启动校验成功后为 `"ok"`。
+   - 尾部两跳连续性检查改用**独立只读连接**（`mode=ro`，探针自己的 `threading.Lock`，
+     不参与会话写锁），SQL 仍是 `SELECT seq FROM events ORDER BY seq DESC LIMIT 2`，O(log n)。
+   - 追加 O(1) 检查：`db_openable`（只读连接 `SELECT 1`）、`disk_writable`
+     （`os.access(events.sqlite 父目录, W_OK)`）。
+   - `ok = events_ok and disk_ok and writer_ok`；其中
+     `events_ok = seq_gap==0 and integrity in ("ok","unknown")`。语义只为
+     “不把已知损坏的库报成健康”，`unknown` 不判死。
+   - `storage` 保留原键，并追加 `integrity_checked_at`（wall 时间，可为 null）、
+     `db_openable`、`disk_writable`。
+2. **全库校验下沉**
+   - **启动**：`probe_from_session(startup_integrity=...)` 默认读
+     `XKX_STARTUP_INTEGRITY`（默认 `"1"`），在 `create_server` 启动阶段同步跑一次
+     `run_integrity()` 播种缓存（此时还没有请求，允许耗时）；启动守卫已经跑过时复用
+     其结果，不重复跑第二遍。
+   - **备份/恢复**：沿用 `tools/restore_verify.py` 的 `PRAGMA integrity_check`。
+   - **显式运维入口**：新增 `tools/check_integrity.py --root . --run <RUN_ID>`，只读连接、
+     输出 JSON、退出码 0/1；不挂请求路径。
+3. **请求路径去全量扫描**（master 上 `session.intent()` / `messages()` 仍在用 `read_all`）
+   - `WorldStore` 增加 `idx_events_intent(intent_id)`、`idx_events_actor_tick(actor, tick)`；
+   - 新增 `find_intent(intent_id, actor)`（`ORDER BY seq ASC LIMIT 1`，与 `read_all` 首次命中一致）
+     与 `events_for_actor_since(actor, since_tick, limit=None)`；
+   - 两个端点改用定向查询，返回字段、`next_since_tick`、`memory_add` / `talk:npc` 过滤逐字节保持；
+   - `event_hash()` 保持语义，仅注明“离线/关停专用，禁止请求路径调用”。
+
+### 12.4 设计约束（长期有效）
+
+> **探活不得做重活**：`/api/health` 禁止 `integrity_check`、`read_all`、全表扫描、全量哈希；
+> 这些只允许在**启动 / 备份恢复 / 显式运维入口**执行，且**不得持有会话写锁**。
+
+### 12.5 待跟进（本次不修）
+
+- 2h 堆快照中 `Event` / `AuditRecord` 等对象**按事件全量驻留**（独立于探活问题）。
+  这是下一热点：即使 health 修好，RSS 仍会随事件量增长。需要单独处理（有界缓存 /
+  归档 / 关闭不必要的全量引用），并复跑 2h soak 验证 `rss_growth_lt_5pct_per_hour`。
+</shell_command>
+
