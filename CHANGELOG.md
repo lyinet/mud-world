@@ -9,6 +9,24 @@
 
 ---
 
+## [文档] 2026-11-06 — 生产就绪审计与 player-commerce 规格入库（纯文档，无代码改动）
+
+- **改了什么**：新增 `docs/PRODUCTION-READINESS.md`、
+  `specs/player-commerce/spec.md`、`specs/player-commerce/tasks.md`。
+- **来源会话**（提交信息同口径）：
+  - `docs/PRODUCTION-READINESS.md` —— 2026-11-06 01:13–01:55 CST 独立只读审计会话，
+    基线 HEAD `6c84cb0`，证据目录 `reports/production-readiness/`。
+  - `specs/player-commerce/spec.md` / `tasks.md` —— 玩家商业规格会话，
+    基线 HEAD `7881432`，作为该轮规格与任务清单的历史快照保留。
+- **为什么**：两份文档已产出但只留在本机，按“代码/文档不能只留在本机”的交付要求归档；
+  审计文档里的数字均指向 `reports/production-readiness/`，规格里的勾选项保留当时状态、不回填。
+- **边界**：本提交只含这 3 份文档 + 本 CHANGELOG 条目（显式 pathspec）；
+  `specs/player-commerce/` 无其他伴随文件。工作树里的 `src/wsim/world/store.py`
+  分库归档与 `src/wsim/api/session.py` 的 `recent_rows` hunk **未入主干**，
+  已单独封存到 `wip/event-sharding` 分支（未合并，会破坏 8 处既有契约）。
+- **验证**：纯文档；`git show --stat` 只有 4 个路径，无 `src/**`、`tests/**` 改动。
+- **commit**：见本条目所在提交。
+
 ## [交付] 2026-11-06 — p3m 发布说明定稿；席位上限查证为硬编码 200（运营建议 150）
 
 - **改了什么**：新增 `docs/RELEASE-NOTES-p3m.md`——§1 相对 p3l 变化（109 提交）、
