@@ -766,12 +766,13 @@ class WorldSession:
             n = 20
         n = max(1, min(WORLD_FEED_LIMIT_MAX, n))
         with self.lock:
-            rows = self.store.conn.execute(
-                "SELECT seq,tick,actor,verb,args FROM events "
-                "WHERE outcome='ok' AND actor != 'system' AND actor NOT LIKE 'player:%' "
-                "AND verb NOT LIKE 'system%' ORDER BY seq DESC LIMIT ?",
-                (n * 10,),
-            ).fetchall()
+            # 切库后活动分片可能只有刚写入的几条：跨分片回溯，避免 feed 突然变空。
+            rows = self.store.recent_rows(
+                "outcome='ok' AND actor != 'system' AND actor NOT LIKE 'player:%' "
+                "AND verb NOT LIKE 'system%'",
+                (),
+                n * 10,
+            )
             events: list[dict[str, Any]] = []
             for _seq, tick, actor, verb, raw_args in rows:
                 actor = str(actor)
