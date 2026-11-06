@@ -21,8 +21,8 @@
   `PLAYER_UNIMPLEMENTED_VERBS` 只剩 `marry` / `apprentice`；旧断言仍要求
   `found_sect` 返回未开放码，干净 HEAD 长期带着 1 failed。
 - **验证**：只改 `tests/**`，未动 `src/**`；`tests/test_player_commerce.py` +
-  `tests/test_player_sect_api.py` 28 passed；干净 worktree 全量见下。
-- **commit**：待回填
+  `tests/test_player_sect_api.py` 28 passed；干净 worktree 全量 658 passed / 18 skipped。
+- **commit**：`32a4cc2`
 
 ## [安全 P0] 2026-11-06 — 反代后采信真实客户端 IP（可信代理），限流键不再退化
 
