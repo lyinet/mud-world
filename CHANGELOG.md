@@ -28,8 +28,9 @@
   `not_at_giver` / `not_at_target` / `player_offline` 的原始 `reject_reason`。
   未改 UI、未改 `src/**`。
 - **验证**：`./scripts/selfcheck.sh` → `总结: selfcheck PASS（4 项全部通过）`；
-  `python3 tools/e2e_service_check.py` → `25 checks, 0 failed`。
-- **commit**：待回填
+  `python3 tools/e2e_service_check.py` → `25 checks, 0 failed`；干净 worktree 全量
+  `658 passed, 18 skipped`。
+- **commit**：`de03450`
 
 ## [交付] 2026-11-06 — 冻结历史截图/采样，固化报告产物自检口径
 
