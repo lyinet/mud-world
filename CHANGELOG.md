@@ -9,6 +9,31 @@
 
 ---
 
+## [功能] 2026-11-06 — 门派面板后端缺口补齐（弟子关系/逐人日结 + 可加入门派列表）
+
+- **改了什么**
+  - `src/wsim/api/session.py`（只增量）：`_sect_view` 的 `disciples[]` 增 `affection` / `trust`
+    （直接调用 `player_sect._bond`，与 `recruit_disciple` 裁决同一份关系数据）与逐人
+    `settled_today`（按弟子「…日结：第 N 日…」记忆判定）；新增 `sects_view`。
+  - `src/wsim/api/server.py`：`_GET_ROUTES` 增 `/api/player/sects`；匿名走 `sects_view("")`
+    （忽略 `account_id`，不个性化），本人令牌走 `sects_view(identity)`。
+  - `docs/player-api.md`：§3.3 补三个字段语义，新增 §3.4 接口契约，§11 记 `1.4`。
+  - `tests/test_player_sect_api.py`：逐人对照 `_bond`、日结前后 `settled_today`、新接口字段集合/
+    排序/匿名一致性断言。
+- **为什么**：门派面板真服务验收报出的三个后端缺口（页面与裁决口径漂移、无法逐人结算、
+  未入派玩家无可选门派列表）。
+- **验证方式**
+  - 真实 HTTP（`127.0.0.1:8035`，`auth_required=True`）：日结前后 `disciples[]` 输出与
+    `_bond` 对照一致；`pay_disciples` `seq=21`、`settlement={'dues':15,'leavers':[],'stipend':30}`；
+    匿名 `/api/player/sects` 返回 1 个门派、`reconciliation.delta=0`。
+  - `pytest tests/test_p3e_golden.py tests/test_reproducibility.py` → 5 passed, 18 skipped
+    （无玩家 2 日 golden 逐字节不变）；`tests/test_player_sect_api.py tests/test_player_sect_actions.py`
+    → 31 passed。
+  - 干净工装 `/tmp/xkx-sect-verify`（detached `ceb7528`）复跑上述四个文件，结果同上。
+- **commit**：`ceb7528`
+
+---
+
 ## [功能] 2026-11-06 — 玩家端门派面板（三角色视角 / 门槛差额 / 13 拒绝码中文 / 真服务成功链）
 
 - **改了什么**
