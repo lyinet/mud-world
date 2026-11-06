@@ -9,6 +9,23 @@
 
 ---
 
+## [性能] 2026-11-06 — 写路径无 Effect 时跳过整世界深拷贝
+
+- **改了什么**
+  - `src/wsim/world/writer.py`：`submit()` 当 `effects` 为空时不再 `state.clone()`
+    （pickle 全量深拷贝），改为 `copy.copy` 浅拷贝并只替换 `tick` 字段；子结构与旧投影
+    共享但不会被原地修改，"已提交投影不可变、快照读不加锁"的约定不变。
+    `effects` 非空时仍走 clone → apply 的原子事务路径，语义零改动。
+- **为什么**：每个 intent 一次 pickle 往返是 O(world size) 的固定成本；
+    基线 2h soak 中写 p95 222.70→1121.62ms（ratio 5.036），需要削掉可安全削掉的固定开销。
+- **验证方式**
+  - `pytest tests/test_p3e_golden.py tests/test_reproducibility.py tests/test_player_shop_customers.py
+    tests/test_quest_health.py tests/test_mcp.py` → `41 passed, 16 skipped`；
+    无玩家 2 日 golden `state_final`/`event_final` 与 10 日事件哈希逐字节不变。
+- **commit**：见本提交
+
+---
+
 ## [修复] 2026-11-06 — completed 委托按世界日/数量保留窗口清理（只走确定性事件）
 
 - **改了什么**

@@ -6,6 +6,7 @@
 """
 from __future__ import annotations
 
+import copy
 import os
 from collections import OrderedDict
 
@@ -122,8 +123,14 @@ class Writer:
                 )
             if intent.schedule_id:
                 effects.append(Effect("schedule_remove", {"id": intent.schedule_id}))
-            trial = self.state.clone()
-            apply_effects(trial, effects)
+            if effects:
+                trial = self.state.clone()
+                apply_effects(trial, effects)
+            else:
+                # 无 Effect 时不必整世界深拷贝：浅拷贝只替换 tick 字段，
+                # 子结构与旧投影共享但不会被任何后续写入原地修改，
+                # 因此“已提交投影不可变、快照读不加锁”的约定仍然成立。
+                trial = copy.copy(self.state)
             trial.tick = intent.tick
         except Reject as exc:
             return self._record_reject(intent, iid, seq, f"rejected:{exc.reason}")
