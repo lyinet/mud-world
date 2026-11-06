@@ -22,7 +22,7 @@
   - `pytest tests/test_p3e_golden.py tests/test_reproducibility.py tests/test_player_shop_customers.py
     tests/test_quest_health.py tests/test_mcp.py` → `41 passed, 16 skipped`；
     无玩家 2 日 golden `state_final`/`event_final` 与 10 日事件哈希逐字节不变。
-- **commit**：见本提交
+- **commit**：`3e906b3`
 
 ---
 
@@ -42,7 +42,7 @@
   - `pytest tests/test_quest_health.py` → 全部通过（含新增 completed 用例）。
   - `pytest tests/test_p3e_golden.py tests/test_reproducibility.py tests/test_player_shop_customers.py`
     → `5 passed, 16 skipped` + 10 日无玩家事件哈希逐字节不变。
-- **commit**：见本提交
+- **commit**：`75f2faf`
 
 ---
 
@@ -69,7 +69,7 @@
     （无玩家 2 日 golden `state_final`/`event_final` 逐字节不变）。
   - `pytest tests/test_player_shop_customers.py tests/test_quest_health.py tests/test_mcp.py`
     与上面合并跑 → `41 passed, 16 skipped`。
-- **commit**：见本提交
+- **commit**：`876fbcc`
 
 ---
 
