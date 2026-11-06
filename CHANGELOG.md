@@ -9,6 +9,43 @@
 
 ---
 
+## [后端] 2026-11-07 — 任务过程化：接单记进度、交付校验目标动作、locked[] 可见
+
+- **改了什么**：
+  - 世界状态新增 `Quest.progress_units/progress_tick/progress_verb/progress_note`，
+    由新 Effect `quest_step` 写入；玩家接单写一条 `units=0` 的 `quest_step`，
+    目标动作完成后累加。事件可回放，不用进程内变量或墙钟。
+  - 交付前置校验：玩家未达到目标动作门槛时返回 `quest_step_incomplete` +
+    中文原因；门槛口径 `work=累计工时`、`buy=累计购入件数`、`trade/escort=1`。
+  - 任务行新增 `target_npc`、`target_npc_name`、`required_action`、`progress`。
+  - `quest_board.locked[]` 与 `/api/player/quests` 的 `locked[]` 保留被
+    `quest_expired` / `giver_missing` / `reputation_too_low` 挡住的单，并附
+    `lock_reason` / `lock_text`，不再直接消失。
+- **为什么**：老板实测指出“同城任务点一下就完成”；根因是服务端只校验位置/物品，
+  NPC 代工与押镖是否真的做过没有任何世界状态记录。
+- **红线验证**：
+  - 仅玩家接单人写进度；NPC 任务链保持原语义。用 HEAD + 本次改动（剔除同目录
+    其他会话未提交的 `turns` 变更）跑 `tests/test_p3e_golden.py`：16 skipped、
+    2 passed，事件/状态哈希均为基线原值。
+  - 工作区 golden 当前漂移来自其他会话未提交的 `talk_ledger.turns` 字段，
+    与本条目改动无关；本次提交不包含该 hunk。
+  - `tests/test_p4_quest_supply.py`：7 天供给 7–8/天不变；旧基线“14/14 交付”
+    依赖点击即完成，现为 13/14（day1 讨债单目标 NPC 不在场，无法 trade），
+    已在测试注释中显式说明并更新该组玩家侧基线。
+- **真实 HTTP 证据（API 8031，tick 2400 起，账号 questcheck_20261107_a）**：
+  - 接单 `tutorial_meet_sanniang`：`200 {"ok":true,"event_seq":5135,"tick":2406}`；
+    `active_quests_detail.progress={done:false,units:0,note:"已接单，等待完成目标动作"}`。
+  - 未做目标动作直接交付：`200 {"ok":false,"reject_reason":"quest_step_incomplete",
+    "reason_text":"你还没有真正完成这单的目标动作；请先到指定地点上工/交易/买入
+    或把镖单送到目标地点，再回来交付。","tick":2412}`。
+  - 真实与柳三娘交易：`200 {"ok":true,"event_seq":5139,"tick":2418}`；
+    state 里该单 `progress={done:true,units:1,required:1,note:"已与目标人物当面完成交易"}`。
+  - 再交付：`200 {"ok":true,"event_seq":5141,"tick":2424}`。
+- **服务说明**：只重启玩家 API（8031），管理台 8032/8039 与前端 8000 未动。
+- **commit**：见本条目所在提交。
+
+---
+
 ## [界面] 2026-11-07 — S1 位置区重排：周边地图在上、方向在下
 
 - **改了什么**：`ui/player/index.html` 把当前位置拆成「周边地图 → 方向」两段；

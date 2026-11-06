@@ -23,12 +23,15 @@ PID = "player:u_supply"
 # 日界新增委托“先下架过期、再按模板补发”，过期 open 单立即 prune，配额只算近 3 天；
 # 因此 7 天可接单量稳定在 7–8 条、0 拒绝。旧 headless golden 不受影响（系统动作只在
 # player session 日界触发），另加本组玩家侧基线。GOLDEN_MILESTONE 保持原值。
+# 2026-11-07 任务过程化：交付前必须真实执行目标动作。旧基线 14/14 是“同城点一下就交付”
+# 的路径；现在 day1 的讨债单在目标 NPC 不在场时无法 trade，因而 delivered 13/14。
+# 这是被修复行为的直接体现，故显式更新本组基线（supply 指标 7–8/天不变）。
 PLAYER_SUPPLY_GOLDEN = {
     "days": [[1, 8], [2, 7], [3, 7], [4, 7], [5, 7], [6, 7], [7, 7]],
     "accepts": 14,
-    "delivered": 14,
+    "delivered": 13,
     "rejects": 0,
-    "digest": "f393218dbdb9977743d0803f593d6f7d60aa2a1ff7a6467d90fe64acec5eefcc",
+    "digest": "1d2907ee294409e6ff97cf4fefbfbc4719f4be4082f679e1ad02727ba277cd6f",
 }
 
 
@@ -167,6 +170,18 @@ def _run_supply_week(tmp: Path) -> tuple[dict, dict]:
             return False
         target = q.target_location or ws.state.entities[q.giver].location
         if not move_to(target):
+            return False
+        # 任务过程化：交付前必须真的做完目标动作（trade/work/escort）。
+        if q.verb == "trade":
+            res = ws.perform("u_demo", "trade", dict(q.args or {}))
+        elif q.verb == "work":
+            res = ws.perform(
+                "u_demo", "work",
+                {"at": q.target_location, "hours": int((q.args or {}).get("hours") or 1)},
+            )
+        else:
+            return False
+        if not res.get("ok"):
             return False
         ok = bool(ws.perform("u_demo", "quest_deliver", {"quest": qid}).get("ok"))
         move_to("market")

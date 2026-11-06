@@ -4,7 +4,14 @@ from __future__ import annotations
 from ..core.clock import TICKS_PER_DAY
 from ..core.models import Effect, Intent, Reject
 from ..world.state import WorldState
-from .common import TREASURY_ACCOUNT, memory, reputation_points, require_entity, wallet
+from .common import (
+    TREASURY_ACCOUNT,
+    memory,
+    quest_required_units,
+    reputation_points,
+    require_entity,
+    wallet,
+)
 from .registry import Action
 
 
@@ -287,6 +294,24 @@ class QuestAcceptAction(Action):
             raise Reject("not_at_giver")
         return [
             Effect("quest_accept", {"id": qid, "actor": ent.id, "tick": intent.tick}),
+            # 玩家接单即建立可见进度（0 单位）；NPC 接单不写，保持无玩家世界哈希不变。
+            *(
+                [
+                    Effect(
+                        "quest_step",
+                        {
+                            "id": qid,
+                            "actor": ent.id,
+                            "units": 0,
+                            "tick": intent.tick,
+                            "verb": quest.verb,
+                            "note": "已接单，等待完成目标动作",
+                        },
+                    )
+                ]
+                if ent.id.startswith("player:")
+                else []
+            ),
             *memory(state, ent.id, intent.tick, f"接下{giver.name}的任务「{quest.template_id}」", 0.4),
         ]
 
@@ -317,6 +342,9 @@ class QuestDeliverAction(Action):
             item = str(tpl.get("target_item") or "")
             if not item or ent.inventory.get(item, 0) < 1:
                 return ["quest_item_missing"]
+        # 玩家必须真的做完目标动作（NPC 任务链保持原语义）；判定口径与记进度一致。
+        if ent.id.startswith("player:") and quest.progress_units < quest_required_units(quest):
+            return ["quest_step_incomplete"]
         return []
 
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:

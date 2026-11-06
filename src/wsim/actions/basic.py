@@ -21,6 +21,7 @@ from .common import (
     memory,
     path_between,
     payment_with_shortfall,
+    quest_progress_effects,
     require_entity,
     skill_for,
     tax_split_effects,
@@ -227,6 +228,10 @@ class WorkAction(Action):
                 Effect("set_field", {"entity": ent.id, "field": "last_action_tick", "value": intent.tick}),
                 *goal_progress(state, ent.id, "wealth", float(max(0, net)), intent.tick, goal_id=explicit_goal_id(intent)),
                 *memory(state, ent.id, intent.tick, note, 0.2),
+                *quest_progress_effects(
+                    state, ent.id, "work",
+                    tick=intent.tick, location=ent.location, hours=hours,
+                ),
             ]
         )
         return effects

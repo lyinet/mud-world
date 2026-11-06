@@ -25,6 +25,8 @@ class Entity:
     max_stamina: float = 100.0
     status: str = "alive"  # alive / dead / reincarnated
     inventory: dict[str, int] = field(default_factory=dict)
+    # 已装备槽位 → 物品 id。空字典不写进 to_dict()，确保无玩家世界哈希不变。
+    equipped: dict[str, str] = field(default_factory=dict)
     skills: dict[str, float] = field(default_factory=dict)
     personality: dict[str, Any] = field(default_factory=dict)
     employed_at: str | None = None
@@ -68,6 +70,8 @@ class Entity:
             data["presence"] = self.presence
         if self.last_seen_tick:
             data["last_seen_tick"] = self.last_seen_tick
+        if self.equipped:
+            data["equipped"] = dict(sorted(self.equipped.items()))
         return data
 
 
@@ -297,9 +301,16 @@ class Quest:
     accepted_tick: int = -1
     completed_tick: int = -1
     settlement_amount: int = 0
+    # 任务过程化（P4）：只有玩家接单并真实完成目标动作后才写入，且仅在非默认时
+    # 序列化，保证无玩家世界的 state hash 逐字节不变。units 的口径：
+    # work=累计工时、buy=累计购入件数、其它动作=1（一次即算完成）。
+    progress_units: int = 0
+    progress_tick: int = -1
+    progress_verb: str = ""
+    progress_note: str = ""
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        data = {
             "id": self.id,
             "template_id": self.template_id,
             "giver": self.giver,
@@ -317,6 +328,14 @@ class Quest:
             "completed_tick": self.completed_tick,
             "settlement_amount": self.settlement_amount,
         }
+        if self.progress_tick >= 0 or self.progress_units:
+            data["progress"] = {
+                "units": self.progress_units,
+                "tick": self.progress_tick,
+                "verb": self.progress_verb,
+                "note": self.progress_note,
+            }
+        return data
 
 
 @dataclass
@@ -366,7 +385,8 @@ class WorldState:
     schedule: dict[str, ScheduleItem] = field(default_factory=dict)
     memories: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
     # 玩家对话的关系增量台账：npc -> {day, day_affection, day_trust,
-    # last_tick, tick_affection, tick_trust}。用于 ±2/tick、±8/日 上限。
+    # last_tick, tick_affection, tick_trust, turns}。用于 ±2/tick、±8/日 上限，
+    # turns 只驱动确定性模板的轮次变体，不参与世界演进。
     talk_ledger: dict[str, dict[str, Any]] = field(default_factory=dict)
     # 任务模板历史统计：template_id -> {created, completed, failed, expired}。
     quest_stats: dict[str, dict[str, int]] = field(default_factory=dict)

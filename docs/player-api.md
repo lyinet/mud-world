@@ -1946,3 +1946,50 @@ curl -s 'http://127.0.0.1:8848/api/world/feed?limit=5'
 `pay_disciples`（每日一次）→ 欠饷 30 触发 `debt_create` / `debt_increase` →
 `set_field faction=null` + 双向关系 `status=ended` + 记忆「欠饷 30 文离派」→
 `expel_disciple`。整链 `minted_total` / `burned_total` 不变，`reconciliation.delta = 0`。
+
+## 14. 任务过程化（2026-11-07，只增不改）
+
+### 14.1 任务行新增字段
+
+`GET /api/player/state` 的 `quest_board.rows[]/locked[]/active[]`、
+`GET /api/player/quests` 的 `open[]/locked[]/active[]`、以及
+`active_quests_detail[]` 每个任务行新增：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `target_npc` | string | 目标人物 id；无目标人物时为 `""` |
+| `target_npc_name` | string | 目标人物显示名 |
+| `required_action` | object | 目标动作：`verb`、`params`(模板 intent_args)、`target_npc(_name)`、`target_location(_name)`、`hours`；采购单另有 `target_item(_name)` / `qty` |
+| `progress` | object | `done`（是否达到完成门槛）、`units`（已完成单位）、`required`（门槛）、`verb`、`tick`、`note`（中文进度说明） |
+
+单位口径：`work` 累计工时；`buy` 累计购入件数；`trade` / `escort` 一次即 1。
+`progress.units` 只来自世界状态里的 `quest_step` 事件，可回放，不用进程内变量。
+
+### 14.2 交付校验
+
+玩家接单后，`quest_deliver` 先校验地点/物品（原有），再校验目标动作：
+
+- `work`：在 `target_location` 实际累计上工达到模板 `hours`；
+- `buy`：实际买入 `target_item` 达到模板 `qty`；
+- `trade`：在 `target_location` 与 `target_npc` 当面完成一次交易（讨债单还要求
+  `money_delta` 与模板一致）；
+- `escort`：镖单成功送达 `target_location`（失败不算）；
+- 未达到时返回 `ok:false`、`reason:"quest_step_incomplete"` 与中文 `reason_text`，
+  不会扣除物品/发放报酬。
+
+接单本身会为玩家写一条 `quest_step(units=0)` 事件，因此进度从接单起就可见。
+
+### 14.3 被挡住的任务 `locked[]`
+
+`quest_board.locked[]` 与 `/api/player/quests` 的 `locked[]` 保留因以下原因不可接的单，
+并附 `lock_reason` / `lock_text`，不再从列表消失：
+
+| `lock_reason` | 含义 |
+|---|---|
+| `quest_expired` | 已过截止 tick（日界清理前的窗口） |
+| `giver_missing` | 发布人不存在或已死亡 |
+| `reputation_too_low` | 玩家声望低于模板 `require_reputation` |
+
+`locked[]` 行与 `rows[]` 行结构一致，`acceptable=false`、`can_accept_here=false`。
+`counts` 口径不变：`open` 只统计未锁定的可展示单。
+

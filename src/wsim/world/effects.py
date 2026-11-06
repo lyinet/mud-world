@@ -79,6 +79,9 @@ EFFECT_OPS = frozenset(
         "quest_accept",
         "quest_complete",
         "quest_fail",
+        "quest_step",
+        "equip",
+        "unequip",
         "goal_create",
         "goal_progress",
         "goal_abandon",
@@ -683,6 +686,49 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         quest.status = "accepted"
         quest.acceptor = ent.id
         quest.accepted_tick = _as_int(d.get("tick", 0), "tick")
+        return
+
+    if op == "quest_step":
+        # 任务过程化：只接受“接单人本人”的世界状态写入，单位口径由动作层声明。
+        qid = str(d["id"])
+        quest = state.quests.get(qid)
+        if quest is None:
+            raise EffectError(f"任务不存在: {qid}")
+        actor = str(d["actor"])
+        if quest.status != "accepted" or quest.acceptor != actor:
+            raise EffectError("只有接单人本人能给该任务记进度")
+        units = _as_int(d.get("units", 0), "units")
+        if units < 0:
+            raise EffectError("quest_step.units 不能为负")
+        quest.progress_units += units
+        quest.progress_tick = _as_int(d.get("tick", 0), "tick")
+        quest.progress_verb = str(d.get("verb", ""))
+        quest.progress_note = str(d.get("note", ""))
+        return
+
+    if op in ("equip", "unequip"):
+        ent = _entity(state, str(d["entity"]))
+        slot = str(d["slot"])
+        if not slot:
+            raise EffectError("装备槽位不能为空")
+        if op == "equip":
+            item = str(d["item"])
+            if int(ent.inventory.get(item, 0)) < 1:
+                raise EffectError("背包里没有这件物品")
+            old = ent.equipped.get(slot)
+            if old:
+                ent.inventory[old] = int(ent.inventory.get(old, 0)) + 1
+            held = int(ent.inventory.get(item, 0)) - 1
+            if held > 0:
+                ent.inventory[item] = held
+            else:
+                ent.inventory.pop(item, None)
+            ent.equipped[slot] = item
+        else:
+            item = ent.equipped.pop(slot, None)
+            if item is None:
+                raise EffectError("该槽位没有已装备物品")
+            ent.inventory[item] = int(ent.inventory.get(item, 0)) + 1
         return
 
     if op in ("quest_complete", "quest_fail"):

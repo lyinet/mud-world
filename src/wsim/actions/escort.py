@@ -21,6 +21,7 @@ from .common import (
     goal_progress,
     memory,
     payment_with_shortfall,
+    quest_progress_effects,
     require_entity,
     role_allowed,
     tax_split_effects,
@@ -613,6 +614,13 @@ class SystemEscortArriveAction(Action):
                     state, carrier.id, "escort", 1.0, intent.tick,
                     goal_id=explicit_goal_id(intent),
                 ))
+                # 押镖任务：只有镖单成功送达目的地才算“走完”（失败不计）。
+                effects.extend(
+                    quest_progress_effects(
+                        state, carrier.id, "escort",
+                        tick=intent.tick, location=order.destination,
+                    )
+                )
                 paid = net_fee if fee_payer else share
                 note = f"镖单{oid}送达，得银{paid}文"
                 if order.risk_event:

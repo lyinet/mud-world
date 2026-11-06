@@ -574,3 +574,99 @@ def payment_with_shortfall(
                 )
             )
     return effects
+
+
+def quest_required_units(quest) -> int:
+    """任务目标动作的完成门槛（与交付校验共用，避免两处口径漂移）。
+
+    work 按模板声明的工时累计；buy 按要买的件数累计；其余动作一次即完成。
+    """
+    args = getattr(quest, "args", None) or {}
+    if quest.verb == "work":
+        return max(1, int(args.get("hours") or 1))
+    if quest.verb == "buy":
+        return max(1, int(args.get("qty") or 1))
+    return 1
+
+
+def quest_progress_effects(
+    state: WorldState,
+    actor: str,
+    verb: str,
+    *,
+    tick: int,
+    location: str | None = None,
+    target: str | None = None,
+    item: str | None = None,
+    qty: int = 0,
+    hours: int = 0,
+    money_delta: int | None = None,
+) -> list[Effect]:
+    """把“目标动作确实做过”记进世界状态（quest_step Effect）。
+
+    只对玩家接单人写入：NPC 的任务链保持原样，从而无玩家世界的事件/状态哈希
+    逐字节不变。单位口径见 `quest_required_units`。
+    """
+    if not str(actor).startswith("player:"):
+        return []
+    effects: list[Effect] = []
+    for qid in sorted(state.quests):
+        quest = state.quests[qid]
+        if quest.status != "accepted" or quest.acceptor != actor:
+            continue
+        if quest.verb != verb:
+            continue
+        if verb == "trade":
+            if not target or str(target) != str(quest.target_npc):
+                continue
+            if location is not None and quest.target_location and location != quest.target_location:
+                continue
+            want_money = int((quest.args or {}).get("money_delta") or 0)
+            if want_money and int(money_delta or 0) != want_money:
+                continue
+            units = 1
+        elif verb == "buy":
+            want_item = str((quest.args or {}).get("item") or "")
+            if not want_item or str(item or "") != want_item:
+                continue
+            units = max(0, int(qty))
+        elif verb == "work":
+            if location is not None and quest.target_location and location != quest.target_location:
+                continue
+            units = max(0, int(hours))
+        elif verb == "escort":
+            if location is not None and quest.target_location and location != quest.target_location:
+                continue
+            units = 1
+        else:
+            continue
+        if units <= 0:
+            continue
+        if quest.progress_units >= quest_required_units(quest):
+            continue
+        effects.append(
+            Effect(
+                "quest_step",
+                {
+                    "id": qid,
+                    "actor": actor,
+                    "units": units,
+                    "tick": int(tick),
+                    "verb": verb,
+                    "note": quest_progress_note(quest, verb, units),
+                },
+            )
+        )
+    return effects
+
+
+def quest_progress_note(quest, verb: str, units: int) -> str:
+    if verb == "work":
+        return f"已上工 {units} 小时"
+    if verb == "buy":
+        return f"已购入目标物品 {units} 件"
+    if verb == "escort":
+        return "镖单已送达目标地点"
+    if verb == "trade":
+        return "已与目标人物当面完成交易"
+    return f"已完成目标动作（{verb}）"

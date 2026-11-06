@@ -66,6 +66,7 @@ from ..actions.common import (
     business_selling,
     business_with_cash,
     cheapest_food,
+    quest_required_units,
     reputation_points,
     sell_price,
     transaction_tax,
@@ -249,6 +250,7 @@ REASON_TEXT: dict[str, str] = {
     "reputation_too_low": "声望不足；先完成委托或经营人情，达到这一单的门槛后再接。",
     "not_at_target": "你尚未到达任务目标地点或发布人处。",
     "quest_item_missing": "采购类任务需要你持有目标物品。",
+    "quest_step_incomplete": "你还没有真正完成这单的目标动作；请先到指定地点上工/交易/买入或把镖单送到目标地点，再回来交付。",
     "trade_unfair": "交易价值明显不对等；对方拒绝了这笔买卖。",
     "service_item": "服务类物品不能用于玩家交易。",
     "offer_not_held": "你给出的物品数量不足。",
@@ -1125,11 +1127,27 @@ class WorldSession:
 
     def _quests_view(self, pid: str) -> dict[str, Any]:
         ent = self.state.entities.get(pid)
+        player_rep = reputation_points(self.state, pid) if ent is not None else 0.0
         open_rows = []
+        locked_rows = []
         for quest in self._sorted_quests():
             if quest.status != "open":
                 continue
             row = self._quest_row(quest)
+            reason = self._quest_lock_reason(quest, player_rep)
+            if reason:
+                row.update(
+                    {
+                        "acceptable": False,
+                        "can_accept_here": False,
+                        "accepted_by_me": False,
+                        "expired": reason == "quest_expired",
+                        "lock_reason": reason,
+                        "lock_text": _reason_text(reason),
+                    }
+                )
+                locked_rows.append(row)
+                continue
             row["acceptable"] = bool(ent and ent.location == row["giver_location"])
             row["category"] = str(
                 (self.content.quests.get(quest.template_id) or {}).get("category", "")
@@ -1145,12 +1163,30 @@ class WorldSession:
             "tick": self.state.tick,
             "location": ent.location if ent else "",
             "open": open_rows,
+            "locked": locked_rows,
             "active": active,
         }
 
     def _quest_row(self, quest) -> dict[str, Any]:
         giver = self.state.entities.get(quest.giver)
         tpl = self.content.quests.get(quest.template_id) or {}
+        args = dict(quest.args or {})
+        target_npc = str(quest.target_npc or "")
+        required = quest_required_units(quest)
+        required_action: dict[str, Any] = {
+            "verb": quest.verb,
+            "params": args,
+            "target_npc": target_npc,
+            "target_npc_name": self._entity_name(target_npc) if target_npc else "",
+            "target_location": quest.target_location,
+            "target_location_name": self._loc_name(quest.target_location),
+            "hours": int(args.get("hours") or 0),
+        }
+        if quest.verb == "buy":
+            item = str(args.get("item") or tpl.get("target_item") or "")
+            required_action["target_item"] = item
+            required_action["target_item_name"] = self._item_name(item) if item else ""
+            required_action["qty"] = max(1, int(args.get("qty") or 1))
         return {
             "id": quest.id,
             "template": quest.template_id,
@@ -1159,13 +1195,38 @@ class WorldSession:
             "giver": quest.giver,
             "giver_name": giver.name if giver else quest.giver,
             "giver_location": giver.location if giver else "",
+            "target_npc": target_npc,
+            "target_npc_name": required_action["target_npc_name"],
             "target_location": quest.target_location,
+            "required_action": required_action,
+            # 任务过程化：玩家可见“目标动作完成到哪一步”，前端据此画进度条/置灰按钮。
+            "progress": {
+                "done": quest.progress_units >= required,
+                "units": int(quest.progress_units),
+                "required": int(required),
+                "verb": quest.verb,
+                "tick": int(quest.progress_tick),
+                "note": str(quest.progress_note or ""),
+            },
             "reward_money": quest.reward_money,
             "reward_relation": quest.reward_relation,
             "deadline_tick": quest.deadline_tick,
             "deadline_day": quest.deadline_tick // TICKS_PER_DAY + 1 if quest.deadline_tick else None,
             "status": quest.status,
         }
+
+    def _quest_lock_reason(self, quest, player_rep: float) -> str:
+        """被挡住的开放任务：返回玩家可读原因码；可正常展示时返回空串。"""
+        tick = int(self.state.tick)
+        if quest.deadline_tick and tick > quest.deadline_tick:
+            return "quest_expired"
+        giver = self.state.entities.get(quest.giver)
+        if giver is None or giver.status != "alive":
+            return "giver_missing"
+        tpl = self.content.quests.get(quest.template_id) or {}
+        if float(tpl.get("require_reputation", 0) or 0) > player_rep:
+            return "reputation_too_low"
+        return ""
 
     def _loc_name(self, loc_id: str) -> str:
         row = (self.content.locations or {}).get(loc_id) or {}
@@ -1473,6 +1534,7 @@ class WorldSession:
 
     def _quest_board_view(self, pid: str, loc_id: str) -> dict[str, Any]:
         open_rows = []
+        locked_rows = []
         active_rows = []
         active_count = sum(
             1
@@ -1484,16 +1546,23 @@ class WorldSession:
         player_rep = reputation_points(self.state, pid) if player is not None else 0.0
         for quest in self._sorted_quests():
             if quest.status == "open":
-                # 已过期残单（日界清理前的窗口）与发布人已不在的单，一律不下架展示。
-                if quest.deadline_tick and tick > quest.deadline_tick:
-                    continue
                 row = self._quest_row(quest)
+                reason = self._quest_lock_reason(quest, player_rep)
+                if reason:
+                    # 不直接消失：放进 locked[] 并附原因，前端可解释为什么这单接不了。
+                    row.update(
+                        {
+                            "acceptable": False,
+                            "can_accept_here": False,
+                            "accepted_by_me": False,
+                            "expired": reason == "quest_expired",
+                            "lock_reason": reason,
+                            "lock_text": _reason_text(reason),
+                        }
+                    )
+                    locked_rows.append(row)
+                    continue
                 giver = self.state.entities.get(quest.giver)
-                if giver is None or giver.status != "alive":
-                    continue
-                tpl = self.content.quests.get(quest.template_id) or {}
-                if float(tpl.get("require_reputation", 0) or 0) > player_rep:
-                    continue
                 can_accept = bool(
                     giver.location == loc_id
                     and active_count < 2
@@ -1519,6 +1588,7 @@ class WorldSession:
                 "accepted_by_me": len(active_rows),
             },
             "rows": open_rows,
+            "locked": locked_rows,
             "active": active_rows,
         }
 

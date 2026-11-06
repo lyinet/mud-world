@@ -13,6 +13,7 @@ from .common import (
     explicit_goal_id,
     goal_progress,
     memory,
+    quest_progress_effects,
     require_entity,
     sell_price,
     shop_price,
@@ -82,6 +83,7 @@ class BuyAction(Action):
             Effect("item_move", {"src": seller.id, "dst": ent.id, "item": item, "qty": qty}),
             Effect("set_field", {"entity": ent.id, "field": "last_action_tick", "value": intent.tick}),
             *memory(state, ent.id, intent.tick, f"在{seller.name}买入{item}x{qty}，花费{price}文", 0.2),
+            *quest_progress_effects(state, ent.id, "buy", tick=intent.tick, item=item, qty=qty),
         ]
         if tax > 0:
             effects[1:1] = tax_split_effects(self.content, wallet(ent.id), tax)
@@ -230,6 +232,10 @@ class TradeAction(Action):
                 )] if delta > 0 else []),
                 *memory(state, ent.id, intent.tick, f"与{target.name}交易", 0.2),
                 *memory(state, target.id, intent.tick, f"与{ent.name}交易", 0.2),
+                *quest_progress_effects(
+                    state, ent.id, "trade",
+                    tick=intent.tick, location=ent.location, target=target.id, money_delta=delta,
+                ),
             ]
         )
         return effects
