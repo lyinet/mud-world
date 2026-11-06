@@ -53,6 +53,38 @@
   - mock 回归：`python tools/ui_check.py --only desktop,mobile` → 42 checks / 0 failed。
 - **commit**：见本条目所在提交。
 
+## [对话] 2026-11-07 — 模型台词统一到 dialogue_aside 单一路径
+
+- **改了什么**：
+  - 删除第二条模型调用链：`TalkAction.apply` 内 `defer_calls=False` 时的同步
+    `reply_sync` + `dialogue_runtime.remember()` 全部移除；`sim/headless.py` 不再构造
+    `AsyncDialogueQueue`（离线模型调用为 0）。
+  - 模型唯一入口：`src/wsim/api/session.py::WorldSession.finalize_dialogue`（L992，事件事务
+    提交后、锁外）→ `AsyncDialogueQueue.reply_sync`（`agent/dialogue_async.py:202`）。
+  - 开关显式 opt-in：`XKX_DIALOGUE_MODEL=1`（默认关，`1/true/yes/on`）；判定顺序
+    “开关 → 管理台 provider 优先 → env 兜底”，任一步不满足一律模板。
+  - 对话槽强制 `max_retries=0`（管理台降级链同样逐个钳制）；超时 `XKX_DIALOGUE_TIMEOUT_S`
+    默认 8s（clamp 0.5–20），超时/异常保留模板，不重试、不写事件、不阻塞 tick。
+  - 旁路统一为 `runs/<run>/dialogue_aside.jsonl`，键 `(event_seq, npc_id)`，字段
+    `event_seq/npc/text/model/created_at`；`dialogue.jsonl` 仅队列审计，不再有第二套存储。
+  - 模板侧多样性修复保持不变：`turn` 由 memory 推导、人设台词参与全部意图、同文防重。
+- **为什么**：两套旁路并存等于两次模型调用、两份存储、两处降级逻辑；统一后同一时刻只有
+  一条真正打模型的路径，且模型文本仍不进入世界状态/事件/`content_hash`。
+- **验证**（原始命令与输出）：
+  - 统一后新代码起临时服务实测 20 次 `talk`：关模型（8038，run `latency-off-final`）
+    p50/p95 `0.0023s/0.0037s`、20/20 模板；开模型（8037，run `latency-on-final`）
+    `3.35s/7.56s`、19/20 模型 + 1 次 8s 超时降级（`max=8.01s`），`/api/health.llm`
+    为 `calls=20/ok=19/failures=1/timeouts=1/by_slot.dialogue=20`。
+  - 旁路落盘 19 行，字段 `event_seq/npc/text/model/created_at`；事件库检索 3 条模型句
+    命中 0 次，`我答：` 模板行 20 条；`content_hash` 未变。
+  - 三指标不变：`unique 15/15`、同 NPC 相邻相同 `0`、同意图跨 NPC 完全相同 `0`；
+    `template_hit_rate 15/15`（关模型）。
+  - `pytest`：对话 4 组测试 `24 passed`；`tests/test_p3e_golden.py` `2 passed, 18 skipped`
+    （V6 离线 `dialogue_calls 65→0`，原因写入 `DIALOGUE_VARIETY_BASELINE_REASON`）。
+- **commit**：`1e076da`
+
+---
+
 ## [架构] 2026-11-07 — 对话模型旁路：账本记剧本，模型只做配音
 
 - **改了什么**：
