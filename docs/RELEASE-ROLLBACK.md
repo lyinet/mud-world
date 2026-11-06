@@ -32,6 +32,16 @@ cd world-sim
 git status --short
 git rev-parse HEAD
 
+# 1.5) 核对 content_hash 与上一 tag 是否不同（不同即升级影响，必须写进发布说明）
+PYTHONPATH=src python3 -c "from pathlib import Path; from wsim.core.content import load_content; \
+print(load_content(Path('.'), allow_fixture=False, use_content=True).content_hash)"
+git worktree add --detach /tmp/tag-prev <上一 tag>
+(cd /tmp/tag-prev && PYTHONPATH=src python3 -c "from pathlib import Path; from wsim.core.content import load_content; \
+print(load_content(Path('.'), allow_fixture=False, use_content=True).content_hash)")
+git worktree remove --force /tmp/tag-prev
+#    本次实测：delivery-p3l = 7ec670c1…c3d53f → 当前 = 5267a8a8…696da4（不同，
+#    发布说明必须写“旧库拒绝启动，退出码 3 → 继续用旧镜像 / 新开世界”，见第 4.2 节）
+
 # 2) 构建：同一镜像打 <version> 与 latest 两个 tag
 tools/build_image.sh v1.2.0
 #    脚本会打印 version / revision / tags / image_id / digest / /app/VERSION，整段贴进发布记录
@@ -107,9 +117,14 @@ sqlite3 runs/<RUN>/events.sqlite "SELECT value FROM meta WHERE key='content_hash
 ```
 
 - 服务启动会比对存档里的 `content_hash` 与当前 `content/` 计算值；不一致**拒绝启动**，
-  退出码 3，错误码 `content_hash_mismatch`。
-- 关闭态基线：`7ec670c1c83c7b99e9bee35f84602bd7a68ef22126b29c9003529809b2c3d53f`；
-  开启态（`XKX_CONTENT_PACKS=scaleup_w3`）基线 `3fd99946…`（完整值见 `docs/CONTENT-SCALE.md`）。
+  退出码 3，错误码 `content_hash_mismatch`，stderr 单行 JSON，不监听、不写事件
+  （固定契约见 `docs/W1/spec.md` §5；实测见 `docs/known-limitations.md` §13）。
+- 当前关闭态基线：`5267a8a84f7c2e0200358c92b8e63cebff54db461de8123484732a66aa696da4`
+  （2026-11-06 起，补齐店铺五动词声明后）；`delivery-p3l` 及以前为 `7ec670c1…c3d53f`。
+  开启态见 `docs/CONTENT-SCALE.md`。
+- **当前没有内容迁移路径**：CLI 无 `--allow-content-change` 或等价开关（`--allow-new-world`
+  只覆盖“事件库缺失”的退出码 4），也没有旧库→新内容的重写工具。
+  **内容哈希不同 = 升级等于开新世界**：要么继续用旧镜像，要么换新 run 目录/新卷重建。
 - 判定：回滚镜像自带 `content/` 的哈希必须等于库里的 `content_hash`；不等则先恢复匹配的
   `content/`（或整卷恢复备份），再回滚镜像。
 

@@ -9,6 +9,25 @@
 
 ---
 
+## [发布] 2026-11-06 — 内容哈希变更的升级语义：旧库拒绝启动（退出码 3），当前无迁移路径
+
+- **事实**：补齐店铺五动词声明使关闭态 `content_hash` 由
+  `7ec670c1c83c7b99e9bee35f84602bd7a68ef22126b29c9003529809b2c3d53f`（`delivery-p3l`）
+  变为 `5267a8a84f7c2e0200358c92b8e63cebff54db461de8123484732a66aa696da4`。
+- **实测**：用 p3l 旧内容造世界（events=5），当前代码启动 → **退出码 3** + stderr 单行 JSON
+  `content_hash_mismatch`（含 stored/current/run_dir），旧库原样未写（`5|1|5`）；
+  同一 root 换新 run 启动 → `{"world": "new", ...}`、`/api/health` 200、meta 写入新哈希。
+- **迁移路径**：**没有**。`--help` 只有 `--allow-new-world`（事件库缺失，退出码 4），
+  无内容变更开关；未新造，未放宽校验。**升级等于开新世界**。
+- **文档**：`docs/known-limitations.md` §13（行为/判决/三处置选项/本轮全新开服不影响上线）；
+  `docs/RELEASE-ROLLBACK.md` §4.2 基线更新 + §2 新增步骤 1.5；
+  `docs/GIT-WORKFLOW.md` §4 补 tag 前 `content_hash` 比对项；
+  `docs/CONTENT-SCALE.md` 补 2026-11-06 时点注记。
+- **验证**：`delivery-p3l` 哈希实测 `7ec670c1…`、当前 `5267a8a8…`（不同）；仅文档改动，无 `src/**` 改动。
+- **commit**：待回填
+
+---
+
 ## [内容/测试] 2026-11-06 — 补齐店铺五动词内容声明；e2e 原因码断言拆为「UI 文案 + API 原始码」
 
 - **A. selfcheck `verbs_mismatch` 红**：`content/verbs.yaml` 补 `restock` / `set_price` /

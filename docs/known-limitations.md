@@ -212,3 +212,38 @@ K3 只作诊断，**不设 pass/fail**，不能当作目标完成率证据；对
   `content_hash`（关闭态 `7ec670c1c83c7b99e9bee35f84602bd7a68ef22126b29c9003529809b2c3d53f`）
   与全部 golden 基线（V2/V3、经济流量、`state_final`）再漂一次。
   冻结期内不接受，留待解冻后单独一轮，并按基线迁移纪律处理。
+  （该关闭态哈希已被 2026-11-06 的动词声明补齐打破，见 §13。）
+
+## 13. 内容变更 = 旧世界不可直接加载（2026-11-06）
+
+**事实**：本轮补齐店铺五动词声明后，关闭态 `content_hash` 由
+`7ec670c1c83c7b99e9bee35f84602bd7a68ef22126b29c9003529809b2c3d53f`（`delivery-p3l`）
+变为 `5267a8a84f7c2e0200358c92b8e63cebff54db461de8123484732a66aa696da4`。
+
+**启动行为（实测）**：已有 `events.sqlite` 的 run 目录用当前代码启动，回放前比对
+meta 里的 `content_hash`，不一致即抛 `ContentHashMismatch`：**退出码 3**，stderr 单行
+JSON（固定契约，见 [docs/W1/spec.md](W1/spec.md) §5），**不监听端口、不写任何事件、不改动旧库**。
+
+```text
+$ PYTHONPATH=src python3 -m wsim.api --root /tmp/xkx-upgrade --run oldworld --port 18031 --auth off
+{"current_content_hash": "5267a8a84f7c2e0200358c92b8e63cebff54db461de8123484732a66aa696da4", "error": "content_hash_mismatch", "ok": false, "run_dir": "/private/tmp/xkx-upgrade/runs/oldworld", "stored_content_hash": "7ec670c1c83c7b99e9bee35f84602bd7a68ef22126b29c9003529809b2c3d53f"}
+exit=3
+$ sqlite3 runs/oldworld/events.sqlite "SELECT COUNT(*), MIN(seq), MAX(seq) FROM events;"   # 拒绝后原样：5|1|5
+```
+
+**当前没有迁移路径**：CLI 没有 `--allow-content-change` 或等价开关（唯一的
+`--allow-new-world` 只处理“账号在、事件库缺失”的退出码 4 场景，与内容变更无关）；
+引擎也没有内容迁移/重写工具。**升级等于开新世界。**
+
+**处置选项（按现场情况三选一）**：
+
+1. **继续用旧镜像**（`delivery-p3l` 及以前）：旧镜像自带旧 `content/`，与旧库哈希匹配，
+   可原样启动；只回镜像，不动数据卷。
+2. **新开世界**：换新 run 目录/新数据卷（旧目录保留留档），新库 meta 写入新 `content_hash`。
+   实测新 run 启动 `{"world": "new", ...}`、`/api/health` = 200。
+3. **未来做内容迁移**：需单独交付“旧库 → 新内容”的迁移工具（重算哈希必须显式、可审计）。
+   本轮不做，也不应用“放宽校验”来实现。
+
+**上线影响**：本轮为**全新开服，没有存量玩家库**，故该变更不影响上线；
+只有“已有旧库的部署”才需要执行上面的处置选项。
+

@@ -45,6 +45,10 @@ feat(pricing): 供需物价模型接入运行时
 
 - **只用 annotated tag**：`git tag -a delivery-pX -m "<说明>"`；禁止 lightweight tag。
 - tag message 至少写：**对应 commit 短哈希、`content_hash`（若适用）、验证结论摘要**。
+- **打 tag 前必查：新 tag 的 `content_hash` 与上一 tag 是否相同**（算法与命令见
+  [RELEASE-ROLLBACK.md](RELEASE-ROLLBACK.md) §2 步骤 1.5）。**不同即升级**：tag message
+  与发布说明必须写明“旧世界库拒绝启动（退出码 3，`content_hash_mismatch`）→ 继续用旧镜像
+  或新开世界；当前无内容迁移路径”。本轮实测 `delivery-p3l` = `7ec670c1…` → 当前 `5267a8a8…`。
 - 打 tag 后立即推送：`git push origin --tags`。
 - **已推送的 tag 永不改写**：不删除、不重打、不移动。需要修正时新增版本 tag（如 `delivery-p3j.1`）。
 - 交付版本 tag 与代码 commit 的对应关系必须能在 `CHANGELOG.md` 中查到。

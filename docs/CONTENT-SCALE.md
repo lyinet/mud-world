@@ -50,6 +50,11 @@ python tools/content_scale.py audit --run-dir runs/w3-enabled-10d-60npc
 关闭态 golden（`GOLDEN_MILESTONE`）由现有 `tests/test_p3e_golden.py` 断言通过，
 本轮没有改任何旧基线值。
 
+> 2026-11-06 起，补齐店铺五动词声明后关闭态 `content_hash` 已变为
+> `5267a8a84f7c2e0200358c92b8e63cebff54db461de8123484732a66aa696da4`；
+> 上表是当时（p3i）的验收记录，哈希/事件数不再对应当前内容。升级影响见
+> [known-limitations.md](known-limitations.md) §13。
+
 ## 开启态验收
 
 内容校验器 `python content/validate_content.py --pack scaleup_w3` **PASS**，包含四项新校验：
