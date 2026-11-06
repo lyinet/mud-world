@@ -38,6 +38,7 @@
 - **顺带修复**（`8bb9f30`）：`api/health.py` 的 seq 断洞检测原用 `last - count()`，
   但 `EventStore.count()` 是全局 `MAX(seq)` 而非行数，断洞永远检测不到；
   改为尾部两条按主键倒序比较（O(log n)），`test_health_seq_gap_503` 由 200 恢复为 503。
+- **commit**：`059ee45`
 
 ## [部署] 2026-11-06 — TLS 硬化：301-only 入口、ACME 例外、强协议/套件与安全响应头
 
