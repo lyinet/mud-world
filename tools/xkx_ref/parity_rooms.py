@@ -330,6 +330,80 @@ def source_short(rid: str):
 
 
 SRC_NAME_CACHE = {}
+SRC_RANDOM_NAME_CACHE = {}
+SRC_OBJECTS_CACHE = {}
+
+
+def source_objects_text(rid: str) -> str:
+    """房间源码里 `set("objects")` 原文，外加 create() 里 `"path"->foo()` 的装载调用。
+
+    后者在布告板房间出现（如 kedian 的 `"/clone/board/kedian7_b"->foo()`），
+    对象自己 `set("location")` 后 move 进房，不写在 objects 映射里。
+    """
+    if rid in SRC_OBJECTS_CACHE:
+        return SRC_OBJECTS_CACHE[rid]
+    path = os.path.join(REF_MUDLIB, rid.lstrip("/"))
+    if not os.path.exists(path) and os.path.exists(path + ".c"):
+        path += ".c"
+    parts: list[str] = []
+    if os.path.exists(path):
+        try:
+            txt = open(path, encoding="utf-8", errors="ignore").read()
+            m = re.search(r'set\(\s*"objects"\s*,\s*\(\[(.*?)\]\)\s*\);', txt, re.S)
+            if m:
+                parts.append('set("objects", ([' + m.group(1).strip() + "]))")
+            for call in re.findall(
+                r'^\s*("(?:[^"\\]|\\.)+"\s*->\s*[A-Za-z_][A-Za-z0-9_]*\s*\(\s*\))\s*;',
+                txt, re.M,
+            ):
+                parts.append(call + ";")
+        except OSError:
+            pass
+    SRC_OBJECTS_CACHE[rid] = " / ".join(parts) or "（无）"
+    return SRC_OBJECTS_CACHE[rid]
+
+
+def source_set_name_is_random(ref: str) -> bool:
+    """源码 set_name 首参不是字符串字面量（如 chairs 的 random 数组拼接）。
+
+    只认对象自己的 LPC：有 set_name 调用，但抓不到 `set_name("...")` 或
+    `set_name(宏 "...")` 这种字面量形式，即名字由运行期表达式决定。
+    """
+    if ref in SRC_RANDOM_NAME_CACHE:
+        return SRC_RANDOM_NAME_CACHE[ref]
+    path = os.path.join(REF_MUDLIB, ref.lstrip("/"))
+    if not os.path.exists(path) and os.path.exists(path + ".c"):
+        path += ".c"
+    random_name = False
+    if os.path.exists(path):
+        try:
+            txt = open(path, encoding="utf-8", errors="ignore").read()
+            random_name = (
+                "set_name(" in txt
+                and not re.search(r'set_name\(\s*(?:[A-Z][A-Z0-9_]*\s*)?"', txt)
+            )
+        except OSError:
+            pass
+    SRC_RANDOM_NAME_CACHE[ref] = random_name
+    return random_name
+
+
+def room_random_item_names(room: dict, items: dict) -> set[str]:
+    """房间 objects 里用 `random(n)` 计数的物品名。
+
+    原版每次 reset 随机刷 0..n-1 件；复刻创世刻意不引入随机，对拍工具按
+    `count or 1` 渲染，因此采样到 0 时会显示成差异。这类差异单独归类。
+    """
+    names: set[str] = set()
+    for ob in room.get("objects") or []:
+        if "count_expr" not in ob:
+            continue
+        ref = str(ob.get("ref") or "")
+        rec = items.get(ref) or {}
+        nm = str(rec.get("name") or source_name(ref) or "")
+        if nm:
+            names.add(nm)
+    return names
 
 
 def source_name(ref: str):
@@ -948,6 +1022,38 @@ def main():
             if any(o.get(k) != p.get(k) for k in set(o) & set(p)):
                 reasons.append("数量不同")
         nb["+".join(reasons) or "其他"] += 1
+    # items 差异细分：原版本身随机的两账（房间 `random(n)` 刷出、`set_name`
+    # 运行期随机命名）与“固定对象缺失”分开，前者不计入真差异。
+    ib = Counter()
+    for r in records:
+        if r["status"] != "differ":
+            continue
+        f = r["fields"]["items"]
+        if f["match"] is not False:
+            continue
+        room = rooms.get(r["id"]) or {}
+        o, p = f["orig"], f["repl"]
+        only_o = [k for k in o if k not in p]
+        only_p = [k for k in p if k not in o]
+        random_names = room_random_item_names(room, items)
+        random_name_refs = [
+            str(ob.get("ref") or "")
+            for ob in (room.get("objects") or [])
+            if str(ob.get("kind") or "") == "item"
+            and source_set_name_is_random(str(ob.get("ref") or ""))
+        ]
+        generic_names = {
+            str((items.get(ref) or {}).get("name") or "")
+            for ref in random_name_refs
+        }
+        if (only_p and not only_o and set(only_p) <= random_names):
+            r["item_category"] = "原版随机刷出（不计真差异）"
+        elif (only_p and generic_names and set(only_p) <= generic_names
+              and set(only_o) - generic_names):
+            r["item_category"] = "short 命名规则不同（原版随机命名，不计真差异）"
+        else:
+            r["item_category"] = "固定对象缺失（真差异）"
+        ib[r["item_category"]] += 1
     suffix = f"-{args.tag}" if args.tag else ""
     prev_json = os.path.join(OUTDIR, f"room-parity{suffix}.json")
     prev = json.load(open(prev_json, encoding="utf-8")) if os.path.exists(prev_json) else {}
@@ -985,6 +1091,7 @@ def main():
            ],
            "rooms": len(records), "summary": summary, "categories": dict(cats),
            "npc_breakdown": dict(nb),
+           "item_breakdown": dict(ib),
            "corrections": prev.get("corrections") or [],
            "samples": samples, "records": records}
     os.makedirs(OUTDIR, exist_ok=True)
@@ -1055,6 +1162,42 @@ def write_md(out, md_path):
                   "差异仅出现在运行时字段，**不计入真差异**；"
                   "“在场/缺失”= 一侧在场另一侧不在（含共享实例里 NPC 游走/已离开）；"
                   "“数量不同”= 同名 NPC 两侧 clone 数不一致。"]
+    if out.get("item_breakdown"):
+        lines += ["", "### items 差异细分", "", "| 细类 | 房间数 |", "|------|--------|"]
+        for k, v in sorted(out["item_breakdown"].items(), key=lambda x: -x[1]):
+            lines.append(f"| {k} | {v} |")
+        lines += ["", "“原版随机刷出（不计真差异）”= 房间 `set(\"objects\")` 里声明 "
+                  "`random(n)`，原版每次 reset 随机刷 0..n-1 件；复刻创世刻意不引入随机，"
+                  "对拍工具按可能值 1 渲染，采样到 0 时出现差异；判据：内容包 `count_expr` 命中，"
+                  "**不计入真差异**。"
+                  "“short 命名规则不同（原版随机命名，不计真差异）”= 实体与数量都在，原版 "
+                  "`set_name` 由 random 数组拼接（如 chairs 的 4×6×2=48 种组合），复刻从 "
+                  "`long` 回落到通用名；判据：源码 `set_name` 首参非字符串字面量，**不计入真差异**。"
+                  "“固定对象缺失（真差异）”= 原版由 `create()` 里的装载调用固定刷出、复刻未建模。"]
+        s = out["summary"].get("items") or {}
+        if s.get("observable"):
+            true_diff = out["item_breakdown"].get("固定对象缺失（真差异）", 0)
+            true_ok = s["observable"] - true_diff
+            rate = true_ok / s["observable"] * 100
+            lines += ["", f"items 原始 {s['match']}/{s['observable']} = "
+                      f"{s['rate'] * 100:.2f}%；剔除上表两类“原版本身随机”的差异房后，"
+                      f"真实 items 一致率 {true_ok}/{s['observable']} = {rate:.2f}%。"]
+        item_rows = [
+            r for r in out["records"]
+            if r.get("item_category")
+            and (r.get("fields", {}).get("items") or {}).get("match") is False
+        ]
+        if item_rows:
+            lines += ["", "#### items 差异逐房定性", "",
+                      "| 房间 | 原版 `set(\"objects\")` 原文 | 本次原版刷出 | 复刻 | 性质 |",
+                      "|------|------|------|------|------|"]
+            for r in item_rows:
+                f = r["fields"]["items"]
+                src = source_objects_text(r["id"]).replace("\n", " ")
+                lines.append(
+                    f"| `{r['id']}` | `{src}` | {f['orig'] or '无'} | {f['repl'] or '无'} | "
+                    f"{r['item_category']} |"
+                )
     lines += ["", "## 差异清单", "",
               "| 房间 | 字段 | 说明 |", "|------|------|------|"]
     for r in out["records"]:
