@@ -22,9 +22,9 @@
 - [x] A8 新增 `tests/test_wimpy.py`（命令/成功/失败/无出口/0 不取数/同 seed 双跑）
 - [x] A9 新增 `tests/test_score_sect.py`
 - [x] A10 跑相关测试 + 全量 pytest；跑旧九地点三项哈希
-- [x] A11 独立端口 8051/8021 真实 run：`wimpy` 无参/设 80；进老虎房不 `fight`，贴失败与成功真实事件；`bai 安健刚` 前后 `score`
-- [ ] A12 显式 `git add` A 阶段文件，提交；不 force
-- [ ] A13 向用户报告第一批（源码结论、真实响应、哈希、pytest）
+- [x] A11 独立端口 8053/8054 真实 run：`wimpy` 无参/设 80；进老虎房不 `fight`，贴失败与成功真实事件；`bai 安健刚` 前后 `score`
+- [x] A12 显式 `git add` A 阶段文件，提交；不 force
+- [x] A13 向用户报告第一批（源码结论、真实响应、哈希、pytest）
 
 ## 阶段 B：缺陷 3（大狼狗掉落）与缺陷 4（铁棍战报）
 
