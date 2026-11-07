@@ -54,8 +54,7 @@
   - npcs 新值：194/195 = 99.49%
   - items：189/195 = 96.92%，前后不变
   - npcs 差异房：3 -> 1（仅 road1 游走）
-
-- **2026-11-07 279c957**：回滚 P4a 内容侧 `initial_state`。源码核实 `<昏迷不醒>` 只来自 `feature/damage.lpc` 的 `unconcious()`（采集时探针被攻击、又把它打昏的战斗临时态），不是出生态；把采样战斗态写成出生态是虚假状态换一致率，故撤销，创世回到 alive。引擎保留 `status=unconcious` 的可见/显示能力。对拍新增“采样态差异（战斗临时态）”类别，判据：LPC 无初始标记 + 差异仅出现在 `disable_type` 类运行时字段，**不计入真差异**；归一化 6 条未改。
+- **2026-11-07 279c957**：回滚 P4a 内容侧 `initial_state`：源码核实 `<昏迷不醒>` 只来自 `feature/damage.lpc` 的 `unconcious()`（采集时探针被攻击、又把它打昏的战斗临时态），不是出生态；把采样战斗态写成出生态是虚假状态换一致率，故撤销，创世回到 alive。引擎保留 `status=unconcious` 的可见/显示能力。对拍新增“采样态差异（战斗临时态）”类别，判据：LPC 无初始标记 + 差异仅出现在 `disable_type` 类运行时字段，**不计入真差异**；归一化 6 条未改。
   - npcs：194/195 = 99.49% -> 192/195 = 98.46%
   - npcs 差异房：1 -> 3（2 房采样态差异、1 房真差异 road1）
   - content_hash：9fc1d247… -> 2b52983f…（回到 P2 基线，需 --reset）
@@ -69,6 +68,29 @@
 | 在场/缺失 | 1 |
 
 “头衔/状态前缀”= 原版显示名带门派头衔、复刻只存基名；“采样态差异（战斗临时态）”= 原版显示名只多了一个 ` <...>` 运行时状态（disable_type，如 `<昏迷不醒>`）、复刻基名完全一致；判据：LPC 无初始标记，差异仅出现在运行时字段，**不计入真差异**；“在场/缺失”= 一侧在场另一侧不在（含共享实例里 NPC 游走/已离开）；“数量不同”= 同名 NPC 两侧 clone 数不一致。
+
+### items 差异细分
+
+| 细类 | 房间数 |
+|------|--------|
+| 原版随机刷出（不计真差异） | 3 |
+| short 命名规则不同（原版随机命名，不计真差异） | 2 |
+| 固定对象缺失（真差异） | 1 |
+
+“原版随机刷出（不计真差异）”= 房间 `set("objects")` 里声明 `random(n)`，原版每次 reset 随机刷 0..n-1 件；复刻创世刻意不引入随机，对拍工具按可能值 1 渲染，采样到 0 时出现差异；判据：内容包 `count_expr` 命中，**不计入真差异**。“short 命名规则不同（原版随机命名，不计真差异）”= 实体与数量都在，原版 `set_name` 由 random 数组拼接（如 chairs 的 4×6×2=48 种组合），复刻从 `long` 回落到通用名；判据：源码 `set_name` 首参非字符串字面量，**不计入真差异**。“固定对象缺失（真差异）”= 原版由 `create()` 里的装载调用固定刷出、复刻未建模。
+
+items 原始 189/195 = 96.92%；剔除上表两类“原版本身随机”的差异房后，真实 items 一致率 194/195 = 99.49%。
+
+#### items 差异逐房定性
+
+| 房间 | 原版 `set("objects")` 原文 | 本次原版刷出 | 复刻 | 性质 |
+|------|------|------|------|------|
+| `/d/hangzhou/dadao1` | `set("objects", (["/clone/medicine/vegetable/baiwei": random(2),]))` | 无 | {'白薇': 1} | 原版随机刷出（不计真差异） |
+| `/d/hangzhou/kedian` | `set("objects", (["/d/city/npc/xiaoer": 1,])) / "/clone/board/kedian7_b"->foo();` | {'客店留言板(Board)': 1} | 无 | 固定对象缺失（真差异） |
+| `/d/hangzhou/huagang` | `set("objects", (["/clone/medicine/vegetable/baizhi": random(2),]))` | 无 | {'白芷': 1} | 原版随机刷出（不计真差异） |
+| `/d/jiaxing/nanhu` | `set("objects", ([CLASS_D("gumu") + "/limochou": 1,     "/clone/medicine/vegetable/baizhi": random(2),]))` | 无 | {'白芷': 1} | 原版随机刷出（不计真差异） |
+| `/d/shiliang/dongxiangfang` | `set("objects", (["/d/changan/obj/chairs": 1,     __DIR__ "npc/yahuan": 1,]))` | {'锦面折叠长椅': 1} | {'椅子': 1} | short 命名规则不同（原版随机命名，不计真差异） |
+| `/d/shiliang/xixiangfang` | `set("objects", (["/d/changan/obj/chairs": 1,     __DIR__ "npc/yahuan": 1,]))` | {'锦面躺椅': 1} | {'椅子': 1} | short 命名规则不同（原版随机命名，不计真差异） |
 
 ## 差异清单
 
@@ -168,7 +190,8 @@
    "repl": {}
   }
  },
- "status": "differ"
+ "status": "differ",
+ "item_category": "原版随机刷出（不计真差异）"
 }
 ```
 

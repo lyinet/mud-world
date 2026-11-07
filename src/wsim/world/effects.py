@@ -235,6 +235,20 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             }
         if "equipment" in d:
             ent.equipment = [str(x) for x in (d.get("equipment") or []) if str(x)]
+        # 创世即穿戴的装备（NPC 的 `equipment` 落地）：与 `equip` 效果同一套字段，
+        # 只写非空值，旧内容包（无装备）的事件与哈希逐字节不变。
+        if "equipped" in d:
+            ent.equipped = {
+                str(k): str(v) for k, v in dict(d.get("equipped") or {}).items() if str(v)
+            }
+        if "equipped_apply" in d:
+            ent.equipped_apply = {
+                str(k): _as_int(v, f"equipped_apply.{k}")
+                for k, v in dict(d.get("equipped_apply") or {}).items()
+                if str(k).startswith("apply/")
+            }
+        if "weapon_type" in d:
+            ent.weapon_type = str(d.get("weapon_type") or "")
         if "attrs" in d:
             ent.attrs = {str(k): _as_int(v, f"attrs.{k}") for k, v in dict(d["attrs"] or {}).items()}
         if "combat_exp" in d:

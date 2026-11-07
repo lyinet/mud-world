@@ -52,6 +52,7 @@ from .genesis import build_genesis
 from .intent import MockReasoner, GoalSwitchPolicy
 from .lod import LODScheduler, load_lod_config
 from .spawn import load_spawns, normalize_spawns, spawn_due
+from .wander import WanderPolicy
 
 
 def intent_block_reason(registry: ActionRegistry, state: WorldState, intent: Intent) -> str:
@@ -114,6 +115,8 @@ class RunConfig:
     strategy_fake: bool = False
     # 刷怪声明：None=从 content/spawns.yaml 读取；[]=显式无刷怪（调度层不写任何事件）。
     spawns: list[dict[str, Any]] | None = None
+    # NPC 游走（默认关闭）：世界配置显式打开时才在 LOD 唤醒点生成 move intent。
+    npc_wander: bool = False
 
 
 def _npc_money(state: WorldState) -> int:
@@ -449,6 +452,7 @@ def run_headless(
             "state": writer.state,
             "content": content,
         },
+        wander=WanderPolicy(enabled=bool(cfg.npc_wander)),
     )
 
     # 事件堆：只做「到期」推进，不做每 tick 全量 NPC 扫描。

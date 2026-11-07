@@ -13,8 +13,21 @@ npc_limit: 0
 spawn: /d/hangzhou/jiulou
 display_name: 游侠儿
 archetype: 游侠
+# 开局档位：产品选择，不是原版新手档。
+# combat_exp=6400 是原版技能 40 级的最低经验（40^3/10，cmds/skill/learn.lpc:102）；
+# unarmed/dodge/parry 同级 40，保证攻防两侧同一档位、数据自洽。
+player_start:
+  combat_exp: 6400
+  skills:
+    unarmed: 40
+    dodge: 40
+    parry: 40
 auth: off
 ambient: 0
+# NPC 游走：默认关闭；只有本世界配置显式打开。
+# 复用 LOD 唤醒点与现有 move action，每个唤醒最多走一间相邻房间。
+npc_wander:
+  enabled: true
 ui_kind: xkx
 
 # 内容优先用另一路交付的 xkx JSON 内容包（rooms/exits/npcs/items/shops/sects）。

@@ -78,9 +78,9 @@ def test_player_genesis_has_hp_and_attrs():
     assert create.data["max_hp"] == PLAYER_MAX_HP == 100
     assert create.data["hp"] == 100
     assert set(create.data["attrs"]) == {"str", "con", "dex", "int", "spi", "sta"}
-    # 我们的默认：unarmed 40 + 250 经验保证打得动；dodge/parry 10 避免玩家无敌。
-    assert create.data["combat_exp"] == 250
-    assert create.data["skill_levels"] == {"unarmed": 40, "dodge": 10, "parry": 10}
+    # MID 产品档位：6400 = 原版技能 40 级的最低经验（40^3/10），三项技能同级 40。
+    assert create.data["combat_exp"] == 6400
+    assert create.data["skill_levels"] == {"unarmed": 40, "dodge": 40, "parry": 40}
 
     state = WorldState(locations={"inn": {"id": "inn", "name": "客栈", "exits": [], "services": []}})
     apply_effects(state, effects)
@@ -108,8 +108,8 @@ def test_player_enter_assigns_archetype_vitals_and_backfills_old_entity():
     ent = writer.state.entities["player:p2"]
     assert (ent.max_hp, ent.hp) == (100, 100)
     assert ent.attrs == ARCHETYPE_ATTRS["捕快"]
-    assert ent.combat_exp == 250
-    assert ent.skill_levels == {"unarmed": 40, "dodge": 10, "parry": 10}
+    assert ent.combat_exp == 6400
+    assert ent.skill_levels == {"unarmed": 40, "dodge": 40, "parry": 40}
     assert _player_vitals("商人")["attrs"] != _player_vitals("捕快")["attrs"]
 
     # 旧实体（创世早于本次改动）重进时补一次 vitals_set。
@@ -140,6 +140,45 @@ def test_player_enter_assigns_archetype_vitals_and_backfills_old_entity():
     assert ev2.outcome == "ok"
     assert any(e["op"] == "vitals_set" for e in ev2.effects)
     assert (writer2.state.entities["player:p3"].max_hp, writer2.state.entities["player:p3"].hp) == (100, 100)
+
+
+def test_player_start_config_overrides_genesis_and_enter():
+    # 世界配置可覆盖；未给出的技能保留 MID 默认，非法值静默回落。
+    effects = player_genesis_effects(
+        "player:p4",
+        "王五",
+        "inn",
+        start={"combat_exp": 1234, "skills": {"unarmed": 7, "dodge": -1, "parry": "x"}},
+    )
+    create = next(e for e in effects if e.op == "create_entity")
+    assert create.data["combat_exp"] == 1234
+    assert create.data["skill_levels"] == {"unarmed": 7, "dodge": 40, "parry": 40}
+
+    locs = {"inn": {"id": "inn", "name": "客栈", "exits": [], "services": []}}
+    state = WorldState(locations=locs)
+    store = EventStore(":memory:")
+    reg = ActionRegistry()
+    reg.register(PlayerEnterAction())
+    writer = Writer(state, store, reg, seed=42)
+    event = writer.submit(
+        Intent(
+            "player:p5",
+            "player_enter",
+            {
+                "player_id": "player:p5",
+                "account_id": "acct_p5",
+                "at": "inn",
+                "display_name": "赵六",
+                "player_start": {"combat_exp": 250, "skills": {"unarmed": 40}},
+            },
+            0,
+            "player",
+        )
+    )
+    assert event.outcome == "ok"
+    ent = writer.state.entities["player:p5"]
+    assert ent.combat_exp == 250
+    assert ent.skill_levels == {"unarmed": 40, "dodge": 40, "parry": 40}
 
 
 def test_xkx_genesis_lands_hp_on_every_npc_entity():

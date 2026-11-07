@@ -57,6 +57,11 @@
   "采样态差异（战斗临时态）": 2,
   "在场/缺失": 1
  },
+ "item_breakdown": {
+  "原版随机刷出（不计真差异）": 3,
+  "固定对象缺失（真差异）": 1,
+  "short 命名规则不同（原版随机命名，不计真差异）": 2
+ },
  "corrections": [
   {
    "date": "2026-11-07",
@@ -169,7 +174,8 @@
      "repl": {}
     }
    },
-   "status": "differ"
+   "status": "differ",
+   "item_category": "原版随机刷出（不计真差异）"
   }
  },
  "records": [
@@ -1407,7 +1413,8 @@
      "repl": {}
     }
    },
-   "status": "differ"
+   "status": "differ",
+   "item_category": "原版随机刷出（不计真差异）"
   },
   {
    "id": "/d/hangzhou/road14",
@@ -1497,7 +1504,8 @@
      }
     }
    },
-   "status": "differ"
+   "status": "differ",
+   "item_category": "固定对象缺失（真差异）"
   },
   {
    "id": "/d/hangzhou/suti3",
@@ -2925,7 +2933,8 @@
      "repl": {}
     }
    },
-   "status": "differ"
+   "status": "differ",
+   "item_category": "原版随机刷出（不计真差异）"
   },
   {
    "id": "/d/hangzhou/tulu1",
@@ -3913,7 +3922,8 @@
      }
     }
    },
-   "status": "differ"
+   "status": "differ",
+   "item_category": "原版随机刷出（不计真差异）"
   },
   {
    "id": "/d/jiaxing/jnroad3",
@@ -6709,7 +6719,8 @@
      }
     }
    },
-   "status": "differ"
+   "status": "differ",
+   "item_category": "short 命名规则不同（原版随机命名，不计真差异）"
   },
   {
    "id": "/d/shiliang/fang1",
@@ -7345,7 +7356,8 @@
      }
     }
    },
-   "status": "differ"
+   "status": "differ",
+   "item_category": "short 命名规则不同（原版随机命名，不计真差异）"
   },
   {
    "id": "/d/shiliang/yuanzi",

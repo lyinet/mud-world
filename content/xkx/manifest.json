@@ -61,11 +61,12 @@
       "table": "npcs"
     }
   ],
-  "content_hash": "0a386f88f786091bf245a20a6b364420223fcde69c7737bc4b8f9f8170228f2d",
+  "content_hash": "97ba39e7b6144ea959509d011e51ab3be490c017f1f3bf24c2ea51aa0b336d34",
   "counts": {
     "aggressive_npcs": 7,
-    "attrs_roll_fields": 66,
-    "attrs_roll_fields_in_slice": 51,
+    "attrs_derive_fields": 33,
+    "attrs_roll_fields": 595,
+    "attrs_roll_fields_in_slice": 525,
     "desc_authored_items": 7,
     "desc_authored_npcs": 4,
     "dialogue_fallback_with_reason": 12,
@@ -93,10 +94,12 @@
     "masters": 22,
     "npcs_beast_attrs_roll": 2,
     "npcs_external": 13,
+    "npcs_human_attrs_roll": 92,
     "npcs_in_slice": 92,
     "npcs_no_drops": 102,
-    "npcs_with_attrs_roll": 13,
-    "npcs_with_attrs_roll_in_slice": 10,
+    "npcs_with_attrs_derive": 33,
+    "npcs_with_attrs_roll": 105,
+    "npcs_with_attrs_roll_in_slice": 92,
     "npcs_with_drops": 3,
     "quests_dynamic": 2,
     "quests_dynamic_outside_slice": 69,
@@ -229,7 +232,8 @@
     },
     "dialogue_fallback": "kind=fallback 且带 fallback_reason 表示原版函数体含条件/状态/物品/教学，不能压成固定文本；fallback_source 指向函数定义行。loader 只保留主题键，不得伪造台词。",
     "item_apply": "apply 是原版 armor_prop/*、weapon_prop/* 以及 init_<武器>(damage) 映射后的 apply/<key> 加成；整数字面量直接搬运，表达式放 apply_expr 且值为 null，未识别键保留原样并进 apply_unknown_keys/diagnostics。apply_source 逐键给源码行，兵器伤害另给 base_path/base_line。",
-    "npc_attrs_roll": "attrs_roll[attr]=[min,max] 是原版种族 setup 的 random(N)+M 掷骰区间（闭区间）；仅当该属性没有被显式 set 时出现。引擎必须按创世种子生成随机值，不得取 min/max 或中位数写死。attrs_roll_source 为每个区间的源码文件与行号。",
+    "npc_attrs_derive": "attrs_derive[attr] 是原版 setup 的派生属性，不是掷骰：目前只有人类 int = 80 - str - con - dex（human.lpc:63）。引擎在掷点/显式值之后按 difference 规则计算；缺任一被减项时不派生。",
+    "npc_attrs_roll": "attrs_roll[attr]=[min,max] 是原版种族 setup 的 random(N)+M 掷骰区间（闭区间）；仅当该属性没有被显式 set 时出现。人类种族按 human.lpc:60-68 掷 str/con/dex/per/kar/sta/cps/cor。引擎必须按创世种子生成随机值，不得取 min/max 或中位数写死。attrs_roll_source 为每个区间的源码文件与行号。",
     "npc_drops": {
       "chance": "1.0 表示原版必掉；小于 1 由源码 random 条件折算；null 表示无法静态折算，必须读 chance_expr。",
       "chance_expr": "源码概率条件原文；null 表示原版没有概率判定。",
@@ -267,8 +271,8 @@
       "sha256": "777eb32e56644445bef2d4eb9672cc2667caa0ec6662d85722bb9a299d130490"
     },
     "npcs.json": {
-      "bytes": 215100,
-      "sha256": "dbad9066c10da16c9a97d1293142442f396e57c940da01c75963a2b2e04ff4b3"
+      "bytes": 331436,
+      "sha256": "e27a53eae3a69007ce32c9d3bfa9a8f4e046c1efd4ffb007f72b960b6cc44c78"
     },
     "quests.json": {
       "bytes": 5569,
@@ -299,8 +303,8 @@
       "sha256": "4f059d1cb3c991a138fd9dc658548de736e0cd2671bc3074155b6f592b44db1e"
     },
     "summary.json": {
-      "bytes": 4642,
-      "sha256": "cf1a29158219e7f6e9b1113a425be3d1f7e1a6a0a64f742015b7c005d987903e"
+      "bytes": 4743,
+      "sha256": "68a6038fc5469c2307982218bee0e7e3d369c87c8fe97729250ae3c3fb49cbd0"
     }
   },
   "generator": "tools/xkx_extract",

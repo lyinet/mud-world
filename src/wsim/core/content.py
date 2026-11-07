@@ -77,6 +77,12 @@ class Content:
     # 同模板多实例（原版房间 `objects` 的 count > 1）：只记录额外实例，
     # 第一个实例仍用模板 id。为空时（旧九地点）不进 content_hash。
     npc_instances: list[dict[str, Any]] = field(default_factory=list)
+    # 店铺 NPC 映射（内容包 `shops.json` 的 npc → shop）。只供 NPC 游走过滤，
+    # 不进 content_hash：旧内容包保持空字典，哈希不变。
+    shop_by_npc: dict[str, dict[str, Any]] = field(default_factory=dict)
+    # 任务引用的 NPC（`quests.json` 的 giver/target/npc）。同样只供游走过滤，
+    # 不进 content_hash。
+    quest_npc_refs: set[str] = field(default_factory=set)
 
     @property
     def content_hash(self) -> str:
