@@ -567,3 +567,42 @@ class JumpAction(Action):
             ),
         ]
 
+
+class ReviveAction(Action):
+    verb = "revive"
+    aliases = ("resurrect", "huanyang")
+
+    def __init__(self, content):
+        self.content = content
+
+    def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
+        player = state.entities.get(intent.actor)
+        if player is None:
+            raise Reject("unknown_actor")
+        if player.status != "dead":
+            raise Reject("not_dead")
+        if player.location != DEATH_GATE:
+            raise Reject("not_in_ghost_gate")
+        return []
+
+    def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
+        player = state.entities[intent.actor]
+        home = player.home or player.death_location or ""
+        if not home:
+            raise Reject("no_revival_location")
+        effects: list[Effect] = [
+            # 原版 reincarnate()：气/精恢复满值、状态回到 alive。
+            Effect("revive", {"entity": player.id, "hp": int(player.max_hp)}),
+            Effect("set_field", {"entity": player.id, "field": "location", "value": home}),
+            Effect(
+                "growth_log",
+                {
+                    "action": "revive",
+                    "from": DEATH_GATE,
+                    "to": home,
+                    "death_count": int(player.death_count),
+                    "death_location": player.death_location,
+                },
+            ),
+        ]
+        return effects

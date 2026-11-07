@@ -118,6 +118,9 @@ EFFECT_OPS = frozenset(
         # 成长线（学习/练习）：潜能消耗与已消耗学习点账本。
         "potential_spend",
         "learned_points_add",
+        # 原版 die()/killer_reward 的玩家死亡结算与只读死亡明细。
+        "player_death",
+        "death_log",
         # 成长明细（拜师/学习/练习）：只读，随事件持久化。
         "growth_log",
         # 只读战报载体（与 shop_report 同类）：不修改状态，只把 rounds[] 写进事件。
@@ -619,7 +622,36 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         ent.learned_points = max(0, int(ent.learned_points) + _as_int(d["delta"], "delta"))
         return
 
-    if op in ("combat_log", "growth_log"):
+    if op == "player_death":
+        # 原版 die()/killer_reward() 的死亡后果，逐条照搬，不额外加码：
+        #   1) combat_exp -= combat_exp/50（C 整数除法）
+        #   2) potential 高于 learned_points 时，potential += (learned_points-potential)/2
+        #   3) skill_death_penalty：每门已学技能等级 -1，熟练度清零；归零则删条目
+        #   4) 死亡计数 +1
+        ent = _entity(state, str(d["entity"]))
+        if ent.status != "dead":
+            raise EffectError(f"实体未死亡，不能结算死亡后果: {ent.id}")
+        exp_before = int(ent.combat_exp)
+        exp_loss = exp_before // 50
+        ent.combat_exp = max(0, exp_before - exp_loss)
+        if ent.potential > ent.learned_points:
+            # C 语言整数除法向零截断，Python 的 / 配合 int() 才能逐值一致。
+            ent.potential = max(0, int(ent.potential) + int((ent.learned_points - ent.potential) / 2))
+        for skill in sorted(set(ent.skill_levels) | set(ent.skill_xp)):
+            level = int(ent.skill_levels.get(skill, 0))
+            xp = int(ent.skill_xp.get(skill, 0))
+            if level <= 0 and xp <= 0:
+                continue
+            level -= 1
+            ent.skill_xp.pop(skill, None)
+            if level <= 0:
+                ent.skill_levels.pop(skill, None)
+            else:
+                ent.skill_levels[skill] = level
+        ent.death_count = int(ent.death_count) + 1
+        return
+
+    if op in ("combat_log", "growth_log", "death_log"):
         # 只读战报：rounds[]/成长明细随事件持久化，回放时不改状态。
         return
 

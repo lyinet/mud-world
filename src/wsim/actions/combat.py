@@ -14,6 +14,7 @@ from ..core.models import Effect, Intent
 from ..sim.combat_rules import MAX_ROUNDS, simulate_fight
 from ..sim.spawn import spawn_effects
 from ..world.state import WorldState
+from .growth import DEATH_GATE
 from .registry import Action
 
 
@@ -113,6 +114,64 @@ class FightAction(Action):
                     Effect(
                         op="player_presence",
                         data={"id": str(ent.id), "presence": "custody", "tick": int(intent.tick)},
+                    )
+                )
+                # 原版 die()：清点死亡后果（掉经验/掉技能/掉潜能/死亡计数），
+                # 并把玩家移入鬼门关。鬼门关不存在时（旧九地点世界）只记状态。
+                if DEATH_GATE in state.locations:
+                    effects.append(
+                        Effect(
+                            op="set_field",
+                            data={"entity": ent.id, "field": "location", "value": DEATH_GATE},
+                        )
+                    )
+                exp_loss = int(ent.combat_exp) // 50
+                pot_after = int(ent.potential)
+                if pot_after > int(ent.learned_points):
+                    pot_after = max(0, pot_after + int((ent.learned_points - pot_after) / 2))
+                lost_skills = sorted(
+                    sid
+                    for sid in set(ent.skill_levels) | set(ent.skill_xp)
+                    if int(ent.skill_levels.get(sid, 0)) > 0 or int(ent.skill_xp.get(sid, 0)) > 0
+                )
+                effects.append(Effect(op="player_death", data={"entity": ent.id}))
+                # 原版 make_corpse 直接把随身物品留在死亡地点；引擎不建模尸体，
+                # 先摘下已装备物品再按背包总量落地，避免双计。
+                for slot in sorted(ent.equipped):
+                    effects.append(
+                        Effect(op="unequip", data={"entity": ent.id, "slot": slot})
+                    )
+                drops: dict[str, int] = {
+                    str(item): int(qty) for item, qty in ent.inventory.items() if int(qty) > 0
+                }
+                for item in ent.equipped.values():
+                    if item:
+                        drops[str(item)] = drops.get(str(item), 0) + 1
+                for item in sorted(drops):
+                    effects.append(
+                        Effect(
+                            op="loot_create",
+                            data={"location": str(ent.death_location or ent.location), "item": item, "qty": drops[item], "reason": "death"},
+                        )
+                    )
+                    effects.append(
+                        Effect(op="item_consume", data={"owner": ent.id, "item": item, "qty": drops[item]})
+                    )
+                effects.append(
+                    Effect(
+                        op="death_log",
+                        data={
+                            "entity": ent.id,
+                            "death_location": str(ent.death_location or ent.location),
+                            "exp_loss": exp_loss,
+                            "combat_exp_before": int(ent.combat_exp),
+                            "combat_exp_after": max(0, int(ent.combat_exp) - exp_loss),
+                            "potential_loss": max(0, int(ent.potential) - pot_after),
+                            "potential_after": pot_after,
+                            "skills_lost": lost_skills,
+                            "death_count": int(ent.death_count) + 1,
+                            "dropped": sorted(drops),
+                        },
                     )
                 )
 

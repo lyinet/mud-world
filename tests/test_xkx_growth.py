@@ -11,10 +11,18 @@ from pathlib import Path
 import pytest
 import yaml
 
-from wsim.actions.growth import BaiAction, ClimbAction, JumpAction, LearnAction, PracticeAction
+from wsim.actions.growth import (
+    DEATH_GATE,
+    BaiAction,
+    ClimbAction,
+    JumpAction,
+    LearnAction,
+    PracticeAction,
+    ReviveAction,
+)
 from wsim.api import WorldSession
 from wsim.api.xkx_content import load_xkx_content
-from wsim.core.models import Intent, Reject
+from wsim.core.models import Effect, Intent, Reject
 from wsim.core.rng import PRNG
 from wsim.world.effects import apply_effects
 from wsim.world.state import Entity, WorldState
@@ -447,3 +455,103 @@ def test_climb_and_jump_real_session_rejections_and_jump_to_lake(tmp_path):
         assert fish, "落湖后应遇到噬人鱼（夜明珠掉落来源）"
     finally:
         tingzi.close()
+
+
+# ------------------------------------------------------------ 死亡与复活（die / revive）
+
+
+def test_player_death_effect_matches_source_formula(xkx_content):
+    state = WorldState(locations={DEATH_GATE: {"id": DEATH_GATE, "name": "鬼门关", "exits": []}})
+    player = Entity(
+        id="player:p",
+        name="游侠儿",
+        role="player",
+        location="/d/shiliang/huli",
+        home=JIULOU,
+        status="dead",
+        hp=0.0,
+        max_hp=100.0,
+        combat_exp=250,
+        potential=99,
+        learned_points=0,
+        skill_levels={"dodge": 10, "unarmed": 40},
+        skill_xp={"dodge": 5},
+    )
+    state.entities[player.id] = player
+    apply_effects(state, [Effect(op="player_death", data={"entity": player.id})])
+    ent = state.entities[player.id]
+    # die()/killer_reward：exp -= exp/50；potential 向 learned_points 收敛一半；
+    # 每门技能 -1 且熟练度清零；死亡计数 +1。
+    assert ent.combat_exp == 245
+    assert ent.potential == 50
+    assert ent.skill_levels == {"dodge": 9, "unarmed": 39}
+    assert ent.skill_xp == {}
+    assert ent.death_count == 1
+
+
+def test_revive_requires_death_and_ghost_gate(xkx_content):
+    state = WorldState(
+        locations={
+            DEATH_GATE: {"id": DEATH_GATE, "name": "鬼门关", "exits": []},
+            JIULOU: {"id": JIULOU, "name": JIULOU, "exits": []},
+        }
+    )
+    action = ReviveAction(xkx_content)
+    alive = Entity(id="player:p", name="游侠儿", role="player", location=JIULOU, home=JIULOU, status="alive", hp=100.0, max_hp=100.0)
+    state.entities[alive.id] = alive
+    with pytest.raises(Reject) as err:
+        action.preconditions(state, _intent(alive.id, "revive"))
+    assert err.value.reason == "not_dead"
+
+    dead = Entity(id="player:q", name="游侠儿", role="player", location=JIULOU, home=JIULOU, status="dead", hp=0.0, max_hp=100.0, death_count=1)
+    state.entities[dead.id] = dead
+    with pytest.raises(Reject) as err:
+        action.preconditions(state, _intent(dead.id, "revive"))
+    assert err.value.reason == "not_in_ghost_gate"
+
+    ghost = Entity(id="player:g", name="游侠儿", role="player", location=DEATH_GATE, home=JIULOU, status="dead", hp=0.0, max_hp=100.0, death_count=1)
+    state.entities[ghost.id] = ghost
+    intent = _intent(ghost.id, "revive")
+    action.preconditions(state, intent)
+    apply_effects(state, action.apply(state, intent, None))
+    ent = state.entities[ghost.id]
+    assert ent.status == "alive"
+    assert ent.hp == 100.0
+    assert ent.location == JIULOU
+    assert ent.death_count == 1
+
+
+def test_combat_death_and_revive_real_session(tmp_path):
+    session = WorldSession(
+        ROOT, run_id="xkx-death", seed=42, npc_limit=0, run_dir=tmp_path / "run",
+        content_root=XKX_CONTENT, world_config=WORLD_CONFIG, spawn="/d/shiliang/huli",
+    )
+    try:
+        _cmd(session, "look")
+        result = _cmd(session, "fight 噬人鱼")
+        assert result["ok"] is True, _texts(result)
+        assert "鬼门关" in _texts(result)
+        assert "死亡计数：1" in _texts(result)
+        player = session.state.entities[f"player:{ACCOUNT}"]
+        assert player.status == "dead"
+        assert player.location == DEATH_GATE
+        assert player.death_count == 1
+        assert player.combat_exp == 245
+        assert player.skill_levels == {"dodge": 9, "parry": 9, "unarmed": 39}
+
+        # 尸体留在死亡地点，可从地面捡回。
+        ground = session.state.ground.get("/d/shiliang/huli", {})
+        assert {"coarse_cloth", "flatbread"} <= set(ground)
+
+        result = _cmd(session, "还阳")
+        assert result["ok"] is True
+        player = session.state.entities[f"player:{ACCOUNT}"]
+        assert player.status == "alive"
+        assert player.location == "/d/shiliang/huli"
+        assert player.hp == player.max_hp
+
+        result = _cmd(session, "还阳")
+        assert result["ok"] is False
+        assert "还活着" in _texts(result)
+    finally:
+        session.close()

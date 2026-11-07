@@ -201,6 +201,7 @@ _EXTRA_REASON_TEXT = {
     "jump_target_unknown": "你要跳向什么？原版这里只有木桩。",
     "not_dead": "你还活着，不必还阳。",
     "not_in_ghost_gate": "你不在鬼门关，无法还阳。",
+    "no_revival_location": "找不到可以还阳的地点。",
 }
 
 
