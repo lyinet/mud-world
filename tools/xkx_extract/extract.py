@@ -1308,6 +1308,11 @@ class Extractor:
             "skill_action_entries": self.skill_counts.get("action_entries", 0),
             "skill_special_actions": self.skill_counts.get("special_actions", 0),
             "skill_action_gaps": self.skill_counts.get("action_gaps", 0),
+            "skill_action_gap_skills": self.skill_counts.get("action_gap_skills", 0),
+            "skill_action_gap_fields": self.skill_counts.get("action_gap_fields", 0),
+            "skill_coefficient_inherited_defaults": self.skill_counts.get(
+                "coefficient_inherited_defaults", 0
+            ),
             "skill_action_unresolved": self.skill_counts.get("unresolved_action_skills", 0),
             "skill_stat_rows": self.skill_counts.get("stat_rows", 0),
             "skill_stat_default_fields": self.skill_counts.get("stat_default_fields", 0),

@@ -50,6 +50,26 @@ HOOK_NAMES = (
 
 COEFF_KEYS = ("dodge", "parry", "force", "damage")
 
+# LPC mapping 缺键取 0 的直接证据：combatd 只在系数为真值时分支。
+COEFF_SEMANTICS = {
+    "dodge": {
+        "path": "adm/daemons/combatd.lpc", "line": 334,
+        "expression": 'if (action["dodge"])',
+    },
+    "parry": {
+        "path": "adm/daemons/combatd.lpc", "line": 396,
+        "expression": 'if (action["parry"])',
+    },
+    "damage": {
+        "path": "adm/daemons/combatd.lpc", "line": 442,
+        "expression": 'if (action["damage"])',
+    },
+    "force": {
+        "path": "adm/daemons/combatd.lpc", "line": 482,
+        "expression": 'if (action["force"])',
+    },
+}
+
 
 def _read(src_root: str, rel_path: str) -> str | None:
     try:
@@ -65,6 +85,30 @@ def _read(src_root: str, rel_path: str) -> str | None:
 
 def _line_at(text: str, idx: int) -> int:
     return text.count("\n", 0, max(0, idx)) + 1
+
+
+def _inherit_targets(text: str) -> list[str]:
+    out = []
+    for line in text.splitlines():
+        m = re.match(r"\s*inherit\s+([^;]+);", line)
+        if not m:
+            continue
+        raw = m.group(1).strip()
+        if raw == "SKILL":
+            out.append("inherit/skill/skill.lpc")
+            continue
+        raw = raw.strip('"').lstrip("/")
+        if not raw.endswith(".lpc"):
+            raw += ".lpc"
+        out.append(raw)
+    return out
+
+
+def _inherited_query_action(src_root: str, text: str) -> tuple[list[str], list[str]]:
+    """检查 inherit 链上是否还有 query_action；有则意味着可能隐式继承。"""
+    targets = _inherit_targets(text)
+    owner_paths = [p for p in targets if re.search(r"mapping\s+query_action\s*\(", _read(src_root, p) or "")]
+    return targets, owner_paths
 
 
 def _lpc_div(a: int, b: int) -> int | None:
@@ -411,6 +455,8 @@ def _extract_actions(src_root, skill):
     for index, (start, entry) in enumerate(entries):
         coeffs = {}
         source_kinds = {}
+        default_details = {}
+        entry_line = _line_at(text, start)
         if model and model["mode"] == "linear_seq":
             for key, meta in _coeffs_from_block(
                 returns[-1][1] if returns else ""
@@ -433,6 +479,14 @@ def _extract_actions(src_root, skill):
                 coeffs[key] = 0
                 source_kinds[key] = "default"
                 missing_keys.add(key)
+                default_details[key] = {
+                    "kind": "lpc_missing",
+                    "path": rel_path,
+                    "line": entry_line,
+                    "semantics_path": COEFF_SEMANTICS[key]["path"],
+                    "semantics_line": COEFF_SEMANTICS[key]["line"],
+                    "inherited_from": None,
+                }
         elif model and model["mode"] == "embedded":
             for key in COEFF_KEYS:
                 value = entry.get(key)
@@ -446,11 +500,27 @@ def _extract_actions(src_root, skill):
                     coeffs[key] = 0
                     source_kinds[key] = "default"
                     missing_keys.add(key)
+                    default_details[key] = {
+                        "kind": "lpc_missing",
+                        "path": rel_path,
+                        "line": entry_line,
+                        "semantics_path": COEFF_SEMANTICS[key]["path"],
+                        "semantics_line": COEFF_SEMANTICS[key]["line"],
+                        "inherited_from": None,
+                    }
         else:
             for key in COEFF_KEYS:
                 coeffs[key] = 0
                 source_kinds[key] = "default"
                 missing_keys.add(key)
+                default_details[key] = {
+                    "kind": "lpc_missing",
+                    "path": rel_path,
+                    "line": entry_line,
+                    "semantics_path": COEFF_SEMANTICS[key]["path"],
+                    "semantics_line": COEFF_SEMANTICS[key]["line"],
+                    "inherited_from": None,
+                }
 
         name = _text(entry.get("skill_name") or entry.get("skills_name"))
         if not name:
@@ -476,7 +546,8 @@ def _extract_actions(src_root, skill):
             "damage_types": _types_from(entry.get("damage_type")),
             "coefficients": coeffs,
             "coefficient_source": source_kinds,
-            "source": {"path": rel_path, "line": _line_at(text, start)},
+            "coefficient_source_detail": default_details,
+            "source": {"path": rel_path, "line": entry_line},
         })
 
     if model and model["mode"] == "unresolved":
@@ -486,11 +557,45 @@ def _extract_actions(src_root, skill):
             "message": "招式系数既非内嵌常量、也无法按源码公式推导，未编造系数",
             "id": skill["id"],
         })
+    missing_field_count = sum(len(a["coefficient_source_detail"]) for a in actions)
+    default_basis = None
+    if missing_keys:
+        inherits, parent_owners = _inherited_query_action(src_root, text)
+        default_basis = {
+            "semantics": "lpc_mapping_missing_key_is_zero",
+            "source_kind": "lpc",
+            "checks": [
+                {
+                    "coefficient": key,
+                    "kind": "lpc",
+                    "path": COEFF_SEMANTICS[key]["path"],
+                    "line": COEFF_SEMANTICS[key]["line"],
+                    "expression": COEFF_SEMANTICS[key]["expression"],
+                }
+                for key in COEFF_KEYS
+            ],
+            "inherited_defaults": [],
+            "inherited_check": {
+                "inherits": inherits,
+                "parent_query_action_sources": parent_owners,
+                "has_implicit_default": bool(parent_owners),
+                "basis": (
+                    "每个动作条目缺键时 LPC mapping 取 0；combatd 仅在 action[field] 为真时生效，"
+                    "显式 0 与缺键等价；inherit 链没有 query_action，不存在父技能隐式系数"
+                    if not parent_owners else
+                    "inherit 链存在 query_action，需人工核对是否覆盖缺键"
+                ),
+            },
+        }
+
     for key in sorted(missing_keys):
         diags.append({
             "rule": "W_ACTION_COEFF_DEFAULT", "severity": "warning",
             "path": rel_path, "line": action_line or skill["source"]["line"],
-            "message": f"query_action 未返回 \"{key}\"，按 LPC 缺键取 0（引擎默认值）",
+            "message": (
+                f"query_action 未返回 \"{key}\"，LPC mapping 缺键取 0；"
+                f"combatd.lpc:{COEFF_SEMANTICS[key]['line']} 仅在 action[\"{key}\"] 为真时生效"
+            ),
             "id": skill["id"], "coefficient": key,
         })
 
@@ -502,6 +607,8 @@ def _extract_actions(src_root, skill):
         "action_count": len(actions),
         "coefficient_model": model,
         "coefficient_gaps": sorted(missing_keys),
+        "coefficient_gap_fields": missing_field_count,
+        "coefficient_default_basis": default_basis,
         "actions": actions,
         "special_actions": specials,
         "source": skill["source"],
@@ -829,6 +936,9 @@ def extract_skill_tables(src_root, skills, npcs):
         "action_entries": 0,
         "special_actions": 0,
         "action_gaps": 0,
+        "action_gap_skills": 0,
+        "action_gap_fields": 0,
+        "coefficient_inherited_defaults": 0,
         "unresolved_action_skills": 0,
         "stat_rows": 0,
         "stat_default_fields": 0,
@@ -854,6 +964,13 @@ def extract_skill_tables(src_root, skills, npcs):
                 counts["action_entries"] += action_entry["action_count"]
             counts["special_actions"] += len(action_entry["special_actions"])
             counts["action_gaps"] += len(action_entry["coefficient_gaps"])
+            counts["action_gap_fields"] += action_entry.get("coefficient_gap_fields", 0)
+            if action_entry["coefficient_gaps"]:
+                counts["action_gap_skills"] += 1
+            basis = action_entry.get("coefficient_default_basis") or {}
+            counts["coefficient_inherited_defaults"] += len(
+                basis.get("inherited_defaults") or []
+            )
             if action_entry["coefficient_model"] and action_entry["coefficient_model"]["mode"] == "unresolved":
                 counts["unresolved_action_skills"] += 1
 
@@ -902,7 +1019,13 @@ def extract_skill_tables(src_root, skills, npcs):
         if action_entry and action_entry["coefficient_gaps"]:
             stats["gaps"].append({
                 "kind": "action_coefficient_default",
-                "detail": "缺 " + ",".join(action_entry["coefficient_gaps"]) + "，按 0",
+                "detail": (
+                    "缺 " + ",".join(action_entry["coefficient_gaps"])
+                    + "，按 LPC 缺键取 0；combatd 仅在真值时生效；inherit 链无 query_action"
+                ),
+                "fields": list(action_entry["coefficient_gaps"]),
+                "missing_key_count": action_entry.get("coefficient_gap_fields", 0),
+                "source_kind": "lpc",
             })
         if apply_source == "default":
             counts["stat_default_fields"] += 1

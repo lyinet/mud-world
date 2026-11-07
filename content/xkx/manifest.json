@@ -61,7 +61,7 @@
       "table": "npcs"
     }
   ],
-  "content_hash": "e595fb98f4a604f74d77cb5d7233213ee849cbff89a3f2ec7600786e430b8b4e",
+  "content_hash": "90fa64d0cfcdcba0f956bbe2a63d913808c152d4084b3a5815fd10e52d1a22fc",
   "counts": {
     "aggressive_npcs": 7,
     "attrs_roll_fields": 66,
@@ -95,9 +95,12 @@
     "sects": 1,
     "shops": 3,
     "skill_action_entries": 247,
+    "skill_action_gap_fields": 126,
+    "skill_action_gap_skills": 10,
     "skill_action_gaps": 11,
     "skill_action_skills": 22,
     "skill_action_unresolved": 0,
+    "skill_coefficient_inherited_defaults": 0,
     "skill_special_actions": 4,
     "skill_stat_default_fields": 48,
     "skill_stat_rows": 48,
@@ -184,6 +187,7 @@
     "total": "玩家可见描述完整性：含 authored，必须 100%。"
   },
   "field_semantics": {
+    "action_coefficient_default": "动作条目缺 damage/parry/force/dodge 键时按 LPC mapping 取 0；coefficient_source_detail 给出条目行号与 combatd.lpc 语义行号；coefficient_default_basis 给出四键证据及 inherit 链检查（inherited_defaults 为空即无父技能隐式默认）。",
     "desc": "玩家可见描述文本（房间 short/long 中的 long、物品/NPC 的 long）。",
     "desc_source": {
       "authored": "原版缺 long，由本项目按原版器物/身份常识自撰，不计入 source 覆盖率，只计入 total 覆盖率。",
@@ -211,8 +215,8 @@
   },
   "files": {
     "diagnostics.jsonl": {
-      "bytes": 20537,
-      "sha256": "b22f9f39f313fc33447dcb34a6703897f4d10e3983085dcbc4a62a81c4409a37"
+      "bytes": 21007,
+      "sha256": "4a58e5beac93777b67ba579889aebc404ce40b527e7773214882c34da84fde4a"
     },
     "dialogue.json": {
       "bytes": 26396,
@@ -247,16 +251,16 @@
       "sha256": "60c825b86644093c88862bd5e95c11cae30b3f4f4397ab1430d5a9acc89f17ae"
     },
     "skills_actions.json": {
-      "bytes": 259082,
-      "sha256": "4efa730061a22e4c6214da2dd2c4005b2d40e8197adddfa29953e97d41567406"
+      "bytes": 324968,
+      "sha256": "15aca57793aab808ead1916391f42e3d39f7ef6c583bbd868a7631bcc99612e7"
     },
     "skills_stats.json": {
-      "bytes": 190472,
-      "sha256": "79f507b476c52d101cc2b7c12ec8eb14d144c1b2183f403241d2ed0fd3e52f09"
+      "bytes": 192476,
+      "sha256": "4f059d1cb3c991a138fd9dc658548de736e0cd2671bc3074155b6f592b44db1e"
     },
     "summary.json": {
-      "bytes": 3158,
-      "sha256": "8ff6451f5d35bed4afc85986a6a812c60fa100e2e5c9d4ae0a1b34a7a6a445b5"
+      "bytes": 3276,
+      "sha256": "3f77f5653f7f9228ec31b2e12c9db4b3cd96819138e9914edafbada4aedeacba"
     }
   },
   "generator": "tools/xkx_extract",

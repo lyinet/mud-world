@@ -367,7 +367,9 @@
 | `effects` | array | perform 附加效果，见 9.4 |
 | `actions` | array | 普通招式，见 9.5 |
 | `special_actions` | array | 特殊分支招式，见 9.6 |
-| `coefficient_gaps` | string[] | 源码缺键的系数名；对应 `default`，引擎按 0 |
+| `coefficient_gaps` | string[] | 源码缺键的系数名（按技能去重）；对应 `default`，引擎按 0 |
+| `coefficient_gap_fields` | int | 该技能所有动作条目里缺键的总次数（用于核对 126） |
+| `coefficient_default_basis` | object \| null | 缺键取 0 的源码证据与 inherit 链检查，见 9.7 |
 | `source` | object | 源码位置 |
 
 ### 9.2 `coefficient_model`
@@ -391,6 +393,8 @@
 | `parry` | 修正受害者招架 `pp` 的百分比：`pp = (100 + parry) * pp / 100` |
 | `force` | 命中后 `damage_bonus += force * damage_bonus / 200` |
 | `damage` | 兵器基础伤害 `damage += damage * damage / 200`；拳脚招式没有这一项（缺键即 0） |
+
+以上四项在 `combatd.lpc` 中都是 `if (action["…"])` 为真才生效（334/396/442/482 行）；LPC mapping 缺键取值 0，与写死 0 完全等价，不是“漏抽”。
 
 ### 9.3 `requirements`
 
@@ -440,6 +444,7 @@
 - `skill_level_required`：原版 `lvl`，低于此等级不会入选。
 - `text` 是可直接展示的文案；`text_expr` 是含 `order[random(13)]` 等动态片段的原版表达式（`text_source="derived"`），引擎想要逐字复刻时用它，否则用 `text`。
 - `damage_types`：原版 `damage_type`，如 `["割伤"]`；空数组表示未限定。
+- `coefficient_source_detail`：只对 `default` 键出现的逐键溯源，格式见 9.7；`lpc`/`derived` 键继续用 `coefficient_source` + 条目 `source` 行号。
 
 ### 9.6 `special_actions[]`
 
@@ -455,6 +460,48 @@
 - 原版 `query_action` 里 `if` 分支直接返回的招式，不走线性插值。
 - `coefficients` 的值为 int 或 `{min,max}`；后者原版是随机区间，引擎取该区间内随机整数。
 - `condition` 是原版条件表达式原文，`condition_source="lpc"`；引擎可选择实现或忽略，但不得改写成别的条件。
+
+### 9.7 126 个缺系数招式的核对结论
+
+`skills_actions.json` 共 126 个“招式 × 缺键”组合（10 个技能、113 个动作条目），当前全部 `coefficient_source=default`、值 `0`。逐条核对 LPC 语义后确认：**“缺键＝0”正确，原版没有可继承的隐式默认，因此不改标 `inherited`**。
+
+证据：
+
+1. `combatd.lpc` 对四个系数的使用都是真值判断：`if (action["dodge"])`（334）、`if (action["parry"])`（396）、`if (action["damage"])`（442）、`if (action["force"])`（482）。LPC mapping 读不存在的键返回 0，`if (0)` 不执行，与条目里显式写 `0` 完全等价。
+2. 10 个技能都在本文件内定义 `mapping query_action(...)`，逐个覆盖父类；`inherit SKILL;` 与 `jingang-quan` 的 `inherit "/inherit/skill/cuff.lpc";` 链上（`inherit/skill/skill.lpc`、`inherit/skill/cuff.lpc`）都没有 `query_action`，不存在“父技能补系数”。
+3. 因此 `inherited_defaults=[]`、`has_implicit_default=false` 是核对结果，不是省略。
+
+机器可读字段：
+
+```json
+"coefficient_default_basis": {
+  "semantics": "lpc_mapping_missing_key_is_zero",
+  "source_kind": "lpc",
+  "checks": [
+    {"coefficient":"damage","kind":"lpc","path":"adm/daemons/combatd.lpc",
+     "line":442,"expression":"if (action[\"damage\"])"}
+  ],
+  "inherited_defaults": [],
+  "inherited_check": {
+    "inherits": ["inherit/skill/skill.lpc"],
+    "parent_query_action_sources": [],
+    "has_implicit_default": false,
+    "basis": "..."
+  }
+}
+```
+
+每个动作条目的 `coefficient_source_detail`：
+
+```json
+"damage": {"kind":"lpc_missing","path":"kungfu/skill/houquan.lpc","line":10,
+           "semantics_path":"adm/daemons/combatd.lpc","semantics_line":442,
+           "inherited_from":null}
+```
+
+- `path`/`line`：缺键所在动作条目起始行。
+- `semantics_path`/`semantics_line`：`combatd` 真值判断行。
+- `inherited_from`：null 表示没有父技能来源；若将来发现继承默认，这里填父文件路径并改 `coefficient_source="inherited"`。
 
 ## 10. `skills_stats.json` — 技能属性表
 

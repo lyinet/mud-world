@@ -1487,8 +1487,13 @@
       ],
       "gaps": [
         {
-          "detail": "缺 parry，按 0",
-          "kind": "action_coefficient_default"
+          "detail": "缺 parry，按 LPC 缺键取 0；combatd 仅在真值时生效；inherit 链无 query_action",
+          "fields": [
+            "parry"
+          ],
+          "kind": "action_coefficient_default",
+          "missing_key_count": 8,
+          "source_kind": "lpc"
         }
       ],
       "hooks": {
@@ -1622,8 +1627,13 @@
       ],
       "gaps": [
         {
-          "detail": "缺 damage，按 0",
-          "kind": "action_coefficient_default"
+          "detail": "缺 damage，按 LPC 缺键取 0；combatd 仅在真值时生效；inherit 链无 query_action",
+          "fields": [
+            "damage"
+          ],
+          "kind": "action_coefficient_default",
+          "missing_key_count": 6,
+          "source_kind": "lpc"
         }
       ],
       "hooks": {
@@ -2012,8 +2022,13 @@
       ],
       "gaps": [
         {
-          "detail": "缺 damage，按 0",
-          "kind": "action_coefficient_default"
+          "detail": "缺 damage，按 LPC 缺键取 0；combatd 仅在真值时生效；inherit 链无 query_action",
+          "fields": [
+            "damage"
+          ],
+          "kind": "action_coefficient_default",
+          "missing_key_count": 8,
+          "source_kind": "lpc"
         }
       ],
       "hooks": {
@@ -2659,8 +2674,13 @@
       ],
       "gaps": [
         {
-          "detail": "缺 damage，按 0",
-          "kind": "action_coefficient_default"
+          "detail": "缺 damage，按 LPC 缺键取 0；combatd 仅在真值时生效；inherit 链无 query_action",
+          "fields": [
+            "damage"
+          ],
+          "kind": "action_coefficient_default",
+          "missing_key_count": 12,
+          "source_kind": "lpc"
         }
       ],
       "hooks": {
@@ -2795,8 +2815,14 @@
       ],
       "gaps": [
         {
-          "detail": "缺 force,parry，按 0",
-          "kind": "action_coefficient_default"
+          "detail": "缺 force,parry，按 LPC 缺键取 0；combatd 仅在真值时生效；inherit 链无 query_action",
+          "fields": [
+            "force",
+            "parry"
+          ],
+          "kind": "action_coefficient_default",
+          "missing_key_count": 26,
+          "source_kind": "lpc"
         }
       ],
       "hooks": {
@@ -3325,8 +3351,13 @@
       ],
       "gaps": [
         {
-          "detail": "缺 damage，按 0",
-          "kind": "action_coefficient_default"
+          "detail": "缺 damage，按 LPC 缺键取 0；combatd 仅在真值时生效；inherit 链无 query_action",
+          "fields": [
+            "damage"
+          ],
+          "kind": "action_coefficient_default",
+          "missing_key_count": 7,
+          "source_kind": "lpc"
         }
       ],
       "hooks": {
@@ -4105,8 +4136,13 @@
       ],
       "gaps": [
         {
-          "detail": "缺 damage，按 0",
-          "kind": "action_coefficient_default"
+          "detail": "缺 damage，按 LPC 缺键取 0；combatd 仅在真值时生效；inherit 链无 query_action",
+          "fields": [
+            "damage"
+          ],
+          "kind": "action_coefficient_default",
+          "missing_key_count": 30,
+          "source_kind": "lpc"
         }
       ],
       "hooks": {
@@ -5141,8 +5177,13 @@
       ],
       "gaps": [
         {
-          "detail": "缺 damage，按 0",
-          "kind": "action_coefficient_default"
+          "detail": "缺 damage，按 LPC 缺键取 0；combatd 仅在真值时生效；inherit 链无 query_action",
+          "fields": [
+            "damage"
+          ],
+          "kind": "action_coefficient_default",
+          "missing_key_count": 8,
+          "source_kind": "lpc"
         }
       ],
       "hooks": {
@@ -5818,8 +5859,13 @@
       ],
       "gaps": [
         {
-          "detail": "缺 damage，按 0",
-          "kind": "action_coefficient_default"
+          "detail": "缺 damage，按 LPC 缺键取 0；combatd 仅在真值时生效；inherit 链无 query_action",
+          "fields": [
+            "damage"
+          ],
+          "kind": "action_coefficient_default",
+          "missing_key_count": 11,
+          "source_kind": "lpc"
         }
       ],
       "hooks": {
@@ -6090,8 +6136,13 @@
       ],
       "gaps": [
         {
-          "detail": "缺 damage，按 0",
-          "kind": "action_coefficient_default"
+          "detail": "缺 damage，按 LPC 缺键取 0；combatd 仅在真值时生效；inherit 链无 query_action",
+          "fields": [
+            "damage"
+          ],
+          "kind": "action_coefficient_default",
+          "missing_key_count": 10,
+          "source_kind": "lpc"
         }
       ],
       "hooks": {
