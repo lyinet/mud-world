@@ -195,6 +195,7 @@ _EXTRA_REASON_TEXT = {
     "practice_ratio_low": "基本功相对这门技能还太浅，练不上去。",
     "insufficient_stamina": "体力不足 30，练不动了。",
     "climb_wrong_place": "这里没有可以攀爬的树。",
+    "climb_target_unknown": "原版这里只能「climb tree」。",
     "dodge_too_low": "你的轻功还不到 50 级，爬不上去。",
     "jump_wrong_place": "这里不是跳木桩的地方。",
     "jump_target_unknown": "你要跳向什么？原版这里只有木桩。",

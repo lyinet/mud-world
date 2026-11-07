@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from wsim.actions.growth import BaiAction, LearnAction, PracticeAction
+from wsim.actions.growth import BaiAction, ClimbAction, JumpAction, LearnAction, PracticeAction
 from wsim.api import WorldSession
 from wsim.api.xkx_content import load_xkx_content
 from wsim.core.models import Intent, Reject
@@ -327,3 +327,123 @@ def test_practice_rejections_are_explicit(xkx_content):
     with pytest.raises(Reject) as err:
         action.preconditions(state, _intent(player.id, "practice", skill="yunlong-shenfa", times=1))
     assert err.value.reason == "insufficient_combat_exp"
+
+
+# ------------------------------------------------------------- 攀爬 / 跳跃（climb / jump）
+
+GATE = "/d/shiliang/gate"
+TINGZI = "/d/shiliang/tingzi"
+
+
+def _travel_state(loc: str, dodge: int) -> tuple[WorldState, Entity]:
+    spots = [loc, GATE, TINGZI, "/d/shiliang/yuanzi", "/d/shiliang/huli", "/d/shiliang/xiaodao", JIULOU]
+    locations = {spot: {"id": spot, "name": spot, "exits": []} for spot in spots}
+    state = WorldState(locations=locations)
+    player = Entity(
+        id="player:p",
+        name="游侠儿",
+        role="player",
+        location=loc,
+        home=JIULOU,
+        status="alive",
+        skill_levels={"dodge": dodge},
+    )
+    state.entities[player.id] = player
+    return state, player
+
+
+def test_climb_requires_tree_target_and_dodge_50(xkx_content):
+    action = ClimbAction(xkx_content)
+
+    state, player = _travel_state(GATE, 10)
+    with pytest.raises(Reject) as err:
+        action.preconditions(state, _intent(player.id, "climb", arg="tree"))
+    assert err.value.reason == "dodge_too_low"
+
+    state, player = _travel_state(GATE, 60)
+    with pytest.raises(Reject) as err:
+        action.preconditions(state, _intent(player.id, "climb", arg="树"))
+    assert err.value.reason == "climb_target_unknown"
+
+    state, player = _travel_state(JIULOU, 60)
+    with pytest.raises(Reject) as err:
+        action.preconditions(state, _intent(player.id, "climb", arg="tree"))
+    assert err.value.reason == "climb_wrong_place"
+
+    state, player = _travel_state(GATE, 50)
+    intent = _intent(player.id, "climb", arg="tree")
+    action.preconditions(state, intent)
+    apply_effects(state, action.apply(state, intent, None))
+    assert state.entities[player.id].location == "/d/shiliang/yuanzi"
+
+    # 原版 n>=80 是飞身跃过，50-79 是勉强翻墙；两者都到院子。
+    state, player = _travel_state(GATE, 80)
+    effects = action.apply(state, _intent(player.id, "climb", arg="tree"), None)
+    apply_effects(state, effects)
+    log = next(e.data for e in effects if e.op == "growth_log")
+    assert log["graceful"] is True and log["to"] == "/d/shiliang/yuanzi"
+
+
+def test_jump_muzhuang_requires_exact_target_and_sends_to_lake_or_island(xkx_content):
+    action = JumpAction(xkx_content)
+
+    state, player = _travel_state(TINGZI, 10)
+    with pytest.raises(Reject) as err:
+        action.preconditions(state, _intent(player.id, "jump", arg=""))
+    assert err.value.reason == "jump_target_unknown"
+
+    state, player = _travel_state(JIULOU, 60)
+    with pytest.raises(Reject) as err:
+        action.preconditions(state, _intent(player.id, "jump", arg="木桩"))
+    assert err.value.reason == "jump_wrong_place"
+
+    # 原版 dodge < 100 一律踩断木桩落湖，50-99 的描述在此处不额外加门槛。
+    state, player = _travel_state(TINGZI, 60)
+    intent = _intent(player.id, "jump", arg="木桩")
+    action.preconditions(state, intent)
+    effects = action.apply(state, intent, None)
+    apply_effects(state, effects)
+    log = next(e.data for e in effects if e.op == "growth_log")
+    assert state.entities[player.id].location == "/d/shiliang/huli"
+    assert log["fell"] is True and log["landing"] == "湖里"
+
+    state, player = _travel_state(TINGZI, 100)
+    effects = action.apply(state, _intent(player.id, "jump", arg="木桩"), None)
+    apply_effects(state, effects)
+    log = next(e.data for e in effects if e.op == "growth_log")
+    assert state.entities[player.id].location == "/d/shiliang/xiaodao"
+    assert log["fell"] is False and log["landing"] == "小岛"
+
+
+def test_climb_and_jump_real_session_rejections_and_jump_to_lake(tmp_path):
+    gate = WorldSession(
+        ROOT, run_id="xkx-gate", seed=42, npc_limit=0, run_dir=tmp_path / "gate",
+        content_root=XKX_CONTENT, world_config=WORLD_CONFIG, spawn=GATE,
+    )
+    try:
+        result = _cmd(gate, "climb tree")
+        assert result["ok"] is False
+        assert "轻功还不到 50" in _texts(result)
+        result = _cmd(gate, "climb 树")
+        assert result["ok"] is False
+        assert "climb tree" in _texts(result)
+        result = _cmd(gate, "jump 木桩")
+        assert result["ok"] is False
+        assert "不是跳木桩的地方" in _texts(result)
+    finally:
+        gate.close()
+
+    tingzi = WorldSession(
+        ROOT, run_id="xkx-tingzi", seed=42, npc_limit=0, run_dir=tmp_path / "tingzi",
+        content_root=XKX_CONTENT, world_config=WORLD_CONFIG, spawn=TINGZI,
+    )
+    try:
+        result = _cmd(tingzi, "jump 木桩")
+        assert result["ok"] is True, _texts(result)
+        assert "跌进了湖里" in _texts(result)
+        player = tingzi.state.entities[f"player:{ACCOUNT}"]
+        assert player.location == "/d/shiliang/huli"
+        fish = [e for e in tingzi.state.entities.values() if e.location == "/d/shiliang/huli" and "鱼" in e.name]
+        assert fish, "落湖后应遇到噬人鱼（夜明珠掉落来源）"
+    finally:
+        tingzi.close()

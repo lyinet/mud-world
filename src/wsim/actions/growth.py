@@ -478,3 +478,92 @@ class PracticeAction(Action):
             ),
         ]
         return effects
+
+
+class ClimbAction(Action):
+    verb = "climb"
+    aliases = ("climb_tree",)
+
+    def __init__(self, content):
+        self.content = content
+
+    def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
+        player = state.entities.get(intent.actor)
+        if player is None:
+            raise Reject("unknown_actor")
+        if player.status != "alive":
+            raise Reject("actor_not_alive")
+        if player.location != "/d/shiliang/gate":
+            raise Reject("climb_wrong_place")
+        needle = str(intent.args.get("arg") or "").strip()
+        if not needle or needle.lower() != "tree":
+            raise Reject("climb_target_unknown")
+        dodge = int(player.skill_levels.get("dodge", 0))
+        if dodge < 50:
+            raise Reject("dodge_too_low")
+        return []
+
+    def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
+        player = state.entities[intent.actor]
+        dodge = int(player.skill_levels.get("dodge", 0))
+        return [
+            Effect("set_field", {"entity": player.id, "field": "location", "value": "/d/shiliang/yuanzi"}),
+            Effect(
+                "growth_log",
+                {
+                    "action": "climb",
+                    "from": player.location,
+                    "to": "/d/shiliang/yuanzi",
+                    "dodge": dodge,
+                    "requirement": 50,
+                    "graceful": dodge >= 80,
+                },
+            ),
+        ]
+
+
+class JumpAction(Action):
+    verb = "jump"
+    aliases = ("leap",)
+
+    def __init__(self, content):
+        self.content = content
+
+    def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
+        player = state.entities.get(intent.actor)
+        if player is None:
+            raise Reject("unknown_actor")
+        if player.status != "alive":
+            raise Reject("actor_not_alive")
+        if player.location != "/d/shiliang/tingzi":
+            raise Reject("jump_wrong_place")
+        needle = str(intent.args.get("arg") or "").strip()
+        if needle != "木桩":
+            raise Reject("jump_target_unknown")
+        return []
+
+    def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
+        player = state.entities[intent.actor]
+        dodge = int(player.skill_levels.get("dodge", 0))
+        if dodge >= 100:
+            dest = "/d/shiliang/xiaodao"
+            landing = "小岛"
+        else:
+            dest = "/d/shiliang/huli"
+            landing = "湖里"
+        return [
+            Effect("set_field", {"entity": player.id, "field": "location", "value": dest}),
+            Effect(
+                "growth_log",
+                {
+                    "action": "jump",
+                    "from": player.location,
+                    "to": dest,
+                    "landing": landing,
+                    "dodge": dodge,
+                    "requirement": 100,
+                    "fell": dodge < 100,
+                },
+            ),
+        ]
+
