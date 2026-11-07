@@ -43,14 +43,6 @@ KNOWN_APPLY_KEYS = {
     "apply/attack", "apply/defense", "apply/armor", "apply/armor_vs_force",
     "apply/damage", "apply/unarmed_damage", "apply/dodge", "apply/parry",
 }
-
-# P4a（6b798ac）：这两只 NPC 的 <昏迷不醒> 来自参考采集快照的战斗临时态，
-# 原版 LPC 没有静态标记。内容包已显式建模 initial_state；生成器必须保留，
-# 否则重跑会静默回退已交付的创世行为。
-REF_NPC_INITIAL_STATE = {
-    "/d/hangzhou/npc/dushe": "unconcious",
-    "/d/hangzhou/npc/wolfdog": "unconcious",
-}
 _RACE_ATTR_ROLL_RE = re.compile(
     r'if\s*\(\s*undefinedp\(\s*my\[\s*"([a-z]+)"\s*\]\s*\)\s*\)'
     r'\s*my\[\s*"\1"\s*\]\s*=\s*random\(\s*(\d+)\s*\)\s*\+\s*(\d+)\s*;'
@@ -992,7 +984,7 @@ class Extractor:
                 vitals[key] = values[key][0]
 
         vendor = "vendor_goods" in values
-        rec = {
+        return {
             "id": mid,
             "name": name,
             "aliases": aliases,
@@ -1036,9 +1028,6 @@ class Extractor:
             "source": {"path": rel_path, "line": name_line or 1},
             "_topics": topics,
         }
-        if mid in REF_NPC_INITIAL_STATE:
-            rec["initial_state"] = REF_NPC_INITIAL_STATE[mid]
-        return rec
 
     def _region_name_sources(self) -> dict[str, dict]:
         """区域名只从原版区域表/出生地表取，取不到就不编。"""
