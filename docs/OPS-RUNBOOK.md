@@ -1136,3 +1136,57 @@ sqlite3 runs/<RUN_ID>/service.sqlite \
 没配或网段写错（非法项会在 stderr 打印“忽略非法可信代理网段”）。
 
 不配置的后果：跨账号爆破、按 IP 的总体限流全部失效；同代理后的玩家还会共享失败计数。
+
+## 13. 分支发布规则（2026-11-07 起）
+
+xkx 复刻与现有九地点世界并存，**两条线靠分支隔离**，不靠“大家小心一点”。
+
+### 13.1 分支职责
+
+| 分支 | 内容 | 发布状态 |
+|---|---|---|
+| `master` | 现有九地点世界（`config/worlds/default.yaml` + `content/` YAML 包） | **必须始终可发布**。不再直接接 xkx 半成品 |
+| `xkx-parity` | xkx 复刻主线：内容、引擎、玩家壳、公式、参照版、帮助六条线 | 开发主线，允许半成品；**不代表可发布** |
+
+基线 tag：`world-legacy-20261107`（annotated，指向 `xkx-parity` 切出的那个 commit）。
+该 commit 已含前期 xkx 接入改动（详见 `CHANGELOG.md`），tag 的意义是“分支切点 + 九地点世界当时可发布”，
+**不是“xkx 一行代码都没进”的历史快照**。已推送的 tag 不改写、不移动。
+
+### 13.2 提交进哪条线
+
+- 九地点世界的修复 / 运维 / 安全补丁 → `master`，合入后立刻验证旧世界可启动、可登录。
+- xkx 复刻六条线（内容、引擎、壳、公式、参照版、帮助）的**所有**提交 → `xkx-parity`。
+- 两条线都需要的公共修复（如启动脚本、代理、鉴权）：先在 `master` 修好验证，再 `git cherry-pick` 到
+  `xkx-parity`；**不要反过来把 xkx 分支的整树合进 master**。
+
+### 13.3 合并回 master 的条件（全部满足才整体合）
+
+1. **能走**：xkx 世界可从出生点出发，按出口方向连续移动，边界出口给出中文原因且不困死玩家；
+2. **能打**：`fight` 对带气血/攻防的实体真实开战，能打出战报，不是“暂不可用”；
+3. **能捡**：`loot` 已注册并能把掉落放进玩家行囊；
+4. **确定性审计全绿**：同 seed 两次运行 `state_final` / `event_final` 哈希一致，审计脚本无红项；
+5. **旧世界 golden 未变**：九地点世界的 golden 基线（房间数、事件数、`content_hash`）逐项不变，
+   旧世界仍可用 `config/worlds/default.yaml` 启动。
+
+任一条不满足 → 留在 `xkx-parity`，master 不接受“先合进去再修”。
+
+### 13.4 操作纪律
+
+- 提交前确认自己在哪条线：`git branch --show-current`；xkx 工作必须在 `xkx-parity`。
+- `git add` 用**显式路径**，不用 `git add -A` / `git add .`，避免把他人未提交改动或运行产物带进提交。
+- 推送前 `git pull --rebase origin <当前分支>`；**禁止** `--force` / `--force-with-lease`。
+- 冲突或历史分叉：停下来报，不强推、不改写已推送历史。
+- 新分支首次推送用 `git push -u origin <分支名>`。
+
+### 13.5 每日对账
+
+```bash
+git fetch origin --tags
+git branch -vv                                   # 本地分支与上游跟踪关系
+git rev-parse HEAD origin/master origin/xkx-parity
+git log --oneline -5 origin/master               # master 是否混入 xkx 提交
+git tag -l 'world-legacy-*'
+```
+
+判读：`origin/master` 上出现 `feat(xkx` / `fix(xkx` 类提交即为违规，需回退或说明；
+`xkx-parity` 落后 `origin/xkx-parity` 说明有人没推。
