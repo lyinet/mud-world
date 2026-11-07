@@ -1007,6 +1007,113 @@ class XKXShell:
         ]
         return self._reply(account, "sell", True, lines, after, raw, request_id)
 
+    # 原版 look 的 combined()：按 id + "/" + short() 分组，数量 != 1 时输出
+    # chinese_number(count) + query("unit") + short；单位由种族守护进程决定。
+    _RACE_UNIT = {"飞禽": "只", "走兽": "只", "走畜": "只", "爬蛇": "只", "昆虫": "只", "游鱼": "条"}
+    _CN_DIGITS = "零一二三四五六七八九"
+
+    def _content_race(self, template: str) -> str:
+        """模板的种族；内容包没写种族时按人类（原版 human 守护进程，单位「位」）。"""
+        cache = getattr(self, "_npc_race_cache", None)
+        if cache is None:
+            cache = {
+                str(npc.get("id")): str(npc.get("race") or "")
+                for npc in getattr(self.session.content, "npcs", []) or []
+            }
+            self._npc_race_cache = cache
+        return cache.get(str(template), "")
+
+    @classmethod
+    def _cn_count(cls, n: int) -> str:
+        if n < 10:
+            return cls._CN_DIGITS[n]
+        if n < 20:
+            return "十" + (cls._CN_DIGITS[n % 10] if n % 10 else "")
+        tens, ones = divmod(n, 10)
+        return cls._CN_DIGITS[tens] + "十" + (cls._CN_DIGITS[ones] if ones else "")
+
+    def _npc_present_text(self, npcs: list[dict[str, Any]]) -> list[str]:
+        """在场人物按 (模板, 名称) 分组；同模板多实例只写一次并标数量。"""
+        groups: dict[tuple[str, str], list[dict[str, Any]]] = {}
+        for row in npcs:
+            name = str(row.get("name") or "")
+            key = (str(row.get("template") or row.get("id") or ""), name)
+            groups.setdefault(key, []).append(row)
+        parts: list[str] = []
+        for (template, name), rows in groups.items():
+            if len(rows) == 1:
+                parts.append(name)
+                continue
+            unit = self._RACE_UNIT.get(self._content_race(template), "位")
+            parts.append(f"{self._cn_count(len(rows))}{unit}{name}")
+        return parts
+
+    def _match_fight_target(
+        self, npcs: Iterable[dict[str, Any]], rest: str
+    ) -> tuple[dict[str, Any] | None, int]:
+        """按原版 present(arg) 的语义选目标：只取一只，库存 LIFO。
+
+        - `fight 绿营清兵`：取库存第一只（复刻里即最后创建的实例）。
+        - `fight 绿营清兵 2`：跳过前一只，取倒数第二只；越界即无目标。
+        """
+        raw = str(rest or "").strip()
+        index = 0
+        matched = re.fullmatch(r"(.+?)\s+(\d{1,3})", raw)
+        if matched:
+            raw, index = matched.group(1).strip(), int(matched.group(2))
+        if not raw:
+            return None, index
+        target, _ = self._match_npc_prefix(npcs, raw)
+        if target is None:
+            # 原版按 id() 匹配，`qing bing` 这类英文 id 也要能选中。
+            target, _ = self._match_npc_alias(npcs, raw)
+        if target is None:
+            return None, index
+        key = (str(target.get("template") or target.get("id") or ""), str(target.get("name") or ""))
+        candidates = [
+            row
+            for row in npcs
+            if (str(row.get("template") or row.get("id") or ""), str(row.get("name") or "")) == key
+        ]
+        ordered = sorted(
+            candidates,
+            key=lambda row: (int(row.get("instance") or 0), str(row.get("id") or "")),
+            reverse=True,
+        )
+        if index == 0:
+            return ordered[0], 1
+        if 1 <= index <= len(ordered):
+            return ordered[index - 1], index
+        return None, index
+
+    def _content_aliases(self, template: str) -> tuple[str, ...]:
+        cache = getattr(self, "_npc_alias_cache", None)
+        if cache is None:
+            cache = {
+                str(npc.get("id")): tuple(str(a).lower() for a in (npc.get("aliases") or []))
+                for npc in getattr(self.session.content, "npcs", []) or []
+            }
+            self._npc_alias_cache = cache
+        return cache.get(str(template), ())
+
+    def _match_npc_alias(
+        self, npcs: Iterable[dict[str, Any]], raw: str
+    ) -> tuple[dict[str, Any] | None, str]:
+        """英文 id/别名整词匹配（`qing bing`、`bing`），失败返回 None。"""
+        text = raw.lower()
+        best: tuple[int, dict[str, Any] | None] = (0, None)
+        for row in npcs:
+            nid = str(row.get("id") or "")
+            tail = nid.rstrip("/").rsplit("/", 1)[-1].lower()
+            for key in (tail, str(row.get("name") or "").lower()) + self._content_aliases(
+                str(row.get("template") or row.get("id") or "")
+            ):
+                if key and key == text and len(key) > best[0]:
+                    best = (len(key), row)
+        if best[1] is None:
+            return None, raw
+        return best[1], ""
+
     def _cmd_fight(
         self, account: str, rest: str, state: dict[str, Any], raw: str, request_id: str
     ) -> dict[str, Any]:
@@ -1018,13 +1125,20 @@ class XKXShell:
                 state, raw, request_id,
             )
         npcs = list(state.get("present_npcs") or [])
-        target, _ = self._match_npc_prefix(npcs, rest)
+        target, picked_index = self._match_fight_target(npcs, rest)
         if target is None and not rest.strip() and len(npcs) == 1:
             # 只说“打”时，场上只有一个人就默认对他出手。
             target = npcs[0]
+            picked_index = 1
         if target is None:
-            hint = "、".join(n["name"] for n in npcs) if npcs else "（这里没有别人）"
+            hint = "、".join(self._npc_present_text(npcs)) if npcs else "（这里没有别人）"
             label = self._first_word(rest)
+            if picked_index and npcs:
+                return self._reply(
+                    account, "fight", False,
+                    [("error", f"这里没有第{picked_index}个「{label or '人'}」。在场：{hint}。")],
+                    state, raw, request_id,
+                )
             if not label and npcs:
                 return self._reply(
                     account, "fight", False,
@@ -1065,6 +1179,11 @@ class XKXShell:
         lines.extend(self._score_core_lines(after))
         reply = self._reply(account, "fight", True, lines, after, raw, request_id)
         reply["engine_details"] = dict(resp.get("details") or {})
+        # 同模板多实例同屏时，台词无法区分；把实际目标与序号给客户端，
+        # 便于 UI 高亮和回归测试分辨打的是哪一只（不改台词文本）。
+        reply["target"] = target["id"]
+        reply["target_instance"] = int(target.get("instance") or 0)
+        reply["target_index"] = int(picked_index or 0)
         return reply
 
     def _death_lines(self, death: dict[str, Any]) -> list[tuple[str, str]]:
@@ -1567,7 +1686,7 @@ class XKXShell:
             lines.append(("warn", "这里没有出口。"))
         npcs = list(state.get("present_npcs") or [])
         if npcs:
-            lines.append(("npc", "在场人物：" + "、".join(str(n["name"]) for n in npcs) + "。"))
+            lines.append(("npc", "在场人物：" + "、".join(self._npc_present_text(npcs)) + "。"))
         ground = self._ground_items(loc_id, state)
         if ground:
             lines.append(("info", "地上散落：" + "、".join(ground) + "。"))

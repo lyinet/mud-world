@@ -122,3 +122,85 @@ def test_present_view_resolves_clone_display_names(session):
     qingbing = [row for row in rows if row["name"] == "绿营清兵"]
     assert len(qingbing) == 4
     assert all(row["id"].startswith("/d/hangzhou/npc/qingbing") for row in qingbing)
+    assert {row["template"] for row in qingbing} == {"/d/hangzhou/npc/qingbing"}
+    assert sorted(row["instance"] for row in qingbing) == [0, 2, 3, 4]
+
+
+def _road12_session(tmp_path, tag: str):
+    cfg = yaml.safe_load(WORLD_CONFIG.read_text(encoding="utf-8")) or {}
+    return WorldSession(
+        ROOT,
+        run_id=f"xkx-clone-{tag}",
+        seed=42,
+        npc_limit=0,
+        run_dir=tmp_path / f"run-{tag}",
+        content_root=XKX_CONTENT,
+        world_config=WORLD_CONFIG,
+        spawn="/d/hangzhou/road12",
+    )
+
+
+@pytest.fixture()
+def road12_session(tmp_path):
+    """玩家直接落在 road12：验证真实 look / fight 的多实例表现。"""
+    s = _road12_session(tmp_path, "road12")
+    yield s
+    s.close()
+
+
+def _cmd(session, command):
+    account = "clone_probe"
+    return session.xkx_command(account, {"account_id": account, "command": command})
+
+
+def test_look_groups_clones_with_count_and_unit(road12_session):
+    text = "\n".join(line["text"] for line in _cmd(road12_session, "look")["lines"])
+    assert "在场人物：" in text
+    assert "四位绿营清兵" in text
+    # 单只的人不加数量词，保持改造前逐字一致。
+    assert "杭州提督 李可秀" in text
+    assert "一位杭州提督 李可秀" not in text
+
+
+def test_look_uses_bird_unit_for_crows(session):
+    shell = session._xkx_shell_instance()
+    rows = [
+        {"id": f"/d/jiaxing/npc/wuya@{i}", "name": "乌鸦", "template": "/d/jiaxing/npc/wuya", "instance": i}
+        for i in range(1, 5)
+    ]
+    assert shell._npc_present_text(rows) == ["四只乌鸦"]
+
+
+def test_fight_without_index_hits_last_created_clone(road12_session):
+    before = road12_session.state.entities
+    reply = _cmd(road12_session, "fight qing bing")
+    assert reply["ok"], reply
+    assert reply["target"] == "/d/hangzhou/npc/qingbing@/d/hangzhou/road12#4"
+    assert reply["target_index"] == 1
+    after = road12_session.state.entities
+    assert after[reply["target"]].hp < before[reply["target"]].hp or after[reply["target"]].status == "dead"
+
+
+def test_fight_index_two_hits_second_in_lifo_order(tmp_path):
+    # 一次 fight 会打到死亡/倒下，两条命令各起一个干净世界，避免受战斗状态影响。
+    first_session = _road12_session(tmp_path, "fight1")
+    second_session = _road12_session(tmp_path, "fight2")
+    try:
+        first = _cmd(first_session, "fight qing bing")
+        second = _cmd(second_session, "fight qing bing 2")
+    finally:
+        first_session.close()
+        second_session.close()
+    assert first["ok"] and second["ok"], (first, second)
+    assert first["target"] == "/d/hangzhou/npc/qingbing@/d/hangzhou/road12#4"
+    assert first["target_instance"] == 4
+    assert second["target"] == "/d/hangzhou/npc/qingbing@/d/hangzhou/road12#3"
+    assert second["target_instance"] == 3
+    assert second["target_index"] == 2
+
+
+def test_fight_index_out_of_range_has_no_target(road12_session):
+    reply = _cmd(road12_session, "fight qing bing 5")
+    assert not reply["ok"]
+    text = "\n".join(line["text"] for line in reply["lines"])
+    assert "没有第5个" in text

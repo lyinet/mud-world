@@ -2264,6 +2264,10 @@ class WorldSession:
                     "location": ent.location,
                     "presence": ent.presence,
                     "doing": "",
+                    # 同模板多实例：模板维度供 look 数量分组，槽位供 fight 按序号取目标。
+                    # 规范实例 template 为空、instance 为 0，行为与改造前一致。
+                    "template": ent.template or ent.id,
+                    "instance": int(ent.instance),
                     "is_master": bool(meta.get("is_master")),
                     "sect": str(meta.get("sect") or ""),
                     "skills": (
