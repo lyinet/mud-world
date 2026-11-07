@@ -524,6 +524,8 @@ class WorldSession:
         self.root = Path(root)
         self.content_root = Path(content_root) if content_root else self.root
         self.world_config_path = Path(world_config) if world_config else None
+        # 世界配置里唯一的游走开关；缺省/缺文件/解析失败一律视为关闭。
+        self.npc_wander_enabled = self._load_npc_wander(self.world_config_path)
         self.run_id = run_id
         self.run_dir = Path(run_dir) if run_dir else self.root / "runs" / run_id
         self.run_dir.mkdir(parents=True, exist_ok=True)
@@ -1520,6 +1522,22 @@ class WorldSession:
                 "next_since_tick": int(self.state.tick),
                 "messages": rows,
             }
+
+    @staticmethod
+    def _load_npc_wander(path: Path | None) -> bool:
+        """只读世界配置的 `npc_wander.enabled`；默认 False，旧世界配置无需加键。"""
+        if path is None:
+            return False
+        try:
+            import yaml
+
+            loaded = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
+        except Exception:
+            return False
+        if not isinstance(loaded, dict):
+            return False
+        raw = loaded.get("npc_wander") or {}
+        return bool(raw.get("enabled")) if isinstance(raw, dict) else bool(raw)
 
     def _load_content_pack(self, pack_root: Path):
         """按“内容包目录”加载内容，兼容 core.load_content 的 <root>/content 约定。
@@ -3408,6 +3426,7 @@ class WorldSession:
             llm_enabled=False,
             llm_max_calls=0,
             start_tick=int(self.state.tick),
+            npc_wander=bool(self.npc_wander_enabled),
         )
         scheduler = AmbientScheduler(
             self.root,
@@ -3423,9 +3442,9 @@ class WorldSession:
         return scheduler
 
     def start_ambient_from_env(self) -> dict[str, Any] | None:
-        """仅当 `XKX_AMBIENT` 为真时启动；默认不启动，保持旧行为。"""
+        """`XKX_AMBIENT` 为真，或世界配置显式打开 `npc_wander` 时启动 LOD 唤醒。"""
         raw = str(os.environ.get("XKX_AMBIENT", "0")).strip().lower()
-        if raw in ("", "0", "false", "off", "no"):
+        if raw in ("", "0", "false", "off", "no") and not self.npc_wander_enabled:
             return None
         try:
             speed = float(os.environ.get("XKX_AMBIENT_SPEED") or 1.0)

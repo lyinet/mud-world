@@ -25,6 +25,7 @@ from ..core.canonical import hash_obj
 from ..core.models import Intent
 from ..core.rng import PRNG
 from .intent import MockReasoner, Reasoner  # noqa: F401  统一从 sim.intent 导出
+from .wander import WanderPolicy
 
 TIER_ORDER = ("silent", "background", "active", "spotlight")
 
@@ -136,6 +137,7 @@ class LODScheduler:
         start_tick: int = 0,
         state_provider: Callable[[str], dict[str, Any]] | None = None,
         world_view_provider: Callable[[int], dict[str, Any]] | None = None,
+        wander: WanderPolicy | None = None,
     ):
         self.config = config
         self.reasoner = reasoner
@@ -147,6 +149,8 @@ class LODScheduler:
         self.lod: dict[str, str] = {}
         self.wake_counts: dict[str, int] = {npc: 0 for npc in npc_ids}
         self.process_count = 0
+        # 游走默认关闭；只有显式传入 enabled=True 时才在唤醒点生成 move intent。
+        self.wander = wander or WanderPolicy()
         # 外部可核对的计数器：decide 调用数 / state_provider 调用数 / 分档唤醒数。
         self.decide_calls = 0
         self.state_provider_calls = 0
@@ -173,6 +177,9 @@ class LODScheduler:
             result = self._wake(npc, tick)
             wakes.append(result)
             self.process_count += 1
+        # 同 tick 多个到期项的提交顺序显式稳定排序（至少 (wake_tick, npc_id)），
+        # 不依赖堆/容器实现的偶然顺序，锁住可复现契约。
+        wakes.sort(key=lambda w: (w.tick, w.npc_id))
         self.now = target_tick
         return wakes
 
@@ -183,6 +190,9 @@ class LODScheduler:
         """
         if target_tick < self.now:
             raise ValueError("不能回拨 tick")
+        if self.wander.enabled:
+            # 游走只走单一唤醒路径：不批量、不调用 reasoner，避免顺带产生其他 verb。
+            return self.advance_to(target_tick)
         if not hasattr(self.reasoner, "decide_batch") or batch_size <= 1:
             return self.advance_to(target_tick)
         due: list[dict[str, Any]] = []
@@ -214,6 +224,7 @@ class LODScheduler:
             results = self.reasoner.decide_batch(items)
             for d, intents in zip(chunk, results):
                 wakes.append(WakeResult(tick=d["tick"], npc_id=d["npc"], lod=d["tier"], intents=intents))
+        wakes.sort(key=lambda w: (w.tick, w.npc_id))
         self.process_count += len(wakes)
         self.now = target_tick
         return wakes
@@ -226,9 +237,20 @@ class LODScheduler:
         view["tier"] = tier
         view["interval"] = interval
         self.state_provider_calls += 1
-        intents = self.reasoner.decide(self._state_provider(npc), view)
-        self.decide_calls += 1
-        self.decide_by_tier[tier] = self.decide_by_tier.get(tier, 0) + 1
+        if self.wander.enabled:
+            # 游走路径不调用 reasoner，只允许一个 move intent；其他 verb 不会被顺带打开。
+            intent = self.wander.intent_for(
+                seed=self.seed,
+                tick=tick,
+                npc=npc,
+                state=view.get("state"),
+                content=view.get("content"),
+            )
+            intents = [intent] if intent is not None else []
+        else:
+            intents = self.reasoner.decide(self._state_provider(npc), view)
+            self.decide_calls += 1
+            self.decide_by_tier[tier] = self.decide_by_tier.get(tier, 0) + 1
         jitter = PRNG(self.seed, self.wake_counts[npc], f"lod_jitter:{npc}").randint(0, max(1, interval // 4))
         heapq.heappush(self._heap, (tick + interval + jitter, npc, self._gen.get(npc, 0)))
         return WakeResult(tick=tick, npc_id=npc, lod=tier, intents=intents)

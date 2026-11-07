@@ -15,6 +15,10 @@ display_name: 游侠儿
 archetype: 游侠
 auth: off
 ambient: 0
+# NPC 游走：默认关闭；只有本世界配置显式打开。
+# 复用 LOD 唤醒点与现有 move action，每个唤醒最多走一间相邻房间。
+npc_wander:
+  enabled: true
 ui_kind: xkx
 
 # 内容优先用另一路交付的 xkx JSON 内容包（rooms/exits/npcs/items/shops/sects）。

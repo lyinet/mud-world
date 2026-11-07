@@ -38,6 +38,7 @@ from .genesis import build_genesis
 from .headless import intent_block_reason, is_prunable
 from .intent import MockReasoner
 from .lod import LODScheduler, load_lod_config
+from .wander import WanderPolicy
 
 # 1x 的虚拟时间速率：30 分钟真实时间 ≈ 300 ticks（10 ticks/分钟）。
 TICKS_PER_SECOND_1X = 10.0 / 60.0
@@ -83,6 +84,8 @@ class AmbientConfig:
     max_ticks: int | None = None
     # 起始 tick（重启续跑时使用；默认 0）。
     start_tick: int = 0
+    # NPC 游走（默认关闭）：世界配置 `npc_wander.enabled` 显式打开。
+    npc_wander: bool = False
 
     def normalized_speed(self) -> float:
         return _nearest_speed(self.speed)
@@ -335,6 +338,7 @@ class AmbientScheduler:
                 "state": self.writer.state,
                 "content": self.content,
             },
+            wander=WanderPolicy(enabled=bool(cfg.npc_wander)),
         )
         self._log_line(
             f"[{stamp(0)}] ambient_boot npcs={len(self.npc_ids)} locations={len(self.content.locations)} "

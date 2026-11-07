@@ -343,6 +343,9 @@ def load_xkx_content(pack_root: Path | str) -> Content:
     quest_npc_refs: set[str] = set()
     for quest in content.xkx_quests.values():
         _collect_quest_npc_refs(quest, quest_npc_refs)
+    # 游走过滤复用同一套内容标记（师父 / 店主 / 任务 NPC），避免再维护名单。
+    content.shop_by_npc = dict(shop_by_npc)
+    content.quest_npc_refs = set(quest_npc_refs)
     instances: list[dict[str, Any]] = []
     for ref in sorted(placement):
         npc = npc_by_id.get(ref)
