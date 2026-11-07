@@ -299,6 +299,72 @@ vs `npc.boar`（40hp、attack 10、def 2、str 20、dex 15、unarmed 40），带
   - 店小二 seed=1：`file_sha256=76c4a597…6aedf`、`combat_hash=36db2e02…b7203`
   - 流氓 seed=2：`file_sha256=ad34c607…09a07`、`combat_hash=5b5b1120…f9e192`
 
+### 9.1.2 出生点附近 NPC 主动攻击审计（2026-11-08）
+
+**原版机制**：NPC 的主动攻击不在各 NPC 的 `create()` 里，而在继承的
+`feature/attack.lpc:245 init()`：
+
+- `:262` `userp(ob) && is_killing(ob->query("id"))` → `auto_fight`
+- `:265` `vendetta_mark` 且玩家带对应 `vendetta` → `auto_fight`
+- `:269` `userp(ob) && query("attitude") == "aggressive"` → `auto_fight`
+
+`heroism` / `peaceful` / `friendly` 都不在这个分支里；有条件的主动攻击由 NPC 自己的
+`init()` 调 `kill_ob`。绿营清兵 `/d/hangzhou/npc/qingbing.lpc`：`:13 combat_exp 20000`、
+`:15 attitude "heroism"`、`:17-18 apply/attack|defense 30`、
+`:20-23 club 60 / unarmed 50 / parry 50 / dodge 50`；**全文没有 `init()`、没有 `kill_ob`**。
+所以原版它不是见人就打，只有玩家先动手（或已有 kill/vendetta 关系）才还手。
+
+我们的对应实现：内容包保留 `vitals.combat_exp=20000`、四门技能、`changqiang` + `junfu`；
+`aggressive:false`（`tools/xkx_extract/extract.py:1010` 按 `attitude=="aggressive"` 写入）。
+但 `aggressive` **没有任何运行时消费者**（`grep -R aggressive src/wsim` 只命中抽取器）；
+`FightAction` 只在玩家输入 `fight` 时触发（`src/wsim/actions/combat.py:43,70`）。
+因此我们不是“见人就打”，而是**完全没有 NPC 主动攻击**。§9.1.1 里清兵 7 回合杀玩家
+是测量脚本主动 `fight` 的结果，不是 NPC 先动手。
+
+| NPC | 原版是否主动 | 触发条件（源码） | 我们是否一致 |
+| --- | --- | --- | --- |
+| 绿营清兵 `qingbing` | 否 | `qingbing.lpc:15` heroism；无 `init()`/`kill_ob` | 一致（都不主动） |
+| 刀客 `dao-ke` | 否 | `dao-ke.lpc:30 init()` 只问候/传送，无 `kill_ob` | 一致（都不主动） |
+| 老虎 `laohu` | **是（无条件）** | `laohu.lpc:20` attitude aggressive；`attack.lpc:269` | **不一致：我们更弱**（内容 `aggressive:true`，但运行时不消费，不主动） |
+| 毒蛇 `dushe` | **是（条件）** | `dushe.lpc:27-33`：玩家身上没有 `xionghuang` → `call_out("kill_ob",1)` | **不一致：我们更弱**（无 `kill_ob` 实现） |
+| 大狼狗 `wolfdog` | **是（概率条件）** | `wolfdog.lpc:29-35`：`random(kar+per) < 30` → `call_out("kill_ob",1)` | **不一致：我们更弱**（无 `kill_ob` 实现） |
+| 流氓 `liumang` | 否 | `liumang.lpc:14` peaceful；无 `init()`/`kill_ob` | 一致（都不主动） |
+| 店小二 `xiaoer2` | 否 | `xiaoer2.lpc:29 init()` 只问候；attitude friendly | 一致（都不主动） |
+
+从 `/d/hangzhou/jiulou` 按 `content/xkx/exits.json` BFS 1–3 跳（`traversable` 出口）：
+
+| 跳数 | 房间 | NPC | 原版主动? | 玩家主动攻击的实测后果（MID 档） |
+| --- | --- | --- | --- | --- |
+| 0 | 楼外楼 `/d/hangzhou/jiulou` | 店小二 ×1 | 否 | 玩家胜（12 回合，满血） |
+| 1 | 相约轩 / 青石大道 | — | — | — |
+| 2 | 红娘庄 `/d/hangzhou/marryroom` | 红娘 ×1 | 否（friendly） | 玩家 3/3 败（9–13 回合） |
+| 3 | 断桥 `/d/hangzhou/duanqiao` | 穷汉 ×1 | 否（friendly） | 玩家胜（13–14 回合，满血） |
+| 3 | 青石大道 `/d/hangzhou/road12` | 李可秀 ×1 | 否（heroism） | 玩家 3/3 败（4 回合） |
+| 3 | 青石大道 `/d/hangzhou/road12` | 绿营清兵 ×4 | 否（heroism） | 玩家 0/40 胜（平均 6.90 回合） |
+| 3 | 铁匠铺 `/d/hangzhou/tiejiangpu` | 铁匠 ×1 | 否（friendly） | 玩家胜（13 回合，满血） |
+
+**原版会主动攻击且玩家必死的 NPC：1–3 跳内 0 个。** 玩家不输入 `fight` 时，出生点附近
+没有任何 NPC 会先动手。若玩家主动攻击，“会死”的是红娘（2 跳）、李可秀与绿营清兵
+（3 跳，均在 `road12`）；店小二、穷汉、铁匠可胜。这是产品层是否加“此地危险”提示的依据，
+不是代码缺陷。
+
+**流氓命中率 2.78% vs 原版 7.82% 归因（只归因，未修）**：
+
+- `apply` 已接上：内容 `temp_apply` 有 `apply/attack 10`、`apply/defense 10`，实体
+  `_Actor.apply_attack=10`；不是“有 apply 没接上”。
+- 不是“持械按空手算”：原版 `liumang.lpc` 本身空手（`unarmed 20`，只穿 `cloth`），无武器。
+- 主因是 **NPC 六维缺失**：原版 human race 的 str/con/dex 是 `10 + random(21)`
+  （`adm/daemons/race/human.lpc:60-62`），原版 MID 快照里的 liumang 实例 str/dex=20；
+  我们的内容 `attrs={}`，引擎 fallback 10。`skill_power` 的乘数是 `(str_eff + base_str)`，
+  我们是 10+10=20，原版是 20+20=40，ap 直接差一倍。按当前公式反推：只把 liumang
+  str/dex 补到 20，预测对方命中率 2.1% → 6.4%（实测当前 2.78%），与原版 7.82% 同一量级。
+- 次因是 `query_skill` 语义：原版非 raw 返回 `skills[skill]/2 + skills[skill_map]`
+  （`reports/xkx-ref/hit-rate.md:30`），MID 显示 40、战斗有效 20；我们直接用 40/20。
+  因为 liumang 还有 `apply/attack 10`，双方同倍缩放后 apply 占比变小，玩家防御相对更高，
+  命中率被进一步压低；两者都修正后反推约 5.3%。
+- 结论：**不是 apply 缺失、不是持械/空手错配；是 NPC str/dex 取了下限 10（原版实例 20）
+  + `query_skill` 未半档**。未修。
+
 ### 9.2 NPC 创世 `max_hp`
 
 `src/wsim/sim/vitals.py` 的 `resolve_npc_vitals()`：
