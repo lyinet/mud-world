@@ -322,7 +322,7 @@ CI 在 `.github/workflows/ci.yml`，2 个 job：
 
 **长跑内存：旧结论已纠正**
 
-- 旧报告曾把 RSS 线性增长判为 “Event/AuditRecord 无界泄漏”。该结论已作废。
+- 旧报告曾把 RSS 线性增长判为 “Event/AuditRecord 无界泄漏”。这是**曾误判、已纠正**，原结论作废。
 - 复核发现多出来的 Event/AuditRecord 由**长跑探针自己持有**：`gc.get_objects()` 返回的列表被探针 frame 的局部变量引用，gen2 不回收。证据见 `reports/soak/ownerprobe-20261107/_probe/owners.json`。
 - 产品侧缓存本来就是有界的：幂等表 2 万条、审计队列 4096 条。
 - 最小修复（幂等表只存 `seq`，命中时按 seq 回读，不再存整个 Event）在 `fix/health-no-inline-integrity` 分支，**尚未合入 `master`**；该分支回归 668 项通过。
