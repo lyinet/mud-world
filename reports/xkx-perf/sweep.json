@@ -1,0 +1,236 @@
+{
+  "fixed_rooms": 1000,
+  "rows": [
+    {
+      "clone_ms": {
+        "count": 8,
+        "max": 4.644,
+        "mean": 2.879,
+        "p50": 2.681,
+        "p95": 4.644
+      },
+      "counts": {
+        "accounts": 1051,
+        "businesses": 20,
+        "entities": 50,
+        "factions": 1000,
+        "goals": 50,
+        "locations": 1000,
+        "players": 0,
+        "relations": 0,
+        "schedule": 0
+      },
+      "events_per_tick": 2.3,
+      "hash_ms": {
+        "count": 15,
+        "max": 9.738,
+        "mean": 4.73,
+        "p50": 4.399,
+        "p95": 5.207
+      },
+      "npcs": 50,
+      "rooms": 1000,
+      "shops": 20,
+      "tick_p50_ms": 14.749,
+      "tick_p95_ms": 22.839
+    },
+    {
+      "clone_ms": {
+        "count": 8,
+        "max": 19.318,
+        "mean": 6.539,
+        "p50": 3.068,
+        "p95": 19.318
+      },
+      "counts": {
+        "accounts": 1101,
+        "businesses": 20,
+        "entities": 100,
+        "factions": 1000,
+        "goals": 100,
+        "locations": 1000,
+        "players": 0,
+        "relations": 0,
+        "schedule": 0
+      },
+      "events_per_tick": 3.217,
+      "hash_ms": {
+        "count": 15,
+        "max": 10.85,
+        "mean": 5.166,
+        "p50": 4.546,
+        "p95": 7.683
+      },
+      "npcs": 100,
+      "rooms": 1000,
+      "shops": 20,
+      "tick_p50_ms": 20.307,
+      "tick_p95_ms": 34.173
+    },
+    {
+      "clone_ms": {
+        "count": 8,
+        "max": 3.707,
+        "mean": 3.36,
+        "p50": 3.21,
+        "p95": 3.707
+      },
+      "counts": {
+        "accounts": 1201,
+        "businesses": 20,
+        "entities": 200,
+        "factions": 1000,
+        "goals": 200,
+        "locations": 1000,
+        "players": 0,
+        "relations": 0,
+        "schedule": 0
+      },
+      "events_per_tick": 9.0,
+      "hash_ms": {
+        "count": 15,
+        "max": 15.318,
+        "mean": 6.866,
+        "p50": 5.839,
+        "p95": 10.223
+      },
+      "npcs": 200,
+      "rooms": 1000,
+      "shops": 20,
+      "tick_p50_ms": 60.343,
+      "tick_p95_ms": 102.524
+    },
+    {
+      "clone_ms": {
+        "count": 8,
+        "max": 5.508,
+        "mean": 5.217,
+        "p50": 5.271,
+        "p95": 5.508
+      },
+      "counts": {
+        "accounts": 1501,
+        "businesses": 20,
+        "entities": 500,
+        "factions": 1000,
+        "goals": 500,
+        "locations": 1000,
+        "players": 0,
+        "relations": 0,
+        "schedule": 0
+      },
+      "events_per_tick": 23.383,
+      "hash_ms": {
+        "count": 15,
+        "max": 49.464,
+        "mean": 12.906,
+        "p50": 10.327,
+        "p95": 11.775
+      },
+      "npcs": 500,
+      "rooms": 1000,
+      "shops": 20,
+      "tick_p50_ms": 231.771,
+      "tick_p95_ms": 401.42
+    },
+    {
+      "clone_ms": {
+        "count": 8,
+        "max": 3.183,
+        "mean": 2.798,
+        "p50": 2.748,
+        "p95": 3.183
+      },
+      "counts": {
+        "accounts": 1101,
+        "businesses": 5,
+        "entities": 100,
+        "factions": 1000,
+        "goals": 100,
+        "locations": 1000,
+        "players": 0,
+        "relations": 0,
+        "schedule": 0
+      },
+      "events_per_tick": 3.05,
+      "hash_ms": {
+        "count": 15,
+        "max": 4.693,
+        "mean": 4.476,
+        "p50": 4.436,
+        "p95": 4.682
+      },
+      "npcs": 100,
+      "rooms": 1000,
+      "shops": 5,
+      "tick_p50_ms": 17.729,
+      "tick_p95_ms": 28.714
+    },
+    {
+      "clone_ms": {
+        "count": 8,
+        "max": 3.036,
+        "mean": 2.765,
+        "p50": 2.773,
+        "p95": 3.036
+      },
+      "counts": {
+        "accounts": 1101,
+        "businesses": 20,
+        "entities": 100,
+        "factions": 1000,
+        "goals": 100,
+        "locations": 1000,
+        "players": 0,
+        "relations": 0,
+        "schedule": 0
+      },
+      "events_per_tick": 3.217,
+      "hash_ms": {
+        "count": 15,
+        "max": 5.038,
+        "mean": 4.545,
+        "p50": 4.502,
+        "p95": 4.849
+      },
+      "npcs": 100,
+      "rooms": 1000,
+      "shops": 20,
+      "tick_p50_ms": 19.258,
+      "tick_p95_ms": 27.506
+    },
+    {
+      "clone_ms": {
+        "count": 8,
+        "max": 3.347,
+        "mean": 2.959,
+        "p50": 2.969,
+        "p95": 3.347
+      },
+      "counts": {
+        "accounts": 1101,
+        "businesses": 100,
+        "entities": 100,
+        "factions": 1000,
+        "goals": 100,
+        "locations": 1000,
+        "players": 0,
+        "relations": 0,
+        "schedule": 0
+      },
+      "events_per_tick": 3.717,
+      "hash_ms": {
+        "count": 15,
+        "max": 11.607,
+        "mean": 5.218,
+        "p50": 4.728,
+        "p95": 5.413
+      },
+      "npcs": 100,
+      "rooms": 1000,
+      "shops": 100,
+      "tick_p50_ms": 23.622,
+      "tick_p95_ms": 37.422
+    }
+  ]
+}
