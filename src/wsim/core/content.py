@@ -74,6 +74,9 @@ class Content:
     skills_stats: list[dict[str, Any]] = field(default_factory=list)
     manifest_version: str = ""
     sources: dict[str, str] = field(default_factory=dict)
+    # 同模板多实例（原版房间 `objects` 的 count > 1）：只记录额外实例，
+    # 第一个实例仍用模板 id。为空时（旧九地点）不进 content_hash。
+    npc_instances: list[dict[str, Any]] = field(default_factory=list)
 
     @property
     def content_hash(self) -> str:
@@ -92,6 +95,8 @@ class Content:
         }
         if self.xkx_quests:
             payload["xkx_quests"] = self.xkx_quests
+        if self.npc_instances:
+            payload["npc_instances"] = self.npc_instances
         return hash_obj(payload)
 
     def sect_at(self, location: str) -> dict[str, Any] | None:

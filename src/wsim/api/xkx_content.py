@@ -17,6 +17,7 @@ rooms.json / exits.json / npcs.json / items.json / shops.json / sects.json。
 from __future__ import annotations
 
 import json
+import warnings
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
@@ -54,6 +55,24 @@ OPPOSITE_DIRECTION: dict[str, str] = {
     "out": "enter",
     "enter": "out",
 }
+
+
+_QUEST_NPC_KEYS = frozenset({"giver", "target", "npc", "target_npc"})
+
+
+def _collect_quest_npc_refs(node: Any, out: set[str]) -> None:
+    """收集任务里指向 NPC 的路径；target/giver 既可能是字符串也可能是 {id}。"""
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if str(key) in _QUEST_NPC_KEYS:
+                if isinstance(value, str) and value.startswith("/"):
+                    out.add(value)
+                elif isinstance(value, dict) and str(value.get("id") or "").startswith("/"):
+                    out.add(str(value["id"]))
+            _collect_quest_npc_refs(value, out)
+    elif isinstance(node, list):
+        for value in node:
+            _collect_quest_npc_refs(value, out)
 
 
 def is_xkx_pack(root: Path | str) -> bool:
@@ -316,6 +335,61 @@ def load_xkx_content(pack_root: Path | str) -> Content:
         npc["sect"] = str(raw.get("sect") or "")
         content.npcs.append(npc)
 
+    # 同模板多实例：原版 `reset()` 按 (房间, 模板) -> count 逐个 `new()`。
+    # 规范实例占 placed_npcs[ref] 的第 1 槽（id 仍是模板路径），其余槽位
+    # 派生为额外实例 `ref@room#n`；n 是该房间内的槽位，规范槽位不重复。
+    # 只做派生与校验，不创建实体（P2 才进创世）。
+    npc_by_id = {str(n["id"]): n for n in content.npcs}
+    quest_npc_refs: set[str] = set()
+    for quest in content.xkx_quests.values():
+        _collect_quest_npc_refs(quest, quest_npc_refs)
+    instances: list[dict[str, Any]] = []
+    for ref in sorted(placement):
+        npc = npc_by_id.get(ref)
+        if npc is None:
+            continue
+        canonical_room = placed_npcs.get(ref, "")
+        room_counts: dict[str, int] = {}
+        for rid in sorted(set(placement[ref])):
+            for obj in rooms[rid].get("objects") or []:
+                if not isinstance(obj, dict):
+                    continue
+                if str(obj.get("kind") or "") != "npc" or str(obj.get("ref") or "") != ref:
+                    continue
+                count = _int_or(obj.get("count"), 0)
+                if count > 0:
+                    room_counts[rid] = max(room_counts.get(rid, 0), count)
+        slots: list[tuple[str, int]] = []
+        for rid in sorted(room_counts):
+            start = 2 if rid == canonical_room else 1
+            slots.extend((rid, n) for n in range(start, room_counts[rid] + 1))
+        if not slots:
+            continue
+        # 只有真的会多出实例时才校验；单只摆放的师父/店主/任务 NPC 不告警。
+        reason = ""
+        if npc.get("relations"):
+            reason = "has_relations"
+        elif npc.get("is_master"):
+            reason = "is_master"
+        elif ref in shop_by_npc:
+            reason = "is_shopkeeper"
+        elif ref in quest_npc_refs:
+            reason = "is_quest_npc"
+        if reason:
+            warnings.warn(f"clone_not_supported:{ref}:{reason}", RuntimeWarning, stacklevel=2)
+            continue
+        for rid, n in slots:
+            instances.append(
+                {
+                    "id": f"{ref}@{rid}#{n}",
+                    "template": ref,
+                    "room": rid,
+                    "instance": n,
+                }
+            )
+    instances.sort(key=lambda row: (row["template"], row["room"], row["instance"]))
+    content.npc_instances = instances
+
     # 门派：位置取门人出现最多的房间；没有摆放则留空，不编造。
     for raw in sects_raw:
         sid = str(raw.get("id") or "")
@@ -392,6 +466,7 @@ def load_xkx_content(pack_root: Path | str) -> Content:
         "shop_goods": sum(len(shop.get("stock") or []) for shop in shops_raw),
         "sects": len(sects_raw),
         "masters": sum(1 for npc in content.npcs if npc.get("is_master")),
+        "npc_instances": len(content.npc_instances),
         "xkx_quests": len(content.xkx_quests),
     }
     return content

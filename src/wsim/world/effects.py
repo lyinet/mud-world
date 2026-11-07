@@ -257,6 +257,11 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         for key in ("neili", "max_neili", "jiali"):
             if key in d:
                 setattr(ent, key, max(0, _as_int(d[key], key)))
+        # 同模板多实例：旧事件不带这两个键，规范实体保持空/0。
+        if "template" in d:
+            ent.template = str(d.get("template") or "")
+        if "instance" in d:
+            ent.instance = max(0, _as_int(d.get("instance", 0), "instance"))
         state.entities[ent.id] = ent
         return
 

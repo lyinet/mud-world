@@ -83,6 +83,10 @@ class Entity:
     death_tick: int = 0
     death_location: str = ""
     death_count: int = 0
+    # 同模板多实例：额外实例指向规范模板 id 与本房间槽位（从 1 起）。
+    # 规范实例留空/0，to_dict() 不输出，旧世界哈希逐字节不变。
+    template: str = ""
+    instance: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         data = {
@@ -157,6 +161,9 @@ class Entity:
             data["learned_points"] = int(self.learned_points)
         if self.death_count:
             data["death_count"] = int(self.death_count)
+        if self.template:
+            data["template"] = self.template
+            data["instance"] = int(self.instance)
         return data
 
 
