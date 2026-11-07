@@ -12,6 +12,8 @@ from ..world.state import WorldState
 
 class Action:
     verb: str = ""
+    # 同一动作的别名 verb（例如 loot / get）。别名共用同一个实例与 Effect 语义。
+    aliases: tuple[str, ...] = ()
 
     def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
         return []
@@ -27,20 +29,25 @@ class ActionRegistry:
     def register(self, action: Action) -> None:
         if not action.verb:
             raise ValueError("action.verb 不能为空")
-        self._actions[action.verb] = action
+        for verb in (action.verb, *getattr(action, "aliases", ())):
+            self._actions[str(verb)] = action
 
     def get(self, verb: str) -> Action | None:
         return self._actions.get(verb)
 
     def verbs(self) -> list[str]:
-        return sorted(self._actions)
+        # 别名不重复出现在动作清单里；get("get") 仍可正常取到 LootAction。
+        return sorted({action.verb for action in self._actions.values()})
 
     def has(self, verb: str) -> bool:
         return verb in self._actions
 
 
-def build_registry(content, seed: int, plugin_dir: Path | None = None) -> ActionRegistry:
+def build_registry(
+    content, seed: int, plugin_dir: Path | None = None, spawns: list[dict] | None = None
+) -> ActionRegistry:
     from .basic import ConsumeAction, CultivateAction, MoveAction, WorkAction
+    from .combat import FightAction, SystemSpawnAction
     from .business import (
         DismissAction,
         FoundSectAction,
@@ -53,6 +60,7 @@ def build_registry(content, seed: int, plugin_dir: Path | None = None) -> Action
     from .commerce import BuyAction, SellAction, TradeAction
     from .equipment import EquipAction, UnequipAction, UseItemAction
     from .escort import EscortAction, SystemEscortArriveAction
+    from .loot import LootAction
     from .player import (
         PlayerEndowmentAction,
         PlayerEnterAction,
@@ -139,13 +147,16 @@ def build_registry(content, seed: int, plugin_dir: Path | None = None) -> Action
     reg.register(SystemTreasuryGuardAction(content))
     reg.register(SystemBudgetAction(content))
     reg.register(SystemEscortArriveAction(content))
-    reg.register(PlayerEnterAction())
+    reg.register(PlayerEnterAction(content))
     reg.register(PlayerEndowmentAction())
     reg.register(PlayerHeartbeatAction())
     reg.register(PlayerPresenceAction())
     reg.register(PlayerLeaveAction())
     reg.register(SystemPlayerPresenceAction())
     reg.register(SystemTickAction())
+    reg.register(FightAction())
+    reg.register(LootAction(content))
+    reg.register(SystemSpawnAction(spawns))
 
     root = Path(__file__).resolve().parents[3]
     # 对话队列不进注册表自动挂载：由会话层（WorldSession）按实际 run 目录注入，

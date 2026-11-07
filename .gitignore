@@ -52,3 +52,5 @@ reports/**/_probe/
 # 容量/压测的运行日志是临时产物（可由报告 JSON 与 docs/CAPACITY.md 第 8 节命令复现），不入库；
 # 入库的报告证据只保留 reports/capacity/raw-*.json 与 probe-*.json。
 reports/capacity/*.log
+# WIP 规格草稿，声明暂不提交；定稿后再移除本忽略。
+specs/mud-paradigm/

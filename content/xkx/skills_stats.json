@@ -1,0 +1,6302 @@
+{
+  "skills_stats": [
+    {
+      "action_count": 0,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "category": "dodge",
+      "category_basis": "martialtype=dodge",
+      "category_source": "derived",
+      "category_zh": "轻功",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 15
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.3
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 15
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 0,
+          "min": 0
+        },
+        "parry": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "enable": [
+        "dodge",
+        "move"
+      ],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "anying-fuxiang",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "dodge"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "dodge",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "暗影浮香",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/anying-fuxiang.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 0,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "category": "force",
+      "category_basis": "martialtype=force",
+      "category_source": "derived",
+      "category_zh": "内功",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 0
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 0
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 0,
+          "min": 0
+        },
+        "parry": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "enable": [
+        "force"
+      ],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": "int damage;\nme->add(\"neili\", -factor);\ndamage = (int)me->query(\"neili\") / 20 + factor - (int)victim->query(\"neili\") / 25;\nif (damage < 0) {\nif (!me->query_temp(\"weapon\")\n&& random(victim->query_skill(\"force\")) > me->query_skill(\"force\") / 2) {\ndamage = -damage;\nme->receive_damage(\"qi\", damage * 2);\nme->receive_wound(\"qi\", damage);\nif (damage < 10) return \"$N受到$n的内力反震，闷哼一声。\\n\";\nelse if (damage < 20) return \"$N被$n以内力反震，「嘿」地一声退了两步。\\n\";\nelse if (damage < 40) return \"$N被$N以内力一震，胸口有如受到一记重锤，连退了五六步！\\n\";\nelse return \"$N被$n的内力一震，眼前一黑，身子向后飞出丈许！！\\n\";\n}\nif (damage_bonus + damage < 0) return -damage_bonus;\nreturn damage;\n}\ndamage -= victim->query_temp(\"apply/armor_vs_force\");\nif (damage_bonus + damage < 0) return -damage_bonus;\nif (random(me->query_skill(\"force\")) < damage)\nreturn damage;",
+          "implemented": true,
+          "owner": "inherit/skill/force.lpc hit_ob",
+          "owner_line": "继承 FORCE 的 hit_ob",
+          "reason": "钩子函数存在；值由源码表达式实时计算，静态不折算常量",
+          "source_kind": "lpc",
+          "value": null,
+          "value_kind": "code"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "bibo-shengong",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "force"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "force",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "碧波神功",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/bibo-shengong.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 12,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 331,
+          "min": 240
+        },
+        "force": {
+          "max": 223,
+          "min": 150
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "category": "weapon",
+      "category_basis": "enable=['dodge', 'parry', 'sword']",
+      "category_source": "derived",
+      "category_zh": "兵器",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 0
+        },
+        "power_point": {
+          "default": 0.6,
+          "default_expr": null,
+          "derivation": "按 if 条件逐行扫描；未命中取 default/default_expr",
+          "kind": "rules",
+          "rules": [
+            {
+              "condition": "me->query_skill(\"kuihua-xinfa\", 1) > 10",
+              "expr": null,
+              "value": 1.0
+            }
+          ],
+          "source_kind": "lpc"
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 0
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": -22,
+          "min": -40
+        },
+        "parry": {
+          "max": -42,
+          "min": -60
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "enable": [
+        "dodge",
+        "parry",
+        "sword"
+      ],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "bixie-jian",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "dodge",
+          "parry",
+          "sword"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "辟邪剑法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/bixie-jian.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 0,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "category": "weapon",
+      "category_basis": "base skill id=blade",
+      "category_source": "derived",
+      "category_zh": "兵器",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 0,
+          "min": 0
+        },
+        "parry": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "enable": [],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "blade",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [],
+        "mapped_to": [
+          "cibei-dao",
+          "taiji-dao",
+          "wuhu-duanmendao"
+        ],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "基本刀法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/blade.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 8,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 106,
+          "min": 10
+        },
+        "force": {
+          "max": 93,
+          "min": 50
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "category": "weapon",
+      "category_basis": "enable=['blade', 'parry']",
+      "category_source": "derived",
+      "category_zh": "兵器",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 60,
+          "min": 43
+        },
+        "parry": {
+          "max": 10,
+          "min": -7
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "enable": [
+        "blade",
+        "parry"
+      ],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "cibei-dao",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "blade",
+          "parry"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "慈悲刀",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/cibei-dao.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 0,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "category": "unarmed",
+      "category_basis": "base skill id=claw",
+      "category_source": "derived",
+      "category_zh": "拳脚",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 0,
+          "min": 0
+        },
+        "parry": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "enable": [],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "claw",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [],
+        "mapped_to": [
+          "sougu",
+          "yunlong-zhua"
+        ],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "基本爪法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/claw.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 0,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "category": "weapon",
+      "category_basis": "base skill id=club",
+      "category_source": "derived",
+      "category_zh": "兵器",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 0,
+          "min": 0
+        },
+        "parry": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "enable": [],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "club",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [],
+        "mapped_to": [
+          "zui-gun"
+        ],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "基本棍法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/club.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 8,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 127,
+          "min": 40
+        },
+        "force": {
+          "max": 143,
+          "min": 100
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "category": "weapon",
+      "category_basis": "enable=['parry', 'sword']",
+      "category_source": "derived",
+      "category_zh": "兵器",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 47,
+          "min": 30
+        },
+        "parry": {
+          "max": 17,
+          "min": 0
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "enable": [
+        "parry",
+        "sword"
+      ],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "damo-jian",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "parry",
+          "sword"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "达摩剑",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/damo-jian.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 0,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "category": "dodge",
+      "category_basis": "martialtype=dodge",
+      "category_source": "derived",
+      "category_zh": "轻功",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 0,
+          "min": 0
+        },
+        "parry": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "enable": [],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "dodge",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [],
+        "mapped_to": [
+          "anying-fuxiang",
+          "bixie-jian",
+          "chanchu-bufa",
+          "lingxu-bu",
+          "piaoyibu",
+          "shaolin-shenfa",
+          "tiyunzong",
+          "yunlong-shenfa"
+        ],
+        "source_kind": "derived"
+      },
+      "martialtype": "dodge",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "基本轻功",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/dodge.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 0,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "category": "force",
+      "category_basis": "martialtype=force",
+      "category_source": "derived",
+      "category_zh": "内功",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 0,
+          "min": 0
+        },
+        "parry": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "enable": [],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": "int damage;\nme->add(\"neili\", -factor);\ndamage = (int)me->query(\"neili\") / 20 + factor - (int)victim->query(\"neili\") / 25;\nif (damage < 0) {\nif (!me->query_temp(\"weapon\")\n&& random(victim->query_skill(\"force\")) > me->query_skill(\"force\") / 2) {\ndamage = -damage;\nme->receive_damage(\"qi\", damage * 2);\nme->receive_wound(\"qi\", damage);\nif (damage < 10) return \"$N受到$n的内力反震，闷哼一声。\\n\";\nelse if (damage < 20) return \"$N被$n以内力反震，「嘿」地一声退了两步。\\n\";\nelse if (damage < 40) return \"$N被$N以内力一震，胸口有如受到一记重锤，连退了五六步！\\n\";\nelse return \"$N被$n的内力一震，眼前一黑，身子向后飞出丈许！！\\n\";\n}\nif (damage_bonus + damage < 0) return -damage_bonus;\nreturn damage;\n}\ndamage -= victim->query_temp(\"apply/armor_vs_force\");\nif (damage_bonus + damage < 0) return -damage_bonus;\nif (random(me->query_skill(\"force\")) < damage)\nreturn damage;",
+          "implemented": true,
+          "owner": "inherit/skill/force.lpc hit_ob",
+          "owner_line": "继承 FORCE 的 hit_ob",
+          "reason": "钩子函数存在；值由源码表达式实时计算，静态不折算常量",
+          "source_kind": "lpc",
+          "value": null,
+          "value_kind": "code"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "force",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [],
+        "mapped_to": [
+          "bibo-shengong",
+          "hamagong",
+          "huntian-qigong",
+          "hunyuan-yiqi",
+          "kuihua-xinfa",
+          "taiji-shengong",
+          "yunlong-shengong",
+          "yunv-xinfa"
+        ],
+        "source_kind": "derived"
+      },
+      "martialtype": "force",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "基本内功",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/force.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 0,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "category": "unarmed",
+      "category_basis": "base skill id=hand",
+      "category_source": "derived",
+      "category_zh": "拳脚",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 0,
+          "min": 0
+        },
+        "parry": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "enable": [],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "hand",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [],
+        "mapped_to": [
+          "shexing-diaoshou",
+          "yunlong-shou"
+        ],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "基本手法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/hand.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 8,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 170,
+          "min": 40
+        },
+        "force": {
+          "max": 220,
+          "min": 20
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "category": "weapon",
+      "category_basis": "enable=['parry', 'throwing']",
+      "category_source": "derived",
+      "category_zh": "兵器",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 10
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 10
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 55,
+          "min": 20
+        },
+        "parry": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "enable": [
+        "parry",
+        "throwing"
+      ],
+      "gaps": [
+        {
+          "detail": "缺 parry，按 0",
+          "kind": "action_coefficient_default"
+        }
+      ],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "hanxing-bada",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "throwing"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "寒星八打",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/hanxing-bada.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 6,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 205,
+          "min": 80
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "category": "unarmed",
+      "category_basis": "enable=['cuff', 'parry', 'unarmed']",
+      "category_source": "derived",
+      "category_zh": "拳脚",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 25
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 51,
+          "min": 35
+        },
+        "parry": {
+          "max": -9,
+          "min": -25
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "enable": [
+        "cuff",
+        "parry",
+        "unarmed"
+      ],
+      "gaps": [
+        {
+          "detail": "缺 damage，按 0",
+          "kind": "action_coefficient_default"
+        }
+      ],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "houquan",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "unarmed"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "猴拳",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/houquan.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 0,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "category": "force",
+      "category_basis": "martialtype=force",
+      "category_source": "derived",
+      "category_zh": "内功",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 0
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 0
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 0,
+          "min": 0
+        },
+        "parry": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "enable": [
+        "force"
+      ],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": "int damage;\nme->add(\"neili\", -factor);\ndamage = (int)me->query(\"neili\") / 20 + factor - (int)victim->query(\"neili\") / 25;\nif (damage < 0) {\nif (!me->query_temp(\"weapon\")\n&& random(victim->query_skill(\"force\")) > me->query_skill(\"force\") / 2) {\ndamage = -damage;\nme->receive_damage(\"qi\", damage * 2);\nme->receive_wound(\"qi\", damage);\nif (damage < 10) return \"$N受到$n的内力反震，闷哼一声。\\n\";\nelse if (damage < 20) return \"$N被$n以内力反震，「嘿」地一声退了两步。\\n\";\nelse if (damage < 40) return \"$N被$N以内力一震，胸口有如受到一记重锤，连退了五六步！\\n\";\nelse return \"$N被$n的内力一震，眼前一黑，身子向后飞出丈许！！\\n\";\n}\nif (damage_bonus + damage < 0) return -damage_bonus;\nreturn damage;\n}\ndamage -= victim->query_temp(\"apply/armor_vs_force\");\nif (damage_bonus + damage < 0) return -damage_bonus;\nif (random(me->query_skill(\"force\")) < damage)\nreturn damage;",
+          "implemented": true,
+          "owner": "inherit/skill/force.lpc hit_ob",
+          "owner_line": "继承 FORCE 的 hit_ob",
+          "reason": "钩子函数存在；值由源码表达式实时计算，静态不折算常量",
+          "source_kind": "lpc",
+          "value": null,
+          "value_kind": "code"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "huntian-qigong",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "force"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "force",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "混天气功",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/huntian-qigong.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 0,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "category": "force",
+      "category_basis": "martialtype=force",
+      "category_source": "derived",
+      "category_zh": "内功",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 0
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 0
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 0,
+          "min": 0
+        },
+        "parry": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "enable": [
+        "force"
+      ],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": "int damage;\nme->add(\"neili\", -factor);\ndamage = (int)me->query(\"neili\") / 20 + factor - (int)victim->query(\"neili\") / 25;\nif (damage < 0) {\nif (!me->query_temp(\"weapon\")\n&& random(victim->query_skill(\"force\")) > me->query_skill(\"force\") / 2) {\ndamage = -damage;\nme->receive_damage(\"qi\", damage * 2);\nme->receive_wound(\"qi\", damage);\nif (damage < 10) return \"$N受到$n的内力反震，闷哼一声。\\n\";\nelse if (damage < 20) return \"$N被$n以内力反震，「嘿」地一声退了两步。\\n\";\nelse if (damage < 40) return \"$N被$N以内力一震，胸口有如受到一记重锤，连退了五六步！\\n\";\nelse return \"$N被$n的内力一震，眼前一黑，身子向后飞出丈许！！\\n\";\n}\nif (damage_bonus + damage < 0) return -damage_bonus;\nreturn damage;\n}\ndamage -= victim->query_temp(\"apply/armor_vs_force\");\nif (damage_bonus + damage < 0) return -damage_bonus;\nif (random(me->query_skill(\"force\")) < damage)\nreturn damage;",
+          "implemented": true,
+          "owner": "inherit/skill/force.lpc hit_ob",
+          "owner_line": "继承 FORCE 的 hit_ob",
+          "reason": "钩子函数存在；值由源码表达式实时计算，静态不折算常量",
+          "source_kind": "lpc",
+          "value": null,
+          "value_kind": "code"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "hunyuan-yiqi",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "force"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "force",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "混元一气功",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/hunyuan-yiqi.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 8,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 418,
+          "min": 200
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "category": "unarmed",
+      "category_basis": "enable=['cuff', 'parry']",
+      "category_source": "derived",
+      "category_zh": "拳脚",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 0
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 0
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 36,
+          "min": 15
+        },
+        "parry": {
+          "max": -19,
+          "min": -40
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "enable": [
+        "cuff",
+        "parry"
+      ],
+      "gaps": [
+        {
+          "detail": "缺 damage，按 0",
+          "kind": "action_coefficient_default"
+        }
+      ],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "jingang-quan",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "parry",
+          "unarmed"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "大金刚拳",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/jingang-quan.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 8,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 108,
+          "min": 30
+        },
+        "force": {
+          "max": 93,
+          "min": 50
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "category": "weapon",
+      "category_basis": "enable=['parry', 'sword']",
+      "category_source": "derived",
+      "category_zh": "兵器",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 52,
+          "min": 35
+        },
+        "parry": {
+          "max": 22,
+          "min": 5
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "enable": [
+        "parry",
+        "sword"
+      ],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "jinshe-jian",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "parry",
+          "sword"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "金蛇剑法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/jinshe-jian.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 8,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 287,
+          "min": 200
+        },
+        "force": {
+          "max": 193,
+          "min": 150
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "category": "weapon",
+      "category_basis": "enable=['parry', 'sword']",
+      "category_source": "derived",
+      "category_zh": "兵器",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 0
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 0
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": -4,
+          "min": -25
+        },
+        "parry": {
+          "max": -37,
+          "min": -50
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "enable": [
+        "parry",
+        "sword"
+      ],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "liangyi-jian",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "sword"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "两仪剑法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/liangyi-jian.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 0,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "category": "dodge",
+      "category_basis": "martialtype=dodge",
+      "category_source": "derived",
+      "category_zh": "轻功",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 15
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.3
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 15
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 0,
+          "min": 0
+        },
+        "parry": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "enable": [
+        "dodge",
+        "move"
+      ],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "lingxu-bu",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "dodge"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "dodge",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "凌虚步",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/lingxu-bu.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 0,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "category": "knowledge",
+      "category_basis": "type=knowledge",
+      "category_source": "derived",
+      "category_zh": "知识",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 20
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 20
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 0,
+          "min": 0
+        },
+        "parry": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "enable": [],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "literate",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": null,
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "读书写字",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/literate.lpc"
+      },
+      "type": "knowledge"
+    },
+    {
+      "action_count": 12,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 271,
+          "min": 180
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "category": "unarmed",
+      "category_basis": "enable=['parry', 'strike']",
+      "category_source": "derived",
+      "category_zh": "拳脚",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 15
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 15
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": -17,
+          "min": -35
+        },
+        "parry": {
+          "max": 32,
+          "min": 5
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "enable": [
+        "parry",
+        "strike"
+      ],
+      "gaps": [
+        {
+          "detail": "缺 damage，按 0",
+          "kind": "action_coefficient_default"
+        }
+      ],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "luoying-zhang",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "parry",
+          "strike"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "落英神剑掌",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/luoying-zhang.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 13,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 260,
+          "min": 30
+        },
+        "force": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "category": "weapon",
+      "category_basis": "enable=['dodge', 'parry', 'throwing']",
+      "category_source": "derived",
+      "category_zh": "兵器",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 5
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 5
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 70,
+          "min": 10
+        },
+        "parry": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "enable": [
+        "dodge",
+        "parry",
+        "throwing"
+      ],
+      "gaps": [
+        {
+          "detail": "缺 force,parry，按 0",
+          "kind": "action_coefficient_default"
+        }
+      ],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": "if (random(me->query_skill(\"mantian-xing\", 1)) > 50) {\nvictim->apply_condition(\"anqi_poison\", random(2) + 1 + victim->query_condition(\"anqi_poison\"));\n}",
+          "implemented": true,
+          "owner": "kungfu/skill/<self>.lpc hit_ob",
+          "owner_line": "技能可用作 mapped attack skill，自身定义 hit_ob",
+          "reason": "钩子函数存在；值由源码表达式实时计算，静态不折算常量",
+          "source_kind": "lpc",
+          "value": null,
+          "value_kind": "code"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "mantian-xing",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "parry",
+          "throwing"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "满天星",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/mantian-xing.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 0,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "category": "action",
+      "category_basis": "enable=[]",
+      "category_source": "derived",
+      "category_zh": "招式",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 0,
+          "min": 0
+        },
+        "parry": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "enable": [],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "parry",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [],
+        "mapped_to": [
+          "bixie-jian",
+          "cibei-dao",
+          "damo-jian",
+          "jingang-quan",
+          "jinshe-jian",
+          "lingshe-zhangfa",
+          "luoying-zhang",
+          "mantian-xing",
+          "sougu",
+          "taiji-jian",
+          "wuchang-zhang",
+          "wuhu-duanmendao",
+          "wuyun-jian",
+          "yunlong-bian",
+          "yunlong-jian",
+          "yunlong-shou",
+          "zui-gun"
+        ],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "基本招架",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/parry.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 0,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "category": "knowledge",
+      "category_basis": "type=knowledge",
+      "category_source": "derived",
+      "category_zh": "知识",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 0,
+          "min": 0
+        },
+        "parry": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "enable": [],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "qimen-wuxing",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": null,
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "奇门五行",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/qimen-wuxing.lpc"
+      },
+      "type": "knowledge"
+    },
+    {
+      "action_count": 0,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "category": "dodge",
+      "category_basis": "martialtype=dodge",
+      "category_source": "derived",
+      "category_zh": "轻功",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 15
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.3
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 15
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 0,
+          "min": 0
+        },
+        "parry": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "enable": [
+        "dodge",
+        "move"
+      ],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "shaolin-shenfa",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "dodge"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "dodge",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "少林身法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/shaolin-shenfa.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 7,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 292,
+          "min": 250
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "category": "unarmed",
+      "category_basis": "enable=['claw', 'parry']",
+      "category_source": "derived",
+      "category_zh": "拳脚",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 15
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 10
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 40,
+          "min": 23
+        },
+        "parry": {
+          "max": -10,
+          "min": -35
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "enable": [
+        "claw",
+        "parry"
+      ],
+      "gaps": [
+        {
+          "detail": "缺 damage，按 0",
+          "kind": "action_coefficient_default"
+        }
+      ],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "sougu",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "claw",
+          "parry"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "搜骨鹰爪功",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/sougu.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 0,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "category": "weapon",
+      "category_basis": "base skill id=staff",
+      "category_source": "derived",
+      "category_zh": "兵器",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 0,
+          "min": 0
+        },
+        "parry": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "enable": [],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "staff",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [],
+        "mapped_to": [
+          "lingshe-zhangfa",
+          "wuchang-zhang"
+        ],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "基本杖法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/staff.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 0,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "category": "unarmed",
+      "category_basis": "base skill id=strike",
+      "category_source": "derived",
+      "category_zh": "拳脚",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 0,
+          "min": 0
+        },
+        "parry": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "enable": [],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "strike",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [],
+        "mapped_to": [
+          "hamagong",
+          "luoying-zhang"
+        ],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "基本掌法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/strike.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 0,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "category": "weapon",
+      "category_basis": "base skill id=sword",
+      "category_source": "derived",
+      "category_zh": "兵器",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 0,
+          "min": 0
+        },
+        "parry": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "enable": [],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "sword",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [],
+        "mapped_to": [
+          "bixie-jian",
+          "damo-jian",
+          "jinshe-jian",
+          "liangyi-jian",
+          "taiji-jian",
+          "wuyun-jian",
+          "yunlong-jian"
+        ],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "基本剑法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/sword.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 8,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 206,
+          "min": 110
+        },
+        "force": {
+          "max": 143,
+          "min": 100
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "category": "weapon",
+      "category_basis": "enable=['blade', 'parry']",
+      "category_source": "derived",
+      "category_zh": "兵器",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 10
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 5
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 45,
+          "min": 24
+        },
+        "parry": {
+          "max": -10,
+          "min": -23
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "enable": [
+        "blade",
+        "parry"
+      ],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "taiji-dao",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "blade"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "太极刀法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/taiji-dao.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 31,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 147,
+          "min": 60
+        },
+        "force": {
+          "max": 148,
+          "min": 100
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "category": "weapon",
+      "category_basis": "enable=['parry', 'sword']",
+      "category_source": "derived",
+      "category_zh": "兵器",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 25
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 25
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 44,
+          "min": 25
+        },
+        "parry": {
+          "max": 14,
+          "min": -5
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "enable": [
+        "parry",
+        "sword"
+      ],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "taiji-jian",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "parry",
+          "sword"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "太极剑法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/taiji-jian.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 30,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 593,
+          "min": 400
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "category": "unarmed",
+      "category_basis": "enable=['parry', 'unarmed']",
+      "category_source": "derived",
+      "category_zh": "拳脚",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 0
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 0
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 19,
+          "min": 0
+        },
+        "parry": {
+          "max": 27,
+          "min": -50
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "enable": [
+        "parry",
+        "unarmed"
+      ],
+      "gaps": [
+        {
+          "detail": "缺 damage，按 0",
+          "kind": "action_coefficient_default"
+        }
+      ],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "taiji-quan",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "unarmed"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "太极拳",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/taiji-quan.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 0,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "category": "force",
+      "category_basis": "martialtype=force",
+      "category_source": "derived",
+      "category_zh": "内功",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 0
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 0
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 0,
+          "min": 0
+        },
+        "parry": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "enable": [
+        "force"
+      ],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": "int damage;\nme->add(\"neili\", -factor);\ndamage = (int)me->query(\"neili\") / 20 + factor - (int)victim->query(\"neili\") / 25;\nif (damage < 0) {\nif (!me->query_temp(\"weapon\")\n&& random(victim->query_skill(\"force\")) > me->query_skill(\"force\") / 2) {\ndamage = -damage;\nme->receive_damage(\"qi\", damage * 2);\nme->receive_wound(\"qi\", damage);\nif (damage < 10) return \"$N受到$n的内力反震，闷哼一声。\\n\";\nelse if (damage < 20) return \"$N被$n以内力反震，「嘿」地一声退了两步。\\n\";\nelse if (damage < 40) return \"$N被$N以内力一震，胸口有如受到一记重锤，连退了五六步！\\n\";\nelse return \"$N被$n的内力一震，眼前一黑，身子向后飞出丈许！！\\n\";\n}\nif (damage_bonus + damage < 0) return -damage_bonus;\nreturn damage;\n}\ndamage -= victim->query_temp(\"apply/armor_vs_force\");\nif (damage_bonus + damage < 0) return -damage_bonus;\nif (random(me->query_skill(\"force\")) < damage)\nreturn damage;",
+          "implemented": true,
+          "owner": "inherit/skill/force.lpc hit_ob",
+          "owner_line": "继承 FORCE 的 hit_ob",
+          "reason": "钩子函数存在；值由源码表达式实时计算，静态不折算常量",
+          "source_kind": "lpc",
+          "value": null,
+          "value_kind": "code"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "taiji-shengong",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "force"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "force",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "太极神功",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/taiji-shengong.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 0,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "category": "weapon",
+      "category_basis": "base skill id=throwing",
+      "category_source": "derived",
+      "category_zh": "兵器",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 0,
+          "min": 0
+        },
+        "parry": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "enable": [],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "throwing",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [],
+        "mapped_to": [
+          "hanxing-bada",
+          "mantian-xing"
+        ],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "基本暗器",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/throwing.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 0,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "category": "dodge",
+      "category_basis": "martialtype=dodge",
+      "category_source": "derived",
+      "category_zh": "轻功",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 25
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.1
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 25
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 0,
+          "min": 0
+        },
+        "parry": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "enable": [
+        "dodge",
+        "move"
+      ],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "tiyunzong",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "dodge"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "dodge",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "梯云纵",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/tiyunzong.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 0,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "category": "unarmed",
+      "category_basis": "base skill id=unarmed",
+      "category_source": "derived",
+      "category_zh": "拳脚",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 0,
+          "min": 0
+        },
+        "parry": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "enable": [],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "unarmed",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [],
+        "mapped_to": [
+          "houquan",
+          "jingang-quan",
+          "meinv-quan",
+          "taiji-quan",
+          "tianji-quan",
+          "xuanfeng-leg"
+        ],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "基本拳脚",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/unarmed.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 0,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "category": "weapon",
+      "category_basis": "base skill id=whip",
+      "category_source": "derived",
+      "category_zh": "兵器",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 0,
+          "min": 0
+        },
+        "parry": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "enable": [],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "whip",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [],
+        "mapped_to": [
+          "qiufeng-chenfa",
+          "yunlong-bian"
+        ],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "基本鞭法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/whip.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 12,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 261,
+          "min": 170
+        },
+        "force": {
+          "max": 295,
+          "min": 250
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "category": "weapon",
+      "category_basis": "enable=['parry', 'staff']",
+      "category_source": "derived",
+      "category_zh": "兵器",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 20
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 20
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": -8,
+          "min": -40
+        },
+        "parry": {
+          "max": 47,
+          "min": 20
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "enable": [
+        "parry",
+        "staff"
+      ],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "wuchang-zhang",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "parry",
+          "staff"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "无常杖法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/wuchang-zhang.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 11,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 130,
+          "min": 30
+        },
+        "force": {
+          "max": 95,
+          "min": 50
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "category": "weapon",
+      "category_basis": "enable=['blade', 'parry']",
+      "category_source": "derived",
+      "category_zh": "兵器",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 25
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 55,
+          "min": 37
+        },
+        "parry": {
+          "max": 5,
+          "min": -13
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "enable": [
+        "blade",
+        "parry"
+      ],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "wuhu-duanmendao",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "blade",
+          "parry"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "五虎断门刀",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/wuhu-duanmendao.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 8,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 437,
+          "min": 350
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "category": "unarmed",
+      "category_basis": "enable=['parry', 'unarmed']",
+      "category_source": "derived",
+      "category_zh": "拳脚",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 10
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 10
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 22,
+          "min": 5
+        },
+        "parry": {
+          "max": 20,
+          "min": -45
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "enable": [
+        "parry",
+        "unarmed"
+      ],
+      "gaps": [
+        {
+          "detail": "缺 damage，按 0",
+          "kind": "action_coefficient_default"
+        }
+      ],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "xuanfeng-leg",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "unarmed"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "旋风扫叶腿",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/xuanfeng-leg.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 7,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 428,
+          "min": 300
+        },
+        "force": {
+          "max": 142,
+          "min": 100
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "category": "weapon",
+      "category_basis": "enable=['parry', 'whip']",
+      "category_source": "derived",
+      "category_zh": "兵器",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 10
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 10
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": -42,
+          "min": -50
+        },
+        "parry": {
+          "max": 7,
+          "min": -5
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "enable": [
+        "parry",
+        "whip"
+      ],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "yunlong-bian",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "parry",
+          "whip"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "云龙鞭法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/yunlong-bian.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 13,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 263,
+          "min": 180
+        },
+        "force": {
+          "max": 196,
+          "min": 150
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "category": "weapon",
+      "category_basis": "enable=['parry', 'sword']",
+      "category_source": "derived",
+      "category_zh": "兵器",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 5
+        },
+        "power_point": {
+          "default": null,
+          "default_expr": "(((int)me->query_skill(\"yunlong-xinfa\", 1) - 100) / 100 * 0.7 + 0.7)",
+          "derivation": "按 if 条件逐行扫描；未命中取 default/default_expr",
+          "kind": "rules",
+          "rules": [
+            {
+              "condition": "(int)me->query_skill(\"yunlong-xinfa\", 1) < 100",
+              "expr": null,
+              "value": 0.7
+            },
+            {
+              "condition": "(int)me->query_skill(\"yunlong-xinfa\", 1) > 200",
+              "expr": null,
+              "value": 1.4
+            }
+          ],
+          "source_kind": "lpc"
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 5
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 3,
+          "min": -15
+        },
+        "parry": {
+          "max": -27,
+          "min": -45
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "enable": [
+        "parry",
+        "sword"
+      ],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "yunlong-jian",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "parry",
+          "sword"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "云龙剑法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/yunlong-jian.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 0,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "category": "dodge",
+      "category_basis": "martialtype=dodge",
+      "category_source": "derived",
+      "category_zh": "轻功",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 10
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.4
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 10
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 0,
+          "min": 0
+        },
+        "parry": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "enable": [
+        "dodge",
+        "move"
+      ],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "yunlong-shenfa",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "dodge"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "dodge",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "云龙身法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/yunlong-shenfa.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 0,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "category": "force",
+      "category_basis": "martialtype=force",
+      "category_source": "derived",
+      "category_zh": "内功",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 0
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 0
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 0,
+          "min": 0
+        },
+        "parry": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "enable": [
+        "force"
+      ],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": "int damage;\nme->add(\"neili\", -factor);\ndamage = (int)me->query(\"neili\") / 20 + factor - (int)victim->query(\"neili\") / 25;\nif (damage < 0) {\nif (!me->query_temp(\"weapon\")\n&& random(victim->query_skill(\"force\")) > me->query_skill(\"force\") / 2) {\ndamage = -damage;\nme->receive_damage(\"qi\", damage * 2);\nme->receive_wound(\"qi\", damage);\nif (damage < 10) return \"$N受到$n的内力反震，闷哼一声。\\n\";\nelse if (damage < 20) return \"$N被$n以内力反震，「嘿」地一声退了两步。\\n\";\nelse if (damage < 40) return \"$N被$N以内力一震，胸口有如受到一记重锤，连退了五六步！\\n\";\nelse return \"$N被$n的内力一震，眼前一黑，身子向后飞出丈许！！\\n\";\n}\nif (damage_bonus + damage < 0) return -damage_bonus;\nreturn damage;\n}\ndamage -= victim->query_temp(\"apply/armor_vs_force\");\nif (damage_bonus + damage < 0) return -damage_bonus;\nif (random(me->query_skill(\"force\")) < damage)\nreturn damage;",
+          "implemented": true,
+          "owner": "inherit/skill/force.lpc hit_ob",
+          "owner_line": "继承 FORCE 的 hit_ob",
+          "reason": "钩子函数存在；值由源码表达式实时计算，静态不折算常量",
+          "source_kind": "lpc",
+          "value": null,
+          "value_kind": "code"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "yunlong-shengong",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "force"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "force",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "云龙神功",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/yunlong-shengong.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 11,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 230,
+          "min": 140
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "category": "unarmed",
+      "category_basis": "enable=['hand', 'parry']",
+      "category_source": "derived",
+      "category_zh": "拳脚",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 20
+        },
+        "power_point": {
+          "default": null,
+          "default_expr": "(((int)me->query_skill(\"yunlong-xinfa\", 1) - 100) / 100 * 0.7 + 0.7)",
+          "derivation": "按 if 条件逐行扫描；未命中取 default/default_expr",
+          "kind": "rules",
+          "rules": [
+            {
+              "condition": "(int)me->query_skill(\"yunlong-xinfa\", 1) < 100",
+              "expr": null,
+              "value": 0.7
+            },
+            {
+              "condition": "(int)me->query_skill(\"yunlong-xinfa\", 1) > 200",
+              "expr": null,
+              "value": 1.4
+            }
+          ],
+          "source_kind": "lpc"
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 20
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": -18,
+          "min": -45
+        },
+        "parry": {
+          "max": 42,
+          "min": 15
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "enable": [
+        "hand",
+        "parry"
+      ],
+      "gaps": [
+        {
+          "detail": "缺 damage，按 0",
+          "kind": "action_coefficient_default"
+        }
+      ],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "yunlong-shou",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "hand",
+          "parry"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "云龙手",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/yunlong-shou.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 0,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "category": "knowledge",
+      "category_basis": "type=knowledge",
+      "category_source": "derived",
+      "category_zh": "知识",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 30
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 0,
+          "min": 0
+        },
+        "parry": {
+          "max": 0,
+          "min": 0
+        },
+        "reason": "该技能不参与普通出招（无 action 序列），引擎按 0",
+        "source_kind": "default"
+      },
+      "enable": [],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "yunlong-xinfa",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": null,
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "云龙心法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/yunlong-xinfa.lpc"
+      },
+      "type": "knowledge"
+    },
+    {
+      "action_count": 10,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 0,
+          "min": 0
+        },
+        "force": {
+          "max": 385,
+          "min": 250
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "category": "unarmed",
+      "category_basis": "enable=['claw', 'parry']",
+      "category_source": "derived",
+      "category_zh": "拳脚",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 15
+        },
+        "power_point": {
+          "default": null,
+          "default_expr": "(((int)me->query_skill(\"yunlong-xinfa\", 1) - 100) / 100 * 0.7 + 0.7)",
+          "derivation": "按 if 条件逐行扫描；未命中取 default/default_expr",
+          "kind": "rules",
+          "rules": [
+            {
+              "condition": "(int)me->query_skill(\"yunlong-xinfa\", 1) < 100",
+              "expr": null,
+              "value": 0.7
+            },
+            {
+              "condition": "(int)me->query_skill(\"yunlong-xinfa\", 1) > 200",
+              "expr": null,
+              "value": 1.4
+            }
+          ],
+          "source_kind": "lpc"
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 10
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": 40,
+          "min": 13
+        },
+        "parry": {
+          "max": -15,
+          "min": -37
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "enable": [
+        "claw",
+        "parry"
+      ],
+      "gaps": [
+        {
+          "detail": "缺 damage，按 0",
+          "kind": "action_coefficient_default"
+        }
+      ],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": "if (me->query_skill(\"yunlong-shengong\", 1) > 70) {\nif (random(me->query_skill(\"yunlong-zhua\", 1)) > 30) {\nvictim->apply_condition(\"zhua_poison\", random(me->query_skill(\n\"ningxue-shenzhua\",\n1\n) / 10) + 1 +\nvictim->query_condition(\"zhua_poison\"));\n}\n}",
+          "implemented": true,
+          "owner": "kungfu/skill/<self>.lpc hit_ob",
+          "owner_line": "技能可用作 mapped attack skill，自身定义 hit_ob",
+          "reason": "钩子函数存在；值由源码表达式实时计算，静态不折算常量",
+          "source_kind": "lpc",
+          "value": null,
+          "value_kind": "code"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "yunlong-zhua",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "claw"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "云龙爪",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/yunlong-zhua.lpc"
+      },
+      "type": "martial"
+    },
+    {
+      "action_count": 8,
+      "apply": {},
+      "apply_reason": "源码没有 add_temp(\"apply/*\") 加成，按空表 0",
+      "apply_source": "default",
+      "attack": {
+        "damage": {
+          "max": 187,
+          "min": 100
+        },
+        "force": {
+          "max": 293,
+          "min": 250
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "category": "weapon",
+      "category_basis": "enable=['club', 'parry']",
+      "category_source": "derived",
+      "category_zh": "兵器",
+      "curve": {
+        "learn_bonus": {
+          "source_kind": "lpc",
+          "value": 10
+        },
+        "power_point": {
+          "expr": null,
+          "kind": "constant",
+          "source_kind": "lpc",
+          "value": 1.0
+        },
+        "practice_bonus": {
+          "source_kind": "lpc",
+          "value": 10
+        },
+        "source_kind": "lpc"
+      },
+      "defense": {
+        "dodge": {
+          "max": -37,
+          "min": -50
+        },
+        "parry": {
+          "max": 18,
+          "min": 10
+        },
+        "reason": "取 action 序列系数的首末范围",
+        "source_kind": "derived"
+      },
+      "enable": [
+        "club",
+        "parry"
+      ],
+      "gaps": [],
+      "hooks": {
+        "force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "非内功技能不作为 mapped force；按 0",
+          "owner_line": null,
+          "reason": "非内功技能不作为 mapped force；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "martial_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_force_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "owner_line": null,
+          "reason": "inherit/skill/force.lpc 的 be_hit_ob 在源码中被注释，所有内功均未实现；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "victim_parry_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "该技能未定义 be_hit_ob；按 0",
+          "owner_line": null,
+          "reason": "该技能未定义 be_hit_ob；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        },
+        "weapon_hit": {
+          "expr": null,
+          "implemented": false,
+          "owner": "武器对象提供，技能表不可得；按 0",
+          "owner_line": null,
+          "reason": "武器对象提供，技能表不可得；按 0",
+          "source_kind": "default",
+          "value": 0,
+          "value_kind": "default"
+        }
+      },
+      "id": "zui-gun",
+      "map_skills": {
+        "basis": "由 npcs.json 的 map_skill 关系反推",
+        "mapped_from": [
+          "club",
+          "parry"
+        ],
+        "mapped_to": [],
+        "source_kind": "derived"
+      },
+      "martialtype": "skill",
+      "max_level": {
+        "reason": "源码未定义等级上限，沿用引擎 SKILL_MAX=800",
+        "source_kind": "default",
+        "value": 800
+      },
+      "name": "少林醉棍",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/zui-gun.lpc"
+      },
+      "type": "martial"
+    }
+  ]
+}

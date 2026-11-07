@@ -94,6 +94,24 @@ EFFECT_OPS = frozenset(
         "player_upsert",
         "player_presence",
         "player_endow",
+        # ---- 战斗原语（xkx parity，P2）----
+        # 伤害/死亡/复活/掉落全部是纯 Effect：投影只能由事件日志重建，
+        # 战斗动作不得直接改 state。
+        "hp_add",
+        "hp_set",
+        "entity_status",
+        "revive",
+        "loot_create",
+        # 从房间地面取物（loot/get 的唯一变更载体）。
+        "loot_take",
+        # 旧玩家实体补气血/属性（只在 max_hp<=0 时由 player_enter 发一次）。
+        "vitals_set",
+        "combat_exp_add",
+        "skill_xp_add",
+        # 公式库 improve_skill 的落库载体：直接写回等级/熟练度（纯 Effect）。
+        "skill_progress",
+        # 只读战报载体（与 shop_report 同类）：不修改状态，只把 rounds[] 写进事件。
+        "combat_log",
     }
 )
 
@@ -182,6 +200,31 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             raise EffectError(f"实体已存在: {ent.id}")
         if ent.location not in state.locations:
             raise EffectError(f"地点不存在: {ent.location}")
+        # 战斗字段只在内容包显式声明时写入：旧内容包 create_entity 不带这些键，
+        # 实体保持默认值，to_dict() 也不输出，旧世界哈希不受影响。
+        if "max_hp" in d:
+            ent.max_hp = _as_int(d.get("max_hp", 0), "max_hp")
+            ent.hp = max(0, min(ent.max_hp, _as_int(d.get("hp", ent.max_hp), "hp")))
+        if "attack" in d:
+            ent.attack = _as_int(d["attack"], "attack")
+        if "defense" in d:
+            ent.defense = _as_int(d["defense"], "defense")
+        if "equipment" in d:
+            ent.equipment = [str(x) for x in (d.get("equipment") or []) if str(x)]
+        if "attrs" in d:
+            ent.attrs = {str(k): _as_int(v, f"attrs.{k}") for k, v in dict(d["attrs"] or {}).items()}
+        if "combat_exp" in d:
+            ent.combat_exp = _as_int(d["combat_exp"], "combat_exp")
+        if "skill_levels" in d:
+            ent.skill_levels = {
+                str(k): max(0, min(800, _as_int(v, f"skill_levels.{k}")))
+                for k, v in dict(d["skill_levels"] or {}).items()
+            }
+        if "skill_xp" in d:
+            ent.skill_xp = {
+                str(k): max(0, min(99, _as_int(v, f"skill_xp.{k}")))
+                for k, v in dict(d["skill_xp"] or {}).items()
+            }
         state.entities[ent.id] = ent
         return
 
@@ -337,6 +380,156 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         skill = str(d["skill"])
         delta = _as_num(d["delta"], "delta")
         ent.skills[skill] = max(0.0, min(1.0, float(ent.skills.get(skill, 0.0)) + delta))
+        return
+
+    # ---- 战斗原语（P2）：伤害 / 死亡 / 复活 / 掉落 ----
+    # 这些分支只读事件里的整数参数，不做随机、不看墙钟；战斗结果因此可逐字节回放。
+    if op in ("hp_add", "hp_set"):
+        ent = _entity(state, str(d["entity"]))
+        if ent.max_hp <= 0:
+            raise EffectError(f"实体没有战斗生命值: {ent.id}")
+        old = int(ent.hp)
+        if op == "hp_add":
+            value = old + _as_int(d["delta"], "delta")
+        else:
+            value = _as_int(d["value"], "value")
+        new = max(0, min(ent.max_hp, value))
+        if op == "hp_add":
+            # 事件是唯一事实源：钳制就地进行，并把**实际**增量写回 delta。
+            # 否则“超额伤害”会让事件记 -71、状态只掉 -70，重放永远对不上。
+            # normalize() 给了 d 一份副本，事件序列化读的是 e.data，两边都写。
+            d["delta"] = new - old
+            if isinstance(e.data, dict):
+                e.data["delta"] = new - old
+        ent.hp = new
+        return
+
+    if op == "entity_status":
+        ent = _entity(state, str(d["entity"]))
+        status = str(d["status"])
+        if status not in ("alive", "dead", "reincarnated"):
+            raise EffectError(f"非法实体状态: {status}")
+        if status == "dead":
+            if ent.hp > 0:
+                raise EffectError("死亡前 hp 必须为 0（伤害必须由 hp_add 先行结算）")
+            ent.status = "dead"
+            ent.death_tick = _as_int(d.get("tick", 0), "tick")
+            ent.death_location = str(d.get("location", ent.location))
+        else:
+            ent.status = status
+            ent.death_tick = 0
+            ent.death_location = ""
+        return
+
+    if op == "revive":
+        ent = _entity(state, str(d["entity"]))
+        if ent.max_hp <= 0:
+            raise EffectError(f"实体没有战斗生命值: {ent.id}")
+        if ent.status != "dead":
+            raise EffectError(f"实体未死亡，不能复活: {ent.id}")
+        hp = _as_int(d["hp"], "hp") if "hp" in d else max(1, ent.max_hp // 2)
+        ent.hp = max(1, min(ent.max_hp, hp))
+        ent.status = "alive"
+        ent.death_tick = 0
+        ent.death_location = ""
+        return
+
+    if op == "loot_create":
+        # 掉落到**房间地面**，不直接进背包。`location` 优先；缺省用实体所在地，
+        # 兼容旧事件里只写 entity 的写法。
+        item = str(d["item"])
+        qty = _as_int(d["qty"], "qty")
+        if qty <= 0:
+            raise EffectError("掉落数量必须为正")
+        loc = str(d.get("location") or "")
+        if not loc:
+            loc = _entity(state, str(d["entity"])).location
+        if loc not in state.locations:
+            raise EffectError(f"地点不存在: {loc}")
+        bucket = state.ground.setdefault(loc, {})
+        bucket[item] = int(bucket.get(item, 0)) + qty
+        state.items_created[item] = state.items_created.get(item, 0) + qty
+        return
+
+    if op == "loot_take":
+        # 地面 → 背包。数量不足直接报错，由外层事务整体回滚，不会半取。
+        ent = _entity(state, str(d["entity"]))
+        loc = str(d["location"])
+        item = str(d["item"])
+        qty = _as_int(d["qty"], "qty")
+        if qty <= 0:
+            raise EffectError("取物数量必须为正")
+        bucket = state.ground.get(loc) or {}
+        if int(bucket.get(item, 0)) < qty:
+            raise EffectError(f"地面物品不足: {loc} {item}")
+        left = int(bucket[item]) - qty
+        if left > 0:
+            bucket[item] = left
+        else:
+            bucket.pop(item, None)
+        if not bucket:
+            state.ground.pop(loc, None)
+        ent.inventory[item] = int(ent.inventory.get(item, 0)) + qty
+        return
+
+    if op == "vitals_set":
+        # 只给没有战斗字段的旧实体补一次基础气血/属性；内容包创世不经过这里。
+        ent = _entity(state, str(d["entity"]))
+        max_hp = _as_int(d["max_hp"], "max_hp")
+        if max_hp <= 0:
+            raise EffectError("vitals_set 的 max_hp 必须为正")
+        ent.max_hp = max_hp
+        ent.hp = max(0, min(max_hp, _as_int(d.get("hp", max_hp), "hp")))
+        if "attrs" in d:
+            ent.attrs = {str(k): _as_int(v, f"attrs.{k}") for k, v in dict(d["attrs"] or {}).items()}
+        if "combat_exp" in d:
+            ent.combat_exp = max(0, _as_int(d["combat_exp"], "combat_exp"))
+        if "skill_levels" in d:
+            ent.skill_levels = {
+                str(k): max(0, min(800, _as_int(v, f"skill_levels.{k}")))
+                for k, v in dict(d["skill_levels"] or {}).items()
+            }
+        return
+
+    if op == "combat_exp_add":
+        ent = _entity(state, str(d["entity"]))
+        delta = _as_int(d["delta"], "delta")
+        if delta < 0:
+            raise EffectError("战斗经验不得为负")
+        ent.combat_exp += delta
+        return
+
+    if op == "skill_xp_add":
+        ent = _entity(state, str(d["entity"]))
+        skill = str(d["skill"])
+        delta = _as_int(d["delta"], "delta")
+        if delta <= 0:
+            raise EffectError("技能经验增量必须为正")
+        level = int(ent.skill_levels.get(skill, 0))
+        xp = int(ent.skill_xp.get(skill, 0)) + delta
+        # 100 经验升 1 级，上限 800；多余经验留在 xp（封顶 99，避免无界增长）。
+        while xp >= 100 and level < 800:
+            xp -= 100
+            level += 1
+        ent.skill_levels[skill] = level
+        ent.skill_xp[skill] = min(99, max(0, xp))
+        return
+
+    if op == "skill_progress":
+        ent = _entity(state, str(d["entity"]))
+        skill = str(d["skill"])
+        level = _as_int(d["level"], "level")
+        learned = _as_int(d["learned"], "learned")
+        if level < 0 or level > 800:
+            raise EffectError("技能等级必须在 0..800")
+        if learned < 0:
+            raise EffectError("技能熟练度不得为负")
+        ent.skill_levels[skill] = level
+        ent.skill_xp[skill] = learned
+        return
+
+    if op == "combat_log":
+        # 只读战报：rounds[] 随事件持久化，回放时不改状态。
         return
 
     if op == "set_field":

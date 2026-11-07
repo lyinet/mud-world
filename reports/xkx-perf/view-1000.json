@@ -1,0 +1,24 @@
+{
+  "view": {
+    "businesses": 20,
+    "entities": 200,
+    "factions": 1000,
+    "location_view_ms": {
+      "count": 100,
+      "max": 1.06,
+      "mean": 0.024,
+      "p50": 0.009,
+      "p95": 0.034
+    },
+    "locations": 1000,
+    "seats": 100,
+    "view_ms": {
+      "count": 100,
+      "max": 0.749,
+      "mean": 0.256,
+      "p50": 0.193,
+      "p95": 0.553
+    },
+    "warm_ms": 0.375
+  }
+}

@@ -19,7 +19,7 @@ import os
 import threading
 import time
 import traceback
-from collections import Counter
+from collections import Counter, deque
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Callable
@@ -42,6 +42,9 @@ from .lod import LODScheduler, load_lod_config
 # 1x 的虚拟时间速率：30 分钟真实时间 ≈ 300 ticks（10 ticks/分钟）。
 TICKS_PER_SECOND_1X = 10.0 / 60.0
 SPEEDS = (1.0, 2.0, 4.0)
+
+# 内存只留最近 N 条；完整历史已落 ambient_*.jsonl，避免进程内列表无界增长。
+_AMBIENT_IN_MEM_MAX = 2000
 
 
 def _nearest_speed(value: float) -> float:
@@ -257,9 +260,9 @@ class AmbientScheduler:
         self._progress_chain = ""
         self._last_seq = 0
         self._tick_events = 0
-        self._summaries: list[dict[str, Any]] = []
-        self._player_actions: list[dict[str, Any]] = []
-        self._control_log: list[dict[str, Any]] = []
+        self._summaries: deque[dict[str, Any]] = deque(maxlen=_AMBIENT_IN_MEM_MAX)
+        self._player_actions: deque[dict[str, Any]] = deque(maxlen=_AMBIENT_IN_MEM_MAX)
+        self._control_log: deque[dict[str, Any]] = deque(maxlen=_AMBIENT_IN_MEM_MAX)
         self._blocked: Counter[tuple[str, str]] = Counter()
         self._pruned: Counter[tuple[str, str]] = Counter()
         self._replans = 0
@@ -267,7 +270,7 @@ class AmbientScheduler:
         self._queue_seq = 0
         self._replan_today: Counter[str] = Counter()
         self._online_players: set[str] = set()
-        self._lod_changes: list[dict[str, Any]] = []
+        self._lod_changes: deque[dict[str, Any]] = deque(maxlen=_AMBIENT_IN_MEM_MAX)
         self._final: dict[str, Any] | None = None
         self._day_marker: int | None = None
 
@@ -455,9 +458,8 @@ class AmbientScheduler:
         self._last_seq = ev.seq
         self._events_total += 1
         self._tick_events += 1
-        self._event_chain = hash_obj(
-            {"prev": self._event_chain, "event": ev.to_canonical_dict()}
-        )
+        canonical = ev.to_canonical_dict()
+        self._event_chain = hash_obj({"prev": self._event_chain, "event": canonical})
         row = {
             "seq": ev.seq,
             "tick": ev.tick,
@@ -470,8 +472,8 @@ class AmbientScheduler:
             "reason": ev.reason,
             "args": ev.args,
             "effect_ops": [str(e.get("op", "")) for e in ev.effects],
-            "canonical": ev.to_canonical_dict(),
-            "event_hash": hash_obj(ev.to_canonical_dict()),
+            "canonical": canonical,
+            "event_hash": hash_obj(canonical),
             "event_chain": self._event_chain,
         }
         self._audit_fh.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
@@ -1176,9 +1178,10 @@ class AmbientScheduler:
             "pruned": {f"{verb}:{reason}": n for (verb, reason), n in sorted(self._pruned.items())},
             "replans": self._replans,
             "lod": self.lod.summary(),
-            "lod_changes": self._lod_changes,
-            "player_actions": self._player_actions,
-            "control": self._control_log,
+            # 内存里是 deque(maxlen=N)，JSON 序列化前转 list（输出语义不变：最近 N 条）。
+            "lod_changes": list(self._lod_changes),
+            "player_actions": list(self._player_actions),
+            "control": list(self._control_log),
             "content_hash": self.content.content_hash,
             "files": {
                 "events": "events.sqlite",

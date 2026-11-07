@@ -1,0 +1,265 @@
+{
+  "areas": [
+    "hangzhou",
+    "jiaxing",
+    "shiliang"
+  ],
+  "authored_descriptions": [
+    {
+      "desc": "一件洗得发白的粗布衣裳，针脚细密，是寻常人家最常穿的衣物。",
+      "id": "/d/hangzhou/npc/obj/cloth",
+      "table": "items"
+    },
+    {
+      "desc": "一块硝制过的狗皮，皮毛粗糙却厚实，披在身上倒也挡风。",
+      "id": "/d/hangzhou/npc/obj/goupi",
+      "table": "items"
+    },
+    {
+      "desc": "一本描金的婚约，写着你与结发之人的名字，须得去红娘庄才能解除。",
+      "id": "/d/hangzhou/npc/obj/marry_card",
+      "table": "items"
+    },
+    {
+      "desc": "一双绣着并蒂莲的软底小鞋，针线精巧，鞋面还带着淡淡的脂粉香。",
+      "id": "/d/jiaxing/npc/flower_shoe",
+      "table": "items"
+    },
+    {
+      "desc": "一件半旧的粗布短衣，浆洗得干净，是嘉兴一带百姓的常服。",
+      "id": "/d/jiaxing/npc/obj/cloth",
+      "table": "items"
+    },
+    {
+      "desc": "一件素色布衣，布料虽粗，却缝补得整整齐齐。",
+      "id": "/d/jiaxing/obj/cloth",
+      "table": "items"
+    },
+    {
+      "desc": "一双大红缎面的绣花小鞋，鞋尖缀着绒球，走起路来悄无声息。",
+      "id": "/d/jiaxing/obj/flower_shoe",
+      "table": "items"
+    },
+    {
+      "desc": "一位年过花甲的老管家，背略微驼，守在刘庄门内，见人先拱手问安。",
+      "id": "/d/hangzhou/npc/guanjia",
+      "table": "npcs"
+    },
+    {
+      "desc": "一位风尘仆仆的进香客，手里攥着香烛，神色虔诚。",
+      "id": "/d/hangzhou/npc/guest",
+      "table": "npcs"
+    },
+    {
+      "desc": "一名短打装束的家丁，腰间系着布带，目光守着庄内动静。",
+      "id": "/d/hangzhou/npc/jiading",
+      "table": "npcs"
+    },
+    {
+      "desc": "一个游兴正浓的年轻人，东张西望，时不时停下来打量泉边的景致。",
+      "id": "/d/hangzhou/npc/you-ke",
+      "table": "npcs"
+    }
+  ],
+  "content_hash": "eeac618650cdb06406c25dac87fb91234391f84f9881351a22fa0b3e594fe5ad",
+  "counts": {
+    "aggressive_npcs": 7,
+    "desc_authored_items": 7,
+    "desc_authored_npcs": 4,
+    "dialogue_topics": 67,
+    "dialogue_topics_in_slice": 40,
+    "drop_entries": 3,
+    "drops_guaranteed": 3,
+    "drops_random": 0,
+    "drops_unresolved_chance": 0,
+    "equipment_items_added": 32,
+    "equipment_items_unresolved": 0,
+    "equipment_refs_normalized": 3,
+    "exits": 427,
+    "items_external": 46,
+    "items_in_slice": 39,
+    "masters": 22,
+    "npcs_external": 13,
+    "npcs_in_slice": 92,
+    "npcs_no_drops": 102,
+    "npcs_with_drops": 3,
+    "rooms_boundary_stub": 6,
+    "rooms_in_slice": 195,
+    "sects": 1,
+    "shops": 3,
+    "skill_action_entries": 247,
+    "skill_action_gaps": 11,
+    "skill_action_skills": 22,
+    "skill_action_unresolved": 0,
+    "skill_special_actions": 4,
+    "skill_stat_default_fields": 48,
+    "skill_stat_rows": 48,
+    "skills": 48,
+    "temp_apply_entries": 78,
+    "temp_apply_keys": {
+      "apply/armor": 14,
+      "apply/attack": 25,
+      "apply/damage": 11,
+      "apply/defense": 23,
+      "armor": 1,
+      "is_rided_by": 1,
+      "is_riding": 1,
+      "qingshu": 1,
+      "shoupa": 1
+    },
+    "temp_apply_npcs": 34,
+    "temp_apply_npcs_in_slice": 28,
+    "temp_apply_unknown_entries": 5,
+    "temp_apply_unknown_keys": [
+      "armor",
+      "is_rided_by",
+      "is_riding",
+      "qingshu",
+      "shoupa"
+    ]
+  },
+  "coverage": {
+    "source": {
+      "dialogue_text": {
+        "hit": 28,
+        "ratio": 0.7,
+        "threshold": 0.63,
+        "total": 40
+      },
+      "items_desc": {
+        "hit": 32,
+        "ratio": 0.8205,
+        "threshold": 0.82,
+        "total": 39
+      },
+      "npcs_desc": {
+        "hit": 88,
+        "ratio": 0.9565,
+        "threshold": 0.9,
+        "total": 92
+      },
+      "room_exits": {
+        "hit": 191,
+        "ratio": 0.9795,
+        "threshold": 0.97,
+        "total": 195
+      },
+      "rooms_desc": {
+        "hit": 195,
+        "ratio": 1.0,
+        "threshold": 0.96,
+        "total": 195
+      }
+    },
+    "total": {
+      "items_desc": {
+        "hit": 39,
+        "ratio": 1.0,
+        "threshold": 1.0,
+        "total": 39
+      },
+      "npcs_desc": {
+        "hit": 92,
+        "ratio": 1.0,
+        "threshold": 1.0,
+        "total": 92
+      },
+      "rooms_desc": {
+        "hit": 195,
+        "ratio": 1.0,
+        "threshold": 1.0,
+        "total": 195
+      }
+    }
+  },
+  "coverage_semantics": {
+    "source": "对原版忠实度：只统计 desc_source=lpc 的条目；低于 threshold 视为回归。",
+    "total": "玩家可见描述完整性：含 authored，必须 100%。"
+  },
+  "field_semantics": {
+    "desc": "玩家可见描述文本（房间 short/long 中的 long、物品/NPC 的 long）。",
+    "desc_source": {
+      "authored": "原版缺 long，由本项目按原版器物/身份常识自撰，不计入 source 覆盖率，只计入 total 覆盖率。",
+      "lpc": "从 xkx100 LPC 源码静态抽取，计入 source 覆盖率。",
+      "null": "描述缺失，玩家会看到空白；total 覆盖率不达标即 error。"
+    },
+    "npc_drops": {
+      "chance": "1.0 表示原版必掉；小于 1 由源码 random 条件折算；null 表示无法静态折算，必须读 chance_expr。",
+      "chance_expr": "源码概率条件原文；null 表示原版没有概率判定。",
+      "drops_source": "lpc 表示 die() 中有真实掉落；none 表示源码无掉落，drops 为空表且 drops_note 写明原因。",
+      "landing": "引擎实际落地方式；本项目不建模尸体，统一为 ground。",
+      "source_landing": "原版实际放置位置（corpse/ground），仅作溯源，不影响引擎落地。"
+    },
+    "npc_equipment": "equipment[].ref 必须在 items.json 中存在；ref 已补前导 / 并去掉 .lpc；缺 set_weight 时按基类默认 100 并带 weight_source=default。",
+    "npc_temp_apply": "create() 内 set_temp 的静态快照，按创世即带处理；key 为原版键名，known=false 表示不在战斗白名单（原样保留并记诊断）；value 为整数时直接可用，为 null 时读 value_expr，不折算；source_kind=lpc 表示照源码搬运。",
+    "skill_action_source": {
+      "default": "原版缺键，按 LPC mapping 语义取 0；缺键记入 coefficient_gaps 与 diagnostics.jsonl。",
+      "derived": "原版只给公式或结构，数值由抽取器按源码公式解释得出。",
+      "lpc": "招式/系数在原版 LPC 中直接写死，原样搬运。",
+      "missing": "文案缺失，没有可搬运原文（仅 name_source 使用）。"
+    },
+    "skill_hook": "hooks 五项固定齐全；value_kind=code 表示钩子函数存在、value 为 null 而 expr 为源码函数体；value_kind=default 表示明确占位 value=0 并写 reason。"
+  },
+  "files": {
+    "diagnostics.jsonl": {
+      "bytes": 19923,
+      "sha256": "8d75bda17790c62e0ccdcffed6b3fdffdb3c614834151e5f0435bf870738980b"
+    },
+    "dialogue.json": {
+      "bytes": 19197,
+      "sha256": "b9fe08d5b58443698e3d6ea3ce58d7bb171e2e2dc519088e8692669e8b4d62bd"
+    },
+    "exits.json": {
+      "bytes": 75536,
+      "sha256": "a1fdb78e2a4d7f1f54b01688bfad4c4b374819bb88ec2d379f94edc835eac63e"
+    },
+    "items.json": {
+      "bytes": 42985,
+      "sha256": "adbdd8264b1d36e15dc86abf9267edb6679b5fb01c0124f291fa92ec9c26ed70"
+    },
+    "npcs.json": {
+      "bytes": 173344,
+      "sha256": "f06fde833634061e17581a31e5d4fad1516ca2898c04b4258927c53f1262cc63"
+    },
+    "rooms.json": {
+      "bytes": 142167,
+      "sha256": "267344a6e42d762aa496ddd2ccd85f9b4ed4640656b6d11078491a35e3d882cc"
+    },
+    "sects.json": {
+      "bytes": 842,
+      "sha256": "571b53869f3c7de9dbfb994623cb2f647b65fa7746e7b0b416897b982faae461"
+    },
+    "shops.json": {
+      "bytes": 3173,
+      "sha256": "e585a91e180f8564843362f0f2687f030ce8cca21abefc04a3ad75e0c7ddb801"
+    },
+    "skills.json": {
+      "bytes": 28905,
+      "sha256": "60c825b86644093c88862bd5e95c11cae30b3f4f4397ab1430d5a9acc89f17ae"
+    },
+    "skills_actions.json": {
+      "bytes": 259082,
+      "sha256": "4efa730061a22e4c6214da2dd2c4005b2d40e8197adddfa29953e97d41567406"
+    },
+    "skills_stats.json": {
+      "bytes": 190472,
+      "sha256": "79f507b476c52d101cc2b7c12ec8eb14d144c1b2183f403241d2ed0fd3e52f09"
+    },
+    "summary.json": {
+      "bytes": 2905,
+      "sha256": "393f06076826aca792e7334678a6b49d841391797c12aa3eda81af079510a5f5"
+    }
+  },
+  "generator": "tools/xkx_extract",
+  "rules_version": 1,
+  "schema_version": 1,
+  "source": {
+    "areas": [
+      "hangzhou",
+      "jiaxing",
+      "shiliang"
+    ],
+    "commit": "c1b87db0014c85514e053b2a149a2efccb9914e3",
+    "repo": "fluffos/xkx100"
+  }
+}

@@ -2,14 +2,14 @@
   "meta": {
     "tag": "delivery-p3k",
     "tag_commit": "b23827a16bba6fa1527f58aaea44f8539a8e9301",
-    "head": "9f1661c611b18a9f0df9af1e308ee927624f7c91",
+    "head": "df2b37cd3fe013b2be21151894502286e06954ed",
     "tree_root": "/Users/lyinet/projects/XKX/world-sim",
-    "service_run": "w4-e2e-1107084521",
-    "legacy_run": "w4-e2e-legacy-1107084521",
-    "account": "w4e2e_1107084521",
-    "started_at": "2026-11-07 08:45:21",
-    "service_api": "http://127.0.0.1:52509",
-    "service_proxy": "http://127.0.0.1:52510"
+    "service_run": "w4-e2e-1107103944",
+    "legacy_run": "w4-e2e-legacy-1107103944",
+    "account": "w4e2e_1107103944",
+    "started_at": "2026-11-07 10:39:44",
+    "service_api": "http://127.0.0.1:63440",
+    "service_proxy": "http://127.0.0.1:63441"
   },
   "checks": [
     {
@@ -18,14 +18,14 @@
       "detail": {
         "tag": "delivery-p3k",
         "tag_commit": "b23827a16bba6fa1527f58aaea44f8539a8e9301",
-        "head": "9f1661c611b18a9f0df9af1e308ee927624f7c91",
+        "head": "df2b37cd3fe013b2be21151894502286e06954ed",
         "tree_root": "/Users/lyinet/projects/XKX/world-sim",
-        "service_run": "w4-e2e-1107084521",
-        "legacy_run": "w4-e2e-legacy-1107084521",
-        "account": "w4e2e_1107084521",
-        "started_at": "2026-11-07 08:45:21",
-        "service_api": "http://127.0.0.1:52509",
-        "service_proxy": "http://127.0.0.1:52510"
+        "service_run": "w4-e2e-1107103944",
+        "legacy_run": "w4-e2e-legacy-1107103944",
+        "account": "w4e2e_1107103944",
+        "started_at": "2026-11-07 10:39:44",
+        "service_api": "http://127.0.0.1:63440",
+        "service_proxy": "http://127.0.0.1:63441"
       }
     },
     {
@@ -40,8 +40,8 @@
       "name": "1. 令牌真落盘 ws_auth_v1",
       "ok": true,
       "detail": {
-        "username": "w4e2e_1107084521",
-        "expires_at": 1794098724000,
+        "username": "w4e2e_1107103944",
+        "expires_at": 1794105586000,
         "has_refresh": null
       }
     },
@@ -212,7 +212,7 @@
       "name": "原因码 not_at_giver 走真实 API 到 UI 文案",
       "ok": true,
       "detail": [
-        "接任务「捎账本到客栈」08:45:24你不在委托人所在的地点；先走到委托人那里。"
+        "接任务「捎账本到客栈」10:39:47你不在委托人所在的地点；先走到委托人那里。"
       ]
     },
     {
@@ -228,10 +228,10 @@
         "duration_hours": 1.0,
         "duration_ticks": 6,
         "event_seq": 17,
-        "intent_id": "i:f1501fab1e3d67f2db9b652e3a1108b0073d6ec6049e812ba9f6aa86fc24e15f",
+        "intent_id": "i:52c9a177237eb9dcf605d26855b0fffb26fcee5137ca0296331718c34622faaa",
         "next_tick": 42,
         "ok": false,
-        "player": "player:w4e2e_1107084521",
+        "player": "player:w4e2e_1107103944",
         "profile_version": 1,
         "reason_text": "你不在任务发布人所在的地点。",
         "reject_reason": "not_at_giver",
@@ -246,8 +246,8 @@
       "name": "原因码 not_at_target 走真实 API 到 UI 文案",
       "ok": true,
       "detail": [
-        "交付「捎账本到客栈」08:45:25还没到任务目标地点或委托人处；先移动过去再交付。",
-        "接任务「捎账本到客栈」08:45:24你不在委托人所在的地点；先走到委托人那里。"
+        "交付「捎账本到客栈」10:39:48还没到任务目标地点或委托人处；先移动过去再交付。",
+        "接任务「捎账本到客栈」10:39:47你不在委托人所在的地点；先走到委托人那里。"
       ]
     },
     {
@@ -263,10 +263,10 @@
         "duration_hours": 1.0,
         "duration_ticks": 6,
         "event_seq": 25,
-        "intent_id": "i:caeab232146c9087df69b954772eef260e92c2659b1894faeb4ee2e444888b54",
+        "intent_id": "i:db072d6f7f47f810d739ca1705f7566b12194a2d58dc42abf937786a915ce3de",
         "next_tick": 66,
         "ok": false,
-        "player": "player:w4e2e_1107084521",
+        "player": "player:w4e2e_1107103944",
         "profile_version": 1,
         "reason_text": "你尚未到达任务目标地点或发布人处。",
         "reject_reason": "not_at_target",
@@ -296,9 +296,9 @@
         "data": {},
         "details": {},
         "event_seq": 29,
-        "intent_id": "i:17bdf9505771eae637ef0cb76668bf0ab3771b2ca47f806c305a5c80624a9739",
+        "intent_id": "i:367bef43ae6d24f188ceaf6cdfd31d77ab4eb5ba42a5f0ed6293f2baa0e4320e",
         "ok": false,
-        "player": "player:w4e2e_1107084521",
+        "player": "player:w4e2e_1107103944",
         "profile_version": 1,
         "reason_text": "你已离线；请重新进入世界后再操作。",
         "reject_reason": "player_offline",
@@ -740,8 +740,8 @@
         "mode": "auth",
         "hasAccess": true,
         "required": false,
-        "username": "w4e2e_1107084521",
-        "expiresAt": 1794098725000
+        "username": "w4e2e_1107103944",
+        "expiresAt": 1794105588000
       }
     },
     {
@@ -847,7 +847,7 @@
           "code": "auth_account_mismatch"
         },
         "ui": {
-          "account": "w4e2e_1107084521",
+          "account": "w4e2e_1107103944",
           "money": 312
         }
       }
@@ -869,13 +869,13 @@
           "mode": "auth",
           "hasAccess": false,
           "required": true,
-          "username": "w4e2e_1107084521",
+          "username": "w4e2e_1107103944",
           "expiresAt": 0
         },
         "notice": "需要重新登录登录已失效，写操作需要重新登录；世界状态保持不变。\n登录/注册",
         "noticeVisible": true,
         "errors": [
-          "鉴权08:45:26登录已失效，需要重新登录；世界状态保持不变。"
+          "鉴权10:39:49登录已失效，需要重新登录；世界状态保持不变。"
         ]
       }
     },
@@ -920,385 +920,385 @@
     "requests": [
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/?ui_check=1"
+        "url": "http://127.0.0.1:63441/?ui_check=1"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/style.css"
+        "url": "http://127.0.0.1:63441/style.css"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/app.js"
+        "url": "http://127.0.0.1:63441/app.js"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/health"
+        "url": "http://127.0.0.1:63441/api/health"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:52510/api/auth/refresh"
+        "url": "http://127.0.0.1:63441/api/auth/refresh"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/world/feed?limit=20"
+        "url": "http://127.0.0.1:63441/api/world/feed?limit=20"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:52510/api/auth/register"
+        "url": "http://127.0.0.1:63441/api/auth/register"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:52510/api/auth/login"
+        "url": "http://127.0.0.1:63441/api/auth/login"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:52510/api/player/enter"
+        "url": "http://127.0.0.1:63441/api/player/enter"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/world/map"
+        "url": "http://127.0.0.1:63441/api/world/map"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/world/feed?limit=20"
+        "url": "http://127.0.0.1:63441/api/world/feed?limit=20"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/?ui_check=1"
+        "url": "http://127.0.0.1:63441/?ui_check=1"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/style.css"
+        "url": "http://127.0.0.1:63441/style.css"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/app.js"
+        "url": "http://127.0.0.1:63441/app.js"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/health"
+        "url": "http://127.0.0.1:63441/api/health"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:52510/api/auth/refresh"
+        "url": "http://127.0.0.1:63441/api/auth/refresh"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/world/map"
+        "url": "http://127.0.0.1:63441/api/world/map"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/world/feed?limit=20"
+        "url": "http://127.0.0.1:63441/api/world/feed?limit=20"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:52510/api/player/action"
+        "url": "http://127.0.0.1:63441/api/player/action"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:52510/api/player/action"
+        "url": "http://127.0.0.1:63441/api/player/action"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:52510/api/player/action"
+        "url": "http://127.0.0.1:63441/api/player/action"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:52510/api/player/action"
+        "url": "http://127.0.0.1:63441/api/player/action"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:52510/api/player/action"
+        "url": "http://127.0.0.1:63441/api/player/action"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:52510/api/player/action"
+        "url": "http://127.0.0.1:63441/api/player/action"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:52510/api/player/action"
+        "url": "http://127.0.0.1:63441/api/player/action"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:52510/api/player/action"
+        "url": "http://127.0.0.1:63441/api/player/action"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:52510/api/player/action"
+        "url": "http://127.0.0.1:63441/api/player/action"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:52510/api/player/action"
+        "url": "http://127.0.0.1:63441/api/player/action"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:52510/api/player/leave"
+        "url": "http://127.0.0.1:63441/api/player/leave"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:52510/api/player/action"
+        "url": "http://127.0.0.1:63441/api/player/action"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:52510/api/player/enter"
+        "url": "http://127.0.0.1:63441/api/player/enter"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:52510/api/player/action"
+        "url": "http://127.0.0.1:63441/api/player/action"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:52510/api/player/enter"
+        "url": "http://127.0.0.1:63441/api/player/enter"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/?ui_check=1"
+        "url": "http://127.0.0.1:63441/?ui_check=1"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/style.css"
+        "url": "http://127.0.0.1:63441/style.css"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/app.js"
+        "url": "http://127.0.0.1:63441/app.js"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/health"
+        "url": "http://127.0.0.1:63441/api/health"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:52510/api/auth/refresh"
+        "url": "http://127.0.0.1:63441/api/auth/refresh"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/world/map"
+        "url": "http://127.0.0.1:63441/api/world/map"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/world/feed?limit=20"
+        "url": "http://127.0.0.1:63441/api/world/feed?limit=20"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:52510/api/auth/refresh"
+        "url": "http://127.0.0.1:63441/api/auth/refresh"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=u_other"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=u_other"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:52510/api/auth/refresh"
+        "url": "http://127.0.0.1:63441/api/auth/refresh"
       }
     ],
     "responses": [
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/?ui_check=1"
+        "url": "http://127.0.0.1:63441/?ui_check=1"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/style.css"
+        "url": "http://127.0.0.1:63441/style.css"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/app.js"
+        "url": "http://127.0.0.1:63441/app.js"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/health"
+        "url": "http://127.0.0.1:63441/api/health"
       },
       {
         "status": 401,
-        "url": "http://127.0.0.1:52510/api/auth/refresh"
+        "url": "http://127.0.0.1:63441/api/auth/refresh"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/world/feed?limit=20"
+        "url": "http://127.0.0.1:63441/api/world/feed?limit=20"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/auth/register"
+        "url": "http://127.0.0.1:63441/api/auth/register"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/auth/login"
+        "url": "http://127.0.0.1:63441/api/auth/login"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/enter"
+        "url": "http://127.0.0.1:63441/api/player/enter"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/world/map"
+        "url": "http://127.0.0.1:63441/api/world/map"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/world/feed?limit=20"
+        "url": "http://127.0.0.1:63441/api/world/feed?limit=20"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/?ui_check=1"
+        "url": "http://127.0.0.1:63441/?ui_check=1"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/style.css"
+        "url": "http://127.0.0.1:63441/style.css"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/app.js"
+        "url": "http://127.0.0.1:63441/app.js"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/health"
+        "url": "http://127.0.0.1:63441/api/health"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/auth/refresh"
+        "url": "http://127.0.0.1:63441/api/auth/refresh"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/world/map"
+        "url": "http://127.0.0.1:63441/api/world/map"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/world/feed?limit=20"
+        "url": "http://127.0.0.1:63441/api/world/feed?limit=20"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/action",
+        "url": "http://127.0.0.1:63441/api/player/action",
         "body": {
           "action": "talk",
           "client_tick": 6,
@@ -1346,7 +1346,7 @@
               }
             },
             "home": "market",
-            "id": "player:w4e2e_1107084521",
+            "id": "player:w4e2e_1107103944",
             "inventory": {
               "coarse_cloth": 1,
               "flatbread": 3
@@ -1524,10 +1524,10 @@
           "duration_hours": 1.0,
           "duration_ticks": 6,
           "event_seq": 7,
-          "intent_id": "i:c8764fc4c6e2b5b8e7df6d16123d19f208d5fb554853e8f9bc757e3bfbd9c1d8",
+          "intent_id": "i:37f9fe0b8ac6fe09c07d3e74528e4bd2992d217abab59dce45a774724c75c2e5",
           "next_tick": 12,
           "ok": true,
-          "player": "player:w4e2e_1107084521",
+          "player": "player:w4e2e_1107103944",
           "profile_version": 1,
           "reason_text": "",
           "reject_reason": "",
@@ -1538,11 +1538,11 @@
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/action",
+        "url": "http://127.0.0.1:63441/api/player/action",
         "body": {
           "action": "quest/accept",
           "client_tick": 6,
@@ -1632,7 +1632,7 @@
               }
             },
             "home": "market",
-            "id": "player:w4e2e_1107084521",
+            "id": "player:w4e2e_1107103944",
             "inventory": {
               "coarse_cloth": 1,
               "flatbread": 3
@@ -1801,10 +1801,10 @@
           "duration_hours": 1.0,
           "duration_ticks": 6,
           "event_seq": 9,
-          "intent_id": "i:d37789c1893a1320baf1fa84fc2f2ea65358ef09e8a47ddbb0520bb45a65fe3f",
+          "intent_id": "i:3496ad91c2bfdfe7777141703af082ecf22a45c8a534662c8b7791d0a3820715",
           "next_tick": 18,
           "ok": true,
-          "player": "player:w4e2e_1107084521",
+          "player": "player:w4e2e_1107103944",
           "profile_version": 1,
           "reason_text": "",
           "reject_reason": "",
@@ -1815,15 +1815,15 @@
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/action",
+        "url": "http://127.0.0.1:63441/api/player/action",
         "body": {
           "action": "move",
           "client_tick": 18,
@@ -1913,7 +1913,7 @@
               }
             },
             "home": "market",
-            "id": "player:w4e2e_1107084521",
+            "id": "player:w4e2e_1107103944",
             "inventory": {
               "coarse_cloth": 1,
               "flatbread": 3
@@ -2052,10 +2052,10 @@
           "duration_hours": 1.0,
           "duration_ticks": 6,
           "event_seq": 11,
-          "intent_id": "i:55c9c166d7acea4dcd555c31d448c8b7785cb5c56885491f025349668ba3d48a",
+          "intent_id": "i:a40978fd52cf3883ceec6a3c8b7fd31f4bf89c4a28174c4df8c1b09c249d6fef",
           "next_tick": 24,
           "ok": true,
-          "player": "player:w4e2e_1107084521",
+          "player": "player:w4e2e_1107103944",
           "profile_version": 1,
           "reason_text": "",
           "reject_reason": "",
@@ -2066,15 +2066,15 @@
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/action",
+        "url": "http://127.0.0.1:63441/api/player/action",
         "body": {
           "action": "trade",
           "client_tick": 24,
@@ -2164,7 +2164,7 @@
               }
             },
             "home": "market",
-            "id": "player:w4e2e_1107084521",
+            "id": "player:w4e2e_1107103944",
             "inventory": {
               "coarse_cloth": 1,
               "flatbread": 3
@@ -2317,17 +2317,17 @@
             "relation": {
               "affection": 3.0,
               "kind": "friend",
-              "target": "player:w4e2e_1107084521",
+              "target": "player:w4e2e_1107103944",
               "trust": 2.0
             }
           },
           "duration_hours": 1.0,
           "duration_ticks": 6,
           "event_seq": 13,
-          "intent_id": "i:57fe871dc40e6279623c06c23051664dac3e0d6b3ff788f82f62fd94e44f9f03",
+          "intent_id": "i:24e375ff3236fab3879ed38ca82fc7a1b815f1410aae2c2adea2357327413e6c",
           "next_tick": 30,
           "ok": true,
-          "player": "player:w4e2e_1107084521",
+          "player": "player:w4e2e_1107103944",
           "profile_version": 1,
           "reason_text": "",
           "reject_reason": "",
@@ -2338,11 +2338,11 @@
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/action",
+        "url": "http://127.0.0.1:63441/api/player/action",
         "body": {
           "action": "quest/deliver",
           "client_tick": 24,
@@ -2390,7 +2390,7 @@
               }
             },
             "home": "market",
-            "id": "player:w4e2e_1107084521",
+            "id": "player:w4e2e_1107103944",
             "inventory": {
               "coarse_cloth": 1,
               "flatbread": 3
@@ -2557,10 +2557,10 @@
           "duration_hours": 1.0,
           "duration_ticks": 6,
           "event_seq": 15,
-          "intent_id": "i:8815513d065df691506fc0367bc3c649222465b4af3feb5492953d1fd5386866",
+          "intent_id": "i:9d35753b0a05d66c9e1af35177526a31aab5fa5c57046c725aa264d232163d2c",
           "next_tick": 36,
           "ok": true,
-          "player": "player:w4e2e_1107084521",
+          "player": "player:w4e2e_1107103944",
           "profile_version": 1,
           "reason_text": "",
           "reject_reason": "",
@@ -2571,11 +2571,11 @@
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "status": 409,
-        "url": "http://127.0.0.1:52510/api/player/action",
+        "url": "http://127.0.0.1:63441/api/player/action",
         "body": {
           "action": "quest/accept",
           "client_tick": 36,
@@ -2586,10 +2586,10 @@
           "duration_hours": 1.0,
           "duration_ticks": 6,
           "event_seq": 17,
-          "intent_id": "i:f1501fab1e3d67f2db9b652e3a1108b0073d6ec6049e812ba9f6aa86fc24e15f",
+          "intent_id": "i:52c9a177237eb9dcf605d26855b0fffb26fcee5137ca0296331718c34622faaa",
           "next_tick": 42,
           "ok": false,
-          "player": "player:w4e2e_1107084521",
+          "player": "player:w4e2e_1107103944",
           "profile_version": 1,
           "reason_text": "你不在任务发布人所在的地点。",
           "reject_reason": "not_at_giver",
@@ -2602,7 +2602,7 @@
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/action",
+        "url": "http://127.0.0.1:63441/api/player/action",
         "body": {
           "action": "move",
           "client_tick": 36,
@@ -2650,7 +2650,7 @@
               }
             },
             "home": "market",
-            "id": "player:w4e2e_1107084521",
+            "id": "player:w4e2e_1107103944",
             "inventory": {
               "coarse_cloth": 1,
               "flatbread": 3
@@ -2840,10 +2840,10 @@
           "duration_hours": 1.0,
           "duration_ticks": 6,
           "event_seq": 19,
-          "intent_id": "i:1fd2f67987506a6ce1becad10d1aa29c28e803ee4089c8264c715aba7f89b44a",
+          "intent_id": "i:dfde88d56e3c2d15d5a10a9fa9ce2914fa13097eee8c840eb0549ea26154dae8",
           "next_tick": 48,
           "ok": true,
-          "player": "player:w4e2e_1107084521",
+          "player": "player:w4e2e_1107103944",
           "profile_version": 1,
           "reason_text": "",
           "reject_reason": "",
@@ -2854,15 +2854,15 @@
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/action",
+        "url": "http://127.0.0.1:63441/api/player/action",
         "body": {
           "action": "quest/accept",
           "client_tick": 48,
@@ -2952,7 +2952,7 @@
               }
             },
             "home": "market",
-            "id": "player:w4e2e_1107084521",
+            "id": "player:w4e2e_1107103944",
             "inventory": {
               "coarse_cloth": 1,
               "flatbread": 3
@@ -3142,10 +3142,10 @@
           "duration_hours": 1.0,
           "duration_ticks": 6,
           "event_seq": 21,
-          "intent_id": "i:e2a501514dc7f64597bfe37500f8ab32ac58e4ec69f3f7b6e4c2eb547f763cb3",
+          "intent_id": "i:e5574e446312876b31f2653c392a3dce177a69f0e8b587f46337bd69a8c6a237",
           "next_tick": 54,
           "ok": true,
-          "player": "player:w4e2e_1107084521",
+          "player": "player:w4e2e_1107103944",
           "profile_version": 1,
           "reason_text": "",
           "reject_reason": "",
@@ -3156,11 +3156,11 @@
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/action",
+        "url": "http://127.0.0.1:63441/api/player/action",
         "body": {
           "action": "move",
           "client_tick": 54,
@@ -3250,7 +3250,7 @@
               }
             },
             "home": "market",
-            "id": "player:w4e2e_1107084521",
+            "id": "player:w4e2e_1107103944",
             "inventory": {
               "coarse_cloth": 1,
               "flatbread": 3
@@ -3410,10 +3410,10 @@
           "duration_hours": 1.0,
           "duration_ticks": 6,
           "event_seq": 23,
-          "intent_id": "i:6197a400c4ed300cb03493589528599509831fded16c9cb5e7ec82d9fb0f7c54",
+          "intent_id": "i:0c5ff6cc2c2a42bb2e252095b15b777ecf74caa061db49f1fa1e666de8d0b939",
           "next_tick": 60,
           "ok": true,
-          "player": "player:w4e2e_1107084521",
+          "player": "player:w4e2e_1107103944",
           "profile_version": 1,
           "reason_text": "",
           "reject_reason": "",
@@ -3424,11 +3424,11 @@
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "status": 409,
-        "url": "http://127.0.0.1:52510/api/player/action",
+        "url": "http://127.0.0.1:63441/api/player/action",
         "body": {
           "action": "quest/deliver",
           "client_tick": 60,
@@ -3439,10 +3439,10 @@
           "duration_hours": 1.0,
           "duration_ticks": 6,
           "event_seq": 25,
-          "intent_id": "i:caeab232146c9087df69b954772eef260e92c2659b1894faeb4ee2e444888b54",
+          "intent_id": "i:db072d6f7f47f810d739ca1705f7566b12194a2d58dc42abf937786a915ce3de",
           "next_tick": 66,
           "ok": false,
-          "player": "player:w4e2e_1107084521",
+          "player": "player:w4e2e_1107103944",
           "profile_version": 1,
           "reason_text": "你尚未到达任务目标地点或发布人处。",
           "reject_reason": "not_at_target",
@@ -3455,11 +3455,11 @@
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/leave"
+        "url": "http://127.0.0.1:63441/api/player/leave"
       },
       {
         "status": 409,
-        "url": "http://127.0.0.1:52510/api/player/action",
+        "url": "http://127.0.0.1:63441/api/player/action",
         "body": {
           "action": "move",
           "client_tick": 60,
@@ -3468,9 +3468,9 @@
           "data": {},
           "details": {},
           "event_seq": 29,
-          "intent_id": "i:17bdf9505771eae637ef0cb76668bf0ab3771b2ca47f806c305a5c80624a9739",
+          "intent_id": "i:367bef43ae6d24f188ceaf6cdfd31d77ab4eb5ba42a5f0ed6293f2baa0e4320e",
           "ok": false,
-          "player": "player:w4e2e_1107084521",
+          "player": "player:w4e2e_1107103944",
           "profile_version": 1,
           "reason_text": "你已离线；请重新进入世界后再操作。",
           "reject_reason": "player_offline",
@@ -3483,15 +3483,15 @@
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/enter"
+        "url": "http://127.0.0.1:63441/api/player/enter"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/action",
+        "url": "http://127.0.0.1:63441/api/player/action",
         "body": {
           "action": "move",
           "client_tick": 60,
@@ -3581,7 +3581,7 @@
               }
             },
             "home": "market",
-            "id": "player:w4e2e_1107084521",
+            "id": "player:w4e2e_1107103944",
             "inventory": {
               "coarse_cloth": 1,
               "flatbread": 3
@@ -3771,10 +3771,10 @@
           "duration_hours": 1.0,
           "duration_ticks": 6,
           "event_seq": 32,
-          "intent_id": "i:102aaf1410b80d802292b6dd63843b39702f603cdc97ad7cf2be45ab598d430c",
+          "intent_id": "i:5aa0e4a8ef41e1a088e0ad201f7366bbdc9798d0f73d824eaf2b45be0dea6e45",
           "next_tick": 84,
           "ok": true,
-          "player": "player:w4e2e_1107084521",
+          "player": "player:w4e2e_1107103944",
           "profile_version": 1,
           "reason_text": "",
           "reject_reason": "",
@@ -3785,91 +3785,91 @@
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "status": 409,
-        "url": "http://127.0.0.1:52510/api/player/enter"
+        "url": "http://127.0.0.1:63441/api/player/enter"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/?ui_check=1"
+        "url": "http://127.0.0.1:63441/?ui_check=1"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/style.css"
+        "url": "http://127.0.0.1:63441/style.css"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/app.js"
+        "url": "http://127.0.0.1:63441/app.js"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/health"
+        "url": "http://127.0.0.1:63441/api/health"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/auth/refresh"
+        "url": "http://127.0.0.1:63441/api/auth/refresh"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/world/map"
+        "url": "http://127.0.0.1:63441/api/world/map"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/world/feed?limit=20"
+        "url": "http://127.0.0.1:63441/api/world/feed?limit=20"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "status": 401,
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "status": 401,
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/auth/refresh"
+        "url": "http://127.0.0.1:63441/api/auth/refresh"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "status": 403,
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=u_other"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=u_other"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "status": 401,
-        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+        "url": "http://127.0.0.1:63441/api/player/state?account_id=w4e2e_1107103944"
       },
       {
         "status": 401,
-        "url": "http://127.0.0.1:52510/api/auth/refresh"
+        "url": "http://127.0.0.1:63441/api/auth/refresh"
       }
     ]
   }

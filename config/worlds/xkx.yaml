@@ -1,0 +1,80 @@
+# 侠客行复刻世界：与现有九地点世界并存，独立 run 目录、独立端口。
+# 同一套启动路径：scripts/start_world.sh --world <配置文件>
+# 现有世界端口 8000/8031/8032/8039 不得复用。
+id: xkx
+name: 侠客行（复刻）
+run_id: xkx-world
+host: 127.0.0.1
+api_port: 8041
+ui_port: 8011
+seed: 20261014
+tick_step: 6
+npc_limit: 0
+spawn: /d/hangzhou/jiulou
+display_name: 游侠儿
+archetype: 游侠
+auth: off
+ambient: 0
+ui_kind: xkx
+
+# 内容优先用另一路交付的 xkx JSON 内容包（rooms/exits/npcs/items/shops/sects）。
+# 启动脚本优先选第一个“含 rooms.json+exits.json+npcs.json”或
+# “含 locations.yaml+npcs.yaml+items.yaml”的目录，不复制内容。
+content_root_candidates:
+  - content/xkx
+  - content/xkx/content
+  - content/packs/xkx-slice/content
+  - content/packs/xkx-slice
+  - content
+
+# 旧九地点内容（YAML）没有方向名；这里保留一张方向表作为回退。
+# xkx JSON 内容包的出口方向与状态以 exits.json 为准，不使用本表。
+exit_directions:
+  market:
+    north: academy
+    east: smithy
+    south: pharmacy
+    west: inn
+    northeast: teahouse
+  academy:
+    south: market
+    west: temple
+  smithy:
+    west: market
+    east: escort_agency
+  inn:
+    east: market
+    west: ferry
+    north: temple
+  pharmacy:
+    north: market
+    east: temple
+  escort_agency:
+    west: smithy
+    east: ferry
+  ferry:
+    east: inn
+    west: escort_agency
+  temple:
+    east: academy
+    south: inn
+    west: pharmacy
+  teahouse:
+    southwest: market
+
+# 未开放出口必须留在界面上并写明原因，不许消失。
+# 当前九地点世界没有边界出口；接上 xkx 切片后在此补 closed_exits。
+closed_exits: {}
+
+# 现有内容地点的长描述为空；这里只做文字壳的临时描述，
+# xkx 内容包就绪后优先使用内容里的长描述。
+room_descriptions:
+  market: "集市上人声嘈杂，南来北往的客商在此讨价还价。街边摊子一字排开，米面布匹都能买到。"
+  smithy: "铁匠铺里炉火正红，师徒二人轮锤敲打，墙上挂满刀剑器具，热浪扑面。"
+  inn: "客栈大堂擦得干净，跑堂伙计招呼来往客人，角落里有说书人讲着江湖旧事。"
+  escort_agency: "镖局门前竖着镖旗，镖师们进进出出，柜上正登记新的镖单。"
+  pharmacy: "药铺里药香扑鼻，柜台上摆着各色成药，坐堂郎中正替人把脉。"
+  academy: "书院里书声琅琅，先生伏案批卷，桌上堆着账册与笔墨。"
+  ferry: "河渡口风大水急，一条渡船系在木桩上，船夫蹲在岸边等客。"
+  temple: "城隍庙香烟缭绕，神像端坐，香客低声祈福，檐下铜铃轻响。"
+  teahouse: "茶棚里几张旧桌，伙计提着铜壶穿梭，茶香混着说笑声。"

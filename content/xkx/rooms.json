@@ -1,0 +1,5110 @@
+{
+  "rooms": [
+    {
+      "coord": {
+        "x": 4130,
+        "y": -1450,
+        "z": 0
+      },
+      "desc": "白堤横旦湖上，把西湖分成里湖与外湖。堤上种满了杨柳，碧桃。\n每逢春至，“翩翩柳丝泛绿，树树桃颜带笑”。白居易曾有“乱花渐\n欲迷人眼，浅草才能没马蹄。最爱湖东行不足，绿杨荫里白沙堤。”\n来描述这里的景色。朝西南走过了锦带桥便是“平湖秋月”。东边则\n是断桥。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/baiti",
+      "kind": "room",
+      "name": "白堤",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/baiti.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4100,
+        "y": -1430,
+        "z": 10
+      },
+      "desc": "宝石山不是很高，山上多奇峰怪石。其中高矗者就是“秦始皇缆\n船石”，山路旁有一座亭子“来凤亭”，亭前有块卵形大石，临空搁\n置在山巅，叫落星石，又称寿星石。再往北上就到了保淑塔，往南下\n便回到大道了。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/baoshishan",
+      "kind": "room",
+      "name": "宝石山",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "item",
+          "ref": "/d/hangzhou/obj/shitou"
+        },
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "item",
+          "ref": "/d/hangzhou/obj/eluanshi"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/baoshishan.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4100,
+        "y": -1420,
+        "z": 20
+      },
+      "desc": "保淑塔姿态秀丽挺拔，塔基极小，却负荷了极高的塔身。传说吴\n越王钱弘淑奉召入京，久留未返，他大臣吴延爽为祝原其平安归来，\n而建此塔，故名保淑塔。往南是下山的路。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/baoshuta",
+      "kind": "room",
+      "name": "保淑塔",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/baoshuta.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 2630,
+        "y": -1550,
+        "z": 0
+      },
+      "desc": "这里是龙井茶茶室。在这里可以品到最新鲜的龙井。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/hangzhou/chashi",
+      "kind": "room",
+      "name": "茶室",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/chashi.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 2520,
+        "y": -1600,
+        "z": 20
+      },
+      "desc": "翠微亭建在飞来峰的半山间，是名将韩世忠为纪念岳飞而建的。\n岳飞有“经年尘土满征衣，特特寻芳上翠微”的诗句，故亭名“翠微”。\n西边是下山的路。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "hangzhou"
+      },
+      "id": "/d/hangzhou/cuiweiting",
+      "kind": "room",
+      "name": "翠微亭",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/cuiweiting.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4070,
+        "y": -1450,
+        "z": 0
+      },
+      "desc": "一条宽敞的大道上却游人稀少。原来这里沿路住着的都是达官贵\n人。本来风景秀丽之处，却显的一片萧瑟。路的西边是一座庄园，大\n道向南北延伸。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/dadao1",
+      "kind": "room",
+      "name": "沿湖大道",
+      "objects": [
+        {
+          "count": null,
+          "count_expr": "random(2)",
+          "in_slice": false,
+          "kind": "item",
+          "origin": "external",
+          "ref": "/clone/medicine/vegetable/baiwei"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/dadao1.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4070,
+        "y": -1460,
+        "z": 0
+      },
+      "desc": "一条宽敞的大道上却游人稀少。原来这里沿路住着的都是达官贵\n人。本来风景秀丽之处，却显的一片萧瑟。大道向西南和北延伸。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/dadao2",
+      "kind": "room",
+      "name": "沿湖大道",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/dadao2.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4060,
+        "y": -1480,
+        "z": 0
+      },
+      "desc": "一条宽敞的大道上却游人稀少。原来这里沿路住着的都是达官贵\n人。本来风景秀丽之处，却显的一片萧瑟。路的西边是一座庄园，大\n道向南北延伸。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/dadao3",
+      "kind": "room",
+      "name": "沿湖大道",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/dadao3.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4060,
+        "y": -1470,
+        "z": 0
+      },
+      "desc": "路的东边是一座小山。山上郁郁葱葱，种满了树。山上本是一处\n观赏西湖的好地方，但却被丁财主占为私有。大路向东北和南延伸。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/dalu1",
+      "kind": "room",
+      "name": "大路",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/tiao-fu"
+        },
+        {
+          "count": 2,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/honghua1"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/dalu1.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4140,
+        "y": -1450,
+        "z": 0
+      },
+      "desc": "断桥正好在外湖和里湖的分水点上。这里亭轩错落，掩映在绿树佳荫之下。\n“山明水秀轩扉启，落日渔歌过里湖”，就是描述这里傍晚的景色。在断桥\n上可浏览环湖诸山和湖中诸岛的风光。每当雪後，站在桥头，只见一切都被\n覆上白雪，玉琢银镂的湖山风貌就是西湖十景之一的“断桥残雪”。民间神\n话“白蛇传”中的白娘娘和许仙就在这里相会的。\n    过桥往西走便是白堤了。东北边可通往青石大道。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/duanqiao",
+      "kind": "room",
+      "name": "断桥",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/poorman"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/duanqiao.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 2500,
+        "y": -1380,
+        "z": 0
+      },
+      "desc": "天王殿後是另一座高达三十几米的大殿。匾上写着“大雄宝殿”。\n殿前有两座八角九层石塔。往南又进了天王殿。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/hangzhou/dxbaodian1",
+      "kind": "room",
+      "name": "大雄宝殿",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/dxbaodian1.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 2500,
+        "y": -1370,
+        "z": 0
+      },
+      "desc": "殿内正中一尊如来佛像，两旁塑有二十尊诸天的佛像，大殿後壁\n有五十三参海岛像，岛上有姿态各异的大小佛像一百五十个。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/hangzhou/dxbaodian2",
+      "kind": "room",
+      "name": "大雄宝殿",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/dxbaodian2.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 2600,
+        "y": -1420,
+        "z": 10
+      },
+      "desc": "法镜寺建在小溪旁，格外的幽雅。进香的游客不时的进进出出。\n南上往中天竺。朝北是下山的路。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "hangzhou"
+      },
+      "id": "/d/hangzhou/fajingsi",
+      "kind": "room",
+      "name": "法镜寺",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/shami"
+        },
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/guest"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/fajingsi.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 2600,
+        "y": -1440,
+        "z": 30
+      },
+      "desc": "法净寺依山而立，寺前小溪流水。进香的游客不时的进进出出。\n南上往上天竺。朝北是下山的路。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "hangzhou"
+      },
+      "id": "/d/hangzhou/fajinsi",
+      "kind": "room",
+      "name": "法净寺",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/shami"
+        },
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/guest"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/fajinsi.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4110,
+        "y": -1450,
+        "z": 0
+      },
+      "desc": "亭四周种满了梅花。一到冬末春初，梅花盛放，蔚然可观。此亭\n是为了纪念北宋隐逸诗人林和靖而建。他酷爱梅花。“疏影横斜水清\n浅，暗香浮动月黄昏”就是他的咏梅名句。据传说，诗人还养鹤一只，\n取名：“鸣苯”每逢自己外出散步而恰有客人来访时，童子就开笼放\n鹤，诗人见鹤，便回家接客，故流传有“梅妻鹤子”的故事。朝东南\n走便是平湖秋月。西南边则是孤山。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/fangheting",
+      "kind": "room",
+      "name": "放鹤亭",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/fangheting.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 2600,
+        "y": -1600,
+        "z": 50
+      },
+      "desc": "法喜寺是天竺三寺中最敞朗深幽的一座。进香的游客不时的进进\n出出。往东可达龙井，朝北是下山的路。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "hangzhou"
+      },
+      "id": "/d/hangzhou/faxisi",
+      "kind": "room",
+      "name": "法喜寺",
+      "objects": [
+        {
+          "count": 2,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/guest"
+        },
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/seng"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/faxisi.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 2500,
+        "y": -1600,
+        "z": 0
+      },
+      "desc": "飞来峰又名灵鹫峰。沿着盘山小道往上走，只见溪盘岩石壁间雕\n着一尊袒腹露胸，喜笑自若的弥勒佛。旁边是一座气魄雄伟的多闻天\n王。北边是下山的路。小路往上延伸向东西两边。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "hangzhou"
+      },
+      "id": "/d/hangzhou/feilaifeng",
+      "kind": "room",
+      "name": "飞来峰",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/feilaifeng.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4060,
+        "y": -1450,
+        "z": 0
+      },
+      "desc": "庄园的大匾上是“郭庄”两个大字。大门(gate)紧闭，里面静悄\n悄的一点声音都没有。",
+      "desc_source": "lpc",
+      "flags": {},
+      "id": "/d/hangzhou/guozhuang",
+      "kind": "room",
+      "name": "郭庄",
+      "objects": [
+        {
+          "count": 2,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/wolfdog"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 8,
+        "path": "d/hangzhou/guozhuang.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4100,
+        "y": -1460,
+        "z": 0
+      },
+      "desc": "通过林荫道向前，迎面石壁上刻有“孤山”两个丹红大字。朝南\n拾级登山便是平台。东北边便是放鹤亭。东南边则是平湖秋月。西北\n边通往西泠桥。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/gushan",
+      "kind": "room",
+      "name": "孤山",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/gushan.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4100,
+        "y": -1470,
+        "z": 10
+      },
+      "desc": "平台北面有“西湖天下景”亭阁，亭柱两旁有一对联(duilian)。\n这里还有曲桥水池，临池有叠石假山，布置得高低参差，疏密有致。\n北边是下山的路。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/gushanpingtai",
+      "kind": "room",
+      "name": "孤山平台",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/gushanpingtai.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4060,
+        "y": -1460,
+        "z": 0
+      },
+      "desc": "从这里可以看到西湖十景之一的双峰插云(scenery)。大道通向北\n边，再向西南是通往灵隐寺的路。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "hangzhou"
+      },
+      "id": "/d/hangzhou/hongchunqiao",
+      "kind": "room",
+      "name": "洪春桥",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/hongchunqiao.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4100,
+        "y": -1440,
+        "z": 0
+      },
+      "desc": "只见湖中有一小岛，一座曲桥横跨湖面。曲桥上人群熙攘，倚栏\n投饵。桥下红鱼，争食欢跳。谢觉哉游园时曾作诗一首“鱼国群粼乐\n有余，观鱼才觉我非鱼。虞诈两忘欣共处，鱼犹如此况人乎。”",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/huagang",
+      "kind": "room",
+      "name": "花港观鱼",
+      "objects": [
+        {
+          "count": null,
+          "count_expr": "random(2)",
+          "in_slice": false,
+          "kind": "item",
+          "origin": "external",
+          "ref": "/clone/medicine/vegetable/baizhi"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/huagang.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4090,
+        "y": -1420,
+        "z": 0
+      },
+      "desc": "一进山门，松篁交翠，别有洞天。石壁陡削，苔痕常绿；回廊临\n之间有一小峰，上题：“有龙则灵”。",
+      "desc_source": "lpc",
+      "flags": {},
+      "id": "/d/hangzhou/huanglongdong",
+      "kind": "room",
+      "name": "黄龙洞",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/dushe"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/huanglongdong.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 2700,
+        "y": -1400,
+        "z": 10
+      },
+      "desc": "一条黄土路弯弯曲曲，四周非常的安静。偶尔才看见些游人匆匆而过。\n南北分别是下山的路。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "hangzhou"
+      },
+      "id": "/d/hangzhou/huangniling",
+      "kind": "room",
+      "name": "黄泥岭",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/huangniling.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 3990,
+        "y": -1700,
+        "z": 0
+      },
+      "desc": "只见泉水从沙岩中渗流而出，清澈见底。相传有位名叫性空的和\n尚深爱此山风景灵秀，便住了下来。後因水源奇缺，准备迁走。一夜，\n梦神告诉他说“南岳衡山童子泉，当遣二虎移来。”第二天，果然看\n见两只老虎跑地作穴，涌出泉水，所以定名为“虎跑泉”。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/hupaoquan",
+      "kind": "room",
+      "name": "虎跑泉",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/hupaoquan.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4120,
+        "y": -1520,
+        "z": 0
+      },
+      "desc": "净慈寺有前，中，後三殿，以中间的大雄宝殿最为壮观。大雄宝殿，\n外观两层，黄色琉璃瓦屋顶，特别显的精美宏伟。寺廊的钟声在苍烟暮\n霭中回荡，抑扬动听，这就是西湖十景之一“南屏晚钟”的来历。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/hangzhou/jingci",
+      "kind": "room",
+      "name": "净慈寺",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/jingci.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4120,
+        "y": -1510,
+        "z": 0
+      },
+      "desc": "净慈寺，原名慧日永明院，又叫兴教寺。净慈寺面向西湖，後拥\n苍然挺秀的南屏山。往北就回到大道上。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/hangzhou/jingcisi",
+      "kind": "room",
+      "name": "净慈寺",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/jingcisi.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4160,
+        "y": -1450,
+        "z": 0
+      },
+      "desc": "提起“楼外楼”方圆百里无人不知。这里各式名菜是杭州一绝。\n来游湖的人们都一定会来这里尝尝。整个大堂闹哄哄的挤满了各式人\n等。店小儿跑来跑去，忙着招呼客人。墙上挂着价格牌子(paizi)。",
+      "desc_source": "lpc",
+      "flags": {},
+      "id": "/d/hangzhou/jiulou",
+      "kind": "room",
+      "name": "楼外楼",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/xiaoer2"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/jiulou.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4120,
+        "y": -1490,
+        "z": 0
+      },
+      "desc": "漫步园中，只见湖傍遍置垂柳。柳树丛中，种了不少碧桃。东风\n送暖之时，这里“杨柳千条拂面丝，绿烟金穗不胜吹”。诗人刘禹锡\n的“桃红李白皆夸好，须得垂杨相发挥”形容的恰到好处。东面是清\n波门，往东北便是柳浪桥。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/jujingyuan",
+      "kind": "room",
+      "name": "聚景园",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/jian-ke"
+        },
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/honghua2"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/jujingyuan.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4160,
+        "y": -1480,
+        "z": 0
+      },
+      "desc": "这是杭州最有名的客店，里面雕梁画壁，装饰有如宫殿，你可以在这里\n打听到各地的风土人情。店小二里里外外忙得团团转，接待着南腔北调的客\n人。墙上挂着一个牌子(paizi)。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "no_fight": 1,
+        "valid_startroom": 1
+      },
+      "id": "/d/hangzhou/kedian",
+      "kind": "room",
+      "name": "天外天",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": false,
+          "kind": "npc",
+          "origin": "external",
+          "ref": "/d/city/npc/xiaoer"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/hangzhou/kedian.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4160,
+        "y": -1480,
+        "z": 10
+      },
+      "desc": "你正走在天外天客店二楼的走廊上，可以听到从客房里不时地呼呼\n的打酣声，一阵高过一阵。不时有睡意朦胧的旅客进进出出，到楼下的\n掌柜处付了钱再上来睡觉。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/hangzhou/kedian2",
+      "kind": "room",
+      "name": "天外天客店二楼",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/kedian2.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4160,
+        "y": -1490,
+        "z": 10
+      },
+      "desc": "天外天客店果然名不虚传，好大的一间客房，一张精致的床，窗外\n是美丽的西湖，无边的宜人景致。暖暖的风吹得你昏昏欲睡，这里正是\n睡觉的好地方。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "no_fight": "1"
+      },
+      "id": "/d/hangzhou/kedian3",
+      "kind": "room",
+      "name": "天外天客店二楼",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 5,
+        "path": "d/hangzhou/kedian3.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 2490,
+        "y": -1400,
+        "z": 0
+      },
+      "desc": "冷泉亭建在灵隐寺西边，亭下小溪清澈见底，游鱼往复，历历可\n数。亭边就是飞来峰。亭柱两旁有一对联(duilian)。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "hangzhou"
+      },
+      "id": "/d/hangzhou/lengquanting",
+      "kind": "room",
+      "name": "冷泉亭",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/lengquanting.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 2500,
+        "y": -1400,
+        "z": 0
+      },
+      "desc": "灵隐寺又名云林寺，寺前有清澈的小溪，溪旁建有冷泉亭和赫雷\n亭。天王殿举目可见，殿外有两座经幢。往南便回到大道。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "hangzhou"
+      },
+      "id": "/d/hangzhou/lingyinsi",
+      "kind": "room",
+      "name": "灵隐寺",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/seng"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/lingyinsi.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 3890,
+        "y": -1800,
+        "z": 10
+      },
+      "desc": "这里是六和塔的底层。窗(window)外是浓妆淡抹的西子湖，塔\n中玲珑八角，青砖砌地，雕栏飞檐间粘连了些许蛛网。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/hangzhou/liuhe1",
+      "kind": "room",
+      "name": "六和塔",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/honghua/an"
+        },
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/honghua/meng"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/liuhe1.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 3890,
+        "y": -1800,
+        "z": 20
+      },
+      "desc": "这里是六和塔的二层。窗(window)外是浓妆淡抹的西子湖，塔\n中玲珑八角，青砖砌地，雕栏飞檐间粘连了些许蛛网。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/hangzhou/liuhe2",
+      "kind": "room",
+      "name": "六和塔",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/honghua/xinyan"
+        },
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/honghua/zhouyi"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/liuhe2.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 3890,
+        "y": -1800,
+        "z": 30
+      },
+      "desc": "这里是六和塔的三层。窗(window)外是浓妆淡抹的西子湖，塔\n中玲珑八角，青砖砌地，雕栏飞檐间粘连了些许蛛网。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/hangzhou/liuhe3",
+      "kind": "room",
+      "name": "六和塔",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/honghua/jiang"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/liuhe3.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 3890,
+        "y": -1800,
+        "z": 40
+      },
+      "desc": "这里是六和塔的四层。窗(window)外是浓妆淡抹的西子湖，塔\n中玲珑八角，青砖砌地，雕栏飞檐间粘连了些许蛛网。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/hangzhou/liuhe4",
+      "kind": "room",
+      "name": "六和塔",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/honghua/shi"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/liuhe4.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 3890,
+        "y": -1800,
+        "z": 50
+      },
+      "desc": "这里是六和塔的五层。窗(window)外是浓妆淡抹的西子湖，塔\n中玲珑八角，青砖砌地，雕栏飞檐间粘连了些许蛛网。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/hangzhou/liuhe5",
+      "kind": "room",
+      "name": "六和塔",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/honghua/wei"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/liuhe5.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 3890,
+        "y": -1800,
+        "z": 60
+      },
+      "desc": "这里是六和塔的六层。窗(window)外是浓妆淡抹的西子湖，塔\n中玲珑八角，青砖砌地，雕栏飞檐间粘连了些许蛛网。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/hangzhou/liuhe6",
+      "kind": "room",
+      "name": "六和塔",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/honghua/yang"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/liuhe6.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 3890,
+        "y": -1800,
+        "z": 70
+      },
+      "desc": "这里是六和塔的七层。窗(window)外是浓妆淡抹的西子湖，塔\n中玲珑八角，青砖砌地，雕栏飞檐间粘连了些许蛛网。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/hangzhou/liuhe7",
+      "kind": "room",
+      "name": "六和塔",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/honghua/xu"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/liuhe7.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 3890,
+        "y": -1800,
+        "z": 80
+      },
+      "desc": "这里是六和塔的八层。窗(window)外是浓妆淡抹的西子湖，塔\n中玲珑八角，青砖砌地，雕栏飞檐间粘连了些许蛛网。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/hangzhou/liuhe8",
+      "kind": "room",
+      "name": "六和塔",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/honghua/chang1"
+        },
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/honghua/chang2"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/liuhe8.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 3890,
+        "y": -1800,
+        "z": 90
+      },
+      "desc": "这里是六和塔的九层。窗(window)外是浓妆淡抹的西子湖，塔\n中玲珑八角，青砖砌地，雕栏飞檐间粘连了些许蛛网。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/hangzhou/liuhe9",
+      "kind": "room",
+      "name": "六和塔",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/honghua/zhao"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/liuhe9.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 3890,
+        "y": -1800,
+        "z": 100
+      },
+      "desc": "这里是六和塔的十层。窗(window)外是浓妆淡抹的西子湖，塔\n中玲珑八角，青砖砌地，雕栏飞檐间粘连了些许蛛网。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/hangzhou/liuhea",
+      "kind": "room",
+      "name": "六和塔",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/honghua/zhou"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/liuhea.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 3890,
+        "y": -1800,
+        "z": 110
+      },
+      "desc": "这里是六和塔的十一层。窗(window)外是浓妆淡抹的西子湖，塔\n中玲珑八角，青砖砌地，雕栏飞檐间粘连了些许蛛网。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/hangzhou/liuheb",
+      "kind": "room",
+      "name": "六和塔",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/honghua/lu"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/liuheb.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 3890,
+        "y": -1800,
+        "z": 120
+      },
+      "desc": "这里是六和塔的十二层。窗(window)外是浓妆淡抹的西子湖，塔\n中玲珑八角，青砖砌地，雕栏飞檐间粘连了些许蛛网。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/hangzhou/liuhec",
+      "kind": "room",
+      "name": "六和塔",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/honghua/wuchen"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/liuhec.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 3890,
+        "y": -1800,
+        "z": 130
+      },
+      "desc": "这里是六和塔的十三层。窗(window)外是浓妆淡抹的西子湖，塔\n中玲珑八角，青砖砌地，雕栏飞檐间粘连了些许蛛网。这里是塔的最\n高处，往外望去，西湖美景尽收眼底。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/hangzhou/liuhed",
+      "kind": "room",
+      "name": "六和塔",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/honghua/chen"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/liuhed.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 3900,
+        "y": -1800,
+        "z": 10
+      },
+      "desc": "爬上月轮山，便来到了六和塔之前。六和塔亦名六合塔，“六和”\n之名来之佛家的六种规约，“六合”就是“天，地，四方”的意思。\n这座八角塔有十三层，在它的飞檐翘角上括有一百零四只大铁铃。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/liuheta",
+      "kind": "room",
+      "name": "六和塔底",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/liuheta.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4130,
+        "y": -1480,
+        "z": 0
+      },
+      "desc": "每当春至，站在桥上，沿湖垂柳在风中摇曳如翠浪翻空，黄莺在\n枝头迎春嬉戏，鸣声婉转，故得名“浪桥闻莺”。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/liulangqiao",
+      "kind": "room",
+      "name": "柳浪桥",
+      "objects": [
+        {
+          "count": 2,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/maque"
+        },
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/wuya"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/liulangqiao.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4050,
+        "y": -1480,
+        "z": 0
+      },
+      "desc": "庄园的大匾上是“刘庄”两个大字。大门(gate)紧闭，里面静悄\n悄的一点声音都没有。",
+      "desc_source": "lpc",
+      "flags": {},
+      "id": "/d/hangzhou/liuzhuang",
+      "kind": "room",
+      "name": "刘庄",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/guanjia"
+        },
+        {
+          "count": 2,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/jiading"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 8,
+        "path": "d/hangzhou/liuzhuang.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 2490,
+        "y": -1600,
+        "z": 10
+      },
+      "desc": "又叫通天洞。在洞口的岩壁上刻有姿态各异，一丈多高的佛像六\n尊。左下方有两组浮雕。前一组记述了唐僧取经的故事；後一组为白\n马驮经，刻有“竺法阑”，“聂摩腾”字样。东边是下山的路。小路\n往上延伸向西北。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "hangzhou"
+      },
+      "id": "/d/hangzhou/longhongdong",
+      "kind": "room",
+      "name": "龙泓洞",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/longhongdong.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 2620,
+        "y": -1550,
+        "z": 0
+      },
+      "desc": "只见井(jing)水澈可见底而且清冷异常。龙井原名龙泓涧，传说\n此井与海相通，其中必定有龙，祈祷必雨，故名“龙井”。苏东坡曾\n有诗“人言山佳水亦佳，下有万古蛟龙潭”。井旁建有茶室。往南便\n回大路。\n  蒙面人(Mengmian ren)",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "hangzhou"
+      },
+      "id": "/d/hangzhou/longjing",
+      "kind": "room",
+      "name": "龙井",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/longjing.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4160,
+        "y": -1450,
+        "z": 10
+      },
+      "desc": "楼外楼的相约轩，四面通窗。湖风拂面，淡淡生暖。远望苏堤一\n线，映波，锁澜，望山，压堤，东浦，跨虹六桥断续连沿，烟柳笼纱，\n流莺娇啼。近处白堤横亘湖上，堤上杨柳覆地，芳草寒茵如一段碧绸\n飘然湖面。室内一张精巧的小桌。桌上一纸精致的菜单(menu)。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/hangzhou/loveroom",
+      "kind": "room",
+      "name": "相约轩",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 45,
+        "path": "d/hangzhou/loveroom.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4170,
+        "y": -1480,
+        "z": 0
+      },
+      "desc": "这是天外天客店后的马厩，常年供应新鲜草料。杭州自古号称天堂，\n杭州的客店汇集四海宾客。马夫们会把马牵到马厩好生照看，将它们喂饱\n饮足，再洗刷得干乾净净，一直伺候到客人上路。马厩雨檐下的烂木柱上\n钉着一块破木牌(paizi)。\n    马厩中堆放著几堆草料，正中有一口泔槽。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_beg": "1",
+        "no_clean_up": 0,
+        "no_fight": "1"
+      },
+      "id": "/d/hangzhou/majiu",
+      "kind": "room",
+      "name": "马厩",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": false,
+          "kind": "npc",
+          "origin": "external",
+          "ref": "/d/city/npc/zaohongma"
+        },
+        {
+          "count": 1,
+          "in_slice": false,
+          "kind": "npc",
+          "origin": "external",
+          "ref": "/d/city/npc/huangbiaoma"
+        },
+        {
+          "count": 1,
+          "in_slice": false,
+          "kind": "npc",
+          "origin": "external",
+          "ref": "/d/city/npc/ziliuma"
+        },
+        {
+          "count": 1,
+          "in_slice": false,
+          "kind": "npc",
+          "origin": "external",
+          "ref": "/clone/misc/mafu"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/hangzhou/majiu.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 2900,
+        "y": -1600,
+        "z": 10
+      },
+      "desc": "山路旁有一个小村落，村落四周桂花成林。每当仲秋，桂花盛开，\n飘香数里。被称为“金雪世界”。西上是水乐洞，东下石屋洞。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "hangzhou"
+      },
+      "id": "/d/hangzhou/manjuelong",
+      "kind": "room",
+      "name": "满觉陇",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/manjuelong.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 2700,
+        "y": -1500,
+        "z": 0
+      },
+      "desc": "路两旁盖着几座小土房。房门口一位老大娘正在喂鸡，几个小孩\n正在追逐嬉戏。北边是上黄泥岭。南面是丁家山。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "hangzhou"
+      },
+      "id": "/d/hangzhou/maojiabu",
+      "kind": "room",
+      "name": "茅家埠",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/boy"
+        },
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/oldwoman"
+        },
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/camel"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/maojiabu.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4140,
+        "y": -1450,
+        "z": 0
+      },
+      "desc": "你现在正站在风光秀丽的西子湖畔的红娘庄里，临水凭窗，隔着\n碧绿的湖面，就是断桥了。红娘庄并不大，但这里却主天下之悲欢离\n合，成就所有天下有情人。\n    靠近门口的地方有一块乌木雕成的招牌(zhaopai)。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "no_fight": 1,
+        "no_steal": 1
+      },
+      "id": "/d/hangzhou/marryroom",
+      "kind": "room",
+      "name": "红娘庄",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/hongniang"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/marryroom.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4200,
+        "y": -1430,
+        "z": 0
+      },
+      "desc": "这里是古老的运河的终点，运河自燕山脚下的帝都南下，横穿中国\n的华北大平原，连绵海河、黄河、淮河、长江和钱塘江五大水系，止于\n号称天堂和鱼米之乡的杭州城。运河中满是来来往往的樯影，江南的丰\n厚的产出经此国家命脉，源源北上。\n    你走进码头，就看见一位老船夫站在船边，手上高举着一个写满字\n的木牌(sign)。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/matou",
+      "kind": "room",
+      "name": "临安码头",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 31,
+        "path": "d/hangzhou/matou.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4120,
+        "y": -1460,
+        "z": 0
+      },
+      "desc": "平湖秋月三面临水，四面曲栏画廊，直挹波际。曾有“万顷湖平\n长似镜，四时月好最宜秋”的联句来描写这里秋夜时皓月当空的幽美\n景色。朝西北走便是放鹤亭。东北边则是白堤。西边就是孤山。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/pinghuqiuyue",
+      "kind": "room",
+      "name": "平湖秋月",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/pinghuqiuyue.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4000,
+        "y": -1800,
+        "z": 0
+      },
+      "desc": "钱塘江，每年八月十八是观潮的好日子。“八月十八潮，壮观天\n下无”。潮水来时“远若素练横江，声如金鼓；近则亘如山岳，奋如\n雷霆”，刹那间，漫江沸腾，泼涛万顷，潮高丈馀，万马奔腾，真有\n“涛来势转雄，猎猎驾长风。雷震云霓里，山飞霜雪中”的壮丽气势。\n西上月轮山便到了六和塔。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/qiantang",
+      "kind": "room",
+      "name": "钱塘江畔",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/jian-ke"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/qiantang.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4130,
+        "y": -1490,
+        "z": 0
+      },
+      "desc": "园门口有一大门楼，大匾上刻着“清波门”。门楼下站着几个嬉\n嬉哈哈的少女，惹人坠步相观。再往西就进了聚景园，往东便回到大\n路。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/qingbomen",
+      "kind": "room",
+      "name": "清波门",
+      "objects": [
+        {
+          "count": 2,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/girl"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/qingbomen.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 2510,
+        "y": -1600,
+        "z": 10
+      },
+      "desc": "又叫老虎洞。只见靠右雕有弭陀，观音，大势至三尊小佛。洞口\n东侧壁上还刻着一组“庐舍那佛会”浮雕，它上刻花头龛，中间坐着\n释迦牟尼，左右分列文殊，普贤，还有天王佛像。西边是下山的路。\n小路往上延伸向东。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "hangzhou"
+      },
+      "id": "/d/hangzhou/qinglindong",
+      "kind": "room",
+      "name": "清林洞",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/qinglindong.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4070,
+        "y": -1460,
+        "z": 0
+      },
+      "desc": "跨过小拱桥，迎面有一亭院，旁边立着石碑，上题“曲院风荷。”\n往东是回苏堤。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/quyuanbei",
+      "kind": "room",
+      "name": "曲院风荷",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/quyuanbei.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4060,
+        "y": -1460,
+        "z": 0
+      },
+      "desc": "走进亭院，只见临湖一座小榭。柱上有一对联(duilian)。 依榭\n观湖，只见荷花满湖，茭荷深处，香远益清。杨万里曾有题咏“毕竟\n西湖六月中，风光不与四时同。接天莲叶无穷碧，映日荷花别样红”。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/quyuanfenghe",
+      "kind": "room",
+      "name": "曲院风荷",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/quyuanfenghe.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 2500,
+        "y": -1500,
+        "z": 0
+      },
+      "desc": "大道上挤满了来灵隐寺上香和上飞来峰的游客。北边过了小溪就\n是灵隐寺了。南边是上飞来峰的路。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "hangzhou"
+      },
+      "id": "/d/hangzhou/road1",
+      "kind": "room",
+      "name": "青石大道",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/road1.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4150,
+        "y": -1450,
+        "z": 0
+      },
+      "desc": "沿湖大道旁店铺林立，长街故朴，屋舍鳞次栉比，道上人来车往，\n一片太平热闹景象。街的东边是一座酒楼。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/road10",
+      "kind": "room",
+      "name": "青石大道",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/road10.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4150,
+        "y": -1460,
+        "z": 0
+      },
+      "desc": "沿湖大道旁店铺林立，长街故朴，屋舍鳞次栉比，道上人来车往，\n一片太平热闹景象。街东边的一家店铺里传来叮叮当当的打铁声。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/road11",
+      "kind": "room",
+      "name": "青石大道",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/road11.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4150,
+        "y": -1470,
+        "z": 0
+      },
+      "desc": "沿湖大道旁店铺林立，长街故朴，屋舍鳞次栉比，道上人来车往，\n一片太平热闹景象。街东边是一古朴书院，书院里不时传来朗朗的笑声。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/road12",
+      "kind": "room",
+      "name": "青石大道",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/likexiu"
+        },
+        {
+          "count": 4,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/qingbing"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/road12.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4150,
+        "y": -1480,
+        "z": 0
+      },
+      "desc": "沿湖大道旁店铺林立，长街故朴，屋舍鳞次栉比，道上人来车往，\n一片太平热闹景象。街东边有一家客店。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/road13",
+      "kind": "room",
+      "name": "青石大道",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/zhang"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/road13.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4140,
+        "y": -1490,
+        "z": 0
+      },
+      "desc": "沿湖大道旁店铺林立，长街故朴，屋舍鳞次栉比，道上人来车往，\n一片太平热闹景象。西边有一花园，游人进进出出，十分热闹。东边\n是名医胡庆余开的药铺。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/road14",
+      "kind": "room",
+      "name": "青石大道",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/honghua/wen"
+        },
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/honghua/luo"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/road14.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4130,
+        "y": -1500,
+        "z": 0
+      },
+      "desc": "大道上游人，或步行，或乘轿，或骑马。个个喜气洋洋的来游西\n湖。东北和西边各是一条大道。西南边是上玉皇山的山路。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/road15",
+      "kind": "room",
+      "name": "青石大道",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/road15.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4120,
+        "y": -1500,
+        "z": 0
+      },
+      "desc": "大道上游人，或步行，或乘轿，或骑马。个个喜气洋洋的来游西\n湖。北边可上雷峰，南边是净慈寺。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/road16",
+      "kind": "room",
+      "name": "青石大道",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/baizhen"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/road16.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4000,
+        "y": -1700,
+        "z": 0
+      },
+      "desc": "大道上游人，或步行，或乘轿，或骑马。个个喜气洋洋的来游西\n湖。大道伸向南北两边，往西是虎跑泉，往东是一条山路。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/road17",
+      "kind": "room",
+      "name": "青石大道",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/tiao-fu"
+        },
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/chuyuan"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/road17.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4000,
+        "y": -1600,
+        "z": 0
+      },
+      "desc": "大道上游人，或步行，或乘轿，或骑马。个个喜气洋洋的来游西\n湖。大道伸向东北和南两边，往西是石屋洞。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/road18",
+      "kind": "room",
+      "name": "青石大道",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/road18.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4100,
+        "y": -1500,
+        "z": 0
+      },
+      "desc": "大道上游人，或步行，或乘轿，或骑马。个个喜气洋洋的来游西\n湖。大道伸向东和西南两边，往北是另一条大道。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/road19",
+      "kind": "room",
+      "name": "青石大道",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/dao-ke"
+        },
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/longjun"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/road19.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 2600,
+        "y": -1400,
+        "z": 0
+      },
+      "desc": "大道上游人，或步行，或乘轿，或骑马。个个喜气洋洋的来游西\n边是灵隐寺和飞来峰。往南是上天竺。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "hangzhou"
+      },
+      "id": "/d/hangzhou/road2",
+      "kind": "room",
+      "name": "青石大道",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/xianghuo"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/road2.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4110,
+        "y": -1500,
+        "z": 0
+      },
+      "desc": "大道上游人，或步行，或乘轿，或骑马。个个喜气洋洋的来游西\n湖。大道伸向东西两边，往北是苏堤。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/road20",
+      "kind": "room",
+      "name": "青石大道",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/road20.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 2700,
+        "y": -1300,
+        "z": 0
+      },
+      "desc": "大道两边遍植青松，满目苍翠，偃盖如雪。被称为“九里雪松”。\n东北边是洪春桥。再向西南便到了灵隐寺。南边是一条土路。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "hangzhou"
+      },
+      "id": "/d/hangzhou/road3",
+      "kind": "room",
+      "name": "青石大道",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/road3.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4060,
+        "y": -1450,
+        "z": 0
+      },
+      "desc": "大道上游人，或步行，或乘轿，或骑马。个个喜气洋洋的来游西\n湖。往南是洪春桥。大道则延伸向东北边。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "hangzhou"
+      },
+      "id": "/d/hangzhou/road4",
+      "kind": "room",
+      "name": "青石大道",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/road4.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4070,
+        "y": -1440,
+        "z": 0
+      },
+      "desc": "大道上游人，或步行，或乘轿，或骑马。个个喜气洋洋的来游西\n湖。往西是去玉泉寺的路。大道则延伸向东边和西南边。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/road5",
+      "kind": "room",
+      "name": "青石大道",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/honghua1"
+        },
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/tiao-fu"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/road5.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4080,
+        "y": -1440,
+        "z": 0
+      },
+      "desc": "大道上游人，或步行，或乘轿，或骑马。个个喜气洋洋的来游西\n湖。大道延伸向东西两边。南边则通往苏堤。北边是岳王庙。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/road6",
+      "kind": "room",
+      "name": "青石大道",
+      "objects": [
+        {
+          "count": 4,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/liumang"
+        },
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/liumangtou"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/road6.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4090,
+        "y": -1440,
+        "z": 0
+      },
+      "desc": "大道上游人，或步行，或乘轿，或骑马。个个喜气洋洋的来游西\n湖。大道延伸向西边和东北边。朝北走便是上北山。南边则通往西泠\n桥。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/road7",
+      "kind": "room",
+      "name": "青石大道",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/youfang"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/road7.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4100,
+        "y": -1440,
+        "z": 0
+      },
+      "desc": "大道上游人，或步行，或乘轿，或骑马。个个喜气洋洋的来游西\n湖。大道延伸向东边和西南边。朝北走便是上宝石山。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/road8",
+      "kind": "room",
+      "name": "青石大道",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/road8.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4150,
+        "y": -1440,
+        "z": 0
+      },
+      "desc": "大道上游人，或步行，或乘轿，或骑马。个个喜气洋洋的来游西\n湖。大道延伸向西边。断桥在大道的西南边。南边则是另一条大道。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/road9",
+      "kind": "room",
+      "name": "青石大道",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/road9.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4130,
+        "y": -1440,
+        "z": 0
+      },
+      "desc": "这里是西湖小瀛洲的“我心相应”亭，小瀛洲人称“湖中有岛，岛\n中有湖”。亭前有联曰：“客中客入画中画  楼外楼看山外山”。岛后\n三塔为东坡狩杭时所建。“塔影亭亭引碧流”、“玲珑塔底月轮悬”，\n遂使“三潭印月”位列西湖十景。\n    元代三塔被毁，大明万历重建时已不在原处，致成今时“天上月一\n轮，湖中影成三”之景。亭边泊着小舟(zhou)是送游客去苏堤。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/santan",
+      "kind": "room",
+      "name": "三潭印月",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/hangzhou/santan.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 2600,
+        "y": -1410,
+        "z": 0
+      },
+      "desc": "一条被人走出来的山路，弯弯曲曲地向上延伸。走在山路上，只\n见两旁峰峦秀丽，景色怡人。不时有进香客擦肩而过。南上便到了下\n天竺。北下就是大道。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "hangzhou"
+      },
+      "id": "/d/hangzhou/shanlu1",
+      "kind": "room",
+      "name": "山路",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/shanlu1.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 2600,
+        "y": -1430,
+        "z": 20
+      },
+      "desc": "走在这条不是很宽的山路上，只见两旁峰峦秀丽，景色怡人。一\n条小溪在路边潺潺流过，溪畔有一农家。山村小景，使人有退隐江湖\n之意。南上便到了中天竺。北下就是下天竺。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "hangzhou"
+      },
+      "id": "/d/hangzhou/shanlu2",
+      "kind": "room",
+      "name": "山路",
+      "objects": [
+        {
+          "count": 2,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/honghua2"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/shanlu2.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 2600,
+        "y": -1450,
+        "z": 40
+      },
+      "desc": "小溪横过山路，跨溪有一座小石桥。溪边农家小孩在嬉戏玩乐。\n南上便到了上天竺。北下就是中天竺。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "hangzhou"
+      },
+      "id": "/d/hangzhou/shanlu3",
+      "kind": "room",
+      "name": "山路",
+      "objects": [
+        {
+          "count": 3,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/boy"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/shanlu3.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 2610,
+        "y": -1600,
+        "z": 40
+      },
+      "desc": "走在这弯弯的小路上，看着沿途山峰云影，松竹青葱，岩石斑驳。\n不禁感到胸怀舒畅。西上便到了上天竺。东下就到了龙井。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "hangzhou"
+      },
+      "id": "/d/hangzhou/shanlu4",
+      "kind": "room",
+      "name": "山路",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/shanlu4.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 2620,
+        "y": -1600,
+        "z": 30
+      },
+      "desc": "走在小路上，只见漫山遍野都是绿油油的茶蓬。农家少女们在欢\n笑声中采茶。山路延伸向东西两边，北边就是龙井，东北边有一条土\n路。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "hangzhou"
+      },
+      "id": "/d/hangzhou/shanlu5",
+      "kind": "room",
+      "name": "山路",
+      "objects": [
+        {
+          "count": 2,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/caichanu"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/shanlu5.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4090,
+        "y": -1700,
+        "z": 10
+      },
+      "desc": "山路崎岖，曲折蜿延。四周林木苍翠，修竹茂密。山路旁有一山\n洞，据说洞里有时会传出虎哮声，故名老虎洞。西边是下山的路，往\n东下山便到了山底。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/shanlu6",
+      "kind": "room",
+      "name": "山路",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/laohu"
+        },
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "item",
+          "ref": "/d/hangzhou/obj/shuzhi"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/shanlu6.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4110,
+        "y": -1700,
+        "z": 10
+      },
+      "desc": "山路崎岖，曲折蜿延。四周林木苍翠，修竹茂密。山路旁是涵碧\n亭，在这里极目远眺，群山环湖尽收眼底。西边是上山的路，往东便\n是下山的路。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/shanlu7",
+      "kind": "room",
+      "name": "山路",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/shanlu7.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4090,
+        "y": -1430,
+        "z": 0
+      },
+      "desc": "山上林木茂密，就是炎夏这里还是清凉依旧。朝北走便到了黄龙洞。\n南边则是下山的路。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/shanlu8",
+      "kind": "room",
+      "name": "山路",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/shanlu8.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 2480,
+        "y": -1590,
+        "z": 10
+      },
+      "desc": "洞後侧穹顶上的石罅间可仰见一束天光，故又名“一线天”。东\n南边是下山的路。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "hangzhou"
+      },
+      "id": "/d/hangzhou/shexudong",
+      "kind": "room",
+      "name": "射旭洞",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/mengmian"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/shexudong.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 3000,
+        "y": -1600,
+        "z": 0
+      },
+      "desc": "山路旁是石屋洞。石屋洞，洞中有洞，洞洞相连。主洞高大宽敞，\n洁净明亮，上宽下窄，状如浮螺。西上便到了满觉陇；山路的尽头连着\n一条由北至南的大道。",
+      "desc_source": "lpc",
+      "flags": {},
+      "id": "/d/hangzhou/shiwudong",
+      "kind": "room",
+      "name": "石屋洞",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/xiezi"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/shiwudong.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 2800,
+        "y": -1600,
+        "z": 20
+      },
+      "desc": "水乐洞有两个洞口，洞的左口有股山泉从石缝中涌出。泉水声如\n金石，和谐悦耳。旁有“天然琴声”，“听无弦琴”等石刻字句。洞\n内两壁有很多钟乳石。往东是下山的路，西上便到了烟霞洞。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/hangzhou/shuiledong",
+      "kind": "room",
+      "name": "水乐洞",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/shuiledong.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4160,
+        "y": -1470,
+        "z": 0
+      },
+      "desc": "书院正中有一匾“凤池书院”。书院里坐着两位老者，他们正在\n吟诗作对。他们身旁的桌上铺着宣纸和笔墨。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/hangzhou/shuyuan",
+      "kind": "room",
+      "name": "凤池书院",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/shuyuan.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4080,
+        "y": -1450,
+        "z": 0
+      },
+      "desc": "苏堤是诗人苏东坡在主持浚深西湖时用湖泥和草筑成的。苏东坡\n曾有诗记述此事；“我在钱塘拓湖渌，大堤士女争昌丰。六桥横绝天\n汉上，北山始与南屏通。忽惊二十五万丈，老葑席卷苍烟空。”往北\n便是大道，南边是跨虹桥。跨虹桥乃苏堤六桥由北至南的第一座。桥\n一边是岳湖，桥的另一边是西湖。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/suti1",
+      "kind": "room",
+      "name": "苏堤",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/suti1.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4080,
+        "y": -1460,
+        "z": 0
+      },
+      "desc": "苏堤上，游客们有的林荫大道上漫步吟诗，高谈阔论；有的随机\n就石，临水而坐；有的伶立湖边，静享湖景。北边是跨虹桥，南面是\n东浦桥，西面是去曲院风荷。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/suti2",
+      "kind": "room",
+      "name": "苏堤",
+      "objects": [
+        {
+          "count": null,
+          "count_expr": "random(2)",
+          "in_slice": false,
+          "kind": "item",
+          "origin": "external",
+          "ref": "/clone/medicine/vegetable/heye"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/suti2.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4080,
+        "y": -1470,
+        "z": 0
+      },
+      "desc": "寒冬，瑞雪霏霏中，不少游人踏雪观景。从堤上极目远眺，只见\n四周玉树琼林。北边是东浦桥，南面是压堤桥。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/suti3",
+      "kind": "room",
+      "name": "苏堤",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/suti3.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4110,
+        "y": -1420,
+        "z": 0
+      },
+      "desc": "春晓，漫步林荫道上，烟柳笼纱，雀鸟欢鸣，一片生机。苏堤春\n晓被列为西湖十景之首，果然名不虚传。北边是压堤桥，南面是望山\n桥。东面一片梅林，林后似乎有座院落，但看不真切。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/suti4",
+      "kind": "room",
+      "name": "苏堤",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/liyuanzhi"
+        },
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/wuya"
+        },
+        {
+          "count": 2,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/maque"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/suti4.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4110,
+        "y": -1430,
+        "z": 0
+      },
+      "desc": "每当盛夏，游客到此纷纷寻荫小息，堤上绿树交柯，鸣蝉噪鼓。\n北边是望山桥，南面锁澜桥。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/suti5",
+      "kind": "room",
+      "name": "苏堤",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/suti5.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4110,
+        "y": -1440,
+        "z": 0
+      },
+      "desc": "秋月之夜，月下观湖，唯见满湖银波粼粼，阵阵微风，风中桂子飘\n香，令人为之心醉。堤边泊着小舟(zhou)是送游客去三潭映月的。往西\n边是去花港，东面可见三潭映月遥立湖中，北边是锁澜桥，南面映波桥。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/suti6",
+      "kind": "room",
+      "name": "苏堤",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/hangzhou/suti6.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4110,
+        "y": -1450,
+        "z": 0
+      },
+      "desc": "苏堤是诗人苏东坡在主持浚深西湖时用湖泥和草筑成的。苏东坡\n曾有诗记述此事；“我在钱塘拓湖渌，大堤士女争昌丰。六桥横绝天\n汉上，北山始与南屏通。忽惊二十五万丈，老葑席卷苍烟空。”往南\n便是大道，北边是映波桥。映波桥乃苏堤六桥由至北南的第一座。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/suti7",
+      "kind": "room",
+      "name": "苏堤",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/shu-sheng"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/suti7.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 2500,
+        "y": -1390,
+        "z": 0
+      },
+      "desc": "走进大殿，只见正面坐着袒胸露腹的弭勒佛，两旁是四大天王，\n後面是神态威严的韦驮菩萨。天王殿後面便是大雄宝殿。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/hangzhou/tianwangdian",
+      "kind": "room",
+      "name": "天王殿",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/tianwangdian.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4160,
+        "y": -1460,
+        "z": 0
+      },
+      "desc": "这是一家不小的打铁铺，店里摆了几座火炉，一位铁匠正在火炉\n旁满头大汗地打造东西。一位老者坐在边上。火炉边放着不少打好了\n的铁器。",
+      "desc_source": "lpc",
+      "flags": {},
+      "id": "/d/hangzhou/tiejiangpu",
+      "kind": "room",
+      "name": "铁匠铺",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/smith"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/tiejiangpu.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 2680,
+        "y": -1550,
+        "z": 0
+      },
+      "desc": "路旁一条小溪。溪水哗哗地流着，不时有鱼儿(fish)跃出水面。\n溪旁几个男孩正低着头专心在钓鱼。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "hangzhou"
+      },
+      "id": "/d/hangzhou/tulu1",
+      "kind": "room",
+      "name": "土路",
+      "objects": [
+        {
+          "count": 2,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/boy"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/tulu1.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4120,
+        "y": -1440,
+        "z": 0
+      },
+      "desc": "西湖之仙姿丽质，引无数骚人墨客浅吟低唱：“未能抛得杭州去，\n一半勾留是西湖”。孤山峙立湖面，如一朵绿色花冠。苏堤、白堤如两\n条绿缎，飘逸于湛湛碧水之中。湖中三岛象三座海上仙山，鼎立湖心。\n远望山峦，云山逶迤，雾霭漫漫。近观湖水，微波荡漾，波光粼粼。湖\n边繁花如锦，绿荫中亭台楼榭时隐时现。\n    苏子诗云：“水光潋滟晴方好，山色空朦雨亦奇，欲把西湖比西子，\n淡妆浓抹总相宜。”",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/xihu",
+      "kind": "room",
+      "name": "西湖",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/hangzhou/xihu.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4090,
+        "y": -1450,
+        "z": 0
+      },
+      "desc": "西泠桥衔结孤山，跨过里西湖。桥的东南边是孤山。北边则是一\n条青石大道。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/xilingqiao",
+      "kind": "room",
+      "name": "西泠桥",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/xilingqiao.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4120,
+        "y": -1490,
+        "z": 10
+      },
+      "desc": "夕照山上遍植栖树和红枫。每逢深秋，层林尽染，分外壮观。山\n顶有一座塔，雷峰塔。神话“白蛇传”中的白娘娘就是被法海禁锢在\n这座塔里。每当夕阳西下，彩云缭绕，塔影幢幢，这就是西湖十景之一\n的“雷峰夕照”。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/xizhaoshan",
+      "kind": "room",
+      "name": "夕照山",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/xizhaoshan.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 2700,
+        "y": -1600,
+        "z": 30
+      },
+      "desc": "据说站在山头，清晨观看山村缭绕炊烟，傍晚仰望蓝天彩霞，景\n色优美，故称“烟霞”。洞口两旁有精美的“观音”和“大势至菩萨”\n洞内两壁的天然岩穴里有各代的石刻。往东是下山的路。西边是去龙\n井。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/hangzhou/yanxiadong",
+      "kind": "room",
+      "name": "烟霞洞",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/yanxiadong.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4150,
+        "y": -1490,
+        "z": 0
+      },
+      "desc": "这是一家明净宽敞的药堂，後墙上是一个大药柜。几个伙计正忙\n着爬上爬下地从小抽屉里抓药。药柜前摆着一张桌子，桌旁一位老者\n正在为人把脉。他就是名医胡庆余。\n    柜台上方高挂一个大牌子(paizi).",
+      "desc_source": "lpc",
+      "flags": {
+        "no_beg": "1",
+        "no_clean_up": 0,
+        "no_fight": "1"
+      },
+      "id": "/d/hangzhou/yaodian",
+      "kind": "room",
+      "name": "胡庆余堂",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/huqingyu"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/yaodian.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4080,
+        "y": -1400,
+        "z": 0
+      },
+      "desc": "墓道两旁有石虎，石羊，石马和三对翁仲。正中古柏交柯，便是岳飞的\n坟墓。墓碑刻着“宋岳鄂王墓”。岳王墓的左面，便是岳飞之子岳云的墓，\n墓碑上刻着“宋继忠侯岳云之墓”。在岳坟前面两边四个铁像(statue)。东\n首墙上有四个大字(word)。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/yuefen",
+      "kind": "room",
+      "name": "岳坟",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/yuefen.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4080,
+        "y": -1410,
+        "z": 0
+      },
+      "desc": "岳王庙的匾上是“心昭天日”四个大字。步入大殿，正中是岳飞\n的塑像，身後的匾上题着“还我河山”。北边的门通向岳坟，往南是\n出去的路。",
+      "desc_source": "lpc",
+      "flags": {},
+      "id": "/d/hangzhou/yuelang",
+      "kind": "room",
+      "name": "岳廊",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": false,
+          "kind": "npc",
+          "origin": "external",
+          "ref": "/d/mingjiao/npc/chengchaofeng"
+        },
+        {
+          "count": 2,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/honghua2"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/yuelang.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4100,
+        "y": -1700,
+        "z": 20
+      },
+      "desc": "登上玉皇山，俯瞰山下，可以看到“八卦田”。据说这是皇帝祭\n先农时亲耕的籍田。山顶有福星观，建於唐朝。廊宇旁有天一池和白\n石井，并建有望湖亭。东西两边各有一条下山的路。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/yuhuangsd",
+      "kind": "room",
+      "name": "玉皇山顶",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/honghua/yu"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/yuhuangsd.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4080,
+        "y": -1700,
+        "z": 0
+      },
+      "desc": "山脚有一座小亭，德意亭。不少游客登山前或下山後都在此小歇。\n山路蜿延往东向上。西边有一条大路。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/yuhuangshan",
+      "kind": "room",
+      "name": "玉皇山",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/yuhuangshan.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4120,
+        "y": -1700,
+        "z": 0
+      },
+      "desc": "只见往上的山路曲折蜿延。山路旁有一座小六角亭，几个游人正\n在亭里歇脚。东北边是一条青石大道，往西是上山的路。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/yuhuangsj",
+      "kind": "room",
+      "name": "玉皇山脚",
+      "objects": [
+        {
+          "count": 2,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/honghua1"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/yuhuangsj.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4060,
+        "y": -1440,
+        "z": 10
+      },
+      "desc": "玉泉寺建在玉泉山上，原名清涟寺。走进玉泉寺，只见这里有几个水池(pond)。\n朝东就是出寺下山的路。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "xihu"
+      },
+      "id": "/d/hangzhou/yuquan",
+      "kind": "room",
+      "name": "玉泉",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/hangzhou/npc/you-ke"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/yuquan.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1600,
+        "y": -2000,
+        "z": 0
+      },
+      "desc": "这是一家路边的小茶亭，赶山路的人常在此处歇歇脚。亭子里有几\n张桌子和几支条凳。周围是一片树林。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "shiliang"
+      },
+      "id": "/d/jiaxing/chating",
+      "kind": "room",
+      "name": "茶亭",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": false,
+          "kind": "npc",
+          "origin": "external",
+          "ref": "/kungfu/class/heimuya/xiang"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/chating.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1510,
+        "y": -990,
+        "z": 0
+      },
+      "desc": "湖边一座石砌的精致小亭。极目远眺，碧水连天，波光潋滟。近处\n游鱼唼喋，漾起一圈圈涟漪。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_beg": 1,
+        "no_fight": 1,
+        "no_steal": 1,
+        "outdoors": "jiaxing"
+      },
+      "id": "/d/jiaxing/diaoyu",
+      "kind": "room",
+      "name": "钓鱼亭",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 8,
+        "path": "d/jiaxing/diaoyu.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1570,
+        "y": -1040,
+        "z": 0
+      },
+      "desc": "这是一座废弃已久的民房，家具摆设一应俱全，只是都附着一层灰\n土。屋子中间是一张小桌，桌上的杯碗还都没有撤去，看来主人去的很\n匆忙。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/jiaxing/guojia",
+      "kind": "room",
+      "name": "郭家民房",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/guojia.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1610,
+        "y": -1090,
+        "z": 0
+      },
+      "desc": "这里是钱塘江的入海口。波涛汹涌，咆哮不息。海潮(tide)不断地\n扑面而来，拍在岸边，溅起的水珠在半空飞舞，好象大雪纷纷一样。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "jiaxing"
+      },
+      "id": "/d/jiaxing/haibin",
+      "kind": "room",
+      "name": "海滨",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 11,
+        "path": "d/jiaxing/haibin.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1580,
+        "y": -1080,
+        "z": 0
+      },
+      "desc": "一条大江横亘在面前，江水浩浩，日日夜夜无穷无休地奔向大海。\n这里有一排乌柏树，叶子似火烧般红。两棵大松树下正围着一堆村民，\n聚精会神地听着一个瘦削的老者说话。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "jiaxing"
+      },
+      "id": "/d/jiaxing/jiangpan1",
+      "kind": "room",
+      "name": "江畔",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/jiangpan1.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1590,
+        "y": -1090,
+        "z": 0
+      },
+      "desc": "一条大江横亘在面前，江水浩浩，日日夜夜无穷无休地奔向大海。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "jiaxing"
+      },
+      "id": "/d/jiaxing/jiangpan2",
+      "kind": "room",
+      "name": "江畔",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/jiangpan2.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1600,
+        "y": -1090,
+        "z": 0
+      },
+      "desc": "一条大江横亘在面前，江水浩浩，日日夜夜无穷无休地奔向大海。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "jiaxing"
+      },
+      "id": "/d/jiaxing/jiangpan3",
+      "kind": "room",
+      "name": "江畔",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/jiangpan3.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1500,
+        "y": -1000,
+        "z": 0
+      },
+      "desc": "这里是江南名城嘉兴。城东是风景如画的南湖。城北早先有座醉仙\n楼，当年全真七子之一的丘处机和江南七怪就在那里盟约寻找忠良之后。\n不知道什么原因店主把它迁到扬州了。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "jiaxing"
+      },
+      "id": "/d/jiaxing/jiaxing",
+      "kind": "room",
+      "name": "嘉兴城",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 8,
+        "path": "d/jiaxing/jiaxing.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1520,
+        "y": -1000,
+        "z": 0
+      },
+      "desc": "这里是嘉兴海港，港内白帆点点，码头上停着好多渔船，正要出海\n的渔民忙碌地来来往往，一个船老大摸样的人正在拼命呼喝着在船上做\n帮工的渔家孩子。船工是不少，可是一提起桃花岛却个个摇头。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "jiaxing"
+      },
+      "id": "/d/jiaxing/jiaxinggang",
+      "kind": "room",
+      "name": "嘉兴海港",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": false,
+          "kind": "npc",
+          "origin": "external",
+          "ref": "/d/taohua/npc/laoda"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/jiaxinggang.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1000,
+        "y": -800,
+        "z": 0
+      },
+      "desc": "你走在江南的一条山路上，到处莺飞草长。时值春日，路旁的山坡\n上开满了金黄色的油菜花。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "jiangnan"
+      },
+      "id": "/d/jiaxing/jnroad1",
+      "kind": "room",
+      "name": "山路",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/jnroad1.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1000,
+        "y": -1000,
+        "z": 0
+      },
+      "desc": "你走在江南的一条山路上，到处莺飞草长。时值春日，路旁的山坡\n上开满了金黄色的油菜花。东面是江南名城嘉兴。西边就是天下名城苏\n州府了。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "jiangnan"
+      },
+      "id": "/d/jiaxing/jnroad2",
+      "kind": "room",
+      "name": "山路",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/jnroad2.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1000,
+        "y": -2000,
+        "z": 0
+      },
+      "desc": "你走在江南的一条山路上，到处莺飞草长。时值春日，路旁的山坡\n上开满了金黄色的油菜花。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "jiangnan"
+      },
+      "id": "/d/jiaxing/jnroad3",
+      "kind": "room",
+      "name": "山路",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/jnroad3.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1500,
+        "y": -2000,
+        "z": 0
+      },
+      "desc": "你走在江南的一条山路上，到处莺飞草长。时值春日，路旁的山坡\n上开满了金黄色的油菜花。北面是江南名城嘉兴。向南则进入福建武夷\n山区。东面有一个供路人休息的小茶亭。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "jiangnan"
+      },
+      "id": "/d/jiaxing/jnroad4",
+      "kind": "room",
+      "name": "山路",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/jnroad4.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1500,
+        "y": -1010,
+        "z": 0
+      },
+      "desc": "这里是嘉兴的南门。周围长着茂密的竹林。东面是座庙宇。向南可\n入福建。向东南就是号称天堂的杭州城了。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "jiaxing"
+      },
+      "id": "/d/jiaxing/jxnanmen",
+      "kind": "room",
+      "name": "嘉兴南门",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/jxnanmen.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1560,
+        "y": -1061,
+        "z": 0
+      },
+      "desc": "这是一间设计精巧的密室，并不很大，但是却不让人觉得拥挤。地\n下有一具干枯的骸骨 (haigu)，旁边则是一口生锈了的大铁箱(xiang)。\n墙上有一个小小的圆孔(kong)，通过它能看到外面的情况。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/jiaxing/mishi",
+      "kind": "room",
+      "name": "密室",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 42,
+        "path": "d/jiaxing/mishi.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1510,
+        "y": -1000,
+        "z": 0
+      },
+      "desc": "这里是嘉兴南湖。节近中秋，荷叶渐残，莲肉饱实。一阵轻柔婉转\n的歌声，飘在烟水蒙蒙的湖面上。湖边有一个道姑在一排柳树下悄立已\n久。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "jiaxing"
+      },
+      "id": "/d/jiaxing/nanhu",
+      "kind": "room",
+      "name": "嘉兴南湖",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": false,
+          "kind": "npc",
+          "origin": "external",
+          "ref": "/kungfu/class/gumu/limochou"
+        },
+        {
+          "count": null,
+          "count_expr": "random(2)",
+          "in_slice": true,
+          "kind": "item",
+          "ref": "/clone/medicine/vegetable/baizhi"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/nanhu.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1520,
+        "y": -1010,
+        "z": 0
+      },
+      "desc": "这里是烟波浩淼的南湖。湖上几只画舫在游荡，船上的游客和青楼\n女子在嘻笑。湖水很深，没有船是渡不过去的。但不知是谁在湖底钉了\n一些木桩。桩顶潜在水面之下一两寸的地方。即使是不懂轻功的人走上\n去也像是水上漂的样子。似乎水下有了些什么。近来有人潜 (out)下湖\n去搜寻什么, 总也不知道结果如何。只是有人传闻在湖底找到了什么宝\n贝。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "jiaxing"
+      },
+      "id": "/d/jiaxing/nanhu1",
+      "kind": "room",
+      "name": "嘉兴南湖",
+      "objects": [
+        {
+          "count": null,
+          "count_expr": "random(2)",
+          "in_slice": true,
+          "kind": "item",
+          "ref": "/clone/medicine/vegetable/heye"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 10,
+        "path": "d/jiaxing/nanhu1.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1590,
+        "y": -1050,
+        "z": 0
+      },
+      "desc": "这是一座小村落的东村口。村子很小，笼罩在一片寂静中。南边隐\n约可以看到一条大江。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "jiaxing"
+      },
+      "id": "/d/jiaxing/njeast",
+      "kind": "room",
+      "name": "牛家村口",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": false,
+          "kind": "npc",
+          "origin": "external",
+          "ref": "/d/village/npc/kid"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/njeast.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1560,
+        "y": -1050,
+        "z": 0
+      },
+      "desc": "一条村中的小路。路边是一家破旧的小酒店，好象已经很久没人来\n过了的样子。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "jiaxing"
+      },
+      "id": "/d/jiaxing/njroad1",
+      "kind": "room",
+      "name": "村中小路",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/njroad1.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1570,
+        "y": -1050,
+        "z": 0
+      },
+      "desc": "一条村中的小路。路边是一家民房，不过好象已经很久很久没有人\n住了。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "jiaxing"
+      },
+      "id": "/d/jiaxing/njroad2",
+      "kind": "room",
+      "name": "村中小路",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": false,
+          "kind": "npc",
+          "origin": "external",
+          "ref": "/d/village/npc/girl"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/njroad2.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1580,
+        "y": -1050,
+        "z": 0
+      },
+      "desc": "一条村中的小路。路边是一家民房，好象很久没有人住的样子。南\n边有条小路通向江边。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "jiaxing"
+      },
+      "id": "/d/jiaxing/njroad3",
+      "kind": "room",
+      "name": "村中小路",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/njroad3.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1580,
+        "y": -1060,
+        "z": 0
+      },
+      "desc": "一条村中的小路。往南边看已经可以看到大江了，江水的咆哮声不\n时地敲击着你的耳鼓。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "jiaxing"
+      },
+      "id": "/d/jiaxing/njroad4",
+      "kind": "room",
+      "name": "村中小路",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": false,
+          "kind": "npc",
+          "origin": "external",
+          "ref": "/d/village/npc/boy"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/njroad4.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1580,
+        "y": -1070,
+        "z": 0
+      },
+      "desc": "一条村中的小路。南边就是钱塘江了，那边的树下聚集着一些闲散\n的村民。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "jiaxing"
+      },
+      "id": "/d/jiaxing/njroad5",
+      "kind": "room",
+      "name": "村中小路",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/njroad5.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1550,
+        "y": -1050,
+        "z": 0
+      },
+      "desc": "这是一座小村落的西村口。村子很小，笼罩在一片寂静中。南边隐\n约可以看到一条大江。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "jiaxing"
+      },
+      "id": "/d/jiaxing/njwest",
+      "kind": "room",
+      "name": "牛家村口",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/njwest.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1530,
+        "y": -1020,
+        "z": 0
+      },
+      "desc": "这是一条郊外的土路，两边生长着蓬乱的茅草。路边是江南水乡到\n处都可以见到的小河。远处似乎有座村落。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "jiaxing"
+      },
+      "id": "/d/jiaxing/road",
+      "kind": "room",
+      "name": "土路",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/road.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1540,
+        "y": -1030,
+        "z": 0
+      },
+      "desc": "这是一条郊外的土路，两边生长着蓬乱的茅草。路边是江南水乡到\n处都可以见到的小河。远处似乎有座村落。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "jiaxing"
+      },
+      "id": "/d/jiaxing/road1",
+      "kind": "room",
+      "name": "土路",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/road1.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1540,
+        "y": -1040,
+        "z": 0
+      },
+      "desc": "这是一条郊外的土路，两边生长着蓬乱的茅草。路边是江南水乡到\n处都可以见到的小河。远处似乎有座村落。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "jiaxing"
+      },
+      "id": "/d/jiaxing/road2",
+      "kind": "room",
+      "name": "土路",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/road2.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1510,
+        "y": -1010,
+        "z": 0
+      },
+      "desc": "这铁枪庙祀奉的是五代时名将铁枪王彦章。庙旁有座高塔，塔顶群\n鸦世代为巢，当地乡民传说铁枪庙的乌鸦是神兵神将，向来不敢侵犯，\n以致生养繁殖，越来越多。案桌下有个小洞(dong)。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "jiaxing"
+      },
+      "id": "/d/jiaxing/tieqiang",
+      "kind": "room",
+      "name": "铁枪庙",
+      "objects": [
+        {
+          "count": 4,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/jiaxing/npc/wuya"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/tieqiang.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1560,
+        "y": -1060,
+        "z": 0
+      },
+      "desc": "这是一家已经废弃了的小酒店，柜台上积满了灰，一个角落里堆着\n一大堆干草，旁边斜躺着一个大铁叉；柜台后的橱架上凌乱地放着几摞\n破旧的青花瓷碗(wan)。在门前坐着一个梳着朝天辫的小姑娘。",
+      "desc_source": "lpc",
+      "flags": {},
+      "id": "/d/jiaxing/xiaodian",
+      "kind": "room",
+      "name": "小酒店",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/jiaxing/npc/shagu"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 10,
+        "path": "d/jiaxing/xiaodian.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1580,
+        "y": -1040,
+        "z": 0
+      },
+      "desc": "这是一座废弃已久的民房，家具摆设一应俱全，只是都附着一层灰\n土。屋子中间是一张小桌，桌上的杯碗还都没有撤去，看来主人去的很\n匆忙。墙上挂着一杆铁枪。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/jiaxing/yangjia",
+      "kind": "room",
+      "name": "杨家民房",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/yangjia.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1520,
+        "y": -1020,
+        "z": 0
+      },
+      "desc": "烟雨楼建在南湖中心的一个小岛上。南湖终年不断的水气把它笼罩\n得迷迷蒙蒙的。楼内是家饭店。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "jiaxing"
+      },
+      "id": "/d/jiaxing/yanyu",
+      "kind": "room",
+      "name": "烟雨楼",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/jiaxing/npc/xiaoer"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/yanyu.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1520,
+        "y": -1020,
+        "z": 10
+      },
+      "desc": "烟雨楼在南湖畔，四望临风，醺醺醉人。柳岸翻曳，禽噪起伏。湖\n面轻烟薄雾，几尾小舟荡漾其间。半湖水里都浮着碧油油的菱叶，越女\n轻歌，娇痴无那。你放眼观赏，美景无限，胸怀大畅之下只想大声喊叫\n(halloa)。\n\n    楼中立了一幅长匾(bian)，绞丝镶边，楠木为里，年代虽久，桐油\n粉漆，犹自清新如昨。柱子上隐隐有些字迹（ziji）。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/jiaxing/yanyu2",
+      "kind": "room",
+      "name": "烟雨楼二楼",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 12,
+        "path": "d/jiaxing/yanyu2.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1520,
+        "y": -1020,
+        "z": 20
+      },
+      "desc": "这里是烟雨楼的楼顶，放眼一片空阔，东西两湖如鸳鸯交颈，轻烟\n拂渚，微雨欲来，晓霭迷蒙，正是历代文人骚客把酒凭栏、吊古吟咏的\n好所在。",
+      "desc_source": "lpc",
+      "flags": {},
+      "id": "/d/jiaxing/yanyu3",
+      "kind": "room",
+      "name": "烟雨楼顶",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": false,
+          "kind": "npc",
+          "origin": "external",
+          "ref": "/kungfu/class/baituo/ouyangfeng1"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/yanyu3.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1620,
+        "y": -1770,
+        "z": -10
+      },
+      "desc": "这是温家下面一条很隐秘的暗道，也不知道是谁修建的。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/shiliang/andao1",
+      "kind": "room",
+      "name": "暗道",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 5,
+        "path": "d/shiliang/andao1.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1620,
+        "y": -1760,
+        "z": -10
+      },
+      "desc": "这是温家下面一条很隐秘的暗道，也不知道是谁修建的。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/shiliang/andao2",
+      "kind": "room",
+      "name": "暗道",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 5,
+        "path": "d/shiliang/andao2.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1620,
+        "y": -1750,
+        "z": -10
+      },
+      "desc": "这里是暗道的尽头，有扇铁门(door)看起来很陈旧，不知道通往\n哪里。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/shiliang/andao3",
+      "kind": "room",
+      "name": "暗道尽头",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 8,
+        "path": "d/shiliang/andao3.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1590,
+        "y": -1920,
+        "z": 0
+      },
+      "desc": "这里是温家的厨房，温家请的是很有名气的大师傅负责\n打理全家的伙食，温家的师傅在全浙江都是很有名气的，这\n时候还没到开饭时间，大师傅在那里坐着吸烟。",
+      "desc_source": "lpc",
+      "flags": {},
+      "id": "/d/shiliang/chufang",
+      "kind": "room",
+      "name": "厨房",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/shiliang/npc/dashifu"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/chufang.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1610,
+        "y": -1950,
+        "z": 0
+      },
+      "desc": "你来到温家大宅会客的大厅里，这里灯火通明，屋内陈设很\n是精巧，两个制作精美的有一人般高的大瓷瓶放在厅的两侧，四\n周的墙上挂着许多文人墨客的字画，大厅上面有块匾，上书“正\n义堂”三个大字。有个中年人正坐在八仙桌旁悠闲地喝着茶，好\n象在沉思着什么。",
+      "desc_source": "lpc",
+      "flags": {},
+      "id": "/d/shiliang/dating",
+      "kind": "room",
+      "name": "大厅",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/shiliang/npc/wenfangda"
+        },
+        {
+          "count": 2,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/shiliang/npc/yahuan"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/dating.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1620,
+        "y": -1960,
+        "z": 0
+      },
+      "desc": "这是供来客休息的厢房，房子不大，但是很整洁，墙上挂\n着一些字画。有个丫鬟正忙着为客人泡茶。",
+      "desc_source": "lpc",
+      "flags": {},
+      "id": "/d/shiliang/dongxiangfang",
+      "kind": "room",
+      "name": "东厢房",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": false,
+          "kind": "item",
+          "origin": "external",
+          "ref": "/d/changan/obj/chairs"
+        },
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/shiliang/npc/yahuan"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/dongxiangfang.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1590,
+        "y": -1940,
+        "z": 0
+      },
+      "desc": "这里就是温家老二温方义平时起居生活的住处，由于他是\n温家五老中最有生意头脑的人物，所以平时一般都没在家，在\n外面打理生意去了。",
+      "desc_source": "lpc",
+      "flags": {},
+      "id": "/d/shiliang/fang1",
+      "kind": "room",
+      "name": "侧房",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/shiliang/npc/wenfangwu"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/fang1.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1590,
+        "y": -1930,
+        "z": 0
+      },
+      "desc": "这里就是温家老三温方义的住处，房间整洁，墙上挂着把带鞘的\n宝刀，桌子上面铺着一张图，温老三正在专心地看着图上的内容，口\n中念念有词。",
+      "desc_source": "lpc",
+      "flags": {},
+      "id": "/d/shiliang/fang2",
+      "kind": "room",
+      "name": "侧房",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/shiliang/npc/wenfangshan"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/fang2.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1630,
+        "y": -1940,
+        "z": 0
+      },
+      "desc": "这里就是温家老四温方施的住处，据说他在石梁口碑不太好，\n主要是好色，你看，他现在正和一个丫鬟在调情。",
+      "desc_source": "lpc",
+      "flags": {},
+      "id": "/d/shiliang/fang3",
+      "kind": "room",
+      "name": "侧房",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/shiliang/npc/wenfangshi"
+        },
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/shiliang/npc/yahuan"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/fang3.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1630,
+        "y": -1930,
+        "z": 0
+      },
+      "desc": "这里就是温家老五温方南的住处，他是个爱附庸风雅的人，正\n拿着本诗集摇头晃脑地读着。",
+      "desc_source": "lpc",
+      "flags": {},
+      "id": "/d/shiliang/fang4",
+      "kind": "room",
+      "name": "侧房",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/shiliang/npc/wenfangnan"
+        },
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/shiliang/npc/yahuan"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/fang4.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1610,
+        "y": -1970,
+        "z": 10
+      },
+      "desc": "这里就是浙南石梁温家的大门，门口两个大石狮，威武异\n常，大门紧锁着，门上的铜环却亮得刺眼。围墙很高，门匾上\n写着两个烫金的大字“温府”，果然气度不凡。门的旁边有一\n株参天大树(tree),人站在下面很是凉快。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "shiliang"
+      },
+      "id": "/d/shiliang/gate",
+      "kind": "room",
+      "name": "温宅大门",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/shiliang/gate.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1610,
+        "y": -1930,
+        "z": 0
+      },
+      "desc": "这里是个大大的后院，古树参天，知了在树上不停地叫着，有个\n仆人在那里清扫着地面。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "shiliang"
+      },
+      "id": "/d/shiliang/houyuan",
+      "kind": "room",
+      "name": "后院",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/shiliang/npc/atu"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/houyuan.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1610,
+        "y": -1780,
+        "z": -10
+      },
+      "desc": "水很深，你耳边全是水声，岸上大家惊讶的看着你…\n你觉得自己干了件傻事，太瓜了。",
+      "desc_source": "lpc",
+      "flags": {},
+      "id": "/d/shiliang/huli",
+      "kind": "room",
+      "name": "湖里",
+      "objects": [
+        {
+          "count": 2,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/shiliang/npc/fish"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/shiliang/huli.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1600,
+        "y": -1980,
+        "z": 10
+      },
+      "desc": "这里是个不大的石室，有个人盘坐在地上，旁边点了盏如豆\n的油灯，借着这光线，你看见石壁上有几百幅用利器刻成的简陋\n人形，每个人形均不相同，举手投足，似在练武。你挨次看去，\n密密麻麻都是图形，心中甚为不解。",
+      "desc_source": "lpc",
+      "flags": {},
+      "id": "/d/shiliang/jinshedong",
+      "kind": "room",
+      "name": "石室",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/shiliang/npc/jinshe"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/jinshedong.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1590,
+        "y": -1980,
+        "z": 10
+      },
+      "desc": "你来到另一间石室内，突然发现墙上有个剑柄。石壁(shibi)看\n上去不是很结实。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/shiliang/jinshedong1",
+      "kind": "room",
+      "name": "石室",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 8,
+        "path": "d/shiliang/jinshedong1.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1600,
+        "y": -1980,
+        "z": 0
+      },
+      "desc": "这是一个极深的山洞。四处死气沉沉的，你急得快哭了起\n来。洞壁(wall)上满是滑溜溜的青苔。很奇怪的是这里有根长\n绳(string)，绳端系着一个大石头(stone)。",
+      "desc_source": "lpc",
+      "flags": {},
+      "id": "/d/shiliang/midao",
+      "kind": "room",
+      "name": "山洞底",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/midao.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1610,
+        "y": -1980,
+        "z": 10
+      },
+      "desc": "这是通往衢州石梁镇的青石大道，浙南山国，比之水乡泽国的苏南\n浙北，自是另一风味了。北面就是石梁温家了。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "shiliang"
+      },
+      "id": "/d/shiliang/road1",
+      "kind": "room",
+      "name": "青石大道",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/shiliang/npc/nongfu"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/road1.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1610,
+        "y": -1990,
+        "z": 0
+      },
+      "desc": "这是通往衢州石梁镇的青石大道，浙南山国，比之水乡泽国的苏南\n浙北，自是另一风味了。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "shiliang"
+      },
+      "id": "/d/shiliang/road2",
+      "kind": "room",
+      "name": "青石大道",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/road2.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1590,
+        "y": -1990,
+        "z": 0
+      },
+      "desc": "这是一条崎岖不平的山道，人迹罕至，听说这里不是很太平。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "shiliang"
+      },
+      "id": "/d/shiliang/shandao1",
+      "kind": "room",
+      "name": "山道",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/shiliang/npc/li"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/shandao1.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1590,
+        "y": -1980,
+        "z": 10
+      },
+      "desc": "这是一条崎岖不平的山道，人迹罕至，听说这里不是很太平。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "shiliang"
+      },
+      "id": "/d/shiliang/shandao2",
+      "kind": "room",
+      "name": "山道",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/shiliang/npc/qingming"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/shandao2.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1590,
+        "y": -1970,
+        "z": 20
+      },
+      "desc": "你来到一个大山洞的面前，里面黑乎乎的，怪吓人的，还\n是不要进去的好。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "shiliang"
+      },
+      "id": "/d/shiliang/shandao3",
+      "kind": "room",
+      "name": "山洞口",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/shandao3.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1590,
+        "y": -1960,
+        "z": 20
+      },
+      "desc": "你壮起胆子，走进了山洞中，这里暗无天日，突然间，有\n只蝙蝠在你面前飞过，你被惊出了一身冷汗。越往里走就越来\n越黑，你好象迷失方向了。",
+      "desc_source": "lpc",
+      "flags": {},
+      "id": "/d/shiliang/shandong1",
+      "kind": "room",
+      "name": "山洞",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/shandong1.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1600,
+        "y": -1960,
+        "z": 20
+      },
+      "desc": "你壮起胆子，走进了山洞中，这里暗无天日，突然间，有\n只蝙蝠在你面前飞过，你被惊出了一身冷汗。越往里走就越来\n越黑，你好象迷失方向了。",
+      "desc_source": "lpc",
+      "flags": {},
+      "id": "/d/shiliang/shandong2",
+      "kind": "room",
+      "name": "山洞",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/shandong2.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1590,
+        "y": -1960,
+        "z": 20
+      },
+      "desc": "你壮起胆子，走进了山洞中，这里暗无天日，突然间，有\n只蝙蝠在你面前飞过，你被惊出了一身冷汗。越往里走就越来\n越黑，你好象迷失方向了。",
+      "desc_source": "lpc",
+      "flags": {},
+      "id": "/d/shiliang/shandong3",
+      "kind": "room",
+      "name": "山洞",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/shandong3.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1590,
+        "y": -1970,
+        "z": 20
+      },
+      "desc": "你壮起胆子，走进了山洞中，这里暗无天日，突然间，有\n只蝙蝠在你面前飞过，你被惊出了一身冷汗。越往里走就越来\n越黑，你好象迷失方向了。",
+      "desc_source": "lpc",
+      "flags": {},
+      "id": "/d/shiliang/shandong4",
+      "kind": "room",
+      "name": "山洞",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/shandong4.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1590,
+        "y": -1960,
+        "z": 20
+      },
+      "desc": "你壮起胆子，走进了山洞中，这里暗无天日，突然间，有\n只蝙蝠在你面前飞过，你被惊出了一身冷汗。越往里走就越来\n越黑，你好象迷失方向了。",
+      "desc_source": "lpc",
+      "flags": {},
+      "id": "/d/shiliang/shandong5",
+      "kind": "room",
+      "name": "山洞",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/shandong5.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1600,
+        "y": -1960,
+        "z": 20
+      },
+      "desc": "你壮起胆子，走进了山洞中，这里暗无天日，突然间，有\n只蝙蝠在你面前飞过，你被惊出了一身冷汗。越往里走就越来\n越黑，你好象迷失方向了。",
+      "desc_source": "lpc",
+      "flags": {},
+      "id": "/d/shiliang/shandong6",
+      "kind": "room",
+      "name": "山洞",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/shandong6.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1600,
+        "y": -1970,
+        "z": 20
+      },
+      "desc": "你继续往里面走去，这里越发地黑起来，伸手不见五指，许\n多蝙蝠在你耳边不停地怪笑，真令人毛骨悚然，你茫然不知道如\n何是好。这里已经山洞尽头了，无路可走。",
+      "desc_source": "lpc",
+      "flags": {},
+      "id": "/d/shiliang/shandong7",
+      "kind": "room",
+      "name": "山洞尽头",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 6,
+        "path": "d/shiliang/shandong7.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1630,
+        "y": -1920,
+        "z": 0
+      },
+      "desc": "温家的书房很大，墙边摆满了一书架一书架的书，一张书桌上\n放着文房四宝，檀香正燃着，屋内充满了那种神秘的香气，其实温\n氏五老都是草莽出身，平时难得到这里一次。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/shiliang/shufang",
+      "kind": "room",
+      "name": "书房",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/shufang.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1610,
+        "y": -1900,
+        "z": 0
+      },
+      "desc": "你正站在湖边的一个小亭里，通过一条蜿蜒的走廊可以回到\n大厅。小亭修筑地相当雅致，在这里可以欣赏池塘中的荷花和金\n鱼，亭子北面湖中竖着几根木桩，远处的湖中有个小岛，朦胧间\n看得却是不太真切。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "shiliang"
+      },
+      "id": "/d/shiliang/tingzi",
+      "kind": "room",
+      "name": "玫瑰小亭",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 7,
+        "path": "d/shiliang/tingzi.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1610,
+        "y": -1800,
+        "z": 0
+      },
+      "desc": "你来到湖心的小岛上。这里鸟语花香，彩蝶纷飞，景色宜人，空\n气中仿佛有种玉兰香的味道。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "shiliang"
+      },
+      "id": "/d/shiliang/xiaodao",
+      "kind": "room",
+      "name": "湖心小岛",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/xiaodao.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1610,
+        "y": -1790,
+        "z": 0
+      },
+      "desc": "你来到湖心的小岛上。这里鸟语花香，彩蝶纷飞，景色宜人，空\n气中仿佛有种玉兰香的味道。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "shiliang"
+      },
+      "id": "/d/shiliang/xiaodao1",
+      "kind": "room",
+      "name": "湖心小岛",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/xiaodao1.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1620,
+        "y": -1770,
+        "z": 10
+      },
+      "desc": "这是一座精致的小楼，你走到这里，不由得眼前一耀，先是\n闻到一阵幽幽的香气，只见房中点着一支大红烛，照得满室生辉\n床上珠罗纱的帐子，白色缎被上绣着一只黄色的凤凰，壁上挂着\n一幅工笔仕女图。床前桌上放着一张雕花端砚，几件碧玉玩物，\n笔筒中插了大大小小六七支笔，西首一张几上供着一盆兰花，架\n子上停着一只白鹦鹉。满室锦绣，连椅子上也绣了花。东边放着\n把琴，一位小姐心不在焉地坐在琴的前面。",
+      "desc_source": "lpc",
+      "flags": {},
+      "id": "/d/shiliang/xiaolou",
+      "kind": "room",
+      "name": "小楼",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/shiliang/npc/wenyi"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/xiaolou.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1620,
+        "y": -1770,
+        "z": 0
+      },
+      "desc": "这是一个小小的客厅，墙上挂着一些字画，其中最显眼的是王\n羲之的一幅《兰亭集序》，有个女仆人正在打扫着卫生。",
+      "desc_source": "lpc",
+      "flags": {},
+      "id": "/d/shiliang/xiaoting",
+      "kind": "room",
+      "name": "小厅",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/shiliang/npc/afeng"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 5,
+        "path": "d/shiliang/xiaoting.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1620,
+        "y": -1780,
+        "z": 0
+      },
+      "desc": "这里是个小院子，打扫得甚为整洁，旁边有棵大树，院子内\n放了一些扫把等杂物。往北是个不大的客厅。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "shiliang"
+      },
+      "id": "/d/shiliang/xiaoyuan",
+      "kind": "room",
+      "name": "小院子",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/xiaoyuan.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1600,
+        "y": -1960,
+        "z": 0
+      },
+      "desc": "这是供来客休息的厢房，房子不大，但是很整洁，墙上挂\n着一些字画。有个丫鬟正忙着为客人泡茶。",
+      "desc_source": "lpc",
+      "flags": {},
+      "id": "/d/shiliang/xixiangfang",
+      "kind": "room",
+      "name": "西厢房",
+      "objects": [
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "item",
+          "ref": "/d/changan/obj/chairs"
+        },
+        {
+          "count": 1,
+          "in_slice": true,
+          "kind": "npc",
+          "ref": "/d/shiliang/npc/yahuan"
+        }
+      ],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/xixiangfang.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1610,
+        "y": -1960,
+        "z": 0
+      },
+      "desc": "这里就是温宅进门的一个大庭院，地上铺着一块块平整的\n大理石，光可鉴人。院子的面积很大，看得出来这家主人家资\n丰厚。南面的大门(gate)紧锁着。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "shiliang"
+      },
+      "id": "/d/shiliang/yuanzi",
+      "kind": "room",
+      "name": "大院",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 9,
+        "path": "d/shiliang/yuanzi.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1600,
+        "y": -1940,
+        "z": 0
+      },
+      "desc": "你走在一条长长的走廊上，上面雕梁画柱，飞檐琉璃，穿行其\n间，心情舒畅。往西是温老二的住处，往东是后院。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/shiliang/zoulang1",
+      "kind": "room",
+      "name": "走廊",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/zoulang1.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1600,
+        "y": -1930,
+        "z": 0
+      },
+      "desc": "你走在一条长长的走廊上，上面雕梁画柱，飞檐琉璃，穿行其\n间，心情舒畅。往西是温老三的住处，往东是后院。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/shiliang/zoulang2",
+      "kind": "room",
+      "name": "走廊",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/zoulang2.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1600,
+        "y": -1920,
+        "z": 0
+      },
+      "desc": "你走在一条长长的走廊上，上面雕梁画柱，飞檐琉璃，穿行其\n间，心情舒畅。往西是有个厨房，往东是后院。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/shiliang/zoulang3",
+      "kind": "room",
+      "name": "走廊",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/zoulang3.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1610,
+        "y": -1910,
+        "z": 0
+      },
+      "desc": "你来到走廊的尽头，往北看去是好大的一个湖泊，前面有个\n小亭，温氏兄弟还真会享受。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/shiliang/zoulang4",
+      "kind": "room",
+      "name": "走廊尽头",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/zoulang4.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1620,
+        "y": -1940,
+        "z": 0
+      },
+      "desc": "你走在一条长长的走廊上，上面雕梁画柱，飞檐琉璃，穿行其\n间，心情舒畅。往东是温老四的住处，往西是后院。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/shiliang/zoulang5",
+      "kind": "room",
+      "name": "走廊",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/zoulang5.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1620,
+        "y": -1930,
+        "z": 0
+      },
+      "desc": "你走在一条长长的走廊上，上面雕梁画柱，飞檐琉璃，穿行其\n间，心情舒畅。往东是温老五的住处，往西是后院。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/shiliang/zoulang6",
+      "kind": "room",
+      "name": "走廊",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/zoulang6.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1620,
+        "y": -1920,
+        "z": 0
+      },
+      "desc": "你走在一条长长的走廊上，上面雕梁画柱，飞檐琉璃，穿行其\n间，心情舒畅。往东是间书房，往西是后院。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0
+      },
+      "id": "/d/shiliang/zoulang7",
+      "kind": "room",
+      "name": "走廊",
+      "objects": [],
+      "origin": "slice",
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/zoulang7.lpc"
+      }
+    },
+    {
+      "coord": {},
+      "desc": "颐香斋乃是由杭州城的老字号，所谓「上有天堂下有苏杭」，杭州\n城建筑别具一格，这家店铺也不例外。不过货柜上却空无一物，看样子\n已很久没人来打理了。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_beg": 1,
+        "no_clean_up": 0,
+        "no_fight": 1,
+        "no_steal": 1,
+        "owner": "VOID_SHOP",
+        "shop_type": 0
+      },
+      "id": "/clone/shop/hangzhou_shop",
+      "kind": "boundary_stub",
+      "name": "颐香斋",
+      "objects": [
+        {
+          "count": 1,
+          "ref": "/clone/shop/waiter"
+        }
+      ],
+      "origin": "boundary",
+      "source": {
+        "line": 6,
+        "path": "clone/shop/hangzhou_shop.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 4080,
+        "y": -1800,
+        "z": -10
+      },
+      "desc": "钱塘江到了六和塔下转一个大弯，然后直向东流。该处和府城相\n距不近，塔东三株大柳树下系着一艘扁舟(zhou)。江船张有风帆，船\n头挂着两盏碧纱灯笼。碧纱灯下，一个少女独坐船头，身穿淡绿衫子。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "wangpan"
+      },
+      "id": "/d/binghuo/qiantang",
+      "kind": "boundary_stub",
+      "name": "钱塘江畔",
+      "objects": [],
+      "origin": "boundary",
+      "source": {
+        "line": 7,
+        "path": "d/binghuo/qiantang.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 3500,
+        "y": -1460,
+        "z": 10
+      },
+      "desc": "你向孤山边的石阶上行去，一路欣赏着湖边长曳的杨柳。不知不觉\n地转了几个弯，却见遍地都是梅树，老干横斜，枝叶茂密，想像初春梅\n花盛开之日，香雪如海，定然观赏不尽。",
+      "desc_source": "lpc",
+      "flags": {
+        "no_clean_up": 0,
+        "outdoors": "meizhuang"
+      },
+      "id": "/d/meizhuang/shijie",
+      "kind": "boundary_stub",
+      "name": "孤山石阶",
+      "objects": [],
+      "origin": "boundary",
+      "source": {
+        "line": 6,
+        "path": "d/meizhuang/shijie.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 900,
+        "y": -1000,
+        "z": 0
+      },
+      "desc": "这是号称天堂的苏州东城门，城门正上方刻着“相门”两个楷书大\n字，城墙上贴着几张官府告示(gaoshi)。守门官兵们警惕地注视着过往\n行人，你最好小心为妙。一条笔直的青石板大道向东西两边延伸，西边\n是城里。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "suzhou"
+      },
+      "id": "/d/suzhou/dongmen",
+      "kind": "boundary_stub",
+      "name": "相门",
+      "objects": [
+        {
+          "count": 1,
+          "ref": "/d/city/npc/wujiang"
+        },
+        {
+          "count": 2,
+          "ref": "/d/city/npc/bing"
+        }
+      ],
+      "origin": "boundary",
+      "source": {
+        "line": 8,
+        "path": "d/suzhou/dongmen.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 300,
+        "y": -10,
+        "z": 0
+      },
+      "desc": "你走在一条尘土飞扬的大驿道上。四周人来人往。挑担子的行商，\n赶着大车的马夫，上京赶考的书生，熙熙攘攘，非常热闹。不时还有两\n三骑快马从身边飞驰而过，扬起一路尘埃。马上的人个个身着劲装，衣\n甲鲜明，有的还随身佩带着刀剑，看来都是些习武的江湖人。道路两旁\n是整整齐齐的杨树林。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "jiangnan"
+      },
+      "id": "/d/taishan/yidao1",
+      "kind": "boundary_stub",
+      "name": "大驿道",
+      "objects": [
+        {
+          "count": 2,
+          "ref": "/d/taishan/npc/tangzi"
+        },
+        {
+          "count": 1,
+          "ref": "/d/quanzhou/npc/hai"
+        },
+        {
+          "count": 1,
+          "ref": "/d/city/npc/xiaoguiz"
+        }
+      ],
+      "origin": "boundary",
+      "source": {
+        "line": 6,
+        "path": "d/taishan/yidao1.lpc"
+      }
+    },
+    {
+      "coord": {
+        "x": 1500,
+        "y": -3000,
+        "z": 20
+      },
+      "desc": "这里就是闽浙分水的仙霞岭。向阳的坡面郁郁葱葱，长满了长长的\n马尾松。沿途的山路十分难行，来往的口音也渐渐带有闽音，越来越难\n以辩识了。",
+      "desc_source": "lpc",
+      "flags": {
+        "outdoors": "jiangnan"
+      },
+      "id": "/d/yanping/xianxialing",
+      "kind": "boundary_stub",
+      "name": "仙霞岭",
+      "objects": [
+        {
+          "count": 2,
+          "ref": "/d/wudang/npc/yetu"
+        }
+      ],
+      "origin": "boundary",
+      "source": {
+        "line": 7,
+        "path": "d/yanping/xianxialing.lpc"
+      }
+    }
+  ]
+}

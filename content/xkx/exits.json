@@ -1,0 +1,3438 @@
+{
+  "exits": [
+    {
+      "dir": "southwest",
+      "from": "/d/hangzhou/baiti",
+      "line": 14,
+      "status": "open",
+      "to": "/d/hangzhou/pinghuqiuyue",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/hangzhou/baiti",
+      "line": 14,
+      "status": "open",
+      "to": "/d/hangzhou/duanqiao",
+      "traversable": true
+    },
+    {
+      "dir": "northup",
+      "from": "/d/hangzhou/baoshishan",
+      "line": 13,
+      "status": "open",
+      "to": "/d/hangzhou/baoshuta",
+      "traversable": true
+    },
+    {
+      "dir": "southdown",
+      "from": "/d/hangzhou/baoshishan",
+      "line": 13,
+      "status": "open",
+      "to": "/d/hangzhou/road8",
+      "traversable": true
+    },
+    {
+      "dir": "southdown",
+      "from": "/d/hangzhou/baoshuta",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/baoshishan",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/hangzhou/chashi",
+      "line": 10,
+      "status": "open",
+      "to": "/d/hangzhou/longjing",
+      "traversable": true
+    },
+    {
+      "dir": "westdown",
+      "from": "/d/hangzhou/cuiweiting",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/qinglindong",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/hangzhou/dadao1",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/road5",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/hangzhou/dadao1",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/dadao2",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/hangzhou/dadao1",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/guozhuang",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/hangzhou/dadao2",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/dadao1",
+      "traversable": true
+    },
+    {
+      "dir": "southwest",
+      "from": "/d/hangzhou/dadao2",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/dalu1",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/hangzhou/dadao3",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/road19",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/hangzhou/dadao3",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/dalu1",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/hangzhou/dadao3",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/liuzhuang",
+      "traversable": true
+    },
+    {
+      "dir": "northeast",
+      "from": "/d/hangzhou/dalu1",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/dadao2",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/hangzhou/dalu1",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/dadao3",
+      "traversable": true
+    },
+    {
+      "dir": "northeast",
+      "from": "/d/hangzhou/duanqiao",
+      "line": 15,
+      "status": "open",
+      "to": "/d/hangzhou/road9",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/hangzhou/duanqiao",
+      "line": 15,
+      "status": "open",
+      "to": "/d/hangzhou/baiti",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/hangzhou/dxbaodian1",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/tianwangdian",
+      "traversable": true
+    },
+    {
+      "dir": "enter",
+      "from": "/d/hangzhou/dxbaodian1",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/dxbaodian2",
+      "traversable": true
+    },
+    {
+      "dir": "out",
+      "from": "/d/hangzhou/dxbaodian2",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/dxbaodian1",
+      "traversable": true
+    },
+    {
+      "dir": "southup",
+      "from": "/d/hangzhou/fajingsi",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/shanlu2",
+      "traversable": true
+    },
+    {
+      "dir": "northdown",
+      "from": "/d/hangzhou/fajingsi",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/shanlu1",
+      "traversable": true
+    },
+    {
+      "dir": "southup",
+      "from": "/d/hangzhou/fajinsi",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/shanlu3",
+      "traversable": true
+    },
+    {
+      "dir": "northdown",
+      "from": "/d/hangzhou/fajinsi",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/shanlu2",
+      "traversable": true
+    },
+    {
+      "dir": "southwest",
+      "from": "/d/hangzhou/fangheting",
+      "line": 15,
+      "status": "open",
+      "to": "/d/hangzhou/gushan",
+      "traversable": true
+    },
+    {
+      "dir": "southeast",
+      "from": "/d/hangzhou/fangheting",
+      "line": 15,
+      "status": "open",
+      "to": "/d/hangzhou/pinghuqiuyue",
+      "traversable": true
+    },
+    {
+      "dir": "eastdown",
+      "from": "/d/hangzhou/faxisi",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/shanlu4",
+      "traversable": true
+    },
+    {
+      "dir": "northdown",
+      "from": "/d/hangzhou/faxisi",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/shanlu3",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/hangzhou/feilaifeng",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/road1",
+      "traversable": true
+    },
+    {
+      "dir": "eastup",
+      "from": "/d/hangzhou/feilaifeng",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/qinglindong",
+      "traversable": true
+    },
+    {
+      "dir": "westup",
+      "from": "/d/hangzhou/feilaifeng",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/longhongdong",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/hangzhou/guozhuang",
+      "line": 13,
+      "status": "open",
+      "to": "/d/hangzhou/dadao1",
+      "traversable": true
+    },
+    {
+      "boundary": true,
+      "dir": "westup",
+      "from": "/d/hangzhou/gushan",
+      "line": 12,
+      "status": "open",
+      "to": "/d/meizhuang/shijie",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/hangzhou/gushan",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/pinghuqiuyue",
+      "traversable": true
+    },
+    {
+      "dir": "southup",
+      "from": "/d/hangzhou/gushan",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/gushanpingtai",
+      "traversable": true
+    },
+    {
+      "dir": "northwest",
+      "from": "/d/hangzhou/gushan",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/xilingqiao",
+      "traversable": true
+    },
+    {
+      "dir": "northeast",
+      "from": "/d/hangzhou/gushan",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/fangheting",
+      "traversable": true
+    },
+    {
+      "dir": "northdown",
+      "from": "/d/hangzhou/gushanpingtai",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/gushan",
+      "traversable": true
+    },
+    {
+      "dir": "southwest",
+      "from": "/d/hangzhou/hongchunqiao",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road3",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/hangzhou/hongchunqiao",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road4",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/hangzhou/huagang",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/suti6",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/hangzhou/huanglongdong",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/shanlu8",
+      "traversable": true
+    },
+    {
+      "dir": "southdown",
+      "from": "/d/hangzhou/huangniling",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/maojiabu",
+      "traversable": true
+    },
+    {
+      "dir": "northdown",
+      "from": "/d/hangzhou/huangniling",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road3",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/hangzhou/hupaoquan",
+      "line": 13,
+      "status": "open",
+      "to": "/d/hangzhou/road17",
+      "traversable": true
+    },
+    {
+      "dir": "out",
+      "from": "/d/hangzhou/jingci",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/jingcisi",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/hangzhou/jingcisi",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road16",
+      "traversable": true
+    },
+    {
+      "dir": "enter",
+      "from": "/d/hangzhou/jingcisi",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/jingci",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/hangzhou/jiulou",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/road10",
+      "traversable": true
+    },
+    {
+      "dir": "up",
+      "from": "/d/hangzhou/jiulou",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/loveroom",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/hangzhou/jujingyuan",
+      "line": 13,
+      "status": "open",
+      "to": "/d/hangzhou/qingbomen",
+      "traversable": true
+    },
+    {
+      "dir": "northeast",
+      "from": "/d/hangzhou/jujingyuan",
+      "line": 13,
+      "status": "open",
+      "to": "/d/hangzhou/liulangqiao",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/hangzhou/kedian",
+      "line": 24,
+      "status": "open",
+      "to": "/d/hangzhou/road13",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/hangzhou/kedian",
+      "line": 24,
+      "status": "open",
+      "to": "/d/hangzhou/majiu",
+      "traversable": true
+    },
+    {
+      "dir": "up",
+      "from": "/d/hangzhou/kedian",
+      "line": 24,
+      "status": "open",
+      "to": "/d/hangzhou/kedian2",
+      "traversable": true
+    },
+    {
+      "dir": "down",
+      "from": "/d/hangzhou/kedian2",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/kedian",
+      "traversable": true
+    },
+    {
+      "dir": "enter",
+      "from": "/d/hangzhou/kedian2",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/kedian3",
+      "traversable": true
+    },
+    {
+      "dir": "out",
+      "from": "/d/hangzhou/kedian3",
+      "line": 16,
+      "status": "open",
+      "to": "/d/hangzhou/kedian2",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/hangzhou/lengquanting",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/lingyinsi",
+      "traversable": true
+    },
+    {
+      "dir": "enter",
+      "from": "/d/hangzhou/lingyinsi",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/tianwangdian",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/hangzhou/lingyinsi",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road1",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/hangzhou/lingyinsi",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/lengquanting",
+      "traversable": true
+    },
+    {
+      "dir": "out",
+      "from": "/d/hangzhou/liuhe1",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/liuheta",
+      "traversable": true
+    },
+    {
+      "dir": "up",
+      "from": "/d/hangzhou/liuhe1",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/liuhe2",
+      "traversable": true
+    },
+    {
+      "dir": "down",
+      "from": "/d/hangzhou/liuhe2",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/liuhe1",
+      "traversable": true
+    },
+    {
+      "dir": "up",
+      "from": "/d/hangzhou/liuhe2",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/liuhe3",
+      "traversable": true
+    },
+    {
+      "dir": "down",
+      "from": "/d/hangzhou/liuhe3",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/liuhe2",
+      "traversable": true
+    },
+    {
+      "dir": "up",
+      "from": "/d/hangzhou/liuhe3",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/liuhe4",
+      "traversable": true
+    },
+    {
+      "dir": "down",
+      "from": "/d/hangzhou/liuhe4",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/liuhe3",
+      "traversable": true
+    },
+    {
+      "dir": "up",
+      "from": "/d/hangzhou/liuhe4",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/liuhe5",
+      "traversable": true
+    },
+    {
+      "dir": "down",
+      "from": "/d/hangzhou/liuhe5",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/liuhe4",
+      "traversable": true
+    },
+    {
+      "dir": "up",
+      "from": "/d/hangzhou/liuhe5",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/liuhe6",
+      "traversable": true
+    },
+    {
+      "dir": "down",
+      "from": "/d/hangzhou/liuhe6",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/liuhe5",
+      "traversable": true
+    },
+    {
+      "dir": "up",
+      "from": "/d/hangzhou/liuhe6",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/liuhe7",
+      "traversable": true
+    },
+    {
+      "dir": "down",
+      "from": "/d/hangzhou/liuhe7",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/liuhe6",
+      "traversable": true
+    },
+    {
+      "dir": "up",
+      "from": "/d/hangzhou/liuhe7",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/liuhe8",
+      "traversable": true
+    },
+    {
+      "dir": "down",
+      "from": "/d/hangzhou/liuhe8",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/liuhe7",
+      "traversable": true
+    },
+    {
+      "dir": "up",
+      "from": "/d/hangzhou/liuhe8",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/liuhe9",
+      "traversable": true
+    },
+    {
+      "dir": "down",
+      "from": "/d/hangzhou/liuhe9",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/liuhe8",
+      "traversable": true
+    },
+    {
+      "dir": "up",
+      "from": "/d/hangzhou/liuhe9",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/liuhea",
+      "traversable": true
+    },
+    {
+      "dir": "down",
+      "from": "/d/hangzhou/liuhea",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/liuhe9",
+      "traversable": true
+    },
+    {
+      "dir": "up",
+      "from": "/d/hangzhou/liuhea",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/liuheb",
+      "traversable": true
+    },
+    {
+      "dir": "down",
+      "from": "/d/hangzhou/liuheb",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/liuhea",
+      "traversable": true
+    },
+    {
+      "dir": "up",
+      "from": "/d/hangzhou/liuheb",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/liuhec",
+      "traversable": true
+    },
+    {
+      "dir": "down",
+      "from": "/d/hangzhou/liuhec",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/liuheb",
+      "traversable": true
+    },
+    {
+      "dir": "up",
+      "from": "/d/hangzhou/liuhec",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/liuhed",
+      "traversable": true
+    },
+    {
+      "dir": "down",
+      "from": "/d/hangzhou/liuhed",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/liuhec",
+      "traversable": true
+    },
+    {
+      "dir": "eastdown",
+      "from": "/d/hangzhou/liuheta",
+      "line": 13,
+      "status": "open",
+      "to": "/d/hangzhou/qiantang",
+      "traversable": true
+    },
+    {
+      "dir": "enter",
+      "from": "/d/hangzhou/liuheta",
+      "line": 13,
+      "status": "open",
+      "to": "/d/hangzhou/liuhe1",
+      "traversable": true
+    },
+    {
+      "dir": "southwest",
+      "from": "/d/hangzhou/liulangqiao",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/jujingyuan",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/hangzhou/liuzhuang",
+      "line": 13,
+      "status": "open",
+      "to": "/d/hangzhou/dadao3",
+      "traversable": true
+    },
+    {
+      "dir": "northwest",
+      "from": "/d/hangzhou/longhongdong",
+      "line": 13,
+      "status": "open",
+      "to": "/d/hangzhou/shexudong",
+      "traversable": true
+    },
+    {
+      "dir": "eastdown",
+      "from": "/d/hangzhou/longhongdong",
+      "line": 13,
+      "status": "open",
+      "to": "/d/hangzhou/feilaifeng",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/hangzhou/longjing",
+      "line": 14,
+      "status": "open",
+      "to": "/d/hangzhou/chashi",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/hangzhou/longjing",
+      "line": 14,
+      "status": "open",
+      "to": "/d/hangzhou/shanlu5",
+      "traversable": true
+    },
+    {
+      "dir": "down",
+      "from": "/d/hangzhou/loveroom",
+      "line": 53,
+      "status": "open",
+      "to": "/d/hangzhou/jiulou",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/hangzhou/majiu",
+      "line": 31,
+      "status": "open",
+      "to": "/d/hangzhou/kedian",
+      "traversable": true
+    },
+    {
+      "boundary": true,
+      "dir": "up",
+      "from": "/d/hangzhou/majiu",
+      "line": 31,
+      "status": "open",
+      "to": "/clone/shop/hangzhou_shop",
+      "traversable": true
+    },
+    {
+      "dir": "westup",
+      "from": "/d/hangzhou/manjuelong",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/shuiledong",
+      "traversable": true
+    },
+    {
+      "dir": "eastdown",
+      "from": "/d/hangzhou/manjuelong",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/shiwudong",
+      "traversable": true
+    },
+    {
+      "dir": "southwest",
+      "from": "/d/hangzhou/maojiabu",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/tulu1",
+      "traversable": true
+    },
+    {
+      "dir": "northup",
+      "from": "/d/hangzhou/maojiabu",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/huangniling",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/hangzhou/marryroom",
+      "line": 13,
+      "status": "open",
+      "to": "/d/hangzhou/road10",
+      "traversable": true
+    },
+    {
+      "dir": "southwest",
+      "from": "/d/hangzhou/matou",
+      "line": 40,
+      "status": "open",
+      "to": "/d/hangzhou/road9",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/hangzhou/pinghuqiuyue",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/gushan",
+      "traversable": true
+    },
+    {
+      "dir": "northwest",
+      "from": "/d/hangzhou/pinghuqiuyue",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/fangheting",
+      "traversable": true
+    },
+    {
+      "dir": "northeast",
+      "from": "/d/hangzhou/pinghuqiuyue",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/baiti",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/hangzhou/qiantang",
+      "line": 14,
+      "status": "open",
+      "to": "/d/hangzhou/road17",
+      "traversable": true
+    },
+    {
+      "dir": "westup",
+      "from": "/d/hangzhou/qiantang",
+      "line": 14,
+      "status": "open",
+      "to": "/d/hangzhou/liuheta",
+      "traversable": true
+    },
+    {
+      "boundary": true,
+      "dir": "eastdown",
+      "from": "/d/hangzhou/qiantang",
+      "line": 14,
+      "status": "open",
+      "to": "/d/binghuo/qiantang",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/hangzhou/qingbomen",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/road14",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/hangzhou/qingbomen",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/jujingyuan",
+      "traversable": true
+    },
+    {
+      "dir": "eastup",
+      "from": "/d/hangzhou/qinglindong",
+      "line": 13,
+      "status": "open",
+      "to": "/d/hangzhou/cuiweiting",
+      "traversable": true
+    },
+    {
+      "dir": "westdown",
+      "from": "/d/hangzhou/qinglindong",
+      "line": 13,
+      "status": "open",
+      "to": "/d/hangzhou/feilaifeng",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/hangzhou/quyuanbei",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/suti2",
+      "traversable": true
+    },
+    {
+      "dir": "enter",
+      "from": "/d/hangzhou/quyuanbei",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/quyuanfenghe",
+      "traversable": true
+    },
+    {
+      "dir": "out",
+      "from": "/d/hangzhou/quyuanfenghe",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/quyuanbei",
+      "traversable": true
+    },
+    {
+      "dir": "northwest",
+      "from": "/d/hangzhou/road1",
+      "line": 11,
+      "status": "open",
+      "to": "/d/jiaxing/jxnanmen",
+      "traversable": true
+    },
+    {
+      "dir": "northeast",
+      "from": "/d/hangzhou/road1",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road2",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/hangzhou/road1",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/lingyinsi",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/hangzhou/road1",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/feilaifeng",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/hangzhou/road10",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road9",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/hangzhou/road10",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road11",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/hangzhou/road10",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/jiulou",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/hangzhou/road10",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/marryroom",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/hangzhou/road11",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road10",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/hangzhou/road11",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road12",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/hangzhou/road11",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/tiejiangpu",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/hangzhou/road12",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road11",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/hangzhou/road12",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road13",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/hangzhou/road12",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/shuyuan",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/hangzhou/road13",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road12",
+      "traversable": true
+    },
+    {
+      "dir": "southwest",
+      "from": "/d/hangzhou/road13",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road14",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/hangzhou/road13",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/kedian",
+      "traversable": true
+    },
+    {
+      "dir": "northeast",
+      "from": "/d/hangzhou/road14",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/road13",
+      "traversable": true
+    },
+    {
+      "dir": "southwest",
+      "from": "/d/hangzhou/road14",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/road15",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/hangzhou/road14",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/yaodian",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/hangzhou/road14",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/qingbomen",
+      "traversable": true
+    },
+    {
+      "dir": "northeast",
+      "from": "/d/hangzhou/road15",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road14",
+      "traversable": true
+    },
+    {
+      "dir": "southwest",
+      "from": "/d/hangzhou/road15",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/yuhuangsj",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/hangzhou/road15",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road16",
+      "traversable": true
+    },
+    {
+      "dir": "northup",
+      "from": "/d/hangzhou/road16",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/xizhaoshan",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/hangzhou/road16",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/jingcisi",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/hangzhou/road16",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road15",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/hangzhou/road16",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road20",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/hangzhou/road17",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road18",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/hangzhou/road17",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/qiantang",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/hangzhou/road17",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/hupaoquan",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/hangzhou/road17",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/yuhuangshan",
+      "traversable": true
+    },
+    {
+      "dir": "northeast",
+      "from": "/d/hangzhou/road18",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road19",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/hangzhou/road18",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/shiwudong",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/hangzhou/road18",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road17",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/hangzhou/road19",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/dadao3",
+      "traversable": true
+    },
+    {
+      "dir": "southwest",
+      "from": "/d/hangzhou/road19",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road18",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/hangzhou/road19",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road20",
+      "traversable": true
+    },
+    {
+      "dir": "southup",
+      "from": "/d/hangzhou/road2",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/shanlu1",
+      "traversable": true
+    },
+    {
+      "dir": "southwest",
+      "from": "/d/hangzhou/road2",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road1",
+      "traversable": true
+    },
+    {
+      "dir": "northeast",
+      "from": "/d/hangzhou/road2",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road3",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/hangzhou/road20",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/suti7",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/hangzhou/road20",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road19",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/hangzhou/road20",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road16",
+      "traversable": true
+    },
+    {
+      "dir": "southup",
+      "from": "/d/hangzhou/road3",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/huangniling",
+      "traversable": true
+    },
+    {
+      "dir": "southwest",
+      "from": "/d/hangzhou/road3",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road2",
+      "traversable": true
+    },
+    {
+      "dir": "northeast",
+      "from": "/d/hangzhou/road3",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/hongchunqiao",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/hangzhou/road4",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/hongchunqiao",
+      "traversable": true
+    },
+    {
+      "dir": "northeast",
+      "from": "/d/hangzhou/road4",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road5",
+      "traversable": true
+    },
+    {
+      "dir": "southwest",
+      "from": "/d/hangzhou/road5",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road4",
+      "traversable": true
+    },
+    {
+      "dir": "westup",
+      "from": "/d/hangzhou/road5",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/yuquan",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/hangzhou/road5",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/dadao1",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/hangzhou/road5",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road6",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/hangzhou/road6",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/yuelang",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/hangzhou/road6",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/suti1",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/hangzhou/road6",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road5",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/hangzhou/road6",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road7",
+      "traversable": true
+    },
+    {
+      "dir": "northeast",
+      "from": "/d/hangzhou/road7",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/road8",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/hangzhou/road7",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/shanlu8",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/hangzhou/road7",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/xilingqiao",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/hangzhou/road7",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/road6",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/hangzhou/road8",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road9",
+      "traversable": true
+    },
+    {
+      "dir": "northup",
+      "from": "/d/hangzhou/road8",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/baoshishan",
+      "traversable": true
+    },
+    {
+      "dir": "southwest",
+      "from": "/d/hangzhou/road8",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road7",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/hangzhou/road9",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road8",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/hangzhou/road9",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road10",
+      "traversable": true
+    },
+    {
+      "dir": "southwest",
+      "from": "/d/hangzhou/road9",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/duanqiao",
+      "traversable": true
+    },
+    {
+      "dir": "northeast",
+      "from": "/d/hangzhou/road9",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/matou",
+      "traversable": true
+    },
+    {
+      "dir": "southup",
+      "from": "/d/hangzhou/shanlu1",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/fajingsi",
+      "traversable": true
+    },
+    {
+      "dir": "northdown",
+      "from": "/d/hangzhou/shanlu1",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/road2",
+      "traversable": true
+    },
+    {
+      "dir": "southup",
+      "from": "/d/hangzhou/shanlu2",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/fajinsi",
+      "traversable": true
+    },
+    {
+      "dir": "northdown",
+      "from": "/d/hangzhou/shanlu2",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/fajingsi",
+      "traversable": true
+    },
+    {
+      "dir": "southup",
+      "from": "/d/hangzhou/shanlu3",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/faxisi",
+      "traversable": true
+    },
+    {
+      "dir": "northdown",
+      "from": "/d/hangzhou/shanlu3",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/fajinsi",
+      "traversable": true
+    },
+    {
+      "dir": "westup",
+      "from": "/d/hangzhou/shanlu4",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/faxisi",
+      "traversable": true
+    },
+    {
+      "dir": "eastdown",
+      "from": "/d/hangzhou/shanlu4",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/shanlu5",
+      "traversable": true
+    },
+    {
+      "dir": "westup",
+      "from": "/d/hangzhou/shanlu5",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/shanlu4",
+      "traversable": true
+    },
+    {
+      "dir": "northeast",
+      "from": "/d/hangzhou/shanlu5",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/tulu1",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/hangzhou/shanlu5",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/longjing",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/hangzhou/shanlu5",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/yanxiadong",
+      "traversable": true
+    },
+    {
+      "dir": "eastup",
+      "from": "/d/hangzhou/shanlu6",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/yuhuangsd",
+      "traversable": true
+    },
+    {
+      "dir": "westdown",
+      "from": "/d/hangzhou/shanlu6",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/yuhuangshan",
+      "traversable": true
+    },
+    {
+      "dir": "eastdown",
+      "from": "/d/hangzhou/shanlu7",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/yuhuangsj",
+      "traversable": true
+    },
+    {
+      "dir": "westup",
+      "from": "/d/hangzhou/shanlu7",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/yuhuangsd",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/hangzhou/shanlu8",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road7",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/hangzhou/shanlu8",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/huanglongdong",
+      "traversable": true
+    },
+    {
+      "dir": "southeast",
+      "from": "/d/hangzhou/shexudong",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/longhongdong",
+      "traversable": true
+    },
+    {
+      "dir": "westup",
+      "from": "/d/hangzhou/shiwudong",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/manjuelong",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/hangzhou/shiwudong",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/road18",
+      "traversable": true
+    },
+    {
+      "dir": "westup",
+      "from": "/d/hangzhou/shuiledong",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/yanxiadong",
+      "traversable": true
+    },
+    {
+      "dir": "eastdown",
+      "from": "/d/hangzhou/shuiledong",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/manjuelong",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/hangzhou/shuyuan",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road12",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/hangzhou/suti1",
+      "line": 14,
+      "status": "open",
+      "to": "/d/hangzhou/road6",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/hangzhou/suti1",
+      "line": 14,
+      "status": "open",
+      "to": "/d/hangzhou/suti2",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/hangzhou/suti2",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/suti1",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/hangzhou/suti2",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/suti3",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/hangzhou/suti2",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/quyuanbei",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/hangzhou/suti3",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/suti2",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/hangzhou/suti3",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/suti4",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/hangzhou/suti4",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/suti3",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/hangzhou/suti4",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/suti5",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/hangzhou/suti5",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/suti4",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/hangzhou/suti5",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/suti6",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/hangzhou/suti6",
+      "line": 13,
+      "status": "open",
+      "to": "/d/hangzhou/suti5",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/hangzhou/suti6",
+      "line": 13,
+      "status": "open",
+      "to": "/d/hangzhou/suti7",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/hangzhou/suti6",
+      "line": 13,
+      "status": "open",
+      "to": "/d/hangzhou/huagang",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/hangzhou/suti7",
+      "line": 13,
+      "status": "open",
+      "to": "/d/hangzhou/suti6",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/hangzhou/suti7",
+      "line": 13,
+      "status": "open",
+      "to": "/d/hangzhou/road20",
+      "traversable": true
+    },
+    {
+      "dir": "out",
+      "from": "/d/hangzhou/tianwangdian",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/lingyinsi",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/hangzhou/tianwangdian",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/dxbaodian1",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/hangzhou/tiejiangpu",
+      "line": 13,
+      "status": "open",
+      "to": "/d/hangzhou/road11",
+      "traversable": true
+    },
+    {
+      "dir": "southwest",
+      "from": "/d/hangzhou/tulu1",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/shanlu5",
+      "traversable": true
+    },
+    {
+      "dir": "northeast",
+      "from": "/d/hangzhou/tulu1",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/maojiabu",
+      "traversable": true
+    },
+    {
+      "dir": "southeast",
+      "from": "/d/hangzhou/xilingqiao",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/gushan",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/hangzhou/xilingqiao",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road7",
+      "traversable": true
+    },
+    {
+      "dir": "southdown",
+      "from": "/d/hangzhou/xizhaoshan",
+      "line": 13,
+      "status": "open",
+      "to": "/d/hangzhou/road16",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/hangzhou/yanxiadong",
+      "line": 13,
+      "status": "open",
+      "to": "/d/hangzhou/shanlu5",
+      "traversable": true
+    },
+    {
+      "dir": "eastdown",
+      "from": "/d/hangzhou/yanxiadong",
+      "line": 13,
+      "status": "open",
+      "to": "/d/hangzhou/shuiledong",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/hangzhou/yaodian",
+      "line": 13,
+      "status": "open",
+      "to": "/d/hangzhou/road14",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/hangzhou/yuefen",
+      "line": 13,
+      "status": "open",
+      "to": "/d/hangzhou/yuelang",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/hangzhou/yuelang",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/yuefen",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/hangzhou/yuelang",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/road6",
+      "traversable": true
+    },
+    {
+      "dir": "eastdown",
+      "from": "/d/hangzhou/yuhuangsd",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/shanlu7",
+      "traversable": true
+    },
+    {
+      "dir": "westdown",
+      "from": "/d/hangzhou/yuhuangsd",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/shanlu6",
+      "traversable": true
+    },
+    {
+      "dir": "eastup",
+      "from": "/d/hangzhou/yuhuangshan",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/shanlu6",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/hangzhou/yuhuangshan",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road17",
+      "traversable": true
+    },
+    {
+      "dir": "northeast",
+      "from": "/d/hangzhou/yuhuangsj",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road15",
+      "traversable": true
+    },
+    {
+      "dir": "westup",
+      "from": "/d/hangzhou/yuhuangsj",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/shanlu7",
+      "traversable": true
+    },
+    {
+      "dir": "eastdown",
+      "from": "/d/hangzhou/yuquan",
+      "line": 11,
+      "status": "open",
+      "to": "/d/hangzhou/road5",
+      "traversable": true
+    },
+    {
+      "dir": "northeast",
+      "from": "/d/jiaxing/chating",
+      "line": 12,
+      "status": "open",
+      "to": "/d/shiliang/road2",
+      "traversable": true
+    },
+    {
+      "dir": "northwest",
+      "from": "/d/jiaxing/chating",
+      "line": 12,
+      "status": "open",
+      "to": "/d/shiliang/shandao1",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/jiaxing/chating",
+      "line": 12,
+      "status": "open",
+      "to": "/d/jiaxing/jnroad4",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/jiaxing/diaoyu",
+      "line": 22,
+      "status": "open",
+      "to": "/d/jiaxing/nanhu",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/jiaxing/guojia",
+      "line": 14,
+      "status": "open",
+      "to": "/d/jiaxing/njroad2",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/jiaxing/haibin",
+      "line": 20,
+      "status": "open",
+      "to": "/d/jiaxing/jiangpan3",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/jiaxing/jiangpan1",
+      "line": 17,
+      "status": "open",
+      "to": "/d/jiaxing/njroad5",
+      "traversable": true
+    },
+    {
+      "dir": "southeast",
+      "from": "/d/jiaxing/jiangpan1",
+      "line": 17,
+      "status": "open",
+      "to": "/d/jiaxing/jiangpan2",
+      "traversable": true
+    },
+    {
+      "dir": "northwest",
+      "from": "/d/jiaxing/jiangpan2",
+      "line": 15,
+      "status": "open",
+      "to": "/d/jiaxing/jiangpan1",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/jiaxing/jiangpan2",
+      "line": 15,
+      "status": "open",
+      "to": "/d/jiaxing/jiangpan3",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/jiaxing/jiangpan3",
+      "line": 15,
+      "status": "open",
+      "to": "/d/jiaxing/jiangpan2",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/jiaxing/jiangpan3",
+      "line": 15,
+      "status": "open",
+      "to": "/d/jiaxing/haibin",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/jiaxing/jiaxing",
+      "line": 14,
+      "status": "open",
+      "to": "/d/jiaxing/jnroad2",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/jiaxing/jiaxing",
+      "line": 14,
+      "status": "open",
+      "to": "/d/jiaxing/nanhu",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/jiaxing/jiaxing",
+      "line": 14,
+      "status": "open",
+      "to": "/d/jiaxing/jxnanmen",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/jiaxing/jiaxinggang",
+      "line": 13,
+      "status": "open",
+      "to": "/d/jiaxing/nanhu",
+      "traversable": true
+    },
+    {
+      "boundary": true,
+      "dir": "northwest",
+      "from": "/d/jiaxing/jnroad1",
+      "line": 12,
+      "status": "open",
+      "to": "/d/taishan/yidao1",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/jiaxing/jnroad1",
+      "line": 12,
+      "status": "open",
+      "to": "/d/jiaxing/jnroad2",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/jiaxing/jnroad2",
+      "line": 13,
+      "status": "open",
+      "to": "/d/jiaxing/jnroad3",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/jiaxing/jnroad2",
+      "line": 13,
+      "status": "open",
+      "to": "/d/jiaxing/jnroad1",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/jiaxing/jnroad2",
+      "line": 13,
+      "status": "open",
+      "to": "/d/jiaxing/jiaxing",
+      "traversable": true
+    },
+    {
+      "boundary": true,
+      "dir": "west",
+      "from": "/d/jiaxing/jnroad2",
+      "line": 13,
+      "status": "open",
+      "to": "/d/suzhou/dongmen",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/jiaxing/jnroad3",
+      "line": 12,
+      "status": "open",
+      "to": "/d/jiaxing/jnroad2",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/jiaxing/jnroad3",
+      "line": 12,
+      "status": "open",
+      "to": "/d/jiaxing/jnroad4",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/jiaxing/jnroad4",
+      "line": 13,
+      "status": "open",
+      "to": "/d/jiaxing/jxnanmen",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/jiaxing/jnroad4",
+      "line": 13,
+      "status": "open",
+      "to": "/d/jiaxing/jnroad3",
+      "traversable": true
+    },
+    {
+      "boundary": true,
+      "dir": "southup",
+      "from": "/d/jiaxing/jnroad4",
+      "line": 13,
+      "status": "open",
+      "to": "/d/yanping/xianxialing",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/jiaxing/jnroad4",
+      "line": 13,
+      "status": "open",
+      "to": "/d/jiaxing/chating",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/jiaxing/jxnanmen",
+      "line": 12,
+      "status": "open",
+      "to": "/d/jiaxing/jiaxing",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/jiaxing/jxnanmen",
+      "line": 12,
+      "status": "open",
+      "to": "/d/jiaxing/tieqiang",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/jiaxing/jxnanmen",
+      "line": 12,
+      "status": "open",
+      "to": "/d/jiaxing/jnroad4",
+      "traversable": true
+    },
+    {
+      "dir": "southeast",
+      "from": "/d/jiaxing/jxnanmen",
+      "line": 12,
+      "status": "open",
+      "to": "/d/hangzhou/road1",
+      "traversable": true
+    },
+    {
+      "dir": "out",
+      "from": "/d/jiaxing/mishi",
+      "line": 59,
+      "status": "open",
+      "to": "/d/jiaxing/xiaodian",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/jiaxing/nanhu",
+      "line": 13,
+      "status": "open",
+      "to": "/d/jiaxing/jiaxing",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/jiaxing/nanhu",
+      "line": 13,
+      "status": "open",
+      "to": "/d/jiaxing/jiaxinggang",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/jiaxing/nanhu",
+      "line": 13,
+      "status": "open",
+      "to": "/d/jiaxing/tieqiang",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/jiaxing/nanhu",
+      "line": 13,
+      "status": "open",
+      "to": "/d/jiaxing/diaoyu",
+      "traversable": true
+    },
+    {
+      "dir": "southeast",
+      "from": "/d/jiaxing/nanhu",
+      "line": 13,
+      "status": "open",
+      "to": "/d/jiaxing/nanhu1",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/jiaxing/nanhu1",
+      "line": 19,
+      "status": "open",
+      "to": "/d/jiaxing/yanyu",
+      "traversable": true
+    },
+    {
+      "dir": "northwest",
+      "from": "/d/jiaxing/nanhu1",
+      "line": 19,
+      "status": "open",
+      "to": "/d/jiaxing/nanhu",
+      "traversable": true
+    },
+    {
+      "dir": "southeast",
+      "from": "/d/jiaxing/nanhu1",
+      "line": 19,
+      "status": "open",
+      "to": "/d/jiaxing/road",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/jiaxing/njeast",
+      "line": 15,
+      "status": "open",
+      "to": "/d/jiaxing/njroad3",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/jiaxing/njroad1",
+      "line": 16,
+      "status": "open",
+      "to": "/d/jiaxing/njwest",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/jiaxing/njroad1",
+      "line": 16,
+      "status": "open",
+      "to": "/d/jiaxing/njroad2",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/jiaxing/njroad1",
+      "line": 16,
+      "status": "open",
+      "to": "/d/jiaxing/xiaodian",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/jiaxing/njroad2",
+      "line": 15,
+      "status": "open",
+      "to": "/d/jiaxing/njroad1",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/jiaxing/njroad2",
+      "line": 15,
+      "status": "open",
+      "to": "/d/jiaxing/njroad3",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/jiaxing/njroad2",
+      "line": 15,
+      "status": "open",
+      "to": "/d/jiaxing/guojia",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/jiaxing/njroad3",
+      "line": 14,
+      "status": "open",
+      "to": "/d/jiaxing/njroad2",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/jiaxing/njroad3",
+      "line": 14,
+      "status": "open",
+      "to": "/d/jiaxing/njeast",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/jiaxing/njroad3",
+      "line": 14,
+      "status": "open",
+      "to": "/d/jiaxing/yangjia",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/jiaxing/njroad3",
+      "line": 14,
+      "status": "open",
+      "to": "/d/jiaxing/njroad4",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/jiaxing/njroad4",
+      "line": 16,
+      "status": "open",
+      "to": "/d/jiaxing/njroad3",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/jiaxing/njroad4",
+      "line": 16,
+      "status": "open",
+      "to": "/d/jiaxing/njroad5",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/jiaxing/njroad5",
+      "line": 16,
+      "status": "open",
+      "to": "/d/jiaxing/njroad4",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/jiaxing/njroad5",
+      "line": 16,
+      "status": "open",
+      "to": "/d/jiaxing/jiangpan1",
+      "traversable": true
+    },
+    {
+      "dir": "northwest",
+      "from": "/d/jiaxing/njwest",
+      "line": 16,
+      "status": "open",
+      "to": "/d/jiaxing/road2",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/jiaxing/njwest",
+      "line": 16,
+      "status": "open",
+      "to": "/d/jiaxing/njroad1",
+      "traversable": true
+    },
+    {
+      "dir": "northwest",
+      "from": "/d/jiaxing/road",
+      "line": 16,
+      "status": "open",
+      "to": "/d/jiaxing/nanhu1",
+      "traversable": true
+    },
+    {
+      "dir": "southeast",
+      "from": "/d/jiaxing/road",
+      "line": 16,
+      "status": "open",
+      "to": "/d/jiaxing/road1",
+      "traversable": true
+    },
+    {
+      "dir": "northwest",
+      "from": "/d/jiaxing/road1",
+      "line": 16,
+      "status": "open",
+      "to": "/d/jiaxing/road",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/jiaxing/road1",
+      "line": 16,
+      "status": "open",
+      "to": "/d/jiaxing/road2",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/jiaxing/road2",
+      "line": 16,
+      "status": "open",
+      "to": "/d/jiaxing/road1",
+      "traversable": true
+    },
+    {
+      "dir": "southeast",
+      "from": "/d/jiaxing/road2",
+      "line": 16,
+      "status": "open",
+      "to": "/d/jiaxing/njwest",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/jiaxing/tieqiang",
+      "line": 13,
+      "status": "open",
+      "to": "/d/jiaxing/jxnanmen",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/jiaxing/tieqiang",
+      "line": 13,
+      "status": "open",
+      "to": "/d/jiaxing/nanhu",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/jiaxing/xiaodian",
+      "line": 25,
+      "status": "open",
+      "to": "/d/jiaxing/njroad1",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/jiaxing/yangjia",
+      "line": 18,
+      "status": "open",
+      "to": "/d/jiaxing/njroad3",
+      "traversable": true
+    },
+    {
+      "dir": "up",
+      "from": "/d/jiaxing/yanyu",
+      "line": 13,
+      "status": "open",
+      "to": "/d/jiaxing/yanyu2",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/jiaxing/yanyu",
+      "line": 13,
+      "status": "open",
+      "to": "/d/jiaxing/nanhu1",
+      "traversable": true
+    },
+    {
+      "dir": "down",
+      "from": "/d/jiaxing/yanyu2",
+      "line": 28,
+      "status": "open",
+      "to": "/d/jiaxing/yanyu",
+      "traversable": true
+    },
+    {
+      "dir": "down",
+      "from": "/d/jiaxing/yanyu3",
+      "line": 15,
+      "status": "open",
+      "to": "/d/jiaxing/yanyu2",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/shiliang/andao1",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/andao2",
+      "traversable": true
+    },
+    {
+      "dir": "up",
+      "from": "/d/shiliang/andao1",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/xiaoting",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/shiliang/andao2",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/andao3",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/shiliang/andao2",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/andao1",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/shiliang/andao3",
+      "line": 15,
+      "status": "open",
+      "to": "/d/shiliang/andao2",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/shiliang/chufang",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/zoulang3",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/shiliang/dating",
+      "line": 13,
+      "status": "open",
+      "to": "/d/shiliang/yuanzi",
+      "traversable": true
+    },
+    {
+      "dir": "northwest",
+      "from": "/d/shiliang/dating",
+      "line": 13,
+      "status": "open",
+      "to": "/d/shiliang/zoulang1",
+      "traversable": true
+    },
+    {
+      "dir": "northeast",
+      "from": "/d/shiliang/dating",
+      "line": 13,
+      "status": "open",
+      "to": "/d/shiliang/zoulang5",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/shiliang/dongxiangfang",
+      "line": 10,
+      "status": "open",
+      "to": "/d/shiliang/yuanzi",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/shiliang/fang1",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/zoulang1",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/shiliang/fang2",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/zoulang2",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/shiliang/fang3",
+      "line": 10,
+      "status": "open",
+      "to": "/d/shiliang/zoulang5",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/shiliang/fang4",
+      "line": 10,
+      "status": "open",
+      "to": "/d/shiliang/zoulang6",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/shiliang/gate",
+      "line": 17,
+      "status": "open",
+      "to": "/d/shiliang/road1",
+      "traversable": true
+    },
+    {
+      "dir": "southwest",
+      "from": "/d/shiliang/houyuan",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/zoulang1",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/shiliang/houyuan",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/zoulang2",
+      "traversable": true
+    },
+    {
+      "dir": "northwest",
+      "from": "/d/shiliang/houyuan",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/zoulang3",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/shiliang/houyuan",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/zoulang4",
+      "traversable": true
+    },
+    {
+      "dir": "southeast",
+      "from": "/d/shiliang/houyuan",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/zoulang5",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/shiliang/houyuan",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/zoulang6",
+      "traversable": true
+    },
+    {
+      "dir": "northeast",
+      "from": "/d/shiliang/houyuan",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/zoulang7",
+      "traversable": true
+    },
+    {
+      "dir": "up",
+      "from": "/d/shiliang/jinshedong",
+      "line": 12,
+      "status": "open",
+      "to": "/d/shiliang/shandong7",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/shiliang/jinshedong1",
+      "line": 14,
+      "status": "open",
+      "to": "/d/shiliang/jinshedong",
+      "traversable": true
+    },
+    {
+      "dir": "southdown",
+      "from": "/d/shiliang/road1",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/road2",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/shiliang/road1",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/gate",
+      "traversable": true
+    },
+    {
+      "dir": "southwest",
+      "from": "/d/shiliang/road2",
+      "line": 11,
+      "status": "open",
+      "to": "/d/jiaxing/chating",
+      "traversable": true
+    },
+    {
+      "dir": "northup",
+      "from": "/d/shiliang/road2",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/road1",
+      "traversable": true
+    },
+    {
+      "dir": "southeast",
+      "from": "/d/shiliang/shandao1",
+      "line": 10,
+      "status": "open",
+      "to": "/d/jiaxing/chating",
+      "traversable": true
+    },
+    {
+      "dir": "northup",
+      "from": "/d/shiliang/shandao1",
+      "line": 10,
+      "status": "open",
+      "to": "/d/shiliang/shandao2",
+      "traversable": true
+    },
+    {
+      "dir": "southdown",
+      "from": "/d/shiliang/shandao2",
+      "line": 10,
+      "status": "open",
+      "to": "/d/shiliang/shandao1",
+      "traversable": true
+    },
+    {
+      "dir": "northup",
+      "from": "/d/shiliang/shandao2",
+      "line": 10,
+      "status": "open",
+      "to": "/d/shiliang/shandao3",
+      "traversable": true
+    },
+    {
+      "dir": "southdown",
+      "from": "/d/shiliang/shandao3",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/shandao2",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/shiliang/shandao3",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/shandong1",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/shiliang/shandong1",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/shandong2",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/shiliang/shandong1",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/shandong1",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/shiliang/shandong1",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/shandao3",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/shiliang/shandong1",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/shandong1",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/shiliang/shandong2",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/shandong2",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/shiliang/shandong2",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/shandong3",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/shiliang/shandong2",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/shandong2",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/shiliang/shandong2",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/shandong2",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/shiliang/shandong3",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/shandong3",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/shiliang/shandong3",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/shandong3",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/shiliang/shandong3",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/shandong4",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/shiliang/shandong3",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/shandong3",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/shiliang/shandong4",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/shandong4",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/shiliang/shandong4",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/shandong4",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/shiliang/shandong4",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/shandong4",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/shiliang/shandong4",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/shandong5",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/shiliang/shandong5",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/shandong6",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/shiliang/shandong5",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/shandong5",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/shiliang/shandong5",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/shandong5",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/shiliang/shandong5",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/shandong5",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/shiliang/shandong6",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/shandong6",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/shiliang/shandong6",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/shandong5",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/shiliang/shandong6",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/shandong7",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/shiliang/shandong6",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/shandong6",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/shiliang/shandong7",
+      "line": 13,
+      "status": "open",
+      "to": "/d/shiliang/shandong6",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/shiliang/shufang",
+      "line": 12,
+      "status": "open",
+      "to": "/d/shiliang/zoulang7",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/shiliang/tingzi",
+      "line": 17,
+      "status": "open",
+      "to": "/d/shiliang/zoulang4",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/shiliang/xiaodao",
+      "line": 12,
+      "status": "open",
+      "to": "/d/shiliang/xiaodao1",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/shiliang/xiaodao1",
+      "line": 12,
+      "status": "open",
+      "to": "/d/shiliang/xiaodao",
+      "traversable": true
+    },
+    {
+      "dir": "northeast",
+      "from": "/d/shiliang/xiaodao1",
+      "line": 12,
+      "status": "open",
+      "to": "/d/shiliang/xiaoyuan",
+      "traversable": true
+    },
+    {
+      "dir": "down",
+      "from": "/d/shiliang/xiaolou",
+      "line": 15,
+      "status": "open",
+      "to": "/d/shiliang/xiaoting",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/shiliang/xiaoting",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/xiaoyuan",
+      "traversable": true
+    },
+    {
+      "dir": "up",
+      "from": "/d/shiliang/xiaoting",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/xiaolou",
+      "traversable": true
+    },
+    {
+      "dir": "southwest",
+      "from": "/d/shiliang/xiaoyuan",
+      "line": 12,
+      "status": "open",
+      "to": "/d/shiliang/xiaodao1",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/shiliang/xiaoyuan",
+      "line": 12,
+      "status": "open",
+      "to": "/d/shiliang/xiaoting",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/shiliang/xixiangfang",
+      "line": 10,
+      "status": "open",
+      "to": "/d/shiliang/yuanzi",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/shiliang/yuanzi",
+      "line": 18,
+      "status": "open",
+      "to": "/d/shiliang/xixiangfang",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/shiliang/yuanzi",
+      "line": 18,
+      "status": "open",
+      "to": "/d/shiliang/dongxiangfang",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/shiliang/yuanzi",
+      "line": 18,
+      "status": "open",
+      "to": "/d/shiliang/dating",
+      "traversable": true
+    },
+    {
+      "dir": "northeast",
+      "from": "/d/shiliang/zoulang1",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/houyuan",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/shiliang/zoulang1",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/zoulang2",
+      "traversable": true
+    },
+    {
+      "dir": "southeast",
+      "from": "/d/shiliang/zoulang1",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/dating",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/shiliang/zoulang1",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/fang1",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/shiliang/zoulang2",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/houyuan",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/shiliang/zoulang2",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/zoulang3",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/shiliang/zoulang2",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/zoulang1",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/shiliang/zoulang2",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/fang2",
+      "traversable": true
+    },
+    {
+      "dir": "southeast",
+      "from": "/d/shiliang/zoulang3",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/houyuan",
+      "traversable": true
+    },
+    {
+      "dir": "northeast",
+      "from": "/d/shiliang/zoulang3",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/zoulang4",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/shiliang/zoulang3",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/zoulang2",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/shiliang/zoulang3",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/chufang",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/shiliang/zoulang4",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/tingzi",
+      "traversable": true
+    },
+    {
+      "dir": "southeast",
+      "from": "/d/shiliang/zoulang4",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/zoulang7",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/shiliang/zoulang4",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/houyuan",
+      "traversable": true
+    },
+    {
+      "dir": "southwest",
+      "from": "/d/shiliang/zoulang4",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/zoulang3",
+      "traversable": true
+    },
+    {
+      "dir": "northwest",
+      "from": "/d/shiliang/zoulang5",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/houyuan",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/shiliang/zoulang5",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/zoulang6",
+      "traversable": true
+    },
+    {
+      "dir": "southwest",
+      "from": "/d/shiliang/zoulang5",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/dating",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/shiliang/zoulang5",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/fang3",
+      "traversable": true
+    },
+    {
+      "dir": "west",
+      "from": "/d/shiliang/zoulang6",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/houyuan",
+      "traversable": true
+    },
+    {
+      "dir": "north",
+      "from": "/d/shiliang/zoulang6",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/zoulang7",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/shiliang/zoulang6",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/zoulang5",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/shiliang/zoulang6",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/fang4",
+      "traversable": true
+    },
+    {
+      "dir": "southwest",
+      "from": "/d/shiliang/zoulang7",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/houyuan",
+      "traversable": true
+    },
+    {
+      "dir": "northwest",
+      "from": "/d/shiliang/zoulang7",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/zoulang4",
+      "traversable": true
+    },
+    {
+      "dir": "south",
+      "from": "/d/shiliang/zoulang7",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/zoulang6",
+      "traversable": true
+    },
+    {
+      "dir": "east",
+      "from": "/d/shiliang/zoulang7",
+      "line": 11,
+      "status": "open",
+      "to": "/d/shiliang/shufang",
+      "traversable": true
+    },
+    {
+      "boundary": false,
+      "dir": "down",
+      "from": "/clone/shop/hangzhou_shop",
+      "from_kind": "boundary_stub",
+      "line": 10,
+      "status": "open",
+      "to": "/d/hangzhou/majiu",
+      "traversable": true
+    },
+    {
+      "boundary": false,
+      "dir": "westup",
+      "from": "/d/binghuo/qiantang",
+      "from_kind": "boundary_stub",
+      "line": 18,
+      "status": "open",
+      "to": "/d/hangzhou/qiantang",
+      "traversable": true
+    },
+    {
+      "boundary": false,
+      "dir": "eastdown",
+      "from": "/d/meizhuang/shijie",
+      "from_kind": "boundary_stub",
+      "line": 14,
+      "status": "open",
+      "to": "/d/hangzhou/gushan",
+      "traversable": true
+    },
+    {
+      "boundary": false,
+      "dir": "east",
+      "from": "/d/suzhou/dongmen",
+      "from_kind": "boundary_stub",
+      "line": 20,
+      "status": "open",
+      "to": "/d/jiaxing/jnroad2",
+      "traversable": true
+    },
+    {
+      "boundary": false,
+      "dir": "southeast",
+      "from": "/d/taishan/yidao1",
+      "from_kind": "boundary_stub",
+      "line": 14,
+      "status": "open",
+      "to": "/d/jiaxing/jnroad1",
+      "traversable": true
+    },
+    {
+      "boundary": false,
+      "dir": "northdown",
+      "from": "/d/yanping/xianxialing",
+      "from_kind": "boundary_stub",
+      "line": 13,
+      "status": "open",
+      "to": "/d/jiaxing/jnroad4",
+      "traversable": true
+    }
+  ]
+}

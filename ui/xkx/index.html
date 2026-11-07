@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>侠客行 · 文字江湖</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+  <header class="topbar">
+    <div class="brand">
+      <h1>侠客行</h1>
+      <p>文字江湖 · 复刻试炼</p>
+    </div>
+    <div class="status" id="status">
+      <span class="pill" id="pill-name">侠名：—</span>
+      <span class="pill" id="pill-place">所在：—</span>
+      <span class="pill" id="pill-stamina">体力：—</span>
+      <span class="pill" id="pill-money">银两：—</span>
+      <span class="pill" id="pill-time">世界：—</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="console">
+      <div class="log" id="log" role="log" aria-live="polite"></div>
+      <form class="cmd" id="cmd-form" autocomplete="off">
+        <span class="prompt">&gt;</span>
+        <input id="cmd" name="cmd" type="text" maxlength="220"
+               placeholder="输入命令：look / go 北 / ask 店小二 你好 / buy 炊饼 / score"
+               aria-label="命令输入">
+        <button type="submit">发送</button>
+      </form>
+      <div class="keys">
+        <span>方向键位：</span>
+        <code>n</code><code>s</code><code>e</code><code>w</code>
+        <code>ne</code><code>nw</code><code>se</code><code>sw</code>
+        <code>up</code><code>down</code>
+        <span class="sep">|</span>
+        <span>也可点右侧舆图</span>
+      </div>
+    </section>
+
+    <aside class="side">
+      <section class="panel">
+        <h2>此地舆图</h2>
+        <div class="map" id="map"></div>
+        <div class="blocked" id="blocked"></div>
+      </section>
+      <section class="panel">
+        <h2>在场人物</h2>
+        <div class="list" id="npcs"></div>
+      </section>
+      <section class="panel">
+        <h2>货架</h2>
+        <div class="list" id="goods"></div>
+      </section>
+      <section class="panel">
+        <h2>行囊</h2>
+        <div class="list" id="inventory"></div>
+      </section>
+      <section class="panel">
+        <h2>快捷</h2>
+        <div class="quick" id="quick"></div>
+        <div class="world-stats" id="world-stats"></div>
+      </section>
+    </aside>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

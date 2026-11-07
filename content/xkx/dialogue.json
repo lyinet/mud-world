@@ -1,0 +1,768 @@
+{
+  "dialogue": [
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/hangzhou/npc/hongniang",
+      "source": {
+        "line": 23,
+        "path": "d/hangzhou/npc/hongniang.lpc"
+      },
+      "text": "是啊……这里就可以缔结(marry)和解除婚约(unmarry)。",
+      "topic": "婚约"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/hangzhou/npc/hongniang",
+      "source": {
+        "line": 23,
+        "path": "d/hangzhou/npc/hongniang.lpc"
+      },
+      "text": "是啊……这里就可以缔结(marry)和解除婚约(unmarry)。",
+      "topic": "结婚"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/hangzhou/npc/hongniang",
+      "source": {
+        "line": 23,
+        "path": "d/hangzhou/npc/hongniang.lpc"
+      },
+      "text": "是啊……这里就可以缔结(marry)和解除婚约(unmarry)。",
+      "topic": "成亲"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/hangzhou/npc/huqingyu",
+      "source": {
+        "line": 15,
+        "path": "d/hangzhou/npc/huqingyu.lpc"
+      },
+      "text": "五百两黄金，给你改头换面，江湖上没人会知道你的！",
+      "topic": "改名"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/hangzhou/npc/meipo",
+      "source": {
+        "line": 20,
+        "path": "d/hangzhou/npc/meipo.lpc"
+      },
+      "text": "是啊……这里就可以缔结和解除婚约",
+      "topic": "婚约"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/hangzhou/npc/oldwoman",
+      "source": {
+        "line": 25,
+        "path": "d/hangzhou/npc/oldwoman.lpc"
+      },
+      "text": "我那老母鸡啊...一定是那几个不务正业的小流氓干的。",
+      "topic": "鸡"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/hangzhou/npc/oldwoman",
+      "source": {
+        "line": 25,
+        "path": "d/hangzhou/npc/oldwoman.lpc"
+      },
+      "text": "那几个小流氓正天不务正业，就在小胡同里喝酒赌钱。",
+      "topic": "流氓"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/hangzhou/npc/ouyezi",
+      "source": {
+        "line": 27,
+        "path": "d/hangzhou/npc/ouyezi.lpc"
+      },
+      "text": "造剑，好说，十两黄金，款到交货！",
+      "topic": "造剑"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/hangzhou/npc/ouyezi",
+      "source": {
+        "line": 27,
+        "path": "d/hangzhou/npc/ouyezi.lpc"
+      },
+      "text": "造剑，好说，十两黄金，款到交货！",
+      "topic": "铸剑"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/hangzhou/npc/ouyezi",
+      "source": {
+        "line": 27,
+        "path": "d/hangzhou/npc/ouyezi.lpc"
+      },
+      "text": "这个价格嘛...!嘿嘿,一律十两黄金起价，一分钱一分货么。",
+      "topic": "价格"
+    },
+    {
+      "func": "(: ask_for_zigong :)",
+      "kind": "fallback",
+      "npc": "/d/jiaxing/npc/hai",
+      "source": {
+        "line": 23,
+        "path": "d/jiaxing/npc/hai.lpc"
+      },
+      "text": null,
+      "topic": "自宫"
+    },
+    {
+      "func": "(: ask_for_zigong :)",
+      "kind": "fallback",
+      "npc": "/d/jiaxing/npc/hai",
+      "source": {
+        "line": 23,
+        "path": "d/jiaxing/npc/hai.lpc"
+      },
+      "text": null,
+      "topic": "zigong"
+    },
+    {
+      "func": "(: ask_for_gongzi :)",
+      "kind": "fallback",
+      "npc": "/d/jiaxing/npc/hai",
+      "source": {
+        "line": 23,
+        "path": "d/jiaxing/npc/hai.lpc"
+      },
+      "text": null,
+      "topic": "工资"
+    },
+    {
+      "func": "(: ask_for_gongzi :)",
+      "kind": "fallback",
+      "npc": "/d/jiaxing/npc/hai",
+      "source": {
+        "line": 23,
+        "path": "d/jiaxing/npc/hai.lpc"
+      },
+      "text": null,
+      "topic": "薪水"
+    },
+    {
+      "func": "(: ask_for_gongzi :)",
+      "kind": "fallback",
+      "npc": "/d/jiaxing/npc/hai",
+      "source": {
+        "line": 23,
+        "path": "d/jiaxing/npc/hai.lpc"
+      },
+      "text": null,
+      "topic": "salary"
+    },
+    {
+      "func": "(: ask_for_gongzi :)",
+      "kind": "fallback",
+      "npc": "/d/jiaxing/npc/hai",
+      "source": {
+        "line": 23,
+        "path": "d/jiaxing/npc/hai.lpc"
+      },
+      "text": null,
+      "topic": "payment"
+    },
+    {
+      "func": "(: ask_for_gongzi :)",
+      "kind": "fallback",
+      "npc": "/d/jiaxing/npc/hai",
+      "source": {
+        "line": 23,
+        "path": "d/jiaxing/npc/hai.lpc"
+      },
+      "text": null,
+      "topic": "gongzi"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/jiaxing/npc/shagu",
+      "source": {
+        "line": 40,
+        "path": "d/jiaxing/npc/shagu.lpc"
+      },
+      "text": "他们都叫我做傻姑。",
+      "topic": "name"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/jiaxing/npc/shagu",
+      "source": {
+        "line": 40,
+        "path": "d/jiaxing/npc/shagu.lpc"
+      },
+      "text": "杨兄弟打了姑姑一掌，杨兄弟就死了。",
+      "topic": "rumors"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/jiaxing/npc/shagu",
+      "source": {
+        "line": 40,
+        "path": "d/jiaxing/npc/shagu.lpc"
+      },
+      "text": "这里是牛家村。",
+      "topic": "here"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/jiaxing/npc/shagu",
+      "source": {
+        "line": 40,
+        "path": "d/jiaxing/npc/shagu.lpc"
+      },
+      "text": "那个傻小子叫她做蓉儿。",
+      "topic": "姑姑"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/jiaxing/npc/shagu",
+      "source": {
+        "line": 40,
+        "path": "d/jiaxing/npc/shagu.lpc"
+      },
+      "text": "师公教我打拳玩。",
+      "topic": "师公"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/shiliang/npc/afeng",
+      "source": {
+        "line": 23,
+        "path": "d/shiliang/npc/afeng.lpc"
+      },
+      "text": "他是我的心上人啊，但我不知道他的心意如何，这种事情叫我一个女孩子家怎么说得出口嘛。",
+      "topic": "阿土"
+    },
+    {
+      "func": "(: inquiry_afeng :)",
+      "kind": "fallback",
+      "npc": "/d/shiliang/npc/atu",
+      "source": {
+        "line": 22,
+        "path": "d/shiliang/npc/atu.lpc"
+      },
+      "text": null,
+      "topic": "阿凤"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/shiliang/npc/jinshe",
+      "source": {
+        "line": 32,
+        "path": "d/shiliang/npc/jinshe.lpc"
+      },
+      "text": "她....她.....",
+      "topic": "温仪"
+    },
+    {
+      "func": "(: ask_skill1 :)",
+      "kind": "fallback",
+      "npc": "/d/shiliang/npc/jinshe",
+      "source": {
+        "line": 32,
+        "path": "d/shiliang/npc/jinshe.lpc"
+      },
+      "text": null,
+      "topic": "锁剑诀"
+    },
+    {
+      "func": "(: ask_skill2 :)",
+      "kind": "fallback",
+      "npc": "/d/shiliang/npc/jinshe",
+      "source": {
+        "line": 32,
+        "path": "d/shiliang/npc/jinshe.lpc"
+      },
+      "text": null,
+      "topic": "附骨缠身"
+    },
+    {
+      "func": "(: ask_skill3 :)",
+      "kind": "fallback",
+      "npc": "/d/shiliang/npc/jinshe",
+      "source": {
+        "line": 32,
+        "path": "d/shiliang/npc/jinshe.lpc"
+      },
+      "text": null,
+      "topic": "金蛇吐雾"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/shiliang/npc/wenfangda",
+      "source": {
+        "line": 33,
+        "path": "d/shiliang/npc/wenfangda.lpc"
+      },
+      "text": "夏雪宜这个大淫贼，我一定要把他碎尸万断！",
+      "topic": "金蛇郎君"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/shiliang/npc/wenfangda",
+      "source": {
+        "line": 33,
+        "path": "d/shiliang/npc/wenfangda.lpc"
+      },
+      "text": "这个小丫头中了邪了，被我关了起来，我也是为她好啊。",
+      "topic": "温仪"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/shiliang/npc/wenfangnan",
+      "source": {
+        "line": 28,
+        "path": "d/shiliang/npc/wenfangnan.lpc"
+      },
+      "text": "夏雪宜这个大淫贼，我一定要把他碎尸万断！",
+      "topic": "金蛇郎君"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/shiliang/npc/wenfangnan",
+      "source": {
+        "line": 28,
+        "path": "d/shiliang/npc/wenfangnan.lpc"
+      },
+      "text": "这个小丫头中了邪了，被我关了起来，我也是为她好啊。",
+      "topic": "温仪"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/shiliang/npc/wenfangshan",
+      "source": {
+        "line": 28,
+        "path": "d/shiliang/npc/wenfangshan.lpc"
+      },
+      "text": "夏雪宜这个大淫贼，我一定要把他碎尸万断！",
+      "topic": "金蛇郎君"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/shiliang/npc/wenfangshan",
+      "source": {
+        "line": 28,
+        "path": "d/shiliang/npc/wenfangshan.lpc"
+      },
+      "text": "这个小丫头中了邪了，被我关了起来，我也是为她好啊。",
+      "topic": "温仪"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/shiliang/npc/wenfangshi",
+      "source": {
+        "line": 28,
+        "path": "d/shiliang/npc/wenfangshi.lpc"
+      },
+      "text": "夏雪宜这个大淫贼，我一定要把他碎尸万断！",
+      "topic": "金蛇郎君"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/shiliang/npc/wenfangshi",
+      "source": {
+        "line": 28,
+        "path": "d/shiliang/npc/wenfangshi.lpc"
+      },
+      "text": "这个小丫头中了邪了，被我关了起来，我也是为她好啊。",
+      "topic": "温仪"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/shiliang/npc/wenfangwu",
+      "source": {
+        "line": 28,
+        "path": "d/shiliang/npc/wenfangwu.lpc"
+      },
+      "text": "夏雪宜这个大淫贼，我一定要把他碎尸万断！",
+      "topic": "金蛇郎君"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/shiliang/npc/wenfangwu",
+      "source": {
+        "line": 28,
+        "path": "d/shiliang/npc/wenfangwu.lpc"
+      },
+      "text": "这个小丫头中了邪了，被我关了起来，我也是为她好啊。",
+      "topic": "温仪"
+    },
+    {
+      "func": "(: inquiry_shoupa :)",
+      "kind": "fallback",
+      "npc": "/d/shiliang/npc/wenyi",
+      "source": {
+        "line": 24,
+        "path": "d/shiliang/npc/wenyi.lpc"
+      },
+      "text": null,
+      "topic": "手帕"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/shiliang/npc/wenyi",
+      "source": {
+        "line": 24,
+        "path": "d/shiliang/npc/wenyi.lpc"
+      },
+      "text": "他是我心目中英雄的郎君....",
+      "topic": "金蛇郎君"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/kungfu/class/heimuya/xiang",
+      "origin": "external",
+      "source": {
+        "line": 21,
+        "path": "kungfu/class/heimuya/xiang.lpc"
+      },
+      "text": "这种人，该杀！",
+      "topic": "杨莲亭"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/kungfu/class/heimuya/xiang",
+      "origin": "external",
+      "source": {
+        "line": 21,
+        "path": "kungfu/class/heimuya/xiang.lpc"
+      },
+      "text": "篡位叛徒，我非杀了他不可！",
+      "topic": "东方不败"
+    },
+    {
+      "func": "(: ask_kill ( ) :)",
+      "kind": "fallback",
+      "npc": "/kungfu/class/heimuya/xiang",
+      "origin": "external",
+      "source": {
+        "line": 21,
+        "path": "kungfu/class/heimuya/xiang.lpc"
+      },
+      "text": null,
+      "topic": "杀东方不败"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/kungfu/class/heimuya/xiang",
+      "origin": "external",
+      "source": {
+        "line": 21,
+        "path": "kungfu/class/heimuya/xiang.lpc"
+      },
+      "text": "教主被困，已历十年......",
+      "topic": "任我行"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/taohua/npc/laoda",
+      "origin": "external",
+      "source": {
+        "line": 16,
+        "path": "d/taohua/npc/laoda.lpc"
+      },
+      "text": "我就是这里的老大，他们都叫我小马哥。",
+      "topic": "name"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/taohua/npc/laoda",
+      "origin": "external",
+      "source": {
+        "line": 16,
+        "path": "d/taohua/npc/laoda.lpc"
+      },
+      "text": "听说以前有一艘红毛鬼子的船遇难后漂流到这里，唯一的船员就死在那边的小店里。",
+      "topic": "rumors"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/taohua/npc/laoda",
+      "origin": "external",
+      "source": {
+        "line": 16,
+        "path": "d/taohua/npc/laoda.lpc"
+      },
+      "text": "这里是附近唯一的出海渔港了。",
+      "topic": "here"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/taohua/npc/laoda",
+      "origin": "external",
+      "source": {
+        "line": 16,
+        "path": "d/taohua/npc/laoda.lpc"
+      },
+      "text": "客官您要启航去哪里啊？难道是桃花...",
+      "topic": "chuhai"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/taohua/npc/laoda",
+      "origin": "external",
+      "source": {
+        "line": 16,
+        "path": "d/taohua/npc/laoda.lpc"
+      },
+      "text": "客官您要启航去哪里啊？难道是桃花...",
+      "topic": "出海"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/d/taohua/npc/laoda",
+      "origin": "external",
+      "source": {
+        "line": 16,
+        "path": "d/taohua/npc/laoda.lpc"
+      },
+      "text": "客官您要启航去哪里啊？难道是桃花...",
+      "topic": "雇船"
+    },
+    {
+      "func": "(: ask_thd :)",
+      "kind": "fallback",
+      "npc": "/d/taohua/npc/laoda",
+      "origin": "external",
+      "source": {
+        "line": 16,
+        "path": "d/taohua/npc/laoda.lpc"
+      },
+      "text": null,
+      "topic": "桃花岛"
+    },
+    {
+      "func": "(: ask_thd :)",
+      "kind": "fallback",
+      "npc": "/d/taohua/npc/laoda",
+      "origin": "external",
+      "source": {
+        "line": 16,
+        "path": "d/taohua/npc/laoda.lpc"
+      },
+      "text": null,
+      "topic": "taohuadao"
+    },
+    {
+      "func": "(: ask_price :)",
+      "kind": "fallback",
+      "npc": "/d/taohua/npc/laoda",
+      "origin": "external",
+      "source": {
+        "line": 16,
+        "path": "d/taohua/npc/laoda.lpc"
+      },
+      "text": null,
+      "topic": "价钱"
+    },
+    {
+      "func": "(: ask_price :)",
+      "kind": "fallback",
+      "npc": "/d/taohua/npc/laoda",
+      "origin": "external",
+      "source": {
+        "line": 16,
+        "path": "d/taohua/npc/laoda.lpc"
+      },
+      "text": null,
+      "topic": "price"
+    },
+    {
+      "func": "(: ask_qihang :)",
+      "kind": "fallback",
+      "npc": "/d/taohua/npc/laoda",
+      "origin": "external",
+      "source": {
+        "line": 16,
+        "path": "d/taohua/npc/laoda.lpc"
+      },
+      "text": null,
+      "topic": "启航"
+    },
+    {
+      "func": "(: ask_qihang :)",
+      "kind": "fallback",
+      "npc": "/d/taohua/npc/laoda",
+      "origin": "external",
+      "source": {
+        "line": 16,
+        "path": "d/taohua/npc/laoda.lpc"
+      },
+      "text": null,
+      "topic": "qihang"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/kungfu/class/gumu/limochou",
+      "origin": "external",
+      "source": {
+        "line": 47,
+        "path": "kungfu/class/gumu/limochou.lpc"
+      },
+      "text": "站远点！",
+      "topic": "name"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/kungfu/class/gumu/limochou",
+      "origin": "external",
+      "source": {
+        "line": 47,
+        "path": "kungfu/class/gumu/limochou.lpc"
+      },
+      "text": "我不是本地人，不知道。",
+      "topic": "here"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/kungfu/class/gumu/limochou",
+      "origin": "external",
+      "source": {
+        "line": 47,
+        "path": "kungfu/class/gumu/limochou.lpc"
+      },
+      "text": "你如何能理解其中相思之苦、惆怅之意？",
+      "topic": "情"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/kungfu/class/gumu/limochou",
+      "origin": "external",
+      "source": {
+        "line": 47,
+        "path": "kungfu/class/gumu/limochou.lpc"
+      },
+      "text": "你问那个薄情的小畜生做什么？",
+      "topic": "陆展元"
+    },
+    {
+      "func": "(: ask_me :)",
+      "kind": "fallback",
+      "npc": "/kungfu/class/gumu/limochou",
+      "origin": "external",
+      "source": {
+        "line": 47,
+        "path": "kungfu/class/gumu/limochou.lpc"
+      },
+      "text": null,
+      "topic": "何沅君"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/kungfu/class/gumu/limochou",
+      "origin": "external",
+      "source": {
+        "line": 47,
+        "path": "kungfu/class/gumu/limochou.lpc"
+      },
+      "text": "那是我的师妹。你问她想干什么？",
+      "topic": "小龙女"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/kungfu/class/gumu/limochou",
+      "origin": "external",
+      "source": {
+        "line": 47,
+        "path": "kungfu/class/gumu/limochou.lpc"
+      },
+      "text": "那是我的师祖，不该你问的你别问，小心我宰了你。",
+      "topic": "林朝英"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/kungfu/class/baituo/ouyangfeng1",
+      "origin": "external",
+      "source": {
+        "line": 86,
+        "path": "kungfu/class/baituo/ouyangfeng1.lpc"
+      },
+      "text": "名字，我...我没有名字，我...我是谁?",
+      "topic": "name"
+    },
+    {
+      "func": null,
+      "kind": "string",
+      "npc": "/kungfu/class/baituo/ouyangfeng1",
+      "origin": "external",
+      "source": {
+        "line": 86,
+        "path": "kungfu/class/baituo/ouyangfeng1.lpc"
+      },
+      "text": "名字，我...我没有名字，我...我是谁?",
+      "topic": "名字"
+    },
+    {
+      "func": "(: ask_help :)",
+      "kind": "fallback",
+      "npc": "/kungfu/class/baituo/ouyangfeng1",
+      "origin": "external",
+      "source": {
+        "line": 86,
+        "path": "kungfu/class/baituo/ouyangfeng1.lpc"
+      },
+      "text": null,
+      "topic": "公公救我"
+    },
+    {
+      "func": "(: ask_help :)",
+      "kind": "fallback",
+      "npc": "/kungfu/class/baituo/ouyangfeng1",
+      "origin": "external",
+      "source": {
+        "line": 86,
+        "path": "kungfu/class/baituo/ouyangfeng1.lpc"
+      },
+      "text": null,
+      "topic": "help"
+    }
+  ]
+}

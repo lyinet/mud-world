@@ -1,0 +1,26 @@
+# 现有九地点世界：用于验证“同一启动路径可分别起两个世界”。
+# 注意：本机当前跑着 8031/8000 的现有世界（另一个 run）；启动本配置前先停掉它，
+# 或者直接访问正在跑的服务。新 xkx 世界请用 config/worlds/xkx.yaml（8041/8011）。
+id: default
+name: 九地点世界
+run_id: player-world
+host: 127.0.0.1
+api_port: 8031
+ui_port: 8000
+seed: 42
+tick_step: 6
+npc_limit: 0
+spawn: market
+display_name: 陈捕快
+archetype: 捕快
+auth: auto
+ambient: 0
+ui_kind: player
+
+content_root_candidates:
+  - content
+
+# 现有世界不需要文字壳方向表；它在 ui/player 里有自己的交互。
+exit_directions: {}
+closed_exits: {}
+room_descriptions: {}

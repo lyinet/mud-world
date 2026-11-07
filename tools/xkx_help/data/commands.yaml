@@ -1,0 +1,1372 @@
+# 命令中文内容表（人工撰写，勿由源码直译）
+# 字段：name/layer/aliases/params/summary/system/status/evidence
+# status：已实现 / 待实现 / 不做
+# system：移动 / 战斗 / 物品 / 社交 / 门派 / 经济 / 系统
+# aliases 是本复刻版文字壳使用的中文命令名；xkx 原版使用英文动词。
+commands:
+  # ---------- cmds/std：常用动作 ----------
+  - name: ansuan
+    layer: std
+    aliases: ["暗算"]
+    params: "<人物> at <方向>"
+    summary: "对指定方向上的目标暗中下手，命中后造成额外伤害。"
+    system: 战斗
+    status: 待实现
+    blocker: "战斗系统"
+    evidence: "基础回合战斗已由 FightAction（src/wsim/actions/combat.py）提供；暗算还缺潜行/先手判定。"
+  - name: ask
+    layer: std
+    aliases: ["问", "打听"]
+    params: "<某人> about <话题>"
+    summary: "向 NPC 打听或自由提问，按人物设定给出回应。"
+    system: 社交
+    status: 已实现
+    evidence: "TalkAction（src/wsim/actions/social.py）已注册，文字壳已接「问/打听」，可自由交谈；尚无 xkx 话题表。"
+  - name: attack
+    layer: std
+    aliases: ["唆使"]
+    params: "<动物>"
+    summary: "命令已驯服的动物攻击指定目标。"
+    system: 战斗
+    status: 不做
+    blocker: "宠物/坐骑"
+    evidence: "宠物与坐骑实体、驯服度均未建模；本版不开放驯兽与宠物参战。"
+  - name: baitan
+    layer: std
+    aliases: ["摆摊", "出摊"]
+    params: "—"
+    summary: "在所在位置摆摊，向路过的玩家出售货物。"
+    system: 经济
+    status: 已实现
+    evidence: "OpenShopAction（src/wsim/actions/business.py）支持摊位型店铺；RestockAction/SetPriceAction 管库存与定价。"
+  - name: beg
+    layer: std
+    aliases: ["乞讨"]
+    params: "<物品> from <某人>"
+    summary: "向他人乞讨物品或钱财。"
+    system: 社交
+    status: 不做
+    blocker: "产品排除/无对应模型"
+    evidence: "乞讨会绕过交易与劳动产出，产品上不开放。"
+  - name: bugs
+    layer: std
+    aliases: ["报错"]
+    params: "—"
+    summary: "向巫师报告游戏错误。"
+    system: 系统
+    status: 不做
+    blocker: "玩家治理/巫师/运营"
+    evidence: "本版用仓库 Issue 跟踪缺陷，不提供游戏内报错入口。"
+  - name: buy
+    layer: std
+    aliases: ["买", "购买"]
+    params: "<物品> [from <玩家>]"
+    summary: "从店铺或玩家处买下物品并支付价款。"
+    system: 经济
+    status: 已实现
+    evidence: "BuyAction（src/wsim/actions/commerce.py）；价格与库存由店铺状态校验。"
+  - name: ce
+    layer: std
+    aliases: ["私语"]
+    params: "[kiss|bye] [讯息]"
+    summary: "与配偶进行只有两人可见的悄悄话。"
+    system: 社交
+    status: 不做
+    blocker: "玩家频道/社交广播"
+    evidence: "玩家间私聊频道未建模；婚姻系统只记录配偶关系。"
+  - name: check
+    layer: std
+    aliases: ["探察", "打探"]
+    params: "[<某人>]"
+    summary: "查看某人（或自己）的武功与技能等级。"
+    system: 社交
+    status: 已实现
+    evidence: "session._present_view 与 _skills_detail（src/wsim/api/session.py）给出在场人物技能明细；暂不支持查离线玩家。"
+  - name: chi
+    layer: std
+    aliases: ["吃"]
+    params: "<物品>"
+    summary: "吃下食物，恢复体力。"
+    system: 物品
+    status: 已实现
+    evidence: "eat 的别名；ConsumeAction（src/wsim/actions/basic.py）结算消耗与体力恢复。"
+    canonical: eat
+  - name: close
+    layer: std
+    aliases: ["关门"]
+    params: "<门> 或 <方向>"
+    summary: "关闭一扇门或某个方向的出入口。"
+    system: 物品
+    status: 不做
+    blocker: "地面物品/容器"
+    evidence: "门与容器未建模；本版房间不设可开关门。"
+  - name: come
+    layer: std
+    aliases: ["唤宠"]
+    params: "<动物>"
+    summary: "让已驯服的动物跟随自己行动。"
+    system: 系统
+    status: 不做
+    blocker: "宠物/坐骑"
+    evidence: "宠物与坐骑实体、驯服度均未建模；本版不开放宠物玩法。"
+  - name: cuifa
+    layer: std
+    aliases: ["催发"]
+    params: "<人物>"
+    summary: "催发三尸脑神丹，控制服丹者。"
+    system: 门派
+    status: 不做
+    blocker: "门派专属"
+    evidence: "门派控制类毒药与生死控制未建模，且属于 PK 向玩法，本版不开放。"
+  - name: dating
+    layer: std
+    aliases: ["探察", "打探"]
+    params: "[<某人>]"
+    summary: "查看某人的武功与技能等级。"
+    system: 社交
+    status: 已实现
+    evidence: "check 的别名；复用 _present_view/_skills_detail（src/wsim/api/session.py）。"
+    canonical: check
+  - name: demote
+    layer: std
+    aliases: ["查表情"]
+    params: "—"
+    summary: "列出某个表情动作的全部变化形式。"
+    system: 社交
+    status: 不做
+    blocker: "玩家频道/社交广播"
+    evidence: "表情系统未建模；文字壳不提供 emote 变体查询。"
+  - name: drink
+    layer: std
+    aliases: ["喝", "饮用"]
+    params: "[<饮品>]"
+    summary: "喝下饮品，恢复体力或解除部分状态。"
+    system: 物品
+    status: 已实现
+    evidence: "he 的等价命令；ConsumeAction（src/wsim/actions/basic.py）与 UseItemAction（src/wsim/actions/equipment.py）。"
+  - name: drop
+    layer: std
+    aliases: ["丢下", "扔掉"]
+    params: "<物品> [all]"
+    summary: "把物品放到当前房间的地面上。"
+    system: 物品
+    status: 不做
+    blocker: "地面物品/容器"
+    evidence: "地面物品与无主物品模型未建模；V1 明确不做地面掉落。"
+  - name: eat
+    layer: std
+    aliases: ["吃", "进食"]
+    params: "<物品>"
+    summary: "吃下食物，恢复体力。"
+    system: 物品
+    status: 已实现
+    evidence: "ConsumeAction（src/wsim/actions/basic.py）；食物耗尽后从背包移除。"
+  - name: emote
+    layer: std
+    aliases: ["表情"]
+    params: "<动作词>"
+    summary: "做一个表情动作，让同房间的人看到。"
+    system: 社交
+    status: 不做
+    blocker: "玩家频道/社交广播"
+    evidence: "玩家间表情广播未建模；本版只保留 NPC 交谈。"
+  - name: feed
+    layer: std
+    aliases: ["喂养"]
+    params: "<饲料> to <动物>"
+    summary: "用饲料喂养自己的动物。"
+    system: 系统
+    status: 不做
+    blocker: "宠物/坐骑"
+    evidence: "宠物与坐骑实体、驯服度均未建模；本版不开放宠物玩法。"
+  - name: femote
+    layer: std
+    aliases: ["找表情"]
+    params: "[-s] <关键字>"
+    summary: "检索符合关键字的感情动作。"
+    system: 社交
+    status: 不做
+    blocker: "玩家频道/社交广播"
+    evidence: "玩家表情动作与广播未建模；本版不开放表情检索。"
+  - name: fight
+    layer: std
+    aliases: ["切磋", "较量"]
+    params: "<人物>"
+    summary: "向目标发起战斗，按回合结算招式、伤害与胜负。"
+    system: 战斗
+    status: 已实现
+    evidence: "FightAction（src/wsim/actions/combat.py）已注册，文字壳的 fight/打/战斗/出手 可直接调用；单场最多 20 回合。"
+  - name: follow
+    layer: std
+    aliases: ["跟随"]
+    params: "[<生物>|none]"
+    summary: "跟随某个生物行动，或取消跟随。"
+    system: 社交
+    status: 不做
+    blocker: "产品排除/无对应模型"
+    evidence: "玩家/NPC 跟随关系未建模，V1 只支持固定房间移动。"
+  - name: gamble
+    layer: std
+    aliases: ["赌博"]
+    params: "<大|小> <钱> <种类> <数量>"
+    summary: "在赌场押注，按骰子结果结算输赢。"
+    system: 经济
+    status: 不做
+    blocker: "产品排除/无对应模型"
+    evidence: "赌博属产品明确排除内容，且会破坏经济模型。"
+  - name: get
+    layer: std
+    aliases: ["拿", "捡"]
+    params: "<物品> [from <容器>]"
+    summary: "从地面或容器中取走物品。"
+    system: 物品
+    status: 待实现
+    blocker: "战利品系统"
+    evidence: "战斗掉落只产出 loot_create 效果（src/wsim/world/effects.py:104 定义、:422 处理），src/wsim/actions/combat.py:124 在战斗结算里发出该效果，但没有 LootAction 消费它；地面物品模型也未建模。"
+  - name: give
+    layer: std
+    aliases: ["给", "赠送"]
+    params: "<物品> to <某人>"
+    summary: "把物品无偿转交给他人。"
+    system: 物品
+    status: 待实现
+    blocker: "社交系统"
+    evidence: "现有 TradeAction 只支持双方对价交易，没有单向转移动作；可复用装备/背包模型后补。"
+  - name: go
+    layer: std
+    aliases: ["走", "前往"]
+    params: "<方向>"
+    summary: "沿指定方向移动到相邻房间。"
+    system: 移动
+    status: 已实现
+    evidence: "MoveAction（src/wsim/actions/basic.py）；出口校验见 session._location_view。"
+  - name: guard
+    layer: std
+    aliases: ["护卫"]
+    params: "[<某人>|<物品>|<出口>|cancel]"
+    summary: "为某人、某物或某个出口担任护卫。"
+    system: 战斗
+    status: 不做
+    blocker: "PK/偷抢/对抗"
+    evidence: "护卫/拦截玩法依赖战斗与实时对抗，本版不开放。"
+  - name: halt
+    layer: std
+    aliases: ["停手"]
+    params: "—"
+    summary: "中止当前正在进行的动作。"
+    system: 系统
+    status: 不做
+    blocker: "产品排除/无对应模型"
+    evidence: "本版动作按事件原子结算，没有可中断的忙碌状态。"
+  - name: han
+    layer: std
+    aliases: ["喊话", "大喊"]
+    params: "<讯息>"
+    summary: "向所在区域大喊，让附近的人听到。"
+    system: 社交
+    status: 不做
+    blocker: "玩家频道/社交广播"
+    evidence: "区域广播/频道未建模。"
+  - name: hbless
+    layer: std
+    aliases: ["贺婚"]
+    params: "<男名> with <女名>"
+    summary: "向新婚夫妇道贺。"
+    system: 社交
+    status: 不做
+    blocker: "玩家频道/社交广播"
+    evidence: "婚礼仪式与广播未建模；婚姻只用 MarriageAction 记录关系。"
+  - name: he
+    layer: std
+    aliases: ["喝"]
+    params: "[<饮品>]"
+    summary: "喝下饮品，恢复体力。"
+    system: 物品
+    status: 已实现
+    evidence: "drink 的别名；ConsumeAction（src/wsim/actions/basic.py）。"
+    canonical: drink
+  - name: hit
+    layer: std
+    aliases: ["出手", "进招"]
+    params: "<人物>"
+    summary: "对目标发出一击，不做完整战斗结算。"
+    system: 战斗
+    status: 待实现
+    blocker: "战斗系统"
+    evidence: "FightAction（src/wsim/actions/combat.py）已有完整回合战斗；hit 需要单次攻击接口，文字壳尚未挂动词。"
+  - name: imbibe
+    layer: std
+    aliases: ["喂饮"]
+    params: "<动物>"
+    summary: "给动物喂水，维持其饮水与体力。"
+    system: 系统
+    status: 不做
+    blocker: "宠物/坐骑"
+    evidence: "宠物与坐骑实体、驯服度均未建模；本版不开放宠物玩法。"
+  - name: jiasi
+    layer: std
+    aliases: ["装死"]
+    params: "—"
+    summary: "在战斗中假装死亡以脱离战斗。"
+    system: 战斗
+    status: 不做
+    blocker: "PK/偷抢/对抗"
+    evidence: "假死/脱离战斗判定未实现，且属玩家对抗向玩法。"
+  - name: jiebai
+    layer: std
+    aliases: ["结拜"]
+    params: "<某人>"
+    summary: "与另一名玩家结为异姓兄弟或姐妹。"
+    system: 社交
+    status: 待实现
+    blocker: "社交系统"
+    evidence: "关系模型已有好感/信任，但没有结拜关系与仪式；可在关系系统上扩展。"
+  - name: kantou
+    layer: std
+    aliases: ["割头"]
+    params: "<尸体>"
+    summary: "从尸体上割下首级。"
+    system: 物品
+    status: 不做
+    blocker: "地面物品/容器"
+    evidence: "尸体与死亡掉落未建模。"
+  - name: kill
+    layer: std
+    aliases: ["杀", "击杀"]
+    params: "<人物>"
+    summary: "对目标下杀手，进入生死战斗。"
+    system: 战斗
+    status: 不做
+    blocker: "PK/偷抢/对抗"
+    evidence: "kill 动词被列入 src/wsim/api/session.py:216-217 的 FORBIDDEN_VERBS，并在 :2181 逐动词拦截；对 NPC 的战斗请用 fight，本版不开放玩家击杀。"
+  - name: list
+    layer: std
+    aliases: ["看货", "货单"]
+    params: "[<玩家ID>]"
+    summary: "查看当前店铺出售的货物、价格与库存。"
+    system: 经济
+    status: 已实现
+    evidence: "房间 services_detail 与店铺只读视图（src/wsim/api/session.py）已提供货物、价格、库存。"
+  - name: locate
+    layer: std
+    aliases: ["找物"]
+    params: "<物品>"
+    summary: "在任务中定位指定任务物品所在的房间。"
+    system: 系统
+    status: 待实现
+    blocker: "任务系统"
+    evidence: "任务系统只有委托接取/交付，没有任务物品坐标与定位索引。"
+  - name: location
+    layer: std
+    aliases: ["寻人"]
+    params: "<玩家ID>"
+    summary: "查看某个在线玩家当前所在的位置。"
+    system: 系统
+    status: 已实现
+    evidence: "src/wsim/api/session.py 的 _online_players_view 提供 location 字段；本版对所有玩家开放，不设门派技能门槛。"
+  - name: look
+    layer: std
+    aliases: ["看", "观察"]
+    params: "[<物品>|<生物>|<方向>]"
+    summary: "查看房间、人物、物品或某个方向的描述。"
+    system: 系统
+    status: 已实现
+    evidence: "session._location_view（src/wsim/api/session.py）返回房间描述、出口、NPC 与店铺。"
+  - name: mbless
+    layer: std
+    aliases: ["月老贺婚"]
+    params: "<男名> with <女名>"
+    summary: "以月老身份向新婚夫妇道贺。"
+    system: 社交
+    status: 不做
+    blocker: "玩家频道/社交广播"
+    evidence: "婚礼仪式与广播未建模。"
+  - name: open
+    layer: std
+    aliases: ["开门"]
+    params: "<门> 或 <方向>"
+    summary: "打开一扇门或某个方向的出入口。"
+    system: 物品
+    status: 不做
+    blocker: "地面物品/容器"
+    evidence: "门、容器与开关状态均未建模；本版房间不设可开关门。"
+  - name: piao
+    layer: std
+    aliases: ["嫖"]
+    params: "<某人>"
+    summary: "在青楼消费寻欢。本版此类场所不开放。"
+    system: 社交
+    status: 不做
+    blocker: "产品排除/无对应模型"
+    evidence: "青楼与相关消费场景未建模，且属产品明确排除内容。"
+  - name: pour
+    layer: std
+    aliases: ["倒药"]
+    params: "<药物> in <容器>"
+    summary: "把药物倒入容器中调制。"
+    system: 物品
+    status: 不做
+    blocker: "地面物品/容器"
+    evidence: "容器与药物调制未建模。"
+  - name: put
+    layer: std
+    aliases: ["放入"]
+    params: "<物品> in <容器>"
+    summary: "把物品放进容器。"
+    system: 物品
+    status: 不做
+    blocker: "地面物品/容器"
+    evidence: "容器、容量与放入/取出关系未建模；本版背包为扁平列表。"
+  - name: qiecuo
+    layer: std
+    aliases: ["求教绝招"]
+    params: "<基本功>[.<绝招>]"
+    summary: "通过与指定对手切磋，验证并解锁某项绝招。"
+    system: 门派
+    status: 待实现
+    blocker: "武学/资源系统"
+    evidence: "依赖绝招/perform 系统；技能目前只有 0..1 熟练度，没有招式位。"
+  - name: qixing
+    layer: std
+    aliases: ["布阵", "北斗阵"]
+    params: "<敌手> <阵友1>…<阵友6>"
+    summary: "布下天罡北斗阵与敌手对抗。"
+    system: 门派
+    status: 不做
+    blocker: "门派专属"
+    evidence: "多人阵法与全真门派专属玩法未建模，V1 不开放。"
+  - name: release
+    layer: std
+    aliases: ["放生"]
+    params: "—"
+    summary: "放走自己的动物。"
+    system: 系统
+    status: 不做
+    blocker: "宠物/坐骑"
+    evidence: "宠物与坐骑实体、驯服度均未建模；本版不开放宠物玩法。"
+  - name: remove
+    layer: std
+    aliases: ["脱下", "卸甲"]
+    params: "all | <物品>"
+    summary: "脱下身上穿戴的防具。"
+    system: 物品
+    status: 已实现
+    evidence: "UnequipAction（src/wsim/actions/equipment.py）；`remove all` 可一次卸下全部防具。"
+  - name: reply
+    layer: std
+    aliases: ["回话"]
+    params: "<讯息>"
+    summary: "回复最近一次私聊。"
+    system: 社交
+    status: 不做
+    blocker: "玩家频道/社交广播"
+    evidence: "玩家私聊频道未建模。"
+  - name: ride
+    layer: std
+    aliases: ["骑乘"]
+    params: "<生物>"
+    summary: "骑上马匹或其他坐骑。"
+    system: 系统
+    status: 不做
+    blocker: "宠物/坐骑"
+    evidence: "坐骑与骑行移动未建模。"
+  - name: say
+    layer: std
+    aliases: ["说话"]
+    params: "<讯息>"
+    summary: "在当前房间说话，同房间的人可见。"
+    system: 社交
+    status: 不做
+    blocker: "玩家频道/社交广播"
+    evidence: "玩家间房间广播未建模；V1 只支持与 NPC 的 TalkAction。"
+  - name: semote
+    layer: std
+    aliases: ["查动作"]
+    params: "[词首]"
+    summary: "按词首列出可用的感情动作。"
+    system: 社交
+    status: 不做
+    blocker: "玩家频道/社交广播"
+    evidence: "玩家表情动作与广播未建模；本版不开放表情检索。"
+  - name: setwmsg
+    layer: std
+    aliases: ["定兵描"]
+    params: "-w|-u <描述>"
+    summary: "设置自制兵器在战斗中的描述文字。"
+    system: 物品
+    status: 不做
+    blocker: "产品排除/无对应模型"
+    evidence: "自制兵器与战斗描述未建模。"
+  - name: shexin
+    layer: std
+    aliases: ["慑心"]
+    params: "<某人> to <指令>"
+    summary: "以慑心术控制他人执行一条指令。"
+    system: 门派
+    status: 不做
+    blocker: "门派专属"
+    evidence: "精神控制类门派技能未建模，且属 PK 向玩法。"
+  - name: shop
+    layer: std
+    aliases: ["店务"]
+    params: "[open|close|reset|owner …]"
+    summary: "巫师管理店铺开关、归属与重置。"
+    system: 经济
+    status: 不做
+    blocker: "玩家治理/巫师/运营"
+    evidence: "这是巫师管理指令；玩家侧摆摊用 baitan/open_shop，不开放原始店务后台。"
+  - name: shoplist
+    layer: std
+    aliases: ["查价", "物价"]
+    params: "<物品id或中文名>"
+    summary: "查询某物品在各店铺的售价与库存。"
+    system: 经济
+    status: 已实现
+    evidence: "房间 services_detail 与店铺只读视图（src/wsim/api/session.py）提供价格/库存。"
+  - name: sleep
+    layer: std
+    aliases: ["睡觉", "歇息"]
+    params: "[<人物>]"
+    summary: "在客栈或安全处睡觉，恢复体力。"
+    system: 系统
+    status: 待实现
+    blocker: "系统动作未注册"
+    evidence: "PlayerRestAction 定义在 src/wsim/actions/player.py:433，但 src/wsim/actions/registry.py:98-126 的动作注册列表未包含它，rest 尚不可执行。"
+  - name: stay
+    layer: std
+    aliases: ["留宠"]
+    params: "<动物>"
+    summary: "让跟随的动物留在原地。"
+    system: 系统
+    status: 不做
+    blocker: "宠物/坐骑"
+    evidence: "宠物与坐骑实体、驯服度均未建模；本版不开放宠物玩法。"
+  - name: steal
+    layer: std
+    aliases: ["偷窃"]
+    params: "<物品> from <某人>"
+    summary: "从他人身上偷取物品。"
+    system: 社交
+    status: 不做
+    blocker: "PK/偷抢/对抗"
+    evidence: "PK/偷抢属产品明确排除内容。"
+  - name: stop
+    layer: std
+    aliases: ["止宠"]
+    params: "<动物>"
+    summary: "让动物停止攻击。"
+    system: 系统
+    status: 不做
+    blocker: "宠物/坐骑"
+    evidence: "宠物与坐骑实体、驯服度均未建模；本版不开放宠物玩法。"
+  - name: surrender
+    layer: std
+    aliases: ["投降"]
+    params: "—"
+    summary: "在战斗中认输，结束战斗。"
+    system: 战斗
+    status: 待实现
+    blocker: "战斗系统"
+    evidence: "FightAction（src/wsim/actions/combat.py）已有胜负结算；主动认输/脱离战斗尚未实现。"
+  - name: task
+    layer: std
+    aliases: ["任务榜", "委托榜"]
+    params: "[-u]"
+    summary: "查看当前可接的委托榜。"
+    system: 系统
+    status: 已实现
+    evidence: "session._quest_board_view 与 GET /api/player/quests；QuestAcceptAction/QuestDeliverAction（src/wsim/actions/quests.py）。"
+  - name: team
+    layer: std
+    aliases: ["组队"]
+    params: "with <某人> | …"
+    summary: "与其他玩家组成队伍共同行动。"
+    system: 社交
+    status: 不做
+    blocker: "玩家频道/社交广播"
+    evidence: "组队与队伍战斗未建模；V1 为单人江湖。"
+  - name: tell
+    layer: std
+    aliases: ["传话", "私聊"]
+    params: "<某人> <讯息>"
+    summary: "向指定玩家发送私聊讯息。"
+    system: 社交
+    status: 不做
+    blocker: "玩家频道/社交广播"
+    evidence: "玩家间私聊频道未建模。"
+  - name: touxi
+    layer: std
+    aliases: ["偷袭"]
+    params: "<人物>"
+    summary: "在战斗开始前偷袭目标，取得先手。"
+    system: 战斗
+    status: 待实现
+    blocker: "战斗系统"
+    evidence: "FightAction（src/wsim/actions/combat.py）已有回合战斗；偷袭需要先手/潜行判定，尚未实现。"
+  - name: train
+    layer: std
+    aliases: ["驯兽"]
+    params: "<动物>"
+    summary: "训练动物，使其听从指令。"
+    system: 系统
+    status: 不做
+    blocker: "宠物/坐骑"
+    evidence: "宠物与坐骑实体、驯服度均未建模；本版不开放宠物玩法。"
+  - name: trap
+    layer: std
+    aliases: ["设陷阱"]
+    params: "[<方向>]"
+    summary: "在某个方向布下陷阱。"
+    system: 战斗
+    status: 不做
+    blocker: "PK/偷抢/对抗"
+    evidence: "陷阱与移动触发判定未建模。"
+  - name: tune
+    layer: std
+    aliases: ["频道"]
+    params: "[<频道>|on|off]"
+    summary: "开关或切换聊天频道。"
+    system: 社交
+    status: 不做
+    blocker: "玩家频道/社交广播"
+    evidence: "玩家聊天频道与订阅关系未建模；本版不开放频道切换。"
+  - name: unride
+    layer: std
+    aliases: ["下骑"]
+    params: "—"
+    summary: "从坐骑上下来，结束骑乘状态。"
+    system: 系统
+    status: 不做
+    blocker: "宠物/坐骑"
+    evidence: "坐骑实体与骑乘移动未建模；本版只支持步行。"
+  - name: unwield
+    layer: std
+    aliases: ["收兵器", "卸武"]
+    params: "<物品>"
+    summary: "收起手中挥动的兵器。"
+    system: 物品
+    status: 已实现
+    evidence: "UnequipAction（src/wsim/actions/equipment.py）；与 remove 共用装备槽。"
+  - name: vote
+    layer: std
+    aliases: ["投票"]
+    params: "<动议> <某人>"
+    summary: "参与玩家治理动议的表决。"
+    system: 系统
+    status: 不做
+    blocker: "玩家治理/巫师/运营"
+    evidence: "玩家治理/监禁系统未建模，V1 不开放。"
+  - name: vote/chblk
+    layer: std
+    parent: vote
+    aliases: ["封禁表决"]
+    params: "<某人>"
+    summary: "表决封禁某人的聊天频道。"
+    system: 系统
+    status: 不做
+    blocker: "玩家治理/巫师/运营"
+    evidence: "vote 子命令；治理系统未建模。"
+  - name: vote/jail
+    layer: std
+    parent: vote
+    aliases: ["监禁表决"]
+    params: "<某人>"
+    summary: "表决将某人投入监牢。"
+    system: 系统
+    status: 不做
+    blocker: "玩家治理/巫师/运营"
+    evidence: "vote 子命令；治理系统未建模。"
+  - name: vote/unchblk
+    layer: std
+    parent: vote
+    aliases: ["解封表决"]
+    params: "<某人>"
+    summary: "表决解除某人的频道封禁。"
+    system: 系统
+    status: 不做
+    blocker: "玩家治理/巫师/运营"
+    evidence: "vote 子命令；治理系统未建模。"
+  - name: vote/unjail
+    layer: std
+    parent: vote
+    aliases: ["释放表决"]
+    params: "<某人>"
+    summary: "表决释放被监禁的某人。"
+    system: 系统
+    status: 不做
+    blocker: "玩家治理/巫师/运营"
+    evidence: "vote 子命令；治理系统未建模。"
+  - name: wear
+    layer: std
+    aliases: ["穿上", "穿戴"]
+    params: "<装备>"
+    summary: "穿上防具或饰物。"
+    system: 物品
+    status: 已实现
+    evidence: "EquipAction（src/wsim/actions/equipment.py）；按装备槽校验。"
+  - name: whisper
+    layer: std
+    aliases: ["耳语"]
+    params: "<某人> <讯息>"
+    summary: "对同房间某人耳语。"
+    system: 社交
+    status: 不做
+    blocker: "玩家频道/社交广播"
+    evidence: "玩家间私密频道未建模。"
+  - name: wield
+    layer: std
+    aliases: ["持兵器", "持械"]
+    params: "<兵器>"
+    summary: "把兵器持在手中。"
+    system: 物品
+    status: 已实现
+    evidence: "EquipAction（src/wsim/actions/equipment.py）；equip 的武器槽。"
+  # ---------- cmds/usr：玩家信息与系统 ----------
+  - name: alias
+    layer: usr
+    aliases: ["别名", "快捷"]
+    params: "<别名> <原命令>"
+    summary: "为常用命令设置文字别名。"
+    system: 系统
+    status: 待实现
+    blocker: "玩家档案/文字壳"
+    evidence: "文字壳尚未提供别名表；可在前端命令解析层实现，不涉及引擎。"
+  - name: boss
+    layer: usr
+    aliases: ["老板键"]
+    params: "<参数>"
+    summary: "快速遮盖游戏窗口以应对老板。"
+    system: 系统
+    status: 不做
+    blocker: "玩家治理/巫师/运营"
+    evidence: "桌面端老板键功能，与本版 Web 文字壳无关。"
+  - name: bossgone
+    layer: usr
+    aliases: ["恢复游戏"]
+    params: "—"
+    summary: "恢复被老板键遮盖的游戏窗口。"
+    system: 系统
+    status: 不做
+    blocker: "玩家治理/巫师/运营"
+    evidence: "桌面端功能，与 Web 文字壳无关。"
+  - name: cls
+    layer: usr
+    aliases: ["清屏"]
+    params: "[-l]"
+    summary: "清空当前屏幕上的输出。"
+    system: 系统
+    status: 待实现
+    blocker: "玩家档案/文字壳"
+    evidence: "前端日志区没有清屏入口；需在文字壳补一个清空动作。"
+  - name: describe
+    layer: usr
+    aliases: ["自述", "设定描述"]
+    params: "<描述|none>"
+    summary: "设置或清除自己的角色描述。"
+    system: 社交
+    status: 待实现
+    blocker: "玩家档案/文字壳"
+    evidence: "玩家档案只有角色/门派/技能，没有自定义描述字段。"
+  - name: exit
+    layer: usr
+    aliases: ["退出"]
+    params: "—"
+    summary: "退出游戏并离开当前世界。"
+    system: 系统
+    status: 已实现
+    evidence: "PlayerLeaveAction（src/wsim/actions/player.py）；会话断开即离开。"
+  - name: finger
+    layer: usr
+    aliases: ["查人"]
+    params: "[<玩家>]"
+    summary: "查询某位玩家的门派、技能与在线状态。"
+    system: 社交
+    status: 待实现
+    blocker: "玩家档案/文字壳"
+    evidence: "当前只有在线玩家列表（_online_players_view），没有玩家档案目录与离线查询。"
+  - name: help
+    layer: usr
+    aliases: ["帮助", "说明"]
+    params: "[<主题>]"
+    summary: "打开帮助主题或命令说明。"
+    system: 系统
+    status: 待实现
+    blocker: "玩家档案/文字壳"
+    evidence: "content/xkx_help 内容包已产出并通过校验；游戏内帮助入口尚未接入该内容包。"
+  - name: hp
+    layer: usr
+    aliases: ["气血"]
+    params: "—"
+    summary: "查看自己的气血与当前战斗状态。"
+    system: 战斗
+    status: 已实现
+    evidence: "src/wsim/api/session.py 的 _status_view 已展示 hp/max_hp；暂无独立的 hp 动词。"
+  - name: id
+    layer: usr
+    aliases: ["鉴定", "物品详情"]
+    params: "[here]"
+    summary: "查看物品的类别、描述与参考价格。"
+    system: 物品
+    status: 已实现
+    evidence: "src/wsim/api/session.py 的背包/店铺只读视图已给出物品 id、类别、描述与价格；`id here` 因无地面物品而退化为查看背包。"
+  - name: inventory
+    layer: usr
+    aliases: ["背包", "物品"]
+    params: "—"
+    summary: "查看自己携带的物品与钱财。"
+    system: 物品
+    status: 已实现
+    evidence: "session._wallet_view（src/wsim/api/session.py）返回钱包、背包与装备。"
+  - name: map
+    layer: usr
+    aliases: ["地图"]
+    params: "[<参量>]"
+    summary: "查看当前区域的地图与相邻节点。"
+    system: 移动
+    status: 已实现
+    evidence: "GET /api/world/map（session.world_map，src/wsim/api/session.py）返回全城节点与邻接边。"
+  - name: mudlist
+    layer: usr
+    aliases: ["泥巴列表"]
+    params: "[<泥巴名>]"
+    summary: "列出互连的其他 MUD 站点。"
+    system: 系统
+    status: 不做
+    blocker: "玩家治理/巫师/运营"
+    evidence: "本版为单世界复刻，不做 MUD 互连目录。"
+  - name: news
+    layer: usr
+    aliases: ["新闻"]
+    params: "[next|<编号>|new|all]"
+    summary: "阅读游戏内新闻公告。"
+    system: 系统
+    status: 不做
+    blocker: "玩家治理/巫师/运营"
+    evidence: "游戏内新闻板未建模；公告走运营渠道。"
+  - name: nick
+    layer: usr
+    aliases: ["外号"]
+    params: "<外号|none>"
+    summary: "设置或清除自己的外号。"
+    system: 社交
+    status: 待实现
+    blocker: "玩家档案/文字壳"
+    evidence: "玩家档案没有外号字段；显示名只有角色名。"
+  - name: passwd
+    layer: usr
+    aliases: ["改密"]
+    params: "—"
+    summary: "修改自己的登录密码。"
+    system: 系统
+    status: 待实现
+    blocker: "玩家档案/文字壳"
+    evidence: "认证只支持注册/登录，没有改密接口。"
+  - name: quest
+    layer: usr
+    aliases: ["任务"]
+    params: "—"
+    summary: "查看自己已接的委托、进度与奖励。"
+    system: 系统
+    status: 已实现
+    evidence: "GET /api/player/quests 与 session._quests_view（src/wsim/api/session.py）。"
+  - name: quit
+    layer: usr
+    aliases: ["离开"]
+    params: "—"
+    summary: "退出游戏并保存进度。"
+    system: 系统
+    status: 已实现
+    evidence: "PlayerLeaveAction（src/wsim/actions/player.py）；进度由事件流自动持久化。"
+  - name: save
+    layer: usr
+    aliases: ["存档"]
+    params: "—"
+    summary: "手动保存当前进度。"
+    system: 系统
+    status: 已实现
+    evidence: "src/wsim/world/writer.py 与 src/wsim/world/store.py 采用事件溯源，每个动作即写入事件流，无需手动存档。"
+  - name: score
+    layer: usr
+    aliases: ["状态", "属性"]
+    params: "—"
+    summary: "查看体力、技能、装备、门派与财务概况。"
+    system: 系统
+    status: 已实现
+    evidence: "src/wsim/api/session.py 的 _status_view 已展示体力、气血、攻防、技能、装备与门派；经验与完整属性仍待扩展。"
+  - name: set
+    layer: usr
+    aliases: ["设置"]
+    params: "<变量> <值>"
+    summary: "设置环境变量或显示选项。"
+    system: 系统
+    status: 待实现
+    blocker: "玩家档案/文字壳"
+    evidence: "本版没有玩家设置项；配置由服务端默认值决定。"
+  - name: sos
+    layer: usr
+    aliases: ["求救"]
+    params: "[post|read]"
+    summary: "向巫师或在线玩家发出求救。"
+    system: 系统
+    status: 不做
+    blocker: "玩家治理/巫师/运营"
+    evidence: "在线管理员求助通道未建模。"
+  - name: suicide
+    layer: usr
+    aliases: ["自尽"]
+    params: "[-f|-r]"
+    summary: "删除自己的角色并重新开始。"
+    system: 系统
+    status: 不做
+    blocker: "玩家治理/巫师/运营"
+    evidence: "破坏性角色删除不在 V1 开放；账号/角色管理走运营流程。"
+  - name: time
+    layer: usr
+    aliases: ["时间"]
+    params: "—"
+    summary: "查看当前游戏世界时间。"
+    system: 系统
+    status: 已实现
+    evidence: "src/wsim/api/session.py 的玩家状态返回世界 tick，界面按第几天几时显示；暂无农历/节气。"
+  - name: title
+    layer: usr
+    aliases: ["称号"]
+    params: "[玩家名]"
+    summary: "查看或设置称号。"
+    system: 社交
+    status: 待实现
+    blocker: "玩家档案/文字壳"
+    evidence: "玩家档案没有称号字段；称号需与成就/门派贡献一起设计。"
+  - name: unset
+    layer: usr
+    aliases: ["取消设置"]
+    params: "<变量>"
+    summary: "取消某个环境变量设置。"
+    system: 系统
+    status: 待实现
+    blocker: "玩家档案/文字壳"
+    evidence: "本版没有玩家设置项。"
+  - name: version
+    layer: usr
+    aliases: ["版本"]
+    params: "—"
+    summary: "查看服务端版本与内容包版本。"
+    system: 系统
+    status: 已实现
+    evidence: "GET /api/health 的 version/profile_version 字段（src/wsim/api/server.py）。"
+  - name: who
+    layer: usr
+    aliases: ["在线", "谁在"]
+    params: "—"
+    summary: "列出当前在线玩家及其位置。"
+    system: 社交
+    status: 已实现
+    evidence: "session._online_players_view（src/wsim/api/session.py）；玩家状态里直接可见。"
+  - name: wimpy
+    layer: usr
+    aliases: ["逃命线"]
+    params: "[<百分比>]"
+    summary: "设置自动逃命的体力阈值。"
+    system: 战斗
+    status: 待实现
+    blocker: "战斗系统"
+    evidence: "战斗已有回合与体力；自动逃跑阈值与 flee 动作尚未实现。"
+  - name: wizlist
+    layer: usr
+    aliases: ["巫师名单"]
+    params: "—"
+    summary: "列出当前在线的巫师。"
+    system: 系统
+    status: 不做
+    blocker: "玩家治理/巫师/运营"
+    evidence: "本版没有游戏内巫师在线体系。"
+  # ---------- cmds/skill：武学与门派 ----------
+  - name: abandon
+    layer: skill
+    aliases: ["弃功", "放弃"]
+    params: "<技能>"
+    summary: "彻底放弃某项已学技能。"
+    system: 门派
+    status: 待实现
+    blocker: "武学/资源系统"
+    evidence: "技能以熟练度存在于玩家状态，但没有删除/放弃动作。"
+  - name: apprentice
+    layer: skill
+    aliases: ["拜师"]
+    params: "[cancel]|<对象>"
+    summary: "拜某位 NPC 或玩家为师，加入其门派。"
+    system: 门派
+    status: 待实现
+    blocker: "师承系统"
+    evidence: "ApprenticeAction（src/wsim/actions/social.py）已存在，但玩家动词白名单 src/wsim/actions/player.py 的 PLAYER_UNIMPLEMENTED_VERBS 显式未开放。"
+  - name: bai
+    layer: skill
+    aliases: ["拜师"]
+    params: "[cancel]|<对象>"
+    summary: "拜师，加入师父所在门派。"
+    system: 门派
+    status: 待实现
+    blocker: "师承系统"
+    evidence: "apprentice 的别名；同样受 PLAYER_UNIMPLEMENTED_VERBS 限制。"
+    canonical: apprentice
+  - name: bei
+    layer: skill
+    aliases: ["备招", "备兵"]
+    params: "[<拳术>|<拳术>|none]"
+    summary: "准备下一回合要使用的招式或兵器。"
+    system: 门派
+    status: 待实现
+    blocker: "武学/资源系统"
+    evidence: "本版技能只有熟练度，没有招式位/准备槽；随武学系统扩展。"
+    canonical: prepare
+  - name: burning
+    layer: skill
+    aliases: ["发怒", "燃烧"]
+    params: "—"
+    summary: "激发怒气，短时间内提升攻击。"
+    system: 战斗
+    status: 待实现
+    blocker: "战斗系统"
+    evidence: "战斗已有攻防结算；怒气资源与增益效果尚未建模。"
+  - name: cha
+    layer: skill
+    aliases: ["技能"]
+    params: "[<某人>] [<技能>]"
+    summary: "查看自己或他人的技能清单与熟练度。"
+    system: 系统
+    status: 已实现
+    evidence: "session._skills_detail（src/wsim/api/session.py）；skills 的别名。"
+    canonical: skills
+  - name: dazuo
+    layer: skill
+    aliases: ["打坐"]
+    params: "<耗费气的量>"
+    summary: "打坐练气，把精转化为气。"
+    system: 门派
+    status: 待实现
+    blocker: "武学/资源系统"
+    evidence: "本版没有精/气/内力资源；exercise 的别名。"
+    canonical: exercise
+  - name: du
+    layer: skill
+    aliases: ["读书"]
+    params: "<物品> <次数>"
+    summary: "阅读书籍，提升对应知识技能。"
+    system: 门派
+    status: 待实现
+    blocker: "武学/资源系统"
+    evidence: "书籍与阅读系统未建模；study 的别名。"
+    canonical: study
+  - name: editskill
+    layer: skill
+    aliases: ["编技能"]
+    params: "<基本技能> <英文名> <中文名> <第几招>"
+    summary: "巫师创建或修改自创武功。"
+    system: 系统
+    status: 不做
+    blocker: "产品排除/无对应模型"
+    evidence: "巫师造技能工具；本版不做玩家自创武功。"
+  - name: enable
+    layer: skill
+    aliases: ["激发"]
+    params: "[<技能种类> <技能名称>|none]"
+    summary: "把某项武学激发到对应技能种类上。"
+    system: 门派
+    status: 待实现
+    blocker: "武学/资源系统"
+    evidence: "技能没有种类/激发槽，只有名称与熟练度。"
+  - name: enforce
+    layer: skill
+    aliases: ["加力"]
+    params: "<内力点数>|none"
+    summary: "把内力加到攻击上，提高伤害并消耗内力。"
+    system: 战斗
+    status: 待实现
+    blocker: "战斗系统"
+    evidence: "战斗已有攻防结算；内力资源与加力加成尚未建模。"
+  - name: exercise
+    layer: skill
+    aliases: ["练气", "打坐"]
+    params: "<耗费气的量>"
+    summary: "打坐练气，把精转化为气。"
+    system: 门派
+    status: 待实现
+    blocker: "武学/资源系统"
+    evidence: "本版没有精/气/内力资源，休息只恢复体力。"
+  - name: exert
+    layer: skill
+    aliases: ["运功"]
+    params: "<功能名称> [<对象>]"
+    summary: "运功施展疗伤、护体等特殊功能。"
+    system: 战斗
+    status: 待实现
+    blocker: "战斗系统"
+    evidence: "战斗已有攻防结算；运功疗伤/护体等状态尚未建模。"
+  - name: expell
+    layer: skill
+    aliases: ["逐徒", "开除"]
+    params: "<某人>"
+    summary: "把弟子逐出自己创建的门派。"
+    system: 门派
+    status: 已实现
+    evidence: "PlayerExpelDiscipleAction（src/wsim/actions/player_sect.py）；仅限玩家自创门派，NPC 师父逐徒未开放。"
+  - name: fangqi
+    layer: skill
+    aliases: ["放弃"]
+    params: "<技能>"
+    summary: "放弃某项已学技能，清空其熟练度。"
+    system: 门派
+    status: 待实现
+    blocker: "武学/资源系统"
+    evidence: "abandon 的别名；技能删除动作尚未实现。"
+    canonical: abandon
+  - name: fennu
+    layer: skill
+    aliases: ["发怒"]
+    params: "—"
+    summary: "激发怒气提升攻击。"
+    system: 战斗
+    status: 待实现
+    blocker: "战斗系统"
+    evidence: "burning 的别名；怒气系统未建模。"
+    canonical: burning
+  - name: jiali
+    layer: skill
+    aliases: ["加力"]
+    params: "<内力点数>|none"
+    summary: "把内力加到攻击上。"
+    system: 战斗
+    status: 待实现
+    blocker: "战斗系统"
+    evidence: "enforce 的别名；内力系统未建模。"
+    canonical: enforce
+  - name: jiao
+    layer: skill
+    aliases: ["教习"]
+    params: "<某人> <技能>"
+    summary: "教授弟子某项技能。"
+    system: 门派
+    status: 待实现
+    blocker: "师承系统"
+    evidence: "玩家可收徒但无授课动作；teach 的别名。"
+    canonical: teach
+  - name: jifa
+    layer: skill
+    aliases: ["激发"]
+    params: "[<技能种类> <技能名称>|none]"
+    summary: "把武学激发到技能种类上。"
+    system: 门派
+    status: 待实现
+    blocker: "武学/资源系统"
+    evidence: "enable 的别名；技能无激发槽。"
+    canonical: enable
+  - name: jingzuo
+    layer: skill
+    aliases: ["静坐"]
+    params: "<精气点数>"
+    summary: "静坐修炼，消耗精气提升内力。"
+    system: 门派
+    status: 待实现
+    blocker: "武学/资源系统"
+    evidence: "精/气/内力资源未建模。"
+  - name: kaichu
+    layer: skill
+    aliases: ["逐徒"]
+    params: "<某人>"
+    summary: "把弟子逐出师门。"
+    system: 门派
+    status: 已实现
+    evidence: "expell 的别名；PlayerExpelDiscipleAction（src/wsim/actions/player_sect.py）。"
+    canonical: expell
+  - name: learn
+    layer: skill
+    aliases: ["学习", "请教"]
+    params: "<某人> <技能> <次数>"
+    summary: "向师父或他人学习技能。"
+    system: 门派
+    status: 待实现
+    blocker: "师承系统"
+    evidence: "拜师被 PLAYER_UNIMPLEMENTED_VERBS 拦住，师父授课动作也未建模。"
+  - name: lian
+    layer: skill
+    aliases: ["练功", "练习"]
+    params: "<技能种类> <次数>"
+    summary: "反复练习某项技能，提升熟练度。"
+    system: 门派
+    status: 已实现
+    evidence: "practice 的别名；CultivateAction（src/wsim/actions/basic.py）按小时推进技能熟练度。"
+    canonical: practice
+  - name: mylian
+    layer: skill
+    aliases: ["自练"]
+    params: "<技能种类>"
+    summary: "自练自创武功，提升自创招式。"
+    system: 门派
+    status: 待实现
+    blocker: "武学/资源系统"
+    evidence: "自创武功系统未建模。"
+  - name: perform
+    layer: skill
+    aliases: ["绝招", "发招"]
+    params: "[<武功种类>.]<招式> [<对象>]"
+    summary: "在战斗中施展绝招。"
+    system: 战斗
+    status: 待实现
+    blocker: "战斗系统"
+    evidence: "战斗已有回合结算；招式位与绝招尚未建模。"
+  - name: persuade
+    layer: skill
+    aliases: ["劝架"]
+    params: "<某人> stop"
+    summary: "劝正在战斗的双方停手。"
+    system: 社交
+    status: 不做
+    blocker: "PK/偷抢/对抗"
+    evidence: "战斗与劝架判定未建模；V1 不开放 PK 向互动。"
+  - name: practice
+    layer: skill
+    aliases: ["练习", "练功"]
+    params: "<技能种类> <次数>"
+    summary: "反复练习技能，提升熟练度。"
+    system: 门派
+    status: 已实现
+    evidence: "CultivateAction（src/wsim/actions/basic.py）；技能熟练度 0..1，按投入小时推进。"
+  - name: prepare
+    layer: skill
+    aliases: ["准备", "备招"]
+    params: "[<拳术>|<拳术>|none]"
+    summary: "准备下一回合使用的招式或兵器。"
+    system: 门派
+    status: 待实现
+    blocker: "武学/资源系统"
+    evidence: "技能没有招式位/准备槽。"
+  - name: quanjia
+    layer: skill
+    aliases: ["劝架"]
+    params: "<某人> stop"
+    summary: "劝正在战斗的双方停手。"
+    system: 社交
+    status: 不做
+    blocker: "PK/偷抢/对抗"
+    evidence: "persuade 的别名；战斗只对 NPC 开放，劝架/停战属玩家对抗，未开放。"
+    canonical: persuade
+  - name: recruit
+    layer: skill
+    aliases: ["收徒"]
+    params: "[cancel]|<对象>"
+    summary: "收某人为自己的弟子。"
+    system: 门派
+    status: 已实现
+    evidence: "PlayerRecruitDiscipleAction（src/wsim/actions/player_sect.py）与 RecruitAction（src/wsim/actions/social.py）；仅限玩家自创门派。"
+  - name: research
+    layer: skill
+    aliases: ["研究"]
+    params: "<技能> <次数>"
+    summary: "研究武学，提升理论或自创武功。"
+    system: 门派
+    status: 待实现
+    blocker: "武学/资源系统"
+    evidence: "研究/自创武功系统未建模。"
+  - name: respirate
+    layer: skill
+    aliases: ["吐纳"]
+    params: "[<耗费精的量>]"
+    summary: "吐纳练气，把精转化为气。"
+    system: 门派
+    status: 待实现
+    blocker: "武学/资源系统"
+    evidence: "本版没有精、气、内力三种资源，只有体力；吐纳链路无法结算。"
+  - name: shou
+    layer: skill
+    aliases: ["收徒"]
+    params: "[cancel]|<对象>"
+    summary: "收某人为自己的弟子，纳入门下。"
+    system: 门派
+    status: 已实现
+    evidence: "recruit 的别名；PlayerRecruitDiscipleAction（src/wsim/actions/player_sect.py）。"
+    canonical: recruit
+  - name: skills
+    layer: skill
+    aliases: ["技能"]
+    params: "[<某人>] [<技能>]"
+    summary: "查看自己或他人的技能清单与熟练度。"
+    system: 系统
+    status: 已实现
+    evidence: "session._skills_detail（src/wsim/api/session.py）返回全部技能与熟练度。"
+  - name: study
+    layer: skill
+    aliases: ["读书"]
+    params: "<物品> <次数>"
+    summary: "阅读书籍提升知识技能。"
+    system: 门派
+    status: 待实现
+    blocker: "武学/资源系统"
+    evidence: "书籍与阅读系统未建模。"
+  - name: teach
+    layer: skill
+    aliases: ["教习"]
+    params: "<某人> <技能>"
+    summary: "向自己的弟子传授指定技能。"
+    system: 门派
+    status: 待实现
+    blocker: "师承系统"
+    evidence: "玩家可收徒但没有授课动作。"
+  - name: tuna
+    layer: skill
+    aliases: ["吐纳"]
+    params: "[<耗费精的量>]"
+    summary: "吐纳练气，把精转化为气。"
+    system: 门派
+    status: 待实现
+    blocker: "武学/资源系统"
+    evidence: "respirate 的别名；精/气资源未建模。"
+    canonical: respirate
+  - name: xue
+    layer: skill
+    aliases: ["学习"]
+    params: "<某人> <技能> <次数>"
+    summary: "向他人学习技能。"
+    system: 门派
+    status: 待实现
+    blocker: "师承系统"
+    evidence: "learn 的别名；拜师/授课链路未开放。"
+    canonical: learn
+  - name: yanjiu
+    layer: skill
+    aliases: ["研究"]
+    params: "<技能> <次数>"
+    summary: "研究武学，积累理论或自创进度。"
+    system: 门派
+    status: 待实现
+    blocker: "武学/资源系统"
+    evidence: "research 的别名；研究系统未建模。"
+    canonical: research
+  - name: yanlian
+    layer: skill
+    aliases: ["融功"]
+    params: "<技能>"
+    summary: "把两门相近武学融会贯通。"
+    system: 门派
+    status: 不做
+    blocker: "产品排除/无对应模型"
+    evidence: "技能合并会改变技能树与平衡，本版技能为扁平熟练度，明确不做。"
+  - name: yong
+    layer: skill
+    aliases: ["绝招"]
+    params: "[<武功种类>.]<招式> [<对象>]"
+    summary: "在战斗中施展指定绝招。"
+    system: 战斗
+    status: 待实现
+    blocker: "战斗系统"
+    evidence: "perform 的别名；招式系统未建模。"
+    canonical: perform
+  - name: yun
+    layer: skill
+    aliases: ["运功"]
+    params: "<功能名称> [<对象>]"
+    summary: "运功施展特殊功能。"
+    system: 战斗
+    status: 待实现
+    blocker: "战斗系统"
+    evidence: "exert 的别名；内力功能未建模。"
+    canonical: exert

@@ -1,0 +1,4 @@
+<START> <RANDOM_CHALLENGE_LINE>
+<ENGAGE> 看起来流氓想杀死你！
+<BLACKOUT> 你的眼前一黑，接着什么也不知道了....
+<SETTLE> 你倒在地上，挣扎了几下就死了。

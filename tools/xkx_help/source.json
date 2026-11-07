@@ -1,0 +1,8 @@
+{
+  "repo": "fluffos/xkx100",
+  "commit": "c1b87db0014c85514e053b2a149a2efccb9914e3",
+  "commit_date": "2026-10-14",
+  "inventory": "tools/xkx_help/inventory.txt",
+  "topics_index": "help/help/topics",
+  "note": "源仓库 help/help/topics 只有 32 个主题标题索引，没有逐主题正文文件；帮助正文本包按标题与命令源码重写为中文，不是机器直译。"
+}

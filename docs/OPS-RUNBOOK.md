@@ -1136,3 +1136,100 @@ sqlite3 runs/<RUN_ID>/service.sqlite \
 没配或网段写错（非法项会在 stderr 打印“忽略非法可信代理网段”）。
 
 不配置的后果：跨账号爆破、按 IP 的总体限流全部失效；同代理后的玩家还会共享失败计数。
+
+## 13. 分支发布规则（2026-11-07 起）
+
+xkx 复刻与现有九地点世界并存，**两条线靠分支隔离**，不靠“大家小心一点”。
+
+### 13.1 分支职责
+
+| 分支 | 内容 | 发布状态 |
+|---|---|---|
+| `master` | 现有九地点世界（`config/worlds/default.yaml` + `content/` YAML 包） | **必须始终可发布**。不再直接接 xkx 半成品 |
+| `xkx-parity` | xkx 复刻主线：内容、引擎、玩家壳、公式、参照版、帮助六条线 | 开发主线，允许半成品；**不代表可发布** |
+
+分支切点：`xkx-parity` 从 `121fb37` 拉出，`master` 同期停在同一 commit（未前进、未污染）。
+
+### 13.2 两个基线 tag 的语义与用途
+
+两个 tag 都是 annotated、都已推送，**不移动、不改写**；说明有误时只能新增 tag 纠正，不得重打。
+
+| tag | 指向 | 日期 / 提交标题 | 语义 |
+|---|---|---|---|
+| `world-legacy-20261107` | `121fb37` | 2026-11-07 / `feat(xkx-player): 接入 xkx 真实内容包，195 房/92 NPC 可走可问可买` | **切分支时的九地点可用状态（已含 xkx 内容包接入）** |
+| `pre-xkx-20261107` | `df2b37c` | 2026-11-07 / `docs(dialogue): DIALOGUE-QUALITY 补 model_delivery_rate 指标与 ≥80% 门槛` | **侠客行承接方案（`7f9550c`）与 xkx 内容接入之前的九地点世界快照**，不含任何 xkx 改动 |
+
+用途区分：
+
+- 要回退到“**世界能跑**”的九地点状态 → `world-legacy-20261107`（`121fb37`）；
+- 要回退到“**完全没有 xkx 改动**”的九地点状态 → `pre-xkx-20261107`（`df2b37c`）。
+
+`df2b37c..121fb37` 之间共有 16 个提交，其中 15 个属于 xkx 线（内容、引擎、壳、公式、参照版、帮助、审计），
+仅 `377b815`（`fix(sim): scheduler 留存封顶 + canonical 去重`）是通用引擎/soak 修复。
+合回 master 或整体回滚时按这份边界核对：
+
+```bash
+git log --format='%h|%ad|%s' --date=short df2b37c..121fb37
+```
+
+### 13.3 提交进哪条线
+
+- 九地点世界的修复 / 运维 / 安全补丁 → `master`，合入后立刻验证旧世界可启动、可登录。
+- xkx 复刻六条线（内容、引擎、壳、公式、参照版、帮助）的**所有**提交 → `xkx-parity`。
+- 两条线都需要的公共修复（如启动脚本、代理、鉴权）：先在 `master` 修好验证，再 `git cherry-pick` 到
+  `xkx-parity`；**不要反过来把 xkx 分支的整树合进 master**。
+
+### 13.4 合并回 master 的条件（全部满足才整体合）
+
+1. **能走**：xkx 世界可从出生点出发，按出口方向连续移动，边界出口给出中文原因且不困死玩家；
+2. **能打**：`fight` 对带气血/攻防的实体真实开战，能打出战报，不是“暂不可用”；
+3. **能捡**：`loot` 已注册并能把掉落放进玩家行囊；
+4. **确定性审计全绿**：同 seed 两次运行 `state_final` / `event_final` 哈希一致，审计脚本无红项；
+5. **旧世界 golden 未变**：九地点世界的 golden 基线（房间数、事件数、`content_hash`）逐项不变，
+   旧世界仍可用 `config/worlds/default.yaml` 启动。
+
+任一条不满足 → 留在 `xkx-parity`，master 不接受“先合进去再修”。
+
+### 13.5 操作纪律
+
+- 提交前确认自己在哪条线：`git branch --show-current`；xkx 工作必须在 `xkx-parity`。
+- `git add` 用**显式路径**，不用 `git add -A` / `git add .`，避免把他人未提交改动或运行产物带进提交。
+- 推送前 `git pull --rebase origin <当前分支>`；**禁止** `--force` / `--force-with-lease`。
+- 冲突或历史分叉：停下来报，不强推、不改写已推送历史。
+- 新分支首次推送用 `git push -u origin <分支名>`。
+
+### 13.6 每日对账
+
+```bash
+git fetch origin --tags
+git branch -vv                                   # 本地分支与上游跟踪关系
+git rev-parse HEAD origin/master origin/xkx-parity
+git log --oneline -5 origin/master               # master 是否混入 xkx 提交
+git tag -l --format='%(refname:short)|%(creatordate:short)|%(subject)' 'world-legacy-*' 'pre-xkx-*' 'master-before-reset-*'
+```
+
+判读：`origin/master` 上出现 `feat(xkx` / `fix(xkx` 类提交即为违规，需回退或说明；
+`xkx-parity` 落后 `origin/xkx-parity` 说明有人没推。
+
+### 13.7 master 重置记录（2026-11-07）
+
+| 项 | 值 |
+|---|---|
+| 执行人 | 第三路（玩家壳与接入 session，`6ae85066887df6503c32fcd7`） |
+| 原因 | `master` 直接接入了 xkx 半成品（`98d9c02`…`121fb37`），违反 §13.1“master 必须始终可发布”；老板明确授权退回 |
+| 退回到 | `df2b37c`（`pre-xkx-20261107` 指向的 commit） |
+| 保险 tag | `master-before-reset-20261107` → `121fb37`（annotated，已推远端，tag 对象 `9c07873`） |
+| 操作方式 | 独立 worktree `/tmp/wsim-master-reset` 中 `git reset --hard df2b37c`，再 `git push --force-with-lease=master:121fb37 origin master`（未使用裸 `--force`，未改写任何 tag） |
+| 验证 | `git ls-remote origin refs/heads/master` = `df2b37c`；`origin/master` 顶端三条为 `df2b37c` / `961c3dd` / `9f1661c`；`origin/xkx-parity` 仍为 `53e89a9` |
+
+重置后**只存在于 `xkx-parity`** 的提交共 16 条（`df2b37c..121fb37`，均可在 `xkx-parity` 祖先链上找到，
+无丢失；其中 `377b815` 为通用调度器修复，但同样已在 `xkx-parity`）：
+
+```text
+121fb37 f79d51c e525de4 b587b60 9812625 fec936e 3b6349e 15eeaca
+c934768 927da92 98d9c02 a7b4887 5c32a3b e323244 3218800 377b815
+```
+
+需要恢复重置前状态：`git reset --hard master-before-reset-20261107`（本地）或
+`git push --force-with-lease=master:df2b37c origin master-before-reset-20261107:master`（远端，需老板授权）。
+

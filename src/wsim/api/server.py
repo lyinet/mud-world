@@ -40,6 +40,8 @@ _POST_ROUTES = {
     "/api/player/trade": "trade",
     "/api/player/quest/accept": "quest/accept",
     "/api/player/quest/deliver": "quest/deliver",
+    # xkx 文字壳：一行命令走完 look/go/ask/buy/score/inventory 等。
+    "/api/xkx/command": "xkx/command",
 }
 _AUTH_ROUTES = {
     "/api/auth/register": "register",
@@ -794,6 +796,9 @@ class _Handler(BaseHTTPRequestHandler):
             # 事务已提交、会话锁已释放，模型慢/失败都不会阻塞 tick。
             result.setdefault("verb", verb)
             session.finalize_dialogue(result, args)
+        elif route == "xkx/command":
+            # 文字壳：读命令不写事件；走/问/买等写命令仍走 session.perform。
+            result = session.xkx_command(account, body, request_id)
         elif route == "heartbeat" and bool(body.get("keepalive")):
             # 页面停留保活：只刷新活跃时钟，不写事件；离线仍返回 player_offline 供客户端自愈。
             result = session.keepalive(account)

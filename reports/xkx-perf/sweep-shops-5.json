@@ -1,0 +1,33 @@
+{
+  "clone_ms": {
+    "count": 8,
+    "max": 3.012,
+    "mean": 2.737,
+    "p50": 2.775,
+    "p95": 3.012
+  },
+  "counts": {
+    "accounts": 1101,
+    "businesses": 5,
+    "entities": 100,
+    "factions": 1000,
+    "goals": 100,
+    "locations": 1000,
+    "players": 0,
+    "relations": 0,
+    "schedule": 0
+  },
+  "events_per_tick": 3.05,
+  "hash_ms": {
+    "count": 15,
+    "max": 5.257,
+    "mean": 4.474,
+    "p50": 4.385,
+    "p95": 4.746
+  },
+  "npcs": 100,
+  "rooms": 1000,
+  "shops": 5,
+  "tick_p50_ms": 18.406,
+  "tick_p95_ms": 30.562
+}

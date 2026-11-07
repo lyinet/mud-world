@@ -9,6 +9,72 @@
 
 ---
 
+## [发布] 2026-11-07 — master 退回 pre-xkx 快照（df2b37c）
+
+- **改了什么**：`master` 从 `121fb37` 重置为 `df2b37c`（`pre-xkx-20261107`）；
+  重置前在 `121fb37` 打保险 tag `master-before-reset-20261107` 并推远端；
+  `docs/OPS-RUNBOOK.md` §13.7 记录执行人、原因、目标、保险 tag、操作方式与验证结果。
+- **为什么**：`master` 已直接接入 xkx 半成品（`98d9c02`…`121fb37`），违反 §13.1“master 必须始终可发布”；
+  老板明确授权退回，要求可回退、不丢东西。
+- **验证**：`git merge-base --is-ancestor df2b37c origin/xkx-parity` 成立；
+  `df2b37c..origin/master` 16 条提交逐条确认均在 `xkx-parity` 祖先链上；
+  `git ls-remote origin refs/heads/master` = `df2b37c`；
+  `origin/xkx-parity` 仍为 `53e89a9`；推送使用 `--force-with-lease=master:121fb37`，未用裸 `--force`。
+- **代价**：16 条提交（15 条 xkx 线 + `377b815` 通用修复）现在只存在于 `xkx-parity`，恢复方式见 §13.7。
+- **commit**：见本条目所在提交。
+
+---
+
+## [文档/发布] 2026-11-07 — 修正 legacy tag 语义并新增 pre-xkx 快照 tag
+
+- **改了什么**：
+  - `docs/OPS-RUNBOOK.md` §13.1/§13.2：删除“xkx 开工前”的错误表述，`world-legacy-20261107`
+    改述为“**切分支时的九地点可用状态（已含 xkx 内容包接入）**”；新增 tag 语义对照表
+    （含指向 commit、日期、提交标题）与用途区分；后续小节顺延编号。
+  - 新增 annotated tag `pre-xkx-20261107` → `df2b37c`（tag 对象 `bff65ba`，2026-11-07，
+    `docs(dialogue): DIALOGUE-QUALITY 补 model_delivery_rate 指标与 ≥80% 门槛`），
+    说明为“侠客行承接方案（`7f9550c`）与 xkx 内容接入之前的九地点世界快照”，已推远端。
+  - 记录 `df2b37c..121fb37` 的 xkx 线边界：16 个提交中 15 个属 xkx 线，仅 `377b815`
+    （scheduler 留存封顶）是通用修复。
+- **为什么**：原 `world-legacy-20261107` 打在 `121fb37` 上，而该 commit 本身即
+  `feat(xkx-player): 接入 xkx 真实内容包`，tag message 与实际内容不符；
+  已推送的 tag 按 `docs/GIT-WORKFLOW.md` §4 **永不改写**，因此不改旧 tag，另加一个真正无 xkx
+  改动的快照，供“整体回滚到纯九地点世界”时使用。
+- **验证**：
+  - `git ls-remote origin 'refs/tags/world-legacy-20261107*'` → tag 对象 `473a09e`，解引用 `121fb37`（未变）；
+  - `git ls-remote origin 'refs/tags/pre-xkx-20261107*'` → 对象 `bff65ba`，解引用 `df2b37c`；
+  - `git log --format='%h|%ad|%s' --date=short df2b37c..121fb37` 得到 16 条，逐条核对归属。
+- **commit**：见本条目所在提交。
+
+---
+
+## [修复] 2026-11-07 — 修复 2h soak RSS 无界增长漏点（p3m 门禁 rss_growth）
+
+- **改了什么**：`src/wsim/sim/scheduler.py`
+  - `AmbientScheduler` 四个内存留存字段 `_summaries` / `_player_actions` / `_control_log` / `_lod_changes` 从无界 `list` 改为 `deque(maxlen=_AMBIENT_IN_MEM_MAX)`，新增模块常量 `_AMBIENT_IN_MEM_MAX = 2000`。
+  - `_record_event` 中 `ev.to_canonical_dict()` 从每事件 3 次降到 1 次（存局部变量 `canonical` 复用），削减写热路径序列化 churn。
+  - `final_summary()` 序列化前对四个 deque 调 `list()`（`deque` 不可 `json.dumps`，否则 9 个 scheduler 测试 `TypeError`）。
+- **为什么**：p3m 第 3 条门禁 `tools/soak_test.py` 的 `rss_growth_lt_5pct_per_hour` 失败——
+  修复前 2h soak 稳态 RSS 回归斜率约 590 MB/h、约 71x 超限（采样 `reports/soak/soak-20261107-084749/samples.jsonl`，按口径不入库，磁盘保留）。
+  探针定位（探针脚本与日志均在仓库外 `/tmp/`，未污染工作树）：`writer._seen` / `AuditLog.records` /
+  `MCPGateway.tokens` / `outbox` / completed quest 均已封顶后，`tracemalloc` 追踪内存趋平，但 scheduler
+  四个 list 仍无界增长，叠加每事件重复 `to_canonical_dict()` 的瞬时大对象 churn 推高 RSS。
+- **验证**：
+  - 探针实测（仓库外 `/tmp/wsim_vmmap_probe.py`，含本修复；同负载 50 玩家）：封顶后 t=420→720（300s）
+    `vmmap --summary` 各区域 0 增长——untagged VM_ALLOCATE 66→66 MB、MALLOC_TINY 41→42 MB、MALLOC_LARGE 16→16 MB、
+    总 footprint 140→142 MB；`ps` 实时 cur RSS 146560→146640 KB（净 +80 KB/300s ≈ 1 MB/h）；`tracemalloc` 53.4→54.7 MB 趋平。
+  - 全量 pytest：**669 passed / 18 skipped / 0 failed**（`PYTHONPATH=src .venv/bin/python -m pytest`）。
+  - `scripts/selfcheck.sh`：**4/4 PASS**（内容包校验 / pytest / framework_check 6-6 / 玩家闭环 6-6），
+    证据 `reports/selfcheck/selfcheck-df2b37c-20261107-103531.json`；framework 段 calls=94、schema_reject=0、拒绝率=0.00%、守恒=0、replay=MATCH。
+  - e2e：**26/26 PASS**，证据 `reports/w4-e2e/e2e-service.json`（head `df2b37c`）。
+  - 2h soak 重跑：本次提交后执行，结果回填本条与 `docs/RELEASE-NOTES-p3m.md`。
+- **遗留 / 风险**：`ru_maxrss`（peak 高水位）偶发棘轮来自 `WorldState.clone()` 每写整世界 pickle 深拷贝的瞬态尖峰；
+  若重跑 soak 时 `peak_growth_pct` 门禁仍超限，下一步削减 `state.clone()` churn（改按需浅拷贝，保证隔离语义），记 p3n。
+  `PYTHONMALLOC=malloc` 对照探针已证伪（peak 斜率反而略高），本次不采用。
+- **commit**：见本条目所在提交。
+
+---
+
 ## [文档] 2026-11-07 — DIALOGUE-QUALITY 补 model_delivery_rate 指标与门槛
 
 - **改了什么**：`docs/DIALOGUE-QUALITY.md` 指标表新增 `model_delivery_rate` 行，

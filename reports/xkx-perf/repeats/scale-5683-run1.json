@@ -1,0 +1,183 @@
+{
+  "_merged_for_report": 1200,
+  "clone_ms": {
+    "count": 15,
+    "max": 25.436,
+    "mean": 18.421,
+    "p50": 17.906,
+    "p95": 20.509
+  },
+  "counts": {
+    "accounts": 5784,
+    "businesses": 20,
+    "entities": 100,
+    "factions": 5683,
+    "goals": 100,
+    "locations": 5683,
+    "players": 0,
+    "relations": 0,
+    "schedule": 0
+  },
+  "elapsed_scale": "in-process",
+  "events_for_replay": 1,
+  "events_per_tick": 3.95,
+  "final_tick": 0,
+  "full_hash_ms": {
+    "count": 15,
+    "max": 96.527,
+    "mean": 64.472,
+    "p50": 55.793,
+    "p95": 94.577
+  },
+  "genesis_build_ms": 20.586,
+  "genesis_effects": 11807,
+  "hash_bare_ms": {
+    "count": 30,
+    "max": 0.03,
+    "mean": 0.011,
+    "p50": 0.01,
+    "p95": 0.013
+  },
+  "hash_ms": {
+    "count": 30,
+    "max": 36.998,
+    "mean": 25.252,
+    "p50": 24.098,
+    "p95": 36.49
+  },
+  "hold_ms": {
+    "count": 600,
+    "max": 638.061,
+    "mean": 36.822,
+    "p50": 25.966,
+    "p95": 98.11
+  },
+  "max_hops": 149,
+  "npcs": 100,
+  "ok": 600,
+  "path_ms_by_hops": {
+    "1": {
+      "count": 60,
+      "max": 0.006,
+      "mean": 0.001,
+      "p50": 0.001,
+      "p95": 0.002,
+      "verified": 60
+    },
+    "10": {
+      "count": 60,
+      "max": 0.095,
+      "mean": 0.065,
+      "p50": 0.065,
+      "p95": 0.079,
+      "verified": 60
+    },
+    "149": {
+      "count": 30,
+      "max": 11.338,
+      "mean": 6.739,
+      "p50": 6.962,
+      "p95": 10.997,
+      "verified": 30
+    },
+    "2": {
+      "count": 60,
+      "max": 0.041,
+      "mean": 0.005,
+      "p50": 0.003,
+      "p95": 0.016,
+      "verified": 60
+    },
+    "25": {
+      "count": 60,
+      "max": 1.082,
+      "mean": 0.44,
+      "p50": 0.435,
+      "p95": 0.695,
+      "verified": 60
+    },
+    "5": {
+      "count": 60,
+      "max": 0.025,
+      "mean": 0.017,
+      "p50": 0.017,
+      "p95": 0.022,
+      "verified": 60
+    },
+    "50": {
+      "count": 60,
+      "max": 4.508,
+      "mean": 2.145,
+      "p50": 1.838,
+      "p95": 4.281,
+      "verified": 60
+    },
+    "75": {
+      "count": 60,
+      "max": 8.645,
+      "mean": 3.336,
+      "p50": 2.797,
+      "p95": 6.71,
+      "verified": 60
+    }
+  },
+  "path_overall_ms": {
+    "count": 200,
+    "max": 4.042,
+    "mean": 1.382,
+    "p50": 1.285,
+    "p95": 3.17
+  },
+  "players": 0,
+  "rejected": 0,
+  "replay_hash_equal": true,
+  "rooms": 5683,
+  "rounds_per_seat": 6,
+  "rss_delta_mb": 35.094,
+  "rss_peak_mb": 75.594,
+  "samples": 600,
+  "scale": 5683,
+  "seats": 100,
+  "seed": 42,
+  "shops": 20,
+  "startup_ms": 30.699,
+  "throughput_per_s": 19.291,
+  "tick": {
+    "count": 60,
+    "max": 431.25,
+    "mean": 151.159,
+    "p50": 136.99,
+    "p95": 261.152
+  },
+  "tick_samples": 60,
+  "tick_warmup": 30,
+  "total_ms": {
+    "count": 600,
+    "max": 6202.466,
+    "mean": 3732.851,
+    "p50": 3639.235,
+    "p95": 6173.96
+  },
+  "view": {
+    "businesses": 20,
+    "entities": 200,
+    "factions": 5683,
+    "location_view_ms": {
+      "count": 100,
+      "max": 0.048,
+      "mean": 0.011,
+      "p50": 0.009,
+      "p95": 0.021
+    },
+    "locations": 5683,
+    "seats": 100,
+    "view_ms": {
+      "count": 100,
+      "max": 0.977,
+      "mean": 0.391,
+      "p50": 0.34,
+      "p95": 0.725
+    },
+    "warm_ms": 0.581
+  }
+}

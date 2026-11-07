@@ -27,6 +27,9 @@ class Entity:
     inventory: dict[str, int] = field(default_factory=dict)
     # 已装备槽位 → 物品 id。空字典不写进 to_dict()，确保无玩家世界哈希不变。
     equipped: dict[str, str] = field(default_factory=dict)
+    # NPC 随身装备（内容包 `equipment` 原样，可重复）。死亡时转成地面物品；
+    # 旧九地点 NPC 没有该字段，空列表不写进 to_dict()，哈希不变。
+    equipment: list[str] = field(default_factory=list)
     skills: dict[str, float] = field(default_factory=dict)
     personality: dict[str, Any] = field(default_factory=dict)
     employed_at: str | None = None
@@ -41,6 +44,20 @@ class Entity:
     # 玩家在场状态（P3-C）：online / offline。NPC 默认 online 且不写哈希。
     presence: str = "online"
     last_seen_tick: int = 0
+    # ---- 战斗属性（xkx parity，P2）----
+    # 全部为整数；旧内容包不提供这些键时保持默认值，且 to_dict() 不输出，
+    # 保证无战斗实体的旧世界哈希逐字节不变。`skills` 的 0..1 浮点语义保持不变，
+    # 战斗读取时回退为 int(skills[skill] * 100)；新内容使用 skill_levels/skill_xp。
+    hp: int = 0
+    max_hp: int = 0
+    attack: int = 0  # 基础伤害（兵器/拳脚），0 视为 1
+    defense: int = 0  # 护甲减伤
+    attrs: dict[str, int] = field(default_factory=dict)  # str/int/con/dex/sta/spi/kar/cps/cor
+    combat_exp: int = 0
+    skill_levels: dict[str, int] = field(default_factory=dict)  # 技能等级（0..800）
+    skill_xp: dict[str, int] = field(default_factory=dict)  # 技能经验（0..99）
+    death_tick: int = 0
+    death_location: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         data = {
@@ -72,6 +89,27 @@ class Entity:
             data["last_seen_tick"] = self.last_seen_tick
         if self.equipped:
             data["equipped"] = dict(sorted(self.equipped.items()))
+        if self.equipment:
+            data["equipment"] = list(self.equipment)
+        # 战斗字段：只在内容包显式提供后出现，旧世界（max_hp=0）不新增任何键。
+        if self.max_hp:
+            data["hp"] = int(self.hp)
+            data["max_hp"] = int(self.max_hp)
+        if self.attack:
+            data["attack"] = int(self.attack)
+        if self.defense:
+            data["defense"] = int(self.defense)
+        if self.attrs:
+            data["attrs"] = dict(sorted(self.attrs.items()))
+        if self.combat_exp:
+            data["combat_exp"] = int(self.combat_exp)
+        if self.skill_levels:
+            data["skill_levels"] = dict(sorted(self.skill_levels.items()))
+        if self.skill_xp:
+            data["skill_xp"] = dict(sorted(self.skill_xp.items()))
+        if self.death_tick or self.death_location:
+            data["death_tick"] = int(self.death_tick)
+            data["death_location"] = self.death_location
         return data
 
 
@@ -403,6 +441,9 @@ class WorldState:
     # 玩家婚姻元数据：键为排序后的 "a|b"。只有至少一方是玩家时才写入；
     # 为空时不影响哈希，保证无玩家世界逐字节不变。
     marriages: dict[str, dict[str, Any]] = field(default_factory=dict)
+    # 地面掉落：location -> {item_id: qty}。所有写入只经 loot_create / loot_take
+    # 两个 Effect；为空时不写进 to_dict()，旧世界哈希逐字节不变。
+    ground: dict[str, dict[str, int]] = field(default_factory=dict)
 
     def clone(self) -> "WorldState":
         """整世界深拷贝（写事务的 trial 副本）。
@@ -446,6 +487,10 @@ class WorldState:
         if self.marriages:
             data["marriages"] = {
                 k: dict(sorted(v.items())) for k, v in sorted(self.marriages.items())
+            }
+        if self.ground:
+            data["ground"] = {
+                k: dict(sorted(v.items())) for k, v in sorted(self.ground.items()) if v
             }
         return data
 

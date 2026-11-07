@@ -15,6 +15,7 @@ from ..actions.common import goal_kind, goal_target, organization_at
 from ..core.content import Content
 from ..core.models import Effect
 from ..world.state import WorldState
+from .vitals import resolve_npc_vitals
 
 
 @dataclass
@@ -201,22 +202,24 @@ def build_genesis(
         money = int(npc["assets"].get("money", 0))
         npc_money_total += money
 
+        entity_data: dict[str, Any] = {
+            "id": nid,
+            "name": npc["name"],
+            "role": npc["role"],
+            "location": home,
+            "home": home,
+            "stamina": 100.0,
+            "skills": {content_role_skill(content, npc["role"]): skill},
+            "personality": npc.get("personality") or {},
+        }
+        # 带内容战斗数据的 NPC（xkx 切片）落 max_hp/attrs/skills；
+        # legacy 内容没有 vitals/attrs/skills 键，解析结果为 None，事件逐字节不变。
+        npc_vitals = resolve_npc_vitals(npc)
+        if npc_vitals is not None:
+            entity_data.update(npc_vitals)
+
         effects.append(Effect("create_account", {"account": acc}))
-        effects.append(
-            Effect(
-                "create_entity",
-                {
-                    "id": nid,
-                    "name": npc["name"],
-                    "role": npc["role"],
-                    "location": home,
-                    "home": home,
-                    "stamina": 100.0,
-                    "skills": {content_role_skill(content, npc["role"]): skill},
-                    "personality": npc.get("personality") or {},
-                },
-            )
-        )
+        effects.append(Effect("create_entity", entity_data))
         if money > 0:
             effects.append(Effect("mint", {"account": acc, "amount": money, "reason": "genesis_endowment"}))
         for item in npc["assets"].get("items") or []:
@@ -224,6 +227,49 @@ def build_genesis(
                 effects.append(
                     Effect("item_create", {"owner": nid, "item": item["id"], "qty": item["qty"], "reason": "genesis_carry"})
                 )
+        if npc_vitals is not None:
+            # xkx 内容包的装备：作为“随身装备”挂在实体上（不进背包，避免被交易/
+            # 拾取逻辑当成普通携带物），死亡时由战斗动作转成地面物品。
+            # 只按内容 `equipment` 原样记录，不补造任何“掉落表”。
+            equipment: list[str] = []
+            for row in npc.get("equipment") or []:
+                ref = str((row or {}).get("ref") or "")
+                if not ref:
+                    continue
+                equipment.append(ref)
+                # 物品表缺这条装备时如实记录诊断，不编造重量/价格；落地时
+                # loot_take 仍按物品表计算，查不到就是 0，不在这里补值。
+                if ref not in content.items:
+                    mismatches.append(f"unknown_equipment_item:{nid}:{ref}")
+            if equipment:
+                entity_data["equipment"] = equipment
+
+    # 4a2) 房间地面初始物品：只认内容显式给出的整数 count。
+    # `count_expr: random(...)` 这类表达式一律跳过，不在创世里引入随机。
+    # legacy locations 没有 `objects` 键，本段零效果。
+    for lid in loc_ids:
+        rows = [
+            obj
+            for obj in (content.locations[lid].get("objects") or [])
+            if isinstance(obj, dict)
+            and str(obj.get("kind") or "") == "item"
+            and str(obj.get("ref") or "")
+            and not isinstance(obj.get("count"), bool)
+            and isinstance(obj.get("count"), int)
+            and int(obj["count"]) > 0
+        ]
+        for obj in sorted(rows, key=lambda r: str(r["ref"])):
+            effects.append(
+                Effect(
+                    "loot_create",
+                    {
+                        "location": lid,
+                        "item": str(obj["ref"]),
+                        "qty": int(obj["count"]),
+                        "reason": "genesis_ground",
+                    },
+                )
+            )
 
     # 4b) 就业 / 初始目标 / 师徒字段
     for npc in npcs:
