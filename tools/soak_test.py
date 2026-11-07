@@ -413,7 +413,395 @@ def _snapshot_structures(objs):
     return out
 
 
+_DUMPED = False
+_DUMP_THRESHOLD = int(os.environ.get("XKX_SOAK_DUMP_EVENTS") or "21000")
+_WANTED = ("Writer", "WorldSession", "AuditLog", "MCPGateway", "EventStore",
+           "WorldState", "AmbientScheduler")
+
+
+def _chain(obj, max_depth=3, max_nodes=60):
+    out = []
+    seen = {id(obj)}
+    frontier = [(obj, 0)]
+    while frontier and len(out) < max_nodes:
+        cur, depth = frontier.pop(0)
+        if depth >= max_depth:
+            continue
+        for ref in gc.get_referrers(cur):
+            if id(ref) in seen:
+                continue
+            seen.add(id(ref))
+            t = type(ref).__name__
+            info = {"type": t, "depth": depth + 1}
+            code = getattr(ref, "f_code", None)
+            if code is not None:
+                info["code"] = {"name": code.co_name,
+                                "file": os.path.basename(code.co_filename),
+                                "line": code.co_firstlineno}
+            if isinstance(ref, dict):
+                info["len"] = len(ref)
+                info["keys"] = [str(k) for k in list(ref.keys())[:8]]
+            elif isinstance(ref, (list, tuple, set, frozenset)):
+                info["len"] = len(ref)
+            else:
+                try:
+                    attrs = [k for k, v in list(vars(ref).items())[:80] if v is cur]
+                except Exception:
+                    attrs = []
+                if attrs:
+                    info["attrs"] = attrs
+            out.append(info)
+            if t not in _WANTED:
+                frontier.append((ref, depth + 1))
+    return out
+
+
+def _dump_owners(objs, counter):
+    """一次性回溯：最老 3 个 Event（已从 _seen 淘汰）+ 首尾 AuditRecord + WorldState。"""
+    global _DUMPED
+    held = {"instances": {n: counter.get(n, 0) for n in _WANTED + ("Event", "AuditRecord")},
+            "events": [], "audit": [], "states": []}
+    evs = [o for o in objs if type(o).__name__ == "Event"]
+    evs.sort(key=lambda e: int(getattr(e, "seq", 0)))
+    oldest = evs[:3]
+    newest = evs[-3:]
+    for tag, batch in (("oldest", oldest), ("newest", newest)):
+        for ev in batch:
+            held["events"].append({"age": tag, "seq": getattr(ev, "seq", None),
+                                   "chain": _chain(ev)})
+    del evs, oldest, newest
+    recs = [o for o in objs if type(o).__name__ == "AuditRecord"]
+    recs.sort(key=lambda r: int(getattr(r, "seq", 0)))
+    for tag, batch in (("oldest", recs[:3]), ("newest", recs[-3:])):
+        for rec in batch:
+            held["audit"].append({"age": tag, "seq": getattr(rec, "seq", None),
+                                  "chain": _chain(rec)})
+    del recs
+    states = [o for o in objs if type(o).__name__ == "WorldState"][:3]
+    for st in states:
+        held["states"].append({"tick": getattr(st, "tick", None),
+                               "id": id(st), "chain": _chain(st)})
+    del states
+    with open(os.path.join(_DIR, "owners.json"), "w", encoding="utf-8") as fh:
+        json.dump(held, fh, ensure_ascii=False, indent=1)
+
+
+# ---- write latency phase probe --------------------------------------------
+# 只做事后诊断：给 WorldSession.perform / Writer.submit / sqlite / audit 包一层计时，
+# 命中慢请求时把"锁等待 vs 执行"与线程栈一起落盘，用于定位 write.max 尖刺。
+_LAT_ENABLED = str(os.environ.get("XKX_SOAK_LAT_PROBE") or "1").strip().lower() not in (
+    "", "0", "false", "off", "no")
+_LAT_RECORD_MS = float(os.environ.get("XKX_SOAK_LAT_RECORD_MS") or "100")
+_LAT_STACK_MS = float(os.environ.get("XKX_SOAK_LAT_STACK_MS") or "250")
+_LAT_PATH = os.path.join(_DIR, "lat_probe.jsonl")
+_LAT_STACK_PATH = os.path.join(_DIR, "lat_stacks.jsonl")
+_LAT_SAMPLE_AFTER_MS = float(os.environ.get("XKX_SOAK_LAT_SAMPLE_AFTER_MS") or "80")
+_LAT_SAMPLE_EVERY_S = max(0.01, float(os.environ.get("XKX_SOAK_LAT_SAMPLE_S") or "0.05"))
+_LAT_LOCK = threading.Lock()
+_LAT_TLS = threading.local()
+_LAT_ACTIVE: dict[str, dict] = {}
+
+
+def _lat_ms(t0):
+    return (time.perf_counter() - t0) * 1000.0
+
+
+def _lat_rec():
+    return getattr(_LAT_TLS, "rec", None)
+
+
+def _lat_bump(key, dt):
+    r = _lat_rec()
+    if r is not None:
+        r["phases"][key] = round(r["phases"].get(key, 0.0) + float(dt), 3)
+
+
+def _lat_write(row):
+    with _LAT_LOCK:
+        try:
+            with open(_LAT_PATH, "a", encoding="utf-8") as fh:
+                fh.write(json.dumps(row, ensure_ascii=False) + "\\n")
+        except Exception:
+            pass
+
+
+def _lat_write_to(path, row):
+    with _LAT_LOCK:
+        try:
+            with open(path, "a", encoding="utf-8") as fh:
+                fh.write(json.dumps(row, ensure_ascii=False) + "\\n")
+        except Exception:
+            pass
+
+
+def _lat_stacks():
+    out: dict[str, list[str]] = {}
+    names = {t.ident: t.name for t in threading.enumerate()}
+    for tid, fr in sys._current_frames().items():
+        frames = traceback.extract_stack(fr, limit=40)[-12:]
+        out[names.get(tid, str(tid))] = [
+            f"{os.path.basename(f.filename)}:{f.lineno}:{f.name}" for f in frames
+        ]
+    return out
+
+
+def _lat_sizes(session):
+    out: dict[str, object] = {}
+    try:
+        st = session.writer.state
+        for key, value in vars(st).items():
+            if isinstance(value, (dict, list, set, tuple)) and value:
+                out["state." + key] = len(value)
+        out["writer.seen"] = len(getattr(session.writer, "_seen", {}))
+        out["writer.player_ticks"] = len(getattr(session.writer, "_player_ticks", {}))
+        out["session.requests"] = len(getattr(session, "requests", {}))
+        out["store.count"] = session.store.count()
+    except Exception:
+        pass
+    return out
+
+
+def _patch_latency():
+    S = sys.modules.get("wsim.api.session")
+    if S is None or not _LAT_ENABLED:
+        return not _LAT_ENABLED
+    if getattr(S, "_soak_lat_patched", False):
+        return True
+    try:
+        import wsim.mcp.audit as A
+        import wsim.mcp.gateway as G
+        import wsim.world.state as WS
+        import wsim.world.store as ST
+        import wsim.world.writer as W
+    except Exception:
+        return False
+
+    class _ConnProxy:
+        """透明代理 sqlite 连接：把 execute / commit 分别计时（checkpoint 在 commit 里）。"""
+
+        def __init__(self, conn):
+            self._conn = conn
+
+        def execute(self, *args, **kwargs):
+            t0 = time.perf_counter()
+            try:
+                return self._conn.execute(*args, **kwargs)
+            finally:
+                _lat_bump("sql_execute_ms", _lat_ms(t0))
+
+        def commit(self, *args, **kwargs):
+            t0 = time.perf_counter()
+            try:
+                return self._conn.commit(*args, **kwargs)
+            finally:
+                _lat_bump("sql_commit_ms", _lat_ms(t0))
+
+        def __getattr__(self, name):
+            return getattr(self._conn, name)
+
+    orig_perform = S.WorldSession.perform
+    orig_perform_inner = S.WorldSession._perform
+    orig_status_view = S.WorldSession._status_view
+    orig_submit = W.Writer.submit
+    orig_append = ST.EventStore.append
+    orig_store_init = ST.EventStore.__init__
+    orig_clone = WS.WorldState.clone
+    orig_gcall = G.MCPGateway.call
+    orig_audit_append = A.AuditLog.append
+    orig_effects = W.apply_effects
+
+    def perform(self, account, action, payload=None, request_id="", advance=True):
+        row = {
+            "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "thread": threading.current_thread().name,
+            "account": str(account),
+            "action": str(action),
+            "t0": time.perf_counter(),
+            "phases": {},
+            "verbs": [],
+        }
+        _LAT_TLS.rec = row
+        try:
+            return orig_perform(self, account, action, payload, request_id, advance)
+        finally:
+            total = _lat_ms(row.pop("t0"))
+            row["total_ms"] = round(total, 2)
+            if total >= _LAT_RECORD_MS:
+                if total >= _LAT_STACK_MS:
+                    row["active"] = {
+                        k: {"action": v.get("action"), "account": v.get("account"),
+                            "elapsed_ms": round(_lat_ms(v["t0"]), 2)}
+                        for k, v in list(_LAT_ACTIVE.items())[:6]
+                    }
+                    # 只有"头车"（几乎没等锁）才值得抓栈；跟车者的栈都在锁上。
+                    if float(row.get("lock_wait_ms") or 0.0) < 60.0:
+                        row["stacks"] = _lat_stacks()
+                row["sizes"] = _lat_sizes(self)
+                row["gc_count"] = list(gc.get_count())
+                _lat_write(row)
+            _LAT_TLS.rec = None
+
+    def perform_inner(self, account, action, payload, advance=True):
+        row = _lat_rec()
+        t0 = time.perf_counter()
+        if row is not None and "exec_t0" not in row:
+            row["exec_t0"] = t0
+            row["lock_wait_ms"] = round(_lat_ms(row["t0"]), 2)
+        name = threading.current_thread().name
+        _LAT_ACTIVE[name] = {"action": str(action), "account": str(account), "t0": t0,
+                             "ident": threading.get_ident()}
+        try:
+            return orig_perform_inner(self, account, action, payload, advance)
+        finally:
+            if row is not None:
+                row["exec_ms"] = round(_lat_ms(t0), 2)
+            _LAT_ACTIVE.pop(name, None)
+
+    def status_view(self, pid):
+        t0 = time.perf_counter()
+        try:
+            return orig_status_view(self, pid)
+        finally:
+            _lat_bump("status_view_ms", _lat_ms(t0))
+
+    def submit(self, intent):
+        t0 = time.perf_counter()
+        row = _lat_rec()
+        try:
+            return orig_submit(self, intent)
+        finally:
+            _lat_bump("submit_ms", _lat_ms(t0))
+            if row is not None:
+                row["verbs"].append(str(getattr(intent, "verb", "")))
+                row["phases"]["submit_calls"] = row["phases"].get("submit_calls", 0) + 1
+
+    def append(self, event):
+        t0 = time.perf_counter()
+        try:
+            if not isinstance(self.conn, _ConnProxy):
+                self.conn = _ConnProxy(self.conn)
+            return orig_append(self, event)
+        finally:
+            _lat_bump("store_append_ms", _lat_ms(t0))
+            r = _lat_rec()
+            if r is not None:
+                r["phases"]["append_calls"] = r["phases"].get("append_calls", 0) + 1
+                r["phases"]["append_bytes"] = r["phases"].get("append_bytes", 0) + len(
+                    str(getattr(event, "args", "")) + str(getattr(event, "effects", ""))
+                )
+
+    def store_init(self, *args, **kwargs):
+        orig_store_init(self, *args, **kwargs)
+        if not isinstance(self.conn, _ConnProxy):
+            self.conn = _ConnProxy(self.conn)
+
+    def clone(self):
+        t0 = time.perf_counter()
+        try:
+            return orig_clone(self)
+        finally:
+            _lat_bump("clone_ms", _lat_ms(t0))
+            r = _lat_rec()
+            if r is not None:
+                r["phases"]["clone_calls"] = r["phases"].get("clone_calls", 0) + 1
+
+    def gcall(self, caller, method, params=None):
+        t0 = time.perf_counter()
+        try:
+            return orig_gcall(self, caller, method, params)
+        finally:
+            _lat_bump("gateway_ms", _lat_ms(t0))
+            r = _lat_rec()
+            if r is not None:
+                key = "gateway:" + str(method)
+                r["phases"][key] = round(r["phases"].get(key, 0.0) + _lat_ms(t0), 3)
+
+    def audit_append(self, record):
+        t0 = time.perf_counter()
+        try:
+            return orig_audit_append(self, record)
+        finally:
+            _lat_bump("audit_ms", _lat_ms(t0))
+            r = _lat_rec()
+            if r is not None:
+                r["phases"]["audit_calls"] = r["phases"].get("audit_calls", 0) + 1
+
+    def effects(*a, **k):
+        t0 = time.perf_counter()
+        try:
+            return orig_effects(*a, **k)
+        finally:
+            _lat_bump("effects_ms", _lat_ms(t0))
+
+    S.WorldSession.perform = perform
+    S.WorldSession._perform = perform_inner
+    S.WorldSession._status_view = status_view
+    W.Writer.submit = submit
+    W.apply_effects = effects
+    ST.EventStore.append = append
+    ST.EventStore.__init__ = store_init
+    WS.WorldState.clone = clone
+    G.MCPGateway.call = gcall
+    A.AuditLog.append = audit_append
+    # 只有全部替换成功才置位：早期导入可能与主线程 import 竞争而抛错，
+    # 置位过早会让后续轮询直接返回、探针静默失效。
+    S._soak_lat_patched = True
+    return True
+
+
+def _lat_patch_loop():
+    for _ in range(4000):
+        try:
+            if _patch_latency():
+                return
+        except Exception:
+            try:
+                with open(os.path.join(_DIR, "lat_probe.error.log"), "a", encoding="utf-8") as fh:
+                    fh.write(traceback.format_exc() + "\\n")
+            except Exception:
+                pass
+        time.sleep(0.05)
+
+
+def _lat_sample_loop():
+    """慢请求"正在执行时"的栈：每 50ms 扫一次仍在跑的请求，钉死具体卡点。"""
+    if _LAT_SAMPLE_AFTER_MS <= 0:
+        return
+    last: dict[str, float] = {}
+    while True:
+        time.sleep(_LAT_SAMPLE_EVERY_S)
+        try:
+            frames = sys._current_frames()
+            names = {t.ident: t.name for t in threading.enumerate()}
+            now = time.perf_counter()
+            for name, info in list(_LAT_ACTIVE.items()):
+                elapsed = _lat_ms(info["t0"])
+                if elapsed < _LAT_SAMPLE_AFTER_MS:
+                    continue
+                if now - last.get(name, 0.0) < 0.1:
+                    continue
+                fr = frames.get(info.get("ident"))
+                if fr is None:
+                    continue
+                last[name] = now
+                stack = [
+                    f"{os.path.basename(f.filename)}:{f.lineno}:{f.name}"
+                    for f in traceback.extract_stack(fr, limit=60)[-18:]
+                ]
+                _lat_write_to(_LAT_STACK_PATH, {
+                    "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                    "thread": names.get(info.get("ident"), name),
+                    "action": info.get("action"),
+                    "account": info.get("account"),
+                    "elapsed_ms": round(elapsed, 2),
+                    "stack": stack,
+                })
+        except Exception:
+            pass
+
+
 def _loop():
+    global _DUMPED
     path = os.path.join(_DIR, "gc_probe.jsonl")
     started = time.monotonic()
     while True:
@@ -448,7 +836,20 @@ def _loop():
                     continue
                 counter[nm] = counter.get(nm, 0) + 1
             row["types_top"] = [[k, v] for k, v in sorted(counter.items(), key=lambda kv: -kv[1])[:25]]
+            row["instances"] = {n: counter.get(n, 0) for n in (
+                "Writer", "WorldSession", "AuditLog", "MCPGateway", "EventStore",
+                "WorldState", "Event", "AuditRecord", "OrderedDict", "deque")}
+            if not _DUMPED and counter.get("Event", 0) > _DUMP_THRESHOLD:
+                _DUMPED = True
+                try:
+                    _dump_owners(objs, counter)
+                except Exception:
+                    with open(os.path.join(_DIR, "owners.error.log"), "a", encoding="utf-8") as fh:
+                        fh.write(traceback.format_exc() + "\\n")
             row["structures"] = _snapshot_structures(objs)
+            # 关键：objs 里含本线程 frame，frame 的局部变量又引用 objs，构成环；
+            # 不显式删除会让每次快照把整个对象图钉住（Event/AuditRecord/WorldState 逐轮累积）。
+            del objs, counter
             with open(path, "a", encoding="utf-8") as fh:
                 fh.write(json.dumps(row, ensure_ascii=False) + "\\n")
         except Exception:
@@ -458,6 +859,16 @@ def _loop():
 
 try:
     threading.Thread(target=_loop, daemon=True, name="soak-gc-probe").start()
+except Exception:
+    pass
+
+try:
+    threading.Thread(target=_lat_patch_loop, daemon=True, name="soak-lat-probe").start()
+except Exception:
+    pass
+
+try:
+    threading.Thread(target=_lat_sample_loop, daemon=True, name="soak-lat-sampler").start()
 except Exception:
     pass
 '''
@@ -836,7 +1247,9 @@ def _build_summary(
             return None
         return round(b / a, 3)
 
-    warmup = min(float(args.warmup), max(30.0, duration_actual * 0.25))
+    # 预热口径：必须覆盖 _seen 填满（上限 20000；50 席约 410s），
+    # 不再用 duration*25% 静默截短。仅保证至少留 300s 观察窗。
+    warmup = min(float(args.warmup), max(30.0, duration_actual - 300.0))
     rss_rows = [s for s in samples if s.get("rss_mb") is not None]
     warm_rows = [s for s in rss_rows if s["elapsed_s"] >= warmup]
     rss_slope_h = 0.0
@@ -1311,7 +1724,10 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--ramp-up", type=float, default=10.0, help="玩家进入爬坡时长（秒）")
     parser.add_argument("--timeout", type=float, default=15.0, help="单请求超时（秒）")
     parser.add_argument("--sample-interval", type=float, default=30.0, help="采样间隔（秒）")
-    parser.add_argument("--warmup", type=float, default=600.0, help="RSS 斜率计算跳过预热期（秒）")
+    parser.add_argument("--warmup", type=float, default=600.0,
+                        help=("RSS 斜率计算跳过预热期（秒，默认 600）。幂等缓存 _seen 上限 "
+                              "20000、50 席实测约 410s 填满；默认值覆盖填满窗口，否则会把"
+                              "缓存填充误判成泄漏。"))
     parser.add_argument("--port", type=int, default=0, help="服务端口；0=自动挑空闲端口")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--tag", default="", help="账号标签（默认随机 4 位）")
