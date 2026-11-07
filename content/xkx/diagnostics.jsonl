@@ -1,0 +1,75 @@
+{"line":null,"message":"items_desc 覆盖率 82.0% 低于目标 85.0%（32/39）；缺口已逐条写入 diagnostics","metric":"items_desc","path":"coverage","rule":"W_COVERAGE_BELOW_TARGET","severity":"warning"}
+{"line":12,"message":"边界出口 westup -> /d/meizhuang/shijie（区外，有回程，可通行）","path":"d/hangzhou/gushan.lpc","rule":"W_BOUNDARY_EXIT","severity":"warning","target":"/d/meizhuang/shijie"}
+{"line":10,"message":"源码没有 set(\"value\") 价格","path":"d/hangzhou/honghua/obj/huangshan.lpc","rule":"W_NO_PRICE","severity":"warning"}
+{"line":13,"message":"物品价格为 0","path":"d/hangzhou/honghua/obj/tiedan.lpc","rule":"I_PRICE_ZERO","severity":"info"}
+{"line":31,"message":"边界出口 up -> /clone/shop/hangzhou_shop（区外，有回程，可通行）","path":"d/hangzhou/majiu.lpc","rule":"W_BOUNDARY_EXIT","severity":"warning","target":"/clone/shop/hangzhou_shop"}
+{"line":6,"message":"源码没有 long 描述；按 plan 保留 id 与空描述，不补写文案","path":"d/hangzhou/npc/guanjia.lpc","rule":"W_DESC_MISSING","severity":"warning"}
+{"line":9,"message":"源码没有 long 描述；按 plan 保留 id 与空描述，不补写文案","path":"d/hangzhou/npc/guest.lpc","rule":"W_DESC_MISSING","severity":"warning"}
+{"line":6,"message":"源码没有 long 描述；按 plan 保留 id 与空描述，不补写文案","path":"d/hangzhou/npc/jiading.lpc","rule":"W_DESC_MISSING","severity":"warning"}
+{"line":10,"message":"源码没有 long 描述；按 plan 保留 id 与空描述，不补写文案","path":"d/hangzhou/npc/obj/cloth.lpc","rule":"W_DESC_MISSING","severity":"warning"}
+{"line":10,"message":"源码没有 set(\"value\") 价格","path":"d/hangzhou/npc/obj/cloth.lpc","rule":"W_NO_PRICE","severity":"warning"}
+{"line":10,"message":"源码没有 long 描述；按 plan 保留 id 与空描述，不补写文案","path":"d/hangzhou/npc/obj/goupi.lpc","rule":"W_DESC_MISSING","severity":"warning"}
+{"line":6,"message":"源码没有 long 描述；按 plan 保留 id 与空描述，不补写文案","path":"d/hangzhou/npc/obj/marry_card.lpc","rule":"W_DESC_MISSING","severity":"warning"}
+{"line":6,"message":"源码没有 set(\"value\") 价格","path":"d/hangzhou/npc/obj/marry_card.lpc","rule":"W_NO_PRICE","severity":"warning"}
+{"line":6,"message":"源码没有 long 描述；按 plan 保留 id 与空描述，不补写文案","path":"d/hangzhou/npc/you-ke.lpc","rule":"W_DESC_MISSING","severity":"warning"}
+{"line":16,"message":"物品价格为 0","path":"d/hangzhou/obj/eluanshi.lpc","rule":"I_PRICE_ZERO","severity":"info"}
+{"line":15,"message":"物品价格为 0","path":"d/hangzhou/obj/shitou.lpc","rule":"I_PRICE_ZERO","severity":"info"}
+{"line":14,"message":"边界出口 eastdown -> /d/binghuo/qiantang（区外，有回程，可通行）","path":"d/hangzhou/qiantang.lpc","rule":"W_BOUNDARY_EXIT","severity":"warning","target":"/d/binghuo/qiantang"}
+{"line":7,"message":"房间没有任何出口","path":"d/hangzhou/santan.lpc","rule":"W_NO_EXIT","severity":"warning"}
+{"line":7,"message":"房间没有任何出口","path":"d/hangzhou/xihu.lpc","rule":"W_NO_EXIT","severity":"warning"}
+{"line":20,"message":"路径带扩展名 /d/jiaxing/jiangpan3.lpc，按 /d/jiaxing/jiangpan3 归一化","path":"d/jiaxing/haibin.lpc","path_value":"/d/jiaxing/jiangpan3.lpc","rule":"I_PATH_NORMALIZED","severity":"info"}
+{"line":12,"message":"边界出口 northwest -> /d/taishan/yidao1（区外，有回程，可通行）","path":"d/jiaxing/jnroad1.lpc","rule":"W_BOUNDARY_EXIT","severity":"warning","target":"/d/taishan/yidao1"}
+{"line":13,"message":"边界出口 west -> /d/suzhou/dongmen（区外，有回程，可通行）","path":"d/jiaxing/jnroad2.lpc","rule":"W_BOUNDARY_EXIT","severity":"warning","target":"/d/suzhou/dongmen"}
+{"line":13,"message":"边界出口 southup -> /d/yanping/xianxialing（区外，有回程，可通行）","path":"d/jiaxing/jnroad4.lpc","rule":"W_BOUNDARY_EXIT","severity":"warning","target":"/d/yanping/xianxialing"}
+{"dir":"out","line":59,"message":"/d/jiaxing/mishi 的 out 出口到 /d/jiaxing/xiaodian，但目标没有回程出口","path":"d/jiaxing/mishi.lpc","rule":"W_ASYMMETRIC_EXIT","severity":"warning","target":"/d/jiaxing/xiaodian"}
+{"line":8,"message":"源码没有 long 描述；按 plan 保留 id 与空描述，不补写文案","path":"d/jiaxing/npc/flower_shoe.lpc","rule":"W_DESC_MISSING","severity":"warning"}
+{"line":23,"message":"对话主题「gongzi」的值是函数，静态不可搬；保留主题键并转 fallback","path":"d/jiaxing/npc/hai.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"gongzi"}
+{"line":23,"message":"对话主题「payment」的值是函数，静态不可搬；保留主题键并转 fallback","path":"d/jiaxing/npc/hai.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"payment"}
+{"line":23,"message":"对话主题「salary」的值是函数，静态不可搬；保留主题键并转 fallback","path":"d/jiaxing/npc/hai.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"salary"}
+{"line":23,"message":"对话主题「zigong」的值是函数，静态不可搬；保留主题键并转 fallback","path":"d/jiaxing/npc/hai.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"zigong"}
+{"line":23,"message":"对话主题「工资」的值是函数，静态不可搬；保留主题键并转 fallback","path":"d/jiaxing/npc/hai.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"工资"}
+{"line":23,"message":"对话主题「自宫」的值是函数，静态不可搬；保留主题键并转 fallback","path":"d/jiaxing/npc/hai.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"自宫"}
+{"line":23,"message":"对话主题「薪水」的值是函数，静态不可搬；保留主题键并转 fallback","path":"d/jiaxing/npc/hai.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"薪水"}
+{"line":10,"message":"源码没有 long 描述；按 plan 保留 id 与空描述，不补写文案","path":"d/jiaxing/npc/obj/cloth.lpc","rule":"W_DESC_MISSING","severity":"warning"}
+{"line":10,"message":"源码没有 set(\"value\") 价格","path":"d/jiaxing/npc/obj/cloth.lpc","rule":"W_NO_PRICE","severity":"warning"}
+{"line":20,"message":"物品价格为 0","path":"d/jiaxing/npc/obj/yinzhen.lpc","rule":"I_PRICE_ZERO","severity":"info"}
+{"line":10,"message":"源码没有 long 描述；按 plan 保留 id 与空描述，不补写文案","path":"d/jiaxing/obj/cloth.lpc","rule":"W_DESC_MISSING","severity":"warning"}
+{"line":10,"message":"源码没有 set(\"value\") 价格","path":"d/jiaxing/obj/cloth.lpc","rule":"W_NO_PRICE","severity":"warning"}
+{"line":8,"message":"源码没有 long 描述；按 plan 保留 id 与空描述，不补写文案","path":"d/jiaxing/obj/flower_shoe.lpc","rule":"W_DESC_MISSING","severity":"warning"}
+{"line":9,"message":"源码没有 set(\"value\") 价格","path":"d/jiaxing/obj/shanshui.lpc","rule":"W_NO_PRICE","severity":"warning"}
+{"line":6,"message":"源码没有 set(\"value\") 价格","path":"d/jiaxing/obj/tiepai.lpc","rule":"W_NO_PRICE","severity":"warning"}
+{"dir":"down","line":15,"message":"/d/jiaxing/yanyu3 的 down 出口到 /d/jiaxing/yanyu2，但目标没有回程出口","path":"d/jiaxing/yanyu3.lpc","rule":"W_ASYMMETRIC_EXIT","severity":"warning","target":"/d/jiaxing/yanyu2"}
+{"line":14,"message":"边界房间 /d/meizhuang/shijie 的出口 north -> /d/meizhuang/xiaolu 超出切片，已裁剪","path":"d/meizhuang/shijie.lpc","rule":"I_STUB_EXIT_DROPPED","severity":"info"}
+{"dir":"up","line":11,"message":"/d/shiliang/andao1 的 up 出口到 /d/shiliang/xiaoting，但目标没有回程出口","path":"d/shiliang/andao1.lpc","rule":"W_ASYMMETRIC_EXIT","severity":"warning","target":"/d/shiliang/xiaoting"}
+{"line":7,"message":"房间没有任何出口","path":"d/shiliang/huli.lpc","rule":"W_NO_EXIT","severity":"warning"}
+{"dir":"up","line":12,"message":"/d/shiliang/jinshedong 的 up 出口到 /d/shiliang/shandong7，但目标没有回程出口","path":"d/shiliang/jinshedong.lpc","rule":"W_ASYMMETRIC_EXIT","severity":"warning","target":"/d/shiliang/shandong7"}
+{"dir":"west","line":14,"message":"/d/shiliang/jinshedong1 的 west 出口到 /d/shiliang/jinshedong，但目标没有回程出口","path":"d/shiliang/jinshedong1.lpc","rule":"W_ASYMMETRIC_EXIT","severity":"warning","target":"/d/shiliang/jinshedong"}
+{"line":4,"message":"房间没有任何出口","path":"d/shiliang/midao.lpc","rule":"W_NO_EXIT","severity":"warning"}
+{"line":22,"message":"对话主题「阿凤」的值是函数，静态不可搬；保留主题键并转 fallback","path":"d/shiliang/npc/atu.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"阿凤"}
+{"line":32,"message":"对话主题「金蛇吐雾」的值是函数，静态不可搬；保留主题键并转 fallback","path":"d/shiliang/npc/jinshe.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"金蛇吐雾"}
+{"line":32,"message":"对话主题「锁剑诀」的值是函数，静态不可搬；保留主题键并转 fallback","path":"d/shiliang/npc/jinshe.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"锁剑诀"}
+{"line":32,"message":"对话主题「附骨缠身」的值是函数，静态不可搬；保留主题键并转 fallback","path":"d/shiliang/npc/jinshe.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"附骨缠身"}
+{"line":4,"message":"源码没有 set(\"value\") 价格","path":"d/shiliang/npc/obj/qingshu.lpc","rule":"W_NO_PRICE","severity":"warning"}
+{"line":4,"message":"源码没有 set(\"value\") 价格","path":"d/shiliang/npc/obj/saoba.lpc","rule":"W_NO_PRICE","severity":"warning"}
+{"line":4,"message":"源码没有 set(\"value\") 价格","path":"d/shiliang/npc/obj/shoupa.lpc","rule":"W_NO_PRICE","severity":"warning"}
+{"line":24,"message":"对话主题「手帕」的值是函数，静态不可搬；保留主题键并转 fallback","path":"d/shiliang/npc/wenyi.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"手帕"}
+{"line":11,"message":"源码没有 set(\"value\") 价格","path":"d/shiliang/obj/hole.lpc","rule":"W_NO_PRICE","severity":"warning"}
+{"dir":"east","line":11,"message":"/d/shiliang/shandong1 的 east 出口到 /d/shiliang/shandong2，但目标没有回程出口","path":"d/shiliang/shandong1.lpc","rule":"W_ASYMMETRIC_EXIT","severity":"warning","target":"/d/shiliang/shandong2"}
+{"dir":"west","line":11,"message":"/d/shiliang/shandong2 的 west 出口到 /d/shiliang/shandong3，但目标没有回程出口","path":"d/shiliang/shandong2.lpc","rule":"W_ASYMMETRIC_EXIT","severity":"warning","target":"/d/shiliang/shandong3"}
+{"dir":"south","line":11,"message":"/d/shiliang/shandong3 的 south 出口到 /d/shiliang/shandong4，但目标没有回程出口","path":"d/shiliang/shandong3.lpc","rule":"W_ASYMMETRIC_EXIT","severity":"warning","target":"/d/shiliang/shandong4"}
+{"dir":"north","line":11,"message":"/d/shiliang/shandong4 的 north 出口到 /d/shiliang/shandong5，但目标没有回程出口","path":"d/shiliang/shandong4.lpc","rule":"W_ASYMMETRIC_EXIT","severity":"warning","target":"/d/shiliang/shandong5"}
+{"line":20,"message":"边界房间 /d/suzhou/dongmen 的出口 west -> /d/suzhou/dongdajie2 超出切片，已裁剪","path":"d/suzhou/dongmen.lpc","rule":"I_STUB_EXIT_DROPPED","severity":"info"}
+{"line":14,"message":"边界房间 /d/taishan/yidao1 的出口 northeast -> /d/taishan/yidao2 超出切片，已裁剪","path":"d/taishan/yidao1.lpc","rule":"I_STUB_EXIT_DROPPED","severity":"info"}
+{"line":14,"message":"边界房间 /d/taishan/yidao1 的出口 west -> /d/taishan/yidao 超出切片，已裁剪","path":"d/taishan/yidao1.lpc","rule":"I_STUB_EXIT_DROPPED","severity":"info"}
+{"line":16,"message":"对话主题「price」的值是函数，静态不可搬；保留主题键并转 fallback","path":"d/taohua/npc/laoda.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"price"}
+{"line":16,"message":"对话主题「qihang」的值是函数，静态不可搬；保留主题键并转 fallback","path":"d/taohua/npc/laoda.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"qihang"}
+{"line":16,"message":"对话主题「taohuadao」的值是函数，静态不可搬；保留主题键并转 fallback","path":"d/taohua/npc/laoda.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"taohuadao"}
+{"line":16,"message":"对话主题「价钱」的值是函数，静态不可搬；保留主题键并转 fallback","path":"d/taohua/npc/laoda.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"价钱"}
+{"line":16,"message":"对话主题「启航」的值是函数，静态不可搬；保留主题键并转 fallback","path":"d/taohua/npc/laoda.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"启航"}
+{"line":16,"message":"对话主题「桃花岛」的值是函数，静态不可搬；保留主题键并转 fallback","path":"d/taohua/npc/laoda.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"桃花岛"}
+{"line":13,"message":"边界房间 /d/yanping/xianxialing 的出口 south -> /d/yanping/erbapu 超出切片，已裁剪","path":"d/yanping/xianxialing.lpc","rule":"I_STUB_EXIT_DROPPED","severity":"info"}
+{"line":86,"message":"对话主题「help」的值是函数，静态不可搬；保留主题键并转 fallback","path":"kungfu/class/baituo/ouyangfeng1.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"help"}
+{"line":86,"message":"对话主题「公公救我」的值是函数，静态不可搬；保留主题键并转 fallback","path":"kungfu/class/baituo/ouyangfeng1.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"公公救我"}
+{"line":47,"message":"对话主题「何沅君」的值是函数，静态不可搬；保留主题键并转 fallback","path":"kungfu/class/gumu/limochou.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"何沅君"}
+{"line":21,"message":"对话主题「杀东方不败」的值是函数，静态不可搬；保留主题键并转 fallback","path":"kungfu/class/heimuya/xiang.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"杀东方不败"}
+{"line":null,"message":"NPC map_skill 引用的技能文件不存在：tianji-quan","path":"kungfu/skill/tianji-quan.lpc","rule":"W_MISSING_SKILL","severity":"warning","skill":"tianji-quan"}

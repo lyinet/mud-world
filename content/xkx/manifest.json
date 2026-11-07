@@ -1,0 +1,110 @@
+{
+  "areas": [
+    "hangzhou",
+    "jiaxing",
+    "shiliang"
+  ],
+  "content_hash": "dae52e5293648034981e463f8ab7e5213fe02747eaf780400ef1dd4dd48f64af",
+  "counts": {
+    "aggressive_npcs": 7,
+    "dialogue_topics": 67,
+    "dialogue_topics_in_slice": 40,
+    "exits": 427,
+    "items_external": 13,
+    "items_in_slice": 39,
+    "masters": 22,
+    "npcs_external": 12,
+    "npcs_in_slice": 92,
+    "rooms_boundary_stub": 6,
+    "rooms_in_slice": 195,
+    "sects": 1,
+    "shops": 3,
+    "skills": 48
+  },
+  "coverage": {
+    "dialogue_text": {
+      "hit": 28,
+      "ratio": 0.7,
+      "target": 0.638,
+      "total": 40
+    },
+    "items_desc": {
+      "hit": 32,
+      "ratio": 0.8205,
+      "target": 0.85,
+      "total": 39
+    },
+    "npcs_desc": {
+      "hit": 88,
+      "ratio": 0.9565,
+      "target": 0.9,
+      "total": 92
+    },
+    "room_exits": {
+      "hit": 191,
+      "ratio": 0.9795,
+      "target": 0.978,
+      "total": 195
+    },
+    "rooms_desc": {
+      "hit": 195,
+      "ratio": 1.0,
+      "target": 0.961,
+      "total": 195
+    }
+  },
+  "files": {
+    "diagnostics.jsonl": {
+      "bytes": 14205,
+      "sha256": "7961eb9e92f7fd5b644a9819c4e36a219d56ffc61bc214876f3e974046460f84"
+    },
+    "dialogue.json": {
+      "bytes": 19197,
+      "sha256": "b9fe08d5b58443698e3d6ea3ce58d7bb171e2e2dc519088e8692669e8b4d62bd"
+    },
+    "exits.json": {
+      "bytes": 75536,
+      "sha256": "a1fdb78e2a4d7f1f54b01688bfad4c4b374819bb88ec2d379f94edc835eac63e"
+    },
+    "items.json": {
+      "bytes": 24541,
+      "sha256": "06a81637cb412a712079a14646aae402b097e02ca543b00cebc163037456c82b"
+    },
+    "npcs.json": {
+      "bytes": 126514,
+      "sha256": "d13abc4e155ecbfe269f796dd02e67cab0b41dc289c5d43c888ac23417d17319"
+    },
+    "rooms.json": {
+      "bytes": 136540,
+      "sha256": "bc469bc6c71e1dc153d98ee52919dda2f40e30b53ac8d5eefee567c01df99b95"
+    },
+    "sects.json": {
+      "bytes": 842,
+      "sha256": "571b53869f3c7de9dbfb994623cb2f647b65fa7746e7b0b416897b982faae461"
+    },
+    "shops.json": {
+      "bytes": 3173,
+      "sha256": "e585a91e180f8564843362f0f2687f030ce8cca21abefc04a3ad75e0c7ddb801"
+    },
+    "skills.json": {
+      "bytes": 28905,
+      "sha256": "60c825b86644093c88862bd5e95c11cae30b3f4f4397ab1430d5a9acc89f17ae"
+    },
+    "summary.json": {
+      "bytes": 1270,
+      "sha256": "b27a7d93f87b55dc23ac850e64659f091b53513b2cb518b2a1a18d1532167848"
+    }
+  },
+  "generator": "tools/xkx_extract",
+  "rules_version": 1,
+  "schema_version": 1,
+  "source": {
+    "areas": [
+      "hangzhou",
+      "jiaxing",
+      "shiliang"
+    ],
+    "commit": "c1b87db0014c85514e053b2a149a2efccb9914e3",
+    "repo": "fluffos/xkx100"
+  }
+}

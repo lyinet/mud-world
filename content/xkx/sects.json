@@ -1,0 +1,31 @@
+{
+  "sects": [
+    {
+      "area": "hangzhou",
+      "id": "honghua",
+      "master_count": 19,
+      "masters": [
+        "/d/hangzhou/honghua/an",
+        "/d/hangzhou/honghua/chang1",
+        "/d/hangzhou/honghua/chang2",
+        "/d/hangzhou/honghua/chen",
+        "/d/hangzhou/honghua/huo",
+        "/d/hangzhou/honghua/jiang",
+        "/d/hangzhou/honghua/lu",
+        "/d/hangzhou/honghua/luo",
+        "/d/hangzhou/honghua/meng",
+        "/d/hangzhou/honghua/shi",
+        "/d/hangzhou/honghua/wei",
+        "/d/hangzhou/honghua/wen",
+        "/d/hangzhou/honghua/xinyan",
+        "/d/hangzhou/honghua/xu",
+        "/d/hangzhou/honghua/yang",
+        "/d/hangzhou/honghua/yu",
+        "/d/hangzhou/honghua/zhang",
+        "/d/hangzhou/honghua/zhou",
+        "/d/hangzhou/honghua/zhouyi"
+      ],
+      "name": "红花会"
+    }
+  ]
+}

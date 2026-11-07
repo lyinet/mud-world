@@ -1,0 +1,1151 @@
+{
+  "skills": [
+    {
+      "enable": [
+        "dodge",
+        "move"
+      ],
+      "id": "anying-fuxiang",
+      "martialtype": "dodge",
+      "name": "暗影浮香",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/anying-fuxiang.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/wuchen",
+        "/d/jiaxing/npc/shagu"
+      ]
+    },
+    {
+      "enable": [
+        "force"
+      ],
+      "id": "bibo-shengong",
+      "martialtype": "force",
+      "name": "碧波神功",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/bibo-shengong.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/wuchen",
+        "/d/jiaxing/npc/shagu"
+      ]
+    },
+    {
+      "enable": [
+        "dodge",
+        "parry",
+        "sword"
+      ],
+      "id": "bixie-jian",
+      "martialtype": "skill",
+      "name": "辟邪剑法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/bixie-jian.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/jiaxing/npc/hai"
+      ]
+    },
+    {
+      "enable": [],
+      "id": "blade",
+      "martialtype": "skill",
+      "name": "基本刀法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/blade.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/chen",
+        "/d/hangzhou/honghua/lu",
+        "/d/hangzhou/honghua/luo",
+        "/d/hangzhou/honghua/xu",
+        "/d/hangzhou/honghua/yu",
+        "/d/hangzhou/honghua/zhouyi",
+        "/d/hangzhou/npc/baizhen",
+        "/d/hangzhou/npc/dao-ke",
+        "/d/hangzhou/npc/likexiu",
+        "/d/hangzhou/npc/mengmian",
+        "/d/hangzhou/npc/seng",
+        "/d/shiliang/npc/qingming"
+      ]
+    },
+    {
+      "enable": [
+        "blade",
+        "parry"
+      ],
+      "id": "cibei-dao",
+      "martialtype": "skill",
+      "name": "慈悲刀",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/cibei-dao.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/zhouyi",
+        "/d/hangzhou/npc/mengmian",
+        "/d/hangzhou/npc/seng"
+      ]
+    },
+    {
+      "enable": [],
+      "id": "claw",
+      "martialtype": "skill",
+      "name": "基本爪法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/claw.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/chang1",
+        "/d/hangzhou/honghua/chang2",
+        "/d/hangzhou/honghua/chen",
+        "/d/hangzhou/honghua/huo",
+        "/d/hangzhou/honghua/luo",
+        "/d/hangzhou/honghua/wen",
+        "/d/hangzhou/honghua/xinyan",
+        "/d/hangzhou/honghua/xu",
+        "/d/hangzhou/honghua/yang",
+        "/d/hangzhou/honghua/yu",
+        "/d/hangzhou/honghua/zhang",
+        "/d/hangzhou/npc/baizhen"
+      ]
+    },
+    {
+      "enable": [],
+      "id": "club",
+      "martialtype": "skill",
+      "name": "基本棍法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/club.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/jiang",
+        "/d/hangzhou/npc/honghua2",
+        "/d/hangzhou/npc/qingbing"
+      ]
+    },
+    {
+      "enable": [
+        "parry",
+        "sword"
+      ],
+      "id": "damo-jian",
+      "martialtype": "skill",
+      "name": "达摩剑",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/damo-jian.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/wuchen",
+        "/d/hangzhou/npc/chuyuan"
+      ]
+    },
+    {
+      "enable": [],
+      "id": "dodge",
+      "martialtype": "dodge",
+      "name": "基本轻功",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/dodge.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/an",
+        "/d/hangzhou/honghua/chang1",
+        "/d/hangzhou/honghua/chang2",
+        "/d/hangzhou/honghua/chen",
+        "/d/hangzhou/honghua/huo",
+        "/d/hangzhou/honghua/jiang",
+        "/d/hangzhou/honghua/lu",
+        "/d/hangzhou/honghua/luo",
+        "/d/hangzhou/honghua/meng",
+        "/d/hangzhou/honghua/shi",
+        "/d/hangzhou/honghua/wei",
+        "/d/hangzhou/honghua/wen",
+        "/d/hangzhou/honghua/wuchen",
+        "/d/hangzhou/honghua/xinyan",
+        "/d/hangzhou/honghua/xu",
+        "/d/hangzhou/honghua/yang",
+        "/d/hangzhou/honghua/yu",
+        "/d/hangzhou/honghua/zhang",
+        "/d/hangzhou/honghua/zhao",
+        "/d/hangzhou/honghua/zhou",
+        "/d/hangzhou/honghua/zhouyi",
+        "/d/hangzhou/npc/baizhen",
+        "/d/hangzhou/npc/caichanu",
+        "/d/hangzhou/npc/chuyuan",
+        "/d/hangzhou/npc/dao-ke",
+        "/d/hangzhou/npc/guanjia",
+        "/d/hangzhou/npc/guest",
+        "/d/hangzhou/npc/honghua1",
+        "/d/hangzhou/npc/honghua2",
+        "/d/hangzhou/npc/hongniang",
+        "/d/hangzhou/npc/jiading",
+        "/d/hangzhou/npc/jian-ke",
+        "/d/hangzhou/npc/likexiu",
+        "/d/hangzhou/npc/liumang",
+        "/d/hangzhou/npc/liumangtou",
+        "/d/hangzhou/npc/liyuanzhi",
+        "/d/hangzhou/npc/longjun",
+        "/d/hangzhou/npc/meipo",
+        "/d/hangzhou/npc/mengmian",
+        "/d/hangzhou/npc/qingbing",
+        "/d/hangzhou/npc/seng",
+        "/d/hangzhou/npc/shami",
+        "/d/hangzhou/npc/tangzi",
+        "/d/hangzhou/npc/xianghuo",
+        "/d/hangzhou/npc/you-ke",
+        "/d/hangzhou/npc/youfang",
+        "/d/hangzhou/npc/zhang",
+        "/d/jiaxing/npc/hai",
+        "/d/jiaxing/npc/shagu",
+        "/d/jiaxing/npc/tang",
+        "/d/jiaxing/npc/tang1",
+        "/d/jiaxing/npc/tang2",
+        "/d/jiaxing/npc/tang3",
+        "/d/shiliang/npc/dashifu",
+        "/d/shiliang/npc/jinshe",
+        "/d/shiliang/npc/li",
+        "/d/shiliang/npc/qingming",
+        "/d/shiliang/npc/tufei2",
+        "/d/shiliang/npc/wenfangda",
+        "/d/shiliang/npc/wenfangnan",
+        "/d/shiliang/npc/wenfangshan",
+        "/d/shiliang/npc/wenfangshi",
+        "/d/shiliang/npc/wenfangwu"
+      ]
+    },
+    {
+      "enable": [],
+      "id": "force",
+      "martialtype": "force",
+      "name": "基本内功",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/force.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/an",
+        "/d/hangzhou/honghua/chang1",
+        "/d/hangzhou/honghua/chang2",
+        "/d/hangzhou/honghua/chen",
+        "/d/hangzhou/honghua/huo",
+        "/d/hangzhou/honghua/jiang",
+        "/d/hangzhou/honghua/lu",
+        "/d/hangzhou/honghua/luo",
+        "/d/hangzhou/honghua/meng",
+        "/d/hangzhou/honghua/shi",
+        "/d/hangzhou/honghua/wei",
+        "/d/hangzhou/honghua/wen",
+        "/d/hangzhou/honghua/wuchen",
+        "/d/hangzhou/honghua/xinyan",
+        "/d/hangzhou/honghua/xu",
+        "/d/hangzhou/honghua/yang",
+        "/d/hangzhou/honghua/yu",
+        "/d/hangzhou/honghua/zhang",
+        "/d/hangzhou/honghua/zhao",
+        "/d/hangzhou/honghua/zhou",
+        "/d/hangzhou/honghua/zhouyi",
+        "/d/hangzhou/npc/guanjia",
+        "/d/hangzhou/npc/liyuanzhi",
+        "/d/hangzhou/npc/mengmian",
+        "/d/hangzhou/npc/seng",
+        "/d/hangzhou/npc/shami",
+        "/d/hangzhou/npc/xianghuo",
+        "/d/hangzhou/npc/youfang",
+        "/d/hangzhou/npc/zhang",
+        "/d/jiaxing/npc/hai",
+        "/d/jiaxing/npc/shagu",
+        "/d/jiaxing/npc/tang",
+        "/d/jiaxing/npc/tang1",
+        "/d/jiaxing/npc/tang2",
+        "/d/jiaxing/npc/tang3",
+        "/d/shiliang/npc/dashifu",
+        "/d/shiliang/npc/jinshe"
+      ]
+    },
+    {
+      "enable": [],
+      "id": "hand",
+      "martialtype": "skill",
+      "name": "基本手法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/hand.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/chang1",
+        "/d/hangzhou/honghua/chang2",
+        "/d/hangzhou/honghua/chen",
+        "/d/hangzhou/honghua/huo",
+        "/d/hangzhou/honghua/luo",
+        "/d/hangzhou/honghua/wen",
+        "/d/hangzhou/honghua/xinyan",
+        "/d/hangzhou/honghua/xu",
+        "/d/hangzhou/honghua/yang",
+        "/d/hangzhou/honghua/yu",
+        "/d/hangzhou/honghua/zhang"
+      ]
+    },
+    {
+      "enable": [
+        "parry",
+        "throwing"
+      ],
+      "id": "hanxing-bada",
+      "martialtype": "skill",
+      "name": "寒星八打",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/hanxing-bada.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/zhao"
+      ]
+    },
+    {
+      "enable": [
+        "cuff",
+        "parry",
+        "unarmed"
+      ],
+      "id": "houquan",
+      "martialtype": "skill",
+      "name": "猴拳",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/houquan.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/chen",
+        "/d/hangzhou/honghua/jiang",
+        "/d/hangzhou/honghua/wei",
+        "/d/hangzhou/honghua/yu"
+      ]
+    },
+    {
+      "enable": [
+        "force"
+      ],
+      "id": "huntian-qigong",
+      "martialtype": "force",
+      "name": "混天气功",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/huntian-qigong.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/shiliang/npc/jinshe"
+      ]
+    },
+    {
+      "enable": [
+        "force"
+      ],
+      "id": "hunyuan-yiqi",
+      "martialtype": "force",
+      "name": "混元一气功",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/hunyuan-yiqi.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/an",
+        "/d/hangzhou/honghua/meng",
+        "/d/hangzhou/honghua/zhou",
+        "/d/hangzhou/honghua/zhouyi",
+        "/d/hangzhou/npc/mengmian",
+        "/d/hangzhou/npc/seng"
+      ]
+    },
+    {
+      "enable": [
+        "cuff",
+        "parry"
+      ],
+      "id": "jingang-quan",
+      "martialtype": "skill",
+      "name": "大金刚拳",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/jingang-quan.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/an",
+        "/d/hangzhou/honghua/meng",
+        "/d/hangzhou/honghua/zhou",
+        "/d/hangzhou/honghua/zhouyi"
+      ]
+    },
+    {
+      "enable": [
+        "parry",
+        "sword"
+      ],
+      "id": "jinshe-jian",
+      "martialtype": "skill",
+      "name": "金蛇剑法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/jinshe-jian.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/shiliang/npc/jinshe"
+      ]
+    },
+    {
+      "enable": [
+        "parry",
+        "sword"
+      ],
+      "id": "liangyi-jian",
+      "martialtype": "skill",
+      "name": "两仪剑法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/liangyi-jian.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/lu"
+      ]
+    },
+    {
+      "enable": [
+        "dodge",
+        "move"
+      ],
+      "id": "lingxu-bu",
+      "martialtype": "dodge",
+      "name": "凌虚步",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/lingxu-bu.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/npc/baizhen"
+      ]
+    },
+    {
+      "enable": [],
+      "id": "literate",
+      "martialtype": null,
+      "name": "读书写字",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/literate.lpc"
+      },
+      "type": "knowledge",
+      "used_by": [
+        "/d/hangzhou/honghua/chen",
+        "/d/hangzhou/honghua/huo",
+        "/d/hangzhou/honghua/lu",
+        "/d/hangzhou/honghua/luo",
+        "/d/hangzhou/honghua/wen",
+        "/d/hangzhou/honghua/xu",
+        "/d/hangzhou/honghua/yu",
+        "/d/hangzhou/npc/hongniang",
+        "/d/hangzhou/npc/meipo",
+        "/d/hangzhou/npc/shu-sheng"
+      ]
+    },
+    {
+      "enable": [
+        "parry",
+        "strike"
+      ],
+      "id": "luoying-zhang",
+      "martialtype": "skill",
+      "name": "落英神剑掌",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/luoying-zhang.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/jiaxing/npc/shagu"
+      ]
+    },
+    {
+      "enable": [
+        "dodge",
+        "parry",
+        "throwing"
+      ],
+      "id": "mantian-xing",
+      "martialtype": "skill",
+      "name": "满天星",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/mantian-xing.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/an",
+        "/d/hangzhou/honghua/meng",
+        "/d/hangzhou/honghua/zhao",
+        "/d/hangzhou/honghua/zhou",
+        "/d/hangzhou/npc/longjun"
+      ]
+    },
+    {
+      "enable": [],
+      "id": "parry",
+      "martialtype": "skill",
+      "name": "基本招架",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/parry.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/an",
+        "/d/hangzhou/honghua/chang1",
+        "/d/hangzhou/honghua/chang2",
+        "/d/hangzhou/honghua/chen",
+        "/d/hangzhou/honghua/huo",
+        "/d/hangzhou/honghua/jiang",
+        "/d/hangzhou/honghua/lu",
+        "/d/hangzhou/honghua/luo",
+        "/d/hangzhou/honghua/meng",
+        "/d/hangzhou/honghua/shi",
+        "/d/hangzhou/honghua/wei",
+        "/d/hangzhou/honghua/wen",
+        "/d/hangzhou/honghua/wuchen",
+        "/d/hangzhou/honghua/xinyan",
+        "/d/hangzhou/honghua/xu",
+        "/d/hangzhou/honghua/yang",
+        "/d/hangzhou/honghua/yu",
+        "/d/hangzhou/honghua/zhang",
+        "/d/hangzhou/honghua/zhao",
+        "/d/hangzhou/honghua/zhou",
+        "/d/hangzhou/honghua/zhouyi",
+        "/d/hangzhou/npc/baizhen",
+        "/d/hangzhou/npc/caichanu",
+        "/d/hangzhou/npc/chuyuan",
+        "/d/hangzhou/npc/dao-ke",
+        "/d/hangzhou/npc/honghua1",
+        "/d/hangzhou/npc/honghua2",
+        "/d/hangzhou/npc/jian-ke",
+        "/d/hangzhou/npc/likexiu",
+        "/d/hangzhou/npc/liyuanzhi",
+        "/d/hangzhou/npc/longjun",
+        "/d/hangzhou/npc/mengmian",
+        "/d/hangzhou/npc/qingbing",
+        "/d/hangzhou/npc/seng",
+        "/d/hangzhou/npc/shami",
+        "/d/hangzhou/npc/tangzi",
+        "/d/hangzhou/npc/xianghuo",
+        "/d/hangzhou/npc/youfang",
+        "/d/hangzhou/npc/zhang",
+        "/d/jiaxing/npc/hai",
+        "/d/jiaxing/npc/shagu",
+        "/d/jiaxing/npc/tang",
+        "/d/jiaxing/npc/tang1",
+        "/d/jiaxing/npc/tang2",
+        "/d/jiaxing/npc/tang3",
+        "/d/shiliang/npc/dashifu",
+        "/d/shiliang/npc/jinshe",
+        "/d/shiliang/npc/li",
+        "/d/shiliang/npc/qingming",
+        "/d/shiliang/npc/tufei2",
+        "/d/shiliang/npc/wenfangda",
+        "/d/shiliang/npc/wenfangnan",
+        "/d/shiliang/npc/wenfangshan",
+        "/d/shiliang/npc/wenfangshi",
+        "/d/shiliang/npc/wenfangwu"
+      ]
+    },
+    {
+      "enable": [],
+      "id": "qimen-wuxing",
+      "martialtype": null,
+      "name": "奇门五行",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/qimen-wuxing.lpc"
+      },
+      "type": "knowledge",
+      "used_by": [
+        "/d/jiaxing/npc/shagu"
+      ]
+    },
+    {
+      "enable": [
+        "dodge",
+        "move"
+      ],
+      "id": "shaolin-shenfa",
+      "martialtype": "dodge",
+      "name": "少林身法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/shaolin-shenfa.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/an",
+        "/d/hangzhou/honghua/meng",
+        "/d/hangzhou/honghua/zhou",
+        "/d/hangzhou/honghua/zhouyi",
+        "/d/hangzhou/npc/chuyuan",
+        "/d/hangzhou/npc/longjun",
+        "/d/hangzhou/npc/mengmian",
+        "/d/hangzhou/npc/seng"
+      ]
+    },
+    {
+      "enable": [
+        "claw",
+        "parry"
+      ],
+      "id": "sougu",
+      "martialtype": "skill",
+      "name": "搜骨鹰爪功",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/sougu.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/npc/baizhen"
+      ]
+    },
+    {
+      "enable": [],
+      "id": "staff",
+      "martialtype": "skill",
+      "name": "基本杖法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/staff.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/zhang"
+      ]
+    },
+    {
+      "enable": [],
+      "id": "strike",
+      "martialtype": "skill",
+      "name": "基本掌法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/strike.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/jiaxing/npc/shagu"
+      ]
+    },
+    {
+      "enable": [],
+      "id": "sword",
+      "martialtype": "skill",
+      "name": "基本剑法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/sword.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/chen",
+        "/d/hangzhou/honghua/huo",
+        "/d/hangzhou/honghua/lu",
+        "/d/hangzhou/honghua/shi",
+        "/d/hangzhou/honghua/wei",
+        "/d/hangzhou/honghua/wuchen",
+        "/d/hangzhou/honghua/yu",
+        "/d/hangzhou/honghua/zhao",
+        "/d/hangzhou/npc/chuyuan",
+        "/d/hangzhou/npc/honghua1",
+        "/d/hangzhou/npc/jian-ke",
+        "/d/hangzhou/npc/liyuanzhi",
+        "/d/hangzhou/npc/tangzi",
+        "/d/hangzhou/npc/youfang",
+        "/d/hangzhou/npc/zhang",
+        "/d/jiaxing/npc/hai",
+        "/d/jiaxing/npc/tang",
+        "/d/jiaxing/npc/tang1",
+        "/d/jiaxing/npc/tang2",
+        "/d/jiaxing/npc/tang3",
+        "/d/shiliang/npc/jinshe",
+        "/d/shiliang/npc/li",
+        "/d/shiliang/npc/wenfangda",
+        "/d/shiliang/npc/wenfangnan",
+        "/d/shiliang/npc/wenfangshan",
+        "/d/shiliang/npc/wenfangshi",
+        "/d/shiliang/npc/wenfangwu"
+      ]
+    },
+    {
+      "enable": [
+        "blade",
+        "parry"
+      ],
+      "id": "taiji-dao",
+      "martialtype": "skill",
+      "name": "太极刀法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/taiji-dao.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/lu"
+      ]
+    },
+    {
+      "enable": [
+        "parry",
+        "sword"
+      ],
+      "id": "taiji-jian",
+      "martialtype": "skill",
+      "name": "太极剑法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/taiji-jian.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/lu",
+        "/d/hangzhou/honghua/shi",
+        "/d/hangzhou/honghua/zhao",
+        "/d/hangzhou/npc/liyuanzhi",
+        "/d/hangzhou/npc/zhang"
+      ]
+    },
+    {
+      "enable": [
+        "parry",
+        "unarmed"
+      ],
+      "id": "taiji-quan",
+      "martialtype": "skill",
+      "name": "太极拳",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/taiji-quan.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/lu",
+        "/d/hangzhou/honghua/shi",
+        "/d/hangzhou/honghua/zhao",
+        "/d/hangzhou/npc/liyuanzhi",
+        "/d/hangzhou/npc/zhang"
+      ]
+    },
+    {
+      "enable": [
+        "force"
+      ],
+      "id": "taiji-shengong",
+      "martialtype": "force",
+      "name": "太极神功",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/taiji-shengong.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/lu",
+        "/d/hangzhou/honghua/shi",
+        "/d/hangzhou/honghua/zhao",
+        "/d/hangzhou/npc/liyuanzhi",
+        "/d/hangzhou/npc/zhang"
+      ]
+    },
+    {
+      "enable": [],
+      "id": "throwing",
+      "martialtype": "skill",
+      "name": "基本暗器",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/throwing.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/an",
+        "/d/hangzhou/honghua/meng",
+        "/d/hangzhou/honghua/zhao",
+        "/d/hangzhou/honghua/zhou",
+        "/d/hangzhou/npc/longjun"
+      ]
+    },
+    {
+      "enable": [
+        "dodge",
+        "move"
+      ],
+      "id": "tiyunzong",
+      "martialtype": "dodge",
+      "name": "梯云纵",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/tiyunzong.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/lu",
+        "/d/hangzhou/honghua/shi",
+        "/d/hangzhou/honghua/zhao",
+        "/d/hangzhou/npc/liyuanzhi",
+        "/d/hangzhou/npc/zhang"
+      ]
+    },
+    {
+      "enable": [],
+      "id": "unarmed",
+      "martialtype": "skill",
+      "name": "基本拳脚",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/unarmed.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/an",
+        "/d/hangzhou/honghua/chen",
+        "/d/hangzhou/honghua/jiang",
+        "/d/hangzhou/honghua/lu",
+        "/d/hangzhou/honghua/meng",
+        "/d/hangzhou/honghua/shi",
+        "/d/hangzhou/honghua/wei",
+        "/d/hangzhou/honghua/wuchen",
+        "/d/hangzhou/honghua/xinyan",
+        "/d/hangzhou/honghua/yu",
+        "/d/hangzhou/honghua/zhao",
+        "/d/hangzhou/honghua/zhou",
+        "/d/hangzhou/honghua/zhouyi",
+        "/d/hangzhou/npc/baizhen",
+        "/d/hangzhou/npc/caichanu",
+        "/d/hangzhou/npc/chuyuan",
+        "/d/hangzhou/npc/dao-ke",
+        "/d/hangzhou/npc/guanjia",
+        "/d/hangzhou/npc/guest",
+        "/d/hangzhou/npc/honghua1",
+        "/d/hangzhou/npc/honghua2",
+        "/d/hangzhou/npc/hongniang",
+        "/d/hangzhou/npc/jiading",
+        "/d/hangzhou/npc/jian-ke",
+        "/d/hangzhou/npc/likexiu",
+        "/d/hangzhou/npc/liumang",
+        "/d/hangzhou/npc/liumangtou",
+        "/d/hangzhou/npc/liyuanzhi",
+        "/d/hangzhou/npc/longjun",
+        "/d/hangzhou/npc/meipo",
+        "/d/hangzhou/npc/mengmian",
+        "/d/hangzhou/npc/qingbing",
+        "/d/hangzhou/npc/seng",
+        "/d/hangzhou/npc/shami",
+        "/d/hangzhou/npc/tangzi",
+        "/d/hangzhou/npc/xianghuo",
+        "/d/hangzhou/npc/you-ke",
+        "/d/hangzhou/npc/youfang",
+        "/d/hangzhou/npc/zhang",
+        "/d/jiaxing/npc/hai",
+        "/d/jiaxing/npc/tang",
+        "/d/jiaxing/npc/tang1",
+        "/d/jiaxing/npc/tang2",
+        "/d/jiaxing/npc/tang3",
+        "/d/shiliang/npc/dashifu",
+        "/d/shiliang/npc/jinshe",
+        "/d/shiliang/npc/li",
+        "/d/shiliang/npc/qingming",
+        "/d/shiliang/npc/tufei2",
+        "/d/shiliang/npc/wenfangda",
+        "/d/shiliang/npc/wenfangnan",
+        "/d/shiliang/npc/wenfangshan",
+        "/d/shiliang/npc/wenfangshi",
+        "/d/shiliang/npc/wenfangwu"
+      ]
+    },
+    {
+      "enable": [],
+      "id": "whip",
+      "martialtype": "skill",
+      "name": "基本鞭法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/whip.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/chen",
+        "/d/hangzhou/honghua/xinyan",
+        "/d/hangzhou/honghua/yang",
+        "/d/hangzhou/honghua/yu"
+      ]
+    },
+    {
+      "enable": [
+        "parry",
+        "staff"
+      ],
+      "id": "wuchang-zhang",
+      "martialtype": "skill",
+      "name": "无常杖法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/wuchang-zhang.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/zhang"
+      ]
+    },
+    {
+      "enable": [
+        "blade",
+        "parry"
+      ],
+      "id": "wuhu-duanmendao",
+      "martialtype": "skill",
+      "name": "五虎断门刀",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/wuhu-duanmendao.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/chen",
+        "/d/hangzhou/honghua/luo",
+        "/d/hangzhou/honghua/xu",
+        "/d/hangzhou/honghua/yu"
+      ]
+    },
+    {
+      "enable": [
+        "parry",
+        "unarmed"
+      ],
+      "id": "xuanfeng-leg",
+      "martialtype": "skill",
+      "name": "旋风扫叶腿",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/xuanfeng-leg.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/wuchen"
+      ]
+    },
+    {
+      "enable": [
+        "parry",
+        "whip"
+      ],
+      "id": "yunlong-bian",
+      "martialtype": "skill",
+      "name": "云龙鞭法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/yunlong-bian.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/chen",
+        "/d/hangzhou/honghua/xinyan",
+        "/d/hangzhou/honghua/yang",
+        "/d/hangzhou/honghua/yu"
+      ]
+    },
+    {
+      "enable": [
+        "parry",
+        "sword"
+      ],
+      "id": "yunlong-jian",
+      "martialtype": "skill",
+      "name": "云龙剑法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/yunlong-jian.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/chen",
+        "/d/hangzhou/honghua/huo",
+        "/d/hangzhou/honghua/wei",
+        "/d/hangzhou/honghua/xinyan",
+        "/d/hangzhou/honghua/yu"
+      ]
+    },
+    {
+      "enable": [
+        "dodge",
+        "move"
+      ],
+      "id": "yunlong-shenfa",
+      "martialtype": "dodge",
+      "name": "云龙身法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/yunlong-shenfa.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/chang1",
+        "/d/hangzhou/honghua/chang2",
+        "/d/hangzhou/honghua/chen",
+        "/d/hangzhou/honghua/huo",
+        "/d/hangzhou/honghua/jiang",
+        "/d/hangzhou/honghua/luo",
+        "/d/hangzhou/honghua/wei",
+        "/d/hangzhou/honghua/wen",
+        "/d/hangzhou/honghua/xinyan",
+        "/d/hangzhou/honghua/xu",
+        "/d/hangzhou/honghua/yang",
+        "/d/hangzhou/honghua/yu",
+        "/d/hangzhou/honghua/zhang"
+      ]
+    },
+    {
+      "enable": [
+        "force"
+      ],
+      "id": "yunlong-shengong",
+      "martialtype": "force",
+      "name": "云龙神功",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/yunlong-shengong.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/chang1",
+        "/d/hangzhou/honghua/chang2",
+        "/d/hangzhou/honghua/chen",
+        "/d/hangzhou/honghua/huo",
+        "/d/hangzhou/honghua/jiang",
+        "/d/hangzhou/honghua/luo",
+        "/d/hangzhou/honghua/wei",
+        "/d/hangzhou/honghua/wen",
+        "/d/hangzhou/honghua/xinyan",
+        "/d/hangzhou/honghua/xu",
+        "/d/hangzhou/honghua/yang",
+        "/d/hangzhou/honghua/yu",
+        "/d/hangzhou/honghua/zhang"
+      ]
+    },
+    {
+      "enable": [
+        "hand",
+        "parry"
+      ],
+      "id": "yunlong-shou",
+      "martialtype": "skill",
+      "name": "云龙手",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/yunlong-shou.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/chang1",
+        "/d/hangzhou/honghua/chang2",
+        "/d/hangzhou/honghua/chen",
+        "/d/hangzhou/honghua/huo",
+        "/d/hangzhou/honghua/luo",
+        "/d/hangzhou/honghua/wen",
+        "/d/hangzhou/honghua/xinyan",
+        "/d/hangzhou/honghua/xu",
+        "/d/hangzhou/honghua/yang",
+        "/d/hangzhou/honghua/yu",
+        "/d/hangzhou/honghua/zhang"
+      ]
+    },
+    {
+      "enable": [],
+      "id": "yunlong-xinfa",
+      "martialtype": null,
+      "name": "云龙心法",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/yunlong-xinfa.lpc"
+      },
+      "type": "knowledge",
+      "used_by": [
+        "/d/hangzhou/honghua/chen",
+        "/d/hangzhou/honghua/huo",
+        "/d/hangzhou/honghua/wei",
+        "/d/hangzhou/honghua/yu"
+      ]
+    },
+    {
+      "enable": [
+        "claw",
+        "parry"
+      ],
+      "id": "yunlong-zhua",
+      "martialtype": "skill",
+      "name": "云龙爪",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/yunlong-zhua.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/chang1",
+        "/d/hangzhou/honghua/chang2",
+        "/d/hangzhou/honghua/chen",
+        "/d/hangzhou/honghua/huo",
+        "/d/hangzhou/honghua/luo",
+        "/d/hangzhou/honghua/wen",
+        "/d/hangzhou/honghua/xinyan",
+        "/d/hangzhou/honghua/xu",
+        "/d/hangzhou/honghua/yang",
+        "/d/hangzhou/honghua/yu",
+        "/d/hangzhou/honghua/zhang"
+      ]
+    },
+    {
+      "enable": [
+        "club",
+        "parry"
+      ],
+      "id": "zui-gun",
+      "martialtype": "skill",
+      "name": "少林醉棍",
+      "source": {
+        "line": 1,
+        "path": "kungfu/skill/zui-gun.lpc"
+      },
+      "type": "martial",
+      "used_by": [
+        "/d/hangzhou/honghua/jiang"
+      ]
+    }
+  ]
+}

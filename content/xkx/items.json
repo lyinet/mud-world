@@ -1,0 +1,940 @@
+{
+  "items": [
+    {
+      "category": "armor",
+      "desc": "一支翠绿的羽毛。",
+      "equip_slot": "head",
+      "food_supply": null,
+      "id": "/d/hangzhou/honghua/obj/cuiyu",
+      "material": "plant",
+      "name": "翠羽",
+      "origin": "slice",
+      "price": 800,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "d/hangzhou/honghua/obj/cuiyu.lpc"
+      },
+      "unit": "支",
+      "weight": 10
+    },
+    {
+      "category": "armor",
+      "desc": "一件鹅黄色的女子长衫。",
+      "equip_slot": "cloth",
+      "food_supply": null,
+      "id": "/d/hangzhou/honghua/obj/huangshan",
+      "material": "cloth",
+      "name": "黄衫",
+      "origin": "slice",
+      "price": null,
+      "price_expr": null,
+      "source": {
+        "line": 10,
+        "path": "d/hangzhou/honghua/obj/huangshan.lpc"
+      },
+      "unit": "件",
+      "weight": 3000
+    },
+    {
+      "category": "weapon",
+      "desc": "这是一柄的短剑，据说剑里藏着一个极大秘密，几\n百年来辗转相传，始终无人参详得出。",
+      "equip_slot": "sword",
+      "food_supply": null,
+      "id": "/d/hangzhou/honghua/obj/shortsword",
+      "material": "steel",
+      "name": "短剑",
+      "origin": "slice",
+      "price": 100,
+      "price_expr": null,
+      "source": {
+        "line": 8,
+        "path": "d/hangzhou/honghua/obj/shortsword.lpc"
+      },
+      "unit": "柄",
+      "weight": 5000
+    },
+    {
+      "category": "weapon",
+      "desc": "这是一柄粗大的铁鞭，总有三十来斤重。",
+      "equip_slot": "whip",
+      "food_supply": null,
+      "id": "/d/hangzhou/honghua/obj/tiebian",
+      "material": "leather",
+      "name": "铁鞭",
+      "origin": "slice",
+      "price": 100,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "d/hangzhou/honghua/obj/tiebian.lpc"
+      },
+      "unit": "柄",
+      "weight": 500
+    },
+    {
+      "category": "weapon",
+      "desc": "一些溜圆的铁胆，是一种凶猛的暗器。",
+      "equip_slot": "throwing",
+      "food_supply": null,
+      "id": "/d/hangzhou/honghua/obj/tiedan",
+      "material": "iron",
+      "name": "铁胆",
+      "origin": "slice",
+      "price": 0,
+      "price_expr": null,
+      "source": {
+        "line": 8,
+        "path": "d/hangzhou/honghua/obj/tiedan.lpc"
+      },
+      "unit": "些",
+      "weight": null
+    },
+    {
+      "category": "weapon",
+      "desc": "这是一根铁桨，举可齐眉，看来很是沉重，可攻击大片敌人。",
+      "equip_slot": "club",
+      "food_supply": null,
+      "id": "/d/hangzhou/honghua/obj/tiejiang",
+      "material": "steel",
+      "name": "铁桨",
+      "origin": "slice",
+      "price": 200,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "d/hangzhou/honghua/obj/tiejiang.lpc"
+      },
+      "unit": "根",
+      "weight": 3000
+    },
+    {
+      "category": "misc",
+      "desc": "一个煎得油澄澄、香喷喷的百果油包。",
+      "equip_slot": null,
+      "food_supply": 20,
+      "id": "/d/hangzhou/npc/obj/baozi",
+      "material": null,
+      "name": "百果油包",
+      "origin": "slice",
+      "price": 70,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "d/hangzhou/npc/obj/baozi.lpc"
+      },
+      "unit": "个",
+      "weight": 80
+    },
+    {
+      "category": "misc",
+      "desc": "一只被烤得流油，香味扑鼻的叫化鸡。",
+      "equip_slot": null,
+      "food_supply": 100,
+      "id": "/d/hangzhou/npc/obj/chicken",
+      "material": null,
+      "name": "叫化童鸡",
+      "origin": "slice",
+      "price": 120,
+      "price_expr": null,
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/npc/obj/chicken.lpc"
+      },
+      "unit": "只",
+      "weight": 200
+    },
+    {
+      "category": "armor",
+      "desc": null,
+      "equip_slot": "cloth",
+      "food_supply": null,
+      "id": "/d/hangzhou/npc/obj/cloth",
+      "material": "cloth",
+      "name": "布衣",
+      "origin": "slice",
+      "price": null,
+      "price_expr": null,
+      "source": {
+        "line": 10,
+        "path": "d/hangzhou/npc/obj/cloth.lpc"
+      },
+      "unit": "件",
+      "weight": 3000
+    },
+    {
+      "category": "misc",
+      "desc": "一盘清甜可人的西湖醋鱼，用西湖中的金色鲤鱼\n烧制而成，是西湖第一名菜。",
+      "equip_slot": null,
+      "food_supply": 20,
+      "id": "/d/hangzhou/npc/obj/fish",
+      "material": null,
+      "name": "西湖醋鱼",
+      "origin": "slice",
+      "price": 120,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "d/hangzhou/npc/obj/fish.lpc"
+      },
+      "unit": "碗",
+      "weight": 1300
+    },
+    {
+      "category": "misc",
+      "desc": "一碗香气馥郁的桂花鲜栗羹。",
+      "equip_slot": null,
+      "food_supply": 20,
+      "id": "/d/hangzhou/npc/obj/geng",
+      "material": null,
+      "name": "桂花鲜栗羹",
+      "origin": "slice",
+      "price": 120,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "d/hangzhou/npc/obj/geng.lpc"
+      },
+      "unit": "碗",
+      "weight": 80
+    },
+    {
+      "category": "armor",
+      "desc": null,
+      "equip_slot": "cloth",
+      "food_supply": null,
+      "id": "/d/hangzhou/npc/obj/goupi",
+      "material": "fur",
+      "name": "狗皮",
+      "origin": "slice",
+      "price": 300,
+      "price_expr": null,
+      "source": {
+        "line": 10,
+        "path": "d/hangzhou/npc/obj/goupi.lpc"
+      },
+      "unit": "块",
+      "weight": 5000
+    },
+    {
+      "category": "weapon",
+      "desc": "这是一把通体晶莹剔透的剑，是武当镇派之宝！",
+      "equip_slot": "sword",
+      "food_supply": null,
+      "id": "/d/hangzhou/npc/obj/green_sword",
+      "material": "crimsonsteel",
+      "name": "凝碧剑",
+      "origin": "slice",
+      "price": 4000,
+      "price_expr": null,
+      "source": {
+        "line": 8,
+        "path": "d/hangzhou/npc/obj/green_sword.lpc"
+      },
+      "unit": "把",
+      "weight": 7000
+    },
+    {
+      "category": "misc",
+      "desc": "一个晶莹碧绿的的大酒瓶，装了熏熏醉人的竹叶青。",
+      "equip_slot": null,
+      "food_supply": null,
+      "id": "/d/hangzhou/npc/obj/jiuping",
+      "material": null,
+      "name": "酒瓶",
+      "origin": "slice",
+      "price": 1600,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "d/hangzhou/npc/obj/jiuping.lpc"
+      },
+      "unit": "个",
+      "weight": 700
+    },
+    {
+      "category": "misc",
+      "desc": null,
+      "equip_slot": null,
+      "food_supply": null,
+      "id": "/d/hangzhou/npc/obj/marry_card",
+      "material": "paper",
+      "name": "婚约",
+      "origin": "slice",
+      "price": null,
+      "price_expr": null,
+      "source": {
+        "line": 6,
+        "path": "d/hangzhou/npc/obj/marry_card.lpc"
+      },
+      "unit": "本",
+      "weight": 10
+    },
+    {
+      "category": "misc",
+      "desc": "一碗香喷喷的东坡肉，用文火煨肥猪肉而成，\n苏东坡在牧守杭州时看到民间吃肉而烧制不得法，遗惠此法至千年以下。",
+      "equip_slot": null,
+      "food_supply": 100,
+      "id": "/d/hangzhou/npc/obj/pork",
+      "material": null,
+      "name": "东坡肉",
+      "origin": "slice",
+      "price": 120,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "d/hangzhou/npc/obj/pork.lpc"
+      },
+      "unit": "碗",
+      "weight": 1000
+    },
+    {
+      "category": "misc",
+      "desc": "酽酽浓浓的一盘龙井虾仁。",
+      "equip_slot": null,
+      "food_supply": 20,
+      "id": "/d/hangzhou/npc/obj/shrimp",
+      "material": null,
+      "name": "龙井虾仁",
+      "origin": "slice",
+      "price": 50,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "d/hangzhou/npc/obj/shrimp.lpc"
+      },
+      "unit": "碗",
+      "weight": 1300
+    },
+    {
+      "category": "weapon",
+      "desc": "这是一粒平平常常的鹅卵石。",
+      "equip_slot": "throwing",
+      "food_supply": null,
+      "id": "/d/hangzhou/obj/eluanshi",
+      "material": "stone",
+      "name": "鹅卵石",
+      "origin": "slice",
+      "price": 0,
+      "price_expr": null,
+      "source": {
+        "line": 8,
+        "path": "d/hangzhou/obj/eluanshi.lpc"
+      },
+      "unit": "些",
+      "weight": null
+    },
+    {
+      "category": "weapon",
+      "desc": "这是一平平常常的大石头。",
+      "equip_slot": "hammer",
+      "food_supply": null,
+      "id": "/d/hangzhou/obj/shitou",
+      "material": "stone",
+      "name": "大石头",
+      "origin": "slice",
+      "price": 0,
+      "price_expr": null,
+      "source": {
+        "line": 8,
+        "path": "d/hangzhou/obj/shitou.lpc"
+      },
+      "unit": "块",
+      "weight": 5000
+    },
+    {
+      "category": "weapon",
+      "desc": "这是一根爬山用的树枝。",
+      "equip_slot": "staff",
+      "food_supply": null,
+      "id": "/d/hangzhou/obj/shuzhi",
+      "material": "wood",
+      "name": "大树枝",
+      "origin": "slice",
+      "price": 100,
+      "price_expr": null,
+      "source": {
+        "line": 8,
+        "path": "d/hangzhou/obj/shuzhi.lpc"
+      },
+      "unit": "根",
+      "weight": 1000
+    },
+    {
+      "category": "armor",
+      "desc": null,
+      "equip_slot": "boots",
+      "food_supply": null,
+      "id": "/d/jiaxing/npc/flower_shoe",
+      "material": "cloth",
+      "name": "绣花小鞋",
+      "origin": "slice",
+      "price": 300,
+      "price_expr": null,
+      "source": {
+        "line": 8,
+        "path": "d/jiaxing/npc/flower_shoe.lpc"
+      },
+      "unit": "双",
+      "weight": 900
+    },
+    {
+      "category": "armor",
+      "desc": null,
+      "equip_slot": "cloth",
+      "food_supply": null,
+      "id": "/d/jiaxing/npc/obj/cloth",
+      "material": "cloth",
+      "name": "布衣",
+      "origin": "slice",
+      "price": null,
+      "price_expr": null,
+      "source": {
+        "line": 10,
+        "path": "d/jiaxing/npc/obj/cloth.lpc"
+      },
+      "unit": "件",
+      "weight": 3000
+    },
+    {
+      "category": "weapon",
+      "desc": "这是一柄拂尘，做工精细，是很阴毒的兵器。",
+      "equip_slot": "whip",
+      "food_supply": null,
+      "id": "/d/jiaxing/npc/obj/fuchen",
+      "material": "leather",
+      "name": "拂尘",
+      "origin": "slice",
+      "price": 30,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/npc/obj/fuchen.lpc"
+      },
+      "unit": "柄",
+      "weight": 300
+    },
+    {
+      "category": "misc",
+      "desc": "臭鸭蛋闻着臭，吃着香。",
+      "equip_slot": null,
+      "food_supply": 80,
+      "id": "/d/jiaxing/npc/obj/yadan",
+      "material": null,
+      "name": "臭鸭蛋",
+      "origin": "slice",
+      "price": 80,
+      "price_expr": null,
+      "source": {
+        "line": 8,
+        "path": "d/jiaxing/npc/obj/yadan.lpc"
+      },
+      "unit": "颗",
+      "weight": 70
+    },
+    {
+      "category": "weapon",
+      "desc": "这就是武林中人闻之色变的冰魄银针，针身缕刻花纹，打造得极是精细，令人忍不住想把玩(bawan)一番。",
+      "equip_slot": "throwing",
+      "food_supply": null,
+      "id": "/d/jiaxing/npc/obj/yinzhen",
+      "material": null,
+      "name": "冰魄银针",
+      "origin": "slice",
+      "price": 0,
+      "price_expr": null,
+      "source": {
+        "line": 13,
+        "path": "d/jiaxing/npc/obj/yinzhen.lpc"
+      },
+      "unit": "把",
+      "weight": 300
+    },
+    {
+      "category": "misc",
+      "desc": "一个香喷喷的肉粽子，包它的粽子叶泛出一股清香。",
+      "equip_slot": null,
+      "food_supply": 50,
+      "id": "/d/jiaxing/npc/obj/zongzi",
+      "material": null,
+      "name": "粽子",
+      "origin": "slice",
+      "price": 100,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/npc/obj/zongzi.lpc"
+      },
+      "unit": "个",
+      "weight": 100
+    },
+    {
+      "category": "armor",
+      "desc": null,
+      "equip_slot": "cloth",
+      "food_supply": null,
+      "id": "/d/jiaxing/obj/cloth",
+      "material": "cloth",
+      "name": "布衣",
+      "origin": "slice",
+      "price": null,
+      "price_expr": null,
+      "source": {
+        "line": 10,
+        "path": "d/jiaxing/obj/cloth.lpc"
+      },
+      "unit": "件",
+      "weight": 3000
+    },
+    {
+      "category": "armor",
+      "desc": null,
+      "equip_slot": "boots",
+      "food_supply": null,
+      "id": "/d/jiaxing/obj/flower_shoe",
+      "material": "cloth",
+      "name": "绣花小鞋",
+      "origin": "slice",
+      "price": 300,
+      "price_expr": null,
+      "source": {
+        "line": 8,
+        "path": "d/jiaxing/obj/flower_shoe.lpc"
+      },
+      "unit": "双",
+      "weight": 900
+    },
+    {
+      "category": "weapon",
+      "desc": "这是一柄拂尘，做工精细，是很阴毒的兵器。",
+      "equip_slot": "whip",
+      "food_supply": null,
+      "id": "/d/jiaxing/obj/fuchen",
+      "material": "leather",
+      "name": "拂尘",
+      "origin": "slice",
+      "price": 30,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/obj/fuchen.lpc"
+      },
+      "unit": "柄",
+      "weight": 300
+    },
+    {
+      "category": "misc",
+      "desc": "只见画中是一座陡峭突兀的高山，共有五座山峰，中间一峰尤高，\n笔立指天，耸入云表，山侧生着一排松树，松梢积雪，树身尽皆向南弯\n曲，想见北风之烈。峰西独有一棵老松，却是挺然直起，巍巍秀拔，树\n下朱笔画着一个迎风舞剑的将军。这人面目难见，但衣袂飘举，资形脱\n俗。全幅画都是水墨山水，独此人殷红如火，更加显得卓荦不群。画上\n并无书款，只题着一首诗云：“经年尘土满征衣，特特寻芳上翠微，好\n山好水看不足，马蹄催趁月明归。”",
+      "equip_slot": null,
+      "food_supply": null,
+      "id": "/d/jiaxing/obj/shanshui",
+      "material": null,
+      "name": "山水画",
+      "origin": "slice",
+      "price": null,
+      "price_expr": null,
+      "source": {
+        "line": 9,
+        "path": "d/jiaxing/obj/shanshui.lpc"
+      },
+      "unit": "幅",
+      "weight": 10
+    },
+    {
+      "category": "misc",
+      "desc": "一面做成八卦形状的铁牌，翻过来看，背面写着一个“曲”字。",
+      "equip_slot": null,
+      "food_supply": null,
+      "id": "/d/jiaxing/obj/tiepai",
+      "material": null,
+      "name": "铁牌",
+      "origin": "slice",
+      "price": null,
+      "price_expr": null,
+      "source": {
+        "line": 6,
+        "path": "d/jiaxing/obj/tiepai.lpc"
+      },
+      "unit": "面",
+      "weight": 10
+    },
+    {
+      "category": "misc",
+      "desc": "这是据说已经失传了的范宽真迹，对于爱画之人，算是无价之宝了。",
+      "equip_slot": null,
+      "food_supply": null,
+      "id": "/d/jiaxing/obj/xishanxinglvtu",
+      "material": null,
+      "name": "溪山行旅图",
+      "origin": "slice",
+      "price": 10000,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/obj/xishanxinglvtu.lpc"
+      },
+      "unit": "幅",
+      "weight": 20
+    },
+    {
+      "category": "misc",
+      "desc": "臭鸭蛋闻着臭，吃着香。",
+      "equip_slot": null,
+      "food_supply": 80,
+      "id": "/d/jiaxing/obj/yadan",
+      "material": null,
+      "name": "臭鸭蛋",
+      "origin": "slice",
+      "price": 80,
+      "price_expr": null,
+      "source": {
+        "line": 8,
+        "path": "d/jiaxing/obj/yadan.lpc"
+      },
+      "unit": "颗",
+      "weight": 70
+    },
+    {
+      "category": "misc",
+      "desc": "一个香喷喷的肉粽子，包它的粽子叶泛出一股清香。",
+      "equip_slot": null,
+      "food_supply": 50,
+      "id": "/d/jiaxing/obj/zongzi",
+      "material": null,
+      "name": "粽子",
+      "origin": "slice",
+      "price": 100,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "d/jiaxing/obj/zongzi.lpc"
+      },
+      "unit": "个",
+      "weight": 100
+    },
+    {
+      "category": "misc",
+      "desc": "这就是记载着金蛇郎君一生心血的金蛇剑谱。",
+      "equip_slot": null,
+      "food_supply": null,
+      "id": "/d/shiliang/npc/obj/jianpu",
+      "material": "paper",
+      "name": "金蛇剑谱",
+      "origin": "slice",
+      "price": 50000,
+      "price_expr": null,
+      "source": {
+        "line": 9,
+        "path": "d/shiliang/npc/obj/jianpu.lpc"
+      },
+      "unit": "本",
+      "weight": 600
+    },
+    {
+      "category": "misc",
+      "desc": "这是阿土送给阿凤的情书，你可不要私自打开来看哦。",
+      "equip_slot": null,
+      "food_supply": null,
+      "id": "/d/shiliang/npc/obj/qingshu",
+      "material": null,
+      "name": "情书",
+      "origin": "slice",
+      "price": null,
+      "price_expr": null,
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/npc/obj/qingshu.lpc"
+      },
+      "unit": "封",
+      "weight": 300
+    },
+    {
+      "category": "misc",
+      "desc": "这是一把用来的打扫卫生的扫把。",
+      "equip_slot": null,
+      "food_supply": null,
+      "id": "/d/shiliang/npc/obj/saoba",
+      "material": null,
+      "name": "扫把",
+      "origin": "slice",
+      "price": null,
+      "price_expr": null,
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/npc/obj/saoba.lpc"
+      },
+      "unit": "把",
+      "weight": 300
+    },
+    {
+      "category": "misc",
+      "desc": "这是一张绣花手帕。",
+      "equip_slot": null,
+      "food_supply": null,
+      "id": "/d/shiliang/npc/obj/shoupa",
+      "material": null,
+      "name": "手帕",
+      "origin": "slice",
+      "price": null,
+      "price_expr": null,
+      "source": {
+        "line": 4,
+        "path": "d/shiliang/npc/obj/shoupa.lpc"
+      },
+      "unit": "张",
+      "weight": 300
+    },
+    {
+      "category": "misc",
+      "desc": "一个很小的洞。",
+      "equip_slot": null,
+      "food_supply": null,
+      "id": "/d/shiliang/obj/hole",
+      "material": null,
+      "name": "暗道",
+      "origin": "slice",
+      "price": null,
+      "price_expr": null,
+      "source": {
+        "line": 11,
+        "path": "d/shiliang/obj/hole.lpc"
+      },
+      "unit": "个",
+      "weight": null
+    },
+    {
+      "category": "misc",
+      "desc": "这是一朵盛开的白薇，看来可以入药。",
+      "equip_slot": null,
+      "food_supply": null,
+      "id": "/clone/medicine/vegetable/baiwei",
+      "material": null,
+      "name": "白薇",
+      "origin": "external",
+      "price": 1200,
+      "price_expr": null,
+      "source": {
+        "line": 12,
+        "path": "clone/medicine/vegetable/baiwei.lpc"
+      },
+      "unit": "朵",
+      "weight": 500
+    },
+    {
+      "category": "misc",
+      "desc": "这是一朵盛开的白芷，看来可以入药。",
+      "equip_slot": null,
+      "food_supply": null,
+      "id": "/clone/medicine/vegetable/baizhi",
+      "material": null,
+      "name": "白芷",
+      "origin": "external",
+      "price": 900,
+      "price_expr": null,
+      "source": {
+        "line": 12,
+        "path": "clone/medicine/vegetable/baizhi.lpc"
+      },
+      "unit": "朵",
+      "weight": 500
+    },
+    {
+      "category": "misc",
+      "desc": "这位店小二正笑咪咪地忙著，还不时拿起挂在脖子上的抹布擦脸。",
+      "equip_slot": null,
+      "food_supply": null,
+      "id": "/d/city/npc/xiaoer",
+      "material": null,
+      "name": "店小二",
+      "origin": "external",
+      "price": null,
+      "price_expr": null,
+      "source": {
+        "line": 9,
+        "path": "d/city/npc/xiaoer.lpc"
+      },
+      "unit": null,
+      "weight": null
+    },
+    {
+      "category": "misc",
+      "desc": "这是一片碧绿的荷叶，看来可以入药。",
+      "equip_slot": null,
+      "food_supply": null,
+      "id": "/clone/medicine/vegetable/heye",
+      "material": null,
+      "name": "荷叶",
+      "origin": "external",
+      "price": 5,
+      "price_expr": null,
+      "source": {
+        "line": 12,
+        "path": "clone/medicine/vegetable/heye.lpc"
+      },
+      "unit": "片",
+      "weight": 500
+    },
+    {
+      "category": "misc",
+      "desc": "这是一把椅子。",
+      "equip_slot": null,
+      "food_supply": null,
+      "id": "/d/changan/obj/chairs",
+      "material": "stone",
+      "name": null,
+      "origin": "external",
+      "price": 2000,
+      "price_expr": null,
+      "source": {
+        "line": 34,
+        "path": "d/changan/obj/chairs.lpc"
+      },
+      "unit": "把",
+      "weight": 28000
+    },
+    {
+      "category": "weapon",
+      "desc": "这是一柄普通的精钢剑，一般的剑客都配带此剑。",
+      "equip_slot": "sword",
+      "food_supply": null,
+      "id": "/d/city/obj/changjian",
+      "material": "steel",
+      "name": "长剑",
+      "origin": "external",
+      "price": 1500,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "d/city/obj/changjian.lpc"
+      },
+      "unit": "柄",
+      "weight": 5000
+    },
+    {
+      "category": "weapon",
+      "desc": "这是一把沈重的铁锤，打造的相当坚实。",
+      "equip_slot": "hammer",
+      "food_supply": null,
+      "id": "/d/city/obj/hammer",
+      "material": "iron",
+      "name": "铁锤",
+      "origin": "external",
+      "price": 3,
+      "price_expr": null,
+      "source": {
+        "line": 8,
+        "path": "d/city/obj/hammer.lpc"
+      },
+      "unit": "把",
+      "weight": 8000
+    },
+    {
+      "category": "weapon",
+      "desc": "这是一血淋淋的屠刀。",
+      "equip_slot": "blade",
+      "food_supply": null,
+      "id": "/d/beijing/obj/tudao",
+      "material": "steel",
+      "name": "屠刀",
+      "origin": "external",
+      "price": 2000,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "d/beijing/obj/tudao.lpc"
+      },
+      "unit": "柄",
+      "weight": 7000
+    },
+    {
+      "category": "weapon",
+      "desc": "这是一根浑铁棍，似乎威力不大。",
+      "equip_slot": "staff",
+      "food_supply": null,
+      "id": "/d/xingxiu/obj/tiegun",
+      "material": "iron",
+      "name": "铁棍",
+      "origin": "external",
+      "price": 100,
+      "price_expr": null,
+      "source": {
+        "line": 9,
+        "path": "d/xingxiu/obj/tiegun.lpc"
+      },
+      "unit": "根",
+      "weight": 1500
+    },
+    {
+      "category": "weapon",
+      "desc": "这是一柄亮晃晃的钢刀，普通官兵的常备武器。",
+      "equip_slot": "blade",
+      "food_supply": null,
+      "id": "/d/city/obj/gangdao",
+      "material": "steel",
+      "name": "钢刀",
+      "origin": "external",
+      "price": 1000,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "d/city/obj/gangdao.lpc"
+      },
+      "unit": "柄",
+      "weight": 7000
+    },
+    {
+      "category": "weapon",
+      "desc": "一枝烤得香喷喷的鸡腿。",
+      "equip_slot": "hammer",
+      "food_supply": 40,
+      "id": "/clone/food/jitui",
+      "material": "bone",
+      "name": "烤鸡腿",
+      "origin": "external",
+      "price": 30,
+      "price_expr": null,
+      "source": {
+        "line": 12,
+        "path": "clone/food/jitui.lpc"
+      },
+      "unit": "根",
+      "weight": 150
+    },
+    {
+      "category": "misc",
+      "desc": "一个香喷喷的肉包子。",
+      "equip_slot": null,
+      "food_supply": 20,
+      "id": "/clone/food/baozi",
+      "material": null,
+      "name": "包子",
+      "origin": "external",
+      "price": 50,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "clone/food/baozi.lpc"
+      },
+      "unit": "个",
+      "weight": 80
+    },
+    {
+      "category": "misc",
+      "desc": "一个用来装米酒的大酒袋，大概装得八、九升的酒。",
+      "equip_slot": null,
+      "food_supply": null,
+      "id": "/clone/food/liquid/jiudai",
+      "material": null,
+      "name": "牛皮酒袋",
+      "origin": "external",
+      "price": 100,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "clone/food/liquid/jiudai.lpc"
+      },
+      "unit": "个",
+      "weight": 700
+    }
+  ]
+}

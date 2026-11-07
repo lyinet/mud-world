@@ -1,0 +1,136 @@
+{
+  "shops": [
+    {
+      "id": "/d/hangzhou/npc/smith",
+      "npc": "/d/hangzhou/npc/smith",
+      "source": {
+        "line": 7,
+        "path": "d/hangzhou/npc/smith.lpc"
+      },
+      "stock": [
+        {
+          "item": "/d/city/obj/changjian",
+          "name": "长剑",
+          "origin": "external",
+          "price": 1500
+        },
+        {
+          "item": "/d/city/obj/hammer",
+          "name": "铁锤",
+          "origin": "external",
+          "price": 3
+        },
+        {
+          "item": "/d/beijing/obj/tudao",
+          "name": "屠刀",
+          "origin": "external",
+          "price": 2000
+        },
+        {
+          "item": "/d/xingxiu/obj/tiegun",
+          "name": "铁棍",
+          "origin": "external",
+          "price": 100
+        },
+        {
+          "item": "/d/city/obj/gangdao",
+          "name": "钢刀",
+          "origin": "external",
+          "price": 1000
+        }
+      ]
+    },
+    {
+      "id": "/d/hangzhou/npc/xiaoer2",
+      "npc": "/d/hangzhou/npc/xiaoer2",
+      "source": {
+        "line": 7,
+        "path": "d/hangzhou/npc/xiaoer2.lpc"
+      },
+      "stock": [
+        {
+          "item": "/d/hangzhou/npc/obj/pork",
+          "name": "东坡肉",
+          "origin": "slice",
+          "price": 120
+        },
+        {
+          "item": "/d/hangzhou/npc/obj/fish",
+          "name": "西湖醋鱼",
+          "origin": "slice",
+          "price": 120
+        },
+        {
+          "item": "/d/hangzhou/npc/obj/baozi",
+          "name": "百果油包",
+          "origin": "slice",
+          "price": 70
+        },
+        {
+          "item": "/d/hangzhou/npc/obj/shrimp",
+          "name": "龙井虾仁",
+          "origin": "slice",
+          "price": 50
+        },
+        {
+          "item": "/d/hangzhou/npc/obj/chicken",
+          "name": "叫化童鸡",
+          "origin": "slice",
+          "price": 120
+        },
+        {
+          "item": "/d/hangzhou/npc/obj/geng",
+          "name": "桂花鲜栗羹",
+          "origin": "slice",
+          "price": 120
+        },
+        {
+          "item": "/d/hangzhou/npc/obj/jiuping",
+          "name": "酒瓶",
+          "origin": "slice",
+          "price": 1600
+        }
+      ]
+    },
+    {
+      "id": "/d/jiaxing/npc/xiaoer",
+      "npc": "/d/jiaxing/npc/xiaoer",
+      "source": {
+        "line": 8,
+        "path": "d/jiaxing/npc/xiaoer.lpc"
+      },
+      "stock": [
+        {
+          "item": "/clone/food/jitui",
+          "name": "烤鸡腿",
+          "origin": "external",
+          "price": 30
+        },
+        {
+          "item": "/clone/food/baozi",
+          "name": "包子",
+          "origin": "external",
+          "price": 50
+        },
+        {
+          "item": "/clone/food/liquid/jiudai",
+          "name": "牛皮酒袋",
+          "origin": "external",
+          "price": 100
+        },
+        {
+          "item": "/d/jiaxing/npc/obj/yadan",
+          "name": "臭鸭蛋",
+          "origin": "slice",
+          "price": 80
+        },
+        {
+          "item": "/d/jiaxing/npc/obj/zongzi",
+          "name": "粽子",
+          "origin": "slice",
+          "price": 100
+        }
+      ]
+    }
+  ]
+}
