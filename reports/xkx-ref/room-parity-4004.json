@@ -1,0 +1,475 @@
+{
+ "source": {
+  "reference": "port 4004（独立会话，未启停实例；本次从已落盘原文重算）",
+  "reference_mudlib": "/Users/lyinet/projects/XKX/world-sim/tools/xkx_ref/run/mudlib",
+  "replica": "/Users/lyinet/projects/XKX/world-sim/content/xkx/rooms.json",
+  "start_room": "/d/hangzhou/duanqiao",
+  "player": "xkxpq",
+  "tag": "4004",
+  "collection": "startroom（独立会话逐房改 startroom 直登；本次只从已落盘原文重算）"
+ },
+ "sample": {
+  "rooms": 10,
+  "total_rooms": 195,
+  "selection": "representative"
+ },
+ "normalization": [
+  "N1 去 ANSI 颜色码",
+  "N2 丢弃提示符与【谣言/风闻/存盘】等频道行",
+  "N3 描述比较折叠换行与缩进（\\s+→空，保留全部非空白字符）",
+  "N4 丢弃室外房间的天色/天气描述行（遍历 adm/etc/nature/ 下全部季节天气表：rain/sun/wind 的 desc_msg；跨零点会自动切换）；夜间出口不可观察，不计入 exits 一致率",
+  "N5 物品/NPC 行去数量前缀与英文括号，按中文名多重集合比较",
+  "N6 房间名去首尾空白与 ' - ' 后缀"
+ ],
+ "rooms": 10,
+ "summary": {
+  "name": {
+   "observable": 10,
+   "match": 10,
+   "rate": 1.0
+  },
+  "desc": {
+   "observable": 10,
+   "match": 10,
+   "rate": 1.0
+  },
+  "exits": {
+   "observable": 10,
+   "match": 10,
+   "rate": 1.0
+  },
+  "items": {
+   "observable": 10,
+   "match": 10,
+   "rate": 1.0
+  },
+  "npcs": {
+   "observable": 10,
+   "match": 9,
+   "rate": 0.9
+  }
+ },
+ "categories": {
+  "npcs_mismatch": 1
+ },
+ "samples": {
+  "npcs_mismatch": {
+   "id": "/d/hangzhou/duanqiao",
+   "short": "断桥",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "断桥",
+     "repl": "断桥"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northeast",
+      "west"
+     ],
+     "repl": [
+      "northeast",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {},
+     "repl": {
+      "穷汉": 1
+     }
+    }
+   },
+   "status": "differ"
+  }
+ },
+ "records": [
+  {
+   "id": "/d/hangzhou/jiulou",
+   "short": "楼外楼",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "楼外楼",
+     "repl": "楼外楼"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "up",
+      "west"
+     ],
+     "repl": [
+      "up",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "店小二": 1
+     },
+     "repl": {
+      "店小二": 1
+     }
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/road1",
+   "short": "青石大道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "青石大道",
+     "repl": "青石大道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "northeast",
+      "northwest",
+      "south"
+     ],
+     "repl": [
+      "north",
+      "northeast",
+      "northwest",
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/duanqiao",
+   "short": "断桥",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "断桥",
+     "repl": "断桥"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northeast",
+      "west"
+     ],
+     "repl": [
+      "northeast",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {},
+     "repl": {
+      "穷汉": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/baiti",
+   "short": "白堤",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "白堤",
+     "repl": "白堤"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "southwest"
+     ],
+     "repl": [
+      "east",
+      "southwest"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/gushan",
+   "short": "孤山",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "孤山",
+     "repl": "孤山"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "northeast",
+      "northwest",
+      "southup",
+      "westup"
+     ],
+     "repl": [
+      "east",
+      "northeast",
+      "northwest",
+      "southup",
+      "westup"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/lingyinsi",
+   "short": "灵隐寺",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "灵隐寺",
+     "repl": "灵隐寺"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "enter",
+      "south",
+      "west"
+     ],
+     "repl": [
+      "enter",
+      "south",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "老和尚": 1
+     },
+     "repl": {
+      "老和尚": 1
+     }
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/suti1",
+   "short": "苏堤",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "苏堤",
+     "repl": "苏堤"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "south"
+     ],
+     "repl": [
+      "north",
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/liuheta",
+   "short": "六和塔底",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "六和塔底",
+     "repl": "六和塔底"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "eastdown",
+      "enter"
+     ],
+     "repl": [
+      "eastdown",
+      "enter"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/yuefen",
+   "short": "岳坟",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "岳坟",
+     "repl": "岳坟"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "south"
+     ],
+     "repl": [
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/jingci",
+   "short": "净慈寺",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "净慈寺",
+     "repl": "净慈寺"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "out"
+     ],
+     "repl": [
+      "out"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  }
+ ]
+}
