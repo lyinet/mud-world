@@ -2,15 +2,25 @@
 
 表结构刻意保持扁平：seq / tick / day / intent_id / actor / verb / args /
 effects / outcome / reason / source。任何修正都靠追加补偿事件，不 UPDATE/DELETE。
+
+写路径约束（soak 实测）：WAL 自动 checkpoint 原先在 `commit()` 里同步执行，
+磁盘繁忙时单次 commit 会卡 200–580ms；因为 session 写锁跨整个请求，
+会把所有写请求排成 write.max 秒级尖刺。这里关闭自动 checkpoint，
+改由后台线程每 N 秒做一次 `wal_checkpoint(PASSIVE)`：PASSIVE 不等写者，
+commit 只追加 WAL 页，不再承担回写/fsync。
 """
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
+import threading
 from pathlib import Path
 
 from ..core.canonical import dumps, hash_obj
 from ..core.models import Event
+
+CHECKPOINT_INTERVAL_S = max(0.0, float(os.environ.get("XKX_SQLITE_CHECKPOINT_INTERVAL", "2.0")))
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS events (
@@ -38,6 +48,9 @@ CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 class EventStore:
     def __init__(self, path: str | Path = ":memory:", check_same_thread: bool = True):
         self.path = str(path)
+        self._ck_stop = threading.Event()
+        self._ck_thread: threading.Thread | None = None
+        self._ck_conn: sqlite3.Connection | None = None
         if self.path != ":memory:":
             Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         # API 服务器在独立线程处理请求；调用方必须自行串行化（WorldSession 持锁）。
@@ -51,8 +64,45 @@ class EventStore:
         cols = {str(r[1]) for r in self.conn.execute("PRAGMA table_info(events)")}
         self._has_legacy = "legacy" in cols
         self._cached_count: int | None = None
+        if self.path != ":memory:" and CHECKPOINT_INTERVAL_S > 0:
+            self._start_checkpointer()
+
+    # -------------------------------------------------------------- checkpoint
+    def _start_checkpointer(self) -> None:
+        """把 WAL 回写挪出 commit 路径；写线程只追加 WAL 帧。"""
+        try:
+            self._ck_conn = sqlite3.connect(self.path, check_same_thread=False)
+        except sqlite3.Error:
+            self._ck_conn = None
+            return
+        # 只有后备 connection 可用时才关自动 checkpoint，避免 WAL 无人回收。
+        self.conn.execute("PRAGMA wal_autocheckpoint=0")
+        self._ck_thread = threading.Thread(
+            target=self._checkpoint_loop, name="wal-checkpoint", daemon=True
+        )
+        self._ck_thread.start()
+
+    def _checkpoint_loop(self) -> None:
+        while not self._ck_stop.wait(CHECKPOINT_INTERVAL_S):
+            if self._ck_conn is None:
+                return
+            try:
+                # PASSIVE 不等写者/读者；拿不到帧就下轮再来，绝不阻塞 commit。
+                self._ck_conn.execute("PRAGMA wal_checkpoint(PASSIVE)").fetchall()
+            except sqlite3.Error:
+                self._ck_stop.wait(1.0)
 
     def close(self) -> None:
+        self._ck_stop.set()
+        thread = self._ck_thread
+        if thread is not None:
+            thread.join(timeout=2.0)
+        if self._ck_conn is not None:
+            try:
+                self._ck_conn.close()
+            except sqlite3.Error:
+                pass
+            self._ck_conn = None
         self.conn.close()
 
     def count(self) -> int:
@@ -133,6 +183,13 @@ class EventStore:
             f"SELECT {self._select_cols()} FROM events ORDER BY seq ASC"
         ).fetchall()
         return [self._row_to_event(r) for r in rows]
+
+    def event_by_seq(self, seq: int) -> Event | None:
+        """按主键取单条事件（O(log n)）；供幂等缓存按 seq 回读，避免内存常驻 Event。"""
+        row = self.conn.execute(
+            f"SELECT {self._select_cols()} FROM events WHERE seq=?", (int(seq),)
+        ).fetchone()
+        return None if row is None else self._row_to_event(row)
 
     def find_intent(self, intent_id: str, actor: str) -> Event | None:
         """定向查一条意图事件；ASC 与 `read_all()` 首次命中语义一致。"""
