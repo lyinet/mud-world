@@ -19,10 +19,21 @@ from .world_guard import check_startup, write_world_id
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="玩家 HTTP API（单写者 + 只读快照）")
     parser.add_argument("--root", default=".", help="仓库根目录（含 content/ 与 runs/）")
+    parser.add_argument(
+        "--content-root",
+        default="",
+        help="内容包目录（含 locations.yaml/npcs.yaml/items.yaml）；默认使用 <root>/content。",
+    )
+    parser.add_argument(
+        "--world-config",
+        default="",
+        help="世界配置文件（文字壳方向表/描述等）；默认不加载。",
+    )
     parser.add_argument("--run", default="player-demo", help="可写 run 目录名，位于 <root>/runs/ 下")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8020)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--spawn", default="market", help="新玩家出生地点")
     parser.add_argument("--npcs", type=int, default=0, help="0 表示全部 NPC")
     parser.add_argument("--tick-step", type=int, default=6, help="每个动作推进的 tick 数")
     parser.add_argument(
@@ -72,9 +83,12 @@ def main(argv: list[str] | None = None) -> int:
             root,
             run_id=args.run,
             seed=args.seed,
+            spawn=args.spawn,
             npc_limit=args.npcs,
             tick_step=args.tick_step,
             seed_accounts=args.seed_account,
+            content_root=Path(args.content_root).resolve() if args.content_root else None,
+            world_config=Path(args.world_config).resolve() if args.world_config else None,
         )
     except ContentHashMismatch as exc:
         # 固定契约：退出码 3 + 单行 JSON 错误到 stderr；不监听、不写事件。
@@ -117,6 +131,8 @@ def main(argv: list[str] | None = None) -> int:
                 "auth_required": auth_required,
                 "auth_mode": args.auth,
                 "world": world_state,
+                "content_root": str(session.content_root),
+                "world_config": str(session.world_config_path or ""),
                 "allow_new_world": bool(args.allow_new_world),
                 "ambient": (ambient_info or {}).get("ambient", "stopped"),
                 "docs": "docs/player-api.md",

@@ -144,6 +144,10 @@ WRITE_ACTIONS: dict[str, str] = {
     "equip": "equip",
     "unequip": "unequip",
     "use_item": "use_item",
+    # xkx 文字壳：战斗动词由 actions 层提供，API 只在动作已注册时放行。
+    "fight": "fight",
+    "loot": "loot",
+    "flee": "flee",
 }
 
 # 门派写动作：响应统一附带最新私有快照（details.sect，与 player.sect 同源）。
@@ -201,6 +205,9 @@ ACTION_ALIASES: dict[str, str] = {
     "equip": "equip",
     "unequip": "unequip",
     "use_item": "use_item",
+    "fight": "fight",
+    "loot": "loot",
+    "flee": "flee",
 }
 
 # NPC 专属动作：玩家请求必须得到明确的“未开放”，而不是未知操作。
@@ -209,6 +216,10 @@ PLAYER_UNIMPLEMENTED_VERBS = frozenset({"marry", "apprentice"})
 FORBIDDEN_VERBS = frozenset(
     {"rob", "attack", "kill", "marry_force", "player_expel", "item_create", "mint", "set_field"}
 )
+
+# xkx 文字壳可用的战斗动词：仅在 actions/ 层真正注册了同名动作时放行，
+# 避免 API 层提前把未实现的动词暴露给玩家。
+XKX_EXTRA_PLAYER_VERBS = frozenset({"fight", "loot", "flee"})
 
 # `/api/world/feed` 的固定上限与“重要事件”动词白名单（公共信息，不含玩家私有数据）。
 WORLD_FEED_LIMIT_MAX = 50
@@ -389,8 +400,12 @@ class WorldSession:
         presence_clock: Callable[[], float] | None = None,
         presence_active_seconds: float = PRESENCE_ACTIVE_SECONDS,
         presence_offline_seconds: float = PRESENCE_OFFLINE_SECONDS,
+        content_root: Path | str | None = None,
+        world_config: Path | str | None = None,
     ):
         self.root = Path(root)
+        self.content_root = Path(content_root) if content_root else self.root
+        self.world_config_path = Path(world_config) if world_config else None
         self.run_id = run_id
         self.run_dir = Path(run_dir) if run_dir else self.root / "runs" / run_id
         self.run_dir.mkdir(parents=True, exist_ok=True)
@@ -414,7 +429,7 @@ class WorldSession:
         # 捕获一次引用后可在锁外计算；每请求的缓存放线程本地，避免并发读互相污染。
         self._read_local = threading.local()
 
-        self.content = load_content(self.root, allow_fixture=False, use_content=True)
+        self.content = self._load_content_pack(self.content_root)
         # 世界自走与玩家共用 content：feed 只认这批 NPC，玩家 ID 永不进入公共事件流。
         self.npc_limit = int(npc_limit or 0)
         self._npc_ids = frozenset(str(n["id"]) for n in self.content.npcs)
@@ -1172,8 +1187,33 @@ class WorldSession:
                 "messages": rows,
             }
 
+    def _load_content_pack(self, pack_root: Path):
+        """按“内容包目录”加载内容，兼容 core.load_content 的 <root>/content 约定。
+
+        若目录本身就叫 content，或包内自带 content/ 子目录，直接沿用 core 的
+        加载根；否则在 run 目录下建一个只读软链，把包目录挂成 content/。
+        只做路径适配，不复制内容、不改 core 加载规则。
+        """
+        pack_root = Path(pack_root)
+        content_dir = pack_root / "content" if (pack_root / "content").is_dir() else pack_root
+        if content_dir.name == "content":
+            return load_content(content_dir.parent, allow_fixture=False, use_content=True)
+        stage = self.run_dir / "_content_root"
+        stage.mkdir(parents=True, exist_ok=True)
+        link = stage / "content"
+        if link.is_symlink() or link.exists():
+            if link.is_dir() and not link.is_symlink():
+                raise RuntimeError(f"内容挂载点不是软链，拒绝启动：{link}")
+            link.unlink()
+        link.symlink_to(content_dir, target_is_directory=True)
+        return load_content(stage, allow_fixture=False, use_content=True)
+
     def _pid(self, account: str) -> str:
         return f"player:{str(account).strip().lower()}"
+
+    def _xkx_extra_verb_allowed(self, verb: str) -> bool:
+        """战斗类动词只在 actions/ 层已注册时对玩家放行。"""
+        return str(verb) in XKX_EXTRA_PLAYER_VERBS and self.registry.get(str(verb)) is not None
 
     def _status_view(self, pid: str) -> dict[str, Any]:
         view = player_status(self.state, pid)
@@ -1988,6 +2028,24 @@ class WorldSession:
                     self.intents.popitem(last=False)
             return response
 
+    def xkx_command(
+        self,
+        account: str,
+        payload: dict[str, Any] | None = None,
+        request_id: str = "",
+    ) -> dict[str, Any]:
+        """xkx 文字壳入口：把一行自然语言命令翻译成引擎动作。"""
+        from .xkx_shell import XKXShell
+
+        shell = getattr(self, "_xkx_shell", None)
+        if shell is None:
+            with self.lock:
+                shell = getattr(self, "_xkx_shell", None)
+                if shell is None:
+                    shell = XKXShell(self)
+                    self._xkx_shell = shell
+        return shell.execute(str(account or ""), dict(payload or {}), request_id=str(request_id or ""))
+
     def resume(
         self,
         account: str,
@@ -2120,7 +2178,9 @@ class WorldSession:
         verb = WRITE_ACTIONS.get(action)
         if verb is None:
             return self._reject_early(account, action, "unknown_action", tick)
-        if verb in FORBIDDEN_VERBS or verb not in PLAYER_VERBS:
+        if verb in FORBIDDEN_VERBS or (
+            verb not in PLAYER_VERBS and not self._xkx_extra_verb_allowed(verb)
+        ):
             return self._reject_early(account, action, "forbidden_verb", tick)
 
         prof = self.state.players.get(pid)
@@ -2492,6 +2552,14 @@ class WorldSession:
         if action == "use_item":
             base["item"] = str(payload.get("item") or "")
             base["qty"] = payload.get("qty", 1)
+            return base
+        if action in XKX_EXTRA_PLAYER_VERBS:
+            # 战斗动词的参数契约由 actions/ 层决定；这里透传整包，
+            # 让另一路可以自行取 target/opponent/item 等字段。
+            base["target"] = str(payload.get("target") or "").strip()
+            for key, value in payload.items():
+                if key not in base and key not in ("account_id", "player_id"):
+                    base[key] = value
             return base
         if action == "marriage_propose":
             base["target"] = str(payload.get("target") or "").strip()
