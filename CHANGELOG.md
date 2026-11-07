@@ -9,6 +9,33 @@
 
 ---
 
+## [修复] 2026-11-07 — 修复 2h soak RSS 无界增长漏点（p3m 门禁 rss_growth）
+
+- **改了什么**：`src/wsim/sim/scheduler.py`
+  - `AmbientScheduler` 四个内存留存字段 `_summaries` / `_player_actions` / `_control_log` / `_lod_changes` 从无界 `list` 改为 `deque(maxlen=_AMBIENT_IN_MEM_MAX)`，新增模块常量 `_AMBIENT_IN_MEM_MAX = 2000`。
+  - `_record_event` 中 `ev.to_canonical_dict()` 从每事件 3 次降到 1 次（存局部变量 `canonical` 复用），削减写热路径序列化 churn。
+  - `final_summary()` 序列化前对四个 deque 调 `list()`（`deque` 不可 `json.dumps`，否则 9 个 scheduler 测试 `TypeError`）。
+- **为什么**：p3m 第 3 条门禁 `tools/soak_test.py` 的 `rss_growth_lt_5pct_per_hour` 失败——
+  修复前 2h soak 稳态 RSS 回归斜率约 590 MB/h、约 71x 超限（采样 `reports/soak/soak-20261107-084749/samples.jsonl`，按口径不入库，磁盘保留）。
+  探针定位（探针脚本与日志均在仓库外 `/tmp/`，未污染工作树）：`writer._seen` / `AuditLog.records` /
+  `MCPGateway.tokens` / `outbox` / completed quest 均已封顶后，`tracemalloc` 追踪内存趋平，但 scheduler
+  四个 list 仍无界增长，叠加每事件重复 `to_canonical_dict()` 的瞬时大对象 churn 推高 RSS。
+- **验证**：
+  - 探针实测（仓库外 `/tmp/wsim_vmmap_probe.py`，含本修复；同负载 50 玩家）：封顶后 t=420→720（300s）
+    `vmmap --summary` 各区域 0 增长——untagged VM_ALLOCATE 66→66 MB、MALLOC_TINY 41→42 MB、MALLOC_LARGE 16→16 MB、
+    总 footprint 140→142 MB；`ps` 实时 cur RSS 146560→146640 KB（净 +80 KB/300s ≈ 1 MB/h）；`tracemalloc` 53.4→54.7 MB 趋平。
+  - 全量 pytest：**669 passed / 18 skipped / 0 failed**（`PYTHONPATH=src .venv/bin/python -m pytest`）。
+  - `scripts/selfcheck.sh`：**4/4 PASS**（内容包校验 / pytest / framework_check 6-6 / 玩家闭环 6-6），
+    证据 `reports/selfcheck/selfcheck-df2b37c-20261107-103531.json`；framework 段 calls=94、schema_reject=0、拒绝率=0.00%、守恒=0、replay=MATCH。
+  - e2e：**26/26 PASS**，证据 `reports/w4-e2e/e2e-service.json`（head `df2b37c`）。
+  - 2h soak 重跑：本次提交后执行，结果回填本条与 `docs/RELEASE-NOTES-p3m.md`。
+- **遗留 / 风险**：`ru_maxrss`（peak 高水位）偶发棘轮来自 `WorldState.clone()` 每写整世界 pickle 深拷贝的瞬态尖峰；
+  若重跑 soak 时 `peak_growth_pct` 门禁仍超限，下一步削减 `state.clone()` churn（改按需浅拷贝，保证隔离语义），记 p3n。
+  `PYTHONMALLOC=malloc` 对照探针已证伪（peak 斜率反而略高），本次不采用。
+- **commit**：见本条目所在提交。
+
+---
+
 ## [文档] 2026-11-07 — DIALOGUE-QUALITY 补 model_delivery_rate 指标与门槛
 
 - **改了什么**：`docs/DIALOGUE-QUALITY.md` 指标表新增 `model_delivery_rate` 行，

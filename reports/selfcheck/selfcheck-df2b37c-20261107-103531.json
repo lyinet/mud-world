@@ -1,0 +1,11 @@
+{
+  "tool": "scripts/selfcheck.sh",
+  "head": "df2b37cd3fe013b2be21151894502286e06954ed",
+  "head_short": "df2b37c",
+  "generated_at": "2026-11-07 10:40:32",
+  "overall": "PASS",
+  "summary_items_pass": 4,
+  "pass_markers": 4,
+  "fail_markers": 0,
+  "stdout": "=== world-sim selfcheck ===\n仓库: /Users/lyinet/projects/XKX/world-sim\nPython: Python 3.12.7 (/Users/lyinet/projects/XKX/world-sim/.venv/bin/python)\n\n[PASS] 内容包校验 content/validate_content.py\n       ----------------------------------------------------------------\n       统计: NPC 30 人；初始货币合计 35650 文，人均 1188.3 文；职业 24 种；关系边 106 条。\n       ================================================================\n       结果: PASS\n[PASS] 单元测试 pytest\n       ........................................................................ [ 83%]\n       ........................................................................ [ 94%]\n       .......................................                                  [100%]\n       669 passed, 18 skipped in 145.66s (0:02:25)\n[PASS] 框架验收 tools/framework_check.py（临时副本，不写 runs/）\n       [6/6] 假端点端到端（127.0.0.1） ... PASS\n              127.0.0.1:62406 启动→2 天→关闭；source=llm 落地 65/65 条，night_batch=29 realtime=65 replan=0（入口触发 44/90/11）；calls=94 schema_reject=0 fallback=0 拒绝率=0.00% 严格非法率=(0+5)/791=0.63% 含剪枝=(0+5+2)/791=0.88% 守恒=0 replay=MATCH\n       \n       FRAMEWORK CHECK: PASS\n[RUN ] 玩家闭环（进世界 / 移动 / 对话 / 接任务）\n[loop] 临时根目录: /var/folders/d9/s8hd77jj34gc7vcr6wbvvzyw0000gn/T//wsim-selfcheck.VQRv8c/player-world\n[loop] 启动 wsim.api  port=62537\n[loop] API 就绪: http://127.0.0.1:62537\n[loop] 启动玩家前端（反代）port=62542 upstream=http://127.0.0.1:62537\n[loop] 前端就绪: http://127.0.0.1:62542\n[loop] 前端已连上 API（mode=live）\n[loop] 跑闭环（写入端: http://127.0.0.1:62542）\n[walk] 1/6 进入世界 account=u_demo\n[walk]     ok 初始资产=300 文，created=False\n[walk] 2/6 查看地点：集市(market)，钱包 300 文，在场 NPC 7 个\n[walk] 3/6 移动 market -> 书院(academy)，tick=12\n[walk] 4/6 对话 白露生(bai_lusheng)，回复 46 字：街面上传得凶，一版比一版玄；我只看亲眼见的，你别再往外传。子不语怪力乱神，然曹半...\n[walk] 5/6 接任务 【轻】打听客栈酒价(quest:daily_market_inquiry:0)，报酬 9 文\n[walk] 6/6 刷新后状态仍在：location=market active_quests=1 money=300 tick=30\n[walk] PASS\n[selfcheck] 玩家前端 已停止\n[selfcheck] wsim.api 已停止\n[loop] 闭环 PASS\n[PASS] 玩家闭环（wsim.api + ui/player + HTTP 动作）\n\n=== 总结 ===\n总结: selfcheck PASS（4 项全部通过）\n"
+}
