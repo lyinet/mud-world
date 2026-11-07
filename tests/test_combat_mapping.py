@@ -47,8 +47,9 @@ def test_attack_power_uses_unarmed_40_not_role_35():
     player = _player()
     levels = cr.skill_map(player)
     str_effective = xf.query_str(20, 0, levels)
+    # 原版 `query_skill("unarmed")` 非 raw：40/2 + 无映射 = 20。
     unarmed_ap = xf.skill_power(
-        skill_level=40, apply_bonus=0, combat_exp=250,
+        skill_level=20, apply_bonus=0, combat_exp=250,
         attr_effective=str_effective, attr_base=20,
         usage=xf.SKILL_USAGE_ATTACK,
     )
@@ -59,7 +60,7 @@ def test_attack_power_uses_unarmed_40_not_role_35():
     )
     got = cr._attack_power(cr._Actor(player, set()), cr.attack_skill(player))
     assert got == unarmed_ap
-    assert got > role_ap
+    assert got != role_ap
 
 
 def test_defense_power_uses_dodge_parry_unarmed_levels():
@@ -67,7 +68,8 @@ def test_defense_power_uses_dodge_parry_unarmed_levels():
     actor = cr._Actor(player, set())
     levels = cr.skill_map(player)
     dex_effective = xf.query_dex(18, 0, levels)
-    for skill, level in (("dodge", 10), ("parry", 10), ("unarmed", 40)):
+    # 非 raw：dodge 10→5、parry 10→5、unarmed 40→20。
+    for skill, level in (("dodge", 5), ("parry", 5), ("unarmed", 20)):
         expected = xf.skill_power(
             skill_level=level, apply_bonus=0, combat_exp=250,
             attr_effective=dex_effective, attr_base=18,
@@ -75,6 +77,19 @@ def test_defense_power_uses_dodge_parry_unarmed_levels():
             dodge_power_point_permille=None,
         )
         assert cr._defense_power(actor, skill) == expected, skill
+
+
+def test_effective_is_half_tier_plus_apply_and_mapped_skill():
+    ent = Entity(
+        id="player:hero", name="测试", role="wanderer", location="inn",
+        skill_levels={"dodge": 10, "lingbo": 8},
+        map_skills={"dodge": "lingbo"},
+        temp_apply={"apply/dodge": 3},
+        hp=100, max_hp=100,
+    )
+    actor = cr._Actor(ent, set())
+    assert actor.level("dodge") == 10
+    assert actor.effective("dodge") == 3 + 10 // 2 + 8
 
 
 def test_npc_without_skills_uses_exp_half_and_missing_attrs_default_10():

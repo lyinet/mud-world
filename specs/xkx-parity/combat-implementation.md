@@ -363,7 +363,7 @@ vs `npc.boar`（40hp、attack 10、def 2、str 20、dex 15、unarmed 40），带
   因为 liumang 还有 `apply/attack 10`，双方同倍缩放后 apply 占比变小，玩家防御相对更高，
   命中率被进一步压低；两者都修正后反推约 5.3%。
 - 结论：**不是 apply 缺失、不是持械/空手错配；是 NPC str/dex 取了下限 10（原版实例 20）
-  + `query_skill` 未半档**。两条已按原版语义修复，见 §9.1.3 与 §10.6。
+  + `query_skill` 未半档**。两条已按原版语义修复，见 §9.1.3 与 §14。
 
 ### 9.1.3 NPC 六维：按原版种族 setup 掷点（2026-11-08）
 
@@ -820,7 +820,70 @@ B→C 仍为 0。
   （`verb="rest"`，`aliases=("sleep",)`）注册，写动作按声明小时推进世界钟。
 - NPC 掷点：`roll_attrs` 用
   `sha256("xkx-attrs:<seed>:<npc_id>:<attr>")[:8]` 取大端整数对区间取模；
-  seed 来自世界配置/创世，legacy NPC 无 `vitals/attrs/skills/attrs_roll` 时不落战斗字段。
+  seed 来自世界配置/创世，legacy NPC 无 `vitals/attrs/skills/attrs_roll/attrs_derive`
+  时不落战斗字段。
 - `region/region_name` 由 `xkx_content` 从 `rooms.json` 只读透出到
   `content.locations`；视角输出缺失时为 `null`，不编造区域。
+
+## 14. `query_skill` 半档语义（2026-11-08）
+
+原版实现（`feature/skill.lpc:87-100`）：
+
+```
+87 varargs int query_skill(string skill, int raw) {
+88   if (!raw) {
+91     s = query_temp("apply/" + skill);
+93     s += skills[skill] / 2;
+95     if (mapp(skill_map)) s += skills[skill_map[skill]];
+96     return s;
+97   }
+98   if (mapp(skills) && !undefinedp(skills[skill])) return skills[skill];
+99   return 0;
+100 }
+```
+
+引擎在**参数映射层**实现：`_Actor.level()` = raw，`_Actor.effective()` =
+`apply/<skill> + raw/2 + mapped`。公式库 `tools/xkx_formula/**` 零改动。
+
+### 14.1 调用点清单与 raw/半档依据
+
+| 调用点 | 原版依据 | 口径 | 引擎落点 |
+| --- | --- | --- | --- |
+| 攻击 ap | `combatd.lpc:204` `query_skill(skill)`；`:207` 再加 `apply/attack` | **半档** | `_attack_power` → `effective(skill)` |
+| 防御 dp/pp | `combatd.lpc:204/210`（dodge/parry/unarmed） | **半档** | `_defense_power` → `effective(skill)` |
+| 内功发力 | `inherit/skill/force.lpc:13,28` `query_skill("force")` | **半档** | `_force_hit` → `effective("force")` |
+| 先手近似 | 原版无显式先手（MudOS heartbeat） | 引擎自选，取 **半档** 与 ap/dp 同口径 | `speed_a/b` → `effective("dodge")` |
+| 技能成长 | `feature/skill.lpc:178` 直接用 `skills[skill]` | **raw** | `_Actor.learn` → `level(skill)` |
+| 闪避/招架/伤害奖励阈值 | `combatd.lpc:365/421/583` 均传 `query_skill(..., 1)` | **raw** | `dodge_rewards` / `parry_rewards` / `damage_rewards` 的 `*_skill_level` → `level()` |
+| 招式选择 | `mantian-xing.lpc:186`、`yunlong-zhua.lpc:123-134` 等 `query_skill(..., 1)` | **raw** | `skill_action` / `_martial_hit` → `level()` |
+
+### 14.2 改造前后实测（6 对手，seed 1–40；老虎 1–10）
+
+每格：胜/负 · 平均回合 · 玩家剩余气血中位数 · 对方命中率。
+
+| NPC | 改前（HEAD） | 只修属性 | 属性 + 半档 | 原版实测 |
+| --- | --- | --- | --- | --- |
+| 店小二 | 40/0 · 12.18 · 100 · 0.00% | 40/0 · 12.18 · 100 · 0.00% | 40/0 · 12.40 · 100 · 0.00% | 0.00% |
+| 流氓 | 40/0 · 23.45 · 100 · 2.78% | 39/1 · 29.50 · 86.5 · 7.10% | 40/0 · 28.23 · 86.5 · 5.60% | 7.82% |
+| 小沙弥 | 40/0 · 23.88 · 63.5 · 14.10% | 40/0 · 23.88 · 63.5 · 14.10% | 39/1 · 25.00 · 59.0 · 15.50% | — |
+| 刀客 | 0/40 · 8.93 · 0 · 53.22% | 0/40 · 5.72 · 0 · 63.76% | 0/40 · 5.47 · 0 · 68.04% | — |
+| 绿营清兵 | 0/40 · 6.90 · 0 · 58.33% | 0/40 · 4.80 · 0 · 66.67% | 0/40 · 4.53 · 0 · 70.17% | — |
+| 老虎 | 0/10 · 7.50 · 0 · 100% | 0/10 · 7.50 · 0 · 100% | 0/10 · 7.40 · 0 · 100% | 100% |
+
+偏差：店小二 0（一致）、老虎 100%（一致）、流氓 5.60% vs 7.82%（低 2.22pp）。
+流氓残余偏差来自原版实例固定 str/dex=20，而我们在 seed 1–40 上掷 10..30（均值 20），
+以及原版战报的快攻/连击分支未建模；不再人为调参。
+
+结论：这两项是**战斗输入校正**，不是难度调整。修完后玩家对刀客/清兵反而更差
+（对方属性从下限 10 恢复成原版掷点），这是原版行为，按用户要求不改。
+
+### 14.3 确定性与红线
+
+- 旧九地点三项哈希不变：735 /
+  `009076f0346352e328d8c158a3017a3e26fbc0b2c59ef7ca20c8fc3d1f780ce9` /
+  `02d5f812c427833387e592ad9321ebd72a9c5c719825b958f53af83d795078ae`。
+- `tools/xkx_formula/**` `git diff --stat` 为空。
+- 同 seed 双跑一致（seed=1 店小二、seed=2 流氓，两条独立会话）：
+  `file_sha256` 与 `combat_hash` 均相同（见本轮交付报告）。
+- xkx `content_hash` 仅因属性内容变化：`06bdaf46…` → `99a23a90…`，旧 run 需 `--reset`。
 

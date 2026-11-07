@@ -190,9 +190,11 @@ def test_prng_draw_order_is_locked():
     trace: list = []
     simulate_fight(hero, boar, PRNG(42, 2, "action:fight"), trace=trace)
     # 每项是 (n, value)：n 锁住公式顺序，value 锁住 PRNG 流。
+    # 前两项按 `query_skill()` 非 raw 有效值：unarmed 60→30、dodge 40→20、
+    # 野猪 unarmed 40→20、dodge 20→10（`feature/skill.lpc:87-100`）。
     expected = [
-        (30180, 25739),  # resolve_dodge: random(ap + dp)
-        (33540, 25907),  # resolve_parry: random(ap + pp)
+        (3728, 3179),    # resolve_dodge: random(ap + dp)（半档前 30180/25739）
+        (4176, 3225),    # resolve_parry: random(ap + pp)（半档前 33540/25907）
         (20, 4),         # roll_weapon_damage: random(damage)
         (2, 1),          # roll_armor: random(armor)
         (36, 25),        # roll_strength_bonus: random(bonus)

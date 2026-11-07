@@ -203,7 +203,25 @@ class _Actor:
         self.jiali = max(0, int(getattr(ent, "jiali", 0)))
 
     def level(self, skill: str) -> int:
+        """原版 `query_skill(skill, 1)` 的 raw 等级（`feature/skill.lpc:98`）。
+
+        用于：improve_skill、奖励阈值（`combatd.lpc:365/421/583` 传 raw=1）、
+        招式选择 `query_action()`（技能文件内均用 raw）。
+        """
         return max(0, min(SKILL_MAX, int(self.levels.get(skill, 0))))
+
+    def effective(self, skill: str) -> int:
+        """原版 `query_skill(skill)` 非 raw 的有效等级。
+
+        `feature/skill.lpc:87-100`：
+        `apply/<skill>` + `skills[skill]/2` + `skills[skill_map[skill]]`。
+        `skill_power` 的 `skill_level`（`combatd.lpc:204`）、内功
+        `force.lpc:13/28` 的 `query_skill("force")` 都走这个口径。
+        """
+        apply_bonus = int(self.temp_apply.get(f"apply/{skill}", 0))
+        mapped = self.mapped(skill)
+        mapped_level = self.level(mapped) if mapped else 0
+        return apply_bonus + self.level(skill) // 2 + mapped_level
 
     def mapped(self, base_skill: str) -> str:
         value = self.map_skills.get(str(base_skill))
@@ -226,7 +244,7 @@ class _Actor:
 
 def _attack_power(actor: _Actor, skill: str) -> int:
     return xf.skill_power(
-        skill_level=actor.level(skill),
+        skill_level=actor.effective(skill),
         apply_bonus=actor.apply_attack,
         combat_exp=actor.exp,
         attr_effective=attr(actor.ent, "str"),
@@ -237,7 +255,7 @@ def _attack_power(actor: _Actor, skill: str) -> int:
 
 def _defense_power(actor: _Actor, skill: str) -> int:
     return xf.skill_power(
-        skill_level=actor.level(skill),
+        skill_level=actor.effective(skill),
         apply_bonus=actor.apply_defense,
         combat_exp=actor.exp,
         attr_effective=attr(actor.ent, "dex"),
@@ -274,7 +292,7 @@ def _force_hit(
     damage = src.neili // 20 + factor - dst.neili // 25
 
     if damage < 0:
-        if not src.weapon and prng.below(dst.level("force")) > src.level("force") // 2:
+        if not src.weapon and prng.below(dst.effective("force")) > src.effective("force") // 2:
             damage = -damage
             src.hp = xf.apply_qi_damage(src.hp, damage * 2)
             vitals = xf.apply_qi_wound(src.hp, src.eff_hp, damage)
@@ -287,7 +305,7 @@ def _force_hit(
     damage -= dst.apply_armor_vs_force
     if damage_bonus + damage < 0:
         return -damage_bonus, 0
-    if prng.below(src.level("force")) < damage:
+    if prng.below(src.effective("force")) < damage:
         return damage, 0
     return 0, 0
 
@@ -370,8 +388,10 @@ def simulate_fight(
     skill_b = attack_skill(defender, defender_skill)
     prng = TraceRandom(rng, trace)
 
-    speed_a = attr(attacker, "dex") + me.level("dodge")
-    speed_b = attr(defender, "dex") + victim.level("dodge")
+    # 原版没有显式先手比较，靠 MudOS heartbeat 顺序；这里用 dex + query_skill("dodge")
+    # 作为引擎自选的近似（无原版行号可引），与 skill_power 同用非 raw 有效值。
+    speed_a = attr(attacker, "dex") + me.effective("dodge")
+    speed_b = attr(defender, "dex") + victim.effective("dodge")
     first = "a" if speed_a >= speed_b else "b"
 
     rounds: list[dict[str, Any]] = []
