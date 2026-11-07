@@ -224,8 +224,14 @@ vs `npc.boar`（40hp、attack 10、def 2、str 20、dex 15、unarmed 40），带
 | `attrs.int`（悟性） | 15 / 20 / 17 | 同上 |
 | `attrs.spi`（精神） | 15 / 18 / 16 | 同上 |
 | `attrs.sta`（耐力） | 20 / 18 / 19 | 同上 |
+| `combat_exp` | 250 | **我们的默认**：原版新玩家 0 经验、需先找师父学艺；0 经验新手会因经验压制打不动任何 NPC，故创世即给 250 |
+| `skill_levels.unarmed` | 40 | **我们的默认**：原版初始武功由拜师学得，登录掷点非确定；40 级保证能打一场 |
+| `skill_levels.dodge` | 40 | 同上 |
+| `skill_levels.parry` | 40 | 同上 |
 
 - 身份键沿用既有 `ARCHETYPES`（游侠 / 商人 / 捕快）；预置账号无身份，用 `DEFAULT_ARCHETYPE="游侠"`。
+- `combat_exp=250` / 三项基础武功 40 级与验收脚本口径完全一致；经验压制公式
+  （`modify_damage_by_exp`）保持原版逻辑不变，不因“好打”而改公式。
 - 旧玩家实体（`max_hp<=0`）在 `player_enter` 时补一次 `vitals_set`，8011 的既有存档也不会“没有血量”。
 - **门控**：仅当内容包 NPC 带 `vitals/attrs/skills` 键（xkx 切片）时生效。旧 `content/`（九地点）
   没有这些键，玩家创世事件与旧 golden / 无玩家哈希逐字节不变。
@@ -269,18 +275,26 @@ vs `npc.boar`（40hp、attack 10、def 2、str 20、dex 15、unarmed 40），带
 - xkx 房间 `objects` 中 `kind=="item"` 且 `count` 为整数的条目在创世时落到地面
   （`reason="genesis_ground"`）；`count_expr=random(...)` 一律跳过。
 
-### 9.4 真实世界战报（`content/xkx`，seed=7）
+### 9.4 真实世界战报（`content/xkx`，seed=7，纯默认创世无脚本注入）
 
 - 世界：195 房间 / 92 NPC / 4 个房间有地面物品（共 5 件）。
-- 目标：`/d/hangzhou/npc/poorman`（穷汉，`/d/hangzhou/duanqiao`），`vitals` 缺失 →
-  默认 `max_hp=200`；`combat_exp=250`；装备 `cloth`（weight 3000）已进背包。
-- 玩家：默认创世 100 血 + 六维（游侠）；为验证战斗/掉落链路，脚本额外注入
-  `combat_exp=250` 与 `unarmed/dodge/parry=40`（模拟已从师父处学艺；默认新手是 0 经验、无武功）。
-- 结果：14 回合，玩家胜；`hp_add` 增量 `player:-46` / `poorman:-200`，状态变化
-  `100→54` / `200→0`，两侧逐项相等；`overkill={"poorman":1}`。
-- 掉落：`loot_create {location:"/d/hangzhou/duanqiao", item:"/d/hangzhou/npc/obj/cloth", qty:1}`；
-  `loot` 后 `loot_take {qty:1, weight:3000}`，背包 `cloth ×1`，地面清空。
-- 同 seed 二跑 `state_hash=6655f7a0…` 完全一致。
+- 玩家：只走 `player_enter`，**不注入任何属性/技能/经验**；落地即
+  `hp 100/100`、`combat_exp 250`、`skill_levels {unarmed:40, dodge:40, parry:40}`、
+  游侠六维 `{str:20, con:20, dex:18, int:15, spi:15, sta:20}`。
+- 目标 A：`/d/hangzhou/npc/poorman`（穷汉，`/d/hangzhou/duanqiao`），`vitals` 缺失 →
+  默认 `max_hp=200`；`combat_exp=250`；装备 `cloth`（weight 3000）进背包。
+  - 14 回合玩家胜（`winner=attacker`，`rounds_used=14`）。
+  - `hp_add` 增量 `player:-46` / `poorman:-200`；状态变化 `100→54` / `200→0`，逐项相等；
+    `overkill={poorman:1}` 只进战报。
+  - 掉落 `loot_create {location:"/d/hangzhou/duanqiao", item:"/d/hangzhou/npc/obj/cloth", qty:1}`；
+    `loot` 后 `loot_take {qty:1, weight:3000}`，背包 `cloth ×1`，地面清空。
+  - `state_hash=50124449e2e0e877cffae443a11a8b56f4600595521539c80025c20ec46ab82a`。
+- 目标 B（更弱）：`/d/hangzhou/npc/boy`（男孩，`/d/hangzhou/maojiabu`），
+  默认 `max_hp=200`；`combat_exp=100`。
+  - 13 回合玩家胜；`hp_add` 增量 `player:-9` / `boy:-200`，`100→91` / `200→0`；
+    确认不会被 1 回合秒杀，仍有完整回合体验。
+  - 掉落同上并捡起；`state_hash=461ad93bed911eb40eaccacb3ce25748ac10a5d1567c06379346926416113a63`。
+- 经验压制保留：exp 1000 的毒蛇仍会压制 250 经验玩家，公式未改。
 
 ### 9.5 测试与基线
 

@@ -480,6 +480,13 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         ent.hp = max(0, min(max_hp, _as_int(d.get("hp", max_hp), "hp")))
         if "attrs" in d:
             ent.attrs = {str(k): _as_int(v, f"attrs.{k}") for k, v in dict(d["attrs"] or {}).items()}
+        if "combat_exp" in d:
+            ent.combat_exp = max(0, _as_int(d["combat_exp"], "combat_exp"))
+        if "skill_levels" in d:
+            ent.skill_levels = {
+                str(k): max(0, min(800, _as_int(v, f"skill_levels.{k}")))
+                for k, v in dict(d["skill_levels"] or {}).items()
+            }
         return
 
     if op == "combat_exp_add":

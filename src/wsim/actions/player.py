@@ -39,7 +39,12 @@ STARTING_ITEMS: dict[str, int] = {"flatbread": 3, "coarse_cloth": 1}
 #   初始 age=14。所以 100 不是我们编的。
 # - 六维属性是**我们的默认**：xkx 登录时由玩家掷点决定，不可确定复刻；这里按身份
 #   给一组固定值，保证新角色一定有属性、战斗可结算。
+# - 初始武功/经验同样是**我们的默认**（原版要先找师父学艺，0 经验新手打不动任何 NPC）：
+#   三项基础武功各 40 级、combat_exp=250，与验收脚本完全一致；经验压制照旧生效。
 PLAYER_MAX_HP = 100
+PLAYER_START_COMBAT_EXP = 250
+PLAYER_START_SKILL_LEVEL = 40
+PLAYER_START_SKILLS = ("unarmed", "dodge", "parry")
 DEFAULT_ARCHETYPE = "游侠"
 ARCHETYPE_ATTRS: dict[str, dict[str, int]] = {
     # 膂力 / 根骨 / 身法 / 悟性 / 精神 / 耐力
@@ -50,9 +55,18 @@ ARCHETYPE_ATTRS: dict[str, dict[str, int]] = {
 
 
 def _player_vitals(archetype: str = "") -> dict:
-    """确定性玩家气血/属性；未知身份回落到游侠。"""
+    """确定性玩家气血/属性/初始武功；未知身份回落到游侠。
+
+    只由玩家创世路径调用；是否启用由内容包门控（见 `content_has_combat_data`）。
+    """
     attrs = ARCHETYPE_ATTRS.get(archetype or DEFAULT_ARCHETYPE, ARCHETYPE_ATTRS[DEFAULT_ARCHETYPE])
-    return {"max_hp": PLAYER_MAX_HP, "hp": PLAYER_MAX_HP, "attrs": dict(attrs)}
+    return {
+        "max_hp": PLAYER_MAX_HP,
+        "hp": PLAYER_MAX_HP,
+        "attrs": dict(attrs),
+        "combat_exp": PLAYER_START_COMBAT_EXP,
+        "skill_levels": {skill: PLAYER_START_SKILL_LEVEL for skill in PLAYER_START_SKILLS},
+    }
 
 
 ENDOWMENT_SOURCE = "genesis_player_endowment"
