@@ -1,0 +1,63 @@
+{
+  "content_hash": "db8e1ee8a38e7a8e83a592cacaf3d2a3fe058b13a43047ac611c3a4465715725",
+  "counts": {
+    "commands": 153,
+    "status": {
+      "不做": 62,
+      "已实现": 40,
+      "待实现": 51
+    },
+    "system": {
+      "战斗": {
+        "不做": 5,
+        "已实现": 2,
+        "待实现": 13
+      },
+      "物品": {
+        "不做": 7,
+        "已实现": 10,
+        "待实现": 2
+      },
+      "社交": {
+        "不做": 20,
+        "已实现": 4,
+        "待实现": 5
+      },
+      "移动": {
+        "不做": 0,
+        "已实现": 2,
+        "待实现": 0
+      },
+      "系统": {
+        "不做": 24,
+        "已实现": 12,
+        "待实现": 8
+      },
+      "经济": {
+        "不做": 2,
+        "已实现": 4,
+        "待实现": 0
+      },
+      "门派": {
+        "不做": 4,
+        "已实现": 6,
+        "待实现": 23
+      }
+    },
+    "topics": 32
+  },
+  "files": {
+    "commands.yaml": "5b770a97ffa4994a9a7c098145600c01167f5343a993dd75cd679690d79412e4",
+    "help-coverage.md": "a5ba2e9198a1e5f04aeeb0ef40da57e4256ccf6a5d426d773561ee09f45cb5ea",
+    "topics.yaml": "860dce5b115e2a42d50c0d57917a0b786100f2d07a14c01c86998bb2bf9d33b8"
+  },
+  "generated_by": "tools/xkx_help/build.py",
+  "schema_version": 1,
+  "source": {
+    "commit": "c1b87db0014c85514e053b2a149a2efccb9914e3",
+    "inventory": "tools/xkx_help/inventory.txt",
+    "note": "源仓库 help/help/topics 只有 32 个主题标题索引，没有逐主题正文文件；帮助正文本包按标题与命令源码重写为中文，不是机器直译。",
+    "repo": "fluffos/xkx100",
+    "topics_index": "help/help/topics"
+  }
+}
