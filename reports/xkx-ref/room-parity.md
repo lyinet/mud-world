@@ -3,7 +3,7 @@
 **全量 195 个房间**（复刻杭州切片共 195 个房间，全覆盖）。
 
 - 房间数：195 / 195
-- 原版来源：`/Users/lyinet/projects/XKX/world-sim/tools/xkx_ref/run/mudlib-parity (config-parity.ini, port 4020)`（mudlib = `/Users/lyinet/projects/XKX/world-sim/tools/xkx_ref/run/mudlib`，与 4004 同一棵树）
+- 原版来源：`/Users/lyinet/projects/XKX/world-sim/tools/xkx_ref/run/mudlib-parity (config-parity.ini, port 4021)`（mudlib = `/Users/lyinet/projects/XKX/world-sim/tools/xkx_ref/run/mudlib`，与 4004 同一棵树）
 - 复刻来源：`/Users/lyinet/projects/XKX/world-sim/content/xkx/rooms.json`
 - 采集方式：startroom（逐房改存档 startroom 直接登录 look）
 
@@ -59,36 +59,36 @@
 
 | 房间 | 字段 | 说明 |
 |------|------|------|
-| `/d/hangzhou/road6` | npcs | 原版 {'流氓头': 1, '流氓': 1} vs 复刻 {'流氓': 4, '流氓头': 1} |
-| `/d/hangzhou/road12` | npcs | 原版 {'绿营清兵': 1, '杭州提督 李可秀': 1} vs 复刻 {'杭州提督 李可秀': 1, '绿营清兵': 4} |
+| `/d/hangzhou/road6` | npcs | 原版 {'流氓头': 1, '流氓': 4} vs 复刻 {'流氓': 1, '流氓头': 1} |
+| `/d/hangzhou/road12` | npcs | 原版 {'绿营清兵': 4, '杭州提督 李可秀': 1} vs 复刻 {'杭州提督 李可秀': 1, '绿营清兵': 1} |
 | `/d/hangzhou/huanglongdong` | npcs | 原版 {'毒蛇 <昏迷不醒>': 1} vs 复刻 {'毒蛇': 1} |
-| `/d/hangzhou/yuelang` | npcs | 原版 {'绿营会众': 1, '明教青龙坛坛主 明教第三十五代弟子 程嘲风': 1} vs 复刻 {'明教青龙坛坛主 明教第三十五代弟子 程嘲风': 1, '绿营会众': 2} |
+| `/d/hangzhou/yuelang` | npcs | 原版 {'绿营会众': 2, '明教青龙坛坛主 明教第三十五代弟子 程嘲风': 1} vs 复刻 {'明教青龙坛坛主 明教第三十五代弟子 程嘲风': 1, '绿营会众': 1} |
 | `/d/hangzhou/dadao1` | items | 原版 {} vs 复刻 {'白薇': 1} |
 | `/d/hangzhou/kedian` | items | 原版 {'客店留言板(Board)': 1} vs 复刻 {} |
-| `/d/hangzhou/guozhuang` | npcs | 原版 {'大狼狗 <昏迷不醒>': 1} vs 复刻 {'大狼狗': 2} |
-| `/d/hangzhou/qingbomen` | npcs | 原版 {'女孩': 1} vs 复刻 {'女孩': 2} |
+| `/d/hangzhou/guozhuang` | npcs | 原版 {'大狼狗 <昏迷不醒>': 2} vs 复刻 {'大狼狗': 1} |
+| `/d/hangzhou/qingbomen` | npcs | 原版 {'女孩': 2} vs 复刻 {'女孩': 1} |
 | `/d/hangzhou/majiu` | items | 原版 {'黄骠马': 1} vs 复刻 {} |
 | `/d/hangzhou/majiu` | npcs | 原版 {'枣红马': 1, '马夫': 1, '紫骝马': 1} vs 复刻 {'枣红马': 1, '黄骠马': 1, '紫骝马': 1, '马夫': 1} |
-| `/d/hangzhou/suti4` | npcs | 原版 {'麻雀': 1, '乌鸦': 1, '武当派第十四代弟子 李沅芷': 1} vs 复刻 {'武当派第十四代弟子 李沅芷': 1, '乌鸦': 1, '麻雀': 2} |
-| `/d/hangzhou/dalu1` | npcs | 原版 {'红花会众': 1, '挑夫': 1} vs 复刻 {'挑夫': 1, '红花会众': 2} |
-| `/d/hangzhou/yuhuangsj` | npcs | 原版 {'红花会众': 1} vs 复刻 {'红花会众': 2} |
-| `/d/hangzhou/liulangqiao` | npcs | 原版 {'麻雀': 1, '乌鸦': 1} vs 复刻 {'麻雀': 2, '乌鸦': 1} |
+| `/d/hangzhou/suti4` | npcs | 原版 {'麻雀': 2, '乌鸦': 1, '武当派第十四代弟子 李沅芷': 1} vs 复刻 {'武当派第十四代弟子 李沅芷': 1, '乌鸦': 1, '麻雀': 1} |
+| `/d/hangzhou/dalu1` | npcs | 原版 {'红花会众': 2, '挑夫': 1} vs 复刻 {'挑夫': 1, '红花会众': 1} |
+| `/d/hangzhou/yuhuangsj` | npcs | 原版 {'红花会众': 2} vs 复刻 {'红花会众': 1} |
+| `/d/hangzhou/liulangqiao` | npcs | 原版 {'麻雀': 2, '乌鸦': 1} vs 复刻 {'麻雀': 1, '乌鸦': 1} |
 | `/d/hangzhou/road1` | npcs | 原版 {'武当派第四代弟子 香火道人': 1} vs 复刻 {} |
-| `/d/hangzhou/liuzhuang` | npcs | 原版 {'管家': 1, '家丁': 1} vs 复刻 {'管家': 1, '家丁': 2} |
+| `/d/hangzhou/liuzhuang` | npcs | 原版 {'管家': 1, '家丁': 2} vs 复刻 {'管家': 1, '家丁': 1} |
 | `/d/hangzhou/huagang` | items | 原版 {} vs 复刻 {'白芷': 1} |
-| `/d/hangzhou/tulu1` | npcs | 原版 {'男孩': 1} vs 复刻 {'男孩': 2} |
-| `/d/hangzhou/shanlu5` | npcs | 原版 {'采茶女': 1} vs 复刻 {'采茶女': 2} |
-| `/d/hangzhou/shanlu2` | npcs | 原版 {'绿营会众': 1} vs 复刻 {'绿营会众': 2} |
-| `/d/jiaxing/tieqiang` | npcs | 原版 {'乌鸦': 1} vs 复刻 {'乌鸦': 4} |
+| `/d/hangzhou/tulu1` | npcs | 原版 {'男孩': 2} vs 复刻 {'男孩': 1} |
+| `/d/hangzhou/shanlu5` | npcs | 原版 {'采茶女': 2} vs 复刻 {'采茶女': 1} |
+| `/d/hangzhou/shanlu2` | npcs | 原版 {'绿营会众': 2} vs 复刻 {'绿营会众': 1} |
+| `/d/jiaxing/tieqiang` | npcs | 原版 {'乌鸦': 4} vs 复刻 {'乌鸦': 1} |
 | `/d/hangzhou/longjing` | desc | 复刻多 16 字 / 少 0 字 |
 | `/d/hangzhou/longjing` | exits | 原版 [] vs 复刻 ['east', 'south'] |
 | `/d/hangzhou/longjing` | npcs | 原版 {'蒙面人': 1} vs 复刻 {} |
 | `/d/jiaxing/nanhu` | items | 原版 {} vs 复刻 {'白芷': 1} |
-| `/d/hangzhou/faxisi` | npcs | 原版 {'进香客': 1, '老和尚': 1} vs 复刻 {'进香客': 2, '老和尚': 1} |
-| `/d/hangzhou/shanlu3` | npcs | 原版 {'男孩': 1} vs 复刻 {'男孩': 3} |
+| `/d/hangzhou/faxisi` | npcs | 原版 {'进香客': 2, '老和尚': 1} vs 复刻 {'进香客': 1, '老和尚': 1} |
+| `/d/hangzhou/shanlu3` | npcs | 原版 {'男孩': 3} vs 复刻 {'男孩': 1} |
 | `/d/hangzhou/liuhe1` | landing | 落点异常：期望「六和塔」，实得「武庙」，未按 startroom 落入目标房（该房不计入一致率） |
 | `/d/hangzhou/liuhe8` | landing | 落点异常：期望「六和塔」，实得「鬼门关」，未按 startroom 落入目标房（该房不计入一致率） |
-| `/d/shiliang/dating` | npcs | 原版 {'温家老大 温方达': 1, '丫环': 1} vs 复刻 {'温家老大 温方达': 1, '丫环': 2} |
+| `/d/shiliang/dating` | npcs | 原版 {'温家老大 温方达': 1, '丫环': 2} vs 复刻 {'温家老大 温方达': 1, '丫环': 1} |
 | `/d/shiliang/dongxiangfang` | items | 原版 {'锦面折叠长椅': 1} vs 复刻 {'椅子': 1} |
 | `/d/shiliang/huli` | landing | 落点异常：期望「湖里」，实得「鬼门关」，未按 startroom 落入目标房（该房不计入一致率） |
 | `/d/shiliang/xixiangfang` | items | 原版 {'锦面躺椅': 1} vs 复刻 {'椅子': 1} |
@@ -133,10 +133,10 @@
    "match": false,
    "orig": {
     "流氓头": 1,
-    "流氓": 1
+    "流氓": 4
    },
    "repl": {
-    "流氓": 4,
+    "流氓": 1,
     "流氓头": 1
    }
   }

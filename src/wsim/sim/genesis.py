@@ -282,13 +282,19 @@ def build_genesis(
             and int(obj["count"]) > 0
         ]
         for obj in sorted(rows, key=lambda r: str(r["ref"])):
+            qty = int(obj["count"])
+            item_rec = (content.items or {}).get(str(obj["ref"])) or {}
+            amount = item_rec.get("amount")
+            if isinstance(amount, int) and amount > 0:
+                # 原版 set_amount() 的堆叠语义：一件物品自带 N 个。
+                qty *= amount
             effects.append(
                 Effect(
                     "loot_create",
                     {
                         "location": lid,
                         "item": str(obj["ref"]),
-                        "qty": int(obj["count"]),
+                        "qty": qty,
                         "reason": "genesis_ground",
                     },
                 )
