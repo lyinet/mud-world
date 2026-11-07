@@ -98,6 +98,7 @@ def build_registry(
         SystemQuestFailAction,
         SystemQuestPostAction,
     )
+    from .xkx_quests import XkxQuestAcceptAction, XkxQuestDeliverAction
 
     reg = ActionRegistry()
     reg.register(MoveAction(content))
@@ -132,6 +133,8 @@ def build_registry(
     reg.register(FoundSectAction(content))
     reg.register(QuestAcceptAction(content))
     reg.register(QuestDeliverAction(content))
+    reg.register(XkxQuestAcceptAction(content))
+    reg.register(XkxQuestDeliverAction(content))
     reg.register(SystemQuestPostAction(content))
     reg.register(SystemQuestFailAction(content))
     reg.register(SystemGoalAction(content))

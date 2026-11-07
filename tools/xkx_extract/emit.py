@@ -18,6 +18,7 @@ DATA_FILES = (
     "skills.json",
     "skills_actions.json",
     "skills_stats.json",
+    "quests.json",
 )
 
 TABLES = {
@@ -31,6 +32,7 @@ TABLES = {
     "skills.json": "skills",
     "skills_actions.json": "skills_actions",
     "skills_stats.json": "skills_stats",
+    "quests.json": "quests",
 }
 
 
@@ -125,6 +127,7 @@ def build_outputs(pack, diagnostics, counts, coverage, source_info) -> dict[str,
                 "authored": "原版缺 long，由本项目按原版器物/身份常识自撰，不计入 source 覆盖率，只计入 total 覆盖率。",
                 "null": "描述缺失，玩家会看到空白；total 覆盖率不达标即 error。",
             },
+            "room_region": "region 由房间源码路径 d/<region>/ 推导（kind=derived_path）；region_name 只从 mapd.lpc 全局映射 map_short/logind.lpc hometown 取（kind=lpc），取不到为 null 并记 diagnostics。region 不是 flags.outdoors。",
             "skill_action_source": {
                 "lpc": "招式/系数在原版 LPC 中直接写死，原样搬运。",
                 "derived": "原版只给公式或结构，数值由抽取器按源码公式解释得出。",
@@ -139,8 +142,12 @@ def build_outputs(pack, diagnostics, counts, coverage, source_info) -> dict[str,
                 "source_landing": "原版实际放置位置（corpse/ground），仅作溯源，不影响引擎落地。",
                 "drops_source": "lpc 表示 die() 中有真实掉落；none 表示源码无掉落，drops 为空表且 drops_note 写明原因。",
             },
+            "npc_attrs_roll": "attrs_roll[attr]=[min,max] 是原版种族 setup 的 random(N)+M 掷骰区间（闭区间）；仅当该属性没有被显式 set 时出现。引擎必须按创世种子生成随机值，不得取 min/max 或中位数写死。attrs_roll_source 为每个区间的源码文件与行号。",
+            "dialogue_fallback": "kind=fallback 且带 fallback_reason 表示原版函数体含条件/状态/物品/教学，不能压成固定文本；fallback_source 指向函数定义行。loader 只保留主题键，不得伪造台词。",
+            "action_coefficient_default": "动作条目缺 damage/parry/force/dodge 键时按 LPC mapping 取 0；coefficient_source_detail 给出条目行号与 combatd.lpc 语义行号；coefficient_default_basis 给出四键证据及 inherit 链检查（inherited_defaults 为空即无父技能隐式默认）。",
             "npc_equipment": "equipment[].ref 必须在 items.json 中存在；ref 已补前导 / 并去掉 .lpc；缺 set_weight 时按基类默认 100 并带 weight_source=default。",
             "npc_temp_apply": "create() 内 set_temp 的静态快照，按创世即带处理；key 为原版键名，known=false 表示不在战斗白名单（原样保留并记诊断）；value 为整数时直接可用，为 null 时读 value_expr，不折算；source_kind=lpc 表示照源码搬运。",
+            "xkx_quests": "只收切片内可闭环的 4 条支线；preconditions 是原版 set_temp/accept_object 的触发语义，不是运行时状态；动态任务奖励 exp/pot/score 以 base+random 表达，由引擎用 PRNG(seed, seq, salt) 按 exp→pot除数→score 顺序取数；静态清单与切片外动态任务只进 sorted counts 与 diagnostics，不入库。",
         },
         "authored_descriptions": authored,
         "coverage_semantics": {

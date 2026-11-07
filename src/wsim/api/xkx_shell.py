@@ -5,6 +5,8 @@
 """
 from __future__ import annotations
 
+import difflib
+import json
 import re
 from pathlib import Path
 from typing import Any, Iterable
@@ -121,6 +123,8 @@ VERB_ALIASES: dict[str, str] = {
     "fight": "fight", "打": "fight", "战斗": "fight", "出手": "fight",
     "loot": "loot", "捡": "loot", "拾取": "loot",
     "get": "loot", "拿": "loot", "取": "loot",
+    "give": "give", "交给": "give", "给": "give", "交付": "give",
+    "quests": "quests", "任务": "quests", "支线": "quests",
     "score": "score", "状态": "score", "属性": "score",
     "inventory": "inventory", "i": "inventory", "背包": "inventory", "物品": "inventory",
     "help": "help", "帮助": "help", "?": "help",
@@ -143,6 +147,13 @@ _EXTRA_REASON_TEXT = {
     "player_not_entered": "你还没进入世界。",
     "no_combat_stats": "这具身体还没有气血/攻防；当前内容包没有战斗属性。",
     "loot_not_found": "地上没有这件东西（或者已经被人捡走了）。",
+    "target_required": "没指定要把东西交给谁。",
+    "target_not_found": "这里没有这个人。",
+    "quest_item_required": "没指定要交出的物品。",
+    "quest_not_found": "对方不收这件东西，或者这不是对应的任务物品。",
+    "quest_not_accepted": "这条支线还没接：先去问过委托人。",
+    "quest_already_completed": "这条支线已经完成了。",
+    "quest_item_missing": "你身上没有这件任务物品。",
     "bad_qty": "数量不对；捡东西至少要 1 件。",
     "player_dead": "你已经倒下了，先想办法回魂。",
     "unknown_item": "这里没有这种货。",
@@ -202,6 +213,124 @@ class XKXShell:
             str(k): str(v)
             for k, v in (self.config.get("room_descriptions") or {}).items()
             if str(v).strip()
+        }
+        # 帮助内容包：153 命令 / 32 主题。只读，不参与任何玩法判定。
+        self.help_commands: list[dict[str, Any]] = []
+        self.help_topics: list[dict[str, Any]] = []
+        self.help_counts: dict[str, Any] = {}
+        self.help_error = ""
+        self._load_help()
+
+    # ------------------------------------------------------------- 帮助数据
+    def _load_help(self) -> None:
+        pack_root = Path(getattr(self.session, "content_root", Path("content")))
+        candidates = [
+            pack_root.parent / "xkx_help",
+            pack_root / "xkx_help",
+            Path(getattr(self.session, "root", pack_root.parent)) / "content" / "xkx_help",
+        ]
+        base = next((path for path in candidates if path.exists()), None)
+        if base is None:
+            self.help_error = "帮助内容包不存在（content/xkx_help）。"
+            return
+        try:
+            commands_doc = yaml.safe_load(
+                (base / "commands.yaml").read_text(encoding="utf-8")
+            ) or {}
+            topics_doc = yaml.safe_load((base / "topics.yaml").read_text(encoding="utf-8")) or {}
+            manifest = json.loads((base / "manifest.json").read_text(encoding="utf-8"))
+        except Exception as exc:
+            self.help_error = f"帮助内容包读取失败：{exc}"
+            return
+        rows = commands_doc.get("commands") if isinstance(commands_doc, dict) else None
+        topics = topics_doc.get("topics") if isinstance(topics_doc, dict) else None
+        self.help_commands = [dict(row) for row in rows or [] if isinstance(row, dict)]
+        self.help_topics = [dict(row) for row in topics or [] if isinstance(row, dict)]
+        counts = manifest.get("counts") if isinstance(manifest, dict) else None
+        self.help_counts = dict(counts) if isinstance(counts, dict) else {}
+        if not self.help_commands or not self.help_topics:
+            self.help_error = "帮助内容包为空（commands.yaml/topics.yaml 没有条目）。"
+
+    def _shell_entry(self, row: dict[str, Any]) -> str:
+        """只有命令名本身能被本文字壳接受才算“已接入口”。
+
+        别名可能与其他命令重名（例如 hit 的别名「出手」恰好被 fight 接走），
+        不能因此把原命令说成可用。
+        """
+        name = str(row.get("name") or "").strip()
+        if name and name.lower() in VERB_ALIASES:
+            return name
+        return ""
+
+    def _find_help_command(self, token: str) -> dict[str, Any] | None:
+        key = str(token or "").strip().lower()
+        if not key:
+            return None
+        for row in self.help_commands:
+            if str(row.get("name") or "").lower() == key:
+                return row
+            for alias in row.get("aliases") or []:
+                if str(alias).strip().lower() == key:
+                    return row
+        return None
+
+    def _find_help_topic(self, text: str) -> dict[str, Any] | None:
+        key = str(text or "").strip()
+        if not key:
+            return None
+        for row in self.help_topics:
+            if str(row.get("id") or "") == key:
+                return row
+            title = str(row.get("title") or "")
+            if title == key or (title and (title in key or key in title)):
+                return row
+        return None
+
+    @staticmethod
+    def _status_text(row: dict[str, Any]) -> str:
+        status = str(row.get("status") or "未注明")
+        if status == "已实现":
+            return "已实现"
+        reason = str(row.get("blocker") or "").strip() or "原因未注明"
+        return f"{status}（{reason}）"
+
+    def catalog(self) -> dict[str, Any]:
+        """给 `/api/xkx/help` 与前端补全用的只读目录。"""
+        commands = []
+        for row in self.help_commands:
+            entry = self._shell_entry(row)
+            commands.append(
+                {
+                    "name": str(row.get("name") or ""),
+                    "aliases": [str(a) for a in (row.get("aliases") or [])],
+                    "params": str(row.get("params") or "—"),
+                    "summary": str(row.get("summary") or ""),
+                    "system": str(row.get("system") or ""),
+                    "status": str(row.get("status") or ""),
+                    "blocker": str(row.get("blocker") or ""),
+                    "evidence": str(row.get("evidence") or ""),
+                    "shell": bool(entry),
+                    "shell_verb": VERB_ALIASES.get(entry, "") if entry else "",
+                }
+            )
+        topics = [
+            {
+                "id": str(row.get("id") or ""),
+                "title": str(row.get("title") or ""),
+                "category": str(row.get("category") or ""),
+                "status": str(row.get("status") or ""),
+            }
+            for row in self.help_topics
+        ]
+        return {
+            "ok": not self.help_error,
+            "error": self.help_error,
+            "counts": self.help_counts,
+            "commands": commands,
+            "topics": topics,
+            "shell_verbs": sorted(set(VERB_ALIASES.values())),
+            # 文字壳真正接受的输入串（含中文别名），供补全使用。
+            "shell_aliases": sorted(VERB_ALIASES.keys()),
         }
 
     # ------------------------------------------------------------- 配置
@@ -267,7 +396,9 @@ class XKXShell:
             )
 
         try:
-            if verb == "help" or (not verb and not rest):
+            if verb == "help":
+                return self._cmd_help(account, rest, state, raw, request_id)
+            if not verb and not rest:
                 lines = self._help_lines()
                 return self._reply(account, "help", True, lines, state, raw, request_id)
             if verb == "look":
@@ -298,6 +429,10 @@ class XKXShell:
                 return self._cmd_jump(account, rest, state, raw, request_id)
             if verb == "revive":
                 return self._cmd_revive(account, state, raw, request_id)
+            if verb == "give":
+                return self._cmd_give(account, rest, state, raw, request_id)
+            if verb == "quests":
+                return self._cmd_quests(account, rest, state, raw, request_id)
             if verb == "score":
                 return self._reply(
                     account, "score", True, self._score_lines(state), state, raw, request_id
@@ -312,19 +447,13 @@ class XKXShell:
                 if row is not None:
                     return self._cmd_go(account, raw, state, raw, request_id)
                 return self._reply(
-                    account,
-                    "unknown",
-                    False,
-                    [("error", f"不明白「{raw}」。{err} 输入 help 看可用命令。")],
-                    state,
-                    raw,
-                    request_id,
+                    account, "unknown", False, self._unknown_lines(raw), state, raw, request_id
                 )
             return self._reply(
                 account,
                 verb or "unknown",
                 False,
-                [("error", f"不明白「{raw}」。输入 help 看可用命令。")],
+                self._unknown_lines(raw),
                 state,
                 raw,
                 request_id,
@@ -633,8 +762,144 @@ class XKXShell:
             ("cmd", f"你对{target['name']}说：{message}"),
             ("npc", f"{target['name']}答：{reply or '（对方只是点了点头，没有多话。）'}"),
         ]
+        accepted = self._try_accept_quest(account, str(target["id"]), message)
+        if accepted:
+            lines.append(("info", f"接受支线：{accepted}。"))
         after = self._state(account) or state
         return self._reply(account, "ask", True, lines, after, raw, request_id)
+
+    def _try_accept_quest(self, account: str, npc: str, message: str) -> str:
+        """问话后尝试接取支线；是否算接取由后端动作判定，shell 只做路由。
+
+        只有该 NPC 在内容里确实是某个任务的发放人时才调用，避免每次闲聊
+        都产生一条被拒绝的意图。
+        """
+        quests = dict(getattr(self.session.content, "xkx_quests", {}) or {})
+        giver = any(
+            str((q.get("giver") or {}).get("id") or "") == npc for q in quests.values()
+        )
+        if not giver:
+            return ""
+        resp = self.session.perform(account, "xkx_quest_accept", {"npc": npc, "topic": message})
+        if not resp.get("ok"):
+            return ""
+        pid = str((self._state(account) or {}).get("player", {}).get("entity_id") or "")
+        records = getattr(self.session.state, "xkx_quests", {}) or {}
+        for key, rec in sorted(records.items()):
+            if str(rec.get("actor") or "") != pid:
+                continue
+            quest = quests.get(str(rec.get("quest") or "")) or {}
+            if str((quest.get("giver") or {}).get("id") or "") != npc:
+                continue
+            if rec.get("status") == "accepted":
+                return str(quest.get("name") or rec.get("quest") or "")
+        return ""
+
+    def _cmd_quests(
+        self, account: str, rest: str, state: dict[str, Any], raw: str, request_id: str
+    ) -> dict[str, Any]:
+        """只读展示：任务定义来自内容包，进度来自后端世界状态。"""
+        quests = dict(getattr(self.session.content, "xkx_quests", {}) or {})
+        pid = str((state.get("player") or {}).get("entity_id") or "")
+        records = getattr(self.session.state, "xkx_quests", {}) or {}
+        lines: list[tuple[str, str]] = [("room", "【支线】")]
+        if not quests:
+            lines.append(("info", "当前内容包没有可接的支线。"))
+            return self._reply(account, "quests", True, lines, state, raw, request_id)
+        for qid in sorted(quests):
+            quest = quests[qid]
+            rec = records.get(f"{pid}|{qid}") or {}
+            status = str(rec.get("status") or "available")
+            label = {"available": "未接取", "accepted": "进行中", "completed": "已完成"}.get(
+                status, status
+            )
+            target = str((quest.get("target") or {}).get("name") or "")
+            item = str((quest.get("required_item") or {}).get("name") or "")
+            text = f"{quest.get('name') or qid}：{label}"
+            if target:
+                text += f"；目标 {target}"
+            if item:
+                text += f"；需交付 {item}"
+            if status == "accepted":
+                text += f"（当前步骤：{rec.get('step') or 'asked'}）"
+            lines.append(("info", text + "。"))
+        return self._reply(account, "quests", True, lines, state, raw, request_id)
+
+    def _cmd_give(
+        self, account: str, rest: str, state: dict[str, Any], raw: str, request_id: str
+    ) -> dict[str, Any]:
+        raw_text = str(rest or "").strip()
+        if not raw_text:
+            return self._reply(
+                account, "give", False,
+                [("error", "用法：给 <人> <物品>，或 give <物品> to <人>。")],
+                state, raw, request_id,
+            )
+        npcs = list(state.get("present_npcs") or [])
+        item_text = ""
+        target = None
+        marker = re.split(r"\s+(?:to|给|交给)\s+", raw_text, maxsplit=1, flags=re.I)
+        if len(marker) == 2:
+            item_text = marker[0].strip()
+            target, _left = self._match_npc_prefix(npcs, marker[1].strip())
+        if target is None:
+            target, remainder = self._match_npc_prefix(npcs, raw_text)
+            if target is not None and remainder:
+                item_text = remainder
+        if target is None or not item_text:
+            return self._reply(
+                account, "give", False,
+                [("error", "没找到要交给的人或物品；在场的有：" + "、".join(n["name"] for n in npcs))],
+                state, raw, request_id,
+            )
+        wallet = list(((state.get("player") or {}).get("wallet") or {}).get("items") or [])
+        hits = [row for row in wallet if item_text in (row.get("item"), row.get("name"))
+                or str(row.get("name") or "").startswith(item_text)]
+        if not hits:
+            return self._reply(
+                account, "give", False,
+                [("error", f"你身上没有「{item_text}」。")], state, raw, request_id,
+            )
+        item = str(hits[0].get("item") or "")
+        resp = self.session.perform(
+            account, "xkx_quest_deliver", {"npc": str(target["id"]), "item": item}
+        )
+        if not resp.get("ok"):
+            return self._reply(
+                account, "give", False,
+                [("error", self._reason(str(resp.get("reject_reason") or ""), fallback="东西没有交出去。"))],
+                state, raw, request_id,
+            )
+        after = self._state(account) or state
+        pid = str((after.get("player") or {}).get("entity_id") or "")
+        records = getattr(self.session.state, "xkx_quests", {}) or {}
+        done = [
+            rec for rec in records.values()
+            if str(rec.get("actor") or "") == pid and rec.get("status") == "completed"
+        ]
+        lines: list[tuple[str, str]] = [
+            ("info", f"你把{self._item_name(item)}交给{target['name']}。")
+        ]
+        if done:
+            rec = sorted(done, key=lambda r: int(r.get("completed_tick") or 0))[-1]
+            quest = dict(getattr(self.session.content, "xkx_quests", {}) or {}).get(
+                str(rec.get("quest") or "")
+            ) or {}
+            reward = rec.get("reward") or {}
+            parts = []
+            if int(reward.get("exp") or 0) > 0:
+                parts.append(f"经验 {int(reward['exp'])}")
+            if int(reward.get("potential") or 0) > 0:
+                parts.append(f"潜力 {int(reward['potential'])}")
+            if int(reward.get("score") or 0) > 0:
+                parts.append(f"声望 {int(reward['score'])}")
+            for reward_item in (quest.get("reward") or {}).get("items") or []:
+                parts.append(self._item_name(str(reward_item)))
+            text = f"完成支线：{quest.get('name') or rec.get('quest') or ''}。"
+            if parts:
+                text += "获得：" + "、".join(parts) + "。"
+            lines.append(("info", text))
+        return self._reply(account, "give", True, lines, after, raw, request_id)
 
     def _match_npc_prefix(
         self, npcs: Iterable[dict[str, Any]], text: str
@@ -1405,6 +1670,272 @@ class XKXShell:
             )
         return lines
 
+    def _cmd_help(
+        self,
+        account: str,
+        rest: str,
+        state: dict[str, Any],
+        raw: str,
+        request_id: str,
+    ) -> dict[str, Any]:
+        text = str(rest or "").strip()
+        if not text:
+            lines = self._help_lines() + self._help_pack_overview()
+        else:
+            lines = self._help_answer(text)
+        return self._reply(account, "help", True, lines, state, raw, request_id)
+
+    def _help_pack_overview(self) -> list[tuple[str, str]]:
+        if self.help_error:
+            return [("warn", f"帮助内容包：暂不可用（{self.help_error}）")]
+        status_counts = (self.help_counts or {}).get("status") or {}
+        commands = int((self.help_counts or {}).get("commands") or len(self.help_commands))
+        topics = int((self.help_counts or {}).get("topics") or len(self.help_topics))
+        implemented = int(status_counts.get("已实现") or 0)
+        pending = int(status_counts.get("待实现") or 0)
+        excluded = int(status_counts.get("不做") or 0)
+        verbs = sorted(set(VERB_ALIASES.values()))
+        return [
+            (
+                "info",
+                f"帮助内容包：{commands} 条命令（已实现 {implemented} / 待实现 {pending} / 不做 {excluded}）"
+                f" · {topics} 个主题。",
+            ),
+            ("info", "状态语义：已实现=入口可用；待实现=写明原因；不做=写明原因，绝不把待实现当可用。"),
+            ("info", "本文字壳已接入口：" + "、".join(verbs) + "。其余命令只能看说明，不能执行。"),
+            ("info", "help 命令 / help 命令 <系统|关键词> / help <命令名|别名>"),
+            ("info", "help 主题 / help <主题|关键词>"),
+        ]
+
+    def _help_answer(self, text: str) -> list[tuple[str, str]]:
+        norm = text.strip()
+        lower = norm.lower()
+        if norm in ("命令", "commands", "cmd"):
+            return self._help_systems()
+        if lower.startswith("命令 ") or lower.startswith("command "):
+            keyword = norm.split(" ", 1)[1].strip()
+            return self._help_command_search(keyword)
+        if norm in ("主题", "topics"):
+            return self._help_topic_index()
+        first = norm.split(" ", 1)[0]
+        row = self._find_help_command(first)
+        if row is not None:
+            return self._help_command_detail(row)
+        topic = self._find_help_topic(norm)
+        if topic is not None:
+            return self._help_topic_detail(topic)
+        return self._help_search(norm)
+
+    def _help_systems(self) -> list[tuple[str, str]]:
+        if self.help_error:
+            return [("warn", f"帮助内容包：暂不可用（{self.help_error}）")]
+        groups: dict[str, list[dict[str, Any]]] = {}
+        for row in self.help_commands:
+            groups.setdefault(str(row.get("system") or "未分类"), []).append(row)
+        lines: list[tuple[str, str]] = [
+            ("room", f"【命令 · {len(self.help_commands)} 条】"),
+        ]
+        for system, rows in sorted(groups.items()):
+            counts = {"已实现": 0, "待实现": 0, "不做": 0}
+            for row in rows:
+                status = str(row.get("status") or "")
+                if status in counts:
+                    counts[status] += 1
+            lines.append(
+                (
+                    "info",
+                    f"{system}（{len(rows)}）：已实现 {counts['已实现']} / "
+                    f"待实现 {counts['待实现']} / 不做 {counts['不做']}",
+                )
+            )
+        lines.append(("info", "输入 help 命令 <系统|关键词> 看逐条状态；输入 help <命令名> 看原因。"))
+        return lines
+
+    def _help_command_search(self, keyword: str) -> list[tuple[str, str]]:
+        key = keyword.strip()
+        key_lower = key.lower()
+        if not key:
+            return self._help_systems()
+        hits: list[dict[str, Any]] = []
+        for row in self.help_commands:
+            hay_parts = [
+                str(row.get("system") or ""),
+                str(row.get("name") or ""),
+                str(row.get("summary") or ""),
+                *[str(a) for a in (row.get("aliases") or [])],
+            ]
+            if any(key_lower in part.lower() for part in hay_parts):
+                hits.append(row)
+        lines: list[tuple[str, str]] = [
+            ("room", f"【命令 · 匹配「{key}」{len(hits)} 条】"),
+        ]
+        for row in hits[:50]:
+            alias = [str(a) for a in (row.get("aliases") or [])]
+            entry = self._shell_entry(row)
+            mark = " · 本壳已接" if entry else " · 本壳未接"
+            name = str(row.get("name") or "")
+            alias_text = f"（{'、'.join(alias)}）" if alias else ""
+            lines.append(
+                (
+                    "warn" if str(row.get("status")) != "已实现" else "info",
+                    f"{name}{alias_text} {self._status_text(row)}{mark}",
+                )
+            )
+        if len(hits) > 50:
+            lines.append(("info", f"另有 {len(hits) - 50} 条未列出，请输入更精确的关键词。"))
+        if not hits:
+            lines.append(("info", "没有匹配的命令；输入 help 命令 看全部系统。"))
+        return lines
+
+    def _help_command_detail(self, row: dict[str, Any]) -> list[tuple[str, str]]:
+        name = str(row.get("name") or "")
+        alias = [str(a) for a in (row.get("aliases") or [])]
+        title = f"{name}（{'、'.join(alias)}）" if alias else name
+        entry = self._shell_entry(row)
+        lines: list[tuple[str, str]] = [
+            ("room", f"【命令 · {title}】"),
+            ("info", f"系统：{row.get('system') or '未分类'} · 状态：{self._status_text(row)}"),
+            ("info", f"参数：{row.get('params') or '—'}"),
+            ("info", f"说明：{row.get('summary') or '—'}"),
+        ]
+        evidence = str(row.get("evidence") or "").strip()
+        if evidence:
+            lines.append(("info", f"依据：{evidence}"))
+        if entry:
+            lines.append(("info", f"本文字壳：已接入口（输入 {entry} 可用）。"))
+        else:
+            lines.append(
+                (
+                    "warn",
+                    "本文字壳：未接入口（输入该命令只会看到这条说明，不会执行）。",
+                )
+            )
+        return lines
+
+    def _help_topic_index(self) -> list[tuple[str, str]]:
+        if self.help_error:
+            return [("warn", f"帮助内容包：暂不可用（{self.help_error}）")]
+        groups: dict[str, list[dict[str, Any]]] = {}
+        for row in self.help_topics:
+            groups.setdefault(str(row.get("category") or "未分类"), []).append(row)
+        lines: list[tuple[str, str]] = [
+            ("room", f"【主题 · {len(self.help_topics)} 个】"),
+        ]
+        for category, rows in sorted(groups.items()):
+            lines.append(("info", f"{category}（{len(rows)}）："))
+            for row in rows:
+                lines.append(
+                    (
+                        "info",
+                        f"  {row.get('id')} · {row.get('title')} · {row.get('status') or '未注明'}",
+                    )
+                )
+        lines.append(("info", "输入 help <主题|关键词> 看正文；管理向主题不向玩家展开。"))
+        return lines
+
+    def _help_topic_detail(self, row: dict[str, Any]) -> list[tuple[str, str]]:
+        status = str(row.get("status") or "未注明")
+        lines: list[tuple[str, str]] = [
+            ("room", f"【主题 · {row.get('title') or row.get('id')}】"),
+            ("info", f"分类：{row.get('category') or '未分类'} · 状态：{status}"),
+        ]
+        if status == "管理":
+            lines.append(("warn", "管理向内容，不向玩家开放。"))
+            return lines
+        if status == "未开放":
+            lines.append(("warn", "本主题尚未开放；以下为内容包说明。"))
+        body = str(row.get("body") or "").strip()
+        for part in body.splitlines():
+            if part.strip():
+                lines.append(("info", part.strip()))
+        if not body:
+            lines.append(("info", "这个主题还没有正文。"))
+        return lines
+
+    def _help_search(self, text: str) -> list[tuple[str, str]]:
+        key = text.lower()
+        cmd_hits = [
+            row
+            for row in self.help_commands
+            if any(
+                key in str(part).lower()
+                for part in [
+                    row.get("name"),
+                    row.get("summary"),
+                    row.get("system"),
+                    *[str(a) for a in (row.get("aliases") or [])],
+                ]
+            )
+        ]
+        topic_hits = [
+            row
+            for row in self.help_topics
+            if key in str(row.get("title") or "").lower()
+            or key in str(row.get("body") or "").lower()
+        ]
+        lines: list[tuple[str, str]] = []
+        if cmd_hits or topic_hits:
+            lines.append(("room", f"【帮助搜索 · «{text}»】"))
+            for row in cmd_hits[:12]:
+                lines.append(
+                    (
+                        "info",
+                        f"命令 {row.get('name')}（{'、'.join(str(a) for a in (row.get('aliases') or []))}）"
+                        f"· {self._status_text(row)}",
+                    )
+                )
+            for row in topic_hits[:8]:
+                lines.append(
+                    ("info", f"主题 {row.get('id')} · {row.get('title')} · {row.get('status')}")
+                )
+            return lines
+        return [
+            ("warn", f"帮助里没有「{text}」。"),
+            ("info", "输入 help 命令 或 help 主题 查看目录。"),
+        ]
+
+    def _unknown_lines(self, raw: str) -> list[tuple[str, str]]:
+        text = str(raw or "").strip()
+        first = text.split(" ", 1)[0] if text else ""
+        row = self._find_help_command(first)
+        if row is not None:
+            entry = self._shell_entry(row)
+            name = str(row.get("name") or first)
+            status = str(row.get("status") or "")
+            if status == "已实现" and not entry:
+                lines: list[tuple[str, str]] = [
+                    (
+                        "warn",
+                        f"「{first}（{name}）」在引擎里已实现，但本文字壳未接入口，当前不能使用。",
+                    )
+                ]
+            elif entry:
+                lines = [("warn", f"「{first}」这个动作没能执行；输入 help {name} 看用法。")]
+            else:
+                lines = [("warn", f"「{first}」还没接上：{self._status_text(row)}。")]
+            evidence = str(row.get("evidence") or "").strip()
+            if evidence:
+                lines.append(("info", f"依据：{evidence}"))
+            lines.append(("info", f"输入 help {name} 看完整说明。"))
+            return lines
+        keys = list(VERB_ALIASES.keys())
+        keys += [str(r.get("name") or "") for r in self.help_commands]
+        keys += [str(a) for r in self.help_commands for a in (r.get("aliases") or [])]
+        lowered = {key.lower(): key for key in keys if key}
+        matches = difflib.get_close_matches(
+            first.lower(), list(lowered.keys()), n=3, cutoff=0.5
+        )
+        if matches:
+            guesses = "、".join(lowered[m] for m in matches)
+            return [
+                ("error", f"你没听懂「{text}」。你是想打「{guesses}」吗？"),
+                ("info", "输入 help 看全部命令；输入 help 命令 <系统> 按分类查。"),
+            ]
+        return [
+            ("error", f"你没听懂「{text}」。"),
+            ("info", "输入 help 看全部命令；输入 help 命令 <系统> 按分类查。"),
+        ]
+
     def _help_lines(self) -> list[tuple[str, str]]:
         fight_reason = self._combat_reason("fight")
         loot_reason = self._combat_reason("loot")
@@ -1435,6 +1966,8 @@ class XKXShell:
             ("info", "climb tree        石梁温宅：轻功≥50 才能爬树。"),
             ("info", "jump 木桩         玫瑰小亭：轻功≥100 上小岛，否则落湖里。"),
             ("info", "revive（还阳）    死亡后从鬼门关复活。"),
+            ("info", "give <物品> to <人> / 给 <人> <物品>   把任务物品交给对方。"),
+            ("info", "quests（任务）    看当前支线与接取/完成进度。"),
             ("info", "score（状态）     看自己的体力/银两/技能。"),
             ("info", "inventory（背包） 看行囊与装备。"),
             ("info", "help（帮助）      再看这张表。"),

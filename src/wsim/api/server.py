@@ -55,6 +55,8 @@ _SERVICE_INFO = "/api/service/info"
 _HEALTH = "/api/health"
 _WORLD_FEED = "/api/world/feed"
 _WORLD_MAP = "/api/world/map"
+# xkx 帮助目录：153 命令 / 32 主题，公共只读，不含玩家数据。
+_XKX_HELP = "/api/xkx/help"
 _INTENTS_PREFIX = "/api/player/intents/"
 _METRICS = "/api/metrics"
 
@@ -562,6 +564,10 @@ class _Handler(BaseHTTPRequestHandler):
         if path == _WORLD_MAP:
             # 公共世界地图：节点/邻接/可达性，只读，无价格库存等敏感字段。
             self._send(200, session.world_map())
+            return
+        if path == _XKX_HELP:
+            # 游戏内 help 与输入补全共用；公共静态目录，匿名可读。
+            self._send(200, session.xkx_help_catalog())
             return
         if path == _AUTH_ME:
             row, err = self._resolve_token()

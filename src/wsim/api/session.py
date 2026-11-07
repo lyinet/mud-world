@@ -85,6 +85,37 @@ from .xkx_content import is_xkx_pack, load_xkx_content
 # 契约冻结版本：字段名/结构变更必须同步 docs/player-api.md 的 CHANGELOG。
 PROFILE_VERSION = 1
 
+# 内容包 equip_slot → 展示名。引擎当前只实现了 tool/accessory 两槽，
+# 因此 xkx 槽位只做只读展示并明确标注“引擎未接”，不冒充可穿脱。
+XKX_EQUIP_SLOT_LABELS: dict[str, str] = {
+    "head": "头部",
+    "neck": "颈部",
+    "cloth": "衣服",
+    "waist": "腰带",
+    "boots": "靴子",
+    "finger": "手指",
+    "sword": "剑",
+    "blade": "刀",
+    "whip": "鞭",
+    "staff": "杖",
+    "hammer": "锤",
+    "club": "棍",
+    "throwing": "暗器",
+}
+
+# 人物面板属性顺序与中文名。只做展示映射，值一律来自 Entity.attrs。
+ATTR_LABELS: tuple[tuple[str, str], ...] = (
+    ("str", "膂力"),
+    ("con", "根骨"),
+    ("dex", "身法"),
+    ("int", "悟性"),
+    ("spi", "精神"),
+    ("sta", "耐力"),
+    ("kar", "福缘"),
+    ("cps", "容貌"),
+    ("cor", "胆识"),
+)
+
 # 服务模式下匿名读的唯一可见字段（白名单）。新增字段默认不可见，
 # 避免私有字段因为“忘记排除”自动泄漏。
 PUBLIC_STATE_KEYS = (
@@ -675,6 +706,167 @@ class WorldSession:
         rows.sort(key=lambda r: (r["account"], r["item"], r["holder"]))
         return rows, sum(int(r["qty"]) for r in rows)
 
+    def _vitals_view(self, ent) -> dict[str, Any]:
+        """气血只读视图：引擎没有 max_hp 时返回 null + 原因，绝不由前端补算。"""
+        max_hp = int(getattr(ent, "max_hp", 0) or 0)
+        if max_hp <= 0:
+            return {
+                "hp": None,
+                "max_hp": None,
+                "hp_pct": None,
+                "hp_reason": "当前角色没有气血字段（max_hp=0），气血暂未开放。",
+                # 引擎目前没有内力字段，固定 null 并给出原因。
+                "neili": None,
+                "neili_reason": "引擎尚无内力（neili）字段，暂未开放。",
+            }
+        hp = int(getattr(ent, "hp", 0) or 0)
+        return {
+            "hp": hp,
+            "max_hp": max_hp,
+            "hp_pct": max(0, min(100, round(hp * 100 / max_hp))),
+            "hp_reason": "",
+            "neili": None,
+            "neili_reason": "引擎尚无内力（neili）字段，暂未开放。",
+        }
+
+    def _attrs_view(self, ent) -> tuple[list[dict[str, Any]], str, dict[str, int]]:
+        """属性只读视图：原始键值 + 固定顺序的中文展示项。"""
+        attrs = {str(k): int(v) for k, v in sorted((ent.attrs or {}).items())}
+        detail = [
+            {"key": key, "label": label, "value": attrs.get(key)}
+            for key, label in ATTR_LABELS
+        ]
+        reason = "" if attrs else "当前角色没有属性数据（引擎 attrs 为空），属性暂未开放。"
+        return detail, reason, attrs
+
+    def _skills_xkx_view(self, ent) -> list[dict[str, Any]]:
+        """xkx 等级制技能（skill_levels/skill_xp）；为空时由调用方给原因。"""
+        rows = []
+        for name, level in sorted((ent.skill_levels or {}).items()):
+            rows.append(
+                {
+                    "name": str(name),
+                    "level": int(level),
+                    "xp": int((ent.skill_xp or {}).get(name, 0)),
+                }
+            )
+        return rows
+
+    def _weight_view(self, ent) -> dict[str, Any]:
+        """负重：行囊 + 已装备按内容包 weight 求和；上限引擎没有，如实给 null。"""
+        total = 0
+        missing = 0
+
+        def add(item: str, qty: int) -> None:
+            nonlocal total, missing
+            row = self.content.items.get(item)
+            weight = row.get("weight") if isinstance(row, dict) else None
+            if isinstance(weight, (int, float)):
+                total += int(weight) * qty
+            else:
+                missing += 1
+
+        for item, qty in (ent.inventory or {}).items():
+            if int(qty) > 0:
+                add(str(item), int(qty))
+        for item in (ent.equipped or {}).values():
+            if item:
+                add(str(item), 1)
+        reason = "引擎没有负重上限字段，只显示当前负重（内容包 weight 原值求和）。"
+        if missing:
+            reason += f"另有 {missing} 件物品没有 weight 记录，合计不完整。"
+        return {
+            "current": total,
+            "max": None,
+            "unit": "内容包原值",
+            "reason": reason,
+        }
+
+    def _equipment_actions(self) -> dict[str, Any]:
+        """穿脱按钮可用性：动作未注册或文字壳未接入口时一律给原因。"""
+        registered = self.registry.get("equip") is not None and self.registry.get(
+            "unequip"
+        ) is not None
+        if registered:
+            reason = "引擎穿脱动作已注册，但文字壳尚未接入穿脱命令；暂不提供按钮。"
+        else:
+            reason = "引擎尚未注册穿脱动作，暂不可用。"
+        return {
+            "equip": False,
+            "unequip": False,
+            "engine_registered": bool(registered),
+            "reason": reason,
+        }
+
+    def _visited_locations(self, pid: str) -> set[str]:
+        """从事件日志重建玩家到过的房间（只读，不新增任何世界状态字段）。
+
+        启动后惰性扫描一次；之后由每次 player_state 把当前房间补进来。
+        """
+        cache = getattr(self, "_visited_by_player", None)
+        if cache is None:
+            cache = {}
+            try:
+                for event in self.store.read_all():
+                    if str(getattr(event, "outcome", "")) != "ok":
+                        continue
+                    actor = str(getattr(event, "actor", ""))
+                    if not actor.startswith("player:"):
+                        continue
+                    for effect in getattr(event, "effects", []) or []:
+                        if not isinstance(effect, dict):
+                            continue
+                        if str(effect.get("op") or "") != "set_location":
+                            continue
+                        data = effect.get("data") or {}
+                        if str(data.get("entity") or "") != actor:
+                            continue
+                        to = str(data.get("to") or "")
+                        if to:
+                            cache.setdefault(actor, set()).add(to)
+            except Exception:
+                cache = {}
+            self._visited_by_player = cache
+        return cache.setdefault(pid, set())
+
+    def _exploration_view(self, pid: str, loc_id: str) -> dict[str, Any]:
+        """房间总数 / 已探索；区域只消费内容包 region，缺失时 null + 原因。"""
+        visited = self._visited_locations(pid)
+        if loc_id:
+            visited.add(loc_id)
+        loc = (self.content.locations or {}).get(loc_id) or {}
+        region_id = str(loc.get("region") or "")
+        region_name = str(loc.get("region_name") or "")
+        if region_id:
+            area = {"id": region_id, "name": region_name or region_id}
+            area_total = sum(
+                1
+                for row in (self.content.locations or {}).values()
+                if str(row.get("region") or "") == region_id
+            )
+            area_explored = sum(
+                1
+                for room_id in visited
+                if str(
+                    ((self.content.locations or {}).get(room_id) or {}).get("region") or ""
+                )
+                == region_id
+            )
+            reason = ""
+        else:
+            area = None
+            area_total = None
+            area_explored = None
+            reason = "引擎/内容包尚未提供 region 字段，区域名与分区计数暂不可用。"
+        return {
+            "area": area,
+            "area_total": area_total,
+            "area_explored": area_explored,
+            "area_reason": reason,
+            "rooms_total": len(self.content.locations or {}),
+            "rooms_explored": len(visited),
+        }
+
     def player_state(self, account: str) -> dict[str, Any]:
         """`GET /api/player/state`：冻结结构的只读快照。"""
         account = str(account or "").strip().lower()
@@ -714,6 +906,12 @@ class WorldSession:
                 )
                 self._read_local.view_cache[pid] = cached_views
             wallet_view, location_view, shop_view, present_view = cached_views
+            vitals = self._vitals_view(ent)
+            attrs_detail, attrs_reason, attrs = self._attrs_view(ent)
+            skills_engine = self._skills_xkx_view(ent)
+            skills_detail = self._skills_detail(ent)
+            equipment_view = self._equipment_view(ent)
+            equipment_view["actions"] = self._equipment_actions()
             player = {
                 "entity_id": pid,
                 "account_id": account,
@@ -737,12 +935,28 @@ class WorldSession:
                 "wallet": wallet_view,
                 "skills": {k: round(float(v), 4) for k, v in sorted(ent.skills.items())},
                 # 只增不改：skills 保持字典；skills_detail 给每个技能等级/下一级/说明。
-                "skills_detail": self._skills_detail(ent),
+                "skills_detail": skills_detail,
+                # xkx 等级制技能；与 skills_detail 二选一由前端按 available 判断。
+                "skills_engine": skills_engine,
+                "skills_status": {
+                    "available": bool(skills_engine or skills_detail),
+                    "reason": ""
+                    if (skills_engine or skills_detail)
+                    else "当前角色还没有已学技能；引擎的 skills/practice 字段接入后自动显示。",
+                },
+                "equipment": equipment_view,
+                # 人物面板只读字段：气血/内力、经验、属性、负重、探索。
+                "vitals": vitals,
+                "combat_exp": int(getattr(ent, "combat_exp", 0) or 0),
+                "attrs": attrs,
+                "attrs_detail": attrs_detail,
+                "attrs_reason": attrs_reason,
+                "weight": self._weight_view(ent),
+                "exploration": self._exploration_view(pid, ent.location),
                 # xkx 成长线：真实技能等级、经验/潜能、师承与死亡记录。
                 "status": ent.status,
                 "hp": round(float(ent.hp), 3),
                 "max_hp": round(float(ent.max_hp), 3),
-                "combat_exp": int(ent.combat_exp),
                 "potential": int(ent.potential),
                 "learned_points": int(ent.learned_points),
                 "death_count": int(ent.death_count),
@@ -751,7 +965,6 @@ class WorldSession:
                     "name": self._npc_name(ent.master) if ent.master else "",
                 },
                 "martial_skills": self._martial_skills_view(ent),
-                "equipment": self._equipment_view(ent),
                 "relations": view["relations"],
                 "active_quests": view["active_quests"],
                 "marriage": view["marriage"],
@@ -794,7 +1007,7 @@ class WorldSession:
                 "present_npcs": present,
                 # 当前房间地面（引擎 loot_create 的落点），按 item id 排序。
                 "ground": [
-                    {"item": str(key), "qty": int(qty)}
+                    {"item": str(key), "name": self._item_name(str(key)), "qty": int(qty)}
                     for key, qty in sorted((self.state.ground.get(ent.location) or {}).items())
                     if int(qty) > 0
                 ],
@@ -1617,11 +1830,15 @@ class WorldSession:
         if not description:
             description = self._ITEM_CATEGORY_TEXT.get(category, "普通物品。")
         slot = slot_for_item(item_id, category)
+        raw_slot = str(row.get("equip_slot") or "")
         return {
             "category": category,
             "description": description,
             "equippable": bool(slot),
             "slot": slot or None,
+            # 内容包自己的装备槽（只读展示；与引擎 tool/accessory 不是同一套）。
+            "equip_slot": raw_slot,
+            "equip_slot_label": XKX_EQUIP_SLOT_LABELS.get(raw_slot, raw_slot),
         }
 
     _SKILL_TEXT = {
@@ -1704,11 +1921,29 @@ class WorldSession:
                     "description": meta.get("description", ""),
                 }
             )
+        # 内容包 equip_slot 只读 schema：让玩家看到有哪些槽，但引擎未接通，
+        # available=false + reason，绝不显示成可穿脱的空槽按钮。
+        counts: dict[str, int] = {}
+        for row in (self.content.items or {}).values():
+            slot = str(row.get("equip_slot") or "")
+            if slot:
+                counts[slot] = counts.get(slot, 0) + 1
+        xkx_slots = [
+            {
+                "slot": slot,
+                "label": XKX_EQUIP_SLOT_LABELS.get(slot, slot),
+                "items": counts[slot],
+            }
+            for slot in sorted(counts)
+        ]
         return {
             "slots": slots,
             "effects": {
                 "cultivate_bonus_pct": int(round(equip_cultivate_bonus(self.content, ent) * 100)),
             },
+            "xkx_slots": xkx_slots,
+            "xkx_slots_available": False,
+            "xkx_slots_reason": "引擎当前只支持 tool/accessory 两个槽；内容包 equip_slot 尚未接通，暂不可穿脱。",
         }
 
 
@@ -2161,13 +2396,8 @@ class WorldSession:
                     self.intents.popitem(last=False)
             return response
 
-    def xkx_command(
-        self,
-        account: str,
-        payload: dict[str, Any] | None = None,
-        request_id: str = "",
-    ) -> dict[str, Any]:
-        """xkx 文字壳入口：把一行自然语言命令翻译成引擎动作。"""
+    def _xkx_shell_instance(self):
+        """单例文字壳：help 目录与命令路由共用同一份只读帮助数据。"""
         from .xkx_shell import XKXShell
 
         shell = getattr(self, "_xkx_shell", None)
@@ -2177,7 +2407,21 @@ class WorldSession:
                 if shell is None:
                     shell = XKXShell(self)
                     self._xkx_shell = shell
+        return shell
+
+    def xkx_command(
+        self,
+        account: str,
+        payload: dict[str, Any] | None = None,
+        request_id: str = "",
+    ) -> dict[str, Any]:
+        """xkx 文字壳入口：把一行自然语言命令翻译成引擎动作。"""
+        shell = self._xkx_shell_instance()
         return shell.execute(str(account or ""), dict(payload or {}), request_id=str(request_id or ""))
+
+    def xkx_help_catalog(self) -> dict[str, Any]:
+        """`GET /api/xkx/help`：153 命令 / 32 主题的只读目录，供游戏内 help 与补全。"""
+        return self._xkx_shell_instance().catalog()
 
     def resume(
         self,

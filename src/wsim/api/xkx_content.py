@@ -105,6 +105,7 @@ def load_xkx_content(pack_root: Path | str) -> Content:
     skills_raw = _rows(_read_json(pack / "skills.json"), "skills") if (pack / "skills.json").is_file() else []
     stats_path = pack / "skills_stats.json"
     skills_stats_raw = _rows(_read_json(stats_path), "skills_stats") if stats_path.is_file() else []
+    quests_raw = _rows(_read_json(pack / "quests.json"), "quests") if (pack / "quests.json").is_file() else []
 
     rooms: dict[str, dict[str, Any]] = {}
     for raw in rooms_raw:
@@ -144,8 +145,16 @@ def load_xkx_content(pack_root: Path | str) -> Content:
         "npcs": "content/xkx/npcs.json",
         "items": "content/xkx/items.json",
         "sects": "content/xkx/sects.json",
+        "xkx_quests": "content/xkx/quests.json",
         "economy": "xkx_adapter/defaults",
     }
+
+    # 任务：按 id 索引；只保留可完成的任务（抽取器已把静态清单与切片外
+    # 动态任务留在 summary/diagnostics，不入库）。
+    for raw in quests_raw:
+        qid = str(raw.get("id") or "")
+        if qid:
+            content.xkx_quests[qid] = raw
 
     # 物品先建：房间地面物件与商店货架都要引用物品名。
     for raw in items_raw:
@@ -162,6 +171,10 @@ def load_xkx_content(pack_root: Path | str) -> Content:
             "unit": str(raw.get("unit") or "件"),
             "description": str(raw.get("desc") or ""),
             "weight": _int_or(raw.get("weight"), 0),
+            # 内容包的装备槽与重量来源只读透传；引擎穿脱未接通时只做展示。
+            "equip_slot": str(raw.get("equip_slot") or ""),
+            "weight_source": str(raw.get("weight_source") or ""),
+            "weight_reason": str(raw.get("weight_reason") or ""),
         }
 
     # 引擎自带的初始行囊（actions 层发放）不在 xkx 内容包里；补几条展示用
@@ -243,6 +256,9 @@ def load_xkx_content(pack_root: Path | str) -> Content:
             "objects": objects_by_room.get(rid) or [],
             "coord": raw.get("coord") or {},
             "flags": raw.get("flags") or {},
+            # 区域信息只读透传：内容包没有时留空，API 层给「暂不可用」原因，不猜。
+            "region": str(raw.get("region") or ""),
+            "region_name": str(raw.get("region_name") or ""),
             "origin": str(raw.get("origin") or "slice"),
         }
 
@@ -373,5 +389,6 @@ def load_xkx_content(pack_root: Path | str) -> Content:
         "shop_goods": sum(len(shop.get("stock") or []) for shop in shops_raw),
         "sects": len(sects_raw),
         "masters": sum(1 for npc in content.npcs if npc.get("is_master")),
+        "xkx_quests": len(content.xkx_quests),
     }
     return content

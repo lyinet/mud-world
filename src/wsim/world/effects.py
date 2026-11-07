@@ -107,11 +107,16 @@ EFFECT_OPS = frozenset(
         # 旧玩家实体补气血/属性（只在 max_hp<=0 时由 player_enter 发一次）。
         "vitals_set",
         "combat_exp_add",
+        # 动态任务奖励（xkx parity）：潜力与声望，只在任务结算时增加。
+        "potential_add",
+        "score_add",
+        # xkx 任务进度：写入/推进 "actor|quest" 记录，可回放。
+        "xkx_quest_upsert",
         "skill_xp_add",
         # 公式库 improve_skill 的落库载体：直接写回等级/熟练度（纯 Effect）。
         "skill_progress",
-        # 成长线（学习/练习）：潜能与已消耗学习点账本。
-        "potential_add",
+        # 成长线（学习/练习）：潜能消耗与已消耗学习点账本。
+        "potential_spend",
         "learned_points_add",
         # 成长明细（拜师/学习/练习）：只读，随事件持久化。
         "growth_log",
@@ -514,6 +519,64 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         ent.combat_exp += delta
         return
 
+    if op == "potential_add":
+        ent = _entity(state, str(d["entity"]))
+        delta = _as_int(d["delta"], "delta")
+        if delta <= 0:
+            raise EffectError("潜力增量必须为正")
+        ent.potential += delta
+        return
+
+    if op == "score_add":
+        ent = _entity(state, str(d["entity"]))
+        delta = _as_int(d["delta"], "delta")
+        if delta <= 0:
+            raise EffectError("声望增量必须为正")
+        ent.score += delta
+        return
+
+    if op == "xkx_quest_upsert":
+        # 唯一的 xkx 任务进度写入口。状态只有 accepted / completed；
+        # 完成不可回退，重复接取只是推进 step，不会覆盖已完成记录。
+        actor = _entity(state, str(d["actor"]))
+        qid = str(d["quest"])
+        status = str(d["status"])
+        if status not in ("accepted", "completed"):
+            raise EffectError(f"未知任务状态: {status}")
+        key = f"{actor.id}|{qid}"
+        cur = state.xkx_quests.get(key)
+        if cur is None:
+            # 动态任务没有问话前置，交付即完成；问话支线必须先 accepted。
+            if status != "accepted" and not d.get("implicit"):
+                raise EffectError("任务尚未接取")
+            cur = {
+                "actor": actor.id,
+                "quest": qid,
+                "status": "accepted",
+                "step": str(d.get("step", "asked")),
+                "accepted_tick": _as_int(d.get("tick", 0), "tick"),
+            }
+            state.xkx_quests[key] = cur
+        if cur["status"] == "completed":
+            raise EffectError("任务已完成")
+        if "step" in d:
+            cur["step"] = str(d["step"])
+        if "talked_tick" in d:
+            cur["talked_tick"] = _as_int(d["talked_tick"], "talked_tick")
+        if status == "completed":
+            cur["status"] = "completed"
+            cur["completed_tick"] = _as_int(d.get("tick", 0), "tick")
+            reward = d.get("reward")
+            if reward is not None:
+                if not isinstance(reward, dict):
+                    raise EffectError("任务奖励必须是对象")
+                cur["reward"] = {
+                    "exp": _as_int(reward.get("exp", 0), "reward.exp"),
+                    "potential": _as_int(reward.get("potential", 0), "reward.potential"),
+                    "score": _as_int(reward.get("score", 0), "reward.score"),
+                }
+        return
+
     if op == "skill_xp_add":
         ent = _entity(state, str(d["entity"]))
         skill = str(d["skill"])
@@ -543,9 +606,12 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         ent.skill_xp[skill] = learned
         return
 
-    if op == "potential_add":
+    if op == "potential_spend":
         ent = _entity(state, str(d["entity"]))
-        ent.potential = max(0, int(ent.potential) + _as_int(d["delta"], "delta"))
+        cost = _as_int(d["cost"], "cost")
+        if cost <= 0:
+            raise EffectError("潜能消耗必须为正")
+        ent.potential = max(0, int(ent.potential) - cost)
         return
 
     if op == "learned_points_add":

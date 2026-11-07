@@ -63,6 +63,9 @@ class Content:
     roles: dict[str, dict[str, Any]] = field(default_factory=dict)
     sects: dict[str, dict[str, Any]] = field(default_factory=dict)
     quests: dict[str, dict[str, Any]] = field(default_factory=dict)
+    # xkx 内容包的任务（`content/xkx/quests.json`，按 id 索引）。为空时
+    # 不进 content_hash，旧内容包的 content hash 不变。
+    xkx_quests: dict[str, dict[str, Any]] = field(default_factory=dict)
     escort_routes: dict[str, dict[str, Any]] = field(default_factory=dict)
     personas: dict[str, str] = field(default_factory=dict)
     # 技能元数据（xkx JSON 内容包）：只供成长线读取，不参与 content_hash，
@@ -74,21 +77,22 @@ class Content:
 
     @property
     def content_hash(self) -> str:
-        return hash_obj(
-            {
-                "npcs": self.npcs,
-                "locations": self.locations,
-                "items": self.items,
-                "verbs": self.verbs,
-                "economy": self.economy,
-                "roles": self.roles,
-                "sects": self.sects,
-                "quests": self.quests,
-                "escort_routes": self.escort_routes,
-                "personas": self.personas,
-                "manifest_version": self.manifest_version,
-            }
-        )
+        payload = {
+            "npcs": self.npcs,
+            "locations": self.locations,
+            "items": self.items,
+            "verbs": self.verbs,
+            "economy": self.economy,
+            "roles": self.roles,
+            "sects": self.sects,
+            "quests": self.quests,
+            "escort_routes": self.escort_routes,
+            "personas": self.personas,
+            "manifest_version": self.manifest_version,
+        }
+        if self.xkx_quests:
+            payload["xkx_quests"] = self.xkx_quests
+        return hash_obj(payload)
 
     def sect_at(self, location: str) -> dict[str, Any] | None:
         for sid in sorted(self.sects):

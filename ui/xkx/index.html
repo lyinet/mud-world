@@ -16,6 +16,7 @@
     <div class="status" id="status">
       <span class="pill" id="pill-name">侠名：—</span>
       <span class="pill" id="pill-place">所在：—</span>
+      <span class="pill" id="pill-hp">气血：—</span>
       <span class="pill" id="pill-stamina">体力：—</span>
       <span class="pill" id="pill-money">银两：—</span>
       <span class="pill" id="pill-time">世界：—</span>
@@ -31,6 +32,7 @@
                placeholder="输入命令：look / go 北 / ask 店小二 你好 / buy 炊饼 / score"
                aria-label="命令输入">
         <button type="submit">发送</button>
+        <div class="complete" id="complete" role="listbox" aria-label="命令补全"></div>
       </form>
       <div class="keys">
         <span>方向键位：</span>
@@ -44,9 +46,35 @@
 
     <aside class="side">
       <section class="panel">
+        <h2>人物</h2>
+        <div class="stat-grid" id="character"></div>
+      </section>
+      <section class="panel">
         <h2>此地舆图</h2>
+        <div class="map-meta" id="map-meta"></div>
         <div class="map" id="map"></div>
         <div class="blocked" id="blocked"></div>
+      </section>
+      <section class="panel">
+        <h2>技能</h2>
+        <div class="list" id="skills"></div>
+      </section>
+      <section class="panel">
+        <h2>装备</h2>
+        <div class="slots" id="equipment"></div>
+        <div class="note" id="equip-note"></div>
+      </section>
+      <section class="panel">
+        <h2>任务</h2>
+        <div class="list" id="quests"></div>
+      </section>
+      <section class="panel">
+        <h2>行囊</h2>
+        <div class="list" id="inventory"></div>
+      </section>
+      <section class="panel">
+        <h2>地面</h2>
+        <div class="list" id="ground"></div>
       </section>
       <section class="panel">
         <h2>在场人物</h2>
@@ -55,10 +83,6 @@
       <section class="panel">
         <h2>货架</h2>
         <div class="list" id="goods"></div>
-      </section>
-      <section class="panel">
-        <h2>行囊</h2>
-        <div class="list" id="inventory"></div>
       </section>
       <section class="panel">
         <h2>快捷</h2>

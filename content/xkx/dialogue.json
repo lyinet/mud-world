@@ -8,6 +8,7 @@
         "line": 23,
         "path": "d/hangzhou/npc/hongniang.lpc"
       },
+      "source_kind": "lpc",
       "text": "是啊……这里就可以缔结(marry)和解除婚约(unmarry)。",
       "topic": "婚约"
     },
@@ -19,6 +20,7 @@
         "line": 23,
         "path": "d/hangzhou/npc/hongniang.lpc"
       },
+      "source_kind": "lpc",
       "text": "是啊……这里就可以缔结(marry)和解除婚约(unmarry)。",
       "topic": "结婚"
     },
@@ -30,6 +32,7 @@
         "line": 23,
         "path": "d/hangzhou/npc/hongniang.lpc"
       },
+      "source_kind": "lpc",
       "text": "是啊……这里就可以缔结(marry)和解除婚约(unmarry)。",
       "topic": "成亲"
     },
@@ -41,6 +44,7 @@
         "line": 15,
         "path": "d/hangzhou/npc/huqingyu.lpc"
       },
+      "source_kind": "lpc",
       "text": "五百两黄金，给你改头换面，江湖上没人会知道你的！",
       "topic": "改名"
     },
@@ -52,6 +56,7 @@
         "line": 20,
         "path": "d/hangzhou/npc/meipo.lpc"
       },
+      "source_kind": "lpc",
       "text": "是啊……这里就可以缔结和解除婚约",
       "topic": "婚约"
     },
@@ -63,6 +68,7 @@
         "line": 25,
         "path": "d/hangzhou/npc/oldwoman.lpc"
       },
+      "source_kind": "lpc",
       "text": "我那老母鸡啊...一定是那几个不务正业的小流氓干的。",
       "topic": "鸡"
     },
@@ -74,6 +80,7 @@
         "line": 25,
         "path": "d/hangzhou/npc/oldwoman.lpc"
       },
+      "source_kind": "lpc",
       "text": "那几个小流氓正天不务正业，就在小胡同里喝酒赌钱。",
       "topic": "流氓"
     },
@@ -85,6 +92,7 @@
         "line": 27,
         "path": "d/hangzhou/npc/ouyezi.lpc"
       },
+      "source_kind": "lpc",
       "text": "造剑，好说，十两黄金，款到交货！",
       "topic": "造剑"
     },
@@ -96,6 +104,7 @@
         "line": 27,
         "path": "d/hangzhou/npc/ouyezi.lpc"
       },
+      "source_kind": "lpc",
       "text": "造剑，好说，十两黄金，款到交货！",
       "topic": "铸剑"
     },
@@ -107,10 +116,21 @@
         "line": 27,
         "path": "d/hangzhou/npc/ouyezi.lpc"
       },
+      "source_kind": "lpc",
       "text": "这个价格嘛...!嘿嘿,一律十两黄金起价，一分钱一分货么。",
       "topic": "价格"
     },
     {
+      "fallback_features": [
+        "conditional",
+        "state_write"
+      ],
+      "fallback_reason": "函数体含if/else 条件分支、运行时状态写入（set_temp/delete_temp/add/move/set）；回复依赖玩家状态或运行时对象，无法压成单一固定文本，保留 fallback",
+      "fallback_source": {
+        "kind": "lpc",
+        "line": 75,
+        "path": "d/jiaxing/npc/hai.lpc"
+      },
       "func": "(: ask_for_zigong :)",
       "kind": "fallback",
       "npc": "/d/jiaxing/npc/hai",
@@ -118,10 +138,21 @@
         "line": 23,
         "path": "d/jiaxing/npc/hai.lpc"
       },
+      "source_kind": "lpc",
       "text": null,
       "topic": "自宫"
     },
     {
+      "fallback_features": [
+        "conditional",
+        "state_write"
+      ],
+      "fallback_reason": "函数体含if/else 条件分支、运行时状态写入（set_temp/delete_temp/add/move/set）；回复依赖玩家状态或运行时对象，无法压成单一固定文本，保留 fallback",
+      "fallback_source": {
+        "kind": "lpc",
+        "line": 75,
+        "path": "d/jiaxing/npc/hai.lpc"
+      },
       "func": "(: ask_for_zigong :)",
       "kind": "fallback",
       "npc": "/d/jiaxing/npc/hai",
@@ -129,10 +160,22 @@
         "line": 23,
         "path": "d/jiaxing/npc/hai.lpc"
       },
+      "source_kind": "lpc",
       "text": null,
       "topic": "zigong"
     },
     {
+      "fallback_features": [
+        "conditional",
+        "state_write",
+        "item_create"
+      ],
+      "fallback_reason": "函数体含if/else 条件分支、运行时状态写入（set_temp/delete_temp/add/move/set）、new() 创建物品；回复依赖玩家状态或运行时对象，无法压成单一固定文本，保留 fallback",
+      "fallback_source": {
+        "kind": "lpc",
+        "line": 115,
+        "path": "d/jiaxing/npc/hai.lpc"
+      },
       "func": "(: ask_for_gongzi :)",
       "kind": "fallback",
       "npc": "/d/jiaxing/npc/hai",
@@ -140,10 +183,22 @@
         "line": 23,
         "path": "d/jiaxing/npc/hai.lpc"
       },
+      "source_kind": "lpc",
       "text": null,
       "topic": "工资"
     },
     {
+      "fallback_features": [
+        "conditional",
+        "state_write",
+        "item_create"
+      ],
+      "fallback_reason": "函数体含if/else 条件分支、运行时状态写入（set_temp/delete_temp/add/move/set）、new() 创建物品；回复依赖玩家状态或运行时对象，无法压成单一固定文本，保留 fallback",
+      "fallback_source": {
+        "kind": "lpc",
+        "line": 115,
+        "path": "d/jiaxing/npc/hai.lpc"
+      },
       "func": "(: ask_for_gongzi :)",
       "kind": "fallback",
       "npc": "/d/jiaxing/npc/hai",
@@ -151,10 +206,22 @@
         "line": 23,
         "path": "d/jiaxing/npc/hai.lpc"
       },
+      "source_kind": "lpc",
       "text": null,
       "topic": "薪水"
     },
     {
+      "fallback_features": [
+        "conditional",
+        "state_write",
+        "item_create"
+      ],
+      "fallback_reason": "函数体含if/else 条件分支、运行时状态写入（set_temp/delete_temp/add/move/set）、new() 创建物品；回复依赖玩家状态或运行时对象，无法压成单一固定文本，保留 fallback",
+      "fallback_source": {
+        "kind": "lpc",
+        "line": 115,
+        "path": "d/jiaxing/npc/hai.lpc"
+      },
       "func": "(: ask_for_gongzi :)",
       "kind": "fallback",
       "npc": "/d/jiaxing/npc/hai",
@@ -162,10 +229,22 @@
         "line": 23,
         "path": "d/jiaxing/npc/hai.lpc"
       },
+      "source_kind": "lpc",
       "text": null,
       "topic": "salary"
     },
     {
+      "fallback_features": [
+        "conditional",
+        "state_write",
+        "item_create"
+      ],
+      "fallback_reason": "函数体含if/else 条件分支、运行时状态写入（set_temp/delete_temp/add/move/set）、new() 创建物品；回复依赖玩家状态或运行时对象，无法压成单一固定文本，保留 fallback",
+      "fallback_source": {
+        "kind": "lpc",
+        "line": 115,
+        "path": "d/jiaxing/npc/hai.lpc"
+      },
       "func": "(: ask_for_gongzi :)",
       "kind": "fallback",
       "npc": "/d/jiaxing/npc/hai",
@@ -173,10 +252,22 @@
         "line": 23,
         "path": "d/jiaxing/npc/hai.lpc"
       },
+      "source_kind": "lpc",
       "text": null,
       "topic": "payment"
     },
     {
+      "fallback_features": [
+        "conditional",
+        "state_write",
+        "item_create"
+      ],
+      "fallback_reason": "函数体含if/else 条件分支、运行时状态写入（set_temp/delete_temp/add/move/set）、new() 创建物品；回复依赖玩家状态或运行时对象，无法压成单一固定文本，保留 fallback",
+      "fallback_source": {
+        "kind": "lpc",
+        "line": 115,
+        "path": "d/jiaxing/npc/hai.lpc"
+      },
       "func": "(: ask_for_gongzi :)",
       "kind": "fallback",
       "npc": "/d/jiaxing/npc/hai",
@@ -184,6 +275,7 @@
         "line": 23,
         "path": "d/jiaxing/npc/hai.lpc"
       },
+      "source_kind": "lpc",
       "text": null,
       "topic": "gongzi"
     },
@@ -195,6 +287,7 @@
         "line": 40,
         "path": "d/jiaxing/npc/shagu.lpc"
       },
+      "source_kind": "lpc",
       "text": "他们都叫我做傻姑。",
       "topic": "name"
     },
@@ -206,6 +299,7 @@
         "line": 40,
         "path": "d/jiaxing/npc/shagu.lpc"
       },
+      "source_kind": "lpc",
       "text": "杨兄弟打了姑姑一掌，杨兄弟就死了。",
       "topic": "rumors"
     },
@@ -217,6 +311,7 @@
         "line": 40,
         "path": "d/jiaxing/npc/shagu.lpc"
       },
+      "source_kind": "lpc",
       "text": "这里是牛家村。",
       "topic": "here"
     },
@@ -228,6 +323,7 @@
         "line": 40,
         "path": "d/jiaxing/npc/shagu.lpc"
       },
+      "source_kind": "lpc",
       "text": "那个傻小子叫她做蓉儿。",
       "topic": "姑姑"
     },
@@ -239,6 +335,7 @@
         "line": 40,
         "path": "d/jiaxing/npc/shagu.lpc"
       },
+      "source_kind": "lpc",
       "text": "师公教我打拳玩。",
       "topic": "师公"
     },
@@ -250,10 +347,23 @@
         "line": 23,
         "path": "d/shiliang/npc/afeng.lpc"
       },
+      "source_kind": "lpc",
       "text": "他是我的心上人啊，但我不知道他的心意如何，这种事情叫我一个女孩子家怎么说得出口嘛。",
       "topic": "阿土"
     },
     {
+      "fallback_features": [
+        "conditional",
+        "state_write",
+        "item_create",
+        "dynamic_text"
+      ],
+      "fallback_reason": "函数体含if/else 条件分支、运行时状态写入（set_temp/delete_temp/add/move/set）、new() 创建物品、RANK_D 动态称谓/拼接文案；回复依赖玩家状态或运行时对象，无法压成单一固定文本，保留 fallback",
+      "fallback_source": {
+        "kind": "lpc",
+        "line": 29,
+        "path": "d/shiliang/npc/atu.lpc"
+      },
       "func": "(: inquiry_afeng :)",
       "kind": "fallback",
       "npc": "/d/shiliang/npc/atu",
@@ -261,6 +371,7 @@
         "line": 22,
         "path": "d/shiliang/npc/atu.lpc"
       },
+      "source_kind": "lpc",
       "text": null,
       "topic": "阿凤"
     },
@@ -272,10 +383,21 @@
         "line": 32,
         "path": "d/shiliang/npc/jinshe.lpc"
       },
+      "source_kind": "lpc",
       "text": "她....她.....",
       "topic": "温仪"
     },
     {
+      "fallback_features": [
+        "teaching",
+        "dynamic_text"
+      ],
+      "fallback_reason": "函数体含teach_perform 教授技能、RANK_D 动态称谓/拼接文案；回复依赖玩家状态或运行时对象，无法压成单一固定文本，保留 fallback",
+      "fallback_source": {
+        "kind": "lpc",
+        "line": 94,
+        "path": "d/shiliang/npc/jinshe.lpc"
+      },
       "func": "(: ask_skill1 :)",
       "kind": "fallback",
       "npc": "/d/shiliang/npc/jinshe",
@@ -283,10 +405,20 @@
         "line": 32,
         "path": "d/shiliang/npc/jinshe.lpc"
       },
+      "source_kind": "lpc",
       "text": null,
       "topic": "锁剑诀"
     },
     {
+      "fallback_features": [
+        "teaching"
+      ],
+      "fallback_reason": "函数体含teach_perform 教授技能；回复依赖玩家状态或运行时对象，无法压成单一固定文本，保留 fallback",
+      "fallback_source": {
+        "kind": "lpc",
+        "line": 110,
+        "path": "d/shiliang/npc/jinshe.lpc"
+      },
       "func": "(: ask_skill2 :)",
       "kind": "fallback",
       "npc": "/d/shiliang/npc/jinshe",
@@ -294,10 +426,20 @@
         "line": 32,
         "path": "d/shiliang/npc/jinshe.lpc"
       },
+      "source_kind": "lpc",
       "text": null,
       "topic": "附骨缠身"
     },
     {
+      "fallback_features": [
+        "teaching"
+      ],
+      "fallback_reason": "函数体含teach_perform 教授技能；回复依赖玩家状态或运行时对象，无法压成单一固定文本，保留 fallback",
+      "fallback_source": {
+        "kind": "lpc",
+        "line": 122,
+        "path": "d/shiliang/npc/jinshe.lpc"
+      },
       "func": "(: ask_skill3 :)",
       "kind": "fallback",
       "npc": "/d/shiliang/npc/jinshe",
@@ -305,6 +447,7 @@
         "line": 32,
         "path": "d/shiliang/npc/jinshe.lpc"
       },
+      "source_kind": "lpc",
       "text": null,
       "topic": "金蛇吐雾"
     },
@@ -316,6 +459,7 @@
         "line": 33,
         "path": "d/shiliang/npc/wenfangda.lpc"
       },
+      "source_kind": "lpc",
       "text": "夏雪宜这个大淫贼，我一定要把他碎尸万断！",
       "topic": "金蛇郎君"
     },
@@ -327,6 +471,7 @@
         "line": 33,
         "path": "d/shiliang/npc/wenfangda.lpc"
       },
+      "source_kind": "lpc",
       "text": "这个小丫头中了邪了，被我关了起来，我也是为她好啊。",
       "topic": "温仪"
     },
@@ -338,6 +483,7 @@
         "line": 28,
         "path": "d/shiliang/npc/wenfangnan.lpc"
       },
+      "source_kind": "lpc",
       "text": "夏雪宜这个大淫贼，我一定要把他碎尸万断！",
       "topic": "金蛇郎君"
     },
@@ -349,6 +495,7 @@
         "line": 28,
         "path": "d/shiliang/npc/wenfangnan.lpc"
       },
+      "source_kind": "lpc",
       "text": "这个小丫头中了邪了，被我关了起来，我也是为她好啊。",
       "topic": "温仪"
     },
@@ -360,6 +507,7 @@
         "line": 28,
         "path": "d/shiliang/npc/wenfangshan.lpc"
       },
+      "source_kind": "lpc",
       "text": "夏雪宜这个大淫贼，我一定要把他碎尸万断！",
       "topic": "金蛇郎君"
     },
@@ -371,6 +519,7 @@
         "line": 28,
         "path": "d/shiliang/npc/wenfangshan.lpc"
       },
+      "source_kind": "lpc",
       "text": "这个小丫头中了邪了，被我关了起来，我也是为她好啊。",
       "topic": "温仪"
     },
@@ -382,6 +531,7 @@
         "line": 28,
         "path": "d/shiliang/npc/wenfangshi.lpc"
       },
+      "source_kind": "lpc",
       "text": "夏雪宜这个大淫贼，我一定要把他碎尸万断！",
       "topic": "金蛇郎君"
     },
@@ -393,6 +543,7 @@
         "line": 28,
         "path": "d/shiliang/npc/wenfangshi.lpc"
       },
+      "source_kind": "lpc",
       "text": "这个小丫头中了邪了，被我关了起来，我也是为她好啊。",
       "topic": "温仪"
     },
@@ -404,6 +555,7 @@
         "line": 28,
         "path": "d/shiliang/npc/wenfangwu.lpc"
       },
+      "source_kind": "lpc",
       "text": "夏雪宜这个大淫贼，我一定要把他碎尸万断！",
       "topic": "金蛇郎君"
     },
@@ -415,10 +567,23 @@
         "line": 28,
         "path": "d/shiliang/npc/wenfangwu.lpc"
       },
+      "source_kind": "lpc",
       "text": "这个小丫头中了邪了，被我关了起来，我也是为她好啊。",
       "topic": "温仪"
     },
     {
+      "fallback_features": [
+        "conditional",
+        "state_write",
+        "item_create",
+        "dynamic_text"
+      ],
+      "fallback_reason": "函数体含if/else 条件分支、运行时状态写入（set_temp/delete_temp/add/move/set）、new() 创建物品、RANK_D 动态称谓/拼接文案；回复依赖玩家状态或运行时对象，无法压成单一固定文本，保留 fallback",
+      "fallback_source": {
+        "kind": "lpc",
+        "line": 35,
+        "path": "d/shiliang/npc/wenyi.lpc"
+      },
       "func": "(: inquiry_shoupa :)",
       "kind": "fallback",
       "npc": "/d/shiliang/npc/wenyi",
@@ -426,6 +591,7 @@
         "line": 24,
         "path": "d/shiliang/npc/wenyi.lpc"
       },
+      "source_kind": "lpc",
       "text": null,
       "topic": "手帕"
     },
@@ -437,6 +603,7 @@
         "line": 24,
         "path": "d/shiliang/npc/wenyi.lpc"
       },
+      "source_kind": "lpc",
       "text": "他是我心目中英雄的郎君....",
       "topic": "金蛇郎君"
     },
@@ -449,6 +616,7 @@
         "line": 21,
         "path": "kungfu/class/heimuya/xiang.lpc"
       },
+      "source_kind": "lpc",
       "text": "这种人，该杀！",
       "topic": "杨莲亭"
     },
@@ -461,6 +629,7 @@
         "line": 21,
         "path": "kungfu/class/heimuya/xiang.lpc"
       },
+      "source_kind": "lpc",
       "text": "篡位叛徒，我非杀了他不可！",
       "topic": "东方不败"
     },
@@ -473,6 +642,7 @@
         "line": 21,
         "path": "kungfu/class/heimuya/xiang.lpc"
       },
+      "source_kind": "lpc",
       "text": null,
       "topic": "杀东方不败"
     },
@@ -485,6 +655,7 @@
         "line": 21,
         "path": "kungfu/class/heimuya/xiang.lpc"
       },
+      "source_kind": "lpc",
       "text": "教主被困，已历十年......",
       "topic": "任我行"
     },
@@ -497,6 +668,7 @@
         "line": 16,
         "path": "d/taohua/npc/laoda.lpc"
       },
+      "source_kind": "lpc",
       "text": "我就是这里的老大，他们都叫我小马哥。",
       "topic": "name"
     },
@@ -509,6 +681,7 @@
         "line": 16,
         "path": "d/taohua/npc/laoda.lpc"
       },
+      "source_kind": "lpc",
       "text": "听说以前有一艘红毛鬼子的船遇难后漂流到这里，唯一的船员就死在那边的小店里。",
       "topic": "rumors"
     },
@@ -521,6 +694,7 @@
         "line": 16,
         "path": "d/taohua/npc/laoda.lpc"
       },
+      "source_kind": "lpc",
       "text": "这里是附近唯一的出海渔港了。",
       "topic": "here"
     },
@@ -533,6 +707,7 @@
         "line": 16,
         "path": "d/taohua/npc/laoda.lpc"
       },
+      "source_kind": "lpc",
       "text": "客官您要启航去哪里啊？难道是桃花...",
       "topic": "chuhai"
     },
@@ -545,6 +720,7 @@
         "line": 16,
         "path": "d/taohua/npc/laoda.lpc"
       },
+      "source_kind": "lpc",
       "text": "客官您要启航去哪里啊？难道是桃花...",
       "topic": "出海"
     },
@@ -557,6 +733,7 @@
         "line": 16,
         "path": "d/taohua/npc/laoda.lpc"
       },
+      "source_kind": "lpc",
       "text": "客官您要启航去哪里啊？难道是桃花...",
       "topic": "雇船"
     },
@@ -569,6 +746,7 @@
         "line": 16,
         "path": "d/taohua/npc/laoda.lpc"
       },
+      "source_kind": "lpc",
       "text": null,
       "topic": "桃花岛"
     },
@@ -581,6 +759,7 @@
         "line": 16,
         "path": "d/taohua/npc/laoda.lpc"
       },
+      "source_kind": "lpc",
       "text": null,
       "topic": "taohuadao"
     },
@@ -593,6 +772,7 @@
         "line": 16,
         "path": "d/taohua/npc/laoda.lpc"
       },
+      "source_kind": "lpc",
       "text": null,
       "topic": "价钱"
     },
@@ -605,6 +785,7 @@
         "line": 16,
         "path": "d/taohua/npc/laoda.lpc"
       },
+      "source_kind": "lpc",
       "text": null,
       "topic": "price"
     },
@@ -617,6 +798,7 @@
         "line": 16,
         "path": "d/taohua/npc/laoda.lpc"
       },
+      "source_kind": "lpc",
       "text": null,
       "topic": "启航"
     },
@@ -629,6 +811,7 @@
         "line": 16,
         "path": "d/taohua/npc/laoda.lpc"
       },
+      "source_kind": "lpc",
       "text": null,
       "topic": "qihang"
     },
@@ -641,6 +824,7 @@
         "line": 47,
         "path": "kungfu/class/gumu/limochou.lpc"
       },
+      "source_kind": "lpc",
       "text": "站远点！",
       "topic": "name"
     },
@@ -653,6 +837,7 @@
         "line": 47,
         "path": "kungfu/class/gumu/limochou.lpc"
       },
+      "source_kind": "lpc",
       "text": "我不是本地人，不知道。",
       "topic": "here"
     },
@@ -665,6 +850,7 @@
         "line": 47,
         "path": "kungfu/class/gumu/limochou.lpc"
       },
+      "source_kind": "lpc",
       "text": "你如何能理解其中相思之苦、惆怅之意？",
       "topic": "情"
     },
@@ -677,6 +863,7 @@
         "line": 47,
         "path": "kungfu/class/gumu/limochou.lpc"
       },
+      "source_kind": "lpc",
       "text": "你问那个薄情的小畜生做什么？",
       "topic": "陆展元"
     },
@@ -689,6 +876,7 @@
         "line": 47,
         "path": "kungfu/class/gumu/limochou.lpc"
       },
+      "source_kind": "lpc",
       "text": null,
       "topic": "何沅君"
     },
@@ -701,6 +889,7 @@
         "line": 47,
         "path": "kungfu/class/gumu/limochou.lpc"
       },
+      "source_kind": "lpc",
       "text": "那是我的师妹。你问她想干什么？",
       "topic": "小龙女"
     },
@@ -713,6 +902,7 @@
         "line": 47,
         "path": "kungfu/class/gumu/limochou.lpc"
       },
+      "source_kind": "lpc",
       "text": "那是我的师祖，不该你问的你别问，小心我宰了你。",
       "topic": "林朝英"
     },
@@ -725,6 +915,7 @@
         "line": 86,
         "path": "kungfu/class/baituo/ouyangfeng1.lpc"
       },
+      "source_kind": "lpc",
       "text": "名字，我...我没有名字，我...我是谁?",
       "topic": "name"
     },
@@ -737,6 +928,7 @@
         "line": 86,
         "path": "kungfu/class/baituo/ouyangfeng1.lpc"
       },
+      "source_kind": "lpc",
       "text": "名字，我...我没有名字，我...我是谁?",
       "topic": "名字"
     },
@@ -749,6 +941,7 @@
         "line": 86,
         "path": "kungfu/class/baituo/ouyangfeng1.lpc"
       },
+      "source_kind": "lpc",
       "text": null,
       "topic": "公公救我"
     },
@@ -761,6 +954,7 @@
         "line": 86,
         "path": "kungfu/class/baituo/ouyangfeng1.lpc"
       },
+      "source_kind": "lpc",
       "text": null,
       "topic": "help"
     }

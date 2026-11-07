@@ -61,11 +61,15 @@
       "table": "npcs"
     }
   ],
-  "content_hash": "eeac618650cdb06406c25dac87fb91234391f84f9881351a22fa0b3e594fe5ad",
+  "content_hash": "71f3d11780482667e45109e38c29fbd8f78d98dc1fbed77e8b95c41004678945",
   "counts": {
     "aggressive_npcs": 7,
+    "attrs_roll_fields": 66,
+    "attrs_roll_fields_in_slice": 51,
     "desc_authored_items": 7,
     "desc_authored_npcs": 4,
+    "dialogue_fallback_with_reason": 12,
+    "dialogue_staticized_from_func": 0,
     "dialogue_topics": 67,
     "dialogue_topics_in_slice": 40,
     "drop_entries": 3,
@@ -79,18 +83,37 @@
     "items_external": 46,
     "items_in_slice": 39,
     "masters": 22,
+    "npcs_beast_attrs_roll": 2,
     "npcs_external": 13,
     "npcs_in_slice": 92,
     "npcs_no_drops": 102,
+    "npcs_with_attrs_roll": 13,
+    "npcs_with_attrs_roll_in_slice": 10,
     "npcs_with_drops": 3,
+    "quests_dynamic": 2,
+    "quests_dynamic_outside_slice": 69,
+    "quests_dynamic_total": 71,
+    "quests_non_task": 5,
+    "quests_static_entries": 2039,
+    "quests_static_kill_targets_in_slice": 107,
+    "quests_static_unique": 1397,
+    "quests_talk_gated": 2,
+    "quests_total": 4,
     "rooms_boundary_stub": 6,
     "rooms_in_slice": 195,
+    "rooms_region_name_null": 2,
+    "rooms_region_null": 1,
+    "rooms_with_region": 200,
+    "rooms_with_region_name": 199,
     "sects": 1,
     "shops": 3,
     "skill_action_entries": 247,
+    "skill_action_gap_fields": 126,
+    "skill_action_gap_skills": 10,
     "skill_action_gaps": 11,
     "skill_action_skills": 22,
     "skill_action_unresolved": 0,
+    "skill_coefficient_inherited_defaults": 0,
     "skill_special_actions": 4,
     "skill_stat_default_fields": 48,
     "skill_stat_rows": 48,
@@ -177,12 +200,15 @@
     "total": "玩家可见描述完整性：含 authored，必须 100%。"
   },
   "field_semantics": {
+    "action_coefficient_default": "动作条目缺 damage/parry/force/dodge 键时按 LPC mapping 取 0；coefficient_source_detail 给出条目行号与 combatd.lpc 语义行号；coefficient_default_basis 给出四键证据及 inherit 链检查（inherited_defaults 为空即无父技能隐式默认）。",
     "desc": "玩家可见描述文本（房间 short/long 中的 long、物品/NPC 的 long）。",
     "desc_source": {
       "authored": "原版缺 long，由本项目按原版器物/身份常识自撰，不计入 source 覆盖率，只计入 total 覆盖率。",
       "lpc": "从 xkx100 LPC 源码静态抽取，计入 source 覆盖率。",
       "null": "描述缺失，玩家会看到空白；total 覆盖率不达标即 error。"
     },
+    "dialogue_fallback": "kind=fallback 且带 fallback_reason 表示原版函数体含条件/状态/物品/教学，不能压成固定文本；fallback_source 指向函数定义行。loader 只保留主题键，不得伪造台词。",
+    "npc_attrs_roll": "attrs_roll[attr]=[min,max] 是原版种族 setup 的 random(N)+M 掷骰区间（闭区间）；仅当该属性没有被显式 set 时出现。引擎必须按创世种子生成随机值，不得取 min/max 或中位数写死。attrs_roll_source 为每个区间的源码文件与行号。",
     "npc_drops": {
       "chance": "1.0 表示原版必掉；小于 1 由源码 random 条件折算；null 表示无法静态折算，必须读 chance_expr。",
       "chance_expr": "源码概率条件原文；null 表示原版没有概率判定。",
@@ -192,22 +218,24 @@
     },
     "npc_equipment": "equipment[].ref 必须在 items.json 中存在；ref 已补前导 / 并去掉 .lpc；缺 set_weight 时按基类默认 100 并带 weight_source=default。",
     "npc_temp_apply": "create() 内 set_temp 的静态快照，按创世即带处理；key 为原版键名，known=false 表示不在战斗白名单（原样保留并记诊断）；value 为整数时直接可用，为 null 时读 value_expr，不折算；source_kind=lpc 表示照源码搬运。",
+    "room_region": "region 由房间源码路径 d/<region>/ 推导（kind=derived_path）；region_name 只从 mapd.lpc 全局映射 map_short/logind.lpc hometown 取（kind=lpc），取不到为 null 并记 diagnostics。region 不是 flags.outdoors。",
     "skill_action_source": {
       "default": "原版缺键，按 LPC mapping 语义取 0；缺键记入 coefficient_gaps 与 diagnostics.jsonl。",
       "derived": "原版只给公式或结构，数值由抽取器按源码公式解释得出。",
       "lpc": "招式/系数在原版 LPC 中直接写死，原样搬运。",
       "missing": "文案缺失，没有可搬运原文（仅 name_source 使用）。"
     },
-    "skill_hook": "hooks 五项固定齐全；value_kind=code 表示钩子函数存在、value 为 null 而 expr 为源码函数体；value_kind=default 表示明确占位 value=0 并写 reason。"
+    "skill_hook": "hooks 五项固定齐全；value_kind=code 表示钩子函数存在、value 为 null 而 expr 为源码函数体；value_kind=default 表示明确占位 value=0 并写 reason。",
+    "xkx_quests": "只收切片内可闭环的 4 条支线；preconditions 是原版 set_temp/accept_object 的触发语义，不是运行时状态；动态任务奖励 exp/pot/score 以 base+random 表达，由引擎用 PRNG(seed, seq, salt) 按 exp→pot除数→score 顺序取数；静态清单与切片外动态任务只进 sorted counts 与 diagnostics，不入库。"
   },
   "files": {
     "diagnostics.jsonl": {
-      "bytes": 19923,
-      "sha256": "8d75bda17790c62e0ccdcffed6b3fdffdb3c614834151e5f0435bf870738980b"
+      "bytes": 24565,
+      "sha256": "9c4055d1158dc6a1a61e910dfd101eb79f9cb18b4115857f33ff28bff74513de"
     },
     "dialogue.json": {
-      "bytes": 19197,
-      "sha256": "b9fe08d5b58443698e3d6ea3ce58d7bb171e2e2dc519088e8692669e8b4d62bd"
+      "bytes": 26396,
+      "sha256": "c1babef2caf88a0542f0e3eaae1fcc0045f423245dbf8085fbfc07cbb197212c"
     },
     "exits.json": {
       "bytes": 75536,
@@ -218,12 +246,16 @@
       "sha256": "adbdd8264b1d36e15dc86abf9267edb6679b5fb01c0124f291fa92ec9c26ed70"
     },
     "npcs.json": {
-      "bytes": 173344,
-      "sha256": "f06fde833634061e17581a31e5d4fad1516ca2898c04b4258927c53f1262cc63"
+      "bytes": 197035,
+      "sha256": "3d0d487ac5e22a674d1b598d5fd7389c37f55a05f0d8fd2631e6ec46ce97a065"
+    },
+    "quests.json": {
+      "bytes": 5569,
+      "sha256": "0b0bbf9203d3bca0bb7a7c82b24b67027e7470a77c4ccad5f707d4bb64f3c1b8"
     },
     "rooms.json": {
-      "bytes": 142167,
-      "sha256": "267344a6e42d762aa496ddd2ccd85f9b4ed4640656b6d11078491a35e3d882cc"
+      "bytes": 211278,
+      "sha256": "80ffb08f2fbfb3102c28598bb886911484cf036f05f827b3cb2eb24bd133f5d0"
     },
     "sects.json": {
       "bytes": 842,
@@ -238,16 +270,16 @@
       "sha256": "60c825b86644093c88862bd5e95c11cae30b3f4f4397ab1430d5a9acc89f17ae"
     },
     "skills_actions.json": {
-      "bytes": 259082,
-      "sha256": "4efa730061a22e4c6214da2dd2c4005b2d40e8197adddfa29953e97d41567406"
+      "bytes": 324968,
+      "sha256": "15aca57793aab808ead1916391f42e3d39f7ef6c583bbd868a7631bcc99612e7"
     },
     "skills_stats.json": {
-      "bytes": 190472,
-      "sha256": "79f507b476c52d101cc2b7c12ec8eb14d144c1b2183f403241d2ed0fd3e52f09"
+      "bytes": 192476,
+      "sha256": "4f059d1cb3c991a138fd9dc658548de736e0cd2671bc3074155b6f592b44db1e"
     },
     "summary.json": {
-      "bytes": 2905,
-      "sha256": "393f06076826aca792e7334678a6b49d841391797c12aa3eda81af079510a5f5"
+      "bytes": 3887,
+      "sha256": "8c4e81061d024a024562bca9605463abd5bb5eb00513d5943a3ecb05351855b3"
     }
   },
   "generator": "tools/xkx_extract",

@@ -48,6 +48,10 @@
 | `desc` | string \| null | 房间长描述，对应 `set("long")` |
 | `desc_source` | `"lpc"` \| `null` | 房间没有自撰描述 |
 | `kind` | `"room"` \| `"boundary_stub"` | 与 `origin` 对应 |
+| `region` | string \| null | 区域目录 id，由路径 `d/<region>/...` 推导；不在 `d/` 下时为 null |
+| `region_name` | string \| null | 区域中文名；只从 `mapd.lpc` `map_short()` 或 `logind.lpc` `hometown` 取，取不到为 null |
+| `region_source` | object \| null | `{"kind":"derived_path","path":"...","line":N,"basis":"路径 d/hangzhou/"}` |
+| `region_name_source` | object \| null | `{"kind":"lpc","path":"adm/daemons/mapd.lpc","line":18}` |
 | `flags` | object | 原版房间标记，**值是原始值，不是统一布尔**：`outdoors` 常见为区域名（如 `"xihu"`）、`no_clean_up` 可能为 `0` |
 | `coord` | object | `{"x": 4130, "y": -1450, "z": 0}`，可能为空 `{}`；用于地图定位，不参与寻路 |
 | `objects` | array | 房间初始物件，见下 |
@@ -73,6 +77,14 @@
 | `origin` | `"external"` | 仅 `in_slice=false` 时出现 |
 
 加载顺序：先读 `items.json` / `npcs.json` 建索引，再按 `objects` 实例化。
+
+### 2.1 区域归属口径
+
+- 原版有 87 个 `d/<区域>/` 目录；本切片房间全部落在 `hangzhou`、`jiaxing`、`shiliang` 三个目录。
+- `region` **不是** `flags.outdoors`：`outdoors` 是户内外/小地名标记（如 `xihu`），`region` 是区域目录归属。两者都保留，不互相替代。
+- `region_name` 只信原版表：`mapd.lpc` 的全局映射 `map_short`（`hangzhou=杭州` 第 18 行、`jiaxing=嘉兴` 第 23 行、`suzhou=苏州` 第 17 行、`meizhuang=梅庄` 第 45 行、`taishan=泰山` 第 38 行）和 `logind.lpc` 的 `hometown`（`shiliang=石梁` 第 497 行）。注意：源码写的是 **石梁**，不是“十里凉”。
+- 边界替身沿用目标路径的区域目录：`suzhou=苏州`、`meizhuang=梅庄`、`taishan=泰山`、`yanping=延平`（`logind.lpc:496`）。`binghuo` 在 `mapd`/`logind` 中查不到中文名，`region_name` 如实为 `null`；`clone/shop` 不在 `d/` 下，`region` 也为 `null`。这些缺口全部记入 `diagnostics.jsonl` 的 `I_REGION_NAME_MISSING` / `I_REGION_UNRESOLVED`，不猜名。
+- `region_source` 的 `kind=derived_path` 表示归属由房间自身路径推导，行号取房间 `source` 行；`region_name_source` 的 `kind=lpc` 表示中文名来自源码表。
 
 ## 3. `exits.json`
 
@@ -137,7 +149,11 @@
 | `class` | string \| null | 职业模板：`fighter`、`scholar`、`bonze`、`swordsman`、`taoist` 等 |
 | `attitude` | string \| null | 原版原样：`friendly`、`peaceful`、`heroism`、`aggressive`、`peace` 等 |
 | `aggressive` | bool | **主动攻击标志**，仅当 `attitude == "aggressive"` 为 true；切片内共 7 个 |
+| `race` | string \| null | 原版 `set("race")`，如 `走兽`、`飞禽`、`爬蛇` |
+| `race_source` | object \| null | `{"kind":"lpc","path":"d/hangzhou/npc/laohu.lpc","line":7}` |
 | `attrs` | object | `str`/`int`/`con`/`dex`/`per`/`kar`，缺省键不出现 |
+| `attrs_roll` | object | 种族随机属性区间，见 5.3；没有掷骰键时为空 `{}` |
+| `attrs_roll_source` | object | 每个随机键的源码出处，见 5.3 |
 | `vitals` | object | `max_qi`/`max_jing`/`max_neili`/`neili`/`jiali`/`combat_exp`，缺省键不出现 |
 | `skills` | object | 技能 id → 等级（`set_skill`） |
 | `map_skills` | object | 基础技能 → 映射到的技能 id（`map_skill`），如 `{"unarmed": "jingang-quan"}` |
@@ -223,6 +239,37 @@
 
 **与原版的差异（重要）**：原版 `set_temp` 是运行期临时加成，`reset()` 或对象重建后会按 `create()` 重新设置；本项目按**创世即带**处理——加载器在创建 NPC 时一次性应用这些加成，不做运行期重算。对静态战斗数值（`apply/attack`、`apply/defense` 等）两者等价；若将来引入“加成被临时修改”的机制，需要单独建模，不能假设这里会随 `reset` 刷新。
 
+### 5.3 `attrs_roll` — 种族随机属性区间
+
+原版种族 daemon 在 `setup()` 里只对**没有显式 `set` 的属性**掷骰。我们不改写 `attrs`，而是把掷骰范围如实抽出来，交给引擎在创世时按种子生成：
+
+```json
+"race": "走兽",
+"attrs": {},
+"attrs_roll": {
+  "str": [5, 44], "int": [5, 14], "per": [5, 34],
+  "con": [5, 44], "dex": [5, 44], "kar": [5, 24]
+},
+"attrs_roll_source": {
+  "str": {"kind": "lpc", "path": "adm/daemons/race/beast.lpc", "line": 62},
+  "int": {"kind": "lpc", "path": "adm/daemons/race/beast.lpc", "line": 63},
+  "...": {"kind": "lpc", "path": "adm/daemons/race/beast.lpc", "line": 67}
+}
+```
+
+| 字段 | 含义 |
+| --- | --- |
+| `attrs` | 原版显式 `set("str", <整数>)` 的值；不掺随机结果 |
+| `attrs_roll[attr]` | `[min,max]` 闭区间，对应源码 `random(N) + M`，即 `M..M+N-1` |
+| `attrs_roll_source[attr]` | 该区间的 `source_kind`、源码文件、行号与原始表达式 |
+
+规则：
+
+- **只对 `attrs` 里没有的键生成**：显式 `set` 优先，原版 `undefinedp` 判断也是这个语义。表达式型 `set`（非整数字面量）不抽值，也不会被随机区间覆盖。
+- **引擎必须按创世种子生成**，不能取 `min`、`max` 或中位数写死。同一种子下同一 NPC 应得到可复现的六维。
+- 区间是原版 `random(N)+M` 的数学结果，不是我们估计的强弱范围。
+- 没有掷骰键（人类/妖魔等，或六维全部显式）时 `attrs_roll={}`、`attrs_roll_source={}`。
+
 ## 6. `dialogue.json`
 
 67 条 = 40 条切片内 + 27 条来自区外 NPC。一条记录 = 一个可问的主题（`set("inquiry")` 的键）。
@@ -234,13 +281,32 @@
 | `kind` | `"string"` \| `"fallback"` | 答案类型 |
 | `text` | string \| null | `kind=string` 时的答案正文 |
 | `func` | string \| null | `kind=fallback` 时的原版函数名/表达式文本，静态不可搬运 |
-| `source` | object | 源码位置 |
+| `source_kind` | `"lpc"` | 本记录取自 LPC 源码 |
+| `source` | object | 主题注册位置（`set("inquiry")` 所在行） |
+| `fallback_reason` | string \| null | 切片内函数主题的判定原因；区外主题未判定时缺省 |
+| `fallback_features` | array | 判定依据：`conditional`/`state_write`/`item_create`/`teaching`/`dynamic_text` |
+| `fallback_source` | object \| null | `{"kind":"lpc","path":"...","line":<函数定义行>}` |
+| `staticized_from_func` | string \| null | 仅当函数体可保守压成固定串时出现 |
 
 加载器约束：
 
 - `kind=string`：直接显示 `text`。
 - `kind=fallback`：原版答案是函数（涉及状态、任务、条件），本内容包只保留主题键；加载器给一句通用占位或走引擎自己的处理器，**不要把它当成有答案**，也不要伪造文本。
 - 同一 NPC 多个主题共用同一答案文本是正常的（原版一个函数/字符串挂多个键）。
+
+### 6.1 切片内 12 个函数主题的判定结果
+
+逐条读函数体后：**0 条能静态化，12 条保留 `fallback` 并写 `fallback_reason`**。没有一个函数是“无条件、只返回固定串”；全部含条件分支、状态写入、物品创建或 `teach_perform`：
+
+| NPC / 函数 | 主题数 | 判定依据 | 处理 |
+| --- | --- | --- | --- |
+| `d/jiaxing/npc/hai.lpc` `ask_for_zigong` | 2 | 按性别/膂力/年龄分支，`set_temp("pending/zigong")` | fallback |
+| `d/jiaxing/npc/hai.lpc` `ask_for_gongzi` | 5 | 按太监身份/辟邪剑法等级/年龄分支，`new` 金币并 `add("paytimes")` | fallback |
+| `d/shiliang/npc/atu.lpc` `inquiry_afeng` | 1 | `RANK_D` 动态称谓 + 条件分支 + `new` 情书 + `set_temp("qingshu")` | fallback |
+| `d/shiliang/npc/jinshe.lpc` `ask_skill1/2/3` | 3 | `teach_perform` 教授锁剑诀/附骨缠身/金蛇吐雾，含技能等级校验 | fallback |
+| `d/shiliang/npc/wenyi.lpc` `inquiry_shoupa` | 1 | `RANK_D` 动态称谓 + 条件分支 + `new` 手帕 + `set_temp("shoupa")` | fallback |
+
+`fallback_features` 由函数体静态扫描得出（`if/else`、`set_temp/delete_temp/add/move/set`、`new()`、`teach_perform()`、`RANK_D->`/拼接），不是人工编造的对话内容。区外 10 条函数主题不在本块判定范围，保持原样。
 
 ## 7. `shops.json`
 
@@ -313,7 +379,9 @@
 | `effects` | array | perform 附加效果，见 9.4 |
 | `actions` | array | 普通招式，见 9.5 |
 | `special_actions` | array | 特殊分支招式，见 9.6 |
-| `coefficient_gaps` | string[] | 源码缺键的系数名；对应 `default`，引擎按 0 |
+| `coefficient_gaps` | string[] | 源码缺键的系数名（按技能去重）；对应 `default`，引擎按 0 |
+| `coefficient_gap_fields` | int | 该技能所有动作条目里缺键的总次数（用于核对 126） |
+| `coefficient_default_basis` | object \| null | 缺键取 0 的源码证据与 inherit 链检查，见 9.7 |
 | `source` | object | 源码位置 |
 
 ### 9.2 `coefficient_model`
@@ -337,6 +405,8 @@
 | `parry` | 修正受害者招架 `pp` 的百分比：`pp = (100 + parry) * pp / 100` |
 | `force` | 命中后 `damage_bonus += force * damage_bonus / 200` |
 | `damage` | 兵器基础伤害 `damage += damage * damage / 200`；拳脚招式没有这一项（缺键即 0） |
+
+以上四项在 `combatd.lpc` 中都是 `if (action["…"])` 为真才生效（334/396/442/482 行）；LPC mapping 缺键取值 0，与写死 0 完全等价，不是“漏抽”。
 
 ### 9.3 `requirements`
 
@@ -386,6 +456,7 @@
 - `skill_level_required`：原版 `lvl`，低于此等级不会入选。
 - `text` 是可直接展示的文案；`text_expr` 是含 `order[random(13)]` 等动态片段的原版表达式（`text_source="derived"`），引擎想要逐字复刻时用它，否则用 `text`。
 - `damage_types`：原版 `damage_type`，如 `["割伤"]`；空数组表示未限定。
+- `coefficient_source_detail`：只对 `default` 键出现的逐键溯源，格式见 9.7；`lpc`/`derived` 键继续用 `coefficient_source` + 条目 `source` 行号。
 
 ### 9.6 `special_actions[]`
 
@@ -401,6 +472,48 @@
 - 原版 `query_action` 里 `if` 分支直接返回的招式，不走线性插值。
 - `coefficients` 的值为 int 或 `{min,max}`；后者原版是随机区间，引擎取该区间内随机整数。
 - `condition` 是原版条件表达式原文，`condition_source="lpc"`；引擎可选择实现或忽略，但不得改写成别的条件。
+
+### 9.7 126 个缺系数招式的核对结论
+
+`skills_actions.json` 共 126 个“招式 × 缺键”组合（10 个技能、113 个动作条目），当前全部 `coefficient_source=default`、值 `0`。逐条核对 LPC 语义后确认：**“缺键＝0”正确，原版没有可继承的隐式默认，因此不改标 `inherited`**。
+
+证据：
+
+1. `combatd.lpc` 对四个系数的使用都是真值判断：`if (action["dodge"])`（334）、`if (action["parry"])`（396）、`if (action["damage"])`（442）、`if (action["force"])`（482）。LPC mapping 读不存在的键返回 0，`if (0)` 不执行，与条目里显式写 `0` 完全等价。
+2. 10 个技能都在本文件内定义 `mapping query_action(...)`，逐个覆盖父类；`inherit SKILL;` 与 `jingang-quan` 的 `inherit "/inherit/skill/cuff.lpc";` 链上（`inherit/skill/skill.lpc`、`inherit/skill/cuff.lpc`）都没有 `query_action`，不存在“父技能补系数”。
+3. 因此 `inherited_defaults=[]`、`has_implicit_default=false` 是核对结果，不是省略。
+
+机器可读字段：
+
+```json
+"coefficient_default_basis": {
+  "semantics": "lpc_mapping_missing_key_is_zero",
+  "source_kind": "lpc",
+  "checks": [
+    {"coefficient":"damage","kind":"lpc","path":"adm/daemons/combatd.lpc",
+     "line":442,"expression":"if (action[\"damage\"])"}
+  ],
+  "inherited_defaults": [],
+  "inherited_check": {
+    "inherits": ["inherit/skill/skill.lpc"],
+    "parent_query_action_sources": [],
+    "has_implicit_default": false,
+    "basis": "..."
+  }
+}
+```
+
+每个动作条目的 `coefficient_source_detail`：
+
+```json
+"damage": {"kind":"lpc_missing","path":"kungfu/skill/houquan.lpc","line":10,
+           "semantics_path":"adm/daemons/combatd.lpc","semantics_line":442,
+           "inherited_from":null}
+```
+
+- `path`/`line`：缺键所在动作条目起始行。
+- `semantics_path`/`semantics_line`：`combatd` 真值判断行。
+- `inherited_from`：null 表示没有父技能来源；若将来发现继承默认，这里填父文件路径并改 `coefficient_source="inherited"`。
 
 ## 10. `skills_stats.json` — 技能属性表
 
@@ -473,7 +586,85 @@
 
 加载器约束：`value_kind=default` 的钩子不要当成“已实现但效果为 0”，它是**明确占位**；`code` 的钩子不能只读 `value`，必须执行 `expr` 或引擎内等价实现。
 
-## 11. `diagnostics.jsonl` / `summary.json` / `manifest.json`
+## 11. `quests.json` — 可完成支线
+
+只收 195 房切片内**能闭环**的任务，共 4 条：
+
+| id | 类型 | 发放/目标 | 交付物 | 奖励 |
+| --- | --- | --- | --- | --- |
+| `q_dynamic_jinshe_jian` | deliver（动态） | → `/d/shiliang/npc/jinshe` | `/questobj/jinshe-jian` | exp/pot/score（种子化） |
+| `q_dynamic_shoupa` | deliver（动态） | → `/d/shiliang/npc/wenyi` | `/questobj/shoupa` | exp/pot/score（种子化） |
+| `q_atu_afeng` | talk+deliver | atu 问「阿凤」→ afeng | `/d/shiliang/npc/obj/qingshu` | 仅口述秘密 |
+| `q_wenyi_jinshe` | talk+deliver | wenyi 问「手帕」→ jinshe | `/d/shiliang/npc/obj/shoupa` | `/clone/book/jinshe2`、`/clone/book/jinshe3` |
+
+字段：
+
+| 字段 | 语义 |
+| --- | --- |
+| `id` / `name` / `type` | 任务 id、显示名、`deliver` 或 `talk+deliver` |
+| `dynamic` | `true` 表示原版 `quest/dynamic_quest` 动态任务，交付即结算 |
+| `giver` | 问话发放人 `{id,name,topic}`；动态任务为 `null` |
+| `target` | 交付对象 `{id,name}`，必须存在于 `npcs.json` |
+| `required_item` | `{id,name,source}`；`source="dynamic_spawn"` 表示原版由 `questd` 投放，`source="giver"` 表示问话时发放 |
+| `preconditions` | 原版触发条件原文（`npc_temp` 只看原版语义，**不是运行时状态**） |
+| `steps` | talk 支线的 `ask` → `deliver` 步骤，带源码出处 |
+| `reward` | `exp/money/items/unlock_exits/note`；动态任务用 `{base,random}` 与 `pot.formula` 表达公式 |
+| `source` | 任务定义所在文件与行号，`source_kind="lpc"` |
+
+静态清单与切片外动态任务**不入库**，只留痕：`summary.json.counts` 记录 2039 条静态条目 / 1397 个唯一任务、71 条动态任务中 69 条切片外、5 条非任务候选；`diagnostics.jsonl` 用 `I_QUEST_STATIC_SKIPPED`、`I_QUEST_DYNAMIC_OUTSIDE_SLICE` 与 5 条 `I_QUEST_NON_TASK` 记录原因码（发放 NPC 在切片外、owner 在切片外、交付物只在区外产出等）。不提供 `locked[]` 列表。
+
+### 与原版的状态差异
+
+原版两条问话支线只在 NPC 的 `create()` 里 `set_temp("<flag>", 1)`，`ask` 时 `set_temp("<flag>", 0)`，**没有玩家的持久完成标记**；动态任务也只靠 NPC `accept_object` 一次性开关。本项目把进度写进世界状态：
+
+```json
+"xkx_quests": {
+  "player:hero|q_wenyi_jinshe": {
+    "actor": "player:hero",
+    "quest": "q_wenyi_jinshe",
+    "status": "accepted",
+    "step": "asked",
+    "accepted_tick": 10,
+    "talked_tick": 10,
+    "completed_tick": 20,
+    "reward": {"exp": 0, "potential": 0, "score": 0}
+  }
+}
+```
+
+- 只有 `status=accepted|completed` 两种状态；`step` 记录走到哪一步（`asked` / `delivered`）。
+- 记录只经 `xkx_quest_upsert` Effect 写入，随事件日志落盘；回放时不需要重跑动作，按 Effect 重建即可得到同一世界哈希。
+- `xkx_quests` 为空时**不写进 `to_dict()`**，旧九地点世界（没有 xkx 任务）哈希逐字节不变。
+
+### 动态奖励的种子化取数
+
+原版公式：`adm/daemons/questd.lpc` 第 48–53 行。
+
+```text
+exp    = 100 + random(400)
+pot    = exp / (random(10) + 1)
+score  = 50 + random(50)
+```
+
+引擎用 `PRNG(seed, seq, "action:xkx_quest_deliver")`，取数顺序**固定为** exp → pot 除数 → score，LPC `random(n)` 对应 `randint(0, n-1)`。测试 `tests/test_xkx_quests.py::test_dynamic_reward_is_seeded_in_fixed_order` 锁死顺序；改顺序会直接失败。不许用墙钟或未种子化随机。
+
+### 交付校验（后端）
+
+`xkx_quest_deliver` 的 `preconditions` 按顺序检查并返回唯一原因码，前端只展示、不自行判完成：
+
+| 原因码 | 触发条件 |
+| --- | --- |
+| `player_not_entered` / `player_dead` | 玩家不存在 / 已死亡 |
+| `target_required` / `target_not_found` / `not_here` | 没指定对象 / 对象不存在 / 不同房间 |
+| `quest_item_required` | 没指定交付物 |
+| `quest_not_found` | 该 NPC 不收这件物品，或不是对应任务 |
+| `quest_not_accepted` | talk 支线还没问过发放人 |
+| `quest_already_completed` | 世界状态里已记录完成 |
+| `quest_item_missing` | 世界状态背包里没有交付物 |
+
+问话接取 `xkx_quest_accept` 只在该 NPC 确实是发放人且话题命中时成功；成功后发放物品并写入 `status=accepted, step=asked`。动态任务没有问话前置，交付成功后第一次写入就是 `completed`。
+
+## 12. `diagnostics.jsonl` / `summary.json` / `manifest.json`
 
 - `diagnostics.jsonl`：一行一条诊断，字段 `rule`、`severity`（`error`/`warning`/`info`）、`path`、`line`、`message`，部分带 `id`/`target`/`metric`/`ref`。error 阻断发布。
 - `summary.json`：`counts`、`coverage`、`errors`、`warnings`、`infos`、`by_rule`。
@@ -496,9 +687,11 @@
 
 命令行：`--strict-source` 与 `--strict-total` 独立生效，任一可单独让进程失败；`--verify` 重抽并逐文件比对。
 
-## 12. 本内容包不承诺的内容
+## 13. 本内容包不承诺的内容
 
 - 战斗公式的具体求解、技能升级/经验结算流程：属于引擎。本包只提供招式序列、系数、属性与钩子出处；凡引擎侧读不到的，表里已显式标 `default` 并写明原因，未标的一律有源码依据。
-- 任务、剧情线、条件触发器、函数型对话的实际行为。
+- 任务范围外的剧情线、条件触发器、函数型对话的实际行为。
+- 两条动态任务的物品投放：原版由 `questd.spread_quest` 随机放进 `dynamic_location` 房间；本包只记录 `required_item.source="dynamic_spawn"` 与交付定义，投放规则尚未在引擎侧实现。
+- `q_wenyi_jinshe` 的 `unlock_exits`（`/d/shiliang/jinshedong:exits/east`）指向的区外房间 `jinshedong1` 不在切片内；本包只记录奖励数据，不开通该出口。
 - 商店议价、库存刷新、门派拜师流程。
 - 区外区域的地图与内容：只提供 6 个 boundary stub 和 25 条区外引用，详见 `boundary-and-external-refs.md`。

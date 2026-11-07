@@ -1,0 +1,247 @@
+{
+  "quests": [
+    {
+      "dynamic": true,
+      "giver": null,
+      "id": "q_dynamic_jinshe_jian",
+      "name": "金蛇剑",
+      "preconditions": [
+        {
+          "item": "/questobj/jinshe-jian",
+          "kind": "dynamic_quest_item"
+        },
+        {
+          "kind": "target_owner",
+          "npc": "/d/shiliang/npc/jinshe"
+        }
+      ],
+      "required_item": {
+        "id": "/questobj/jinshe-jian",
+        "name": "金蛇剑",
+        "source": "dynamic_spawn"
+      },
+      "reward": {
+        "exp": {
+          "base": 100,
+          "random": 400
+        },
+        "formula_source": {
+          "line": 48,
+          "path": "adm/daemons/questd.lpc"
+        },
+        "pot": {
+          "formula": "exp/(random(n)+1)",
+          "plus": 1,
+          "random": 10
+        },
+        "score": {
+          "base": 50,
+          "random": 50
+        }
+      },
+      "source": {
+        "line": 142,
+        "path": "quest/dynamic_quest"
+      },
+      "target": {
+        "id": "/d/shiliang/npc/jinshe",
+        "name": "夏雪宜"
+      },
+      "type": "deliver"
+    },
+    {
+      "dynamic": true,
+      "giver": null,
+      "id": "q_dynamic_shoupa",
+      "name": "手帕",
+      "preconditions": [
+        {
+          "item": "/questobj/shoupa",
+          "kind": "dynamic_quest_item"
+        },
+        {
+          "kind": "target_owner",
+          "npc": "/d/shiliang/npc/wenyi"
+        }
+      ],
+      "required_item": {
+        "id": "/questobj/shoupa",
+        "name": "手帕",
+        "source": "dynamic_spawn"
+      },
+      "reward": {
+        "exp": {
+          "base": 100,
+          "random": 400
+        },
+        "formula_source": {
+          "line": 48,
+          "path": "adm/daemons/questd.lpc"
+        },
+        "pot": {
+          "formula": "exp/(random(n)+1)",
+          "plus": 1,
+          "random": 10
+        },
+        "score": {
+          "base": 50,
+          "random": 50
+        }
+      },
+      "source": {
+        "line": 194,
+        "path": "quest/dynamic_quest"
+      },
+      "target": {
+        "id": "/d/shiliang/npc/wenyi",
+        "name": "温仪"
+      },
+      "type": "deliver"
+    },
+    {
+      "dynamic": false,
+      "giver": {
+        "id": "/d/shiliang/npc/atu",
+        "name": "阿土",
+        "source": {
+          "line": 23,
+          "path": "d/shiliang/npc/atu.lpc"
+        },
+        "topic": "阿凤"
+      },
+      "id": "q_atu_afeng",
+      "name": "阿土 → 阿凤",
+      "preconditions": [
+        {
+          "kind": "npc_temp",
+          "npc": "/d/shiliang/npc/atu",
+          "source": {
+            "line": 29,
+            "path": "d/shiliang/npc/atu.lpc"
+          },
+          "temp": "qingshu",
+          "value": 1
+        },
+        {
+          "kind": "target_owner",
+          "npc": "/d/shiliang/npc/afeng"
+        }
+      ],
+      "required_item": {
+        "id": "/d/shiliang/npc/obj/qingshu",
+        "name": "情书",
+        "source": {
+          "line": 29,
+          "path": "d/shiliang/npc/atu.lpc"
+        }
+      },
+      "reward": {
+        "exp": 0,
+        "items": [],
+        "money": 0,
+        "note": "原版只给口述秘密，无经验/钱/物品",
+        "unlock_exits": []
+      },
+      "source": {
+        "line": 23,
+        "path": "d/shiliang/npc/atu.lpc"
+      },
+      "steps": [
+        {
+          "npc": "/d/shiliang/npc/atu",
+          "op": "ask",
+          "topic": "阿凤"
+        },
+        {
+          "item": "/d/shiliang/npc/obj/qingshu",
+          "op": "deliver",
+          "to": "/d/shiliang/npc/afeng"
+        }
+      ],
+      "target": {
+        "id": "/d/shiliang/npc/afeng",
+        "name": "阿凤",
+        "source": {
+          "line": 29,
+          "path": "d/shiliang/npc/afeng.lpc"
+        }
+      },
+      "type": "talk+deliver"
+    },
+    {
+      "dynamic": false,
+      "giver": {
+        "id": "/d/shiliang/npc/wenyi",
+        "name": "温仪",
+        "source": {
+          "line": 25,
+          "path": "d/shiliang/npc/wenyi.lpc"
+        },
+        "topic": "手帕"
+      },
+      "id": "q_wenyi_jinshe",
+      "name": "温仪 → 夏雪宜",
+      "preconditions": [
+        {
+          "kind": "npc_temp",
+          "npc": "/d/shiliang/npc/wenyi",
+          "source": {
+            "line": 35,
+            "path": "d/shiliang/npc/wenyi.lpc"
+          },
+          "temp": "shoupa",
+          "value": 1
+        },
+        {
+          "kind": "target_owner",
+          "npc": "/d/shiliang/npc/jinshe"
+        }
+      ],
+      "required_item": {
+        "id": "/d/shiliang/npc/obj/shoupa",
+        "name": "手帕",
+        "source": {
+          "line": 35,
+          "path": "d/shiliang/npc/wenyi.lpc"
+        }
+      },
+      "reward": {
+        "exp": 0,
+        "items": [
+          "/clone/book/jinshe2",
+          "/clone/book/jinshe3"
+        ],
+        "money": 0,
+        "note": null,
+        "unlock_exits": [
+          "/d/shiliang/jinshedong:exits/east"
+        ]
+      },
+      "source": {
+        "line": 25,
+        "path": "d/shiliang/npc/wenyi.lpc"
+      },
+      "steps": [
+        {
+          "npc": "/d/shiliang/npc/wenyi",
+          "op": "ask",
+          "topic": "手帕"
+        },
+        {
+          "item": "/d/shiliang/npc/obj/shoupa",
+          "op": "deliver",
+          "to": "/d/shiliang/npc/jinshe"
+        }
+      ],
+      "target": {
+        "id": "/d/shiliang/npc/jinshe",
+        "name": "夏雪宜",
+        "source": {
+          "line": 66,
+          "path": "d/shiliang/npc/jinshe.lpc"
+        }
+      },
+      "type": "talk+deliver"
+    }
+  ]
+}

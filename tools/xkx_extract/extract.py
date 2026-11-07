@@ -17,9 +17,28 @@ from collections import Counter, OrderedDict
 from . import lpc
 from .authored import AUTHORED_DESCS
 from .npc_drops import extract_npc_drops
+from .quests import extract_quests
 from .skills_actions import extract_skill_tables
 
 AREA_DIRS = ("hangzhou", "jiaxing", "shiliang")
+
+# 原版种族 setup 里的随机属性：race 名 -> 种族 daemon。
+# 只收 setup 中 `if (undefinedp(my["str"])) my["str"] = random(N) + M;` 这类
+# 明确掷骰的键；显式 set("str", ...) 的键不覆盖。
+RACE_ATTR_FILES = {
+    "走兽": "adm/daemons/race/beast.lpc",
+    "野兽": "adm/daemons/race/beast1.lpc",
+    "走畜": "adm/daemons/race/stock.lpc",
+    "飞禽": "adm/daemons/race/bird.lpc",
+    "游鱼": "adm/daemons/race/fish.lpc",
+    "爬蛇": "adm/daemons/race/snake.lpc",
+    "昆虫": "adm/daemons/race/insect.lpc",
+}
+ATTR_KEYS = ("str", "int", "con", "dex", "per", "kar")
+_RACE_ATTR_ROLL_RE = re.compile(
+    r'if\s*\(\s*undefinedp\(\s*my\[\s*"([a-z]+)"\s*\]\s*\)\s*\)'
+    r'\s*my\[\s*"\1"\s*\]\s*=\s*random\(\s*(\d+)\s*\)\s*\+\s*(\d+)\s*;'
+)
 
 ROOM_BASE = "ROOM"
 NPC_BASE = "NPC"
@@ -100,21 +119,35 @@ def _function_span(text: str, name: str) -> tuple[int, int] | None:
     那些不是创世属性，混进来会让引擎在出生时套错状态。
     """
     tokens = lpc.lex(text)
-    for i in range(len(tokens) - 3):
+    n = len(tokens)
+    for i in range(n):
         if not (
             tokens[i].kind == "IDENT"
             and tokens[i].value == name
+            and i + 1 < n
             and tokens[i + 1].kind == "PUNCT"
             and tokens[i + 1].value == "("
-            and tokens[i + 2].kind == "PUNCT"
-            and tokens[i + 2].value == ")"
-            and tokens[i + 3].kind == "PUNCT"
-            and tokens[i + 3].value == "{"
         ):
             continue
+        # 跳过参数表，允许 `foo(object me, string arg)`；函数声明后面的
+        # 分号不会命中，因为这里要求右括号之后紧跟 `{`。
         depth = 0
-        start_line = tokens[i + 3].line
-        for tok in tokens[i + 3:]:
+        j = i + 1
+        while j < n:
+            tok = tokens[j]
+            if tok.kind == "PUNCT":
+                if tok.value == "(":
+                    depth += 1
+                elif tok.value == ")":
+                    depth -= 1
+                    if depth == 0:
+                        break
+            j += 1
+        if j + 1 >= n or tokens[j + 1].kind != "PUNCT" or tokens[j + 1].value != "{":
+            continue
+        depth = 0
+        start_line = tokens[j + 1].line
+        for tok in tokens[j + 1:]:
             if tok.kind != "PUNCT":
                 continue
             if tok.value == "{":
@@ -142,10 +175,14 @@ class Extractor:
         self.skills: "OrderedDict[str, dict]" = OrderedDict()
         self.skills_actions: list[dict] = []
         self.skills_stats: list[dict] = []
+        self.quests: list[dict] = []
         self.skill_counts: dict[str, int] = {}
+        self.quest_counts: dict[str, int] = {}
         self.drop_counts: dict[str, int] = {}
         self.equipment_counts: dict[str, int] = {}
         self._text_cache: dict[str, str] = {}
+        self._race_attr_cache: dict[str, dict] = {}
+        self._region_name_cache: dict[str, dict] | None = None
         self._item_refs: set[str] = set()
         self._npc_refs: set[str] = set()
         self._stub_reachable: set[str] = set()
@@ -235,6 +272,7 @@ class Extractor:
         self._collect_drops()
         self._collect_equipment_items()
         self._collect_skill_tables()
+        self._collect_quests()
         self._coverage()
         return {
             "rooms": list(self.rooms.values()),
@@ -247,6 +285,7 @@ class Extractor:
             "skills": list(self.skills.values()),
             "skills_actions": self.skills_actions,
             "skills_stats": self.skills_stats,
+            "quests": self.quests,
         }
 
     def _collect_skill_tables(self):
@@ -272,6 +311,14 @@ class Extractor:
             self.items[ref] = self._parse_item(
                 rel, ref, text, self.bases_of(text), origin="external"
             )
+
+    def _collect_quests(self):
+        quests, diags, counts = extract_quests(
+            self.src_root, list(self.npcs.values())
+        )
+        self.diagnostics.extend(diags)
+        self.quests = quests
+        self.quest_counts = counts
 
     def _canonical_item_ref(self, ref: str, rel_path: str, line) -> str:
         """装备引用归一化：补前导 `/`、去掉 `.lpc`；真实文件存在才改，否则留原样。"""
@@ -448,17 +495,50 @@ class Extractor:
         if not exits:
             self.diag("W_NO_EXIT", "warning", rel_path, short_line, "房间没有任何出口")
 
+        source = {"path": rel_path, "line": short_line or desc_line or 1}
+        parts = rel_path.split("/")
+        region = parts[1] if parts and parts[0] == "d" and len(parts) > 2 else None
+        region_name = None
+        region_source = None
+        region_name_source = None
+        if region:
+            region_source = {
+                "kind": "derived_path",
+                "path": rel_path,
+                "line": source["line"],
+                "basis": f"路径 d/{region}/",
+            }
+            info = self._region_name_sources().get(region)
+            if info:
+                region_name = info["name"]
+                region_name_source = dict(info["source"])
+            else:
+                self.diag(
+                    "I_REGION_NAME_MISSING", "info", rel_path, source["line"],
+                    f"区域 {region} 在 mapd/logind 中没有中文名来源，region_name=null",
+                    region=region,
+                )
+        else:
+            self.diag(
+                "I_REGION_UNRESOLVED", "info", rel_path, source["line"],
+                "房间不在 d/<区域>/ 目录下，region=null",
+            )
+
         return {
             "id": mid,
             "name": short,
             "desc": desc,
             "desc_source": "lpc" if desc else None,
+            "region": region,
+            "region_name": region_name,
+            "region_source": region_source,
+            "region_name_source": region_name_source,
             "objects": obj_list,
             "flags": flags,
             "coord": coord,
             "kind": "room",
             "origin": "slice",
-            "source": {"path": rel_path, "line": short_line or desc_line or 1},
+            "source": source,
             "_exits": list(exits.values()),
         }
 
@@ -692,7 +772,11 @@ class Extractor:
                 value = args[1] if len(args) > 1 else None
                 if key == "inquiry" and isinstance(value, dict):
                     for topic, answer in value.items():
-                        topics.append(self._make_topic(topic, answer, line, rel_path))
+                        topics.append(
+                            self._make_topic(
+                                topic, answer, line, rel_path, text, origin
+                            )
+                        )
                 elif key == "long" and isinstance(value, str) and "long" not in values:
                     values["long"] = (lpc.clean_text(value), line)
                 elif key == "vendor_goods" and isinstance(value, list):
@@ -715,9 +799,20 @@ class Extractor:
             self.diag("W_NPC_NO_NAME", "warning", rel_path, 1, "NPC 没有 set_name")
 
         attrs = {}
-        for key in ("str", "int", "con", "dex", "per", "kar"):
+        for key in ATTR_KEYS:
             if key in values and isinstance(values[key][0], int):
                 attrs[key] = values[key][0]
+        race_value, race_line = values.get("race", (None, None))
+        race = race_value if isinstance(race_value, str) else None
+        attrs_roll = {}
+        attrs_roll_sources = {}
+        if race:
+            for key, meta in self._race_attr_defaults(race).items():
+                # 显式 set 过的键（含无法静态取值的表达式）不覆盖。
+                if key in values:
+                    continue
+                attrs_roll[key] = [meta["min"], meta["max"]]
+                attrs_roll_sources[key] = meta["source"]
         vitals = {}
         for key in ("max_qi", "max_jing", "max_neili", "neili", "jiali", "combat_exp"):
             if key in values and isinstance(values[key][0], int):
@@ -737,7 +832,13 @@ class Extractor:
             "class": values.get("class", (None, None))[0],
             "attitude": attitude,
             "aggressive": attitude == "aggressive",
+            "race": race,
+            "race_source": {
+                "kind": "lpc", "path": rel_path, "line": race_line,
+            } if race else None,
             "attrs": attrs,
+            "attrs_roll": attrs_roll,
+            "attrs_roll_source": attrs_roll_sources,
             "vitals": vitals,
             "skills": skills,
             "map_skills": map_skills,
@@ -751,6 +852,82 @@ class Extractor:
             "source": {"path": rel_path, "line": name_line or 1},
             "_topics": topics,
         }
+
+    def _region_name_sources(self) -> dict[str, dict]:
+        """区域名只从原版区域表/出生地表取，取不到就不编。"""
+        if self._region_name_cache is not None:
+            return self._region_name_cache
+        names: dict[str, dict] = {}
+        mapd = self.read("adm/daemons/mapd.lpc")
+        if mapd:
+            lines = mapd.splitlines()
+            span = None
+            for idx, line in enumerate(lines):
+                if re.search(r"\bmapping\s+map_short\s*=\s*\(\[", line):
+                    end = None
+                    for j in range(idx, len(lines)):
+                        if re.search(r"\]\s*\)\s*;", lines[j]):
+                            end = j
+                            break
+                    if end is not None:
+                        span = (idx + 1, end + 1)
+                    break
+            if span is None:
+                span = _function_span(mapd, "map_short")
+            if span:
+                start, end = span
+                for lineno, line in enumerate(lines[start - 1:end], start):
+                    m = re.search(r'"([a-z_]+)"\s*:\s*"([^"]+)"', line)
+                    if m:
+                        area, name = m.group(1), m.group(2)
+                        names.setdefault(area, {
+                            "name": name,
+                            "source": {"kind": "lpc", "path": "adm/daemons/mapd.lpc", "line": lineno},
+                        })
+        logind = self.read("adm/daemons/logind.lpc")
+        if logind:
+            for lineno, line in enumerate(logind.splitlines(), 1):
+                m = re.search(
+                    r'hometown\s*=\s*"([^"]+)";\s*my\["START_ROOM"\]\s*=\s*"/d/([a-z_]+)/',
+                    line,
+                )
+                if m:
+                    name, area = m.group(1), m.group(2)
+                    names.setdefault(area, {
+                        "name": name,
+                        "source": {"kind": "lpc", "path": "adm/daemons/logind.lpc", "line": lineno},
+                    })
+        self._region_name_cache = names
+        return names
+
+    def _race_attr_defaults(self, race: str) -> dict[str, dict]:
+        """按种族 setup 抽 `random(N)+M` 掷骰区间；不写死具体值。"""
+        if race in self._race_attr_cache:
+            return self._race_attr_cache[race]
+        rel_path = RACE_ATTR_FILES.get(race)
+        defaults: dict[str, dict] = {}
+        if rel_path:
+            text = self.read(rel_path)
+            if text is not None:
+                for lineno, src_line in enumerate(text.splitlines(), 1):
+                    m = _RACE_ATTR_ROLL_RE.search(src_line)
+                    if not m:
+                        continue
+                    key, raw_n, raw_base = m.group(1), int(m.group(2)), int(m.group(3))
+                    if key not in ATTR_KEYS:
+                        continue
+                    defaults[key] = {
+                        "min": raw_base,
+                        "max": raw_base + raw_n - 1,
+                        "expr": f"random({raw_n}) + {raw_base}",
+                        "source": {
+                            "kind": "lpc",
+                            "path": rel_path,
+                            "line": lineno,
+                        },
+                    }
+        self._race_attr_cache[race] = defaults
+        return defaults
 
     def _make_temp_apply(self, key, value, line, rel_path, emit_diag):
         """把一条 create() 内的 set_temp 转成记录；非整数值保留原式，不折算。"""
@@ -782,25 +959,108 @@ class Extractor:
             )
         return entry
 
-    def _make_topic(self, topic, answer, line, rel_path):
+    def _make_topic(self, topic, answer, line, rel_path, text="", origin="slice"):
         entry = {
             "topic": topic,
             "kind": "string",
             "text": None,
             "func": None,
+            "source_kind": "lpc",
             "source": {"path": rel_path, "line": line},
         }
         if isinstance(answer, str):
             entry["text"] = lpc.clean_text(answer)
-        else:
-            entry["kind"] = "fallback"
-            entry["func"] = getattr(answer, "text", str(answer))
-            self.diag(
-                "I_DIALOGUE_FUNC", "info", rel_path, line,
-                f"对话主题「{topic}」的值是函数，静态不可搬；保留主题键并转 fallback",
-                topic=topic,
-            )
+            return entry
+
+        entry["kind"] = "fallback"
+        func = getattr(answer, "text", str(answer))
+        entry["func"] = func
+        if origin != "slice":
+            return entry
+
+        analysis = self._analyze_dialogue_func(text, func, rel_path)
+        entry.update(analysis)
+        self.diag(
+            "I_DIALOGUE_FUNC", "info", rel_path, analysis["fallback_source"]["line"],
+            f"对话主题「{topic}」→ {func}：{analysis['fallback_reason']}",
+            topic=topic,
+            func=func,
+            features=",".join(analysis["fallback_features"]),
+        )
         return entry
+
+    def _analyze_dialogue_func(self, text, func, rel_path):
+        """只做静态判定，不编台词：能压成固定串就静态化，否则记原因。"""
+        func_name = None
+        m = re.fullmatch(r"\(\s*:\s*([A-Za-z_][A-Za-z0-9_]*)\s*:\s*\)", func.strip())
+        if m:
+            func_name = m.group(1)
+        span = _function_span(text, func_name) if func_name and text else None
+        if span is None:
+            return {
+                "fallback_reason": "函数引用不是本文件内的具名函数，无法静态解析函数体",
+                "fallback_features": ["unresolved_func"],
+                "fallback_source": {"kind": "lpc", "path": rel_path, "line": None},
+            }
+
+        start, end = span
+        body = "\n".join(text.splitlines()[start - 1:end])
+        inner = re.sub(r"^[^{]*\{", "", body, count=1).rsplit("}", 1)[0]
+
+        features = []
+        if re.search(r"\bif\s*\(", inner) or re.search(r"\belse\b", inner):
+            features.append("conditional")
+        if re.search(r"\b(set_temp|delete_temp|add|move|set|unconcious)\s*\(", inner):
+            features.append("state_write")
+        if re.search(r"\bnew\s*\(", inner):
+            features.append("item_create")
+        if re.search(r"\bteach_perform\s*\(", inner):
+            features.append("teaching")
+        if "RANK_D->" in inner or re.search(r'"\s*\+', inner):
+            features.append("dynamic_text")
+        label = {
+            "conditional": "if/else 条件分支",
+            "state_write": "运行时状态写入（set_temp/delete_temp/add/move/set）",
+            "item_create": "new() 创建物品",
+            "teaching": "teach_perform 教授技能",
+            "dynamic_text": "RANK_D 动态称谓/拼接文案",
+        }
+
+        # 保守静态化：无条件、无状态写入，只有固定 tell_object 和/或固定 return。
+        static_text = None
+        if not features:
+            tell_strings = re.findall(
+                r'tell_object\(\s*(?:me|this_player\(\))\s*,\s*'
+                r'"((?:[^"\\]|\\.)*)"\s*\)\s*;', inner, re.S,
+            )
+            residue = re.sub(
+                r'tell_object\(\s*(?:me|this_player\(\))\s*,\s*'
+                r'"((?:[^"\\]|\\.)*)"\s*\)\s*;', "", inner, flags=re.S,
+            )
+            ret = re.fullmatch(r'\s*return\s+"((?:[^"\\]|\\.)*)"\s*;\s*', residue, re.S)
+            if ret and (tell_strings or ret.group(1)):
+                chunks = [lpc.clean_text(s) for s in tell_strings]
+                if ret.group(1):
+                    chunks.append(lpc.clean_text(ret.group(1)))
+                static_text = "\n".join(c for c in chunks if c)
+
+        if static_text is not None:
+            return {
+                "kind": "string",
+                "text": static_text,
+                "staticized_from_func": func,
+                "fallback_reason": None,
+                "fallback_features": [],
+                "fallback_source": {"kind": "lpc", "path": rel_path, "line": start},
+            }
+
+        reason = "函数体含" + "、".join(label[f] for f in features)
+        reason += "；回复依赖玩家状态或运行时对象，无法压成单一固定文本，保留 fallback"
+        return {
+            "fallback_reason": reason,
+            "fallback_features": features,
+            "fallback_source": {"kind": "lpc", "path": rel_path, "line": start},
+        }
 
     # -- 外部引用 -----------------------------------------------------------
 
@@ -1093,13 +1353,39 @@ class Extractor:
         return {
             "rooms_in_slice": sum(1 for r in self.rooms.values() if r["origin"] == "slice"),
             "rooms_boundary_stub": sum(1 for r in self.rooms.values() if r["origin"] == "boundary"),
+            "rooms_with_region": sum(1 for r in self.rooms.values() if r.get("region")),
+            "rooms_with_region_name": sum(1 for r in self.rooms.values() if r.get("region_name")),
+            "rooms_region_null": sum(1 for r in self.rooms.values() if not r.get("region")),
+            "rooms_region_name_null": sum(1 for r in self.rooms.values() if not r.get("region_name")),
             "exits": len(self.exits),
             "items_in_slice": sum(1 for i in self.items.values() if i["origin"] == "slice"),
             "items_external": sum(1 for i in self.items.values() if i["origin"] == "external"),
             "npcs_in_slice": sum(1 for n in self.npcs.values() if n["origin"] == "slice"),
             "npcs_external": sum(1 for n in self.npcs.values() if n["origin"] == "external"),
+            "npcs_with_attrs_roll": sum(1 for n in self.npcs.values() if n.get("attrs_roll")),
+            "npcs_with_attrs_roll_in_slice": sum(
+                1 for n in self.npcs.values()
+                if n["origin"] == "slice" and n.get("attrs_roll")
+            ),
+            "npcs_beast_attrs_roll": sum(
+                1 for n in self.npcs.values()
+                if n.get("race") in ("走兽", "野兽") and n.get("attrs_roll")
+            ),
+            "attrs_roll_fields": sum(
+                len(n.get("attrs_roll") or {}) for n in self.npcs.values()
+            ),
+            "attrs_roll_fields_in_slice": sum(
+                len(n.get("attrs_roll") or {}) for n in self.npcs.values()
+                if n["origin"] == "slice"
+            ),
             "dialogue_topics": len(self.dialogue),
             "dialogue_topics_in_slice": sum(1 for t in self.dialogue if t.get("origin") != "external"),
+            "dialogue_fallback_with_reason": sum(
+                1 for t in self.dialogue if t.get("fallback_reason")
+            ),
+            "dialogue_staticized_from_func": sum(
+                1 for t in self.dialogue if t.get("staticized_from_func")
+            ),
             "shops": len(self.shops),
             "sects": len(self.sects),
             "masters": sum(
@@ -1120,6 +1406,11 @@ class Extractor:
             "skill_action_entries": self.skill_counts.get("action_entries", 0),
             "skill_special_actions": self.skill_counts.get("special_actions", 0),
             "skill_action_gaps": self.skill_counts.get("action_gaps", 0),
+            "skill_action_gap_skills": self.skill_counts.get("action_gap_skills", 0),
+            "skill_action_gap_fields": self.skill_counts.get("action_gap_fields", 0),
+            "skill_coefficient_inherited_defaults": self.skill_counts.get(
+                "coefficient_inherited_defaults", 0
+            ),
             "skill_action_unresolved": self.skill_counts.get("unresolved_action_skills", 0),
             "skill_stat_rows": self.skill_counts.get("stat_rows", 0),
             "skill_stat_default_fields": self.skill_counts.get("stat_default_fields", 0),
@@ -1143,6 +1434,19 @@ class Extractor:
             ),
             "temp_apply_keys": dict(sorted(temp_keys.items())),
             "temp_apply_unknown_keys": temp_unknown,
+            "quests_total": self.quest_counts.get("quests_total", 0),
+            "quests_dynamic": self.quest_counts.get("quests_dynamic", 0),
+            "quests_talk_gated": self.quest_counts.get("quests_talk_gated", 0),
+            "quests_static_entries": self.quest_counts.get("quests_static_entries", 0),
+            "quests_static_unique": self.quest_counts.get("quests_static_unique", 0),
+            "quests_static_kill_targets_in_slice": self.quest_counts.get(
+                "quests_static_kill_targets_in_slice", 0
+            ),
+            "quests_dynamic_total": self.quest_counts.get("quests_dynamic_total", 0),
+            "quests_dynamic_outside_slice": self.quest_counts.get(
+                "quests_dynamic_outside_slice", 0
+            ),
+            "quests_non_task": self.quest_counts.get("quests_non_task", 0),
         }
 
 
