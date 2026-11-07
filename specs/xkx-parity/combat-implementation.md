@@ -650,8 +650,8 @@ B→C 仍为 0。
   event `02d5f812c427833387e592ad9321ebd72a9c5c719825b958f53af83d795078ae`；
   `tests/test_p3e_golden.py` 原值通过。
 - 同 seed 双跑（真实老虎场景，两条独立会话，走同一条路线再 `fight 老虎`）：
-  state `c22f4b14096aaaa48436f19e77c89163df0f2c178bb2fab77fd58af6806f3b4d`（两次相同），
-  event `0e4ef8d9a15fecaf62b91a10940c44ea0db8a7782b42b00f55075ea4e26f1638`（两次相同），
+  state `345aa83fd32c140445fb959b69cb8c054477f1623460453451078f270d3907ae`（两次相同），
+  event `4c9dff8f5e5c6c470a6323c37f271e67f4bfab162e903087a65c1b527cf63e87`（两次相同），
   战报文本逐行相同。
 - 合成战斗基线：`state_final` 仍 `91097d90…`（无 `map_skills/race` 的实体不选招、
   不掷点、数值不变）；`event_final` 因 `rounds[]` 新增字段重采为 `273b5455…`。
