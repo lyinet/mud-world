@@ -61,7 +61,7 @@
       "table": "npcs"
     }
   ],
-  "content_hash": "5391ec09fac9f8ba1e76334ffed63cc3bb2a5bcc9719c0403ca0272ca713f060",
+  "content_hash": "3331ff112cefd7c7754897303c4283697b2da9a3a6a6f62a8c25493a7352ec6b",
   "counts": {
     "aggressive_npcs": 7,
     "desc_authored_items": 7,
@@ -198,8 +198,8 @@
       "sha256": "60c825b86644093c88862bd5e95c11cae30b3f4f4397ab1430d5a9acc89f17ae"
     },
     "skills_actions.json": {
-      "bytes": 259016,
-      "sha256": "881633c7eb0b65ab4064107cce9f2627cc761bc734617b3808368a1e5005434c"
+      "bytes": 259082,
+      "sha256": "4efa730061a22e4c6214da2dd2c4005b2d40e8197adddfa29953e97d41567406"
     },
     "skills_stats.json": {
       "bytes": 190472,

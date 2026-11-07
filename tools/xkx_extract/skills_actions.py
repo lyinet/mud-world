@@ -277,9 +277,9 @@ def _coeff_values(keys: dict) -> dict:
 
 def _fallback_entry(snippet: str) -> dict | None:
     """含 `order[random(13)]` 之类动态片段的条目：逐字段取静态部分。"""
-    if '"skill_name"' not in snippet or '"lvl"' not in snippet:
+    if ('"skill_name"' not in snippet and '"skills_name"' not in snippet) or '"lvl"' not in snippet:
         return None
-    name = re.search(r'"skill_name"\s*:\s*"([^"]+)"', snippet)
+    name = re.search(r'"skill[s]?_name"\s*:\s*"([^"]+)"', snippet)
     lvl = re.search(r'"lvl"\s*:\s*(\d+)', snippet)
     action = re.search(r'"action"\s*:\s*(.*?)\s*,\s*\n\s*"lvl"', snippet, re.S)
     entry = {}
@@ -452,7 +452,14 @@ def _extract_actions(src_root, skill):
                 source_kinds[key] = "default"
                 missing_keys.add(key)
 
-        name = _text(entry.get("skill_name"))
+        name = _text(entry.get("skill_name") or entry.get("skills_name"))
+        if not name:
+            diags.append({
+                "rule": "W_ACTION_NAME_MISSING", "severity": "warning",
+                "path": rel_path, "line": _line_at(text, start),
+                "message": f"招式 #{index} 没有 skill_name/skills_name，name 记 null，不编造招式名",
+                "id": skill["id"], "action_index": index,
+            })
         action_text = _text(entry.get("action"))
         lvl = entry.get("lvl")
         actions.append({
