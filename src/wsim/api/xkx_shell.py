@@ -944,7 +944,7 @@ class XKXShell:
                 account, "buy", False,
                 [("error", "这里没有店铺，买不到东西。")], state, raw, request_id,
             )
-        row, remainder = self._match_goods_prefix(goods, rest)
+        row, remainder = self._match_item_rows(goods, rest)
         if row is None:
             label = self._goods_label(rest) or "这件货"
             return self._reply(
@@ -985,7 +985,7 @@ class XKXShell:
                 account, "sell", False,
                 [("error", "你身上没有可卖的东西。")], state, raw, request_id,
             )
-        row, remainder = self._match_goods_prefix(rows, rest)
+        row, remainder = self._match_item_rows(rows, rest)
         if row is None:
             label = self._goods_label(rest) or "这件货"
             return self._reply(
@@ -1546,7 +1546,13 @@ class XKXShell:
             )
         payload: dict[str, Any] = {}
         if want and want not in ("all", "全部", "所有", "都"):
-            match = self._match_ground(rows, want)
+            match, _tail = self._match_item_rows(
+                [
+                    dict(row, name=self._item_name(str(row.get("item") or "")))
+                    for row in rows
+                ],
+                want,
+            )
             if match is None:
                 available = "、".join(self._ground_text(row) for row in rows) if rows else "（地上没有东西）"
                 return self._reply(
@@ -1639,7 +1645,7 @@ class XKXShell:
                     [("error", f"{label}？行囊：{self._bag_hint(items)}。")],
                     state, raw, request_id,
                 )
-            match, tail = self._match_goods_prefix(items, want)
+            match, tail = self._match_item_rows(items, want)
             if match is None:
                 return self._reply(
                     account, verb, False,
@@ -1657,7 +1663,7 @@ class XKXShell:
                     state, raw, request_id,
                 )
             if want:
-                match, _tail = self._match_goods_prefix(slots, want)
+                match, _tail = self._match_item_rows(slots, want)
                 if match is None:
                     match = next(
                         (
@@ -1764,18 +1770,6 @@ class XKXShell:
         name = self._item_name(str(row.get("item") or ""))
         qty = int(row.get("qty") or 0)
         return f"{name}×{qty}" if qty > 1 else name
-
-    def _match_ground(self, rows: list[dict[str, Any]], text: str) -> dict[str, Any] | None:
-        want = text.strip()
-        if not want:
-            return None
-        hits: list[dict[str, Any]] = []
-        for row in rows:
-            item_id = str(row.get("item") or "")
-            name = self._item_name(item_id)
-            if want in (item_id, name) or name.startswith(want) or item_id.startswith(want):
-                hits.append(row)
-        return hits[0] if hits else None
 
     def _combat_reason(self, verb: str) -> str:
         """返回“为什么现在不能打/不能捡”的人话；可用时返回空串。"""
@@ -2372,24 +2366,53 @@ class XKXShell:
         return max(1, min(20, int(raw)))
 
     @staticmethod
-    def _match_goods_prefix(
-        rows: Iterable[dict[str, Any]], text: str
+    def _item_keys(row: dict[str, Any]) -> list[str]:
+        """一件物品可用于命令匹配的名字集合。"""
+        keys = [
+            str(row.get("name") or ""),
+            str(row.get("slot_name") or ""),
+            str(row.get("slot") or ""),
+        ]
+        item_id = str(row.get("item") or "")
+        if item_id:
+            keys.append(item_id)
+            keys.append(item_id.rsplit("/", 1)[-1])
+        aliases = row.get("aliases")
+        if isinstance(aliases, str):
+            keys.extend(aliases.split())
+        elif isinstance(aliases, (list, tuple)):
+            keys.extend(str(alias) for alias in aliases)
+        return [key for key in keys if key]
+
+    @classmethod
+    def _match_item_rows(
+        cls, rows: Iterable[dict[str, Any]], text: str
     ) -> tuple[dict[str, Any] | None, str]:
+        """物品名匹配，`wear/wield/remove/unwield/loot/drop/buy/sell` 共用。
+
+        原版这些命令统一走 `present(arg, me)`（`cmds/std/wear.lpc:26`、
+        `cmds/std/drop.lpc` 等），本 mudlib 的 `id()` 是精确
+        `member_array`（`feature/name.lpc:15-35`），`present()` 命中多件时
+        返回第一件、不报歧义（`doc/efuns/present:11`）。这里保留“精确优先”，
+        再把匹配放宽到子串；多件命中同样按行序取第一件。
+        """
         raw = str(text or "").strip()
         if not raw:
             return None, ""
-        best: tuple[int, dict[str, Any] | None, str] = (0, None, "")
+        # 末尾数量（`buy 铁锤 3`、`drop 粗布2`）单独拆出，不参与名称匹配。
+        qty = ""
+        numbered = re.fullmatch(r"(.*?)\s*(\d+)", raw)
+        if numbered and numbered.group(1).strip():
+            raw, qty = numbered.group(1).strip(), numbered.group(2)
+        probe = raw.lower()
+        partial: dict[str, Any] | None = None
         for row in rows:
-            for key in (str(row.get("name") or ""), str(row.get("item") or "")):
-                if key and raw.lower().startswith(key.lower()) and len(key) > best[0]:
-                    best = (len(key), row, raw[len(key):].strip())
-        if best[1] is not None:
-            return best[1], best[2]
-        for row in rows:
-            name = str(row.get("name") or "")
-            if name and name in raw:
-                return row, ""
-        return None, ""
+            keys = [key.lower() for key in cls._item_keys(row)]
+            if probe in keys:
+                return row, qty
+            if partial is None and any(probe in key for key in keys):
+                partial = row
+        return (partial, qty) if partial is not None else (None, "")
 
     @staticmethod
     def _goods_hint(goods: Iterable[dict[str, Any]]) -> str:

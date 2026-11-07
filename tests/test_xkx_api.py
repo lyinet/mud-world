@@ -441,3 +441,19 @@ def test_loot_named_item_missing_lists_what_is_here(session):
     assert "地上没有「金锁」" in text
     assert "大石头" in text and "鹅卵石" in text
 
+
+def test_item_name_matching_is_substring(session):
+    """`loot/drop/wear/buy/sell` 共用一套匹配：精确优先，其次子串。"""
+    for direction in ("西", "北", "西", "北上"):
+        _cmd(session, "go " + direction)
+    # 「石头」不是「大石头」的前缀，只能靠子串命中。
+    hit = _cmd(session, "loot 石头")
+    assert hit["ok"] is True, hit.get("reject_reason")
+    assert "捡起：大石头" in "\n".join(_texts(hit))
+
+    # 多件同时命中时按行序取第一件（原版 present() 语义），不报歧义：
+    # 此时地上只剩鹅卵石，「石」在 鹅卵石/大石头 里都命中过。
+    ambiguous = _cmd(session, "loot 石")
+    assert ambiguous["ok"] is True, ambiguous.get("reject_reason")
+    assert "捡起：鹅卵石" in "\n".join(_texts(ambiguous))
+
