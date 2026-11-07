@@ -51,6 +51,93 @@ def _check_desc_source(diags: list[dict], rec: dict, kind: str) -> None:
         })
 
 
+SOURCE_VALUES = {"lpc", "derived", "default", "missing"}
+
+
+def _src_error(diags, path, line, sid, message):
+    diags.append({
+        "rule": "E_SKILL_SOURCE_INVALID", "severity": "error",
+        "path": path, "line": line, "message": message, "id": sid,
+    })
+
+
+def _check_skill_tables(diags: list[dict], pack: dict) -> None:
+    """招式表与技能属性表的来源标记、默认值留痕校验。
+
+    口径：`lpc` 是源码里直接读到的数值；`derived` 是我们按源码公式
+    解释出来的数值；`default` 是源码缺键、按 LPC/引擎默认值补的 0。
+    三类必须互斥且都有出处，engine 端不允许拿到无标记的裸数字。
+    """
+    actions = pack.get("skills_actions") or []
+    stats = pack.get("skills_stats") or []
+    action_ids = {a["id"] for a in actions}
+    stat_ids = {s["id"] for s in stats}
+    for sid in sorted(action_ids - stat_ids):
+        diags.append({
+            "rule": "E_SKILL_TABLE_MISMATCH", "severity": "error",
+            "path": "kungfu/skill", "line": None,
+            "message": f"招式表中的技能 {sid} 在属性表中不存在", "id": sid,
+        })
+    for sid in sorted(stat_ids - action_ids):
+        diags.append({
+            "rule": "E_SKILL_TABLE_MISMATCH", "severity": "error",
+            "path": "kungfu/skill", "line": None,
+            "message": f"属性表中的技能 {sid} 在招式表中不存在", "id": sid,
+        })
+
+    for skill in actions:
+        path = skill["source"]["path"]
+        line = skill["source"]["line"]
+        for field in ("name_source", "text_source"):
+            if skill.get(field, "missing") not in SOURCE_VALUES:
+                _src_error(diags, path, line, skill["id"],
+                           f"{field} 取值非法：{skill.get(field)!r}")
+        gaps = set(skill.get("coefficient_gaps") or [])
+        for act in skill["actions"]:
+            coeffs = act["coefficients"]
+            sources = act["coefficient_source"]
+            if set(coeffs) != set(sources):
+                _src_error(diags, path, act["source"]["line"], skill["id"],
+                           f"招式 {act['name']} 的系数与来源标记键不一致")
+            for key, src in sources.items():
+                if src not in SOURCE_VALUES:
+                    _src_error(diags, path, act["source"]["line"], skill["id"],
+                               f"招式 {act['name']} 的 {key} 系数来源非法：{src!r}")
+                if src == "default" and key not in gaps:
+                    _src_error(diags, path, act["source"]["line"], skill["id"],
+                               f"招式 {act['name']} 的 {key} 系数标 default，但未记入 coefficient_gaps")
+
+    for skill in stats:
+        path = skill["source"]["path"]
+        line = skill["source"]["line"]
+        if skill["category_source"] not in SOURCE_VALUES:
+            _src_error(diags, path, line, skill["id"], "category_source 取值非法")
+        if skill["apply_source"] not in SOURCE_VALUES:
+            _src_error(diags, path, line, skill["id"], "apply_source 取值非法")
+        if skill["apply_source"] == "default":
+            if skill["apply"] or not skill.get("apply_reason"):
+                _src_error(diags, path, line, skill["id"],
+                           "apply 标 default 时必须为空表并写明默认原因")
+        if skill["max_level"]["source_kind"] == "default" and not skill["max_level"].get("reason"):
+            _src_error(diags, path, line, skill["id"], "max_level 默认值缺少 reason")
+        for key in ("learn_bonus", "practice_bonus"):
+            item = skill["curve"][key]
+            if item["source_kind"] == "default" and not item.get("reason"):
+                _src_error(diags, path, line, skill["id"], f"{key} 默认值缺少 reason")
+        pp = skill["curve"]["power_point"]
+        if pp["source_kind"] == "default" and not pp.get("reason"):
+            _src_error(diags, path, line, skill["id"], "power_point 默认值缺少 reason")
+        for name, hook in skill["hooks"].items():
+            if hook["implemented"]:
+                if hook["value_kind"] != "code" or not hook.get("expr"):
+                    _src_error(diags, path, line, skill["id"],
+                               f"钩子 {name} 标 implemented 但没有源码表达式")
+            else:
+                if hook["value"] != 0 or hook["value_kind"] != "default" or not hook.get("reason"):
+                    _src_error(diags, path, line, skill["id"],
+                               f"钩子 {name} 未实现时必须显式 value=0 且写明原因")
+
+
 def validate(pack: dict) -> list[dict]:
     """返回诊断列表；调用方负责合并进 diagnostics.jsonl。"""
     diags: list[dict] = []
@@ -162,6 +249,9 @@ def validate(pack: dict) -> list[dict]:
                 "path": skill["source"]["path"], "line": 1,
                 "message": f"技能 {skill['id']} 没有可静态提取的中文名", "id": skill["id"],
             })
+
+    # 9. 招式表 / 技能属性表：来源标记互斥、默认值必须留痕
+    _check_skill_tables(diags, pack)
 
     return diags
 

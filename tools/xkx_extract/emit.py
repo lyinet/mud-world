@@ -16,6 +16,8 @@ DATA_FILES = (
     "shops.json",
     "sects.json",
     "skills.json",
+    "skills_actions.json",
+    "skills_stats.json",
 )
 
 TABLES = {
@@ -27,6 +29,8 @@ TABLES = {
     "shops.json": "shops",
     "sects.json": "sects",
     "skills.json": "skills",
+    "skills_actions.json": "skills_actions",
+    "skills_stats.json": "skills_stats",
 }
 
 
@@ -121,6 +125,13 @@ def build_outputs(pack, diagnostics, counts, coverage, source_info) -> dict[str,
                 "authored": "原版缺 long，由本项目按原版器物/身份常识自撰，不计入 source 覆盖率，只计入 total 覆盖率。",
                 "null": "描述缺失，玩家会看到空白；total 覆盖率不达标即 error。",
             },
+            "skill_action_source": {
+                "lpc": "招式/系数在原版 LPC 中直接写死，原样搬运。",
+                "derived": "原版只给公式或结构，数值由抽取器按源码公式解释得出。",
+                "default": "原版缺键，按 LPC mapping 语义取 0；缺键记入 coefficient_gaps 与 diagnostics.jsonl。",
+                "missing": "文案缺失，没有可搬运原文（仅 name_source 使用）。",
+            },
+            "skill_hook": "hooks 五项固定齐全；value_kind=code 表示钩子函数存在、value 为 null 而 expr 为源码函数体；value_kind=default 表示明确占位 value=0 并写 reason。",
         },
         "authored_descriptions": authored,
         "coverage_semantics": {

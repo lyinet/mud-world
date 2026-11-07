@@ -1,10 +1,12 @@
 {
   "by_rule": {
+    "I_ACTION_TEXT_DYNAMIC": 2,
     "I_DESC_AUTHORED": 11,
     "I_DIALOGUE_FUNC": 22,
     "I_PATH_NORMALIZED": 1,
     "I_PRICE_ZERO": 4,
     "I_STUB_EXIT_DROPPED": 5,
+    "W_ACTION_COEFF_DEFAULT": 11,
     "W_ASYMMETRIC_EXIT": 9,
     "W_BOUNDARY_EXIT": 6,
     "W_MISSING_SKILL": 1,
@@ -27,6 +29,13 @@
     "rooms_in_slice": 195,
     "sects": 1,
     "shops": 3,
+    "skill_action_entries": 247,
+    "skill_action_gaps": 11,
+    "skill_action_skills": 22,
+    "skill_action_unresolved": 0,
+    "skill_special_actions": 4,
+    "skill_stat_default_fields": 48,
+    "skill_stat_rows": 48,
     "skills": 48
   },
   "coverage": {
@@ -84,6 +93,6 @@
     }
   },
   "errors": 0,
-  "infos": 43,
-  "warnings": 31
+  "infos": 45,
+  "warnings": 42
 }

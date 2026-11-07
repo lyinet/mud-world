@@ -16,6 +16,7 @@ from collections import Counter, OrderedDict
 
 from . import lpc
 from .authored import AUTHORED_DESCS
+from .skills_actions import extract_skill_tables
 
 AREA_DIRS = ("hangzhou", "jiaxing", "shiliang")
 
@@ -94,6 +95,9 @@ class Extractor:
         self.shops: list[dict] = []
         self.sects: list[dict] = []
         self.skills: "OrderedDict[str, dict]" = OrderedDict()
+        self.skills_actions: list[dict] = []
+        self.skills_stats: list[dict] = []
+        self.skill_counts: dict[str, int] = {}
         self._text_cache: dict[str, str] = {}
         self._item_refs: set[str] = set()
         self._npc_refs: set[str] = set()
@@ -181,6 +185,7 @@ class Extractor:
         self._collect_shops()
         self._collect_skills()
         self._collect_sects()
+        self._collect_skill_tables()
         self._coverage()
         return {
             "rooms": list(self.rooms.values()),
@@ -191,7 +196,16 @@ class Extractor:
             "shops": self.shops,
             "sects": self.sects,
             "skills": list(self.skills.values()),
+            "skills_actions": self.skills_actions,
+            "skills_stats": self.skills_stats,
         }
+
+    def _collect_skill_tables(self):
+        self.skills_actions, self.skills_stats, diags, counts = extract_skill_tables(
+            self.src_root, list(self.skills.values()), list(self.npcs.values())
+        )
+        self.diagnostics.extend(diags)
+        self.skill_counts = counts
 
     # -- 房间 ---------------------------------------------------------------
 
@@ -920,6 +934,13 @@ class Extractor:
                 1 for n in self.npcs.values()
                 if n.get("origin") == "slice" and n.get("desc_source") == "authored"
             ),
+            "skill_action_skills": self.skill_counts.get("action_skills", 0),
+            "skill_action_entries": self.skill_counts.get("action_entries", 0),
+            "skill_special_actions": self.skill_counts.get("special_actions", 0),
+            "skill_action_gaps": self.skill_counts.get("action_gaps", 0),
+            "skill_action_unresolved": self.skill_counts.get("unresolved_action_skills", 0),
+            "skill_stat_rows": self.skill_counts.get("stat_rows", 0),
+            "skill_stat_default_fields": self.skill_counts.get("stat_default_fields", 0),
         }
 
 

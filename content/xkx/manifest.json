@@ -61,7 +61,7 @@
       "table": "npcs"
     }
   ],
-  "content_hash": "4bc06f04faffdd9466ef0dea9c317e51626cc2e765937fdfb00e87c6ad9cee85",
+  "content_hash": "5391ec09fac9f8ba1e76334ffed63cc3bb2a5bcc9719c0403ca0272ca713f060",
   "counts": {
     "aggressive_npcs": 7,
     "desc_authored_items": 7,
@@ -78,6 +78,13 @@
     "rooms_in_slice": 195,
     "sects": 1,
     "shops": 3,
+    "skill_action_entries": 247,
+    "skill_action_gaps": 11,
+    "skill_action_skills": 22,
+    "skill_action_unresolved": 0,
+    "skill_special_actions": 4,
+    "skill_stat_default_fields": 48,
+    "skill_stat_rows": 48,
     "skills": 48
   },
   "coverage": {
@@ -144,12 +151,19 @@
       "authored": "原版缺 long，由本项目按原版器物/身份常识自撰，不计入 source 覆盖率，只计入 total 覆盖率。",
       "lpc": "从 xkx100 LPC 源码静态抽取，计入 source 覆盖率。",
       "null": "描述缺失，玩家会看到空白；total 覆盖率不达标即 error。"
-    }
+    },
+    "skill_action_source": {
+      "default": "原版缺键，按 LPC mapping 语义取 0；缺键记入 coefficient_gaps 与 diagnostics.jsonl。",
+      "derived": "原版只给公式或结构，数值由抽取器按源码公式解释得出。",
+      "lpc": "招式/系数在原版 LPC 中直接写死，原样搬运。",
+      "missing": "文案缺失，没有可搬运原文（仅 name_source 使用）。"
+    },
+    "skill_hook": "hooks 五项固定齐全；value_kind=code 表示钩子函数存在、value 为 null 而 expr 为源码函数体；value_kind=default 表示明确占位 value=0 并写 reason。"
   },
   "files": {
     "diagnostics.jsonl": {
-      "bytes": 14631,
-      "sha256": "037e6258bf6f2069e21ad3a41bb39d500f3317783d61cc9df7837887525b01be"
+      "bytes": 17924,
+      "sha256": "8d27ec86f16bf7653577089eb2309b69f1e91070709437ebe30f4da5a52fefa6"
     },
     "dialogue.json": {
       "bytes": 19197,
@@ -183,9 +197,17 @@
       "bytes": 28905,
       "sha256": "60c825b86644093c88862bd5e95c11cae30b3f4f4397ab1430d5a9acc89f17ae"
     },
+    "skills_actions.json": {
+      "bytes": 259016,
+      "sha256": "881633c7eb0b65ab4064107cce9f2627cc761bc734617b3808368a1e5005434c"
+    },
+    "skills_stats.json": {
+      "bytes": 190472,
+      "sha256": "79f507b476c52d101cc2b7c12ec8eb14d144c1b2183f403241d2ed0fd3e52f09"
+    },
     "summary.json": {
-      "bytes": 1766,
-      "sha256": "3be31386be261a7661cd378a5a485b5b189d3af03978b7e2aaf00995d5c4585d"
+      "bytes": 2055,
+      "sha256": "987f698568fa2d35e4cdbe3d32258d237b781775a6f419d718ad6e6ab99d67f6"
     }
   },
   "generator": "tools/xkx_extract",

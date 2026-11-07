@@ -211,7 +211,196 @@
 
 加载器若要按门派拜师，用 `sects.masters` + `npcs.is_master`；不要按 `children()` 猜。
 
-## 9. `diagnostics.jsonl` / `summary.json` / `manifest.json`
+## 9. `skills_actions.json` — 招式序列表
+
+48 条，与 `skills.json` 一一对应；一条 = 一个技能的全部招式定义。即使该技能没有 `action` 数组（轻功/内功/知识），也保留一行，`action_count=0`、`actions=[]`，让引擎能按 id 直接查空表。
+
+**字段来源标记三分**（每处数值都要带，不允许裸数字）：
+
+| 值 | 含义 |
+| --- | --- |
+| `lpc` | 原版 LPC 里直接写死的字面量，原样搬运 |
+| `derived` | 原版只给了公式/结构，数值是**我们按源码公式解释出来的**（如线性插值） |
+| `default` | 原版缺键，按 LPC mapping 语义取默认 `0`；缺键本身记入 `coefficient_gaps` 并进 `diagnostics.jsonl` |
+| `missing` | 文案缺失（仅 `name_source` 使用），没有可搬运原文 |
+
+`lpc` 与 `derived` 必须分开读：将来数值对不上时，前者是抽取错误，后者是解释口径错误。
+
+### 9.1 技能级字段
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `id` | string | 技能 id，与 `skills.json` 主键一致 |
+| `name` | string \| null | 中文名 |
+| `martialtype` | string | 原版 `martialtype()` |
+| `enable` | string[] | 可启用基础技能，决定可用武器/招式类型 |
+| `action_count` | int | `actions` 条数 |
+| `coefficient_model` | object \| null | 系数来源模型，见 9.2 |
+| `requirements` | object | 学习前置，见 9.3 |
+| `effects` | array | perform 附加效果，见 9.4 |
+| `actions` | array | 普通招式，见 9.5 |
+| `special_actions` | array | 特殊分支招式，见 9.6 |
+| `coefficient_gaps` | string[] | 源码缺键的系数名；对应 `default`，引擎按 0 |
+| `source` | object | 源码位置 |
+
+### 9.2 `coefficient_model`
+
+```json
+{ "mode": "linear_seq", "formula": "e1 + (e2 - e1) * seq / ttl",
+  "params": { "force": {"e1": 140, "e2": 240}, ... },
+  "default_return": { "damage": 0, "dodge": null, "force": null, "parry": null } }
+```
+
+- `mode="linear_seq"`：原版按 `seq = random(可选招式数)` 在首末系数之间线性插值；`seq` 取 0..ttl-1，LPC 整除向零截断。`params[field]` 是 `{e1,e2}` 首末值。`formula` 是**我们的解释式**，不是原版字符串。
+- `mode="embedded"`：系数直接写在每个 action 条目里，没有统一公式；`params` 为空。
+- `mode=null`：无 `action` 数组。
+- `default_return[field]`：`null` 表示原版函数该分支不返回此键（引擎不取值）；`0` 表示原版 mapping 缺键，LPC 取 0。
+
+四个系数的引擎语义（对应 `ACTION_SEQUENCE`）：
+
+| 键 | 作用 |
+| --- | --- |
+| `dodge` | 修正受害者闪避 `dp` 的百分比：`dp = (100 + dodge) * dp / 100` |
+| `parry` | 修正受害者招架 `pp` 的百分比：`pp = (100 + parry) * pp / 100` |
+| `force` | 命中后 `damage_bonus += force * damage_bonus / 200` |
+| `damage` | 兵器基础伤害 `damage += damage * damage / 200`；拳脚招式没有这一项（缺键即 0） |
+
+### 9.3 `requirements`
+
+```json
+{ "weapon_skill_type": null,
+  "learn": { "parsed": true,
+             "skills": [{"skill": "yunlong-shengong", "min_level": 50}],
+             "max_neili": 250 },
+  "source_kind": "lpc" }
+```
+
+- `weapon_skill_type`：从 `enable` 推导出的兵器类型（`sword`/`blade`/…）；null 表示拳脚/内功类，不要求武器。
+- `learn.parsed`：能否静态解析 `valid_learn`。`false` 时 `learn` 里只保留能读到的字段，读不到的进 `diagnostics.jsonl`，引擎不得自行假设等级。
+- `learn.skills[]`：前置技能与最低等级；`learn.max_neili` 等属性键若出现即为源码要求。
+
+### 9.4 `effects[]` — perform 附加效果
+
+```json
+{ "name": "刺腕", "perform": "ciwan", "flag": "bixie/ciwan",
+  "effect": "victim_cannot_parry", "effect_source": "derived",
+  "meaning": "命中后目标无法招架",
+  "duration": { "base": 6, "random": 6 },
+  "requirements": { "parsed": true, "weapon_skill_type": "sword",
+                    "force_skill": "kuihua-xinfa", "max_neili": 600, "neili": 400,
+                    "skills": [{"skill": "bixie-jian", "min_level": 120}] },
+  "requirements_source": "lpc" }
+```
+
+- `flag`：原版 `set_temp("…",1)` 的键。引擎命中后据此跳过受害者的闪避/招架判定。
+- `effect` / `effect_source`：`victim_cannot_dodge`、`victim_cannot_parry` 是我们的解释名，故标 `derived`。
+- `duration`：原版 `call_out(..., base + random(random))`；`random=0` 表示固定时长。
+- 当前只有 `bixie-jian` 的 `cizu`/`ciwan` 两条；没有 perform 效果就是空数组。
+
+### 9.5 `actions[]`
+
+```json
+{ "index": 0, "name": "草木皆兵", "name_source": "lpc",
+  "skill_level_required": 0, "skill_level_source": "lpc",
+  "coefficients": { "dodge": -45, "parry": 15, "force": 140, "damage": 0 },
+  "coefficient_source": { "dodge": "derived", "parry": "derived",
+                           "force": "derived", "damage": "default" },
+  "text": "$N一式「草木皆兵」…", "text_expr": null, "text_source": "lpc",
+  "damage_types": [], "source": {"path": "kungfu/skill/yunlong-shou.lpc", "line": 10} }
+```
+
+- `name`：招式名，取自 `skill_name`。
+- `skill_level_required`：原版 `lvl`，低于此等级不会入选。
+- `text` 是可直接展示的文案；`text_expr` 是含 `order[random(13)]` 等动态片段的原版表达式（`text_source="derived"`），引擎想要逐字复刻时用它，否则用 `text`。
+- `damage_types`：原版 `damage_type`，如 `["割伤"]`；空数组表示未限定。
+
+### 9.6 `special_actions[]`
+
+```json
+{ "condition": "me->query_temp(\"double_attack\")", "condition_source": "lpc",
+  "coefficients": { "dodge": 20, "parry": 20,
+                     "force": {"min": 350, "max": 449},
+                     "damage": {"min": 100, "max": 149} },
+  "damage_types": ["割伤"],
+  "source": {"path": "kungfu/skill/taiji-jian.lpc", "line": 247} }
+```
+
+- 原版 `query_action` 里 `if` 分支直接返回的招式，不走线性插值。
+- `coefficients` 的值为 int 或 `{min,max}`；后者原版是随机区间，引擎取该区间内随机整数。
+- `condition` 是原版条件表达式原文，`condition_source="lpc"`；引擎可选择实现或忽略，但不得改写成别的条件。
+
+## 10. `skills_stats.json` — 技能属性表
+
+48 条，一行 = 一个技能。与 `skills_actions.json` 按 `id` 一一对应（抽取器对两侧 id 集合做双向校验，缺一即 error）。
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `id` / `name` | string | 同 `skills.json` |
+| `type` | string | 原版 `type()` |
+| `martialtype` | string | 原版 `martialtype()` |
+| `enable` | string[] | 原版 `valid_enable` |
+| `category` | `"force"` \| `"dodge"` \| `"weapon"` \| `"unarmed"` \| `"action"` \| `"knowledge"` | 引擎技能类别 |
+| `category_zh` | string | 中文类别：内功/轻功/兵器/拳脚/招式/知识 |
+| `category_source` / `category_basis` | string | `derived` + 推导依据（`martialtype=` / `enable=` / 基础技能 id） |
+| `action_count` | int | 该技能的普通招式条数 |
+| `attack` | object | `{"damage":{"min","max"},"force":{"min","max"},"source_kind","reason"}` |
+| `defense` | object | `{"dodge":{"min","max"},"parry":{"min","max"},"source_kind","reason"}` |
+| `apply` | object | 原版 `add_temp("apply/*")` 加成，如 `{"attack": 10}` |
+| `apply_source` / `apply_reason` | string | `lpc` 或 `default`（空表 + 原因） |
+| `map_skills` | object | `{"mapped_from":[],"mapped_to":[],"source_kind":"derived","basis"}` |
+| `max_level` | object | `{"value":800,"source_kind":"default","reason"}` |
+| `curve` | object | 经验曲线参数，见 10.1 |
+| `hooks` | object | 五个战斗钩子，见 10.2 |
+| `gaps` | array | 该行的缺口摘要（如招式系数缺键） |
+| `source` | object | 源码位置 |
+
+- `attack` / `defense`：从 `actions` 系数的首末范围取 `min/max`；无招式序列的技能显式 `0/0` + `reason`，不是留空。
+- `map_skills.mapped_from`：哪些基础技能映射到本技能（如 `["unarmed"]`）；`mapped_to`：本技能作为基础技能时被哪些技能映射。由 `npcs.json` 的 `map_skill` 反推，故标 `derived`。
+- `max_level`：原版技能 LPC 不定义上限，统一沿用引擎 `SKILL_MAX=800`，标 `default` 并写原因。
+
+### 10.1 `curve`
+
+```json
+{ "learn_bonus":   { "value": 15, "source_kind": "lpc" },
+  "practice_bonus":{ "value": 15, "source_kind": "lpc" },
+  "power_point":   { "kind": "constant", "value": 1.3, "expr": null, "source_kind": "lpc" },
+  "source_kind": "lpc" }
+```
+
+- `learn_bonus` / `practice_bonus`：原版 `return 整数字面量`；读不到时显式 `value=0, source_kind="default", reason`。
+- `power_point`：轻功威力系数，`skill_power` 防御计算时乘到等级上并夹在 `[1.0, 1.5]`。
+  - `kind="constant"`：`value` 是字面量。
+  - `kind="rules"`：`rules[]` 依 `condition` 命中，未命中取 `default`；`default=null` 时用 `default_expr`（原版表达式，静态不求值）。
+  - `kind="expression"`：只有 `expr`，没有常量——引擎必须实现该表达式，**不许自行给默认系数**。
+- 读不到的项一律带 `reason`；`validate` 会把“default 但没原因”判成 error。
+
+### 10.2 `hooks` — 五个战斗钩子
+
+键固定为 `force_hit`、`victim_force_hit`、`martial_hit`、`victim_parry_hit`、`weapon_hit`，一行里五项必须齐全。
+
+```json
+"force_hit": { "implemented": true,
+               "owner": "inherit/skill/force.lpc hit_ob",
+               "owner_line": "继承 FORCE 的 hit_ob",
+               "value": null, "value_kind": "code", "expr": "int damage;\n…",
+               "source_kind": "lpc",
+               "reason": "钩子函数存在；值由源码表达式实时计算，静态不折算常量" }
+```
+
+| 字段 | 含义 |
+| --- | --- |
+| `implemented` | 源码里是否存在可执行的钩子函数 |
+| `owner` | 函数来自哪里：技能自身 `<self>.lpc` 或继承的 `inherit/skill/force.lpc` |
+| `value_kind` | `code` 或 `default` |
+| `value` | `code` 时为 null（运行时求值）；`default` 时为 0 |
+| `expr` | `code` 时为去掉注释的函数体原文，引擎照此实现 |
+| `reason` | `default` 必须写清为什么是 0（缺函数 / 被注释 / 武器对象提供） |
+
+当前实现状态：6 个内功的 `force_hit` 继承 `inherit/skill/force.lpc`（`value_kind=code`）；`mantian-xing`、`yunlong-zhua` 自身定义 `hit_ob`，故 `martial_hit` 为 `code`；`victim_force_hit` 因原版 `be_hit_ob` 整段被注释，全部 `default=0`；`weapon_hit` 由武器对象提供，技能表不可得，全部 `default=0`。
+
+加载器约束：`value_kind=default` 的钩子不要当成“已实现但效果为 0”，它是**明确占位**；`code` 的钩子不能只读 `value`，必须执行 `expr` 或引擎内等价实现。
+
+## 11. `diagnostics.jsonl` / `summary.json` / `manifest.json`
 
 - `diagnostics.jsonl`：一行一条诊断，字段 `rule`、`severity`（`error`/`warning`/`info`）、`path`、`line`、`message`，部分带 `id`/`target`/`metric`/`ref`。error 阻断发布。
 - `summary.json`：`counts`、`coverage`、`errors`、`warnings`、`infos`、`by_rule`。
@@ -234,9 +423,9 @@
 
 命令行：`--strict-source` 与 `--strict-total` 独立生效，任一可单独让进程失败；`--verify` 重抽并逐文件比对。
 
-## 10. 本内容包不承诺的内容
+## 12. 本内容包不承诺的内容
 
-- 技能效果、战斗公式、伤害/命中、经验成长：属于引擎，不在 JSON 里。
+- 战斗公式的具体求解、技能升级/经验结算流程：属于引擎。本包只提供招式序列、系数、属性与钩子出处；凡引擎侧读不到的，表里已显式标 `default` 并写明原因，未标的一律有源码依据。
 - 任务、剧情线、条件触发器、函数型对话的实际行为。
 - 商店议价、库存刷新、门派拜师流程。
 - 区外区域的地图与内容：只提供 6 个 boundary stub 和 25 条区外引用，详见 `boundary-and-external-refs.md`。

@@ -109,6 +109,7 @@ def test_build_outputs_is_bytewise_deterministic():
                    "source": {"path": "a.lpc", "line": 1}, "objects": [], "flags": {}, "coord": {}, "kind": "room"}],
         "exits": [], "items": [], "npcs": [], "dialogue": [],
         "shops": [], "sects": [], "skills": [],
+        "skills_actions": [], "skills_stats": [],
     }
     diags = [{"rule": "W_NO_EXIT", "severity": "warning", "path": "a.lpc",
               "line": 1, "message": "x"}]
@@ -143,8 +144,48 @@ def test_slice_pack_counts_and_zero_errors():
     assert counts["dialogue_topics_in_slice"] == 40
     assert counts["desc_authored_items"] == 7
     assert counts["desc_authored_npcs"] == 4
+    assert counts["skill_action_skills"] == 22
+    assert counts["skill_action_entries"] == 247
+    assert counts["skill_special_actions"] == 4
+    assert counts["skill_action_gaps"] == 11
+    assert counts["skill_action_unresolved"] == 0
+    assert counts["skill_stat_rows"] == 48
     errors = [d for d in emit.dedupe(diags) if d["severity"] == "error"]
     assert not errors
+    # 招式表：来源标记三分，缺键必须显式 default + 0
+    for skill in pack["skills_actions"]:
+        for act in skill["actions"]:
+            assert set(act["coefficients"]) == set(act["coefficient_source"])
+            assert all(v in ("lpc", "derived", "default") for v in act["coefficient_source"].values())
+            for key, src in act["coefficient_source"].items():
+                if src == "default":
+                    assert act["coefficients"][key] == 0
+                    assert key in skill["coefficient_gaps"]
+            assert act["name_source"] in ("lpc", "missing")
+            assert act["text_source"] in ("lpc", "derived")
+    bixie = next(s for s in pack["skills_actions"] if s["id"] == "bixie-jian")
+    assert {e["flag"] for e in bixie["effects"]} == {"bixie/cizu", "bixie/ciwan"}
+    for effect in bixie["effects"]:
+        assert effect["requirements"]["parsed"]
+        assert effect["requirements"]["skills"]
+        assert all(s["min_level"] > 0 for s in effect["requirements"]["skills"])
+        assert effect["requirements"]["weapon_skill_type"] == "sword"
+        assert effect["duration"]["base"] > 0 and effect["duration"]["random"] > 0
+        assert effect["requirements_source"] == "lpc"
+    # 属性表：每行钩子五项齐全；未实现的显式 0，实现的带源码表达式
+    for row in pack["skills_stats"]:
+        assert row["category"] in ("force", "dodge", "weapon", "unarmed", "action", "knowledge")
+        assert set(row["hooks"]) == {
+            "force_hit", "victim_force_hit", "martial_hit", "victim_parry_hit", "weapon_hit",
+        }
+        for hook in row["hooks"].values():
+            if hook["implemented"]:
+                assert hook["value_kind"] == "code" and hook["expr"]
+            else:
+                assert hook["value"] == 0 and hook["value_kind"] == "default" and hook["reason"]
+        assert row["max_level"]["value"] == 800 and row["max_level"]["reason"]
+        assert row["curve"]["learn_bonus"]["source_kind"] in ("lpc", "default")
+        assert row["curve"]["power_point"]["kind"] in ("constant", "rules", "expression")
     # 房间/出口目标不允许悬空
     room_ids = {r["id"] for r in pack["rooms"]}
     assert all(e["to"] in room_ids for e in pack["exits"] if e.get("from_kind") != "boundary_stub")
