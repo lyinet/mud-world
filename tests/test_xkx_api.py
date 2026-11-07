@@ -110,7 +110,8 @@ def test_ground_items_are_visible(session):
     result = _cmd(session, "look")
     text = "\n".join(_texts(result))
     assert "【宝石山】" in text
-    assert "地上散落：大石头、鹅卵石" in text
+    assert "地上散落：" in text
+    assert "大石头" in text and "鹅卵石" in text
 
 
 def test_ask_present_npc_and_reply(session):
@@ -226,3 +227,61 @@ def test_unknown_command_does_not_leak_codes(session):
     text = "\n".join(_texts(result))
     assert "不明白「跳舞」" in text
     assert "help" in text
+
+
+def test_fight_reports_real_rounds_and_death(session):
+    # 楼外楼只有店小二，只说“打”时默认对他出手；seed=42 下玩家取胜。
+    result = _cmd(session, "fight 店小二")
+    assert result["ok"] is True, result.get("reject_reason")
+    text = "\n".join(_texts(result))
+    assert "第1回合" in text
+    assert "击中店小二，伤害" in text
+    assert "你赢了，店小二倒下了" in text
+    # 战报细节来自引擎 details.combat（回合数、超额伤害），不是壳层编的。
+    combat = result["engine_details"]["combat"]
+    assert combat["winner"] == "attacker"
+    assert int(combat["rounds_used"]) == len(combat["rounds"])
+    assert "超额伤害" in text
+    assert result["view"]["combat_ready"]["fight"] is True
+
+
+def test_loot_and_get_move_ground_items_into_wallet(session):
+    # 楼外楼 → 西、北、西、北上 → 宝石山，创世已把内容摆放物落成地面。
+    for direction in ("西", "北", "西", "北上"):
+        moved = _cmd(session, "go " + direction)
+        assert moved["ok"] is True, direction
+    look = _cmd(session, "look")
+    assert "地上散落：" in "\n".join(_texts(look))
+
+    first = _cmd(session, "loot 大石头")
+    assert first["ok"] is True
+    text = "\n".join(_texts(first))
+    assert "捡起：大石头" in text
+    assert "地上还剩：鹅卵石" in text
+    qty = {row["item"]: row["qty"] for row in first["view"]["inventory"]}
+    assert qty["/d/hangzhou/obj/shitou"] >= 1
+
+    second = _cmd(session, "get 鹅卵石")
+    assert second["ok"] is True, second.get("reject_reason")
+    assert "捡起：鹅卵石" in "\n".join(_texts(second))
+    assert "地上已经空了" in "\n".join(_texts(second))
+    # 捡完地面必须真消失，不能被内容包静态摆放重新长回地上。
+    after = _cmd(session, "look")
+    assert "地上散落" not in "\n".join(_texts(after))
+    qty_after = {row["item"]: row["qty"] for row in after["view"]["inventory"]}
+    assert qty_after["/d/hangzhou/obj/eluanshi"] >= 1
+    assert qty_after["/d/hangzhou/obj/shitou"] >= 1
+
+    empty = _cmd(session, "loot")
+    assert "地上没有可捡的东西" in "\n".join(_texts(empty))
+
+
+def test_loot_named_item_missing_lists_what_is_here(session):
+    for direction in ("西", "北", "西", "北上"):
+        _cmd(session, "go " + direction)
+    result = _cmd(session, "loot 金锁")
+    assert result["ok"] is False
+    text = "\n".join(_texts(result))
+    assert "地上没有「金锁」" in text
+    assert "大石头" in text and "鹅卵石" in text
+

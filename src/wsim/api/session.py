@@ -710,6 +710,12 @@ class WorldSession:
                 "location": location,
                 "shop": shop,
                 "present_npcs": present,
+                # 当前房间地面（引擎 loot_create 的落点），按 item id 排序。
+                "ground": [
+                    {"item": str(key), "qty": int(qty)}
+                    for key, qty in sorted((self.state.ground.get(ent.location) or {}).items())
+                    if int(qty) > 0
+                ],
                 "escort_orders": [
                     order.to_dict()
                     for order in sorted(self.state.escorts.values(), key=lambda o: (o.created_tick, o.id))
@@ -2892,6 +2898,15 @@ class WorldSession:
                 report = dict(eff.get("data") or {})
                 details["report"] = report
                 details["days"] = list(report.get("days") or [])
+            elif eff.get("op") == "combat_log":
+                # 战斗战报：原样透传引擎的 rounds[]/overkill，不做任何截断或重排。
+                details["combat"] = dict(eff.get("data") or {})
+            elif eff.get("op") == "loot_take":
+                # 捡拾明细：一条 loot_take 一件物品，供壳层逐条显示。
+                ld = dict(eff.get("data") or {})
+                details.setdefault("loot", []).append(
+                    {"item": str(ld.get("item") or ""), "qty": int(ld.get("qty") or 0)}
+                )
         if action in _SECT_ACTIONS and data.get("sect") is not None:
             # 门派动作统一附带最新私有快照（与 player.sect 同源）。
             details["sect"] = data["sect"]

@@ -275,12 +275,15 @@
     quickEl.innerHTML = "";
     const ready = (view && view.combat_ready) || {};
     const reasons = (view && view.combat_reason) || {};
+    const npcs = (view && view.npcs) || [];
+    // 场上只有一个人时，“打”直接带上名字；多个人则让玩家自己指定。
+    const fightCommand = ready.fight && npcs.length === 1 ? `fight ${npcs[0].name}` : "fight";
     const buttons = [
       ["看", "look"],
       ["状态", "score"],
       ["行囊", "inventory"],
       ["帮助", "help"],
-      [ready.fight ? "打" : "打（暂不可用）", "fight", ready.fight, reasons.fight],
+      [ready.fight ? "打" : "打（暂不可用）", fightCommand, ready.fight, reasons.fight],
       [ready.loot ? "捡" : "捡（暂不可用）", "loot", ready.loot, reasons.loot],
     ];
     buttons.forEach(([label, command, enabled, reason]) => {

@@ -120,6 +120,7 @@ VERB_ALIASES: dict[str, str] = {
     "sell": "sell", "卖": "sell", "出售": "sell",
     "fight": "fight", "打": "fight", "战斗": "fight", "出手": "fight",
     "loot": "loot", "捡": "loot", "拾取": "loot",
+    "get": "loot", "拿": "loot", "取": "loot",
     "score": "score", "状态": "score", "属性": "score",
     "inventory": "inventory", "i": "inventory", "背包": "inventory", "物品": "inventory",
     "help": "help", "帮助": "help", "?": "help",
@@ -135,6 +136,9 @@ _EXTRA_REASON_TEXT = {
     "player_offline": "你离开太久，已经离线；这次操作没有生效。",
     "player_not_entered": "你还没进入世界。",
     "no_combat_stats": "这具身体还没有气血/攻防；当前内容包没有战斗属性。",
+    "loot_not_found": "地上没有这件东西（或者已经被人捡走了）。",
+    "bad_qty": "数量不对；捡东西至少要 1 件。",
+    "player_dead": "你已经倒下了，先想办法回魂。",
     "unknown_item": "这里没有这种货。",
     "wrong_location": "你不在这个交易地点。",
     "bad_quantity": "数量不对；一次只能买卖 1 到 20 件。",
@@ -704,9 +708,18 @@ class XKXShell:
             )
         npcs = list(state.get("present_npcs") or [])
         target, _ = self._match_npc_prefix(npcs, rest)
+        if target is None and not rest.strip() and len(npcs) == 1:
+            # 只说“打”时，场上只有一个人就默认对他出手。
+            target = npcs[0]
         if target is None:
             hint = "、".join(n["name"] for n in npcs) if npcs else "（这里没有别人）"
             label = self._first_word(rest)
+            if not label and npcs:
+                return self._reply(
+                    account, "fight", False,
+                    [("info", f"要打谁？在场：{hint}。可用 fight <人> 指定。")],
+                    state, raw, request_id,
+                )
             return self._reply(
                 account, "fight", False,
                 [("error", f"这里没有可打的「{label or '人'}」。在场：{hint}。")],
@@ -725,9 +738,88 @@ class XKXShell:
             )
         after = self._state(account) or state
         lines = [("combat", f"你向{target['name']}出手。")]
-        lines.extend(self._detail_lines(resp.get("details") or {}))
+        combat = (resp.get("details") or {}).get("combat")
+        if isinstance(combat, dict) and combat:
+            lines.extend(self._combat_report_lines(combat, target))
+        else:
+            lines.append(("warn", "引擎没有返回战报（combat_log 缺失）。"))
+        drops = (resp.get("details") or {}).get("loot")
+        if isinstance(drops, list) and drops:
+            lines.append(
+                ("info", "掉落：" + "、".join(self._take_text(row) for row in drops) + "。")
+            )
         lines.extend(self._score_core_lines(after))
-        return self._reply(account, "fight", True, lines, after, raw, request_id)
+        reply = self._reply(account, "fight", True, lines, after, raw, request_id)
+        reply["engine_details"] = dict(resp.get("details") or {})
+        return reply
+
+    def _combat_report_lines(self, combat: dict[str, Any], target: dict[str, Any]) -> list[tuple[str, str]]:
+        """按引擎返回的 rounds[] 原样转述：回合号、每击结果、伤害与气血变化、胜负与超额伤害。"""
+        lines: list[tuple[str, str]] = []
+        rounds = list(combat.get("rounds") or [])
+        for row in rounds:
+            try:
+                round_no = int(row.get("round") or 0)
+            except (TypeError, ValueError):
+                round_no = 0
+            lines.append(("system", f"第{round_no}回合"))
+            for act in row.get("actions") or []:
+                who = self._combat_name(act.get("actor"), target)
+                whom = self._combat_name(act.get("target"), target)
+                result = str(act.get("result") or "")
+                if result == "dodge":
+                    lines.append(("combat", f"  {who}出手，{whom}闪开了。"))
+                elif result == "parry":
+                    lines.append(("combat", f"  {who}出手，{whom}架住了。"))
+                else:
+                    damage = int(act.get("damage") or 0)
+                    hp_before = int(act.get("hp_before") or 0)
+                    hp_after = int(act.get("hp_after") or 0)
+                    wound = "，受了伤" if act.get("wounded") else ""
+                    lines.append(
+                        ("combat", f"  {who}击中{whom}，伤害{damage}，气血{hp_before}→{hp_after}{wound}。")
+                    )
+        winner = str(combat.get("winner") or "")
+        rounds_used = int(combat.get("rounds_used") or len(rounds))
+        if winner == "attacker":
+            lines.append(("combat", f"共{rounds_used}回合，你赢了，{target['name']}倒下了。"))
+        elif winner == "defender":
+            lines.append(("error", f"共{rounds_used}回合，你倒下了。"))
+        else:
+            lines.append(("warn", f"共{rounds_used}回合，没分胜负，谁也没倒下。"))
+        hp = combat.get("hp") or {}
+        player_hp = next((int(v) for k, v in hp.items() if str(k).startswith("player:")), None)
+        target_hp = next((int(v) for k, v in hp.items() if not str(k).startswith("player:")), None)
+        if player_hp is not None or target_hp is not None:
+            lines.append(
+                (
+                    "info",
+                    "气血：你{} / {} {}。".format(
+                        player_hp if player_hp is not None else "?",
+                        target["name"],
+                        target_hp if target_hp is not None else "?",
+                    ),
+                )
+            )
+        overkill = combat.get("overkill") or {}
+        if overkill:
+            lines.append(
+                (
+                    "info",
+                    "超额伤害："
+                    + "、".join(
+                        f"{self._combat_name(eid, target)} {int(raw or 0)} 点"
+                        for eid, raw in sorted(overkill.items())
+                    )
+                    + "。",
+                )
+            )
+        return lines
+
+    @staticmethod
+    def _combat_name(entity_id: Any, target: dict[str, Any]) -> str:
+        eid = str(entity_id or "")
+        return "你" if eid.startswith("player:") else str(target.get("name") or "对手")
 
     def _cmd_loot(
         self, account: str, rest: str, state: dict[str, Any], raw: str, request_id: str
@@ -739,11 +831,25 @@ class XKXShell:
                 [("warn", f"暂不可用：{reason}")],
                 state, raw, request_id,
             )
-        npcs = list(state.get("present_npcs") or [])
-        target, _ = self._match_npc_prefix(npcs, rest) if rest else (None, "")
+        rows = self._ground_rows(state)
+        want = rest.strip()
+        if not rows:
+            return self._reply(
+                account, "loot", True,
+                [("info", "地上没有可捡的东西。")],
+                state, raw, request_id,
+            )
         payload: dict[str, Any] = {}
-        if target is not None:
-            payload = {"target": target["id"], "npc": target["id"]}
+        if want and want not in ("all", "全部", "所有", "都"):
+            match = self._match_ground(rows, want)
+            if match is None:
+                available = "、".join(self._ground_text(row) for row in rows) if rows else "（地上没有东西）"
+                return self._reply(
+                    account, "loot", False,
+                    [("error", f"地上没有「{want}」。地上现有：{available}。")],
+                    state, raw, request_id,
+                )
+            payload = {"item": match["item"]}
         resp = self.session.perform(account, "loot", payload)
         if not resp.get("ok"):
             return self._reply(
@@ -752,9 +858,68 @@ class XKXShell:
                 state, raw, request_id,
             )
         after = self._state(account) or state
-        lines = [("info", "你查看地上，把能带的都收了起来。")]
-        lines.extend(self._detail_lines(resp.get("details") or {}))
+        taken = (resp.get("details") or {}).get("loot")
+        lines: list[tuple[str, str]] = []
+        if isinstance(taken, list) and taken:
+            lines.append(("info", "捡起：" + "、".join(self._take_text(row) for row in taken) + "。"))
+        else:
+            lines.append(("info", "地上没有可捡的东西。"))
+        remaining = self._ground_rows(after)
+        if remaining:
+            lines.append(
+                ("info", "地上还剩：" + "、".join(self._ground_text(row) for row in remaining) + "。")
+            )
+        else:
+            lines.append(("info", "地上已经空了。"))
+        wallet_items = list(((after.get("player") or {}).get("wallet") or {}).get("items") or [])
+        if wallet_items:
+            lines.append(
+                (
+                    "info",
+                    "行囊："
+                    + "、".join(f"{row['name']}×{row['qty']}" for row in wallet_items)
+                    + "。",
+                )
+            )
         return self._reply(account, "loot", True, lines, after, raw, request_id)
+
+    def _ground_rows(self, state: dict[str, Any] | None) -> list[dict[str, Any]]:
+        """当前房间引擎地面（state.ground），按 item id 排序，保持引擎顺序。"""
+        rows = (state or {}).get("ground")
+        if not isinstance(rows, list):
+            loc_id = str(((state or {}).get("location") or {}).get("id") or "")
+            rows = [
+                {"item": key, "qty": int(qty)}
+                for key, qty in sorted((self.session.state.ground.get(loc_id) or {}).items())
+            ]
+        return [row for row in rows if int(row.get("qty") or 0) > 0]
+
+    def _item_name(self, item_id: str) -> str:
+        row = (self.session.content.items or {}).get(item_id) or {}
+        name = str(row.get("name") or "").strip()
+        return name or item_id.rstrip("/").rsplit("/", 1)[-1] or item_id
+
+    def _ground_text(self, row: dict[str, Any]) -> str:
+        name = self._item_name(str(row.get("item") or ""))
+        qty = int(row.get("qty") or 0)
+        return f"{name}×{qty}" if qty > 1 else name
+
+    def _take_text(self, row: dict[str, Any]) -> str:
+        name = self._item_name(str(row.get("item") or ""))
+        qty = int(row.get("qty") or 0)
+        return f"{name}×{qty}" if qty > 1 else name
+
+    def _match_ground(self, rows: list[dict[str, Any]], text: str) -> dict[str, Any] | None:
+        want = text.strip()
+        if not want:
+            return None
+        hits: list[dict[str, Any]] = []
+        for row in rows:
+            item_id = str(row.get("item") or "")
+            name = self._item_name(item_id)
+            if want in (item_id, name) or name.startswith(want) or item_id.startswith(want):
+                hits.append(row)
+        return hits[0] if hits else None
 
     def _combat_reason(self, verb: str) -> str:
         """返回“为什么现在不能打/不能捡”的人话；可用时返回空串。"""
@@ -776,7 +941,7 @@ class XKXShell:
                         return ""
             except Exception:
                 return ""
-            return "战斗动作已注册，但当前角色还没有气血/攻防；等引擎把内容属性接到玩家后再开打。"
+            return "战斗动作已注册，但场上还没有带气血的角色；先等世界创世给角色写入属性。"
         return ""
 
     def _combat_ready(self, verb: str) -> bool:
@@ -832,7 +997,7 @@ class XKXShell:
         npcs = list(state.get("present_npcs") or [])
         if npcs:
             lines.append(("npc", "在场人物：" + "、".join(str(n["name"]) for n in npcs) + "。"))
-        ground = self._ground_items(loc_id)
+        ground = self._ground_items(loc_id, state)
         if ground:
             lines.append(("info", "地上散落：" + "、".join(ground) + "。"))
         goods = [g for g in ((state.get("shop") or {}).get("buy") or []) if g.get("available")]
@@ -849,8 +1014,14 @@ class XKXShell:
         lines.append(("info", f"你身上有{money}文。"))
         return lines
 
-    def _ground_items(self, loc_id: str) -> list[str]:
-        """房间里内容包摆放的地面物件（物品），按真实数量展示，不重复计数。"""
+    def _ground_items(self, loc_id: str, state: dict[str, Any] | None = None) -> list[str]:
+        """地上可见物：以引擎地面为准（创世已把内容包摆放物落成 loot_create）。
+
+        只有快照里完全没有 `ground` 字段（旧世界/旧存档）时，才退回内容包静物描述，
+        否则捡完的物品会被静态摆放重新“长”回地上。
+        """
+        if isinstance((state or {}).get("ground"), list):
+            return [self._ground_text(row) for row in self._ground_rows(state)]
         parts: list[str] = []
         for obj in self._content_location(loc_id).get("objects") or []:
             if str(obj.get("kind") or "") != "item":
@@ -956,7 +1127,7 @@ class XKXShell:
             ("info", "buy <货> [数量]   在当前店铺买货。"),
             ("info", "sell <货> [数量]  把身上的货卖给当前店铺。"),
             ("info", f"fight <人>        动手。{fight_text}。"),
-            ("info", f"loot [人]         捡拾。{loot_text}。"),
+            ("info", f"loot [物品]       捡起地上物品；不带名字则按引擎顺序全捡（也可用 get）。{loot_text}。"),
             ("info", "score（状态）     看自己的体力/银两/技能。"),
             ("info", "inventory（背包） 看行囊与装备。"),
             ("info", "help（帮助）      再看这张表。"),
