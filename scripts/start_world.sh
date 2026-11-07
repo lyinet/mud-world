@@ -59,23 +59,36 @@ config_path = Path(sys.argv[1])
 root = Path(sys.argv[2])
 cfg = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
 
-markers = ("locations.yaml", "npcs.yaml", "items.yaml")
+yaml_markers = ("locations.yaml", "npcs.yaml", "items.yaml")
+xkx_markers = ("rooms.json", "exits.json", "npcs.json")
+
+
+def usable(probe: Path) -> bool:
+    return all((probe / name).is_file() for name in yaml_markers) or all(
+        (probe / name).is_file() for name in xkx_markers
+    )
+
+
 chosen = None
 candidates = cfg.get("content_root_candidates") or ["content"]
 for raw in candidates:
     base = (root / str(raw)).resolve()
     for probe in (base, base / "content"):
-        if all((probe / name).is_file() for name in markers):
+        if usable(probe):
             chosen = probe
             break
     if chosen:
         break
 if chosen is None:
     fallback = (root / "content").resolve()
-    if all((fallback / name).is_file() for name in markers):
+    if usable(fallback):
         chosen = fallback
 if chosen is None:
-    print("找不到可用的内容包（需要 locations.yaml/npcs.yaml/items.yaml）。", file=sys.stderr)
+    print(
+        "找不到可用的内容包（需要 locations.yaml/npcs.yaml/items.yaml，"
+        "或 xkx 的 rooms.json/exits.json/npcs.json）。",
+        file=sys.stderr,
+    )
     sys.exit(3)
 
 fields = [
@@ -107,7 +120,7 @@ fi
 if [[ "$CONTENT_ROOT" != "$ROOT/content" ]]; then
   echo "内容包：$CONTENT_ROOT"
 else
-  echo "内容包：${CONTENT_ROOT}（xkx 内容包 content/xkx 未就绪，暂用现有内容）"
+  echo "内容包：$CONTENT_ROOT（现有九地点内容）"
 fi
 
 RUN_DIR="$ROOT/runs/$RUN_ID"
@@ -126,6 +139,8 @@ import sys
 
 host, port = sys.argv[1], int(sys.argv[2])
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# 刚被停掉的服务会留下 TIME_WAIT；允许复用才能判断“确实没人监听”。
+sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 try:
     sock.bind((host, port))
 except OSError:
@@ -137,7 +152,7 @@ PY
 
 wait_port_free() {
   local host="$1" port="$2" i
-  for i in $(seq 1 20); do
+  for i in $(seq 1 80); do
     if port_free "$host" "$port"; then
       return 0
     fi

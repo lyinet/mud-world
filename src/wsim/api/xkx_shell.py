@@ -22,8 +22,18 @@ DIRECTION_ALIASES: dict[str, tuple[str, ...]] = {
     "northwest": ("nw", "northwest", "西北", "西北边"),
     "southeast": ("se", "southeast", "东南", "东南边"),
     "southwest": ("sw", "southwest", "西南", "西南边"),
+    "northup": ("northup", "nu", "北上", "北上行"),
+    "southdown": ("southdown", "sd", "南下", "南下行"),
+    "northdown": ("northdown", "nd", "北下", "北下行"),
+    "southup": ("southup", "su", "南上", "南上行"),
+    "eastup": ("eastup", "eu", "东上", "东上行"),
+    "westup": ("westup", "wu", "西上", "西上行"),
+    "eastdown": ("eastdown", "ed", "东下", "东下行"),
+    "westdown": ("westdown", "wd", "西下", "西下行"),
     "up": ("u", "up", "上", "往上", "攀上"),
     "down": ("d", "down", "下", "往下", "落下"),
+    "out": ("out", "出", "出去", "往外"),
+    "enter": ("enter", "进", "进入", "往里"),
 }
 
 DIRECTION_LABELS: dict[str, str] = {
@@ -35,8 +45,18 @@ DIRECTION_LABELS: dict[str, str] = {
     "southwest": "西南",
     "west": "西",
     "northwest": "西北",
+    "northup": "北上行",
+    "southdown": "南下行",
+    "northdown": "北下行",
+    "southup": "南上行",
+    "eastup": "东上行",
+    "westup": "西上行",
+    "eastdown": "东下行",
+    "westdown": "西下行",
     "up": "上",
     "down": "下",
+    "out": "外",
+    "enter": "内",
 }
 
 DIRECTION_HOTKEYS: dict[str, str] = {
@@ -48,9 +68,48 @@ DIRECTION_HOTKEYS: dict[str, str] = {
     "southwest": "sw",
     "west": "w",
     "northwest": "nw",
+    "northup": "nu",
+    "southdown": "sd",
+    "northdown": "nd",
+    "southup": "su",
+    "eastup": "eu",
+    "westup": "wu",
+    "eastdown": "ed",
+    "westdown": "wd",
     "up": "u",
     "down": "d",
+    "out": "out",
+    "enter": "enter",
 }
+
+# 引擎内部职业是英文；台词兜底里会带出来，统一翻成人话。
+ROLE_LABELS: dict[str, str] = {
+    "fighter": "武师",
+    "scholar": "书生",
+    "bonze": "僧人",
+    "swordsman": "剑客",
+    "taoist": "道人",
+    "eunach": "宦官",
+    "wanderer": "江湖人",
+    "visitor": "访客",
+    "merchant": "商人",
+    "guard": "护卫",
+    "official": "官员",
+    "teacher": "先生",
+    "doctor": "郎中",
+    "baker": "厨子",
+    "innkeeper": "掌柜",
+    "courier": "镖师",
+    "blacksmith": "铁匠",
+}
+
+
+def _humanize(text: str) -> str:
+    """把引擎内部职业词替换成中文，避免玩家看到 wanderer 之类的标记。"""
+    result = str(text or "")
+    for code, label in ROLE_LABELS.items():
+        result = re.sub(rf"(?<![A-Za-z]){re.escape(code)}(?![A-Za-z])", label, result)
+    return result
 
 # 命令别名：英文为主，中文只做输入便利，不发明新玩法。
 VERB_ALIASES: dict[str, str] = {
@@ -328,11 +387,34 @@ class XKXShell:
                 return direction
         return ""
 
+    def _content_location(self, loc_id: str) -> dict[str, Any]:
+        return (self.session.content.locations or {}).get(str(loc_id)) or {}
+
     def _direction_for(self, loc_id: str, target: str) -> str:
+        for row in self._content_location(loc_id).get("exits_detail") or []:
+            if str(row.get("to") or "") == str(target):
+                return str(row.get("dir") or "")
         for direction, dest in (self.directions.get(loc_id) or {}).items():
             if dest == target:
                 return direction
         return ""
+
+    @staticmethod
+    def _row(exit_row: dict[str, Any]) -> dict[str, Any]:
+        direction = str(exit_row.get("dir") or "")
+        available = bool(exit_row.get("available"))
+        reason = str(exit_row.get("reason") or "")
+        if not available and not reason:
+            reason = "这一侧还没开放。"
+        return {
+            "id": str(exit_row.get("to") or ""),
+            "name": str(exit_row.get("name") or exit_row.get("to") or "未名之地"),
+            "direction": direction,
+            "direction_label": DIRECTION_LABELS.get(direction, "路"),
+            "hotkey": DIRECTION_HOTKEYS.get(direction, ""),
+            "available": available,
+            "reason": reason,
+        }
 
     def _exit_rows(self, state: dict[str, Any]) -> list[dict[str, Any]]:
         player = state.get("player") or {}
@@ -340,24 +422,38 @@ class XKXShell:
         location = state.get("location") or {}
         rows: list[dict[str, Any]] = []
         seen: set[str] = set()
-        for item in location.get("exits") or []:
-            target = str(item.get("id") or "")
-            if not target:
+
+        # 内容包自带方向/状态的出口优先：不可走的出口也保留，并写明原因。
+        detail = self._content_location(loc_id).get("exits_detail") or []
+        for exit_row in detail:
+            row = self._row(exit_row)
+            key = row["id"] or f"exit:{row['direction']}:{row['name']}"
+            if key in seen:
                 continue
-            seen.add(target)
-            direction = self._direction_for(loc_id, target)
-            exists = bool(item.get("exists", True))
-            rows.append(
-                {
-                    "id": target,
-                    "name": str(item.get("name") or self._loc_name(target)),
-                    "direction": direction,
-                    "direction_label": DIRECTION_LABELS.get(direction, "路"),
-                    "hotkey": DIRECTION_HOTKEYS.get(direction, ""),
-                    "available": exists,
-                    "reason": "" if exists else "目标地点不在当前世界（内容边界）。",
-                }
-            )
+            seen.add(key)
+            rows.append(row)
+
+        # 没有内容方向表时退回引擎地点视图 + 世界配置方向表（旧九地点世界）。
+        if not detail:
+            for item in location.get("exits") or []:
+                target = str(item.get("id") or "")
+                if not target:
+                    continue
+                seen.add(target)
+                direction = self._direction_for(loc_id, target)
+                exists = bool(item.get("exists", True))
+                rows.append(
+                    {
+                        "id": target,
+                        "name": str(item.get("name") or self._loc_name(target)),
+                        "direction": direction,
+                        "direction_label": DIRECTION_LABELS.get(direction, "路"),
+                        "hotkey": DIRECTION_HOTKEYS.get(direction, ""),
+                        "available": exists,
+                        "reason": "" if exists else "目标地点不在当前世界（内容边界）。",
+                    }
+                )
+
         for item in self.closed_exits.get(loc_id) or []:
             target = str(item.get("target") or "")
             key = target or f"closed:{item.get('direction')}:{item.get('name')}"
@@ -441,7 +537,8 @@ class XKXShell:
         if err or row is None:
             return self._reply(account, "go", False, [("error", err)], state, raw, request_id)
         if not row["available"]:
-            text = f"{row['name']}走不过去：{row['reason']}"
+            where = f"往{row['direction_label']}的" if row["direction"] else ""
+            text = f"{where}{row['name']}走不过去：{row['reason']}"
             return self._reply(account, "go", False, [("error", text)], state, raw, request_id)
         resp = self.session.perform(account, "move", {"to": row["id"]})
         if not resp.get("ok"):
@@ -483,7 +580,7 @@ class XKXShell:
                 [("error", self._reason(str(resp.get("reject_reason") or ""), fallback="对方没有理你。"))],
                 state, raw, request_id,
             )
-        reply = str((resp.get("details") or {}).get("reply") or "").strip()
+        reply = _humanize(str((resp.get("details") or {}).get("reply") or "").strip())
         lines = [
             ("cmd", f"你对{target['name']}说：{message}"),
             ("npc", f"{target['name']}答：{reply or '（对方只是点了点头，没有多话。）'}"),
@@ -598,10 +695,11 @@ class XKXShell:
     def _cmd_fight(
         self, account: str, rest: str, state: dict[str, Any], raw: str, request_id: str
     ) -> dict[str, Any]:
-        if not self._combat_ready("fight"):
+        reason = self._combat_reason("fight")
+        if reason:
             return self._reply(
                 account, "fight", False,
-                [("error", "战斗系统还没接上：另一路正在提供 fight 动作。现在可以走、看、问、买卖。")],
+                [("warn", f"暂不可用：{reason}")],
                 state, raw, request_id,
             )
         npcs = list(state.get("present_npcs") or [])
@@ -634,10 +732,11 @@ class XKXShell:
     def _cmd_loot(
         self, account: str, rest: str, state: dict[str, Any], raw: str, request_id: str
     ) -> dict[str, Any]:
-        if not self._combat_ready("loot"):
+        reason = self._combat_reason("loot")
+        if reason:
             return self._reply(
                 account, "loot", False,
-                [("error", "捡拾系统还没接上：另一路正在提供 loot 动作。")],
+                [("warn", f"暂不可用：{reason}")],
                 state, raw, request_id,
             )
         npcs = list(state.get("present_npcs") or [])
@@ -657,11 +756,31 @@ class XKXShell:
         lines.extend(self._detail_lines(resp.get("details") or {}))
         return self._reply(account, "loot", True, lines, after, raw, request_id)
 
-    def _combat_ready(self, verb: str) -> bool:
+    def _combat_reason(self, verb: str) -> str:
+        """返回“为什么现在不能打/不能捡”的人话；可用时返回空串。"""
         try:
-            return self.session.registry.get(verb) is not None
+            registered = self.session.registry.get(verb) is not None
         except Exception:
-            return False
+            registered = False
+        if not registered:
+            if verb == "fight":
+                return "战斗动作还没接上（actions 层尚未注册 fight）。现在可以走、看、问、买卖。"
+            return "捡拾动作还没接上（actions 层尚未注册 loot）。"
+        if verb == "fight":
+            # 动作注册不等于能打：玩家还没有气血/攻防时，点了也不会结算。
+            try:
+                for ent in self.session.state.entities.values():
+                    if str(getattr(ent, "id", "")).startswith("player:") and int(
+                        getattr(ent, "max_hp", 0) or 0
+                    ) > 0:
+                        return ""
+            except Exception:
+                return ""
+            return "战斗动作已注册，但当前角色还没有气血/攻防；等引擎把内容属性接到玩家后再开打。"
+        return ""
+
+    def _combat_ready(self, verb: str) -> bool:
+        return self._combat_reason(verb) == ""
 
     # ------------------------------------------------------------- 渲染
     def _room_lines(self, state: dict[str, Any]) -> list[tuple[str, str]]:
@@ -672,6 +791,8 @@ class XKXShell:
             str(location.get("description") or "").strip()
             or self.descriptions.get(loc_id, "")
         )
+        # xkx 的 desc 是 LPC 源码折行，中文直接拼接才不会在句中留下断行。
+        description = re.sub(r"\s*\n\s*", "", description)
         if not description:
             description = f"你站在{name}。四周的景物安静下来，像是在等你先开口。"
         exits = self._exit_rows(state)
@@ -711,18 +832,35 @@ class XKXShell:
         npcs = list(state.get("present_npcs") or [])
         if npcs:
             lines.append(("npc", "在场人物：" + "、".join(str(n["name"]) for n in npcs) + "。"))
+        ground = self._ground_items(loc_id)
+        if ground:
+            lines.append(("info", "地上散落：" + "、".join(ground) + "。"))
         goods = [g for g in ((state.get("shop") or {}).get("buy") or []) if g.get("available")]
         if goods:
-            for row in goods:
-                lines.append(
-                    (
-                        "shop",
-                        f"货架：{row['name']} {row['total']}文/件（存{row['stock']}）",
-                    )
+            lines.append(
+                (
+                    "shop",
+                    "货架："
+                    + "、".join(f"{row['name']} {row['total']}文（存{row['stock']}）" for row in goods)
+                    + "。",
                 )
+            )
         money = int((state.get("player") or {}).get("wallet", {}).get("money", 0))
         lines.append(("info", f"你身上有{money}文。"))
         return lines
+
+    def _ground_items(self, loc_id: str) -> list[str]:
+        """房间里内容包摆放的地面物件（物品），按真实数量展示，不重复计数。"""
+        parts: list[str] = []
+        for obj in self._content_location(loc_id).get("objects") or []:
+            if str(obj.get("kind") or "") != "item":
+                continue
+            ref = str(obj.get("ref") or "")
+            row = (self.session.content.items or {}).get(ref) or {}
+            name = str(row.get("name") or ref.rstrip("/").rsplit("/", 1)[-1] or ref)
+            count = int(obj.get("count") or 0)
+            parts.append(f"{name}×{count}" if count > 1 else name)
+        return parts
 
     def _score_lines(self, state: dict[str, Any]) -> list[tuple[str, str]]:
         player = state.get("player") or {}
@@ -732,10 +870,11 @@ class XKXShell:
         ]
         lines.extend(self._score_core_lines(state))
         sect = state.get("sect") or {}
-        if sect:
-            lines.append(
-                ("info", f"门派：{sect.get('name') or sect.get('sect_name') or '无'}（{sect.get('rank') or '门人'}）")
-            )
+        sect_name = str(sect.get("name") or sect.get("sect_name") or "")
+        if sect_name and sect_name != "无":
+            lines.append(("info", f"门派：{sect_name}（{sect.get('rank') or '门人'}）"))
+        else:
+            lines.append(("info", "门派：尚未拜入门派。"))
         skills = list(player.get("skills_detail") or [])
         if skills:
             lines.append(
@@ -795,25 +934,36 @@ class XKXShell:
         return lines
 
     def _help_lines(self) -> list[tuple[str, str]]:
-        combat = (
-            "动作已注册；能否开打取决于当前内容包是否带气血/攻防"
-            if self._combat_ready("fight")
-            else "未接入（等 actions 层提供 fight）"
-        )
-        loot = "可用" if self._combat_ready("loot") else "未接入（actions 层还没有 loot 动作）"
-        return [
+        fight_reason = self._combat_reason("fight")
+        loot_reason = self._combat_reason("loot")
+        fight_text = "可用" if not fight_reason else f"暂不可用（{fight_reason}）"
+        loot_text = "可用" if not loot_reason else f"暂不可用（{loot_reason}）"
+        stats = getattr(self.session.content, "world_stats", {}) or {}
+        if stats:
+            world_text = (
+                f"世界：{stats.get('rooms_in_slice', 0)} 间房 / "
+                f"{stats.get('npcs_in_slice', 0)} 位 NPC / "
+                f"{stats.get('exits_walkable', 0)} 条可走出口 / "
+                f"{stats.get('exits_blocked', 0)} 条未开放出口。"
+            )
+        else:
+            world_text = ""
+        lines = [
             ("room", "【侠客行 · 命令】"),
             ("info", "look（看）        环顾当前地点。"),
             ("info", "go <方向|地点>    走。方向可打 n/s/e/w/ne/nw/se/sw/up/down，也可点地图热区。"),
             ("info", "ask <人> <话>     向在场 NPC 搭话。"),
             ("info", "buy <货> [数量]   在当前店铺买货。"),
             ("info", "sell <货> [数量]  把身上的货卖给当前店铺。"),
-            ("info", f"fight <人>        动手。{combat}。"),
-            ("info", f"loot [人]         捡拾。{loot}。"),
+            ("info", f"fight <人>        动手。{fight_text}。"),
+            ("info", f"loot [人]         捡拾。{loot_text}。"),
             ("info", "score（状态）     看自己的体力/银两/技能。"),
             ("info", "inventory（背包） 看行囊与装备。"),
             ("info", "help（帮助）      再看这张表。"),
         ]
+        if world_text:
+            lines.append(("info", world_text))
+        return lines
 
     def _detail_lines(self, details: dict[str, Any]) -> list[tuple[str, str]]:
         lines: list[tuple[str, str]] = []
@@ -942,6 +1092,11 @@ class XKXShell:
                 "fight": self._combat_ready("fight"),
                 "loot": self._combat_ready("loot"),
             },
+            "combat_reason": {
+                "fight": self._combat_reason("fight"),
+                "loot": self._combat_reason("loot"),
+            },
+            "world": dict(getattr(self.session.content, "world_stats", {}) or {}),
         }
 
     def _view(self, state: dict[str, Any]) -> dict[str, Any]:
@@ -952,6 +1107,7 @@ class XKXShell:
                 "id": n.get("id"),
                 "name": n.get("name"),
                 "role": n.get("role"),
+                "role_label": ROLE_LABELS.get(str(n.get("role") or ""), str(n.get("role") or "江湖人")),
                 "skills": n.get("skills"),
             }
             for n in (state.get("present_npcs") or [])
@@ -1010,4 +1166,9 @@ class XKXShell:
                 "fight": self._combat_ready("fight"),
                 "loot": self._combat_ready("loot"),
             },
+            "combat_reason": {
+                "fight": self._combat_reason("fight"),
+                "loot": self._combat_reason("loot"),
+            },
+            "world": dict(getattr(self.session.content, "world_stats", {}) or {}),
         }

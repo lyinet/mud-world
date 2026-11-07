@@ -294,6 +294,9 @@ button.cell:disabled .place { text-decoration: line-through; color: var(--muted)
   line-height: 1.5;
 }
 
+.blocked-title { color: var(--red); margin-top: 4px; }
+.blocked-row { color: var(--red); opacity: 0.85; }
+
 .list {
   display: flex;
   flex-direction: column;
@@ -337,6 +340,26 @@ button.row:hover { border-color: var(--line); background: rgba(255, 255, 255, 0.
 }
 
 .quick button:hover { border-color: var(--gold-soft); color: var(--gold); }
+
+.quick button.quick-blocked {
+  color: var(--muted);
+  border-style: dashed;
+  cursor: help;
+}
+
+.quick button.quick-blocked:hover {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.world-stats {
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px dashed var(--line);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
 
 @media (max-width: 900px) {
   body { overflow: auto; }

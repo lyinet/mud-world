@@ -79,6 +79,7 @@ from ..actions.common import (
 from .event_tail import EventTail
 from .growth import growth_view, today_view
 from .persistence import replay_into, verify_content_hash
+from .xkx_content import is_xkx_pack, load_xkx_content
 
 # 契约冻结版本：字段名/结构变更必须同步 docs/player-api.md 的 CHANGELOG。
 PROFILE_VERSION = 1
@@ -1190,12 +1191,16 @@ class WorldSession:
     def _load_content_pack(self, pack_root: Path):
         """按“内容包目录”加载内容，兼容 core.load_content 的 <root>/content 约定。
 
-        若目录本身就叫 content，或包内自带 content/ 子目录，直接沿用 core 的
-        加载根；否则在 run 目录下建一个只读软链，把包目录挂成 content/。
+        xkx 的 JSON 内容包（rooms.json/exits.json/...）由本模块的只读适配层
+        转成 Content；其它内容包仍走 core 的 YAML 加载。若目录本身就叫 content，
+        或包内自带 content/ 子目录，直接沿用 core 的加载根；否则在 run 目录下
+        建一个只读软链，把包目录挂成 content/。
         只做路径适配，不复制内容、不改 core 加载规则。
         """
         pack_root = Path(pack_root)
         content_dir = pack_root / "content" if (pack_root / "content").is_dir() else pack_root
+        if is_xkx_pack(content_dir):
+            return load_xkx_content(content_dir)
         if content_dir.name == "content":
             return load_content(content_dir.parent, allow_fixture=False, use_content=True)
         stage = self.run_dir / "_content_root"

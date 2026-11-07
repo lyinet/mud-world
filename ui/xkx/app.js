@@ -18,6 +18,7 @@
   const pillStamina = document.getElementById("pill-stamina");
   const pillMoney = document.getElementById("pill-money");
   const pillTime = document.getElementById("pill-time");
+  const worldStatsEl = document.getElementById("world-stats");
 
   const MAP_SLOTS = [
     { direction: "northwest", label: "西北", empty: true },
@@ -35,7 +36,9 @@
   const DIRECTION_LABELS = {
     north: "北", northeast: "东北", east: "东", southeast: "东南",
     south: "南", southwest: "西南", west: "西", northwest: "西北",
-    up: "上", down: "下",
+    northup: "北上行", southdown: "南下行", northdown: "北下行", southup: "南上行",
+    eastup: "东上行", westup: "西上行", eastdown: "东下行", westdown: "西下行",
+    up: "上", down: "下", out: "外", enter: "内",
   };
 
   let history = [];
@@ -113,7 +116,7 @@
     exits.forEach((exit) => {
       if (exit.direction && MAP_SLOTS.some((s) => s.direction === exit.direction)) {
         byDirection.set(exit.direction, exit);
-      } else {
+      } else if (exit.available) {
         extras.push(exit);
       }
     });
@@ -166,29 +169,32 @@
           "row",
           "",
           () => sendCommand(`go ${exit.direction || exit.name}`),
-          !exit.available,
-          exit.reason || exit.name
+          false,
+          exit.name
         );
         const name = document.createElement("span");
         name.className = "name";
         name.textContent = `${DIRECTION_LABELS[exit.direction] || exit.direction_label || "路"} · ${exit.name}`;
         const meta = document.createElement("span");
         meta.className = "meta";
-        meta.textContent = exit.available ? "可走" : "未开放";
+        meta.textContent = "可走";
         row.appendChild(name);
         row.appendChild(meta);
         blockedEl.appendChild(row);
       });
     }
 
+    // 不可走的出口不消失：九宫格放不下的方向（上下/斜上行等）也在这里写明原因。
     const blocked = exits.filter((e) => !e.available);
     if (blocked.length) {
       const title = document.createElement("div");
+      title.className = "blocked-title";
       title.textContent = "未开放出口：";
       blockedEl.appendChild(title);
       blocked.forEach((e) => {
         const row = document.createElement("div");
-        row.textContent = `${e.direction_label || "路"}→${e.name}：${e.reason}`;
+        row.className = "blocked-row";
+        row.textContent = `${DIRECTION_LABELS[e.direction] || e.direction_label || "路"}→${e.name}：${e.reason || "未开放"}`;
         blockedEl.appendChild(row);
       });
     }
@@ -220,7 +226,7 @@
       name.textContent = npc.name;
       const meta = document.createElement("span");
       meta.className = "meta";
-      meta.textContent = npc.role || "人";
+      meta.textContent = npc.role_label || npc.role || "人";
       row.appendChild(name);
       row.appendChild(meta);
       return row;
@@ -267,17 +273,40 @@
 
   function renderQuick(view) {
     quickEl.innerHTML = "";
+    const ready = (view && view.combat_ready) || {};
+    const reasons = (view && view.combat_reason) || {};
     const buttons = [
       ["看", "look"],
       ["状态", "score"],
       ["行囊", "inventory"],
       ["帮助", "help"],
-      ["打", "fight"],
-      ["捡", "loot"],
+      [ready.fight ? "打" : "打（暂不可用）", "fight", ready.fight, reasons.fight],
+      [ready.loot ? "捡" : "捡（暂不可用）", "loot", ready.loot, reasons.loot],
     ];
-    buttons.forEach(([label, command]) => {
-      quickEl.appendChild(makeButton("", label, () => sendCommand(command)));
+    buttons.forEach(([label, command, enabled, reason]) => {
+      const btn = makeButton(
+        enabled === false ? "quick-blocked" : "",
+        label,
+        () => sendCommand(command),
+        false,
+        reason || "",
+      );
+      quickEl.appendChild(btn);
     });
+  }
+
+  function renderWorld(view) {
+    if (!worldStatsEl) return;
+    const w = (view && view.world) || {};
+    if (w.rooms_in_slice == null) {
+      worldStatsEl.textContent = "";
+      return;
+    }
+    const boundary = w.rooms_boundary ? `（另有 ${w.rooms_boundary} 间边界房未开放）` : "";
+    worldStatsEl.textContent =
+      `世界：${w.rooms_in_slice} 间房 · ${w.npcs_in_slice} 位 NPC · ` +
+      `${w.exits_walkable} 条可走方向（通往 ${w.exits_walkable_targets} 间房） · ` +
+      `${w.exits_blocked} 条未开放出口${boundary}`;
   }
 
   function renderView(view) {
@@ -286,6 +315,7 @@
     renderMap(view);
     renderSide(view);
     renderQuick(view);
+    renderWorld(view);
   }
 
   async function postJson(path, body) {

@@ -10,15 +10,16 @@ ui_port: 8011
 seed: 20261014
 tick_step: 6
 npc_limit: 0
-spawn: market
+spawn: /d/hangzhou/jiulou
 display_name: 游侠儿
 archetype: 游侠
 auth: off
 ambient: 0
 ui_kind: xkx
 
-# 内容优先用另一路交付的 xkx 内容包；未就绪时按顺序回退到现有内容。
-# 启动脚本只选择第一个“含 locations.yaml/npcs.yaml/items.yaml”的目录，不复制内容。
+# 内容优先用另一路交付的 xkx JSON 内容包（rooms/exits/npcs/items/shops/sects）。
+# 启动脚本优先选第一个“含 rooms.json+exits.json+npcs.json”或
+# “含 locations.yaml+npcs.yaml+items.yaml”的目录，不复制内容。
 content_root_candidates:
   - content/xkx
   - content/xkx/content
@@ -26,8 +27,8 @@ content_root_candidates:
   - content/packs/xkx-slice
   - content
 
-# 现有内容没有方向名；先用配置补一张方向表，让键盘/热区都能走。
-# xkx 内容包就绪后，若房间文件自带 direction，以内容为准。
+# 旧九地点内容（YAML）没有方向名；这里保留一张方向表作为回退。
+# xkx JSON 内容包的出口方向与状态以 exits.json 为准，不使用本表。
 exit_directions:
   market:
     north: academy
