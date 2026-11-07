@@ -80,14 +80,14 @@
 
 > 用户要求本轮**只核查并写进 spec，不实现**。以下是原版源码事实。
 
-- 每个角色的敌人表是自己的 `nosave object *enemy`（[`feature/attack.lpc:9`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/feature/attack.lpc#L9)）；`fight_ob` / `kill_ob` 只把对方加进**自己**的 `enemy`（[`feature/attack.lpc:33-45`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/feature/attack.lpc#L33-L45)、[`feature/attack.lpc:47-114`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/feature/attack.lpc#L47-L114)）。
+- 每个角色的敌人表是自己的 `nosave object *enemy`（[`feature/attack.lpc:12`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/feature/attack.lpc#L12)）；`fight_ob` / `kill_ob` 只把对方加进**自己**的 `enemy`（[`feature/attack.lpc:35-67`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/feature/attack.lpc#L35-L67)、[`feature/attack.lpc:69-114`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/feature/attack.lpc#L69-L114)）。
 - 逃跑成功的清理：[`cmds/std/go.lpc:320-323`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/cmds/std/go.lpc#L320-L323) 在 `move` 成功后调用 `me->remove_all_enemy()`；
   [`feature/attack.lpc:171-181`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/feature/attack.lpc#L171-L181) 会遍历玩家自己的 `enemy`，逐个调用 `敌人->remove_enemy(玩家)`，再清空玩家自己的 `enemy`。
 - `remove_enemy` 对“正在追杀该 id”的敌人返回 0（不移除，[`feature/attack.lpc:152-158`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/feature/attack.lpc#L152-L158)）。但 NPC 每次心跳攻击前先 `clean_up_enemy()`，把**不在同一房间**的敌人清掉（[`feature/attack.lpc:116-130`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/feature/attack.lpc#L116-L130)、[`feature/attack.lpc:228-241`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/feature/attack.lpc#L228-L241)）；随后 `select_opponent()` 只从本房敌人里随机 4 选 1（[`feature/attack.lpc:132-140`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/feature/attack.lpc#L132-L140)）。
 - 结论：
   1. **老虎不会追逃跑的 A**。A 换房后即使仍残留在老虎 `enemy` 表（`is_killing` 分支），下一次心跳 `clean_up_enemy` 因不同房清掉；老虎没有 `pursuer`，不主动 move 追人。
   2. **老虎被 B 打时，A 逃跑不会让老虎停手**。老虎 `enemy` 里仍有 B（B 是同队或非同队都一样），继续按 `select_opponent` 打本房的 B。
-  3. **同队不改变敌人表的成立条件**。`kill_ob` 只有 `guarded`（被保护者）会把守卫加入战斗（[`feature/attack.lpc:82-112`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/feature/attack.lpc#L82-L112)）；普通队友不会仅因同队自动进 `enemy`。因此“B 与 A 同队”与否，不改变老虎继续打 B 的事实，也不改变 A 是否被追。
+  3. **同队不改变敌人表的成立条件**。`kill_ob` 只有 `guarded`（被保护者）会把守卫加入战斗（[`feature/attack.lpc:92-110`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/feature/attack.lpc#L92-L110)）；普通队友不会仅因同队自动进 `enemy`。因此“B 与 A 同队”与否，不改变老虎继续打 B 的事实，也不改变 A 是否被追。
 - 本轮引擎是单 `combat_target` 模型，没有多敌表；实现上述多人同屏行为需要新增敌人列表与 `clean_up_enemy/select_opponent` 选敌规则。**本轮不实现**，只记录；未来若做，按本节源码顺序建模。
 
 ## 1. 缺陷 1：`wimpy` 自动逃跑（不新增 `flee`）
@@ -114,9 +114,9 @@
    - 失败条件 `roll_player <= roll_enemy`。
    - `wimpy_log.roll_order = ["exit_index","roll_target","roll_npc"]`，两个 dex 骰与方向骰的先后在事件里显式可读。
    - **失败也消费方向随机数**（`exit_index` 已掷出，只是不移动），与原版
-     [`cmds/std/go.lpc:336-347`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/cmds/std/go.lpc#L336-L347)
+     [`cmds/std/go.lpc:336-346`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/cmds/std/go.lpc#L336-L346)
      先 `directions[random(sizeof(directions))]`、再进
-     [`cmds/std/go.lpc:60-79`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/cmds/std/go.lpc#L60-L79)
+     [`cmds/std/go.lpc:37-79`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/cmds/std/go.lpc#L37-L79)
      掷 dex 的顺序一致。
 3. **失败**：产 `wimpy_log{result:"failed", round, exit_index, attempted_exit, rolls}`；不移动、不清交战；本回合继续 `combat_effects`（原版玩家 busy 1 拍，NPC 照常攻击）。
 4. **成功**：按已掷出的 `exit_index` 取出口：
