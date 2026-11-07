@@ -657,3 +657,23 @@ B→C 仍为 0。
   不掷点、数值不变）；`event_final` 因 `rounds[]` 新增字段重采为 `273b5455…`。
 - 下游战例：真实战斗的 `combat_exp` 245→247（`test_xkx_growth`），同样来自
   `query_action` 掷点平移，不是新增伤害/经验来源。
+
+## 13. 装备与物品动作层
+
+- 装备 `apply` 只读消费：`item_apply` 只读 `items.json` 的 `apply`，不补默认值；
+  `equip/unequip` 效果维护 `Entity.equipped_apply` 与 `weapon_type`，
+  战斗侧通过 `_Actor.temp_apply` 合并、`attack_skill` 优先取 `weapon_type`。
+  `tools/xkx_formula/*` 与内容包 JSON 零改动。
+- 负重：`max_encumbrance = str*5000 + floor(max_skill/10)*1000`；无 `attrs` 返回 0
+  表示不启用。`overweight_reason` 超限时给 `overloaded:<need>:<max>`。
+- `drop` 与 `loot_create` 共用 `WorldState.ground`：掉落到当前房间地面，
+  `loot/get` 再从地面移回背包（`loot_take`）。
+- `rest` 按地点系数（客栈/住处/镇内/野外）逐小时恢复体力与气血；
+  `sleep` 沿用睡醒口径回满 hp/stamina。两者都由 `PlayerRestAction`
+  （`verb="rest"`，`aliases=("sleep",)`）注册，写动作按声明小时推进世界钟。
+- NPC 掷点：`roll_attrs` 用
+  `sha256("xkx-attrs:<seed>:<npc_id>:<attr>")[:8]` 取大端整数对区间取模；
+  seed 来自世界配置/创世，legacy NPC 无 `vitals/attrs/skills/attrs_roll` 时不落战斗字段。
+- `region/region_name` 由 `xkx_content` 从 `rooms.json` 只读透出到
+  `content.locations`；视角输出缺失时为 `null`，不编造区域。
+

@@ -12,7 +12,11 @@
 """
 from __future__ import annotations
 
+import hashlib
 from typing import Any
+
+# 原版 `race/beast.lpc:62-67` 的六维键；内容线只对这些键输出 [lo, hi]。
+ROLLABLE_ATTRS = ("str", "con", "dex", "int", "spi", "sta", "kar", "cps", "cor")
 
 # 我们的默认（非原版）：内容包缺 max_qi 时按最高技能等级给可解释的气血上限。
 # 500：一流好手（技能 ≥ 80，对应原版技能 100）；
@@ -75,9 +79,50 @@ def default_max_hp(npc: dict[str, Any]) -> int:
     return DEFAULT_MAX_HP_TIERS[-1][1]
 
 
-def resolve_npc_vitals(npc: dict[str, Any]) -> dict[str, Any] | None:
+def roll_attrs(
+    npc_id: str,
+    attrs_roll: Any,
+    seed: int = 0,
+    errors: list[str] | None = None,
+) -> dict[str, int]:
+    """按世界种子掷出 NPC 六维；SHA-256 保证跨进程/跨机器可复现。
+
+    公式：`lo + int(sha256("xkx-attrs:<seed>:<npc_id>:<attr>")[:8], "big") % span`。
+    不读墙钟、不用全局 random、不依赖 NPC 遍历顺序。
+    """
+    if not isinstance(attrs_roll, dict):
+        return {}
+    rolled: dict[str, int] = {}
+    for key in sorted(attrs_roll):
+        if key not in ROLLABLE_ATTRS:
+            continue
+        span = attrs_roll[key]
+        if (
+            not isinstance(span, (list, tuple))
+            or len(span) != 2
+            or isinstance(span[0], bool)
+            or isinstance(span[1], bool)
+            or not isinstance(span[0], int)
+            or not isinstance(span[1], int)
+            or span[0] > span[1]
+        ):
+            if errors is not None:
+                errors.append(f"bad_attrs_roll:{npc_id}:{key}")
+            continue
+        lo, hi = int(span[0]), int(span[1])
+        digest = hashlib.sha256(f"xkx-attrs:{int(seed)}:{npc_id}:{key}".encode("utf-8")).digest()
+        rolled[key] = lo + int.from_bytes(digest[:8], "big") % (hi - lo + 1)
+    return rolled
+
+
+def resolve_npc_vitals(
+    npc: dict[str, Any],
+    *,
+    seed: int = 0,
+    errors: list[str] | None = None,
+) -> dict[str, Any] | None:
     """返回可直接并入 `create_entity` 的字段；legacy NPC 返回 None。"""
-    if not any(k in npc for k in ("vitals", "attrs", "skills")):
+    if not any(k in npc for k in ("vitals", "attrs", "skills", "attrs_roll")):
         return None
     vitals = dict(npc.get("vitals") or {})
     max_qi = _int_or(vitals.get("max_qi"))
@@ -89,6 +134,8 @@ def resolve_npc_vitals(npc: dict[str, Any]) -> dict[str, Any] | None:
         for k, v in (npc.get("attrs") or {}).items()
         if not isinstance(v, bool) and isinstance(v, (int, float))
     }
+    rolled = roll_attrs(str(npc.get("id") or ""), npc.get("attrs_roll"), seed, errors)
+    attrs.update(rolled)
     skills = {
         str(k): max(0, min(800, _int_or(v)))
         for k, v in (npc.get("skills") or {}).items()

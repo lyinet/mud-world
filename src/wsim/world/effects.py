@@ -1061,6 +1061,21 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         slot = str(d["slot"])
         if not slot:
             raise EffectError("装备槽位不能为空")
+
+        def _apply_delta(mapping: Any, sign: int) -> None:
+            if not isinstance(mapping, dict):
+                return
+            for key, value in sorted(mapping.items()):
+                if not str(key).startswith("apply/"):
+                    continue
+                if isinstance(value, bool) or not isinstance(value, int):
+                    continue
+                total = int(ent.equipped_apply.get(key, 0)) + sign * int(value)
+                if total:
+                    ent.equipped_apply[str(key)] = total
+                else:
+                    ent.equipped_apply.pop(str(key), None)
+
         if op == "equip":
             item = str(d["item"])
             if int(ent.inventory.get(item, 0)) < 1:
@@ -1068,17 +1083,24 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             old = ent.equipped.get(slot)
             if old:
                 ent.inventory[old] = int(ent.inventory.get(old, 0)) + 1
+                _apply_delta(d.get("old_apply"), -1)
             held = int(ent.inventory.get(item, 0)) - 1
             if held > 0:
                 ent.inventory[item] = held
             else:
                 ent.inventory.pop(item, None)
             ent.equipped[slot] = item
+            _apply_delta(d.get("apply"), 1)
+            if slot == "weapon":
+                ent.weapon_type = str(d.get("weapon_type") or "")
         else:
             item = ent.equipped.pop(slot, None)
             if item is None:
                 raise EffectError("该槽位没有已装备物品")
             ent.inventory[item] = int(ent.inventory.get(item, 0)) + 1
+            _apply_delta(d.get("apply"), -1)
+            if slot == "weapon":
+                ent.weapon_type = ""
         return
 
     if op in ("quest_complete", "quest_fail"):

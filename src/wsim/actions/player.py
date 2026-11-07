@@ -129,6 +129,12 @@ PLAYER_VERBS = frozenset(
         "equip",
         "unequip",
         "use_item",
+        "wear",
+        "wield",
+        "remove",
+        "unwield",
+        "drop",
+        "sleep",
         # 战斗：一次动作原子结算最多 20 回合，只写 1 条事件（rounds[] 战报）。
         "fight",
         # 取物：loot 与 get 是同一动作的两个 verb，取当前房间地面掉落。
@@ -499,9 +505,13 @@ def _quest_interrupts_rest(state: WorldState, pid: str, hours: int, tick: int) -
 
 
 class PlayerRestAction(Action):
-    """休息：按小时恢复体力，押镖中或会误掉委托截止时拒绝。"""
+    """休息/睡觉：按小时恢复体力与气血，押镖中或会误掉委托截止时拒绝。
+
+    `rest` 按地点系数逐 tick 恢复；`sleep` 沿用原版睡醒口径，回满 hp 与 stamina。
+    """
 
     verb = "rest"
+    aliases = ("sleep",)
 
     def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
         pid = _player_id(intent)
@@ -528,13 +538,24 @@ class PlayerRestAction(Action):
             raise Reject("missing_player_id")
         hours = arg_int(intent, "hours", REST_HOURS_DEFAULT, minimum=1, maximum=REST_HOURS_MAX)
         ent = state.entities[pid]
-        rate = rest_rate(state, str(ent.location), str(ent.home or ""))
-        delta = float(int(hours) * TICKS_PER_HOUR) * rate
         tick = int(intent.tick)
-        return [
-            Effect("stamina", {"entity": pid, "delta": delta, "reason": "rest", "hours": int(hours)}),
-            Effect("set_field", {"entity": pid, "field": "last_action_tick", "value": tick}),
+        if str(intent.verb) == "sleep":
+            stamina_delta = max(0.0, float(ent.max_stamina) - float(ent.stamina))
+            hp_delta = max(0, int(ent.max_hp) - int(ent.hp)) if int(ent.max_hp) > 0 else 0
+            reason = "sleep"
+        else:
+            rate = rest_rate(state, str(ent.location), str(ent.home or ""))
+            delta = float(int(hours) * TICKS_PER_HOUR) * rate
+            stamina_delta = delta
+            hp_delta = int(delta) if int(ent.max_hp) > 0 else 0
+            reason = "rest"
+        effects: list[Effect] = [
+            Effect("stamina", {"entity": pid, "delta": stamina_delta, "reason": reason, "hours": int(hours)}),
         ]
+        if hp_delta > 0:
+            effects.append(Effect("hp_add", {"entity": pid, "delta": hp_delta, "reason": reason}))
+        effects.append(Effect("set_field", {"entity": pid, "field": "last_action_tick", "value": tick}))
+        return effects
 
 
 class PlayerLeaveAction(Action):
@@ -670,6 +691,8 @@ def player_status(state: WorldState, pid: str) -> dict:
         "presence": ent.presence,
         "online": prof.online,
         "location": ent.location,
+        "region": (state.locations.get(ent.location) or {}).get("region"),
+        "region_name": (state.locations.get(ent.location) or {}).get("region_name"),
         "home": ent.home,
         "stamina": round(float(ent.stamina), 3),
         "max_stamina": round(float(ent.max_stamina), 3),

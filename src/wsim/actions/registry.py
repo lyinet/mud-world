@@ -58,15 +58,24 @@ def build_registry(
         WithdrawAction,
     )
     from .commerce import BuyAction, SellAction, TradeAction
-    from .equipment import EquipAction, UnequipAction, UseItemAction
+    from .equipment import (
+        EquipAction,
+        RemoveAction,
+        UnequipAction,
+        UnwieldAction,
+        UseItemAction,
+        WearAction,
+        WieldAction,
+    )
     from .escort import EscortAction, SystemEscortArriveAction
-    from .loot import LootAction
+    from .loot import DropAction, LootAction
     from .player import (
         PlayerEndowmentAction,
         PlayerEnterAction,
         PlayerHeartbeatAction,
         PlayerLeaveAction,
         PlayerPresenceAction,
+        PlayerRestAction,
         SystemPlayerPresenceAction,
         SystemTickAction,
     )
@@ -109,6 +118,10 @@ def build_registry(
     reg.register(SellAction(content))
     reg.register(TradeAction(content))
     reg.register(EquipAction(content))
+    reg.register(WearAction(content))
+    reg.register(WieldAction(content))
+    reg.register(RemoveAction(content))
+    reg.register(UnwieldAction(content))
     reg.register(UnequipAction(content))
     reg.register(UseItemAction(content))
     reg.register(ApprenticeAction(content))
@@ -155,10 +168,12 @@ def build_registry(
     reg.register(PlayerHeartbeatAction())
     reg.register(PlayerPresenceAction())
     reg.register(PlayerLeaveAction())
+    reg.register(PlayerRestAction())
     reg.register(SystemPlayerPresenceAction())
     reg.register(SystemTickAction())
     reg.register(FightAction())
     reg.register(LootAction(content))
+    reg.register(DropAction(content))
     reg.register(SystemSpawnAction(spawns))
 
     root = Path(__file__).resolve().parents[3]

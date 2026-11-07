@@ -314,7 +314,7 @@ class AmbientScheduler:
             self.genesis = None
             self._genesis_event = None
         else:
-            genesis = build_genesis(self.content, npcs, root=self.root)
+            genesis = build_genesis(self.content, npcs, root=self.root, seed=self.cfg.seed)
             self._genesis_event = self.writer.bootstrap(genesis.effects, tick=0, verb="genesis")
             self.state = self.writer.state
             self._record_event(self._genesis_event)

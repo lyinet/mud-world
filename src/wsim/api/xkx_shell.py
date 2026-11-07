@@ -123,6 +123,13 @@ VERB_ALIASES: dict[str, str] = {
     "fight": "fight", "打": "fight", "战斗": "fight", "出手": "fight",
     "loot": "loot", "捡": "loot", "拾取": "loot",
     "get": "loot", "拿": "loot", "取": "loot",
+    "wear": "wear", "穿": "wear", "穿上": "wear", "穿戴": "wear",
+    "wield": "wield", "持": "wield", "持起": "wield", "握": "wield",
+    "remove": "remove", "脱": "remove", "脱下": "remove",
+    "unwield": "unwield", "放下": "unwield", "收剑": "unwield",
+    "drop": "drop", "丢": "drop", "丢下": "drop", "扔掉": "drop",
+    "rest": "rest", "休息": "rest",
+    "sleep": "sleep", "睡": "sleep", "睡觉": "sleep",
     "give": "give", "交给": "give", "给": "give", "交付": "give",
     "quests": "quests", "任务": "quests", "支线": "quests",
     "score": "score", "状态": "score", "属性": "score",
@@ -419,6 +426,10 @@ class XKXShell:
                 return self._cmd_fight(account, rest, state, raw, request_id)
             if verb == "loot":
                 return self._cmd_loot(account, rest, state, raw, request_id)
+            if verb in ("wear", "wield", "remove", "unwield", "drop"):
+                return self._cmd_item_action(account, verb, rest, state, raw, request_id)
+            if verb in ("rest", "sleep"):
+                return self._cmd_rest(account, verb, rest, state, raw, request_id)
             if verb == "bai":
                 return self._cmd_bai(account, rest, state, raw, request_id)
             if verb == "learn":
@@ -1577,6 +1588,157 @@ class XKXShell:
             )
         return self._reply(account, "loot", True, lines, after, raw, request_id)
 
+    @staticmethod
+    def _bag_hint(items: Iterable[dict[str, Any]]) -> str:
+        rows = [f"{row.get('name')}×{int(row.get('qty') or 0)}" for row in items]
+        return "、".join(rows) if rows else "（空）"
+
+    def _equip_summary_lines(self, state: dict[str, Any] | None) -> list[tuple[str, str]]:
+        player = (state or {}).get("player") or {}
+        equipment = player.get("equipment") or {}
+        slots = [row for row in (equipment.get("slots") or []) if not row.get("empty")]
+        lines: list[tuple[str, str]] = []
+        if slots:
+            lines.append(
+                ("info", "已装备：" + "、".join(f"{row['slot_name']}={row['name']}" for row in slots) + "。")
+            )
+        else:
+            lines.append(("info", "你身上没有穿戴任何装备。"))
+        applied = dict(equipment.get("applied") or {})
+        if applied:
+            lines.append(
+                ("info", "装备加成：" + "、".join(f"{key}={value}" for key, value in sorted(applied.items())) + "。")
+            )
+        weapon_type = str(equipment.get("weapon_type") or "")
+        if weapon_type:
+            lines.append(("info", f"兵器类型：{weapon_type}。"))
+        return lines
+
+    def _cmd_item_action(
+        self, account: str, verb: str, rest: str, state: dict[str, Any], raw: str, request_id: str
+    ) -> dict[str, Any]:
+        """穿/持/脱/放下/丢：物品名匹配后交给引擎动作，响应带最新装备快照。"""
+        player = state.get("player") or {}
+        items = [
+            row
+            for row in (((player.get("wallet") or {}).get("items")) or [])
+            if int(row.get("qty") or 0) > 0
+        ]
+        slots = [
+            row
+            for row in (((player.get("equipment") or {}).get("slots")) or [])
+            if not row.get("empty")
+        ]
+        want = str(rest or "").strip()
+        payload: dict[str, Any] = {}
+        if verb in ("wear", "wield", "drop"):
+            if not want:
+                label = "要丢什么" if verb == "drop" else "要穿/持什么"
+                return self._reply(
+                    account, verb, False,
+                    [("error", f"{label}？行囊：{self._bag_hint(items)}。")],
+                    state, raw, request_id,
+                )
+            match, tail = self._match_goods_prefix(items, want)
+            if match is None:
+                return self._reply(
+                    account, verb, False,
+                    [("error", f"行囊里没有「{want}」。行囊：{self._bag_hint(items)}。")],
+                    state, raw, request_id,
+                )
+            payload["item"] = str(match.get("item") or "")
+            if verb == "drop":
+                payload["qty"] = self._qty_from(tail)
+        elif verb == "remove":
+            if not slots:
+                return self._reply(
+                    account, verb, False,
+                    [("error", "你身上没有穿戴任何装备。")],
+                    state, raw, request_id,
+                )
+            if want:
+                match, _tail = self._match_goods_prefix(slots, want)
+                if match is None:
+                    match = next(
+                        (
+                            row
+                            for row in slots
+                            if want in (str(row.get("slot_name") or ""), str(row.get("slot") or ""))
+                        ),
+                        None,
+                    )
+                if match is None:
+                    return self._reply(
+                        account, verb, False,
+                        [("error", f"你身上没有「{want}」。已装备：" + "、".join(str(row.get("name")) for row in slots) + "。")],
+                        state, raw, request_id,
+                    )
+                payload["item"] = str(match.get("item") or "")
+            else:
+                armor = [row for row in slots if str(row.get("slot") or "") != "weapon"]
+                if not armor:
+                    return self._reply(
+                        account, verb, False,
+                        [("error", "兵器要用 unwield（放下）卸下；你身上没有护具可脱。")],
+                        state, raw, request_id,
+                    )
+                payload["item"] = str(armor[0].get("item") or "")
+        resp = self.session.perform(account, verb, payload)
+        if not resp.get("ok"):
+            return self._reply(
+                account, verb, False,
+                [("error", self._reason(str(resp.get("reject_reason") or ""), fallback="动作没有生效。"))],
+                state, raw, request_id,
+            )
+        after = self._state(account) or state
+        name = self._item_name(str(payload.get("item") or "")) if payload.get("item") else ""
+        lines: list[tuple[str, str]] = []
+        if verb == "wear":
+            lines.append(("info", f"你穿上了{name}。"))
+        elif verb == "wield":
+            lines.append(("info", f"你持起了{name}。"))
+        elif verb == "remove":
+            lines.append(("info", f"你脱下了{name}。"))
+        elif verb == "unwield":
+            lines.append(("info", "你放下了兵器。"))
+        elif verb == "drop":
+            lines.append(("info", f"你丢下了{name}×{int(payload.get('qty') or 1)}。"))
+        lines.extend(self._equip_summary_lines(after))
+        return self._reply(account, verb, True, lines, after, raw, request_id)
+
+    def _cmd_rest(
+        self, account: str, verb: str, rest: str, state: dict[str, Any], raw: str, request_id: str
+    ) -> dict[str, Any]:
+        """休息/睡觉：默认 4 小时，输入里的数字按 1-8 小时截断。"""
+        match = re.search(r"\d+", str(rest or ""))
+        hours = max(1, min(8, int(match.group()) if match else 4))
+        resp = self.session.perform(account, verb, {"hours": hours})
+        if not resp.get("ok"):
+            return self._reply(
+                account, verb, False,
+                [("error", self._reason(str(resp.get("reject_reason") or ""), fallback="现在没法休息。"))],
+                state, raw, request_id,
+            )
+        after = self._state(account) or state
+        player = after.get("player") or {}
+        ent = self._entity(after)
+        lines: list[tuple[str, str]] = []
+        if verb == "sleep":
+            lines.append(("info", f"你睡了 {hours} 小时，醒来时精神饱满。"))
+        else:
+            lines.append(("info", f"你休息了 {hours} 小时。"))
+        if ent is not None and int(getattr(ent, "max_hp", 0) or 0) > 0:
+            lines.append(("info", f"气血：{int(ent.hp)}/{int(ent.max_hp)}"))
+        lines.append(
+            (
+                "info",
+                f"体力：{round(float(player.get('stamina') or 0), 1)}/"
+                f"{round(float(player.get('max_stamina') or 0), 1)}",
+            )
+        )
+        lines.append(("info", f"耗时：{float(resp.get('duration_hours') or 0):g} 小时。"))
+        return self._reply(account, verb, True, lines, after, raw, request_id)
+
     def _ground_rows(self, state: dict[str, Any] | None) -> list[dict[str, Any]]:
         """当前房间引擎地面（state.ground），按 item id 排序，保持引擎顺序。"""
         rows = (state or {}).get("ground")
@@ -2111,6 +2273,12 @@ class XKXShell:
             ("info", "sell <货> [数量]  把身上的货卖给当前店铺。"),
             ("info", f"fight <人>        动手。{fight_text}。"),
             ("info", f"loot [物品]       捡起地上物品；不带名字则按引擎顺序全捡（也可用 get）。{loot_text}。"),
+            ("info", "wear <护具>       穿上护具（按物品 equip_slot 进对应槽位）。"),
+            ("info", "wield <兵器>      持起兵器（兵器统一进 weapon 槽，决定战斗技能类型）。"),
+            ("info", "remove [护具]     脱下护具；不带名字则脱第一件非兵器装备。"),
+            ("info", "unwield（放下）   放下手中兵器。"),
+            ("info", "drop <物品> [数量]  把行囊物品丢到当前房间地面，可再 loot 捡回。"),
+            ("info", "rest [小时] / sleep [小时]  休息或睡觉；默认 4 小时，范围 1-8。"),
             ("info", "bai <师父>        向在场师父拜师（原版 bai），加入师承/门派。"),
             ("info", "learn <师父> <技能> [次数]  向自己的师父请教技能，消耗潜能与精力。"),
             ("info", "practice <技能> [次数]      自行练习已学技能，消耗体力。"),
@@ -2176,11 +2344,13 @@ class XKXShell:
         code = str(code or "")
         if code in _EXTRA_REASON_TEXT:
             return _EXTRA_REASON_TEXT[code]
-        try:
-            text = self.session._reason_text(code)
-        except Exception:
-            text = ""
-        return text or fallback or f"操作没有成功（{code or '未知原因'}）。"
+        # `_reason_text` 是 session 模块级函数：带参数的原因码（overloaded:…）
+        # 与 REASON_TEXT 表都在那里，这里按白名单复用，未知码保留动作特定兜底。
+        from .session import REASON_TEXT, _reason_text as session_reason_text
+
+        if code in REASON_TEXT or code.startswith(("overloaded:", "slot_occupied:", "bad_arg:")):
+            return session_reason_text(code)
+        return fallback or f"操作没有成功（{code or '未知原因'}）。"
 
     @staticmethod
     def _first_word(text: str) -> str:

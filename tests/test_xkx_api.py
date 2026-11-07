@@ -161,8 +161,11 @@ def test_player_state_exposes_vitals_attrs_exp_weight(session):
     assert player["attrs_reason"] == ("" if ent.attrs else player["attrs_reason"])
 
     weight = player["weight"]
-    assert weight["max"] is None
-    assert weight["reason"]
+    from wsim.actions.common import max_encumbrance
+
+    assert weight["max"] == max_encumbrance(ent)
+    assert weight["max"] > 0
+    assert weight["reason"] == ""
     expected = 0
     for row in player["wallet"]["items"]:
         meta = session.content.items.get(row["item"])
@@ -201,12 +204,13 @@ def test_equipment_slots_and_actions_are_explicit(session):
     equipment = player["equipment"]
     assert isinstance(equipment["slots"], list) and equipment["slots"]
     actions = equipment["actions"]
-    assert actions["equip"] is False and actions["unequip"] is False
-    assert actions["reason"]
-    # 内容包 equip_slot 只读可见，但明确标注引擎未接，不能显示成可用空槽。
+    assert actions["equip"] is True and actions["unequip"] is True
+    assert actions["wear"] is True and actions["wield"] is True
+    assert actions["reason"] == ""
+    # 内容包 equip_slot 已接入：槽位可见且可用。
     assert equipment["xkx_slots"]
-    assert equipment["xkx_slots_available"] is False
-    assert equipment["xkx_slots_reason"]
+    assert equipment["xkx_slots_available"] is True
+    assert equipment["xkx_slots_reason"] == ""
 
 
 def test_exploration_counts_grow_after_moves(session):

@@ -4,6 +4,7 @@ from __future__ import annotations
 from ..core.clock import day_of
 from ..core.models import Effect, Intent, Reject
 from ..world.state import WorldState
+from .equipment import item_weight
 from .common import (
     arg_int,
     arg_str,
@@ -13,6 +14,7 @@ from .common import (
     explicit_goal_id,
     goal_progress,
     memory,
+    overweight_reason,
     quest_progress_effects,
     require_entity,
     sell_price,
@@ -66,6 +68,9 @@ class BuyAction(Action):
         tax = transaction_tax(self.content, price)
         if state.account_balance(wallet(ent.id)) < price + tax:
             return ["insufficient_money"]
+        overloaded = overweight_reason(self.content, ent, item_weight(self.content, item) * qty)
+        if overloaded:
+            return [overloaded]
         return []
 
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
@@ -170,6 +175,10 @@ class TradeAction(Action):
             return ["insufficient_money"]
         if state.affection_between(ent.id, target.id) < -20:
             return ["hostile"]
+        added = sum(item_weight(self.content, item) * qty for item, qty in want)
+        overloaded = overweight_reason(self.content, ent, added)
+        if overloaded:
+            return [overloaded]
         # 玩家 -> NPC 的公平闸门：防止 1 个烧饼换走名剑。
         if ent.id.startswith("player:") and not target.id.startswith("player:"):
             for item, _ in offer + want:
