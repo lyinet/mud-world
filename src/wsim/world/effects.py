@@ -104,6 +104,8 @@ EFFECT_OPS = frozenset(
         "loot_create",
         "combat_exp_add",
         "skill_xp_add",
+        # 公式库 improve_skill 的落库载体：直接写回等级/熟练度（纯 Effect）。
+        "skill_progress",
         # 只读战报载体（与 shop_report 同类）：不修改状态，只把 rounds[] 写进事件。
         "combat_log",
     }
@@ -380,11 +382,20 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         ent = _entity(state, str(d["entity"]))
         if ent.max_hp <= 0:
             raise EffectError(f"实体没有战斗生命值: {ent.id}")
+        old = int(ent.hp)
         if op == "hp_add":
-            value = ent.hp + _as_int(d["delta"], "delta")
+            value = old + _as_int(d["delta"], "delta")
         else:
             value = _as_int(d["value"], "value")
-        ent.hp = max(0, min(ent.max_hp, value))
+        new = max(0, min(ent.max_hp, value))
+        if op == "hp_add":
+            # 事件是唯一事实源：钳制就地进行，并把**实际**增量写回 delta。
+            # 否则“超额伤害”会让事件记 -71、状态只掉 -70，重放永远对不上。
+            # normalize() 给了 d 一份副本，事件序列化读的是 e.data，两边都写。
+            d["delta"] = new - old
+            if isinstance(e.data, dict):
+                e.data["delta"] = new - old
+        ent.hp = new
         return
 
     if op == "entity_status":
@@ -449,6 +460,19 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             level += 1
         ent.skill_levels[skill] = level
         ent.skill_xp[skill] = min(99, max(0, xp))
+        return
+
+    if op == "skill_progress":
+        ent = _entity(state, str(d["entity"]))
+        skill = str(d["skill"])
+        level = _as_int(d["level"], "level")
+        learned = _as_int(d["learned"], "learned")
+        if level < 0 or level > 800:
+            raise EffectError("技能等级必须在 0..800")
+        if learned < 0:
+            raise EffectError("技能熟练度不得为负")
+        ent.skill_levels[skill] = level
+        ent.skill_xp[skill] = learned
         return
 
     if op == "combat_log":

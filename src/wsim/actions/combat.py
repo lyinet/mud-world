@@ -11,7 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..core.models import Effect, Intent
-from ..sim.combat_rules import MAX_ROUNDS, attack_skill, simulate_fight
+from ..sim.combat_rules import MAX_ROUNDS, simulate_fight
 from ..sim.spawn import spawn_effects
 from ..world.state import WorldState
 from .registry import Action
@@ -78,11 +78,12 @@ class FightAction(Action):
             defender_skill=str(defender_skill) if defender_skill else None,
             max_rounds=_round_cap(intent),
             trace=trace,
+            player_ids=set(state.players),
         )
 
         effects: list[Effect] = []
-        hp_a = int(result["hp"][str(attacker.id)])
-        hp_b = int(result["hp"][str(defender.id)])
+        hp_a = int(result["hp_raw"][str(attacker.id)])
+        hp_b = int(result["hp_raw"][str(defender.id)])
         if hp_a != attacker.hp:
             effects.append(
                 Effect(op="hp_add", data={"entity": attacker.id, "delta": hp_a - attacker.hp, "reason": "fight"})
@@ -92,8 +93,9 @@ class FightAction(Action):
                 Effect(op="hp_add", data={"entity": defender.id, "delta": hp_b - defender.hp, "reason": "fight"})
             )
 
-        for ent, final_hp in ((attacker, hp_a), (defender, hp_b)):
-            if final_hp > 0 or ent.status == "dead":
+        dead_ids = set(result["dead"])
+        for ent in (attacker, defender):
+            if str(ent.id) not in dead_ids or ent.status == "dead":
                 continue
             effects.append(
                 Effect(
@@ -115,7 +117,7 @@ class FightAction(Action):
                 )
 
         # 掉落：只有被击杀的目标掉落；玩家尸体不产生掉落。
-        if hp_b <= 0 and not str(defender.id).startswith("player:"):
+        if str(defender.id) in dead_ids and not str(defender.id).startswith("player:"):
             for item in sorted(loot):
                 effects.append(
                     Effect(
@@ -124,23 +126,30 @@ class FightAction(Action):
                     )
                 )
 
-        # 经验：胜者 +3 战斗经验 / +5 出手技能经验；打平（20 回合未分胜负）双方 +1。
-        skill_a = attack_skill(attacker, str(skill) if skill else None)
-        skill_b = attack_skill(defender, str(defender_skill) if defender_skill else None)
-        winner = result["winner"]
-        if winner == "attacker":
-            effects.append(Effect(op="combat_exp_add", data={"entity": attacker.id, "delta": 3}))
+        # 经验与技能成长：增量/落值全部由 xkx_formula 的 Reward/improve_skill 算出。
+        for eid in (str(attacker.id), str(defender.id)):
+            delta = int(result["combat_exp"].get(eid, 0))
+            if delta:
+                effects.append(Effect(op="combat_exp_add", data={"entity": eid, "delta": delta}))
+        for update in result["skill_updates"]:
             effects.append(
-                Effect(op="skill_xp_add", data={"entity": attacker.id, "skill": skill_a, "delta": 5})
+                Effect(
+                    op="skill_progress",
+                    data={
+                        "entity": update["entity"],
+                        "skill": update["skill"],
+                        "level": int(update["level"]),
+                        "learned": int(update["learned"]),
+                    },
+                )
             )
-        elif winner == "defender":
-            effects.append(Effect(op="combat_exp_add", data={"entity": defender.id, "delta": 3}))
-            effects.append(
-                Effect(op="skill_xp_add", data={"entity": defender.id, "skill": skill_b, "delta": 5})
-            )
-        else:
-            effects.append(Effect(op="combat_exp_add", data={"entity": attacker.id, "delta": 1}))
-            effects.append(Effect(op="combat_exp_add", data={"entity": defender.id, "delta": 1}))
+
+        # 超额伤害只进战报：hp_add 的 delta 由 Effect 钳制后回写，事件必须等于实际变化。
+        overkill = {
+            eid: -int(result["hp_raw"][eid])
+            for eid in (str(attacker.id), str(defender.id))
+            if int(result["hp_raw"][eid]) < 0
+        }
 
         effects.append(
             Effect(
@@ -148,14 +157,15 @@ class FightAction(Action):
                 data={
                     "salt": "action:fight",
                     "max_rounds": _round_cap(intent),
-                    "skill": skill_a,
-                    "target_skill": skill_b,
-                    "winner": winner,
+                    "skill": result["skill"],
+                    "target_skill": result["target_skill"],
+                    "winner": result["winner"],
                     "rounds_used": int(result["rounds_used"]),
                     "hp": result["hp"],
                     "dead": result["dead"],
+                    "overkill": overkill,
                     "rounds": result["rounds"],
-                    "draws": len(trace),
+                    "draws": int(result["draws"]),
                 },
             )
         )

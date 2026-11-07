@@ -119,3 +119,44 @@ def test_skill_xp_levels_up_and_keeps_remainder():
     ent = state.entities["npc.hero"]
     assert ent.skill_levels["unarmed"] == 61
     assert ent.skill_xp["unarmed"] == 5
+
+
+def _hp_add(entity: str, delta: int) -> Effect:
+    return Effect("hp_add", {"entity": entity, "delta": delta, "reason": "fight"})
+
+
+def test_hp_add_overkill_is_clamped_into_the_event_delta():
+    """单次伤害超过剩余血量：事件增量必须等于状态实际变化。"""
+    state = _state()
+    apply_effects(state, [Effect("create_entity", _hero(max_hp=100))])
+    apply_effects(state, [_hp_add("npc.hero", -30)])
+    assert state.entities["npc.hero"].hp == 70
+
+    over = _hp_add("npc.hero", -999)
+    apply_effects(state, [over])
+    assert state.entities["npc.hero"].hp == 0
+    assert over.data["delta"] == -70  # 不是 -999，也不是 0
+
+
+def test_hp_add_multi_hit_overflow_accumulates_to_state_delta():
+    """一次动作里的多段伤害：逐段增量之和必须等于状态总变化。"""
+    state = _state()
+    apply_effects(state, [Effect("create_entity", _hero(max_hp=40))])
+    hits = [_hp_add("npc.hero", -30) for _ in range(3)]
+    apply_effects(state, hits)
+    assert [h.data["delta"] for h in hits] == [-30, -10, 0]
+    assert sum(h.data["delta"] for h in hits) == -40 == state.entities["npc.hero"].hp - 40
+
+
+def test_hp_add_on_zero_hp_records_zero_delta():
+    """hp 已为 0 时再受击：不允许记成负数增量。"""
+    state = _state()
+    apply_effects(state, [
+        Effect("create_entity", _hero(max_hp=10)),
+        _hp_add("npc.hero", -50),
+    ])
+    assert state.entities["npc.hero"].hp == 0
+    again = _hp_add("npc.hero", -7)
+    apply_effects(state, [again])
+    assert again.data["delta"] == 0
+    assert state.entities["npc.hero"].hp == 0

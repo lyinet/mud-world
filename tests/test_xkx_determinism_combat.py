@@ -73,8 +73,12 @@ GENESIS = [
 
 BASELINE = {
     "events_total": 4,  # genesis + system_spawn + fight + fight
-    "state_final": "dc0aa76e4670488607bd913a9715a2a4261c0f1dd89550bc73de2d01a1195654",
-    "event_final": "7968aebf7982a82235db11716b901b31e4d646bd841e01907666806417628824",
+    # 切换到 tools/xkx_formula 后重新采样（2026-11-07）：
+    # 旧值 dc0aa76e… / 7968aebf… 属于引擎自维护公式，已废弃。
+    "state_final": "3eae4e85e27e4f268c3f9d2579aac42d0e6465d759c2ebca7b3a93ff77627f86",
+    # event 哈希在 hp_add 增量钳制修复后重采样：状态未变（仍是 3eae4e85…），
+    # 只有事件里的 delta 从“超额值”改成实际变化（如 -41 → -40）。
+    "event_final": "046a13318b526911ded164f828c58ea0516d85492d2b8e917bd7467838d74db3",
 }
 
 
