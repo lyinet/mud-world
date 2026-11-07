@@ -81,6 +81,10 @@ def skill_power(
     - `living`：`!living(ob) || noliving` 时源码直接返回 0。
 
     返回值是未夹取到 [1, 200000000] 的原始战力；命中判定前再调用 `clamp_power`。
+
+    实测校准（书生场景，10 轮，N=71）：`level=0` 时确实走 `combat_exp/2` 分支，
+    命中前再夹到 ≥1。我方经验 0→6 期间，按每轮 `hp` 实测经验重建 ap 后，
+    闪避/招架/命中偏差为 -1.88/+0.10/+1.78pp（详见 formula-map.md 5.2）。
     """
     if usage not in (SKILL_USAGE_ATTACK, SKILL_USAGE_DEFENSE):
         raise ValueError("usage 必须是 SKILL_USAGE_ATTACK 或 SKILL_USAGE_DEFENSE")
@@ -126,6 +130,10 @@ def resolve_dodge(
     忙碌 dp/3 -> `random(ap + dp) < dp`。`cizu` 是受害者的
     `query_temp("bixie/cizu")`（辟邪刺足），为真时必不能躲。
     注意忙碌除法发生在夹取之后，结果可能小于 1，源码也如此。
+
+    实测校准（书生场景，10 轮，N=71，ap 按每轮实测经验重建）：实测闪避率 42.25%
+    （30/71），预测 44.13%，偏差 -1.88pp；静态按 ap=1 预测为 50%，偏差 -7.75pp，
+    差异来自“被打中会涨经验”导致的 ap 漂移，不是公式翻译错误（formula-map.md 5.2）。
     """
     ap = clamp_power(ap)
     dp = clamp_power(dp)
@@ -181,6 +189,9 @@ def resolve_parry(
     顺序：忙碌 pp/3 -> `action["parry"]` 修正 -> 夹取 [1, 200M] ->
     `random(ap + pp) < pp`。`ciwan` 是受害者的 `query_temp("bixie/ciwan")`
     （辟邪刺腕），为真时必不能招架。
+
+    实测校准（书生场景，10 轮，N=71，ap 按每轮实测经验重建）：实测招架率 23.94%
+    （17/71），预测 23.85%，偏差 +0.10pp（formula-map.md 5.2）。
     """
     ap = clamp_power(ap)
     pp = int(pp)
@@ -250,6 +261,11 @@ def roll_strength_bonus(
     调用方先把它们的整数增量算好，按源码顺序传入。
     顺序：force hit -> victim force be_hit -> action["force"] -> martial hit ->
     victim parry be_hit -> weapon hit -> `(bonus + random(bonus)) / 2`。
+
+    实测校准（书生场景，我方命中 24 次）：我方空手无兵器、书生无护甲、
+    `query_str()=20`，实测伤害全部落在 10-19 文本桶，与
+    `(20 + random(20)) / 2 ∈ [10,19]` 完全一致（formula-map.md 5.3）。
+    桶级之外的分辨率受原版 `damage_msg` 限制。
     """
     bonus = int(str_effective)
     bonus += int(force_hit)
@@ -280,6 +296,10 @@ def modify_damage_by_exp(
 
     `while (random(defense_factor) > my_exp) { damage -= damage / 3; defense_factor /= 2; }`
     前置条件：双方经验非负；否则 LPC 会陷入死循环，本库显式报错。
+
+    实测校准状态：**未触发，仍为推导值**。书生场景守方经验 0→1，
+    `random(0/1) > 6` 恒假；流氓场景守方经验 1000 但 dp≈2720，我方打不中。
+    可复现场景里找不到“经验 >80 且 dp 小”的对手（formula-map.md 5.4）。
     """
     attacker_exp = int(attacker_exp)
     defender_exp = int(defender_exp)
@@ -584,6 +604,11 @@ def damage_rewards(
     取数顺序：攻击者（若 ap<dp）先取 `random(jing*30/max_jing + int)`；
     受害者随后无条件取 `random(max_qi + qi)`。
     双方都是玩家时整段跳过，不取任何随机数。
+
+    实测校准（书生场景）：受害者分支真实可见——我方作为受害者被命中期间，
+    `combat_exp` 0→6、`potential` 99→105，步进与源码的 `+= 1`、`+= 1` 形态一致
+    （6 次触发 / 14 次被命中）。原版不显示 `max_qi`，触发概率
+    `random(max_qi+qi) < damage` 只能给方向，未能精确复算（formula-map.md 5.1）。
     """
     if attacker_is_player and victim_is_player:
         return Reward()

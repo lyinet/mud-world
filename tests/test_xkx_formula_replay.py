@@ -20,10 +20,18 @@ from xkx_formula import RandomSource, SequenceRandom, resolve_damage  # noqa: E4
 
 PACKAGE = ROOT / "tools" / "xkx_formula"
 FORBIDDEN_MODULES = {"random", "time", "os", "sqlite3", "wsim"}
+# 纯度约束只覆盖公式库本身；同目录下的 telnet 对拍工具
+# （probe_calibration.py / calibrate_report.py）需要 socket/time/os，不在约束内。
+LIBRARY_FILES = (
+    "__init__.py", "lpc_math.py", "rng.py", "attributes.py", "combat.py",
+    "skill.py",
+)
 
 
 def test_formula_package_has_no_stateful_imports() -> None:
-    for path in sorted(PACKAGE.glob("*.py")):
+    for name in LIBRARY_FILES:
+        path = PACKAGE / name
+        assert path.exists(), f"缺少公式库模块: {name}"
         tree = ast.parse(path.read_text(encoding="utf-8"))
         imported: set[str] = set()
         for node in ast.walk(tree):

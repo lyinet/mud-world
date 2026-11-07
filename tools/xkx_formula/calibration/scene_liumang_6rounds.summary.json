@@ -1,0 +1,71 @@
+{
+  "input": "tools/xkx_formula/calibration/scene_liumang_6rounds.json",
+  "ap": 3,
+  "dp": 1360,
+  "pp": 1360,
+  "ours": {
+    "counts": {
+      "dodge": 8,
+      "parry": 0,
+      "hit": 0,
+      "unpaired": 0
+    },
+    "n": 8,
+    "rates": {
+      "dodge": 1.0,
+      "parry": 0.0,
+      "hit": 0.0
+    },
+    "ci95": {
+      "dodge": [
+        0.6755843804891231,
+        1.0
+      ],
+      "parry": [
+        0.0,
+        0.3244156195108769
+      ],
+      "hit": [
+        0.0,
+        0.3244156195108769
+      ]
+    }
+  },
+  "theirs": {
+    "counts": {
+      "dodge": 0,
+      "parry": 0,
+      "hit": 7,
+      "unpaired": 0
+    },
+    "n": 7,
+    "rates": {
+      "dodge": 0.0,
+      "parry": 0.0,
+      "hit": 1.0
+    },
+    "ci95": {
+      "dodge": [
+        0.0,
+        0.35433884297520657
+      ],
+      "parry": [
+        0.0,
+        0.35433884297520657
+      ],
+      "hit": [
+        0.6456611570247934,
+        1.0
+      ]
+    }
+  },
+  "prediction": {
+    "dodge": 0.9977989728539985,
+    "parry": 0.0021961826255040198,
+    "hit": 4.844520497435459e-06
+  },
+  "damage_buckets_ours": {},
+  "damage_buckets_theirs": {
+    "10-19": 7
+  }
+}

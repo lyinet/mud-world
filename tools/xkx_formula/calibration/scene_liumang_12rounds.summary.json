@@ -1,0 +1,169 @@
+{
+  "input": "tools/xkx_formula/calibration/scene_liumang_12rounds.json",
+  "ap": 3,
+  "dp": 1360,
+  "pp": 1360,
+  "ours": {
+    "counts": {
+      "dodge": 20,
+      "parry": 1,
+      "hit": 0,
+      "unpaired": 0
+    },
+    "n": 21,
+    "rates": {
+      "dodge": 0.9523809523809523,
+      "parry": 0.047619047619047616,
+      "hit": 0.0
+    },
+    "ci95": {
+      "dodge": [
+        0.7733018341376452,
+        0.9915442305280766
+      ],
+      "parry": [
+        0.008455769471923294,
+        0.22669816586235464
+      ],
+      "hit": [
+        0.0,
+        0.15464382326420195
+      ]
+    }
+  },
+  "theirs": {
+    "counts": {
+      "dodge": 0,
+      "parry": 0,
+      "hit": 17,
+      "unpaired": 0
+    },
+    "n": 17,
+    "rates": {
+      "dodge": 0.0,
+      "parry": 0.0,
+      "hit": 1.0
+    },
+    "ci95": {
+      "dodge": [
+        0.0,
+        0.18432366037156456
+      ],
+      "parry": [
+        0.0,
+        0.18432366037156456
+      ],
+      "hit": [
+        0.8156763396284354,
+        1.0
+      ]
+    }
+  },
+  "prediction": {
+    "dodge": 0.9977989728539985,
+    "parry": 0.0021961826255040198,
+    "hit": 4.844520497435459e-06
+  },
+  "damage_buckets_ours": {},
+  "damage_buckets_theirs": {
+    "10-19": 17
+  },
+  "rounds": [
+    {
+      "round": "1",
+      "n": 4,
+      "dodge": 4,
+      "parry": 0,
+      "hit": 0,
+      "exp_at_start": 0
+    },
+    {
+      "round": "2",
+      "n": 1,
+      "dodge": 1,
+      "parry": 0,
+      "hit": 0,
+      "exp_at_start": 7
+    },
+    {
+      "round": "3",
+      "n": 2,
+      "dodge": 2,
+      "parry": 0,
+      "hit": 0,
+      "exp_at_start": 7
+    },
+    {
+      "round": "4",
+      "n": 0,
+      "dodge": 0,
+      "parry": 0,
+      "hit": 0,
+      "exp_at_start": 7
+    },
+    {
+      "round": "5",
+      "n": 2,
+      "dodge": 2,
+      "parry": 0,
+      "hit": 0,
+      "exp_at_start": 7
+    },
+    {
+      "round": "6",
+      "n": 3,
+      "dodge": 2,
+      "parry": 1,
+      "hit": 0,
+      "exp_at_start": 7
+    },
+    {
+      "round": "7",
+      "n": 1,
+      "dodge": 1,
+      "parry": 0,
+      "hit": 0,
+      "exp_at_start": 7
+    },
+    {
+      "round": "8",
+      "n": 2,
+      "dodge": 2,
+      "parry": 0,
+      "hit": 0,
+      "exp_at_start": 7
+    },
+    {
+      "round": "9",
+      "n": 1,
+      "dodge": 1,
+      "parry": 0,
+      "hit": 0,
+      "exp_at_start": 7
+    },
+    {
+      "round": "10",
+      "n": 3,
+      "dodge": 3,
+      "parry": 0,
+      "hit": 0,
+      "exp_at_start": 7
+    },
+    {
+      "round": "11",
+      "n": 1,
+      "dodge": 1,
+      "parry": 0,
+      "hit": 0,
+      "exp_at_start": 7
+    },
+    {
+      "round": "12",
+      "n": 1,
+      "dodge": 1,
+      "parry": 0,
+      "hit": 0,
+      "exp_at_start": 7
+    }
+  ]
+}
