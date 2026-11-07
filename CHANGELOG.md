@@ -9,6 +9,22 @@
 
 ---
 
+## [发布] 2026-11-07 — master 退回 pre-xkx 快照（df2b37c）
+
+- **改了什么**：`master` 从 `121fb37` 重置为 `df2b37c`（`pre-xkx-20261107`）；
+  重置前在 `121fb37` 打保险 tag `master-before-reset-20261107` 并推远端；
+  `docs/OPS-RUNBOOK.md` §13.7 记录执行人、原因、目标、保险 tag、操作方式与验证结果。
+- **为什么**：`master` 已直接接入 xkx 半成品（`98d9c02`…`121fb37`），违反 §13.1“master 必须始终可发布”；
+  老板明确授权退回，要求可回退、不丢东西。
+- **验证**：`git merge-base --is-ancestor df2b37c origin/xkx-parity` 成立；
+  `df2b37c..origin/master` 16 条提交逐条确认均在 `xkx-parity` 祖先链上；
+  `git ls-remote origin refs/heads/master` = `df2b37c`；
+  `origin/xkx-parity` 仍为 `53e89a9`；推送使用 `--force-with-lease=master:121fb37`，未用裸 `--force`。
+- **代价**：16 条提交（15 条 xkx 线 + `377b815` 通用修复）现在只存在于 `xkx-parity`，恢复方式见 §13.7。
+- **commit**：见本条目所在提交。
+
+---
+
 ## [文档/发布] 2026-11-07 — 修正 legacy tag 语义并新增 pre-xkx 快照 tag
 
 - **改了什么**：

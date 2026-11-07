@@ -1205,8 +1205,31 @@ git fetch origin --tags
 git branch -vv                                   # 本地分支与上游跟踪关系
 git rev-parse HEAD origin/master origin/xkx-parity
 git log --oneline -5 origin/master               # master 是否混入 xkx 提交
-git tag -l 'world-legacy-*'
+git tag -l --format='%(refname:short)|%(creatordate:short)|%(subject)' 'world-legacy-*' 'pre-xkx-*' 'master-before-reset-*'
 ```
 
 判读：`origin/master` 上出现 `feat(xkx` / `fix(xkx` 类提交即为违规，需回退或说明；
 `xkx-parity` 落后 `origin/xkx-parity` 说明有人没推。
+
+### 13.7 master 重置记录（2026-11-07）
+
+| 项 | 值 |
+|---|---|
+| 执行人 | 第三路（玩家壳与接入 session，`6ae85066887df6503c32fcd7`） |
+| 原因 | `master` 直接接入了 xkx 半成品（`98d9c02`…`121fb37`），违反 §13.1“master 必须始终可发布”；老板明确授权退回 |
+| 退回到 | `df2b37c`（`pre-xkx-20261107` 指向的 commit） |
+| 保险 tag | `master-before-reset-20261107` → `121fb37`（annotated，已推远端，tag 对象 `9c07873`） |
+| 操作方式 | 独立 worktree `/tmp/wsim-master-reset` 中 `git reset --hard df2b37c`，再 `git push --force-with-lease=master:121fb37 origin master`（未使用裸 `--force`，未改写任何 tag） |
+| 验证 | `git ls-remote origin refs/heads/master` = `df2b37c`；`origin/master` 顶端三条为 `df2b37c` / `961c3dd` / `9f1661c`；`origin/xkx-parity` 仍为 `53e89a9` |
+
+重置后**只存在于 `xkx-parity`** 的提交共 16 条（`df2b37c..121fb37`，均可在 `xkx-parity` 祖先链上找到，
+无丢失；其中 `377b815` 为通用调度器修复，但同样已在 `xkx-parity`）：
+
+```text
+121fb37 f79d51c e525de4 b587b60 9812625 fec936e 3b6349e 15eeaca
+c934768 927da92 98d9c02 a7b4887 5c32a3b e323244 3218800 377b815
+```
+
+需要恢复重置前状态：`git reset --hard master-before-reset-20261107`（本地）或
+`git push --force-with-lease=master:df2b37c origin master-before-reset-20261107:master`（远端，需老板授权）。
+
