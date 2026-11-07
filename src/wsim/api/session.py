@@ -519,7 +519,10 @@ class WorldSession:
         self.content = self._load_content_pack(self.content_root)
         # 世界自走与玩家共用 content：feed 只认这批 NPC，玩家 ID 永不进入公共事件流。
         self.npc_limit = int(npc_limit or 0)
-        self._npc_ids = frozenset(str(n["id"]) for n in self.content.npcs)
+        self._npc_ids = frozenset(
+            [str(n["id"]) for n in self.content.npcs]
+            + [str(row["id"]) for row in getattr(self.content, "npc_instances", []) or []]
+        )
         self.ambient: AmbientScheduler | None = None
         self._ambient_thread: threading.Thread | None = None
         npcs = sorted(self.content.npcs, key=lambda n: n["id"])
@@ -2250,7 +2253,8 @@ class WorldSession:
                 continue
             if ent.location != loc_id or ent.status != "alive":
                 continue
-            meta = npc_meta.get(ent.id) or {}
+            # 同模板多实例没有自己的元数据，显示名/身份回到模板那一行。
+            meta = npc_meta.get(ent.template or ent.id) or {}
             top = max(ent.skills.items(), key=lambda kv: (float(kv[1]), kv[0])) if ent.skills else None
             rows.append(
                 {

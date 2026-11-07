@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+import copy
 import warnings
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -189,6 +190,11 @@ def build_genesis(
     npc_money_total = 0
     npc_home: dict[str, str] = {}
     npc_work: dict[str, str] = {}
+    # 额外实例复制规范实体已算好的静态数据；不按实例 id 重算（原版每个 clone
+    # 都跑同一模板的 create()，属性与规范实例相同）。
+    npc_entity_data: dict[str, dict[str, Any]] = {}
+    npc_money: dict[str, int] = {}
+    npc_items: dict[str, list[dict[str, Any]]] = {}
     for npc in npcs:
         nid = npc["id"]
         acc = f"wallet:{nid}"
@@ -266,6 +272,40 @@ def build_genesis(
                 temp_apply[key] = int(value)
             if temp_apply:
                 entity_data["temp_apply"] = dict(sorted(temp_apply.items()))
+        npc_entity_data[nid] = entity_data
+        npc_money[nid] = money
+        npc_items[nid] = list(npc["assets"].get("items") or [])
+
+    # 4a1) 同模板多实例：原版房间 reset() 按 count 逐个 new()，每个 clone 是
+    # 独立对象，属性与模板一致、位置就是本房间。这里按模板排序后追加事件，
+    # 顺序固定；不调用 random，事件数不变（仍在同一个 genesis 事件里）。
+    # legacy 内容 npc_instances 为空，本段零效果。
+    for inst in getattr(content, "npc_instances", []) or []:
+        ref = str(inst.get("template") or "")
+        iid = str(inst.get("id") or "")
+        room = str(inst.get("room") or "")
+        base = npc_entity_data.get(ref)
+        if base is None or room not in content.locations:
+            mismatches.append(f"clone_without_canonical:{iid}")
+            continue
+        data = copy.deepcopy(base)
+        data["id"] = iid
+        data["location"] = room
+        data["home"] = room
+        data["template"] = ref
+        data["instance"] = int(inst.get("instance") or 0)
+        acc = f"wallet:{iid}"
+        effects.append(Effect("create_account", {"account": acc}))
+        effects.append(Effect("create_entity", data))
+        money = npc_money.get(ref, 0)
+        if money > 0:
+            npc_money_total += money
+            effects.append(Effect("mint", {"account": acc, "amount": money, "reason": "genesis_endowment"}))
+        for item in npc_items.get(ref) or []:
+            if item["qty"] > 0:
+                effects.append(
+                    Effect("item_create", {"owner": iid, "item": item["id"], "qty": item["qty"], "reason": "genesis_carry"})
+                )
 
     # 4a2) 房间地面初始物品：只认内容显式给出的整数 count。
     # `count_expr: random(...)` 这类表达式一律跳过，不在创世里引入随机。
