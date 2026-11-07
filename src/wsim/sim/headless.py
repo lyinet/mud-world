@@ -51,6 +51,7 @@ from ..world.writer import Writer
 from .genesis import build_genesis
 from .intent import MockReasoner, GoalSwitchPolicy
 from .lod import LODScheduler, load_lod_config
+from .spawn import load_spawns, normalize_spawns, spawn_due
 
 
 def intent_block_reason(registry: ActionRegistry, state: WorldState, intent: Intent) -> str:
@@ -111,6 +112,8 @@ class RunConfig:
     strategy_every_days: int = 3
     strategy_horizon_days: int = 3
     strategy_fake: bool = False
+    # 刷怪声明：None=从 content/spawns.yaml 读取；[]=显式无刷怪（调度层不写任何事件）。
+    spawns: list[dict[str, Any]] | None = None
 
 
 def _npc_money(state: WorldState) -> int:
@@ -170,7 +173,8 @@ def run_headless(
 
     state = WorldState(locations=content.locations)
     store = EventStore(out_dir / "events.sqlite")
-    registry = build_registry(content, cfg.seed)
+    spawns = normalize_spawns(cfg.spawns) if cfg.spawns is not None else load_spawns(root)
+    registry = build_registry(content, cfg.seed, spawns=spawns)
     writer = Writer(state, store, registry, cfg.seed)
 
     genesis = build_genesis(content, npcs, root=root)
@@ -626,6 +630,12 @@ def run_headless(
         day_events.append(
             emit(Intent(actor="system", verb="system_quest_post", args={"day": day}, tick=base, source="system"))
         )
+        # 刷怪：只有存在到期刷新时才提交 system_spawn；空内容/全部存活/未到期
+        # 一律不写事件（旧内容包没有 spawns.yaml，事件流逐字节不变）。
+        if spawns and spawn_due(writer.state, spawns, base):
+            day_events.append(
+                emit(Intent(actor="system", verb="system_spawn", args={"day": day}, tick=base, source="system"))
+            )
         for npc in sorted(npcs, key=lambda n: n["id"]):
             day_events.append(
                 emit(Intent(actor=npc["id"], verb="system_living", args={"day": day}, tick=base, source="system"))

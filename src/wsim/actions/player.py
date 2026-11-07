@@ -85,6 +85,8 @@ PLAYER_VERBS = frozenset(
         "equip",
         "unequip",
         "use_item",
+        # 战斗：一次动作原子结算最多 20 回合，只写 1 条事件（rounds[] 战报）。
+        "fight",
     }
 )
 
