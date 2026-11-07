@@ -114,10 +114,15 @@ Effect 里做一次，并把钳制后的**实际**增量回写进 `Effect.data["
 |---|---|
 | 旧 golden | `tests/test_p3e_golden.py` 两条 V6 测试保持绿（791 events，`6be665b…` / `0c15b0d…`） |
 | 旧无玩家世界 | 735 events，state `009076f0346352e328d8c158a3017a3e26fbc0b2c59ef7ca20c8fc3d1f780ce9`，event `02d5f812c427833387e592ad9321ebd72a9c5c719825b958f53af83d795078ae`，business_cash 11442 |
-| 新战斗基线 | 4 events（genesis + spawn + fight ×2），state `3eae4e85e27e4f268c3f9d2579aac42d0e6465d759c2ebca7b3a93ff77627f86`，event `bb1698b33f0d3c2c96af753afa53868ccf68c6419a66b48099db60952a15af2b`（`tests/test_xkx_determinism_combat.py`） |
+| 新战斗基线 | 4 events（genesis + spawn + fight ×2），state `3eae4e85e27e4f268c3f9d2579aac42d0e6465d759c2ebca7b3a93ff77627f86`，event `046a13318b526911ded164f828c58ea0516d85492d2b8e917bd7467838d74db3`（`tests/test_xkx_determinism_combat.py`） |
 | 同 seed 双跑 | 新基线测试内双跑 state/event 哈希逐字节一致 |
 | 回放等价 | 从 `events.sqlite` 逐条 `apply_effects` 重建的投影与实跑 state 哈希一致 |
+| 战斗账本自洽 | 干净 worktree（`b587b60`）审计第 7 项 PASS：`effect_sum == state_delta`（120→112 `-8/-8`，70→0 `-70/-70`），`problems=[]` |
 | PRNG 锁序 | `test_prng_draw_order_is_locked` 固定 9 次 `(n, value)` 对，顺序或流变化立即失败 |
+
+event 哈希两次采样说明：切库时先采 `bb1698b…`；随后修 `hp_add` 超额伤害的账本
+不自洽（delta 回写实际值，如 -41 → -40）后重采为 `046a133…`，state 哈希**未变**
+（`3eae4e85…`），证明这次修复只动账本、不动投影。
 
 基线迁移说明：`dc0aa76e…` / `7968aebf…` 是**引擎自维护公式**时代的采样值；切换到
 `tools/xkx_formula` 后按“以库为准”重新采样，不是把数值调回去凑旧哈希。旧 golden
