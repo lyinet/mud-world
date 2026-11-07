@@ -132,3 +132,30 @@ def test_xkx_genesis_moves_equipment_into_entity_not_inventory():
     apply_effects(state2, result2.effects)
     assert "unknown_equipment_item:/d/hangzhou/npc/poorman:missing/ghost_blade" in result2.mismatches
     assert "missing/ghost_blade" in state2.entities["/d/hangzhou/npc/poorman"].equipment
+    # 幽灵 ref 不贡献任何 apply；只保留原布衣的 apply/armor。
+    assert state2.entities["/d/hangzhou/npc/poorman"].equipped_apply == {"apply/armor": 1}
+
+
+def test_xkx_content_keeps_apply_and_genesis_wires_npc_equipment():
+    """`apply` 必须从内容层透传到创世，再进 `_Actor` 的装备入参。"""
+    content = load_xkx_content(ROOT / "content" / "xkx")
+    # 内容加载层原样保留：此前被丢弃会让穿/持后 `applied` 恒为空。
+    assert content.items["/d/hangzhou/honghua/obj/huangshan"]["apply"] == {"apply/armor": 10}
+    assert content.items["/d/hangzhou/honghua/obj/shortsword"]["apply"] == {"apply/damage": 75}
+    assert content.items["/d/city/obj/hammer"]["apply"] == {"apply/damage": 15}
+
+    state = WorldState(locations=content.locations)
+    result = build_genesis(content, content.npcs, root=ROOT, state=state, seed=42)
+    apply_effects(state, result.effects)
+
+    shami = state.entities["/d/hangzhou/npc/shami"]
+    assert shami.equipped == {"cloth": "/d/shaolin/npc/obj/dao-cloth"}
+    assert shami.equipped_apply == {"apply/armor": 6}
+
+    chuyuan = state.entities["/d/hangzhou/npc/chuyuan"]
+    assert chuyuan.equipped == {
+        "cloth": "/d/city/obj/tiejia",
+        "weapon": "/clone/weapon/changjian",
+    }
+    assert chuyuan.equipped_apply == {"apply/armor": 50, "apply/damage": 25}
+    assert chuyuan.weapon_type == "sword"

@@ -190,11 +190,16 @@ def load_xkx_content(pack_root: Path | str) -> Content:
             "unit": str(raw.get("unit") or "件"),
             "description": str(raw.get("desc") or ""),
             "weight": _int_or(raw.get("weight"), 0),
-            # 内容包的装备槽与重量来源只读透传；引擎穿脱未接通时只做展示。
+            # 内容包的装备槽与重量来源只读透传。
             "equip_slot": str(raw.get("equip_slot") or ""),
             "weight_source": str(raw.get("weight_source") or ""),
             "weight_reason": str(raw.get("weight_reason") or ""),
         }
+        # `apply/*` 加成只读透传：未识别键（如 apply/personality）也原样保留，
+        # 战斗侧只读取 apply/armor、apply/damage 等已知键，不猜值、不补默认。
+        apply_raw = raw.get("apply")
+        if isinstance(apply_raw, dict) and apply_raw:
+            content.items[iid]["apply"] = dict(apply_raw)
 
     # 引擎自带的初始行囊（actions 层发放）不在 xkx 内容包里；补几条展示用
     # 元数据，避免玩家在行囊里看到 flatbread 这种内部 id。价格沿用旧内容默认。
