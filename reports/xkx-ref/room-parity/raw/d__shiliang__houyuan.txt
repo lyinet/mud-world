@@ -1,0 +1,7 @@
+后院 - 
+    这里是个大大的后院，古树参天，知了在树上不停地叫着，有个
+仆人在那里清扫着地面。
+    夜幕低垂，满天星斗，银河横斜。
+    这里明显的出口是 north、east、northeast、southeast、west、northwest 和 southwest。
+  阿土(A tu)
+> 

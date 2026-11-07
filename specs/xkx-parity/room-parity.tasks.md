@@ -6,7 +6,7 @@
 - [x] T4 复刻侧读取 `content/xkx/*.json`，解析 objects 到中文名
 - [x] T5 差异分类与字符级 diff（多字/少字样例）
 - [x] T6 10 个代表房间试跑并人工核验（`--limit 10 --by-startroom`）
-- [ ] T7 全量 195 房采集，更新同一份 `room-parity.json` / `room-parity.md`（`--all --by-startroom`）
+- [x] T7 全量 195 房采集，更新同一份 `room-parity.json` / `room-parity.md`（`--all --by-startroom`；192 房可观察，3 房登录落点异常单列）
 - [x] T8 4004 上 10 房对照跑（临时快照副本探针 `xkxpq`，独立会话，用完即删）
 - [x] T9 提交：显式 `git add`、中文说明、推 `origin xkx-parity`（不 force、不 rebase 他人改动）
 - [ ] T10 释放：停探针实例，确认 4004 守护在线

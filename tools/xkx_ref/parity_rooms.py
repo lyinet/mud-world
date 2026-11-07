@@ -59,7 +59,7 @@ REPRESENTATIVE = [
 
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 CN_NUM = "一二三四五六七八九十百千两"
-UNITS = "只个把件张块本支条匹头座位名颗枚朵片根坛包瓶盒串副双对群些柄幅"
+UNITS = "只个把件张块本支条匹头座位名颗枚粒朵片根坛包瓶盒串副双对群些柄幅"
 INV_RE = re.compile(r"^(?:[" + CN_NUM + r"]+[" + UNITS + r"])?(.+?)(?:\(([^)]*)\))?(\[.*\])?$")
 NAME_LINE_RE = re.compile(r"^(.{1,40}?) - *$")
 
@@ -199,6 +199,29 @@ def load_content():
         graph.setdefault(e["from"], []).append((e["dir"], e["to"]))
         exit_map.setdefault(e["from"], {})[e["dir"]] = e["to"]
     return rooms, graph, exit_map, items, npcs
+
+
+SRC_SHORT_CACHE = {}
+
+
+def source_short(rid: str):
+    """原版房间源码里的 set("short")，用来校验登录是否真的落进目标房。"""
+    if rid in SRC_SHORT_CACHE:
+        return SRC_SHORT_CACHE[rid]
+    path = os.path.join(REF_MUDLIB, rid.lstrip("/"))
+    if not os.path.exists(path) and os.path.exists(path + ".c"):
+        path += ".c"
+    short = None
+    if os.path.exists(path):
+        try:
+            txt = open(path, encoding="utf-8", errors="ignore").read()
+            m = re.search(r'set\(\s*"short"\s*,\s*"([^"]+)"', txt)
+            if m:
+                short = m.group(1)
+        except OSError:
+            pass
+    SRC_SHORT_CACHE[rid] = short
+    return short
 
 
 SRC_NAME_CACHE = {}
@@ -528,6 +551,15 @@ def diff_counts(a: str, b: str):
 def compare_room(rid, orig, room, items, npcs, exit_map):
     if not orig or not orig.get("ok"):
         return {"id": rid, "status": "unparsed", "reason": (orig or {}).get("reason", "no-raw")}
+    expect = source_short(rid)
+    if expect and orig.get("name") and orig["name"] != expect:
+        # 登录没落进存档 startroom 指向的房间（实得默认起始房/阴间入口），
+        # 这一房的所有字段都不是目标房内容，标为不可观察，不计入一致率。
+        return {"id": rid, "short": room["name"], "status": "landing",
+                "landed": orig["name"],
+                "reason": f"落点异常：期望「{expect}」，实得「{orig['name']}」，未按 startroom 落入目标房",
+                "fields": {f: {"match": None, "observable": False}
+                           for f in ("name", "desc", "exits", "items", "npcs")}}
     ritems, rnpcs, unresolved = replica_field(room, items, npcs)
     rec = {"id": rid, "short": room["name"]}
     fields = {}
@@ -657,6 +689,10 @@ def main():
             cats["unparsed"] += 1
             samples.setdefault("unparsed", r)
             continue
+        if r["status"] == "landing":
+            cats["landing_mismatch"] += 1
+            samples.setdefault("landing_mismatch", r)
+            continue
         for f in ("name", "exits", "items", "npcs"):
             if r["fields"][f]["match"] is False:
                 cats[f + "_mismatch"] += 1
@@ -675,6 +711,37 @@ def main():
             samples.setdefault(key, r)
 
     total_rooms = len([r for r in rooms])
+    # npcs 差异细分：原版显示名常带门派头衔/「<昏迷不醒>」状态，复刻只存基名，
+    # 与“真缺失/数量不同”分开计数，避免把呈现层差异混进内容差异。
+    nb = Counter()
+    for r in records:
+        if r["status"] != "differ":
+            continue
+        f = r["fields"]["npcs"]
+        if f["match"] is not False:
+            continue
+        o, p = f["orig"], f["repl"]
+        reasons = []
+        if set(o) == set(p):
+            reasons.append("数量不同")
+        else:
+            only_o = [k for k in o if k not in p]
+            only_p = [k for k in p if k not in o]
+            mapped = False
+            for k in list(only_o):
+                cand = [q for q in only_p if k.endswith(q) or q in k]
+                if len(cand) == 1:
+                    q = cand[0]
+                    mapped = True
+                    only_o.remove(k)
+                    only_p.remove(q)
+            if mapped:
+                reasons.append("头衔/状态前缀")
+            if only_o or only_p:
+                reasons.append("在场/缺失")
+            if any(o.get(k) != p.get(k) for k in set(o) & set(p)):
+                reasons.append("数量不同")
+        nb["+".join(reasons) or "其他"] += 1
     suffix = f"-{args.tag}" if args.tag else ""
     prev_json = os.path.join(OUTDIR, f"room-parity{suffix}.json")
     prev = json.load(open(prev_json, encoding="utf-8")) if os.path.exists(prev_json) else {}
@@ -711,6 +778,7 @@ def main():
                "N6 房间名去首尾空白与 ' - ' 后缀",
            ],
            "rooms": len(records), "summary": summary, "categories": dict(cats),
+           "npc_breakdown": dict(nb),
            "samples": samples, "records": records}
     os.makedirs(OUTDIR, exist_ok=True)
     with open(os.path.join(OUTDIR, f"room-parity{suffix}.json"), "w", encoding="utf-8") as fh:
@@ -751,6 +819,8 @@ def write_md(out, md_path):
              "- 复刻切片内没有 `武庙`（该房在 `/d/city`，不在杭州切片），因此代表房间用杭州地标；"
              "这一点是覆盖范围差异，不是工具缺陷。",
              "- 夜间室外房间出口不可见时，`exits` 记 `observable:false`，不计入一致率；描述与物品/NPC 照常比较。",
+             "- 每次登录后用原版源码 `set(\"short\")` 校验落点；实得短名与目标房不一致记为 `landing`"
+             "（落点异常），该房所有字段标为不可观察、不计入一致率，差异清单单列。",
              "", "## 归一化规则", ""]
     for n in out["normalization"]:
         lines.append(f"- {n}")
@@ -762,11 +832,21 @@ def write_md(out, md_path):
     lines += ["", "## 差异分类", "", "| 分类 | 数量 |", "|------|------|"]
     for k, v in sorted(out["categories"].items()):
         lines.append(f"| {k} | {v} |")
+    if out.get("npc_breakdown"):
+        lines += ["", "### NPC 差异细分", "", "| 细类 | 房间数 |", "|------|--------|"]
+        for k, v in sorted(out["npc_breakdown"].items(), key=lambda x: -x[1]):
+            lines.append(f"| {k} | {v} |")
+        lines += ["", "“头衔/状态前缀”= 原版显示名带门派头衔或「<昏迷不醒>」状态、复刻只存基名；"
+                  "“在场/缺失”= 一侧在场另一侧不在（含共享实例里 NPC 游走/已离开）；"
+                  "“数量不同”= 同名 NPC 两侧 clone 数不一致。"]
     lines += ["", "## 差异清单", "",
               "| 房间 | 字段 | 说明 |", "|------|------|------|"]
     for r in out["records"]:
         if r.get("status") == "unparsed":
             lines.append(f"| `{r['id']}` | unparsed | {r.get('reason', '')} |")
+            continue
+        if r.get("status") == "landing":
+            lines.append(f"| `{r['id']}` | landing | {r.get('reason', '')}（该房不计入一致率） |")
             continue
         for f, v in r.get("fields", {}).items():
             if v.get("match") is False:
@@ -786,13 +866,21 @@ def write_md(out, md_path):
         lines.append(json.dumps(r, ensure_ascii=False, indent=1)[:1200])
         lines.append("```")
         lines.append("")
+    full = smp.get("selection") == "all"
     if out["source"].get("tag"):
         sample_cmd = ("# 4004 现场采集（需先准备临时探针存档；本次已清理）\n"
                       "python3 tools/xkx_ref/parity_rooms.py --limit 10 --by-startroom --no-instance "
                       "--port 4004 --player xkxpq --tag 4004")
+        reparse_cmd = ("python3 tools/xkx_ref/parity_rooms.py --limit 10 --reparse --tag 4004 "
+                       "--port 4004 --player xkxpq")
+    elif full:
+        sample_cmd = ("# 本报告样本（全量；会启停 4020 实例）\n"
+                      "python3 tools/xkx_ref/parity_rooms.py --all --by-startroom --port 4020")
+        reparse_cmd = "python3 tools/xkx_ref/parity_rooms.py --all --reparse"
     else:
         sample_cmd = ("# 本报告样本（10 个代表房间；会启停 4020 实例）\n"
                       "python3 tools/xkx_ref/parity_rooms.py --limit 10 --by-startroom --port 4020")
+        reparse_cmd = "python3 tools/xkx_ref/parity_rooms.py --limit 10 --reparse"
     lines += ["", "## 复现命令", "",
               "所有数字都可由 `tools/xkx_ref/parity_rooms.py` 重跑；`--reparse` 只读已落盘的原始 `look` 文本重算，",
               "不连实例，用于核验解析与统计口径。", "",
@@ -800,10 +888,7 @@ def write_md(out, md_path):
               sample_cmd,
               "",
               "# 只重算、不重采集（结果与上面一致）",
-              "python3 tools/xkx_ref/parity_rooms.py --limit 10 --reparse",
-              "",
-              "# 全量（复刻杭州切片全部房间）",
-              "python3 tools/xkx_ref/parity_rooms.py --all --by-startroom --port 4020",
+              reparse_cmd,
               "",
               "# 4004 对照：只从已落盘原文重算",
               "python3 tools/xkx_ref/parity_rooms.py --limit 10 --reparse --tag 4004 --port 4004 --player xkxpq",

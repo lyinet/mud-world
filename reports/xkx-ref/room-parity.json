@@ -9,9 +9,9 @@
   "collection": "startroom（逐房改存档 startroom 直接登录 look）"
  },
  "sample": {
-  "rooms": 10,
+  "rooms": 195,
   "total_rooms": 195,
-  "selection": "representative"
+  "selection": "all"
  },
  "normalization": [
   "N1 去 ANSI 颜色码",
@@ -21,79 +21,51 @@
   "N5 物品/NPC 行去数量前缀与英文括号，按中文名多重集合比较",
   "N6 房间名去首尾空白与 ' - ' 后缀"
  ],
- "rooms": 10,
+ "rooms": 195,
  "summary": {
   "name": {
-   "observable": 10,
-   "match": 10,
+   "observable": 192,
+   "match": 192,
    "rate": 1.0
   },
   "desc": {
-   "observable": 10,
-   "match": 10,
-   "rate": 1.0
+   "observable": 192,
+   "match": 188,
+   "rate": 0.9792
   },
   "exits": {
-   "observable": 10,
-   "match": 10,
-   "rate": 1.0
+   "observable": 192,
+   "match": 191,
+   "rate": 0.9948
   },
   "items": {
-   "observable": 10,
-   "match": 10,
-   "rate": 1.0
+   "observable": 192,
+   "match": 185,
+   "rate": 0.9635
   },
   "npcs": {
-   "observable": 10,
-   "match": 10,
-   "rate": 1.0
+   "observable": 192,
+   "match": 140,
+   "rate": 0.7292
   }
  },
- "categories": {},
- "samples": {},
- "records": [
-  {
-   "id": "/d/hangzhou/jiulou",
-   "short": "楼外楼",
-   "fields": {
-    "name": {
-     "match": true,
-     "orig": "楼外楼",
-     "repl": "楼外楼"
-    },
-    "desc": {
-     "match": true
-    },
-    "exits": {
-     "match": true,
-     "orig": [
-      "up",
-      "west"
-     ],
-     "repl": [
-      "up",
-      "west"
-     ]
-    },
-    "items": {
-     "match": true,
-     "orig": {},
-     "repl": {}
-    },
-    "npcs": {
-     "match": true,
-     "orig": {
-      "店小二": 1
-     },
-     "repl": {
-      "店小二": 1
-     }
-    }
-   },
-   "status": "match"
-  },
-  {
-   "id": "/d/hangzhou/road1",
+ "categories": {
+  "npcs_mismatch": 52,
+  "items_mismatch": 7,
+  "exits_mismatch": 1,
+  "desc_extra": 1,
+  "landing_mismatch": 3,
+  "desc_missing_text": 3
+ },
+ "npc_breakdown": {
+  "头衔/状态前缀": 33,
+  "数量不同": 12,
+  "头衔/状态前缀+数量不同": 4,
+  "在场/缺失": 3
+ },
+ "samples": {
+  "npcs_mismatch": {
+   "id": "/d/hangzhou/road7",
    "short": "青石大道",
    "fields": {
     "name": {
@@ -109,15 +81,215 @@
      "orig": [
       "north",
       "northeast",
-      "northwest",
-      "south"
+      "south",
+      "west"
      ],
      "repl": [
       "north",
       "northeast",
-      "northwest",
+      "south",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "武当派第三代弟子 游方道人": 1
+     },
+     "repl": {
+      "游方道人": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  "items_mismatch": {
+   "id": "/d/hangzhou/dadao1",
+   "short": "沿湖大道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "沿湖大道",
+     "repl": "沿湖大道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "south",
+      "west"
+     ],
+     "repl": [
+      "north",
+      "south",
+      "west"
+     ]
+    },
+    "items": {
+     "match": false,
+     "orig": {},
+     "repl": {
+      "白薇": 1
+     }
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "differ"
+  },
+  "exits_mismatch": {
+   "id": "/d/hangzhou/longjing",
+   "short": "龙井",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "龙井",
+     "repl": "龙井"
+    },
+    "desc": {
+     "match": false,
+     "extra_chars": 16,
+     "missing_chars": 0,
+     "repl_empty": false,
+     "samples": [
+      {
+       "orig": "茶室。往南便回大路。",
+       "repl": "茶室。往南便回大路。蒙面人(Mengmianren)"
+      }
+     ]
+    },
+    "exits": {
+     "match": false,
+     "orig": [],
+     "repl": [
+      "east",
       "south"
      ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "蒙面人": 1
+     },
+     "repl": {}
+    }
+   },
+   "status": "differ"
+  },
+  "desc_extra": {
+   "id": "/d/hangzhou/longjing",
+   "short": "龙井",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "龙井",
+     "repl": "龙井"
+    },
+    "desc": {
+     "match": false,
+     "extra_chars": 16,
+     "missing_chars": 0,
+     "repl_empty": false,
+     "samples": [
+      {
+       "orig": "茶室。往南便回大路。",
+       "repl": "茶室。往南便回大路。蒙面人(Mengmianren)"
+      }
+     ]
+    },
+    "exits": {
+     "match": false,
+     "orig": [],
+     "repl": [
+      "east",
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "蒙面人": 1
+     },
+     "repl": {}
+    }
+   },
+   "status": "differ"
+  },
+  "landing_mismatch": {
+   "id": "/d/hangzhou/liuhe1",
+   "short": "六和塔",
+   "status": "landing",
+   "landed": "武庙",
+   "reason": "落点异常：期望「六和塔」，实得「武庙」，未按 startroom 落入目标房",
+   "fields": {
+    "name": {
+     "match": null,
+     "observable": false
+    },
+    "desc": {
+     "match": null,
+     "observable": false
+    },
+    "exits": {
+     "match": null,
+     "observable": false
+    },
+    "items": {
+     "match": null,
+     "observable": false
+    },
+    "npcs": {
+     "match": null,
+     "observable": false
+    }
+   }
+  },
+  "desc_missing_text": {
+   "id": "/d/hangzhou/santan",
+   "short": "三潭印月",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "三潭印月",
+     "repl": "三潭印月"
+    },
+    "desc": {
+     "match": false,
+     "extra_chars": 0,
+     "missing_chars": 1,
+     "repl_empty": false,
+     "samples": [
+      {
+       "orig": "u)是送游客去苏堤。>",
+       "repl": "u)是送游客去苏堤。"
+      }
+     ]
+    },
+    "exits": {
+     "match": true,
+     "orig": [],
+     "repl": []
     },
     "items": {
      "match": true,
@@ -130,16 +302,18 @@
      "repl": {}
     }
    },
-   "status": "match"
-  },
+   "status": "differ"
+  }
+ },
+ "records": [
   {
-   "id": "/d/hangzhou/duanqiao",
-   "short": "断桥",
+   "id": "/d/hangzhou/road9",
+   "short": "青石大道",
    "fields": {
     "name": {
      "match": true,
-     "orig": "断桥",
-     "repl": "断桥"
+     "orig": "青石大道",
+     "repl": "青石大道"
     },
     "desc": {
      "match": true
@@ -148,10 +322,14 @@
      "match": true,
      "orig": [
       "northeast",
+      "south",
+      "southwest",
       "west"
      ],
      "repl": [
       "northeast",
+      "south",
+      "southwest",
       "west"
      ]
     },
@@ -162,12 +340,8 @@
     },
     "npcs": {
      "match": true,
-     "orig": {
-      "穷汉": 1
-     },
-     "repl": {
-      "穷汉": 1
-     }
+     "orig": {},
+     "repl": {}
     }
    },
    "status": "match"
@@ -209,6 +383,358 @@
    "status": "match"
   },
   {
+   "id": "/d/hangzhou/road8",
+   "short": "青石大道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "青石大道",
+     "repl": "青石大道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "northup",
+      "southwest"
+     ],
+     "repl": [
+      "east",
+      "northup",
+      "southwest"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/road10",
+   "short": "青石大道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "青石大道",
+     "repl": "青石大道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "north",
+      "south",
+      "west"
+     ],
+     "repl": [
+      "east",
+      "north",
+      "south",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/matou",
+   "short": "临安码头",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "临安码头",
+     "repl": "临安码头"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "southwest"
+     ],
+     "repl": [
+      "southwest"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/pinghuqiuyue",
+   "short": "平湖秋月",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "平湖秋月",
+     "repl": "平湖秋月"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northeast",
+      "northwest",
+      "west"
+     ],
+     "repl": [
+      "northeast",
+      "northwest",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/baoshishan",
+   "short": "宝石山",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "宝石山",
+     "repl": "宝石山"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northup",
+      "southdown"
+     ],
+     "repl": [
+      "northup",
+      "southdown"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {
+      "大石头": 1,
+      "鹅卵石": 1
+     },
+     "repl": {
+      "大石头": 1,
+      "鹅卵石": 1
+     }
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/road7",
+   "short": "青石大道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "青石大道",
+     "repl": "青石大道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "northeast",
+      "south",
+      "west"
+     ],
+     "repl": [
+      "north",
+      "northeast",
+      "south",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "武当派第三代弟子 游方道人": 1
+     },
+     "repl": {
+      "游方道人": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/road11",
+   "short": "青石大道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "青石大道",
+     "repl": "青石大道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "north",
+      "south"
+     ],
+     "repl": [
+      "east",
+      "north",
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/jiulou",
+   "short": "楼外楼",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "楼外楼",
+     "repl": "楼外楼"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "up",
+      "west"
+     ],
+     "repl": [
+      "up",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "店小二": 1
+     },
+     "repl": {
+      "店小二": 1
+     }
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/marryroom",
+   "short": "红娘庄",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "红娘庄",
+     "repl": "红娘庄"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east"
+     ],
+     "repl": [
+      "east"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "红娘庄 红娘": 1
+     },
+     "repl": {
+      "红娘": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
    "id": "/d/hangzhou/gushan",
    "short": "孤山",
    "fields": {
@@ -235,6 +761,2413 @@
       "northwest",
       "southup",
       "westup"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/fangheting",
+   "short": "放鹤亭",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "放鹤亭",
+     "repl": "放鹤亭"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "southeast",
+      "southwest"
+     ],
+     "repl": [
+      "southeast",
+      "southwest"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/baoshuta",
+   "short": "保淑塔",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "保淑塔",
+     "repl": "保淑塔"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "southdown"
+     ],
+     "repl": [
+      "southdown"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/shanlu8",
+   "short": "山路",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "山路",
+     "repl": "山路"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "south"
+     ],
+     "repl": [
+      "north",
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/xilingqiao",
+   "short": "西泠桥",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "西泠桥",
+     "repl": "西泠桥"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "southeast"
+     ],
+     "repl": [
+      "north",
+      "southeast"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/road6",
+   "short": "青石大道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "青石大道",
+     "repl": "青石大道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "north",
+      "south",
+      "west"
+     ],
+     "repl": [
+      "east",
+      "north",
+      "south",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "流氓头": 1,
+      "流氓": 1
+     },
+     "repl": {
+      "流氓": 4,
+      "流氓头": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/road12",
+   "short": "青石大道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "青石大道",
+     "repl": "青石大道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "north",
+      "south"
+     ],
+     "repl": [
+      "east",
+      "north",
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "绿营清兵": 1,
+      "杭州提督 李可秀": 1
+     },
+     "repl": {
+      "李可秀": 1,
+      "绿营清兵": 4
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/tiejiangpu",
+   "short": "铁匠铺",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "铁匠铺",
+     "repl": "铁匠铺"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "west"
+     ],
+     "repl": [
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "铁匠": 1
+     },
+     "repl": {
+      "铁匠": 1
+     }
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/loveroom",
+   "short": "相约轩",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "相约轩",
+     "repl": "相约轩"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "down"
+     ],
+     "repl": [
+      "down"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/gushanpingtai",
+   "short": "孤山平台",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "孤山平台",
+     "repl": "孤山平台"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northdown"
+     ],
+     "repl": [
+      "northdown"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/huanglongdong",
+   "short": "黄龙洞",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "黄龙洞",
+     "repl": "黄龙洞"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "south"
+     ],
+     "repl": [
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "毒蛇(Dushe) <昏迷不醒>": 1
+     },
+     "repl": {
+      "毒蛇": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/yuelang",
+   "short": "岳廊",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "岳廊",
+     "repl": "岳廊"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "south"
+     ],
+     "repl": [
+      "north",
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "绿营会众": 1,
+      "明教青龙坛坛主 明教第三十五代弟子 程嘲风": 1
+     },
+     "repl": {
+      "程嘲风": 1,
+      "绿营会众": 2
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/suti1",
+   "short": "苏堤",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "苏堤",
+     "repl": "苏堤"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "south"
+     ],
+     "repl": [
+      "north",
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/road5",
+   "short": "青石大道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "青石大道",
+     "repl": "青石大道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "south",
+      "southwest",
+      "westup"
+     ],
+     "repl": [
+      "east",
+      "south",
+      "southwest",
+      "westup"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "红花会众": 1,
+      "挑夫": 1
+     },
+     "repl": {
+      "红花会众": 1,
+      "挑夫": 1
+     }
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/road13",
+   "short": "青石大道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "青石大道",
+     "repl": "青石大道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "north",
+      "southwest"
+     ],
+     "repl": [
+      "east",
+      "north",
+      "southwest"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "御林军骁骑营佐领「火手判官」张召重": 1
+     },
+     "repl": {
+      "张召重": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/shuyuan",
+   "short": "凤池书院",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "凤池书院",
+     "repl": "凤池书院"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "west"
+     ],
+     "repl": [
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/yuefen",
+   "short": "岳坟",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "岳坟",
+     "repl": "岳坟"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "south"
+     ],
+     "repl": [
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/suti2",
+   "short": "苏堤",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "苏堤",
+     "repl": "苏堤"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "south",
+      "west"
+     ],
+     "repl": [
+      "north",
+      "south",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {
+      "荷叶": 1
+     },
+     "repl": {
+      "荷叶": 1
+     }
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/road4",
+   "short": "青石大道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "青石大道",
+     "repl": "青石大道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northeast",
+      "south"
+     ],
+     "repl": [
+      "northeast",
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/yuquan",
+   "short": "玉泉",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "玉泉",
+     "repl": "玉泉"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "eastdown"
+     ],
+     "repl": [
+      "eastdown"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "游客": 1
+     },
+     "repl": {
+      "游客": 1
+     }
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/dadao1",
+   "short": "沿湖大道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "沿湖大道",
+     "repl": "沿湖大道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "south",
+      "west"
+     ],
+     "repl": [
+      "north",
+      "south",
+      "west"
+     ]
+    },
+    "items": {
+     "match": false,
+     "orig": {},
+     "repl": {
+      "白薇": 1
+     }
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/road14",
+   "short": "青石大道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "青石大道",
+     "repl": "青石大道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "northeast",
+      "southwest",
+      "west"
+     ],
+     "repl": [
+      "east",
+      "northeast",
+      "southwest",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "红花会十一当家「鸳鸯刀」骆冰": 1,
+      "红花会四当家「奔雷手」文泰来": 1
+     },
+     "repl": {
+      "文泰来": 1,
+      "骆冰": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/kedian",
+   "short": "天外天",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "天外天",
+     "repl": "天外天"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "up",
+      "west"
+     ],
+     "repl": [
+      "east",
+      "up",
+      "west"
+     ]
+    },
+    "items": {
+     "match": false,
+     "orig": {
+      "客店留言板(Board)": 1
+     },
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "店小二": 1
+     },
+     "repl": {
+      "店小二": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/suti3",
+   "short": "苏堤",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "苏堤",
+     "repl": "苏堤"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "south"
+     ],
+     "repl": [
+      "north",
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/quyuanbei",
+   "short": "曲院风荷",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "曲院风荷",
+     "repl": "曲院风荷"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "enter"
+     ],
+     "repl": [
+      "east",
+      "enter"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/hongchunqiao",
+   "short": "洪春桥",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "洪春桥",
+     "repl": "洪春桥"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "southwest"
+     ],
+     "repl": [
+      "north",
+      "southwest"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/dadao2",
+   "short": "沿湖大道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "沿湖大道",
+     "repl": "沿湖大道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "southwest"
+     ],
+     "repl": [
+      "north",
+      "southwest"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/guozhuang",
+   "short": "郭庄",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "郭庄",
+     "repl": "郭庄"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east"
+     ],
+     "repl": [
+      "east"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "大狼狗(Wolf dog) <昏迷不醒>": 1
+     },
+     "repl": {
+      "大狼狗": 2
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/road15",
+   "short": "青石大道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "青石大道",
+     "repl": "青石大道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northeast",
+      "southwest",
+      "west"
+     ],
+     "repl": [
+      "northeast",
+      "southwest",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/yaodian",
+   "short": "胡庆余堂",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "胡庆余堂",
+     "repl": "胡庆余堂"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "west"
+     ],
+     "repl": [
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "胡庆余": 1
+     },
+     "repl": {
+      "胡庆余": 1
+     }
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/qingbomen",
+   "short": "清波门",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "清波门",
+     "repl": "清波门"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "west"
+     ],
+     "repl": [
+      "east",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "女孩": 1
+     },
+     "repl": {
+      "女孩": 2
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/majiu",
+   "short": "马厩",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "马厩",
+     "repl": "马厩"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "up",
+      "west"
+     ],
+     "repl": [
+      "up",
+      "west"
+     ]
+    },
+    "items": {
+     "match": false,
+     "orig": {
+      "黄骠马": 1
+     },
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "枣红马": 1,
+      "马夫": 1,
+      "紫骝马": 1
+     },
+     "repl": {
+      "枣红马": 1,
+      "黄骠马": 1,
+      "紫骝马": 1,
+      "马夫": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/kedian2",
+   "short": "天外天客店二楼",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "天外天客店二楼",
+     "repl": "天外天客店二楼"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "down",
+      "enter"
+     ],
+     "repl": [
+      "down",
+      "enter"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/suti4",
+   "short": "苏堤",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "苏堤",
+     "repl": "苏堤"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "south"
+     ],
+     "repl": [
+      "north",
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "麻雀": 1,
+      "乌鸦": 1,
+      "武当派第十四代弟子 李沅芷": 1
+     },
+     "repl": {
+      "李沅芷": 1,
+      "乌鸦": 1,
+      "麻雀": 2
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/quyuanfenghe",
+   "short": "曲院风荷",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "曲院风荷",
+     "repl": "曲院风荷"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "out"
+     ],
+     "repl": [
+      "out"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/road3",
+   "short": "青石大道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "青石大道",
+     "repl": "青石大道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northeast",
+      "southup",
+      "southwest"
+     ],
+     "repl": [
+      "northeast",
+      "southup",
+      "southwest"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/dalu1",
+   "short": "大路",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "大路",
+     "repl": "大路"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northeast",
+      "south"
+     ],
+     "repl": [
+      "northeast",
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "红花会众": 1,
+      "挑夫": 1
+     },
+     "repl": {
+      "挑夫": 1,
+      "红花会众": 2
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/yuhuangsj",
+   "short": "玉皇山脚",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "玉皇山脚",
+     "repl": "玉皇山脚"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northeast",
+      "westup"
+     ],
+     "repl": [
+      "northeast",
+      "westup"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "红花会众": 1
+     },
+     "repl": {
+      "红花会众": 2
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/road16",
+   "short": "青石大道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "青石大道",
+     "repl": "青石大道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "northup",
+      "south",
+      "west"
+     ],
+     "repl": [
+      "east",
+      "northup",
+      "south",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "御前侍卫「金爪铁钩」白振": 1
+     },
+     "repl": {
+      "白振": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/jujingyuan",
+   "short": "聚景园",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "聚景园",
+     "repl": "聚景园"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "northeast"
+     ],
+     "repl": [
+      "east",
+      "northeast"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "绿营会众": 1,
+      "剑客": 1
+     },
+     "repl": {
+      "剑客": 1,
+      "绿营会众": 1
+     }
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/kedian3",
+   "short": "天外天客店二楼",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "天外天客店二楼",
+     "repl": "天外天客店二楼"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "out"
+     ],
+     "repl": [
+      "out"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/suti5",
+   "short": "苏堤",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "苏堤",
+     "repl": "苏堤"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "south"
+     ],
+     "repl": [
+      "north",
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/huangniling",
+   "short": "黄泥岭",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "黄泥岭",
+     "repl": "黄泥岭"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northdown",
+      "southdown"
+     ],
+     "repl": [
+      "northdown",
+      "southdown"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/road2",
+   "short": "青石大道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "青石大道",
+     "repl": "青石大道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northeast",
+      "southup",
+      "southwest"
+     ],
+     "repl": [
+      "northeast",
+      "southup",
+      "southwest"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "武当派第四代弟子 香火道人": 1
+     },
+     "repl": {
+      "香火道人": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/dadao3",
+   "short": "沿湖大道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "沿湖大道",
+     "repl": "沿湖大道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "south",
+      "west"
+     ],
+     "repl": [
+      "north",
+      "south",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/shanlu7",
+   "short": "山路",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "山路",
+     "repl": "山路"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "eastdown",
+      "westup"
+     ],
+     "repl": [
+      "eastdown",
+      "westup"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/xizhaoshan",
+   "short": "夕照山",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "夕照山",
+     "repl": "夕照山"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "southdown"
+     ],
+     "repl": [
+      "southdown"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/jingcisi",
+   "short": "净慈寺",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "净慈寺",
+     "repl": "净慈寺"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "enter",
+      "north"
+     ],
+     "repl": [
+      "enter",
+      "north"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/road20",
+   "short": "青石大道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "青石大道",
+     "repl": "青石大道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "north",
+      "west"
+     ],
+     "repl": [
+      "east",
+      "north",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/liulangqiao",
+   "short": "柳浪桥",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "柳浪桥",
+     "repl": "柳浪桥"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "southwest"
+     ],
+     "repl": [
+      "southwest"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "麻雀": 1,
+      "乌鸦": 1
+     },
+     "repl": {
+      "麻雀": 2,
+      "乌鸦": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/suti6",
+   "short": "苏堤",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "苏堤",
+     "repl": "苏堤"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "south",
+      "west"
+     ],
+     "repl": [
+      "north",
+      "south",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/maojiabu",
+   "short": "茅家埠",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "茅家埠",
+     "repl": "茅家埠"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northup",
+      "southwest"
+     ],
+     "repl": [
+      "northup",
+      "southwest"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "老大娘": 1,
+      "白骆驼": 1,
+      "男孩": 1
+     },
+     "repl": {
+      "男孩": 1,
+      "老大娘": 1,
+      "白骆驼": 1
+     }
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/shanlu1",
+   "short": "山路",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "山路",
+     "repl": "山路"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northdown",
+      "southup"
+     ],
+     "repl": [
+      "northdown",
+      "southup"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/road1",
+   "short": "青石大道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "青石大道",
+     "repl": "青石大道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "northeast",
+      "northwest",
+      "south"
+     ],
+     "repl": [
+      "north",
+      "northeast",
+      "northwest",
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "武当派第四代弟子 香火道人": 1
+     },
+     "repl": {}
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/road19",
+   "short": "青石大道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "青石大道",
+     "repl": "青石大道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "north",
+      "southwest"
+     ],
+     "repl": [
+      "east",
+      "north",
+      "southwest"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "御前侍卫 龙骏": 1,
+      "刀客": 1
+     },
+     "repl": {
+      "刀客": 1,
+      "龙骏": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/liuzhuang",
+   "short": "刘庄",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "刘庄",
+     "repl": "刘庄"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east"
+     ],
+     "repl": [
+      "east"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "管家": 1,
+      "家丁": 1
+     },
+     "repl": {
+      "管家": 1,
+      "家丁": 2
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/yuhuangsd",
+   "short": "玉皇山顶",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "玉皇山顶",
+     "repl": "玉皇山顶"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "eastdown",
+      "westdown"
+     ],
+     "repl": [
+      "eastdown",
+      "westdown"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "红花会十四当家「金笛秀才」余鱼同": 1
+     },
+     "repl": {
+      "余鱼同": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/jingci",
+   "short": "净慈寺",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "净慈寺",
+     "repl": "净慈寺"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "out"
+     ],
+     "repl": [
+      "out"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/suti7",
+   "short": "苏堤",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "苏堤",
+     "repl": "苏堤"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "south"
+     ],
+     "repl": [
+      "north",
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "书生": 1
+     },
+     "repl": {
+      "书生": 1
+     }
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/huagang",
+   "short": "花港观鱼",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "花港观鱼",
+     "repl": "花港观鱼"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east"
+     ],
+     "repl": [
+      "east"
+     ]
+    },
+    "items": {
+     "match": false,
+     "orig": {},
+     "repl": {
+      "白芷": 1
+     }
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/tulu1",
+   "short": "土路",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "土路",
+     "repl": "土路"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northeast",
+      "southwest"
+     ],
+     "repl": [
+      "northeast",
+      "southwest"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "男孩": 1
+     },
+     "repl": {
+      "男孩": 2
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/fajingsi",
+   "short": "法镜寺",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "法镜寺",
+     "repl": "法镜寺"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northdown",
+      "southup"
+     ],
+     "repl": [
+      "northdown",
+      "southup"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "进香客": 1,
+      "小沙弥": 1
+     },
+     "repl": {
+      "小沙弥": 1,
+      "进香客": 1
+     }
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/jiaxing/jxnanmen",
+   "short": "嘉兴南门",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "嘉兴南门",
+     "repl": "嘉兴南门"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "north",
+      "south",
+      "southeast"
+     ],
+     "repl": [
+      "east",
+      "north",
+      "south",
+      "southeast"
      ]
     },
     "items": {
@@ -293,13 +3226,255 @@
    "status": "match"
   },
   {
-   "id": "/d/hangzhou/suti1",
-   "short": "苏堤",
+   "id": "/d/hangzhou/feilaifeng",
+   "short": "飞来峰",
    "fields": {
     "name": {
      "match": true,
-     "orig": "苏堤",
-     "repl": "苏堤"
+     "orig": "飞来峰",
+     "repl": "飞来峰"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "eastup",
+      "north",
+      "westup"
+     ],
+     "repl": [
+      "eastup",
+      "north",
+      "westup"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/road18",
+   "short": "青石大道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "青石大道",
+     "repl": "青石大道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northeast",
+      "south",
+      "west"
+     ],
+     "repl": [
+      "northeast",
+      "south",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/shanlu6",
+   "short": "山路",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "山路",
+     "repl": "山路"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "eastup",
+      "westdown"
+     ],
+     "repl": [
+      "eastup",
+      "westdown"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {
+      "大树枝": 1
+     },
+     "repl": {
+      "大树枝": 1
+     }
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "老虎": 1
+     },
+     "repl": {
+      "老虎": 1
+     }
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/shanlu5",
+   "short": "山路",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "山路",
+     "repl": "山路"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "north",
+      "northeast",
+      "westup"
+     ],
+     "repl": [
+      "east",
+      "north",
+      "northeast",
+      "westup"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "采茶女": 1
+     },
+     "repl": {
+      "采茶女": 2
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/shanlu2",
+   "short": "山路",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "山路",
+     "repl": "山路"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northdown",
+      "southup"
+     ],
+     "repl": [
+      "northdown",
+      "southup"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "绿营会众": 1
+     },
+     "repl": {
+      "绿营会众": 2
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/jiaxing/jiaxing",
+   "short": "嘉兴城",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "嘉兴城",
+     "repl": "嘉兴城"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "south",
+      "west"
+     ],
+     "repl": [
+      "east",
+      "south",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/jiaxing/tieqiang",
+   "short": "铁枪庙",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "铁枪庙",
+     "repl": "铁枪庙"
     },
     "desc": {
      "match": true
@@ -308,11 +3483,1275 @@
      "match": true,
      "orig": [
       "north",
-      "south"
+      "west"
      ],
      "repl": [
       "north",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "乌鸦": 1
+     },
+     "repl": {
+      "乌鸦": 4
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/jiaxing/jnroad4",
+   "short": "山路",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "山路",
+     "repl": "山路"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "north",
+      "southup",
+      "west"
+     ],
+     "repl": [
+      "east",
+      "north",
+      "southup",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/tianwangdian",
+   "short": "天王殿",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "天王殿",
+     "repl": "天王殿"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "out"
+     ],
+     "repl": [
+      "north",
+      "out"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/lengquanting",
+   "short": "冷泉亭",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "冷泉亭",
+     "repl": "冷泉亭"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east"
+     ],
+     "repl": [
+      "east"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/qinglindong",
+   "short": "清林洞",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "清林洞",
+     "repl": "清林洞"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "eastup",
+      "westdown"
+     ],
+     "repl": [
+      "eastup",
+      "westdown"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/longhongdong",
+   "short": "龙泓洞",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "龙泓洞",
+     "repl": "龙泓洞"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "eastdown",
+      "northwest"
+     ],
+     "repl": [
+      "eastdown",
+      "northwest"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/shiwudong",
+   "short": "石屋洞",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "石屋洞",
+     "repl": "石屋洞"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "westup"
+     ],
+     "repl": [
+      "east",
+      "westup"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "蝎子": 1
+     },
+     "repl": {
+      "蝎子": 1
+     }
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/road17",
+   "short": "青石大道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "青石大道",
+     "repl": "青石大道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "north",
+      "south",
+      "west"
+     ],
+     "repl": [
+      "east",
+      "north",
+      "south",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "挑夫": 1,
+      "御前侍卫 褚圆": 1
+     },
+     "repl": {
+      "挑夫": 1,
+      "褚圆": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/yuhuangshan",
+   "short": "玉皇山",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "玉皇山",
+     "repl": "玉皇山"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "eastup",
+      "west"
+     ],
+     "repl": [
+      "eastup",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/shanlu4",
+   "short": "山路",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "山路",
+     "repl": "山路"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "eastdown",
+      "westup"
+     ],
+     "repl": [
+      "eastdown",
+      "westup"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/longjing",
+   "short": "龙井",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "龙井",
+     "repl": "龙井"
+    },
+    "desc": {
+     "match": false,
+     "extra_chars": 16,
+     "missing_chars": 0,
+     "repl_empty": false,
+     "samples": [
+      {
+       "orig": "茶室。往南便回大路。",
+       "repl": "茶室。往南便回大路。蒙面人(Mengmianren)"
+      }
+     ]
+    },
+    "exits": {
+     "match": false,
+     "orig": [],
+     "repl": [
+      "east",
       "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "蒙面人": 1
+     },
+     "repl": {}
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/yanxiadong",
+   "short": "烟霞洞",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "烟霞洞",
+     "repl": "烟霞洞"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "eastdown",
+      "west"
+     ],
+     "repl": [
+      "eastdown",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/fajinsi",
+   "short": "法净寺",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "法净寺",
+     "repl": "法净寺"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northdown",
+      "southup"
+     ],
+     "repl": [
+      "northdown",
+      "southup"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "进香客": 1,
+      "小沙弥": 1
+     },
+     "repl": {
+      "小沙弥": 1,
+      "进香客": 1
+     }
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/jiaxing/jnroad2",
+   "short": "山路",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "山路",
+     "repl": "山路"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "north",
+      "south",
+      "west"
+     ],
+     "repl": [
+      "east",
+      "north",
+      "south",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/jiaxing/nanhu",
+   "short": "嘉兴南湖",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "嘉兴南湖",
+     "repl": "嘉兴南湖"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "north",
+      "south",
+      "southeast",
+      "west"
+     ],
+     "repl": [
+      "east",
+      "north",
+      "south",
+      "southeast",
+      "west"
+     ]
+    },
+    "items": {
+     "match": false,
+     "orig": {},
+     "repl": {
+      "白芷": 1
+     }
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "古墓派第三代弟子「赤练仙子」李莫愁": 1
+     },
+     "repl": {
+      "李莫愁": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/jiaxing/jnroad3",
+   "short": "山路",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "山路",
+     "repl": "山路"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "north"
+     ],
+     "repl": [
+      "east",
+      "north"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/jiaxing/chating",
+   "short": "茶亭",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "茶亭",
+     "repl": "茶亭"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northeast",
+      "northwest",
+      "west"
+     ],
+     "repl": [
+      "northeast",
+      "northwest",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "日月神教第八代光明左使黑木崖第八代弟子「天王老子」向问天": 1
+     },
+     "repl": {
+      "向问天": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/dxbaodian1",
+   "short": "大雄宝殿",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "大雄宝殿",
+     "repl": "大雄宝殿"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "enter",
+      "south"
+     ],
+     "repl": [
+      "enter",
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/cuiweiting",
+   "short": "翠微亭",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "翠微亭",
+     "repl": "翠微亭"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "westdown"
+     ],
+     "repl": [
+      "westdown"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/shexudong",
+   "short": "射旭洞",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "射旭洞",
+     "repl": "射旭洞"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "southeast"
+     ],
+     "repl": [
+      "southeast"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "蒙面人": 1
+     },
+     "repl": {
+      "蒙面人": 1
+     }
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/manjuelong",
+   "short": "满觉陇",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "满觉陇",
+     "repl": "满觉陇"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "eastdown",
+      "westup"
+     ],
+     "repl": [
+      "eastdown",
+      "westup"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/qiantang",
+   "short": "钱塘江畔",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "钱塘江畔",
+     "repl": "钱塘江畔"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "eastdown",
+      "north",
+      "westup"
+     ],
+     "repl": [
+      "eastdown",
+      "north",
+      "westup"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "剑客": 1
+     },
+     "repl": {
+      "剑客": 1
+     }
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/hupaoquan",
+   "short": "虎跑泉",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "虎跑泉",
+     "repl": "虎跑泉"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east"
+     ],
+     "repl": [
+      "east"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/faxisi",
+   "short": "法喜寺",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "法喜寺",
+     "repl": "法喜寺"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "eastdown",
+      "northdown"
+     ],
+     "repl": [
+      "eastdown",
+      "northdown"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "进香客": 1,
+      "老和尚": 1
+     },
+     "repl": {
+      "进香客": 2,
+      "老和尚": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/chashi",
+   "short": "茶室",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "茶室",
+     "repl": "茶室"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "west"
+     ],
+     "repl": [
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/shuiledong",
+   "short": "水乐洞",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "水乐洞",
+     "repl": "水乐洞"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "eastdown",
+      "westup"
+     ],
+     "repl": [
+      "eastdown",
+      "westup"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/shanlu3",
+   "short": "山路",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "山路",
+     "repl": "山路"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northdown",
+      "southup"
+     ],
+     "repl": [
+      "northdown",
+      "southup"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "男孩": 1
+     },
+     "repl": {
+      "男孩": 3
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/jiaxing/jnroad1",
+   "short": "山路",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "山路",
+     "repl": "山路"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northwest",
+      "south"
+     ],
+     "repl": [
+      "northwest",
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/jiaxing/jiaxinggang",
+   "short": "嘉兴海港",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "嘉兴海港",
+     "repl": "嘉兴海港"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "west"
+     ],
+     "repl": [
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "船老大": 1
+     },
+     "repl": {
+      "船老大": 1
+     }
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/jiaxing/diaoyu",
+   "short": "钓鱼亭",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "钓鱼亭",
+     "repl": "钓鱼亭"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "south"
+     ],
+     "repl": [
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/jiaxing/nanhu1",
+   "short": "嘉兴南湖",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "嘉兴南湖",
+     "repl": "嘉兴南湖"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northwest",
+      "south",
+      "southeast"
+     ],
+     "repl": [
+      "northwest",
+      "south",
+      "southeast"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {
+      "荷叶": 1
+     },
+     "repl": {
+      "荷叶": 1
+     }
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/road2",
+   "short": "青石大道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "青石大道",
+     "repl": "青石大道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northup",
+      "southwest"
+     ],
+     "repl": [
+      "northup",
+      "southwest"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/shandao1",
+   "short": "山道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "山道",
+     "repl": "山道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northup",
+      "southeast"
+     ],
+     "repl": [
+      "northup",
+      "southeast"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "崆峒派第五代弟子 李拙道人": 1
+     },
+     "repl": {
+      "李拙道人": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/dxbaodian2",
+   "short": "大雄宝殿",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "大雄宝殿",
+     "repl": "大雄宝殿"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "out"
+     ],
+     "repl": [
+      "out"
      ]
     },
     "items": {
@@ -365,13 +4804,268 @@
    "status": "match"
   },
   {
-   "id": "/d/hangzhou/yuefen",
-   "short": "岳坟",
+   "id": "/d/jiaxing/yanyu",
+   "short": "烟雨楼",
    "fields": {
     "name": {
      "match": true,
-     "orig": "岳坟",
-     "repl": "岳坟"
+     "orig": "烟雨楼",
+     "repl": "烟雨楼"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "up"
+     ],
+     "repl": [
+      "north",
+      "up"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "店小二": 1
+     },
+     "repl": {
+      "店小二": 1
+     }
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/jiaxing/road",
+   "short": "土路",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "土路",
+     "repl": "土路"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northwest",
+      "southeast"
+     ],
+     "repl": [
+      "northwest",
+      "southeast"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/road1",
+   "short": "青石大道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "青石大道",
+     "repl": "青石大道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "southdown"
+     ],
+     "repl": [
+      "north",
+      "southdown"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "农夫": 1
+     },
+     "repl": {
+      "农夫": 1
+     }
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/shandao2",
+   "short": "山道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "山道",
+     "repl": "山道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northup",
+      "southdown"
+     ],
+     "repl": [
+      "northup",
+      "southdown"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "十方寺方丈 清明禅师": 1
+     },
+     "repl": {
+      "清明禅师": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/liuhe1",
+   "short": "六和塔",
+   "status": "landing",
+   "landed": "武庙",
+   "reason": "落点异常：期望「六和塔」，实得「武庙」，未按 startroom 落入目标房",
+   "fields": {
+    "name": {
+     "match": null,
+     "observable": false
+    },
+    "desc": {
+     "match": null,
+     "observable": false
+    },
+    "exits": {
+     "match": null,
+     "observable": false
+    },
+    "items": {
+     "match": null,
+     "observable": false
+    },
+    "npcs": {
+     "match": null,
+     "observable": false
+    }
+   }
+  },
+  {
+   "id": "/d/jiaxing/yanyu2",
+   "short": "烟雨楼二楼",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "烟雨楼二楼",
+     "repl": "烟雨楼二楼"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "down"
+     ],
+     "repl": [
+      "down"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/jiaxing/road1",
+   "short": "土路",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "土路",
+     "repl": "土路"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northwest",
+      "south"
+     ],
+     "repl": [
+      "northwest",
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/gate",
+   "short": "温宅大门",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "温宅大门",
+     "repl": "温宅大门"
     },
     "desc": {
      "match": true
@@ -399,13 +5093,1464 @@
    "status": "match"
   },
   {
-   "id": "/d/hangzhou/jingci",
-   "short": "净慈寺",
+   "id": "/d/shiliang/shandao3",
+   "short": "山洞口",
    "fields": {
     "name": {
      "match": true,
-     "orig": "净慈寺",
-     "repl": "净慈寺"
+     "orig": "山洞口",
+     "repl": "山洞口"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "southdown"
+     ],
+     "repl": [
+      "north",
+      "southdown"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/liuhe2",
+   "short": "六和塔",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "六和塔",
+     "repl": "六和塔"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "down",
+      "up"
+     ],
+     "repl": [
+      "down",
+      "up"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "红花会书僮 心砚": 1,
+      "铁胆庄大小姐「俏李逵」周绮": 1
+     },
+     "repl": {
+      "心砚": 1,
+      "周绮": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/jiaxing/road2",
+   "short": "土路",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "土路",
+     "repl": "土路"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "southeast"
+     ],
+     "repl": [
+      "north",
+      "southeast"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/shandong1",
+   "short": "山洞",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "山洞",
+     "repl": "山洞"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "north",
+      "south",
+      "west"
+     ],
+     "repl": [
+      "east",
+      "north",
+      "south",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/liuhe3",
+   "short": "六和塔",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "六和塔",
+     "repl": "六和塔"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "down",
+      "up"
+     ],
+     "repl": [
+      "down",
+      "up"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "红花会十三当家「铜头鳄鱼」蒋四根": 1
+     },
+     "repl": {
+      "蒋四根": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/jiaxing/njwest",
+   "short": "牛家村口",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "牛家村口",
+     "repl": "牛家村口"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "northwest"
+     ],
+     "repl": [
+      "east",
+      "northwest"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/shandong2",
+   "short": "山洞",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "山洞",
+     "repl": "山洞"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "north",
+      "south",
+      "west"
+     ],
+     "repl": [
+      "east",
+      "north",
+      "south",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/liuhe4",
+   "short": "六和塔",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "六和塔",
+     "repl": "六和塔"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "down",
+      "up"
+     ],
+     "repl": [
+      "down",
+      "up"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "红花会十二当家「鬼见愁」石双英": 1
+     },
+     "repl": {
+      "石双英": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/jiaxing/njroad1",
+   "short": "村中小路",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "村中小路",
+     "repl": "村中小路"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "south",
+      "west"
+     ],
+     "repl": [
+      "east",
+      "south",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/shandong3",
+   "short": "山洞",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "山洞",
+     "repl": "山洞"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "north",
+      "south",
+      "west"
+     ],
+     "repl": [
+      "east",
+      "north",
+      "south",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/liuhe5",
+   "short": "六和塔",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "六和塔",
+     "repl": "六和塔"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "down",
+      "up"
+     ],
+     "repl": [
+      "down",
+      "up"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "红花会九当家「九命锦豹子」卫春华": 1
+     },
+     "repl": {
+      "卫春华": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/jiaxing/njroad2",
+   "short": "村中小路",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "村中小路",
+     "repl": "村中小路"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "north",
+      "west"
+     ],
+     "repl": [
+      "east",
+      "north",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "女孩": 1
+     },
+     "repl": {
+      "女孩": 1
+     }
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/jiaxing/xiaodian",
+   "short": "小酒店",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "小酒店",
+     "repl": "小酒店"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north"
+     ],
+     "repl": [
+      "north"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "傻姑": 1
+     },
+     "repl": {
+      "傻姑": 1
+     }
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/shandong4",
+   "short": "山洞",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "山洞",
+     "repl": "山洞"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "north",
+      "south",
+      "west"
+     ],
+     "repl": [
+      "east",
+      "north",
+      "south",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/liuhe6",
+   "short": "六和塔",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "六和塔",
+     "repl": "六和塔"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "down",
+      "up"
+     ],
+     "repl": [
+      "down",
+      "up"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "红花会八当家「铁塔」杨成协": 1
+     },
+     "repl": {
+      "杨成协": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/jiaxing/njroad3",
+   "short": "村中小路",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "村中小路",
+     "repl": "村中小路"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "north",
+      "south",
+      "west"
+     ],
+     "repl": [
+      "east",
+      "north",
+      "south",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/jiaxing/guojia",
+   "short": "郭家民房",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "郭家民房",
+     "repl": "郭家民房"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "south"
+     ],
+     "repl": [
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/shandong5",
+   "short": "山洞",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "山洞",
+     "repl": "山洞"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "north",
+      "south",
+      "west"
+     ],
+     "repl": [
+      "east",
+      "north",
+      "south",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/liuhe7",
+   "short": "六和塔",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "六和塔",
+     "repl": "六和塔"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "down",
+      "up"
+     ],
+     "repl": [
+      "down",
+      "up"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "红花会七当家「武诸葛」徐天宏": 1
+     },
+     "repl": {
+      "徐天宏": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/jiaxing/njeast",
+   "short": "牛家村口",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "牛家村口",
+     "repl": "牛家村口"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "west"
+     ],
+     "repl": [
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "小孩": 1
+     },
+     "repl": {
+      "小孩": 1
+     }
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/jiaxing/yangjia",
+   "short": "杨家民房",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "杨家民房",
+     "repl": "杨家民房"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "south"
+     ],
+     "repl": [
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/jiaxing/njroad4",
+   "short": "村中小路",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "村中小路",
+     "repl": "村中小路"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "south"
+     ],
+     "repl": [
+      "north",
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "男孩": 1
+     },
+     "repl": {
+      "男孩": 1
+     }
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/shandong6",
+   "short": "山洞",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "山洞",
+     "repl": "山洞"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "north",
+      "south",
+      "west"
+     ],
+     "repl": [
+      "east",
+      "north",
+      "south",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/liuhe8",
+   "short": "六和塔",
+   "status": "landing",
+   "landed": "鬼门关",
+   "reason": "落点异常：期望「六和塔」，实得「鬼门关」，未按 startroom 落入目标房",
+   "fields": {
+    "name": {
+     "match": null,
+     "observable": false
+    },
+    "desc": {
+     "match": null,
+     "observable": false
+    },
+    "exits": {
+     "match": null,
+     "observable": false
+    },
+    "items": {
+     "match": null,
+     "observable": false
+    },
+    "npcs": {
+     "match": null,
+     "observable": false
+    }
+   }
+  },
+  {
+   "id": "/d/jiaxing/njroad5",
+   "short": "村中小路",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "村中小路",
+     "repl": "村中小路"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "south"
+     ],
+     "repl": [
+      "north",
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/shandong7",
+   "short": "山洞尽头",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "山洞尽头",
+     "repl": "山洞尽头"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north"
+     ],
+     "repl": [
+      "north"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/liuhe9",
+   "short": "六和塔",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "六和塔",
+     "repl": "六和塔"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "down",
+      "up"
+     ],
+     "repl": [
+      "down",
+      "up"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "红花会三当家「千臂如来」赵半山": 1
+     },
+     "repl": {
+      "赵半山": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/jiaxing/jiangpan1",
+   "short": "江畔",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "江畔",
+     "repl": "江畔"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "southeast"
+     ],
+     "repl": [
+      "north",
+      "southeast"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/liuhea",
+   "short": "六和塔",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "六和塔",
+     "repl": "六和塔"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "down",
+      "up"
+     ],
+     "repl": [
+      "down",
+      "up"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "铁胆庄庄主「铁胆」周仲英": 1
+     },
+     "repl": {
+      "周仲英": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/jiaxing/jiangpan2",
+   "short": "江畔",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "江畔",
+     "repl": "江畔"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "northwest"
+     ],
+     "repl": [
+      "east",
+      "northwest"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/liuheb",
+   "short": "六和塔",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "六和塔",
+     "repl": "六和塔"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "down",
+      "up"
+     ],
+     "repl": [
+      "down",
+      "up"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "武当派第十七代掌门「绵里针」陆菲青": 1
+     },
+     "repl": {
+      "陆菲青": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/jiaxing/jiangpan3",
+   "short": "江畔",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "江畔",
+     "repl": "江畔"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "west"
+     ],
+     "repl": [
+      "east",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/liuhec",
+   "short": "六和塔",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "六和塔",
+     "repl": "六和塔"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "down",
+      "up"
+     ],
+     "repl": [
+      "down",
+      "up"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "红花会二当家「追魂夺命剑」无尘道长": 1
+     },
+     "repl": {
+      "无尘道长": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/jiaxing/haibin",
+   "short": "海滨",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "海滨",
+     "repl": "海滨"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "west"
+     ],
+     "repl": [
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/liuhed",
+   "short": "六和塔",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "六和塔",
+     "repl": "六和塔"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "down"
+     ],
+     "repl": [
+      "down"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "红花会总舵主「玉面神龙」陈家洛": 1
+     },
+     "repl": {
+      "陈家洛": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/duanqiao",
+   "short": "断桥",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "断桥",
+     "repl": "断桥"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northeast",
+      "west"
+     ],
+     "repl": [
+      "northeast",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "穷汉": 1
+     },
+     "repl": {
+      "穷汉": 1
+     }
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/hangzhou/santan",
+   "short": "三潭印月",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "三潭印月",
+     "repl": "三潭印月"
+    },
+    "desc": {
+     "match": false,
+     "extra_chars": 0,
+     "missing_chars": 1,
+     "repl_empty": false,
+     "samples": [
+      {
+       "orig": "u)是送游客去苏堤。>",
+       "repl": "u)是送游客去苏堤。"
+      }
+     ]
+    },
+    "exits": {
+     "match": true,
+     "orig": [],
+     "repl": []
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/hangzhou/xihu",
+   "short": "西湖",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "西湖",
+     "repl": "西湖"
+    },
+    "desc": {
+     "match": false,
+     "extra_chars": 0,
+     "missing_chars": 1,
+     "repl_empty": false,
+     "samples": [
+      {
+       "orig": "，淡妆浓抹总相宜。”>",
+       "repl": "，淡妆浓抹总相宜。”"
+      }
+     ]
+    },
+    "exits": {
+     "match": true,
+     "orig": [],
+     "repl": []
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/jiaxing/mishi",
+   "short": "密室",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "密室",
+     "repl": "密室"
     },
     "desc": {
      "match": true
@@ -417,6 +6562,1238 @@
      ],
      "repl": [
       "out"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/jiaxing/yanyu3",
+   "short": "烟雨楼顶",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "烟雨楼顶",
+     "repl": "烟雨楼顶"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "down"
+     ],
+     "repl": [
+      "down"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "白驼山庄主「西毒」欧阳锋": 1
+     },
+     "repl": {
+      "欧阳锋": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/shiliang/andao1",
+   "short": "暗道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "暗道",
+     "repl": "暗道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "up"
+     ],
+     "repl": [
+      "north",
+      "up"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/andao2",
+   "short": "暗道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "暗道",
+     "repl": "暗道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "south"
+     ],
+     "repl": [
+      "north",
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/andao3",
+   "short": "暗道尽头",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "暗道尽头",
+     "repl": "暗道尽头"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "south"
+     ],
+     "repl": [
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/chufang",
+   "short": "厨房",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "厨房",
+     "repl": "厨房"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east"
+     ],
+     "repl": [
+      "east"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "大师傅": 1
+     },
+     "repl": {
+      "大师傅": 1
+     }
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/dating",
+   "short": "大厅",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "大厅",
+     "repl": "大厅"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northeast",
+      "northwest",
+      "south"
+     ],
+     "repl": [
+      "northeast",
+      "northwest",
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "温家老大 温方达": 1,
+      "丫环": 1
+     },
+     "repl": {
+      "温方达": 1,
+      "丫环": 2
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/shiliang/dongxiangfang",
+   "short": "东厢房",
+   "unresolved_refs": [
+    "/d/changan/obj/chairs"
+   ],
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "东厢房",
+     "repl": "东厢房"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "west"
+     ],
+     "repl": [
+      "west"
+     ]
+    },
+    "items": {
+     "match": false,
+     "orig": {
+      "锦面折叠长椅": 1
+     },
+     "repl": {
+      "chairs": 1
+     }
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "丫环": 1
+     },
+     "repl": {
+      "丫环": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/shiliang/fang1",
+   "short": "侧房",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "侧房",
+     "repl": "侧房"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east"
+     ],
+     "repl": [
+      "east"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "温家老大 温方悟": 1
+     },
+     "repl": {
+      "温方悟": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/shiliang/fang2",
+   "short": "侧房",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "侧房",
+     "repl": "侧房"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east"
+     ],
+     "repl": [
+      "east"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "温家老三 温方山": 1
+     },
+     "repl": {
+      "温方山": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/shiliang/fang3",
+   "short": "侧房",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "侧房",
+     "repl": "侧房"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "west"
+     ],
+     "repl": [
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "温家老四 温方施": 1,
+      "丫环": 1
+     },
+     "repl": {
+      "温方施": 1,
+      "丫环": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/shiliang/fang4",
+   "short": "侧房",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "侧房",
+     "repl": "侧房"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "west"
+     ],
+     "repl": [
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "温家老五 温方南": 1,
+      "丫环": 1
+     },
+     "repl": {
+      "温方南": 1,
+      "丫环": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/shiliang/houyuan",
+   "short": "后院",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "后院",
+     "repl": "后院"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "north",
+      "northeast",
+      "northwest",
+      "southeast",
+      "southwest",
+      "west"
+     ],
+     "repl": [
+      "east",
+      "north",
+      "northeast",
+      "northwest",
+      "southeast",
+      "southwest",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "阿土": 1
+     },
+     "repl": {
+      "阿土": 1
+     }
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/huli",
+   "short": "湖里",
+   "status": "landing",
+   "landed": "鬼门关",
+   "reason": "落点异常：期望「湖里」，实得「鬼门关」，未按 startroom 落入目标房",
+   "fields": {
+    "name": {
+     "match": null,
+     "observable": false
+    },
+    "desc": {
+     "match": null,
+     "observable": false
+    },
+    "exits": {
+     "match": null,
+     "observable": false
+    },
+    "items": {
+     "match": null,
+     "observable": false
+    },
+    "npcs": {
+     "match": null,
+     "observable": false
+    }
+   }
+  },
+  {
+   "id": "/d/shiliang/jinshedong",
+   "short": "石室",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "石室",
+     "repl": "石室"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "up"
+     ],
+     "repl": [
+      "up"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "「金蛇郎君」夏雪宜": 1
+     },
+     "repl": {
+      "夏雪宜": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/shiliang/jinshedong1",
+   "short": "石室",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "石室",
+     "repl": "石室"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "west"
+     ],
+     "repl": [
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/midao",
+   "short": "山洞底",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "山洞底",
+     "repl": "山洞底"
+    },
+    "desc": {
+     "match": false,
+     "extra_chars": 0,
+     "missing_chars": 1,
+     "repl_empty": false,
+     "samples": [
+      {
+       "orig": "石头(stone)。>",
+       "repl": "石头(stone)。"
+      }
+     ]
+    },
+    "exits": {
+     "match": true,
+     "orig": [],
+     "repl": []
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/shiliang/shufang",
+   "short": "书房",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "书房",
+     "repl": "书房"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "west"
+     ],
+     "repl": [
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/tingzi",
+   "short": "玫瑰小亭",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "玫瑰小亭",
+     "repl": "玫瑰小亭"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "south"
+     ],
+     "repl": [
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/xiaodao",
+   "short": "湖心小岛",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "湖心小岛",
+     "repl": "湖心小岛"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north"
+     ],
+     "repl": [
+      "north"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/xiaodao1",
+   "short": "湖心小岛",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "湖心小岛",
+     "repl": "湖心小岛"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northeast",
+      "south"
+     ],
+     "repl": [
+      "northeast",
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/xiaolou",
+   "short": "小楼",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "小楼",
+     "repl": "小楼"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "down"
+     ],
+     "repl": [
+      "down"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "温家小姐 温仪": 1
+     },
+     "repl": {
+      "温仪": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/shiliang/xiaoting",
+   "short": "小厅",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "小厅",
+     "repl": "小厅"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "south",
+      "up"
+     ],
+     "repl": [
+      "south",
+      "up"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "阿凤": 1
+     },
+     "repl": {
+      "阿凤": 1
+     }
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/xiaoyuan",
+   "short": "小院子",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "小院子",
+     "repl": "小院子"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "southwest"
+     ],
+     "repl": [
+      "north",
+      "southwest"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/xixiangfang",
+   "short": "西厢房",
+   "unresolved_refs": [
+    "/d/changan/obj/chairs"
+   ],
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "西厢房",
+     "repl": "西厢房"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east"
+     ],
+     "repl": [
+      "east"
+     ]
+    },
+    "items": {
+     "match": false,
+     "orig": {
+      "锦面躺椅": 1
+     },
+     "repl": {
+      "chairs": 1
+     }
+    },
+    "npcs": {
+     "match": true,
+     "orig": {
+      "丫环": 1
+     },
+     "repl": {
+      "丫环": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
+  {
+   "id": "/d/shiliang/yuanzi",
+   "short": "大院",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "大院",
+     "repl": "大院"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "north",
+      "west"
+     ],
+     "repl": [
+      "east",
+      "north",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/zoulang1",
+   "short": "走廊",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "走廊",
+     "repl": "走廊"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "northeast",
+      "southeast",
+      "west"
+     ],
+     "repl": [
+      "north",
+      "northeast",
+      "southeast",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/zoulang2",
+   "short": "走廊",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "走廊",
+     "repl": "走廊"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "north",
+      "south",
+      "west"
+     ],
+     "repl": [
+      "east",
+      "north",
+      "south",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/zoulang3",
+   "short": "走廊",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "走廊",
+     "repl": "走廊"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "northeast",
+      "south",
+      "southeast",
+      "west"
+     ],
+     "repl": [
+      "northeast",
+      "south",
+      "southeast",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/zoulang4",
+   "short": "走廊尽头",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "走廊尽头",
+     "repl": "走廊尽头"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "south",
+      "southeast",
+      "southwest"
+     ],
+     "repl": [
+      "north",
+      "south",
+      "southeast",
+      "southwest"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/zoulang5",
+   "short": "走廊",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "走廊",
+     "repl": "走廊"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "north",
+      "northwest",
+      "southwest"
+     ],
+     "repl": [
+      "east",
+      "north",
+      "northwest",
+      "southwest"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/zoulang6",
+   "short": "走廊",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "走廊",
+     "repl": "走廊"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "north",
+      "south",
+      "west"
+     ],
+     "repl": [
+      "east",
+      "north",
+      "south",
+      "west"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "match"
+  },
+  {
+   "id": "/d/shiliang/zoulang7",
+   "short": "走廊",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "走廊",
+     "repl": "走廊"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "east",
+      "northwest",
+      "south",
+      "southwest"
+     ],
+     "repl": [
+      "east",
+      "northwest",
+      "south",
+      "southwest"
      ]
     },
     "items": {
