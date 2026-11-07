@@ -76,6 +76,72 @@ def _check_equipment_items(diags: list[dict], pack: dict) -> None:
                 })
 
 
+def _check_quests(diags: list[dict], pack: dict) -> None:
+    """任务表硬校验：id 唯一、可溯源、目标 NPC 存在、必填字段齐全。"""
+    seen: set[str] = set()
+    npc_ids = {n["id"] for n in pack.get("npcs", [])}
+    for q in pack.get("quests", []):
+        qid = q.get("id") or ""
+        src = q.get("source") or {}
+        if not qid:
+            diags.append({
+                "rule": "E_QUEST_ID_MISSING", "severity": "error",
+                "path": src.get("path"), "line": src.get("line"),
+                "message": "任务缺少 id",
+            })
+        elif qid in seen:
+            diags.append({
+                "rule": "E_QUEST_DUPLICATE_ID", "severity": "error",
+                "path": src.get("path"), "line": src.get("line"),
+                "message": f"任务 id 重复: {qid}", "id": qid,
+            })
+        seen.add(qid)
+        if not src.get("path") or src.get("line") is None:
+            diags.append({
+                "rule": "E_QUEST_SOURCE_MISSING", "severity": "error",
+                "path": src.get("path"), "line": src.get("line"),
+                "message": f"任务 {qid} 缺少源码文件或行号", "id": qid,
+            })
+        target = (q.get("target") or {}).get("id")
+        if target and target not in npc_ids:
+            diags.append({
+                "rule": "E_QUEST_TARGET_NOT_IN_NPCS", "severity": "error",
+                "path": src.get("path"), "line": src.get("line"),
+                "message": f"任务 {qid} 的目标 NPC {target} 不在 npcs",
+                "id": qid, "target": target,
+            })
+        item = (q.get("required_item") or {}).get("id")
+        if not item:
+            diags.append({
+                "rule": "E_QUEST_ITEM_MISSING", "severity": "error",
+                "path": src.get("path"), "line": src.get("line"),
+                "message": f"任务 {qid} 缺少交付物品", "id": qid,
+            })
+        if q.get("dynamic"):
+            if item and not str(item).startswith("/questobj/"):
+                diags.append({
+                    "rule": "E_QUEST_DYNAMIC_ITEM", "severity": "error",
+                    "path": src.get("path"), "line": src.get("line"),
+                    "message": f"动态任务 {qid} 的物品 {item} 不在 /questobj/",
+                    "id": qid,
+                })
+            rw = q.get("reward") or {}
+            if not all(rw.get(k) is not None for k in ("exp", "pot", "score")):
+                diags.append({
+                    "rule": "E_QUEST_REWARD_MISSING", "severity": "error",
+                    "path": src.get("path"), "line": src.get("line"),
+                    "message": f"动态任务 {qid} 奖励公式不完整", "id": qid,
+                })
+        else:
+            giver = (q.get("giver") or {}).get("id")
+            if not giver or giver not in npc_ids:
+                diags.append({
+                    "rule": "E_QUEST_GIVER_NOT_IN_NPCS", "severity": "error",
+                    "path": src.get("path"), "line": src.get("line"),
+                    "message": f"任务 {qid} 的给予者不在 npcs", "id": qid,
+                })
+
+
 def _check_npc_temp_apply(diags: list[dict], pack: dict) -> None:
     """set_temp 记录必须能溯源：值要么是整数，要么保留原式；不许两边都空。"""
     for npc in pack.get("npcs", []):
@@ -396,6 +462,9 @@ def validate(pack: dict) -> list[dict]:
 
     # 12. NPC 临时属性：set_temp 必须可溯源，值不许两边都空
     _check_npc_temp_apply(diags, pack)
+
+    # 13. 任务：id/来源/目标/物品/奖励齐全
+    _check_quests(diags, pack)
 
     return diags
 

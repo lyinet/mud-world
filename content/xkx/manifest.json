@@ -61,7 +61,7 @@
       "table": "npcs"
     }
   ],
-  "content_hash": "233be794a6b34416ae8659ca63b0744b6af6edf639b5d407ae31d5730fba5d49",
+  "content_hash": "71f3d11780482667e45109e38c29fbd8f78d98dc1fbed77e8b95c41004678945",
   "counts": {
     "aggressive_npcs": 7,
     "attrs_roll_fields": 66,
@@ -90,6 +90,15 @@
     "npcs_with_attrs_roll": 13,
     "npcs_with_attrs_roll_in_slice": 10,
     "npcs_with_drops": 3,
+    "quests_dynamic": 2,
+    "quests_dynamic_outside_slice": 69,
+    "quests_dynamic_total": 71,
+    "quests_non_task": 5,
+    "quests_static_entries": 2039,
+    "quests_static_kill_targets_in_slice": 107,
+    "quests_static_unique": 1397,
+    "quests_talk_gated": 2,
+    "quests_total": 4,
     "rooms_boundary_stub": 6,
     "rooms_in_slice": 195,
     "rooms_region_name_null": 2,
@@ -216,12 +225,13 @@
       "lpc": "招式/系数在原版 LPC 中直接写死，原样搬运。",
       "missing": "文案缺失，没有可搬运原文（仅 name_source 使用）。"
     },
-    "skill_hook": "hooks 五项固定齐全；value_kind=code 表示钩子函数存在、value 为 null 而 expr 为源码函数体；value_kind=default 表示明确占位 value=0 并写 reason。"
+    "skill_hook": "hooks 五项固定齐全；value_kind=code 表示钩子函数存在、value 为 null 而 expr 为源码函数体；value_kind=default 表示明确占位 value=0 并写 reason。",
+    "xkx_quests": "只收切片内可闭环的 4 条支线；preconditions 是原版 set_temp/accept_object 的触发语义，不是运行时状态；动态任务奖励 exp/pot/score 以 base+random 表达，由引擎用 PRNG(seed, seq, salt) 按 exp→pot除数→score 顺序取数；静态清单与切片外动态任务只进 sorted counts 与 diagnostics，不入库。"
   },
   "files": {
     "diagnostics.jsonl": {
-      "bytes": 21362,
-      "sha256": "a063985ed0d48c99263393f79d67d6095e78da0af3ea4ce5b945ca5bae42e1fa"
+      "bytes": 24565,
+      "sha256": "9c4055d1158dc6a1a61e910dfd101eb79f9cb18b4115857f33ff28bff74513de"
     },
     "dialogue.json": {
       "bytes": 26396,
@@ -238,6 +248,10 @@
     "npcs.json": {
       "bytes": 197035,
       "sha256": "3d0d487ac5e22a674d1b598d5fd7389c37f55a05f0d8fd2631e6ec46ce97a065"
+    },
+    "quests.json": {
+      "bytes": 5569,
+      "sha256": "0b0bbf9203d3bca0bb7a7c82b24b67027e7470a77c4ccad5f707d4bb64f3c1b8"
     },
     "rooms.json": {
       "bytes": 211278,
@@ -264,8 +278,8 @@
       "sha256": "4f059d1cb3c991a138fd9dc658548de736e0cd2671bc3074155b6f592b44db1e"
     },
     "summary.json": {
-      "bytes": 3464,
-      "sha256": "089b5d38206c69d89a20fa250cd4c31aad9ebdd24592e3ff632a9f94f662885c"
+      "bytes": 3887,
+      "sha256": "8c4e81061d024a024562bca9605463abd5bb5eb00513d5943a3ecb05351855b3"
     }
   },
   "generator": "tools/xkx_extract",

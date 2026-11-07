@@ -17,6 +17,7 @@ from collections import Counter, OrderedDict
 from . import lpc
 from .authored import AUTHORED_DESCS
 from .npc_drops import extract_npc_drops
+from .quests import extract_quests
 from .skills_actions import extract_skill_tables
 
 AREA_DIRS = ("hangzhou", "jiaxing", "shiliang")
@@ -174,7 +175,9 @@ class Extractor:
         self.skills: "OrderedDict[str, dict]" = OrderedDict()
         self.skills_actions: list[dict] = []
         self.skills_stats: list[dict] = []
+        self.quests: list[dict] = []
         self.skill_counts: dict[str, int] = {}
+        self.quest_counts: dict[str, int] = {}
         self.drop_counts: dict[str, int] = {}
         self.equipment_counts: dict[str, int] = {}
         self._text_cache: dict[str, str] = {}
@@ -269,6 +272,7 @@ class Extractor:
         self._collect_drops()
         self._collect_equipment_items()
         self._collect_skill_tables()
+        self._collect_quests()
         self._coverage()
         return {
             "rooms": list(self.rooms.values()),
@@ -281,6 +285,7 @@ class Extractor:
             "skills": list(self.skills.values()),
             "skills_actions": self.skills_actions,
             "skills_stats": self.skills_stats,
+            "quests": self.quests,
         }
 
     def _collect_skill_tables(self):
@@ -306,6 +311,14 @@ class Extractor:
             self.items[ref] = self._parse_item(
                 rel, ref, text, self.bases_of(text), origin="external"
             )
+
+    def _collect_quests(self):
+        quests, diags, counts = extract_quests(
+            self.src_root, list(self.npcs.values())
+        )
+        self.diagnostics.extend(diags)
+        self.quests = quests
+        self.quest_counts = counts
 
     def _canonical_item_ref(self, ref: str, rel_path: str, line) -> str:
         """装备引用归一化：补前导 `/`、去掉 `.lpc`；真实文件存在才改，否则留原样。"""
@@ -1421,6 +1434,19 @@ class Extractor:
             ),
             "temp_apply_keys": dict(sorted(temp_keys.items())),
             "temp_apply_unknown_keys": temp_unknown,
+            "quests_total": self.quest_counts.get("quests_total", 0),
+            "quests_dynamic": self.quest_counts.get("quests_dynamic", 0),
+            "quests_talk_gated": self.quest_counts.get("quests_talk_gated", 0),
+            "quests_static_entries": self.quest_counts.get("quests_static_entries", 0),
+            "quests_static_unique": self.quest_counts.get("quests_static_unique", 0),
+            "quests_static_kill_targets_in_slice": self.quest_counts.get(
+                "quests_static_kill_targets_in_slice", 0
+            ),
+            "quests_dynamic_total": self.quest_counts.get("quests_dynamic_total", 0),
+            "quests_dynamic_outside_slice": self.quest_counts.get(
+                "quests_dynamic_outside_slice", 0
+            ),
+            "quests_non_task": self.quest_counts.get("quests_non_task", 0),
         }
 
 

@@ -18,6 +18,7 @@ DATA_FILES = (
     "skills.json",
     "skills_actions.json",
     "skills_stats.json",
+    "quests.json",
 )
 
 TABLES = {
@@ -31,6 +32,7 @@ TABLES = {
     "skills.json": "skills",
     "skills_actions.json": "skills_actions",
     "skills_stats.json": "skills_stats",
+    "quests.json": "quests",
 }
 
 
@@ -145,6 +147,7 @@ def build_outputs(pack, diagnostics, counts, coverage, source_info) -> dict[str,
             "action_coefficient_default": "动作条目缺 damage/parry/force/dodge 键时按 LPC mapping 取 0；coefficient_source_detail 给出条目行号与 combatd.lpc 语义行号；coefficient_default_basis 给出四键证据及 inherit 链检查（inherited_defaults 为空即无父技能隐式默认）。",
             "npc_equipment": "equipment[].ref 必须在 items.json 中存在；ref 已补前导 / 并去掉 .lpc；缺 set_weight 时按基类默认 100 并带 weight_source=default。",
             "npc_temp_apply": "create() 内 set_temp 的静态快照，按创世即带处理；key 为原版键名，known=false 表示不在战斗白名单（原样保留并记诊断）；value 为整数时直接可用，为 null 时读 value_expr，不折算；source_kind=lpc 表示照源码搬运。",
+            "xkx_quests": "只收切片内可闭环的 4 条支线；preconditions 是原版 set_temp/accept_object 的触发语义，不是运行时状态；动态任务奖励 exp/pot/score 以 base+random 表达，由引擎用 PRNG(seed, seq, salt) 按 exp→pot除数→score 顺序取数；静态清单与切片外动态任务只进 sorted counts 与 diagnostics，不入库。",
         },
         "authored_descriptions": authored,
         "coverage_semantics": {

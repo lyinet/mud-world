@@ -102,6 +102,7 @@ def load_xkx_content(pack_root: Path | str) -> Content:
     items_raw = _rows(_read_json(pack / "items.json"), "items") if (pack / "items.json").is_file() else []
     shops_raw = _rows(_read_json(pack / "shops.json"), "shops") if (pack / "shops.json").is_file() else []
     sects_raw = _rows(_read_json(pack / "sects.json"), "sects") if (pack / "sects.json").is_file() else []
+    quests_raw = _rows(_read_json(pack / "quests.json"), "quests") if (pack / "quests.json").is_file() else []
 
     rooms: dict[str, dict[str, Any]] = {}
     for raw in rooms_raw:
@@ -141,8 +142,16 @@ def load_xkx_content(pack_root: Path | str) -> Content:
         "npcs": "content/xkx/npcs.json",
         "items": "content/xkx/items.json",
         "sects": "content/xkx/sects.json",
+        "xkx_quests": "content/xkx/quests.json",
         "economy": "xkx_adapter/defaults",
     }
+
+    # 任务：按 id 索引；只保留可完成的任务（抽取器已把静态清单与切片外
+    # 动态任务留在 summary/diagnostics，不入库）。
+    for raw in quests_raw:
+        qid = str(raw.get("id") or "")
+        if qid:
+            content.xkx_quests[qid] = raw
 
     # 物品先建：房间地面物件与商店货架都要引用物品名。
     for raw in items_raw:
@@ -373,5 +382,6 @@ def load_xkx_content(pack_root: Path | str) -> Content:
         "shop_goods": sum(len(shop.get("stock") or []) for shop in shops_raw),
         "sects": len(sects_raw),
         "masters": sum(1 for npc in content.npcs if npc.get("is_master")),
+        "xkx_quests": len(content.xkx_quests),
     }
     return content

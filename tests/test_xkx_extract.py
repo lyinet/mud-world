@@ -109,7 +109,7 @@ def test_build_outputs_is_bytewise_deterministic():
                    "source": {"path": "a.lpc", "line": 1}, "objects": [], "flags": {}, "coord": {}, "kind": "room"}],
         "exits": [], "items": [], "npcs": [], "dialogue": [],
         "shops": [], "sects": [], "skills": [],
-        "skills_actions": [], "skills_stats": [],
+        "skills_actions": [], "skills_stats": [], "quests": [],
     }
     diags = [{"rule": "W_NO_EXIT", "severity": "warning", "path": "a.lpc",
               "line": 1, "message": "x"}]
@@ -243,6 +243,38 @@ def test_slice_pack_counts_and_zero_errors():
         assert row["max_level"]["value"] == 800 and row["max_level"]["reason"]
         assert row["curve"]["learn_bonus"]["source_kind"] in ("lpc", "default")
         assert row["curve"]["power_point"]["kind"] in ("constant", "rules", "expression")
+    # 任务：只入库切片内可完成的 4 条；静态清单与切片外动态任务只留计数/原因
+    assert counts["quests_total"] == 4
+    assert counts["quests_dynamic"] == 2
+    assert counts["quests_talk_gated"] == 2
+    assert counts["quests_static_entries"] == 2039
+    assert counts["quests_static_unique"] == 1397
+    assert counts["quests_dynamic_total"] == 71
+    assert counts["quests_dynamic_outside_slice"] == 69
+    assert counts["quests_non_task"] == 5
+    assert {q["id"] for q in pack["quests"]} == {
+        "q_dynamic_jinshe_jian", "q_dynamic_shoupa", "q_atu_afeng", "q_wenyi_jinshe",
+    }
+    for quest in pack["quests"]:
+        assert quest["source"]["path"] and quest["source"]["line"]
+        assert quest["target"]["id"] and quest["required_item"]["id"]
+        assert quest["required_item"]["name"]
+    for qid in ("q_dynamic_jinshe_jian", "q_dynamic_shoupa"):
+        quest = next(q for q in pack["quests"] if q["id"] == qid)
+        assert quest["dynamic"] is True and quest["giver"] is None
+        assert quest["reward"]["exp"] == {"base": 100, "random": 400}
+        assert quest["reward"]["pot"] == {"formula": "exp/(random(n)+1)", "random": 10, "plus": 1}
+        assert quest["reward"]["score"] == {"base": 50, "random": 50}
+        assert quest["reward"]["formula_source"]["path"] == "adm/daemons/questd.lpc"
+        assert quest["required_item"]["source"] == "dynamic_spawn"
+    jinshe = next(q for q in pack["quests"] if q["id"] == "q_wenyi_jinshe")
+    assert jinshe["reward"]["items"] == ["/clone/book/jinshe2", "/clone/book/jinshe3"]
+    assert jinshe["reward"]["unlock_exits"] == ["/d/shiliang/jinshedong:exits/east"]
+    atu = next(q for q in pack["quests"] if q["id"] == "q_atu_afeng")
+    assert atu["giver"]["topic"] == "阿凤" and atu["giver"]["id"] == "/d/shiliang/npc/atu"
+    assert atu["reward"]["note"] == "原版只给口述秘密，无经验/钱/物品"
+    assert any(d["rule"] == "I_QUEST_STATIC_SKIPPED" for d in diags)
+    assert any(d["rule"] == "I_QUEST_DYNAMIC_OUTSIDE_SLICE" for d in diags)
     # 房间/出口目标不允许悬空
     room_ids = {r["id"] for r in pack["rooms"]}
     assert all(e["to"] in room_ids for e in pack["exits"] if e.get("from_kind") != "boundary_stub")

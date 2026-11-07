@@ -58,6 +58,10 @@ class Entity:
     temp_apply: dict[str, int] = field(default_factory=dict)
     attrs: dict[str, int] = field(default_factory=dict)  # str/int/con/dex/sta/spi/kar/cps/cor
     combat_exp: int = 0
+    # 动态任务奖励的潜力/声望（原版 questd `pot` / `score`）。旧内容不发放，
+    # 为 0 时不写进 to_dict()，旧世界哈希逐字节不变。
+    potential: int = 0
+    score: int = 0
     skill_levels: dict[str, int] = field(default_factory=dict)  # 技能等级（0..800）
     skill_xp: dict[str, int] = field(default_factory=dict)  # 技能经验（0..99）
     death_tick: int = 0
@@ -109,6 +113,10 @@ class Entity:
             data["attrs"] = dict(sorted(self.attrs.items()))
         if self.combat_exp:
             data["combat_exp"] = int(self.combat_exp)
+        if self.potential:
+            data["potential"] = int(self.potential)
+        if self.score:
+            data["score"] = int(self.score)
         if self.skill_levels:
             data["skill_levels"] = dict(sorted(self.skill_levels.items()))
         if self.skill_xp:
@@ -450,6 +458,10 @@ class WorldState:
     # 地面掉落：location -> {item_id: qty}。所有写入只经 loot_create / loot_take
     # 两个 Effect；为空时不写进 to_dict()，旧世界哈希逐字节不变。
     ground: dict[str, dict[str, int]] = field(default_factory=dict)
+    # xkx 任务进度：键为 "actor|quest_id"。原版支线只用 NPC `set_temp` 一次性
+    # 开关、没有持久完成标记；这里把进度写进世界状态，保证可回放。为空时
+    # 不写进 to_dict()，旧九地点世界哈希逐字节不变。
+    xkx_quests: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     def clone(self) -> "WorldState":
         """整世界深拷贝（写事务的 trial 副本）。
@@ -497,6 +509,10 @@ class WorldState:
         if self.ground:
             data["ground"] = {
                 k: dict(sorted(v.items())) for k, v in sorted(self.ground.items()) if v
+            }
+        if self.xkx_quests:
+            data["xkx_quests"] = {
+                k: dict(sorted(v.items())) for k, v in sorted(self.xkx_quests.items())
             }
         return data
 

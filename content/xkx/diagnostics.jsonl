@@ -1,3 +1,9 @@
+{"id":"q_dynamic_jinshe_jian","key":"exp","line":48,"message":"q_dynamic_jinshe_jian 奖励 exp 照原式 100 + random(400)","path":"adm/daemons/questd.lpc","rule":"I_QUEST_REWARD_SOURCE","severity":"info"}
+{"id":"q_dynamic_shoupa","key":"exp","line":48,"message":"q_dynamic_shoupa 奖励 exp 照原式 100 + random(400)","path":"adm/daemons/questd.lpc","rule":"I_QUEST_REWARD_SOURCE","severity":"info"}
+{"id":"q_dynamic_jinshe_jian","key":"pot","line":49,"message":"q_dynamic_jinshe_jian 奖励 pot 照原式 exp / (random(10) + 1)","path":"adm/daemons/questd.lpc","rule":"I_QUEST_REWARD_SOURCE","severity":"info"}
+{"id":"q_dynamic_shoupa","key":"pot","line":49,"message":"q_dynamic_shoupa 奖励 pot 照原式 exp / (random(10) + 1)","path":"adm/daemons/questd.lpc","rule":"I_QUEST_REWARD_SOURCE","severity":"info"}
+{"id":"q_dynamic_jinshe_jian","key":"score","line":50,"message":"q_dynamic_jinshe_jian 奖励 score 照原式 50 + random(50)","path":"adm/daemons/questd.lpc","rule":"I_QUEST_REWARD_SOURCE","severity":"info"}
+{"id":"q_dynamic_shoupa","key":"score","line":50,"message":"q_dynamic_shoupa 奖励 score 照原式 50 + random(50)","path":"adm/daemons/questd.lpc","rule":"I_QUEST_REWARD_SOURCE","severity":"info"}
 {"line":6,"message":"房间不在 d/<区域>/ 目录下，region=null","path":"clone/shop/hangzhou_shop.lpc","rule":"I_REGION_UNRESOLVED","severity":"info"}
 {"line":7,"message":"区域 binghuo 在 mapd/logind 中没有中文名来源，region_name=null","path":"d/binghuo/qiantang.lpc","region":"binghuo","rule":"I_REGION_NAME_MISSING","severity":"info"}
 {"line":12,"message":"边界出口 westup -> /d/meizhuang/shijie（区外，有回程，可通行）","path":"d/hangzhou/gushan.lpc","rule":"W_BOUNDARY_EXIT","severity":"warning","target":"/d/meizhuang/shijie"}
@@ -10,6 +16,7 @@
 {"line":31,"message":"边界出口 up -> /clone/shop/hangzhou_shop（区外，有回程，可通行）","path":"d/hangzhou/majiu.lpc","rule":"W_BOUNDARY_EXIT","severity":"warning","target":"/clone/shop/hangzhou_shop"}
 {"id":"/d/hangzhou/npc/guanjia","line":6,"message":"NPC /d/hangzhou/npc/guanjia 使用自撰描述（desc_source=authored），不计入 source 覆盖率","path":"d/hangzhou/npc/guanjia.lpc","rule":"I_DESC_AUTHORED","severity":"info"}
 {"id":"/d/hangzhou/npc/guest","line":9,"message":"NPC /d/hangzhou/npc/guest 使用自撰描述（desc_source=authored），不计入 source 覆盖率","path":"d/hangzhou/npc/guest.lpc","rule":"I_DESC_AUTHORED","severity":"info"}
+{"id":"/d/hangzhou/npc/huqingyu","line":29,"message":"/d/hangzhou/npc/huqingyu 不计任务：收钱改名，属于付费服务，没有任务目标与完成条件","path":"d/hangzhou/npc/huqingyu.lpc","reason_code":"paid_service","rule":"I_QUEST_NON_TASK","severity":"info"}
 {"id":"/d/hangzhou/npc/jiading","line":6,"message":"NPC /d/hangzhou/npc/jiading 使用自撰描述（desc_source=authored），不计入 source 覆盖率","path":"d/hangzhou/npc/jiading.lpc","rule":"I_DESC_AUTHORED","severity":"info"}
 {"id":"/clone/weapon/jili","line":8,"message":"装备引用 clone/weapon/jili 归一化为 /clone/weapon/jili","path":"d/hangzhou/npc/longjun.lpc","rule":"I_EQUIP_REF_NORMALIZED","severity":"info"}
 {"id":"/d/hangzhou/npc/obj/cloth","line":10,"message":"物品 /d/hangzhou/npc/obj/cloth 使用自撰描述（desc_source=authored），不计入 source 覆盖率","path":"d/hangzhou/npc/obj/cloth.lpc","rule":"I_DESC_AUTHORED","severity":"info"}
@@ -17,6 +24,8 @@
 {"id":"/d/hangzhou/npc/obj/goupi","line":10,"message":"物品 /d/hangzhou/npc/obj/goupi 使用自撰描述（desc_source=authored），不计入 source 覆盖率","path":"d/hangzhou/npc/obj/goupi.lpc","rule":"I_DESC_AUTHORED","severity":"info"}
 {"id":"/d/hangzhou/npc/obj/marry_card","line":6,"message":"物品 /d/hangzhou/npc/obj/marry_card 使用自撰描述（desc_source=authored），不计入 source 覆盖率","path":"d/hangzhou/npc/obj/marry_card.lpc","rule":"I_DESC_AUTHORED","severity":"info"}
 {"line":6,"message":"源码没有 set(\"value\") 价格","path":"d/hangzhou/npc/obj/marry_card.lpc","rule":"W_NO_PRICE","severity":"warning"}
+{"id":"/d/hangzhou/npc/ouyezi","line":37,"message":"/d/hangzhou/npc/ouyezi 不计任务：收钱铸剑/改名，属于付费服务，没有任务目标与完成条件","path":"d/hangzhou/npc/ouyezi.lpc","reason_code":"paid_service","rule":"I_QUEST_NON_TASK","severity":"info"}
+{"id":"/d/hangzhou/npc/qianlong","line":24,"message":"/d/hangzhou/npc/qianlong 不计任务：磕头一次性给经验，不是 ask 触发的可重复任务","path":"d/hangzhou/npc/qianlong.lpc","reason_code":"one_off_event","rule":"I_QUEST_NON_TASK","severity":"info"}
 {"id":"/d/shaolin/npc/obj/dao-cloth","line":5,"message":"装备引用 /d/shaolin/npc/obj/dao-cloth.lpc 归一化为 /d/shaolin/npc/obj/dao-cloth","path":"d/hangzhou/npc/shami.lpc","rule":"I_EQUIP_REF_NORMALIZED","severity":"info"}
 {"id":"/clone/misc/cloth","line":6,"message":"装备引用 clone/misc/cloth 归一化为 /clone/misc/cloth","path":"d/hangzhou/npc/tiao-fu.lpc","rule":"I_EQUIP_REF_NORMALIZED","severity":"info"}
 {"id":"/d/hangzhou/npc/you-ke","line":6,"message":"NPC /d/hangzhou/npc/you-ke 使用自撰描述（desc_source=authored），不计入 source 覆盖率","path":"d/hangzhou/npc/you-ke.lpc","rule":"I_DESC_AUTHORED","severity":"info"}
@@ -31,6 +40,7 @@
 {"line":13,"message":"边界出口 southup -> /d/yanping/xianxialing（区外，有回程，可通行）","path":"d/jiaxing/jnroad4.lpc","rule":"W_BOUNDARY_EXIT","severity":"warning","target":"/d/yanping/xianxialing"}
 {"dir":"out","line":59,"message":"/d/jiaxing/mishi 的 out 出口到 /d/jiaxing/xiaodian，但目标没有回程出口","path":"d/jiaxing/mishi.lpc","rule":"W_ASYMMETRIC_EXIT","severity":"warning","target":"/d/jiaxing/xiaodian"}
 {"id":"/d/jiaxing/npc/flower_shoe","line":8,"message":"物品 /d/jiaxing/npc/flower_shoe 使用自撰描述（desc_source=authored），不计入 source 覆盖率","path":"d/jiaxing/npc/flower_shoe.lpc","rule":"I_DESC_AUTHORED","severity":"info"}
+{"id":"/d/jiaxing/npc/hai","line":72,"message":"/d/jiaxing/npc/hai 不计任务：自宫/领工资一次性事件或服务，无任务目标与交付校验","path":"d/jiaxing/npc/hai.lpc","reason_code":"one_off_event","rule":"I_QUEST_NON_TASK","severity":"info"}
 {"features":"conditional,state_write","func":"(: ask_for_zigong :)","line":75,"message":"对话主题「zigong」→ (: ask_for_zigong :)：函数体含if/else 条件分支、运行时状态写入（set_temp/delete_temp/add/move/set）；回复依赖玩家状态或运行时对象，无法压成单一固定文本，保留 fallback","path":"d/jiaxing/npc/hai.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"zigong"}
 {"features":"conditional,state_write","func":"(: ask_for_zigong :)","line":75,"message":"对话主题「自宫」→ (: ask_for_zigong :)：函数体含if/else 条件分支、运行时状态写入（set_temp/delete_temp/add/move/set）；回复依赖玩家状态或运行时对象，无法压成单一固定文本，保留 fallback","path":"d/jiaxing/npc/hai.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"自宫"}
 {"features":"conditional,state_write,item_create","func":"(: ask_for_gongzi :)","line":115,"message":"对话主题「gongzi」→ (: ask_for_gongzi :)：函数体含if/else 条件分支、运行时状态写入（set_temp/delete_temp/add/move/set）、new() 创建物品；回复依赖玩家状态或运行时对象，无法压成单一固定文本，保留 fallback","path":"d/jiaxing/npc/hai.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"gongzi"}
@@ -41,6 +51,7 @@
 {"id":"/d/jiaxing/npc/obj/cloth","line":10,"message":"物品 /d/jiaxing/npc/obj/cloth 使用自撰描述（desc_source=authored），不计入 source 覆盖率","path":"d/jiaxing/npc/obj/cloth.lpc","rule":"I_DESC_AUTHORED","severity":"info"}
 {"line":10,"message":"源码没有 set(\"value\") 价格","path":"d/jiaxing/npc/obj/cloth.lpc","rule":"W_NO_PRICE","severity":"warning"}
 {"line":20,"message":"物品价格为 0","path":"d/jiaxing/npc/obj/yinzhen.lpc","rule":"I_PRICE_ZERO","severity":"info"}
+{"id":"/d/jiaxing/npc/shagu","line":59,"message":"/d/jiaxing/npc/shagu 不计任务：交付物《杖法图解》只由 /d/shenlong/sgjob/sgjob50000.lpc 产出，切片内无来源","path":"d/jiaxing/npc/shagu.lpc","reason_code":"item_source_outside_slice","rule":"I_QUEST_NON_TASK","severity":"info"}
 {"id":"/d/jiaxing/obj/cloth","line":10,"message":"物品 /d/jiaxing/obj/cloth 使用自撰描述（desc_source=authored），不计入 source 覆盖率","path":"d/jiaxing/obj/cloth.lpc","rule":"I_DESC_AUTHORED","severity":"info"}
 {"line":10,"message":"源码没有 set(\"value\") 价格","path":"d/jiaxing/obj/cloth.lpc","rule":"W_NO_PRICE","severity":"warning"}
 {"id":"/d/jiaxing/obj/flower_shoe","line":8,"message":"物品 /d/jiaxing/obj/flower_shoe 使用自撰描述（desc_source=authored），不计入 source 覆盖率","path":"d/jiaxing/obj/flower_shoe.lpc","rule":"I_DESC_AUTHORED","severity":"info"}
@@ -87,3 +98,5 @@
 {"coefficient":"damage","id":"xuanfeng-leg","line":9,"message":"query_action 未返回 \"damage\"，LPC mapping 缺键取 0；combatd.lpc:442 仅在 action[\"damage\"] 为真时生效","path":"kungfu/skill/xuanfeng-leg.lpc","rule":"W_ACTION_COEFF_DEFAULT","severity":"warning"}
 {"coefficient":"damage","id":"yunlong-shou","line":9,"message":"query_action 未返回 \"damage\"，LPC mapping 缺键取 0；combatd.lpc:442 仅在 action[\"damage\"] 为真时生效","path":"kungfu/skill/yunlong-shou.lpc","rule":"W_ACTION_COEFF_DEFAULT","severity":"warning"}
 {"coefficient":"damage","id":"yunlong-zhua","line":9,"message":"query_action 未返回 \"damage\"，LPC mapping 缺键取 0；combatd.lpc:442 仅在 action[\"damage\"] 为真时生效","path":"kungfu/skill/yunlong-zhua.lpc","rule":"W_ACTION_COEFF_DEFAULT","severity":"warning"}
+{"line":null,"message":"动态任务共 71 条，其中 69 条 owner 在切片外，不入库","outside_slice":69,"path":"quest/dynamic_quest","reason_code":"owner_outside_slice","rule":"I_QUEST_DYNAMIC_OUTSIDE_SLICE","severity":"info","total":71}
+{"entries":2039,"line":null,"message":"静态任务清单共 2039 条（去重 1397），发放 NPC 全在切片外，按显示名匹配切片内同名 NPC 不可靠，不入库","path":"quest/qslist.lpc,quest/qwlist.lpc,quest/qwlist1.lpc","reason_code":"giver_outside_slice","rule":"I_QUEST_STATIC_SKIPPED","severity":"info","unique":1397}

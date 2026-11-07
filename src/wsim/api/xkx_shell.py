@@ -123,6 +123,8 @@ VERB_ALIASES: dict[str, str] = {
     "fight": "fight", "打": "fight", "战斗": "fight", "出手": "fight",
     "loot": "loot", "捡": "loot", "拾取": "loot",
     "get": "loot", "拿": "loot", "取": "loot",
+    "give": "give", "交给": "give", "给": "give", "交付": "give",
+    "quests": "quests", "任务": "quests", "支线": "quests",
     "score": "score", "状态": "score", "属性": "score",
     "inventory": "inventory", "i": "inventory", "背包": "inventory", "物品": "inventory",
     "help": "help", "帮助": "help", "?": "help",
@@ -139,6 +141,13 @@ _EXTRA_REASON_TEXT = {
     "player_not_entered": "你还没进入世界。",
     "no_combat_stats": "这具身体还没有气血/攻防；当前内容包没有战斗属性。",
     "loot_not_found": "地上没有这件东西（或者已经被人捡走了）。",
+    "target_required": "没指定要把东西交给谁。",
+    "target_not_found": "这里没有这个人。",
+    "quest_item_required": "没指定要交出的物品。",
+    "quest_not_found": "对方不收这件东西，或者这不是对应的任务物品。",
+    "quest_not_accepted": "这条支线还没接：先去问过委托人。",
+    "quest_already_completed": "这条支线已经完成了。",
+    "quest_item_missing": "你身上没有这件任务物品。",
     "bad_qty": "数量不对；捡东西至少要 1 件。",
     "player_dead": "你已经倒下了，先想办法回魂。",
     "unknown_item": "这里没有这种货。",
@@ -376,6 +385,10 @@ class XKXShell:
                 return self._cmd_fight(account, rest, state, raw, request_id)
             if verb == "loot":
                 return self._cmd_loot(account, rest, state, raw, request_id)
+            if verb == "give":
+                return self._cmd_give(account, rest, state, raw, request_id)
+            if verb == "quests":
+                return self._cmd_quests(account, rest, state, raw, request_id)
             if verb == "score":
                 return self._reply(
                     account, "score", True, self._score_lines(state), state, raw, request_id
@@ -705,8 +718,144 @@ class XKXShell:
             ("cmd", f"你对{target['name']}说：{message}"),
             ("npc", f"{target['name']}答：{reply or '（对方只是点了点头，没有多话。）'}"),
         ]
+        accepted = self._try_accept_quest(account, str(target["id"]), message)
+        if accepted:
+            lines.append(("info", f"接受支线：{accepted}。"))
         after = self._state(account) or state
         return self._reply(account, "ask", True, lines, after, raw, request_id)
+
+    def _try_accept_quest(self, account: str, npc: str, message: str) -> str:
+        """问话后尝试接取支线；是否算接取由后端动作判定，shell 只做路由。
+
+        只有该 NPC 在内容里确实是某个任务的发放人时才调用，避免每次闲聊
+        都产生一条被拒绝的意图。
+        """
+        quests = dict(getattr(self.session.content, "xkx_quests", {}) or {})
+        giver = any(
+            str((q.get("giver") or {}).get("id") or "") == npc for q in quests.values()
+        )
+        if not giver:
+            return ""
+        resp = self.session.perform(account, "xkx_quest_accept", {"npc": npc, "topic": message})
+        if not resp.get("ok"):
+            return ""
+        pid = str((self._state(account) or {}).get("player", {}).get("entity_id") or "")
+        records = getattr(self.session.state, "xkx_quests", {}) or {}
+        for key, rec in sorted(records.items()):
+            if str(rec.get("actor") or "") != pid:
+                continue
+            quest = quests.get(str(rec.get("quest") or "")) or {}
+            if str((quest.get("giver") or {}).get("id") or "") != npc:
+                continue
+            if rec.get("status") == "accepted":
+                return str(quest.get("name") or rec.get("quest") or "")
+        return ""
+
+    def _cmd_quests(
+        self, account: str, rest: str, state: dict[str, Any], raw: str, request_id: str
+    ) -> dict[str, Any]:
+        """只读展示：任务定义来自内容包，进度来自后端世界状态。"""
+        quests = dict(getattr(self.session.content, "xkx_quests", {}) or {})
+        pid = str((state.get("player") or {}).get("entity_id") or "")
+        records = getattr(self.session.state, "xkx_quests", {}) or {}
+        lines: list[tuple[str, str]] = [("room", "【支线】")]
+        if not quests:
+            lines.append(("info", "当前内容包没有可接的支线。"))
+            return self._reply(account, "quests", True, lines, state, raw, request_id)
+        for qid in sorted(quests):
+            quest = quests[qid]
+            rec = records.get(f"{pid}|{qid}") or {}
+            status = str(rec.get("status") or "available")
+            label = {"available": "未接取", "accepted": "进行中", "completed": "已完成"}.get(
+                status, status
+            )
+            target = str((quest.get("target") or {}).get("name") or "")
+            item = str((quest.get("required_item") or {}).get("name") or "")
+            text = f"{quest.get('name') or qid}：{label}"
+            if target:
+                text += f"；目标 {target}"
+            if item:
+                text += f"；需交付 {item}"
+            if status == "accepted":
+                text += f"（当前步骤：{rec.get('step') or 'asked'}）"
+            lines.append(("info", text + "。"))
+        return self._reply(account, "quests", True, lines, state, raw, request_id)
+
+    def _cmd_give(
+        self, account: str, rest: str, state: dict[str, Any], raw: str, request_id: str
+    ) -> dict[str, Any]:
+        raw_text = str(rest or "").strip()
+        if not raw_text:
+            return self._reply(
+                account, "give", False,
+                [("error", "用法：给 <人> <物品>，或 give <物品> to <人>。")],
+                state, raw, request_id,
+            )
+        npcs = list(state.get("present_npcs") or [])
+        item_text = ""
+        target = None
+        marker = re.split(r"\s+(?:to|给|交给)\s+", raw_text, maxsplit=1, flags=re.I)
+        if len(marker) == 2:
+            item_text = marker[0].strip()
+            target, _left = self._match_npc_prefix(npcs, marker[1].strip())
+        if target is None:
+            target, remainder = self._match_npc_prefix(npcs, raw_text)
+            if target is not None and remainder:
+                item_text = remainder
+        if target is None or not item_text:
+            return self._reply(
+                account, "give", False,
+                [("error", "没找到要交给的人或物品；在场的有：" + "、".join(n["name"] for n in npcs))],
+                state, raw, request_id,
+            )
+        wallet = list(((state.get("player") or {}).get("wallet") or {}).get("items") or [])
+        hits = [row for row in wallet if item_text in (row.get("item"), row.get("name"))
+                or str(row.get("name") or "").startswith(item_text)]
+        if not hits:
+            return self._reply(
+                account, "give", False,
+                [("error", f"你身上没有「{item_text}」。")], state, raw, request_id,
+            )
+        item = str(hits[0].get("item") or "")
+        resp = self.session.perform(
+            account, "xkx_quest_deliver", {"npc": str(target["id"]), "item": item}
+        )
+        if not resp.get("ok"):
+            return self._reply(
+                account, "give", False,
+                [("error", self._reason(str(resp.get("reject_reason") or ""), fallback="东西没有交出去。"))],
+                state, raw, request_id,
+            )
+        after = self._state(account) or state
+        pid = str((after.get("player") or {}).get("entity_id") or "")
+        records = getattr(self.session.state, "xkx_quests", {}) or {}
+        done = [
+            rec for rec in records.values()
+            if str(rec.get("actor") or "") == pid and rec.get("status") == "completed"
+        ]
+        lines: list[tuple[str, str]] = [
+            ("info", f"你把{self._item_name(item)}交给{target['name']}。")
+        ]
+        if done:
+            rec = sorted(done, key=lambda r: int(r.get("completed_tick") or 0))[-1]
+            quest = dict(getattr(self.session.content, "xkx_quests", {}) or {}).get(
+                str(rec.get("quest") or "")
+            ) or {}
+            reward = rec.get("reward") or {}
+            parts = []
+            if int(reward.get("exp") or 0) > 0:
+                parts.append(f"经验 {int(reward['exp'])}")
+            if int(reward.get("potential") or 0) > 0:
+                parts.append(f"潜力 {int(reward['potential'])}")
+            if int(reward.get("score") or 0) > 0:
+                parts.append(f"声望 {int(reward['score'])}")
+            for reward_item in (quest.get("reward") or {}).get("items") or []:
+                parts.append(self._item_name(str(reward_item)))
+            text = f"完成支线：{quest.get('name') or rec.get('quest') or ''}。"
+            if parts:
+                text += "获得：" + "、".join(parts) + "。"
+            lines.append(("info", text))
+        return self._reply(account, "give", True, lines, after, raw, request_id)
 
     def _match_npc_prefix(
         self, npcs: Iterable[dict[str, Any]], text: str
@@ -1510,6 +1659,8 @@ class XKXShell:
             ("info", "sell <货> [数量]  把身上的货卖给当前店铺。"),
             ("info", f"fight <人>        动手。{fight_text}。"),
             ("info", f"loot [物品]       捡起地上物品；不带名字则按引擎顺序全捡（也可用 get）。{loot_text}。"),
+            ("info", "give <物品> to <人> / 给 <人> <物品>   把任务物品交给对方。"),
+            ("info", "quests（任务）    看当前支线与接取/完成进度。"),
             ("info", "score（状态）     看自己的体力/银两/技能。"),
             ("info", "inventory（背包） 看行囊与装备。"),
             ("info", "help（帮助）      再看这张表。"),

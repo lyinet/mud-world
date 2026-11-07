@@ -586,7 +586,85 @@
 
 加载器约束：`value_kind=default` 的钩子不要当成“已实现但效果为 0”，它是**明确占位**；`code` 的钩子不能只读 `value`，必须执行 `expr` 或引擎内等价实现。
 
-## 11. `diagnostics.jsonl` / `summary.json` / `manifest.json`
+## 11. `quests.json` — 可完成支线
+
+只收 195 房切片内**能闭环**的任务，共 4 条：
+
+| id | 类型 | 发放/目标 | 交付物 | 奖励 |
+| --- | --- | --- | --- | --- |
+| `q_dynamic_jinshe_jian` | deliver（动态） | → `/d/shiliang/npc/jinshe` | `/questobj/jinshe-jian` | exp/pot/score（种子化） |
+| `q_dynamic_shoupa` | deliver（动态） | → `/d/shiliang/npc/wenyi` | `/questobj/shoupa` | exp/pot/score（种子化） |
+| `q_atu_afeng` | talk+deliver | atu 问「阿凤」→ afeng | `/d/shiliang/npc/obj/qingshu` | 仅口述秘密 |
+| `q_wenyi_jinshe` | talk+deliver | wenyi 问「手帕」→ jinshe | `/d/shiliang/npc/obj/shoupa` | `/clone/book/jinshe2`、`/clone/book/jinshe3` |
+
+字段：
+
+| 字段 | 语义 |
+| --- | --- |
+| `id` / `name` / `type` | 任务 id、显示名、`deliver` 或 `talk+deliver` |
+| `dynamic` | `true` 表示原版 `quest/dynamic_quest` 动态任务，交付即结算 |
+| `giver` | 问话发放人 `{id,name,topic}`；动态任务为 `null` |
+| `target` | 交付对象 `{id,name}`，必须存在于 `npcs.json` |
+| `required_item` | `{id,name,source}`；`source="dynamic_spawn"` 表示原版由 `questd` 投放，`source="giver"` 表示问话时发放 |
+| `preconditions` | 原版触发条件原文（`npc_temp` 只看原版语义，**不是运行时状态**） |
+| `steps` | talk 支线的 `ask` → `deliver` 步骤，带源码出处 |
+| `reward` | `exp/money/items/unlock_exits/note`；动态任务用 `{base,random}` 与 `pot.formula` 表达公式 |
+| `source` | 任务定义所在文件与行号，`source_kind="lpc"` |
+
+静态清单与切片外动态任务**不入库**，只留痕：`summary.json.counts` 记录 2039 条静态条目 / 1397 个唯一任务、71 条动态任务中 69 条切片外、5 条非任务候选；`diagnostics.jsonl` 用 `I_QUEST_STATIC_SKIPPED`、`I_QUEST_DYNAMIC_OUTSIDE_SLICE` 与 5 条 `I_QUEST_NON_TASK` 记录原因码（发放 NPC 在切片外、owner 在切片外、交付物只在区外产出等）。不提供 `locked[]` 列表。
+
+### 与原版的状态差异
+
+原版两条问话支线只在 NPC 的 `create()` 里 `set_temp("<flag>", 1)`，`ask` 时 `set_temp("<flag>", 0)`，**没有玩家的持久完成标记**；动态任务也只靠 NPC `accept_object` 一次性开关。本项目把进度写进世界状态：
+
+```json
+"xkx_quests": {
+  "player:hero|q_wenyi_jinshe": {
+    "actor": "player:hero",
+    "quest": "q_wenyi_jinshe",
+    "status": "accepted",
+    "step": "asked",
+    "accepted_tick": 10,
+    "talked_tick": 10,
+    "completed_tick": 20,
+    "reward": {"exp": 0, "potential": 0, "score": 0}
+  }
+}
+```
+
+- 只有 `status=accepted|completed` 两种状态；`step` 记录走到哪一步（`asked` / `delivered`）。
+- 记录只经 `xkx_quest_upsert` Effect 写入，随事件日志落盘；回放时不需要重跑动作，按 Effect 重建即可得到同一世界哈希。
+- `xkx_quests` 为空时**不写进 `to_dict()`**，旧九地点世界（没有 xkx 任务）哈希逐字节不变。
+
+### 动态奖励的种子化取数
+
+原版公式：`adm/daemons/questd.lpc` 第 48–53 行。
+
+```text
+exp    = 100 + random(400)
+pot    = exp / (random(10) + 1)
+score  = 50 + random(50)
+```
+
+引擎用 `PRNG(seed, seq, "action:xkx_quest_deliver")`，取数顺序**固定为** exp → pot 除数 → score，LPC `random(n)` 对应 `randint(0, n-1)`。测试 `tests/test_xkx_quests.py::test_dynamic_reward_is_seeded_in_fixed_order` 锁死顺序；改顺序会直接失败。不许用墙钟或未种子化随机。
+
+### 交付校验（后端）
+
+`xkx_quest_deliver` 的 `preconditions` 按顺序检查并返回唯一原因码，前端只展示、不自行判完成：
+
+| 原因码 | 触发条件 |
+| --- | --- |
+| `player_not_entered` / `player_dead` | 玩家不存在 / 已死亡 |
+| `target_required` / `target_not_found` / `not_here` | 没指定对象 / 对象不存在 / 不同房间 |
+| `quest_item_required` | 没指定交付物 |
+| `quest_not_found` | 该 NPC 不收这件物品，或不是对应任务 |
+| `quest_not_accepted` | talk 支线还没问过发放人 |
+| `quest_already_completed` | 世界状态里已记录完成 |
+| `quest_item_missing` | 世界状态背包里没有交付物 |
+
+问话接取 `xkx_quest_accept` 只在该 NPC 确实是发放人且话题命中时成功；成功后发放物品并写入 `status=accepted, step=asked`。动态任务没有问话前置，交付成功后第一次写入就是 `completed`。
+
+## 12. `diagnostics.jsonl` / `summary.json` / `manifest.json`
 
 - `diagnostics.jsonl`：一行一条诊断，字段 `rule`、`severity`（`error`/`warning`/`info`）、`path`、`line`、`message`，部分带 `id`/`target`/`metric`/`ref`。error 阻断发布。
 - `summary.json`：`counts`、`coverage`、`errors`、`warnings`、`infos`、`by_rule`。
@@ -609,9 +687,11 @@
 
 命令行：`--strict-source` 与 `--strict-total` 独立生效，任一可单独让进程失败；`--verify` 重抽并逐文件比对。
 
-## 12. 本内容包不承诺的内容
+## 13. 本内容包不承诺的内容
 
 - 战斗公式的具体求解、技能升级/经验结算流程：属于引擎。本包只提供招式序列、系数、属性与钩子出处；凡引擎侧读不到的，表里已显式标 `default` 并写明原因，未标的一律有源码依据。
-- 任务、剧情线、条件触发器、函数型对话的实际行为。
+- 任务范围外的剧情线、条件触发器、函数型对话的实际行为。
+- 两条动态任务的物品投放：原版由 `questd.spread_quest` 随机放进 `dynamic_location` 房间；本包只记录 `required_item.source="dynamic_spawn"` 与交付定义，投放规则尚未在引擎侧实现。
+- `q_wenyi_jinshe` 的 `unlock_exits`（`/d/shiliang/jinshedong:exits/east`）指向的区外房间 `jinshedong1` 不在切片内；本包只记录奖励数据，不开通该出口。
 - 商店议价、库存刷新、门派拜师流程。
 - 区外区域的地图与内容：只提供 6 个 boundary stub 和 25 条区外引用，详见 `boundary-and-external-refs.md`。
