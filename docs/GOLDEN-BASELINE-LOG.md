@@ -183,3 +183,16 @@ PYTHONPATH=src python tools/xkx_audit/__main__.py
 - `GOLDEN_MILESTONE_V6`：审计新鲜 run `same-a` 逐字段一致（791 events）。
 - `DIALOGUE_GOLDEN_MILESTONE_V6`：审计新鲜 run `dialogue-on` 逐字段一致（791 events，dialogue_calls=0）。
 - 当前基线值与实现一致；历史台账缺口已由本表补齐，不改变任何测试常量。
+
+## xkx 世界基线（不是 `tests/test_p3e_golden.py` 常量）
+
+xkx 内容包的 `content_hash` 与实体数不写进旧世界 golden 常量（旧九地点与 xkx 是两套
+内容包），但同样需要可追溯：任何一次漂移都要在本表登记。旧九地点三项（735 events /
+`009076f0346352e3…` / `02d5f812c4278333…`，business_cash 11442、blocked 6、pruned 3）
+在下列变更后均**未变**，因此不产生旧世界基线记录。
+
+| 提交 | 基线 | 字段 | 旧值 | 新值 | 理由来源 | 理由 | 复现证据 |
+|---|---|---|---|---|---|---|---|
+| d13eb30 | XKX_CONTENT | content_hash | c5df62d794eb53484e3c85dbe37b0147bdcad94e1af64d7299aaf4e31bc004de | 2b52983fb8f04210947d39f46bd89156c6e2805f3653faae5c9fc899f26d35e5 | 提交正文 | 提交正文：“原版房间 reset() 按 (房间, 模板) -> count 逐个 new()；P1 派生了 44 个额外槽位，本次真正落到世界里”；`npc_instances` 非空后进入 `Content.content_hash` payload，因此 xkx 世界 content_hash 必须变，旧 run 启动即 `content_hash_mismatch`，需 `--reset`。 | 已复现：`PYTHONPATH=src python -c "from wsim.api.xkx_content import load_xkx_content; c=load_xkx_content('content/xkx'); print(c.content_hash)"`；把 `npc_instances` 临时置空可复现旧值 |
+| d13eb30 | XKX_WORLD | npc_entities | 105 | 149 | 提交正文 | 同上：105 个规范 NPC + 44 个同模板实例；world feed 白名单与 `_present_view` 的 `npc_meta` 回查同步按模板维度。 | 已复现：`tests/test_xkx_clone_instances.py::test_genesis_creates_all_instances_with_template_stats` |
+| d13eb30 | XKX_WORLD | clone_instances | 新增 | 44 | 提交正文 | 同上：19 个模板、44 个额外槽位，全部落在原版 `objects` 声明 count 的解内，顺序按 (模板, 房间, 槽位) 固定。 | 已复现：`tests/test_xkx_clone_instances.py::test_instances_are_room_scoped_and_unique` |
