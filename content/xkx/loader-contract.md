@@ -109,7 +109,7 @@
 
 ## 4. `items.json`
 
-51 条 = 39 条 `slice` + 12 条 `external`。
+85 条 = 39 条 `slice` + 46 条 `external`。
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
@@ -125,11 +125,37 @@
 | `category` | string | `misc` / `armor` / `weapon` / `food` / `liquid` / `medicine` / `money` / `equip` |
 | `equip_slot` | string \| null | 装备槽位；非装备为 null |
 | `food_supply` | int \| null | 食物/饮水补充值 |
+| `apply` | object | 装备加成 `apply/<key>` → 整数；没有加成为空 `{}`，见 4.1 |
+| `apply_expr` | object | 值为表达式时 `apply[key]=null`，原文放这里；不折算数值 |
+| `apply_source` | object | 每个 `apply` 键的源码出处，见 4.1 |
+| `apply_unknown_keys` | string[] | 不在已知战斗 apply 白名单的键，原样保留并记诊断 |
 | `origin` | `"slice"` \| `"external"` | |
 
 `equip_slot` 目前出现过的值：`cloth`、`head`、`neck`、`armor`、`surcoat`、`waist`、`wrists`、`shield`、`finger`、`hands`、`boots`、`sword`、`blade`、`mace`、`staff`、`whip`、`axe`、`hammer`、`dagger`、`fork`、`throwing`、`club`。加载器按槽位做互斥即可，不需要认识具体武器类型。
 
 注意：`/d/changan/obj/chairs` 原版没有 `set_name`，`name` 为 null；加载器需要用 id 或描述首句兜底展示，不要崩溃。
+
+### 4.1 `apply` 装备加成
+
+```json
+{
+  "apply": { "apply/armor": 10, "apply/personality": 3 },
+  "apply_expr": {},
+  "apply_source": {
+    "apply/armor": { "kind": "lpc", "path": "d/hangzhou/honghua/obj/cuiyu.lpc", "line": 17 },
+    "apply/personality": { "kind": "lpc", "path": "d/hangzhou/honghua/obj/cuiyu.lpc", "line": 18 }
+  },
+  "apply_unknown_keys": ["apply/personality"]
+}
+```
+
+- 映射来源：`set("armor_prop/<k>", v)` / `set("weapon_prop/<k>", v)` → `apply/<k>`，例如 `armor_prop/armor` → `apply/armor`、`weapon_prop/damage` → `apply/damage`。值只搬整数字面量，不做单位或公式解释。
+- 兵器：`init_sword(75)` 这类调用由基类 `inherit/weapon/sword.lpc` 把参数写入 `weapon_prop/damage`。抽取器取调用点的整数字面量，`apply_source.kind="lpc_init"`；`path`/`line` 是物品自身的调用行，`base_path`/`base_line` 是基类写 `weapon_prop/damage` 的行。
+- 已知战斗键白名单：`apply/attack`、`apply/defense`、`apply/armor`、`apply/armor_vs_force`、`apply/damage`、`apply/unarmed_damage`、`apply/dodge`、`apply/parry`。
+- 白名单外的键（当前只有 `apply/personality`，3 条物品 / 1 个唯一键）**原样保留**在 `apply` 里，并同时进 `apply_unknown_keys` 与 `diagnostics.jsonl` 的 `W_ITEM_APPLY_UNKNOWN_KEY`。加载器不得把它当战斗加成，也不要删。
+- 表达式：`apply[key]=null`，原文写入 `apply_expr[key]`，并记 `I_ITEM_APPLY_EXPR`。加载器只能跳过或按原文自行实现，不得折算成“合理数值”。当前数据 0 条表达式；引擎侧 `equipment.item_apply()` 只消费 `int`，null 会被安全跳过。
+- 当前统计：57 条物品有 `apply`（切片内 19 条：8 护甲 + 11 兵器）；60 个 apply 键（切片内 20 个）；28 条兵器的 `apply/damage` 来自 `init_<type>()`。
+- 未抽取：原版护甲基类在 `weight() > 3000` 时隐含 `armor_prop/dodge = -weight()/3000`。切片内护甲 `weight` 都是 3000，严格大于不成立，因此没有丢数据；日后若加入更重护甲，需按基类规则另抽。
 
 ## 5. `npcs.json`
 

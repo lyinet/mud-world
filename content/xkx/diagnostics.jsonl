@@ -6,9 +6,12 @@
 {"id":"q_dynamic_shoupa","key":"score","line":50,"message":"q_dynamic_shoupa 奖励 score 照原式 50 + random(50)","path":"adm/daemons/questd.lpc","rule":"I_QUEST_REWARD_SOURCE","severity":"info"}
 {"line":6,"message":"房间不在 d/<区域>/ 目录下，region=null","path":"clone/shop/hangzhou_shop.lpc","rule":"I_REGION_UNRESOLVED","severity":"info"}
 {"line":7,"message":"区域 binghuo 在 mapd/logind 中没有中文名来源，region_name=null","path":"d/binghuo/qiantang.lpc","region":"binghuo","rule":"I_REGION_NAME_MISSING","severity":"info"}
+{"key":"apply/personality","line":18,"message":"装备加成键 apply/personality 不在已知战斗 apply 白名单，原样保留","path":"d/city/obj/pink_cloth.lpc","rule":"W_ITEM_APPLY_UNKNOWN_KEY","severity":"warning"}
+{"key":"apply/personality","line":18,"message":"装备加成键 apply/personality 不在已知战斗 apply 白名单，原样保留","path":"d/fuzhou/obj/pink_cloth.lpc","rule":"W_ITEM_APPLY_UNKNOWN_KEY","severity":"warning"}
 {"line":12,"message":"边界出口 westup -> /d/meizhuang/shijie（区外，有回程，可通行）","path":"d/hangzhou/gushan.lpc","rule":"W_BOUNDARY_EXIT","severity":"warning","target":"/d/meizhuang/shijie"}
 {"key":"is_riding","line":68,"message":"set_temp 键 is_riding 不在战斗白名单，原样保留待确认","path":"d/hangzhou/honghua/huo.lpc","rule":"W_TEMP_KEY_UNKNOWN","severity":"warning"}
 {"key":"is_riding","line":68,"message":"临时属性 is_riding 的值不是整数字面量，保留原式不折算","path":"d/hangzhou/honghua/huo.lpc","rule":"W_TEMP_VALUE_EXPR","severity":"warning"}
+{"key":"apply/personality","line":18,"message":"装备加成键 apply/personality 不在已知战斗 apply 白名单，原样保留","path":"d/hangzhou/honghua/obj/cuiyu.lpc","rule":"W_ITEM_APPLY_UNKNOWN_KEY","severity":"warning"}
 {"key":"is_rided_by","line":25,"message":"set_temp 键 is_rided_by 不在战斗白名单，原样保留待确认","path":"d/hangzhou/honghua/obj/horse.lpc","rule":"W_TEMP_KEY_UNKNOWN","severity":"warning"}
 {"key":"is_rided_by","line":25,"message":"临时属性 is_rided_by 的值不是整数字面量，保留原式不折算","path":"d/hangzhou/honghua/obj/horse.lpc","rule":"W_TEMP_VALUE_EXPR","severity":"warning"}
 {"line":10,"message":"源码没有 set(\"value\") 价格","path":"d/hangzhou/honghua/obj/huangshan.lpc","rule":"W_NO_PRICE","severity":"warning"}

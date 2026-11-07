@@ -61,7 +61,7 @@
       "table": "npcs"
     }
   ],
-  "content_hash": "9f256ed8c8a88f3fbc42931d4f070f806d1cda2b3b97291581881d9804fb7f25",
+  "content_hash": "06bdaf46bb8acab8a03ee2d0e26f6f33ade2d77ff7fcd22ddaf075a25fdd87ec",
   "counts": {
     "aggressive_npcs": 7,
     "attrs_roll_fields": 66,
@@ -80,8 +80,16 @@
     "equipment_items_unresolved": 0,
     "equipment_refs_normalized": 3,
     "exits": 427,
+    "items_apply_expr": 0,
+    "items_apply_from_init": 28,
+    "items_apply_keys": 60,
+    "items_apply_keys_in_slice": 20,
+    "items_apply_unknown_keys": 3,
+    "items_apply_unknown_keys_unique": 1,
     "items_external": 46,
     "items_in_slice": 39,
+    "items_with_apply": 57,
+    "items_with_apply_in_slice": 19,
     "masters": 22,
     "npcs_beast_attrs_roll": 2,
     "npcs_external": 13,
@@ -208,6 +216,7 @@
       "null": "描述缺失，玩家会看到空白；total 覆盖率不达标即 error。"
     },
     "dialogue_fallback": "kind=fallback 且带 fallback_reason 表示原版函数体含条件/状态/物品/教学，不能压成固定文本；fallback_source 指向函数定义行。loader 只保留主题键，不得伪造台词。",
+    "item_apply": "apply 是原版 armor_prop/*、weapon_prop/* 以及 init_<武器>(damage) 映射后的 apply/<key> 加成；整数字面量直接搬运，表达式放 apply_expr 且值为 null，未识别键保留原样并进 apply_unknown_keys/diagnostics。apply_source 逐键给源码行，兵器伤害另给 base_path/base_line。",
     "npc_attrs_roll": "attrs_roll[attr]=[min,max] 是原版种族 setup 的 random(N)+M 掷骰区间（闭区间）；仅当该属性没有被显式 set 时出现。引擎必须按创世种子生成随机值，不得取 min/max 或中位数写死。attrs_roll_source 为每个区间的源码文件与行号。",
     "npc_drops": {
       "chance": "1.0 表示原版必掉；小于 1 由源码 random 条件折算；null 表示无法静态折算，必须读 chance_expr。",
@@ -230,8 +239,8 @@
   },
   "files": {
     "diagnostics.jsonl": {
-      "bytes": 24565,
-      "sha256": "9c4055d1158dc6a1a61e910dfd101eb79f9cb18b4115857f33ff28bff74513de"
+      "bytes": 25246,
+      "sha256": "1f5de9cf81a5b2870c4340a95cd7a97f981ac0c88c1425785f840016e43dd4f9"
     },
     "dialogue.json": {
       "bytes": 26396,
@@ -242,8 +251,8 @@
       "sha256": "a1fdb78e2a4d7f1f54b01688bfad4c4b374819bb88ec2d379f94edc835eac63e"
     },
     "items.json": {
-      "bytes": 44850,
-      "sha256": "1b664c32a248d817dd4e29e3db4db10d834a2f4c0e7abd2237b283677ed9e99a"
+      "bytes": 66065,
+      "sha256": "777eb32e56644445bef2d4eb9672cc2667caa0ec6662d85722bb9a299d130490"
     },
     "npcs.json": {
       "bytes": 208446,
@@ -278,8 +287,8 @@
       "sha256": "4f059d1cb3c991a138fd9dc658548de736e0cd2671bc3074155b6f592b44db1e"
     },
     "summary.json": {
-      "bytes": 3887,
-      "sha256": "8c4e81061d024a024562bca9605463abd5bb5eb00513d5943a3ecb05351855b3"
+      "bytes": 4189,
+      "sha256": "91632bf4ea66163cec688593085b7ee63f0f578c74f0c1d372f8376cc79b6924"
     }
   },
   "generator": "tools/xkx_extract",
