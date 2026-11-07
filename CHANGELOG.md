@@ -9,6 +9,19 @@
 
 ---
 
+## [文档] 2026-11-07 — DIALOGUE-QUALITY 补 model_delivery_rate 指标与门槛
+
+- **改了什么**：`docs/DIALOGUE-QUALITY.md` 指标表新增 `model_delivery_rate` 行，
+  定义 `llm.ok / (llm.calls + llm.dropped_backlog)`（`failures`/`timeouts` 并入分母），门槛 ≥ 80%。
+- **为什么**：晨报核查对话异步验收发现模型渗透率仅 35%（接口全成功但 13/20 被背压丢弃），
+  原文档无该指标与门槛，"模型对话"质量宣称无法量化回归。
+- **验证**：数据取自 `reports/dialogue-async/acceptance-on.json` 的 `health_after`
+  （`calls=7 / ok=7 / dropped_backlog=13`，talk 20 次）→ **35.0%**，未达标，已如实标注。
+- **遗留**：不阻塞 p3m；提优需调 `AsyncDialogueQueue` 在飞上限/丢弃阈值，先量化再调参。
+- **commit**：见本条目所在提交。
+
+---
+
 ## [测试] 2026-11-07 — 修复 e2e 全红：playwright 环境 + 适配 4 项产品变更后的陈旧断言
 
 - **改了什么**：`tools/e2e_service_check.py` 三处适配（未改任何产品代码）：

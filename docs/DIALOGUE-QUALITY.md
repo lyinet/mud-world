@@ -17,8 +17,12 @@
 | `longest_common_substring_by_intent_max` | 同一问题下 5 条回复的最长公共子串最大值 | ≤ 10 字 |
 | `template_hit_rate` | 走确定性模板的比例 | 记录，不设上限 |
 | `model_generated_rate` | 走真实模型的比例 | 记录，不设下限 |
+| `model_delivery_rate` | 模型实际生成并落旁路的台词占提交数比例：`llm.ok / (llm.calls + llm.dropped_backlog)`（`failures` / `timeouts` 并入分母） | ≥ 80%；当前 **35.0%**（7/20，13 条背压丢弃、0 失败/超时），未达标——不阻塞 p3m，仅影响“模型对话”质量宣称 |
 
 说明：`unique_replies` 是主门槛；LCS 用来防止“只换一个角色名词”的伪多样性。基线 LCS 为 26–29 字，修复后模板为 2 字、模型为 1 字。
+`model_delivery_rate` 量化背压丢句对模型渗透率的影响（数据取自 `reports/dialogue-async/acceptance-on.json` 的 `health_after`：
+`calls=7 / ok=7 / dropped_backlog=13`，talk 共 20 次）；提优路径是调 `AsyncDialogueQueue` 的在飞上限（当前 2）与
+丢弃阈值（当前积压 > 5 即丢），先量化再调参，避免凭感觉改。
 
 ## 红线（模型不得影响世界演进）
 
