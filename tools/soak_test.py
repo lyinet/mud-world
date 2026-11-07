@@ -233,6 +233,12 @@ class ManagedServer:
         env["PYTHONUNBUFFERED"] = "1"
         env["XKX_AMBIENT"] = "1" if self.ambient else "0"
         env["XKX_AMBIENT_CPU"] = str(self.ambient_cpu)
+        if self.ambient:
+            # 允许 soak 在取样指纹前把 ambient 暂停，避免“取样后仍在写事件”
+            # 被重启校验误判成回放失败。
+            env["XKX_AMBIENT_CONTROL"] = str(
+                ROOT / "runs" / self.run_id / "ambient" / "ambient_control_in.json"
+            )
         env["XKX_SOAK_PHASE"] = self.phase
         if self.probe_dir is not None:
             env["XKX_SOAK_PROBE_DIR"] = str(self.probe_dir)
@@ -1131,6 +1137,25 @@ class LegacyPlayer(lt.VirtualPlayer):
         return payload if status == 200 else {}
 
 
+def _pause_ambient(server: "ManagedServer", timeout: float = 8.0) -> bool:
+    """通过控制文件暂停 ambient，并等 health 确认（best-effort，不影响主流程）。"""
+    if not server.ambient:
+        return False
+    ctrl = ROOT / "runs" / server.run_id / "ambient" / "ambient_control_in.json"
+    try:
+        ctrl.parent.mkdir(parents=True, exist_ok=True)
+        ctrl.write_text(json.dumps({"command": "pause"}, ensure_ascii=False), encoding="utf-8")
+    except OSError:
+        return False
+    t0 = _mono()
+    while _mono() - t0 < timeout:
+        status, payload, _ = lt._request(server.base, "/api/health", timeout=3.0)
+        if status == 200 and str(payload.get("ambient") or "") == "paused":
+            return True
+        time.sleep(0.2)
+    return False
+
+
 def _state_fingerprint(base: str, account: str) -> dict[str, Any]:
     """重启前后可比较的状态指纹：钱包/位置/技能/任务/对账（排除 tick/在线时长等易变字段）。"""
     status, payload, _ = lt._request(base, f"/api/state?account_id={account}", timeout=8.0)
@@ -1521,6 +1546,9 @@ def _run_soak(args: argparse.Namespace) -> int:
     except Exception:
         pass
 
+    # 先冻结 ambient 再取指纹：否则 ambient 会在 pre_fp 与 SIGTERM 之间继续写事件，
+    # 让 restart_state_match 把“正常写入”误判成回放不一致。
+    _pause_ambient(server)
     pre_fp = _state_fingerprint(server.base, players[0].account) if players else {"ok": False}
     pre_db = _db_snapshot(run_dir)
     stop_info = server.stop()

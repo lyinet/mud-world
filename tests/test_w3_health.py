@@ -68,9 +68,10 @@ def test_health_only_adds_ambient_fields(tmp_path):
         assert health["profile_version"] == 1
         assert health["upstream_ok"] is True
         assert health["ambient"] == "running"
-        # 自走与玩家共用同一份事件日志：ambient_tick 必须等于世界 tick，
-        # 而不是状态文件里的旧值（那会是隔壁世界的时钟）。
-        assert health["ambient_tick"] == session.state.tick
+        # ambient_tick 是自走已结算到的世界时间点（来自状态文件）；
+        # 世界时钟单独给 ambient_world_tick，不再用 session.state.tick 覆盖。
+        assert health["ambient_tick"] == 7
+        assert health["ambient_world_tick"] == 7
         assert health["ambient_last_tick_at"]
         info = _get(base + "/api/service/info")
         # 原键语义不变，只追加 ambient。

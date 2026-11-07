@@ -3781,6 +3781,7 @@ class WorldSession:
         """
         if self.ambient is not None:
             return self.ambient
+        ctrl_raw = str(os.environ.get("XKX_AMBIENT_CONTROL") or "").strip()
         cfg = AmbientConfig(
             out_dir=self.run_dir / "ambient",
             run_id=self.run_id,
@@ -3793,6 +3794,7 @@ class WorldSession:
             llm_max_calls=0,
             start_tick=int(self.state.tick),
             npc_wander=bool(self.npc_wander_enabled),
+            control_file=Path(ctrl_raw) if ctrl_raw else None,
         )
         scheduler = AmbientScheduler(
             self.root,
