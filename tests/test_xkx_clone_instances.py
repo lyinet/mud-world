@@ -172,13 +172,15 @@ def test_look_uses_bird_unit_for_crows(session):
 
 
 def test_fight_without_index_hits_last_created_clone(road12_session):
-    before = road12_session.state.entities
     reply = _cmd(road12_session, "fight qing bing")
     assert reply["ok"], reply
     assert reply["target"] == "/d/hangzhou/npc/qingbing@/d/hangzhou/road12#4"
     assert reply["target_index"] == 1
-    after = road12_session.state.entities
-    assert after[reply["target"]].hp < before[reply["target"]].hp or after[reply["target"]].status == "dead"
+    # 创世接线后清兵持有长枪（apply/damage=25），玩家可能几回合内阵亡；
+    # 本测试只关心“无序号时打的是最后一个克隆”，以战报里被卷入的实体为准。
+    combat = (reply.get("engine_details") or {}).get("combat") or {}
+    assert reply["target"] in (combat.get("hp") or {})
+    assert combat.get("rounds_used", 0) >= 1
 
 
 def test_fight_index_two_hits_second_in_lifo_order(tmp_path):

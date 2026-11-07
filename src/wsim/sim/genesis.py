@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from ..actions.common import goal_kind, goal_target, organization_at
+from ..actions.equipment import item_apply, slot_for_item
 from ..core.content import Content
 from ..core.models import Effect
 from ..world.state import WorldState
@@ -244,6 +245,10 @@ def build_genesis(
             # 拾取逻辑当成普通携带物），死亡时由战斗动作转成地面物品。
             # 只按内容 `equipment` 原样记录，不补造任何“掉落表”。
             equipment: list[str] = []
+            # 穿戴快照：与玩家 `wear/wield` 的落地字段同源，创世即生效。
+            # `equip_slot` 决定护具槽位；`slot == "wield"`/兵器类统一进 weapon 槽。
+            equipped_slots: dict[str, str] = {}
+            weapon_type = ""
             for row in npc.get("equipment") or []:
                 ref = str((row or {}).get("ref") or "")
                 if not ref:
@@ -253,8 +258,29 @@ def build_genesis(
                 # loot_take 仍按物品表计算，查不到就是 0，不在这里补值。
                 if ref not in content.items:
                     mismatches.append(f"unknown_equipment_item:{nid}:{ref}")
+                    continue
+                data = content.items.get(ref) or {}
+                category = str(data.get("category") or "")
+                equip_slot = str(data.get("equip_slot") or "")
+                if str((row or {}).get("slot") or "") == "wield" or category == "weapon":
+                    equipped_slots["weapon"] = ref
+                    weapon_type = equip_slot
+                else:
+                    slot = slot_for_item(ref, category, equip_slot)
+                    if slot:
+                        equipped_slots[slot] = ref
             if equipment:
                 entity_data["equipment"] = equipment
+            if equipped_slots:
+                entity_data["equipped"] = dict(sorted(equipped_slots.items()))
+                equipped_apply: dict[str, int] = {}
+                for item in equipped_slots.values():
+                    for key, value in item_apply(content, item).items():
+                        equipped_apply[key] = equipped_apply.get(key, 0) + int(value)
+                if equipped_apply:
+                    entity_data["equipped_apply"] = dict(sorted(equipped_apply.items()))
+                if weapon_type:
+                    entity_data["weapon_type"] = weapon_type
             # xkx 的 `set_temp("apply/...")`：只取 known=true 且 value 为整数的项，
             # 作为临时攻防落地。known=false（armor/is_riding/...）与无法求值的
             # 表达式一律不进数值，写诊断，不静默丢、不猜值。
