@@ -37,9 +37,9 @@
 - [x] B7 `api/xkx_shell.py`：`$w/$W` 渲染为武器显示名（不暴露 item id）
 - [x] B8 在 `tests/test_combat_death_equipment.py`、`tests/test_skill_actions.py`、`tests/test_combat_moves.py` 补测试
 - [x] B9 真实 run：`guozhuang` 杀两只大狼狗 → 地上狗皮 → `loot`；铁匠铺买 `铁棍` → `wield` → `fight` 贴战报
-- [ ] B10 全量 pytest + 旧九地点三项哈希 + `git diff --stat tools/xkx_formula`
-- [ ] B11 显式 `git add` B 阶段文件，提交；不 force；推 `xkx-parity`
-- [ ] B12 向用户报告第二批（真实响应、哈希、pytest、公式库 diff）
+- [x] B10 全量 pytest + 旧九地点三项哈希 + `git diff --stat tools/xkx_formula`
+- [x] B11 显式 `git add` B 阶段文件，提交（7fe7846）；不 force；推 `xkx-parity`
+- [x] B12 向用户报告第二批（真实响应、哈希、pytest、公式库 diff）
 
 ## 阶段 C：额外核查（只写 spec，不实现）
 
