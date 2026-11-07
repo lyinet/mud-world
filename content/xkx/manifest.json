@@ -61,7 +61,7 @@
       "table": "npcs"
     }
   ],
-  "content_hash": "06bdaf46bb8acab8a03ee2d0e26f6f33ade2d77ff7fcd22ddaf075a25fdd87ec",
+  "content_hash": "0a386f88f786091bf245a20a6b364420223fcde69c7737bc4b8f9f8170228f2d",
   "counts": {
     "aggressive_npcs": 7,
     "attrs_roll_fields": 66,
@@ -126,20 +126,32 @@
     "skill_stat_default_fields": 48,
     "skill_stat_rows": 48,
     "skills": 48,
-    "temp_apply_entries": 78,
+    "temp_apply_apply_entries": 97,
+    "temp_apply_apply_entries_in_slice": 83,
+    "temp_apply_apply_keys_in_slice": {
+      "apply/armor": 10,
+      "apply/attack": 32,
+      "apply/damage": 10,
+      "apply/defense": 31
+    },
+    "temp_apply_apply_npcs_in_slice": 36,
+    "temp_apply_entries": 102,
+    "temp_apply_from_set": 24,
+    "temp_apply_from_set_in_slice": 24,
     "temp_apply_keys": {
       "apply/armor": 14,
-      "apply/attack": 25,
-      "apply/damage": 11,
-      "apply/defense": 23,
+      "apply/attack": 36,
+      "apply/damage": 13,
+      "apply/defense": 34,
       "armor": 1,
       "is_rided_by": 1,
       "is_riding": 1,
       "qingshu": 1,
       "shoupa": 1
     },
-    "temp_apply_npcs": 34,
-    "temp_apply_npcs_in_slice": 28,
+    "temp_apply_npcs": 45,
+    "temp_apply_npcs_in_slice": 39,
+    "temp_apply_out_of_create": 8,
     "temp_apply_unknown_entries": 5,
     "temp_apply_unknown_keys": [
       "armor",
@@ -226,7 +238,7 @@
       "source_landing": "原版实际放置位置（corpse/ground），仅作溯源，不影响引擎落地。"
     },
     "npc_equipment": "equipment[].ref 必须在 items.json 中存在；ref 已补前导 / 并去掉 .lpc；缺 set_weight 时按基类默认 100 并带 weight_source=default。",
-    "npc_temp_apply": "create() 内 set_temp 的静态快照，按创世即带处理；key 为原版键名，known=false 表示不在战斗白名单（原样保留并记诊断）；value 为整数时直接可用，为 null 时读 value_expr，不折算；source_kind=lpc 表示照源码搬运。",
+    "npc_temp_apply": "create() 内 set_temp 与 set(\"apply/…\") 的静态快照，按创世即带处理；key 为原版键名，known=false 表示不在战斗白名单（原样保留并记诊断）；value 为整数时直接可用，为 null 时读 value_expr，不折算；source_kind=lpc 表示 set_temp，lpc_set 表示永久 set(\"apply/…\")。create() 之外的 apply 改写只记 I_NPC_APPLY_OUT_OF_CREATE，不入快照。",
     "room_region": "region 由房间源码路径 d/<region>/ 推导（kind=derived_path）；region_name 只从 mapd.lpc 全局映射 map_short/logind.lpc hometown 取（kind=lpc），取不到为 null 并记 diagnostics。region 不是 flags.outdoors。",
     "skill_action_source": {
       "default": "原版缺键，按 LPC mapping 语义取 0；缺键记入 coefficient_gaps 与 diagnostics.jsonl。",
@@ -239,8 +251,8 @@
   },
   "files": {
     "diagnostics.jsonl": {
-      "bytes": 25246,
-      "sha256": "1f5de9cf81a5b2870c4340a95cd7a97f981ac0c88c1425785f840016e43dd4f9"
+      "bytes": 30194,
+      "sha256": "5fba650305b3b921bbfdf6d3a1799132b907187c385868ef4df844e42c41eb12"
     },
     "dialogue.json": {
       "bytes": 26396,
@@ -255,8 +267,8 @@
       "sha256": "777eb32e56644445bef2d4eb9672cc2667caa0ec6662d85722bb9a299d130490"
     },
     "npcs.json": {
-      "bytes": 208446,
-      "sha256": "fc5fc17cfec17d526dcc7b0ca0094f29088f3622bb191cd82b24b5b349a79f35"
+      "bytes": 215100,
+      "sha256": "dbad9066c10da16c9a97d1293142442f396e57c940da01c75963a2b2e04ff4b3"
     },
     "quests.json": {
       "bytes": 5569,
@@ -287,8 +299,8 @@
       "sha256": "4f059d1cb3c991a138fd9dc658548de736e0cd2671bc3074155b6f592b44db1e"
     },
     "summary.json": {
-      "bytes": 4189,
-      "sha256": "91632bf4ea66163cec688593085b7ee63f0f578c74f0c1d372f8376cc79b6924"
+      "bytes": 4642,
+      "sha256": "cf1a29158219e7f6e9b1113a425be3d1f7e1a6a0a64f742015b7c005d987903e"
     }
   },
   "generator": "tools/xkx_extract",

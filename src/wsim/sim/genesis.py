@@ -271,6 +271,10 @@ def build_genesis(
                         f"unknown_temp_apply:{nid}:{key}:{src.get('path', '')}:{src.get('line', '')}"
                     )
                     continue
+                if row.get("source_kind") == "lpc_set":
+                    # 原版 combatd 只读 query_temp("apply/…")；set("apply/…") 写的是
+                    # 永久属性，未证实进入战斗。内容包保留原值供对账，但不落地为加成。
+                    continue
                 value = row.get("value")
                 if isinstance(value, bool) or not isinstance(value, int):
                     mismatches.append(f"unresolved_temp_apply:{nid}:{key}")

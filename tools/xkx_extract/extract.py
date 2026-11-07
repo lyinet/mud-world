@@ -894,10 +894,17 @@ class Extractor:
                         detail=getattr(args[1], "text", str(args[1])),
                     )
             elif cname == "set_temp" and args and isinstance(args[0], str):
+                key = args[0]
                 if create_span is not None and not (create_span[0] <= line <= create_span[1]):
                     continue
-                temp_apply[args[0]] = self._make_temp_apply(
-                    args[0], args[1] if len(args) > 1 else None, line, rel_path, emit_diag
+                if key in temp_apply and key.startswith("apply/") and emit_diag:
+                    self.diag(
+                        "W_NPC_APPLY_DUPLICATE", "warning", rel_path, line,
+                        f"apply 键 {key} 在 create() 内重复设置，后写覆盖先写",
+                        key=key,
+                    )
+                temp_apply[key] = self._make_temp_apply(
+                    key, args[1] if len(args) > 1 else None, line, rel_path, emit_diag
                 )
             elif cname == "map_skill" and len(args) >= 2 and isinstance(args[0], str) and isinstance(args[1], str):
                 map_skills[args[0]] = args[1]
@@ -908,7 +915,22 @@ class Extractor:
             elif cname == "set" and args and isinstance(args[0], str):
                 key = args[0]
                 value = args[1] if len(args) > 1 else None
-                if key == "inquiry" and isinstance(value, dict):
+                if key.startswith("apply/"):
+                    # 原版两只写法：set_temp 与 set("apply/…")。后者是永久属性，
+                    # 但战斗侧只读 query_temp；这里按内容保真一并收进创世快照，
+                    # 并用 source_kind=lpc_set 标明来源，便于引擎/对账区分。
+                    if create_span is not None and not (create_span[0] <= line <= create_span[1]):
+                        continue
+                    if key in temp_apply and emit_diag:
+                        self.diag(
+                            "W_NPC_APPLY_DUPLICATE", "warning", rel_path, line,
+                            f"apply 键 {key} 在 create() 内重复设置，后写覆盖先写",
+                            key=key,
+                        )
+                    temp_apply[key] = self._make_temp_apply(
+                        key, value, line, rel_path, emit_diag, source_kind="lpc_set"
+                    )
+                elif key == "inquiry" and isinstance(value, dict):
                     for topic, answer in value.items():
                         topics.append(
                             self._make_topic(
@@ -983,6 +1005,8 @@ class Extractor:
             if key in values and isinstance(values[key][0], int):
                 vitals[key] = values[key][0]
 
+        if emit_diag:
+            self._inventory_npc_apply_writes(text, rel_path, temp_apply)
         vendor = "vendor_goods" in values
         return {
             "id": mid,
@@ -1105,15 +1129,40 @@ class Extractor:
         self._race_attr_cache[race] = defaults
         return defaults
 
-    def _make_temp_apply(self, key, value, line, rel_path, emit_diag):
-        """把一条 create() 内的 set_temp 转成记录；非整数值保留原式，不折算。"""
+    def _inventory_npc_apply_writes(self, text, rel_path, temp_apply):
+        """扫描未进 create() 快照的 apply/* 写操作，逐条留痕，不静默丢。"""
+        extracted = {(e["key"], e["source"]["line"]) for e in temp_apply.values()}
+        pattern = re.compile(
+            r'\b(set|set_temp|add_temp|delete_temp)\s*\(\s*"(apply/[^"]+)"'
+        )
+        for lineno, raw in enumerate(text.splitlines(), 1):
+            comment = raw.find("//")
+            code = raw if comment < 0 else raw[:comment]
+            for m in pattern.finditer(code):
+                key = m.group(2)
+                if (key, lineno) in extracted:
+                    continue
+                method = m.group(1)
+                rule = (
+                    "I_NPC_APPLY_RUNTIME_DELETE"
+                    if method == "delete_temp"
+                    else "I_NPC_APPLY_OUT_OF_CREATE"
+                )
+                self.diag(
+                    rule, "info", rel_path, lineno,
+                    f"apply 键 {key} 经 {method} 写入但不在 create() 快照内，原样留痕不入创世",
+                    key=key, method=method, source_line=raw.strip(),
+                )
+
+    def _make_temp_apply(self, key, value, line, rel_path, emit_diag, source_kind="lpc"):
+        """把一条 create() 内的 set_temp / set("apply/…") 转成记录；非整数不折算。"""
         known = key in TEMP_APPLY_KEYS
         entry = {
             "key": key,
             "value": value if isinstance(value, int) else None,
             "value_expr": None,
             "known": known,
-            "source_kind": "lpc",
+            "source_kind": source_kind,
             "source": {"path": rel_path, "line": line},
         }
         if not isinstance(value, int):
@@ -1128,9 +1177,10 @@ class Extractor:
                     key=key,
                 )
         if not known and emit_diag:
+            origin = "set_temp" if source_kind == "lpc" else 'set("apply/…")'
             self.diag(
                 "W_TEMP_KEY_UNKNOWN", "warning", rel_path, line,
-                f"set_temp 键 {key} 不在战斗白名单，原样保留待确认",
+                f"{origin} 键 {key} 不在战斗白名单，原样保留待确认",
                 key=key,
             )
         return entry
@@ -1526,6 +1576,18 @@ class Extractor:
         ]
         temp_keys = Counter(entry["key"] for entry in temp_entries)
         temp_unknown = sorted(k for k in temp_keys if k not in TEMP_APPLY_KEYS)
+        apply_entries = [e for e in temp_entries if e["key"].startswith("apply/")]
+        apply_slice_entries = [
+            e
+            for npc in self.npcs.values()
+            if npc.get("origin") == "slice"
+            for e in npc.get("temp_apply", [])
+            if e["key"].startswith("apply/")
+        ]
+        apply_keys_in_slice = Counter(e["key"] for e in apply_slice_entries)
+        temp_out_of_create = sum(
+            1 for d in self.diagnostics if d["rule"] == "I_NPC_APPLY_OUT_OF_CREATE"
+        )
         return {
             "rooms_in_slice": sum(1 for r in self.rooms.values() if r["origin"] == "slice"),
             "rooms_boundary_stub": sum(1 for r in self.rooms.values() if r["origin"] == "boundary"),
@@ -1637,6 +1699,21 @@ class Extractor:
             ),
             "temp_apply_keys": dict(sorted(temp_keys.items())),
             "temp_apply_unknown_keys": temp_unknown,
+            "temp_apply_apply_entries": len(apply_entries),
+            "temp_apply_apply_npcs_in_slice": sum(
+                1 for n in self.npcs.values()
+                if n.get("origin") == "slice"
+                and any(e["key"].startswith("apply/") for e in n.get("temp_apply", []))
+            ),
+            "temp_apply_apply_entries_in_slice": len(apply_slice_entries),
+            "temp_apply_apply_keys_in_slice": dict(sorted(apply_keys_in_slice.items())),
+            "temp_apply_from_set": sum(
+                1 for e in temp_entries if e.get("source_kind") == "lpc_set"
+            ),
+            "temp_apply_from_set_in_slice": sum(
+                1 for e in apply_slice_entries if e.get("source_kind") == "lpc_set"
+            ),
+            "temp_apply_out_of_create": temp_out_of_create,
             "quests_total": self.quest_counts.get("quests_total", 0),
             "quests_dynamic": self.quest_counts.get("quests_dynamic", 0),
             "quests_talk_gated": self.quest_counts.get("quests_talk_gated", 0),

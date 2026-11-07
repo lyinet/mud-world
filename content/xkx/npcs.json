@@ -2733,7 +2733,41 @@
         "line": 9,
         "path": "d/hangzhou/npc/guest.lpc"
       },
-      "temp_apply": [],
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 15,
+            "path": "d/hangzhou/npc/guest.lpc"
+          },
+          "source_kind": "lpc_set",
+          "value": 15,
+          "value_expr": null
+        },
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 16,
+            "path": "d/hangzhou/npc/guest.lpc"
+          },
+          "source_kind": "lpc_set",
+          "value": 15,
+          "value_expr": null
+        },
+        {
+          "key": "apply/damage",
+          "known": true,
+          "source": {
+            "line": 17,
+            "path": "d/hangzhou/npc/guest.lpc"
+          },
+          "source_kind": "lpc_set",
+          "value": 5,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {}
@@ -2792,7 +2826,30 @@
         "line": 8,
         "path": "d/hangzhou/npc/honghua1.lpc"
       },
-      "temp_apply": [],
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 17,
+            "path": "d/hangzhou/npc/honghua1.lpc"
+          },
+          "source_kind": "lpc_set",
+          "value": 30,
+          "value_expr": null
+        },
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 18,
+            "path": "d/hangzhou/npc/honghua1.lpc"
+          },
+          "source_kind": "lpc_set",
+          "value": 30,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -2853,7 +2910,30 @@
         "line": 8,
         "path": "d/hangzhou/npc/honghua2.lpc"
       },
-      "temp_apply": [],
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 18,
+            "path": "d/hangzhou/npc/honghua2.lpc"
+          },
+          "source_kind": "lpc_set",
+          "value": 30,
+          "value_expr": null
+        },
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 19,
+            "path": "d/hangzhou/npc/honghua2.lpc"
+          },
+          "source_kind": "lpc_set",
+          "value": 30,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -3089,7 +3169,30 @@
         "line": 8,
         "path": "d/hangzhou/npc/jian-ke.lpc"
       },
-      "temp_apply": [],
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 17,
+            "path": "d/hangzhou/npc/jian-ke.lpc"
+          },
+          "source_kind": "lpc_set",
+          "value": 30,
+          "value_expr": null
+        },
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 18,
+            "path": "d/hangzhou/npc/jian-ke.lpc"
+          },
+          "source_kind": "lpc_set",
+          "value": 30,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -3878,7 +3981,30 @@
         "line": 5,
         "path": "d/hangzhou/npc/mengmian.lpc"
       },
-      "temp_apply": [],
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 29,
+            "path": "d/hangzhou/npc/mengmian.lpc"
+          },
+          "source_kind": "lpc_set",
+          "value": 30,
+          "value_expr": null
+        },
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 30,
+            "path": "d/hangzhou/npc/mengmian.lpc"
+          },
+          "source_kind": "lpc_set",
+          "value": 30,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -4149,7 +4275,30 @@
         "line": 8,
         "path": "d/hangzhou/npc/qingbing.lpc"
       },
-      "temp_apply": [],
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 17,
+            "path": "d/hangzhou/npc/qingbing.lpc"
+          },
+          "source_kind": "lpc_set",
+          "value": 30,
+          "value_expr": null
+        },
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 18,
+            "path": "d/hangzhou/npc/qingbing.lpc"
+          },
+          "source_kind": "lpc_set",
+          "value": 30,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -4218,7 +4367,30 @@
         "line": 5,
         "path": "d/hangzhou/npc/seng.lpc"
       },
-      "temp_apply": [],
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 27,
+            "path": "d/hangzhou/npc/seng.lpc"
+          },
+          "source_kind": "lpc_set",
+          "value": 30,
+          "value_expr": null
+        },
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 28,
+            "path": "d/hangzhou/npc/seng.lpc"
+          },
+          "source_kind": "lpc_set",
+          "value": 30,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -4477,7 +4649,30 @@
         "line": 6,
         "path": "d/hangzhou/npc/tangzi.lpc"
       },
-      "temp_apply": [],
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 15,
+            "path": "d/hangzhou/npc/tangzi.lpc"
+          },
+          "source_kind": "lpc_set",
+          "value": 20,
+          "value_expr": null
+        },
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 16,
+            "path": "d/hangzhou/npc/tangzi.lpc"
+          },
+          "source_kind": "lpc_set",
+          "value": 20,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -5155,7 +5350,41 @@
         "line": 6,
         "path": "d/hangzhou/npc/you-ke.lpc"
       },
-      "temp_apply": [],
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 12,
+            "path": "d/hangzhou/npc/you-ke.lpc"
+          },
+          "source_kind": "lpc_set",
+          "value": 15,
+          "value_expr": null
+        },
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 13,
+            "path": "d/hangzhou/npc/you-ke.lpc"
+          },
+          "source_kind": "lpc_set",
+          "value": 15,
+          "value_expr": null
+        },
+        {
+          "key": "apply/damage",
+          "known": true,
+          "source": {
+            "line": 14,
+            "path": "d/hangzhou/npc/you-ke.lpc"
+          },
+          "source_kind": "lpc_set",
+          "value": 5,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -5559,7 +5788,30 @@
         "line": 10,
         "path": "d/jiaxing/npc/hai.lpc"
       },
-      "temp_apply": [],
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 46,
+            "path": "d/jiaxing/npc/hai.lpc"
+          },
+          "source_kind": "lpc_set",
+          "value": 30,
+          "value_expr": null
+        },
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 47,
+            "path": "d/jiaxing/npc/hai.lpc"
+          },
+          "source_kind": "lpc_set",
+          "value": 30,
+          "value_expr": null
+        }
+      ],
       "title": "东厂千户",
       "vendor": false,
       "vitals": {
@@ -6762,7 +7014,30 @@
         "line": 6,
         "path": "d/shiliang/npc/tufei2.lpc"
       },
-      "temp_apply": [],
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 15,
+            "path": "d/shiliang/npc/tufei2.lpc"
+          },
+          "source_kind": "lpc_set",
+          "value": 10,
+          "value_expr": null
+        },
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 16,
+            "path": "d/shiliang/npc/tufei2.lpc"
+          },
+          "source_kind": "lpc_set",
+          "value": 10,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
