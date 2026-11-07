@@ -387,10 +387,101 @@ python3 tools/xkx_ref/probe_mud.py --port 4004 --player-id mytest \
 
 本次只新增/修改以下范围，未触碰 `src/**`、`ui/**`、`content/**`、`config/**`：
 
-- `tools/xkx_ref/`：`build_fluffos_v2019.sh`、`prepare_mudlib.sh`、`run_ref.sh`、`probe_mud.py`、`.gitignore`
-- `reports/xkx-ref/`：6 份会话 JSON（见 §3 顶部链接）
+- `tools/xkx_ref/`：`build_fluffos_v2019.sh`、`prepare_mudlib.sh`、`run_ref.sh`、`probe_mud.py`、`service.sh`、`service/com.xkx.ref.plist.in`、`run_scenarios.py`、`.gitignore`
+- `reports/xkx-ref/`：6 份会话 JSON（见 §3 顶部链接）+ `scenarios/` 固定样本
 - `specs/xkx-parity/reference-run.md`：本文件
 
 源码与产物（`tools/xkx_ref/src/`、`deps/`、`run/`、`logs/`）全部被 `tools/xkx_ref/.gitignore` 忽略，不入库。
 
-> 说明：`specs/xkx-parity/content-inventory.md` 第 43/551 行仍写着 `fluffos/xkx100` “未实测跑通”。该文件不在本次授权修改范围，故未改动；以本文件的实测结论为准。
+---
+
+## 7. 无人值守守护与一键重启（4004）
+
+参照实例已由 macOS launchd 托管为 LaunchAgent `com.xkx.ref`：`RunAtLoad` + `KeepAlive`，进程异常退出后约 5 秒自动拉起；登录后随 LaunchAgents 自动加载。plist 模板在 `tools/xkx_ref/service/com.xkx.ref.plist.in`，实际渲染到 `~/Library/LaunchAgents/com.xkx.ref.plist`。
+
+| 操作 | 命令 |
+| --- | --- |
+| 安装并启动（幂等） | `tools/xkx_ref/service.sh install` |
+| 一键重启（`kickstart -k`） | `tools/xkx_ref/service.sh restart` |
+| 查看 launchd 状态 + 4004 监听 | `tools/xkx_ref/service.sh status` |
+| 跟踪驱动 stdout/stderr | `tools/xkx_ref/service.sh logs` |
+| 停止并卸载本次加载（保留 plist） | `tools/xkx_ref/service.sh stop` |
+| 完全移除 LaunchAgent | `tools/xkx_ref/service.sh uninstall` |
+
+正常状态示例：
+
+```text
+state = running
+pid = 28278
+last exit code = (never exited)
+listen:
+driver  28278 lyinet ... TCP *:4004 (LISTEN)
+```
+
+存活验证（已实测）：
+
+1. `launchctl print gui/$(id -u)/com.xkx.ref` 显示 `state = running`、`KeepAlive = true`。
+2. 对当前驱动 PID 执行 `kill -9`，launchd 在约 9 秒内拉起新 PID，`lsof -iTCP:4004` 重新出现 LISTEN，telnet 可正常登录。
+3. `service.sh stop` 只做 `bootout`，plist 保留；再次 `service.sh install` 即恢复，不会丢配置。
+
+若 launchd 不可用，回退方式是前台 `tools/xkx_ref/run_ref.sh`；重启即 Ctrl-C 后重新执行。驱动日志在 `tools/xkx_ref/logs/driver.out.log` 与 `driver.err.log`。
+
+> 采样/恢复角色快照需要“停驱动 → 覆盖 `data/user/x/xkxref.o` → 再启动”，因为同 id 重连会附着在内存中的旧 user 对象。日常对拍不需要做这一步；直接 telnet 4004 即可。
+
+---
+
+## 8. 固定场景样本（可 diff）
+
+脚本：`tools/xkx_ref/run_scenarios.py`。样本在 `reports/xkx-ref/scenarios/`。
+
+固定条件：
+
+- 角色 `xkxref`（测试侠客，男，天赋 20/20/20/20，家乡无锡），存档快照 `tools/xkx_ref/run/snapshots/xkxref.o`。
+- 每个场景跑 3 次；每次前停采样实例、用快照覆盖存档、再启动、等端口就绪。
+- 采样使用**独立实例**：`run/mudlib-sample` + `config-sample.ini`，端口 `4005`。全程不重启 4004，公式对拍方不受影响。
+- 场景刻意选室内或只取与天时无关的步骤，不修改游戏时间：房间/出口取武庙二楼（室内、无 NPC），`score` 取出生点，`ask` 取杂货铺杨永福（固定 `inquiry`、无 `chat_chance`），战斗取中央广场流氓。
+
+| 场景 | 路线 / 命令 | 抓取步骤 |
+| --- | --- | --- |
+| `S1_room` | `go up` → `look`（武庙二楼） | `look` 输出 |
+| `S2_go_exits` | `go up`（武庙 → 武庙二楼） | `go up` 输出 |
+| `S3_score` | `score`（出生点武庙） | `score` 面板 |
+| `S4_ask` | `east`→`south`×3→`west`→`ask yang about 面具`（杂货铺） | `ask` 输出 |
+| `S5_combat` | `east`→`south`→`kill liu mang`（中央广场，至死亡） | `kill` 30 秒输出 |
+
+输出文件：
+
+```text
+reports/xkx-ref/scenarios/
+├── stability.md              # 每次运行的一致性判定 + diff
+├── S1_room/run{1,2,3}.raw.txt / run{1,2,3}.txt
+├── S2_go_exits/...
+├── S3_score/...
+├── S4_ask/...
+└── S5_combat/run{1,2,3}.raw.txt / .txt / .anchor.txt
+```
+
+- `.raw.txt`：去 ANSI 的原始输出，保留全部随机行。
+- `.txt`：归一化输出，可直接 `diff`；`run1.txt` 可作 golden。
+- `.anchor.txt`（仅战斗）：稳定锚点，按固定顺序输出。
+
+归一化规则：删除 `【江湖传闻】/【风闻】/【谣言】/【传闻】/【存盘】` 系统行；`score` 的游戏时间替换为 `<PLAY_MINUTES>`；战斗把身体部位/伤情/Hp 状态替换为占位符，并在“你倒在地上，挣扎了几下就死了。”处截断。
+
+实测结果（2026-11-07，各 3 次）：
+
+| 场景 | 归一化后一致 | 稳定字段 | 不稳定字段 |
+| --- | --- | --- | --- |
+| `S1_room` | **是** | 房间标题、长描述、出口列表、英雄榜 | 无（室内） |
+| `S2_go_exits` | **是** | 目标房间标题、出口 `down/up` | 无（室内） |
+| `S3_score` | **是** | 称号、姓名、性别、性格、家乡、年龄、杀生/被杀、经验/潜能、正气、阅历/威望 | 游戏时间（已归一化）；食物/饮水/<精>/<气> 条随在线秒数微变 |
+| `S4_ask` | **是** | 打听提示、悄悄话、杨永福固定答复 | 偶发系统行（已删除） |
+| `S5_combat` | **否**（锚点一致：**是**） | 已发起挑战、`看起来流氓想杀死你！`、`你的眼前一黑…`、倒地结算 | 挑战喝句二选一、每回合命中/闪避/部位/伤害/伤情、死亡秒数、死亡谣言出现时机 |
+
+复跑：
+
+```bash
+cd /Users/lyinet/projects/XKX/world-sim
+python3 tools/xkx_ref/run_scenarios.py --runs 3
+```
+
+> 说明：`specs/xkx-parity/content-inventory.md` 顶部已加时点注记，指向本文件；该文件正文未改。
