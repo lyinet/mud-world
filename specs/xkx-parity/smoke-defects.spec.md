@@ -76,6 +76,20 @@
 - 内容包 `skills_actions.json` 的 `staff.actions` 为空是**正确**的：基本功 `kungfu/skill/staff.lpc` 本来没有 `query_action`。当前引擎 `combat_rules.py:403-414` 在无映射技能时直接走种族默认招式，漏了“武器自带 actions”层。
 - 玩家 `staff` 等级 0 不是原因：原版无等级门槛，0 级照样用武器 verbs。
 
+### 0.7 核查：玩家逃跑时老虎被其他玩家攻击（同队 / 非同队）
+
+> 用户要求本轮**只核查并写进 spec，不实现**。以下是原版源码事实。
+
+- 每个角色的敌人表是自己的 `nosave object *enemy`（[`feature/attack.lpc:9`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/feature/attack.lpc#L9)）；`fight_ob` / `kill_ob` 只把对方加进**自己**的 `enemy`（[`feature/attack.lpc:33-45`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/feature/attack.lpc#L33-L45)、[`feature/attack.lpc:47-114`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/feature/attack.lpc#L47-L114)）。
+- 逃跑成功的清理：[`cmds/std/go.lpc:320-323`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/cmds/std/go.lpc#L320-L323) 在 `move` 成功后调用 `me->remove_all_enemy()`；
+  [`feature/attack.lpc:171-181`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/feature/attack.lpc#L171-L181) 会遍历玩家自己的 `enemy`，逐个调用 `敌人->remove_enemy(玩家)`，再清空玩家自己的 `enemy`。
+- `remove_enemy` 对“正在追杀该 id”的敌人返回 0（不移除，[`feature/attack.lpc:152-158`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/feature/attack.lpc#L152-L158)）。但 NPC 每次心跳攻击前先 `clean_up_enemy()`，把**不在同一房间**的敌人清掉（[`feature/attack.lpc:116-130`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/feature/attack.lpc#L116-L130)、[`feature/attack.lpc:228-241`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/feature/attack.lpc#L228-L241)）；随后 `select_opponent()` 只从本房敌人里随机 4 选 1（[`feature/attack.lpc:132-140`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/feature/attack.lpc#L132-L140)）。
+- 结论：
+  1. **老虎不会追逃跑的 A**。A 换房后即使仍残留在老虎 `enemy` 表（`is_killing` 分支），下一次心跳 `clean_up_enemy` 因不同房清掉；老虎没有 `pursuer`，不主动 move 追人。
+  2. **老虎被 B 打时，A 逃跑不会让老虎停手**。老虎 `enemy` 里仍有 B（B 是同队或非同队都一样），继续按 `select_opponent` 打本房的 B。
+  3. **同队不改变敌人表的成立条件**。`kill_ob` 只有 `guarded`（被保护者）会把守卫加入战斗（[`feature/attack.lpc:82-112`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/feature/attack.lpc#L82-L112)）；普通队友不会仅因同队自动进 `enemy`。因此“B 与 A 同队”与否，不改变老虎继续打 B 的事实，也不改变 A 是否被追。
+- 本轮引擎是单 `combat_target` 模型，没有多敌表；实现上述多人同屏行为需要新增敌人列表与 `clean_up_enemy/select_opponent` 选敌规则。**本轮不实现**，只记录；未来若做，按本节源码顺序建模。
+
 ## 1. 缺陷 1：`wimpy` 自动逃跑（不新增 `flee`）
 
 ### 1.1 数据与命令
@@ -93,18 +107,25 @@
 在 [`src/wsim/actions/aggression.py:84-175`](file:///Users/lyinet/projects/XKX/world-sim/src/wsim/actions/aggression.py#L84-L175) 的 `continue` 里，结算伤害**之前**插入 `_wimpy_escape(state, npc, target, rng, intent)`（对应 `char.lpc` 心跳顺序：先逃跑、再攻击）：
 
 1. 仅当 `target` 是玩家、`target.wimpy > 0`、`target.max_hp > 0`、`target.hp * 100 <= target.wimpy * target.max_hp` 时触发。原版同时看 `jing`，本引擎只持久化气血；本轮只判定气血，报告注明这一条偏差。
-2. 取数顺序锁定（salt 仍 `action:npc_aggression`，同一事件）：
-   - `roll_player = rng.below(target.dex)`（`attrs["dex"]`，缺失 0）
-   - `roll_enemy = rng.below(npc.dex)`
+2. 取数顺序锁定（salt 仍 `action:npc_aggression`，同一事件），**与原版 `do_flee` → `main()` 一致：先选方向、再掷 dex**：
+   - `exit_index = rng.below(len(sorted_exits))`（按地点 id 排序锁顺序）；
+   - `roll_player = rng.below(target.dex)`（`attrs["dex"]`，缺失 0）；
+   - `roll_enemy = rng.below(npc.dex)`；
    - 失败条件 `roll_player <= roll_enemy`。
-3. **失败**：产 `wimpy_log{result:"failed", round, rolls}`；不移动、不清交战；本回合继续 `combat_effects`（原版玩家 busy 1 拍，NPC 照常攻击）。
-4. **成功**：取 `exit_index = rng.below(len(sorted_exits))`，按地点 id 排序锁顺序：
+   - `wimpy_log.roll_order = ["exit_index","roll_target","roll_npc"]`，两个 dex 骰与方向骰的先后在事件里显式可读。
+   - **失败也消费方向随机数**（`exit_index` 已掷出，只是不移动），与原版
+     [`cmds/std/go.lpc:336-347`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/cmds/std/go.lpc#L336-L347)
+     先 `directions[random(sizeof(directions))]`、再进
+     [`cmds/std/go.lpc:60-79`](file:///Users/lyinet/projects/XKX/world-sim/tools/xkx_extract/_src/xkx100/cmds/std/go.lpc#L60-L79)
+     掷 dex 的顺序一致。
+3. **失败**：产 `wimpy_log{result:"failed", round, exit_index, attempted_exit, rolls}`；不移动、不清交战；本回合继续 `combat_effects`（原版玩家 busy 1 拍，NPC 照常攻击）。
+4. **成功**：按已掷出的 `exit_index` 取出口：
    - `set_location(entity=玩家, value=出口)`；
    - 复用 `_reset(npc)` 清 `combat_target/combat_tick/combat_round`（等价 `remove_all_enemy`）；
-   - 产 `wimpy_log{result:"success", direction/from/to, rolls}` 与 `aggression_log{result:"escaped", reason:"wimpy"}`；
+   - 产 `wimpy_log{result:"success", from/to, rolls}` 与 `aggression_log{result:"escaped", reason:"wimpy"}`；
    - **跳过**本回合 `combat_effects`（玩家已离开，NPC 不再打中）。
    - 不产追击（三名 NPC 无 `pursuer`）。
-5. 当前房间无出口 → `wimpy_log{result:"no_exit"}`，继续本回合战斗（原版 `do_flee` 无出口直接 return，也逃不掉）。
+5. 当前房间无出口 → `wimpy_log{result:"no_exit", roll_order:[]}`，**不掷点**，继续本回合战斗（原版 `do_flee` 无出口直接 return，也逃不掉）。
 6. `wimpy == 0` 时**不取任何随机数**，既有主动攻击/战斗的 PRNG 序列逐字节不变（保护现有确定性测试与旧世界）。
 
 ### 1.3 边界
@@ -151,15 +172,16 @@ sect_name = str(sect.get("name") or "")
 
 ### 5.1 自动化测试
 
-- `tests/test_wimpy.py`：命令无参/越界/0..80；`to_dict` 空 `wimpy` 不输出；自动逃跑成功（移动 + 清交战 + `wimpy_log`）与失败（原地 + 本回合照打）；`wimpy=0` 不取随机数（与既有 aggression 事件一致）；同 seed 双跑一致。
+- `tests/test_wimpy.py`：命令无参/越界/0..80；`to_dict` 空 `wimpy` 不输出；自动逃跑成功（移动 + 清交战 + `wimpy_log`）与失败（原地 + 本回合照打）；`roll_order == ["exit_index","roll_target","roll_npc"]`；无出口不掷点；`wimpy=0` 不取随机数（与既有 aggression 事件一致）；同 seed 双跑一致。
 - `tests/test_score_sect.py`：嵌套视图显示 `红花会（弟子）`；`in_sect=false` 显示未拜入。
-- `tests/test_npc_drops.py`：大狼狗掉 `goupi` 到地面；空 `drops` 不掉；`to_dict` 空 `drops` 不输出。
-- `tests/test_weapon_actions.py`：铁棍无映射走 weapon、有映射走 skill、空手走 default、同 seed 同一 verb。
+- `tests/test_combat_death_equipment.py`：内容 `drops` 死亡后落地、`loot` 可取；`drops` 与 `equipment` 同 id 取 max；`to_dict` 空 `drops` 不输出；创世读到大狼狗 `drops`。
+- `tests/test_skill_actions.py`：`staff` 三个 verbs 且只掷一次；空武器类型不掷点；未知类型回落基类。
+- `tests/test_combat_moves.py`：无映射技能持铁棍 → `selection="weapon"`；`staff` 等级 0 仍用武器动作。
 - 既有 `tests/test_xkx_determinism_legacy.py` 断言不改。
 
-### 5.2 真实响应（独立端口 8051/8021，固定 seed）
+### 5.2 真实响应（独立端口 8053 / 8057，固定 seed）
 
-- 用 `/tmp/xkx-smoke.yaml`（复制 `config/worlds/xkx.yaml`，仅改 `run_id: xkx-smoke` / `api_port: 8051` / `ui_port: 8021`，固定 seed），**不得 reset `xkx-world`**。
+- 用 `/tmp/xkx-smoke.yaml`（复制 `config/worlds/xkx.yaml`，仅改 `run_id: xkx-smoke` / `api_port: 8053` / `ui_port: 8054`，固定 seed）与 `/tmp/xkx-wimpy.yaml`（独立 fresh run，`api_port: 8057`，spawn `/d/hangzhou/yuhuangsd`，ambient 1、npc_wander 关），**不得 reset `xkx-world`**。
 - 缺陷 1：
   - `wimpy`（无参）与 `wimpy 80` 的真实响应；
   - 进入 `/d/hangzhou/shanlu6` 不输入 `fight`，贴出每回合掉血与 `wimpy_log` 的失败/成功原始事件；
@@ -167,8 +189,15 @@ sect_name = str(sect.get("name") or "")
   - 战斗结束后 `wimpy` 不再触发（无交战）。
 - 缺陷 2：`bai 安健刚` 前后各一次真实 `score`。
 - 缺陷 3：`/d/hangzhou/guozhuang` 杀大狼狗 → `look` → `loot 狗皮` 原始输出。
-- 缺陷 4：`/d/hangzhou/npc/smith` 买 `铁棍` → `wield 铁棍` → `fight`，贴战报行与 `selection`。
+- 缺陷 4：`/d/hangzhou/tiejiangpu`（铁匠铺；`smith` 的店铺在房间 business 上，NPC 本人可能已自主移动）买 `铁棍` → `wield 铁棍` → `fight`，贴战报行与 `selection`。
 - 每次报告附旧九地点三项哈希、`git diff --stat tools/xkx_formula`（必须为空）、全量 pytest。
+
+### 5.3 随机顺序修正对 `content_hash` / `--reset` 的影响
+
+- **`content_hash` 不变**。它只由内容包 `content/xkx/**` 计算（启动日志 `ambient_boot ... content=56417288eb1a`）；本次只改引擎代码与事件字段，没有改任何内容包文件。
+- **旧事件重放不受影响**。事件库记录的是已经发生的效果，不记录随机流；旧 `xkx-smoke` 可直接继续重放，不需要 `--reset`。
+- **未来事件序列会变**。同一 seed 下，wimpy 现在先掷方向、失败也掷方向，随机流消耗与旧实现不同；旧 run 里“下一条”wimpy 事件与旧证据不再逐字节对应。若要逐字节复现旧顺序的旧证据，只能用旧代码或旧事件库；新验收统一用 fresh run（`xkx-wimpy`）。
+- **旧九地点哈希不变**。`test_xkx_determinism_legacy.py` 的世界没有玩家、没有 `wimpy` 字段，不进入 `_wimpy_escape`，随机流与三项哈希保持基线。
 
 ## 6. 提交纪律
 

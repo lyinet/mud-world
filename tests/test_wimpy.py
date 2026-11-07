@@ -102,6 +102,9 @@ def test_wimpy_success_moves_and_clears_all_aggressors():
     log = _wlog(event)
     assert log["result"] == "success"
     assert log["from_location"] == "inn" and log["to_location"] == "road"
+    # 原版 do_flee 先选方向、再掷 dex；两个随机值在日志里按消费顺序标注。
+    assert log["roll_order"] == ["exit_index", "roll_target", "roll_npc"]
+    assert log["exit_index"] == 0 and log["exit_count"] == 1
     player = writer.state.entities[PLAYER_ID]
     npc = writer.state.entities[NPC_ID]
     assert player.location == "road"
@@ -116,6 +119,9 @@ def test_wimpy_failure_stays_and_takes_the_round():
     event = _continue(writer, 1)
     log = _wlog(event)
     assert log["result"] == "failed" and log["round"] == 1
+    # 失败也先消费方向随机数：exit_index 已记录，但人不移动。
+    assert log["roll_order"] == ["exit_index", "roll_target", "roll_npc"]
+    assert log["exit_index"] == 0 and log["attempted_exit"] == "road"
     player = writer.state.entities[PLAYER_ID]
     npc = writer.state.entities[NPC_ID]
     assert player.location == "inn"

@@ -35,6 +35,10 @@ class Entity:
     # NPC 随身装备（内容包 `equipment` 原样，可重复）。死亡时转成地面物品；
     # 旧九地点 NPC 没有该字段，空列表不写进 to_dict()，哈希不变。
     equipment: list[str] = field(default_factory=list)
+    # 原版 `die()` 里 `new(__DIR__ "obj/...")` 的固定掉落（内容包 `drops[]`，
+    # 只收 chance=1 / item_resolved / landing=ground）。旧内容没有该字段，
+    # 空字典不写进 to_dict()，旧世界哈希不变。
+    drops: dict[str, int] = field(default_factory=dict)
     skills: dict[str, float] = field(default_factory=dict)
     personality: dict[str, Any] = field(default_factory=dict)
     employed_at: str | None = None
@@ -137,6 +141,8 @@ class Entity:
             data["weapon_type"] = self.weapon_type
         if self.equipment:
             data["equipment"] = list(self.equipment)
+        if self.drops:
+            data["drops"] = dict(sorted(self.drops.items()))
         # 战斗字段：只在内容包显式提供后出现，旧世界（max_hp=0）不新增任何键。
         if self.max_hp:
             data["hp"] = int(self.hp)

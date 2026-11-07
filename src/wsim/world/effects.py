@@ -43,6 +43,8 @@ _ENTITY_FIELDS = {
     "combat_round",
     # 原版 `env/wimpy` 阈值（玩家命令 wimpy 写入，0..80）。
     "wimpy",
+    # NPC 原版 `die()` 固定掉落（内容包 drops，死亡时转地面物品）。
+    "drops",
 }
 
 # 插件只能声明/返回这些原语。`mint` 虽然存在，但只允许 genesis/system 使用，
@@ -295,6 +297,12 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             ent.instance = max(0, _as_int(d.get("instance", 0), "instance"))
         if "wimpy" in d:
             ent.wimpy = max(0, min(80, _as_int(d.get("wimpy", 0), "wimpy")))
+        if "drops" in d:
+            ent.drops = {
+                str(k): max(0, _as_int(v, f"drops.{k}"))
+                for k, v in dict(d.get("drops") or {}).items()
+                if str(k) and _as_int(v, f"drops.{k}") > 0
+            }
         state.entities[ent.id] = ent
         return
 

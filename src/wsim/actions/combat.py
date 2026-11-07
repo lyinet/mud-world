@@ -46,6 +46,7 @@ def _drop_counts(
     *,
     include_equipment: bool = False,
     increment_equipped: bool = False,
+    content_drops: dict[str, int] | None = None,
 ) -> dict[str, int]:
     """一个非玩家实体死亡时随身落的物品与数量。"""
     drops: dict[str, int] = {}
@@ -66,6 +67,10 @@ def _drop_counts(
             for item in sorted(set(ent.equipped.values())):
                 if item and item not in drops:
                     drops[item] = 1
+    # 原版 `die()` 里的固定掉落（内容包 drops，仅必掉且已解析的条目）。
+    for item, qty in sorted((content_drops or {}).items()):
+        if str(item) and int(qty) > 0:
+            drops[str(item)] = max(drops.get(str(item), 0), int(qty))
     # 同一 id 已在背包/显式掉落里时取较大数量，避免双计。
     if include_equipment:
         equip_counts: dict[str, int] = {}
@@ -222,7 +227,10 @@ def combat_effects(
     if str(defender.id) in dead_ids and not str(defender.id).startswith("player:"):
         effects.extend(
             _drop_effects(
-                _drop_counts(defender, loot, include_equipment=True),
+                _drop_counts(
+                    defender, loot, include_equipment=True,
+                    content_drops=getattr(defender, "drops", None),
+                ),
                 str(defender.location),
                 "fight",
             )
@@ -234,7 +242,10 @@ def combat_effects(
     ):
         effects.extend(
             _drop_effects(
-                _drop_counts(attacker, include_equipment=True),
+                _drop_counts(
+                    attacker, include_equipment=True,
+                    content_drops=getattr(attacker, "drops", None),
+                ),
                 str(attacker.location),
                 "death",
             )

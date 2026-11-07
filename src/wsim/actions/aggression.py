@@ -29,7 +29,8 @@ def _dex(ent: Any) -> int:
 def _wimpy_escape(state: WorldState, npc: Any, target: Any, rng: Any, intent: Intent):
     """原版 `char.lpc:80-97` 心跳里的自动逃跑。
 
-    先按气血比例判断 wimpy，再按 `go.lpc:60-79` 的 dex 骰决定成败。
+    随机顺序对齐原版 `go.lpc:336-347`：`do_flee` 先 `random` 选方向，再进
+    `go.lpc:60-79 main()` 掷 dex；失败时方向随机数也已消费、人不移动。
     返回 `(effects, escaped)`；`escaped=True` 时调用方跳过本回合伤害。
     """
     threshold = int(getattr(target, "wimpy", 0) or 0)
@@ -39,8 +40,7 @@ def _wimpy_escape(state: WorldState, npc: Any, target: Any, rng: Any, intent: In
         return [], False
 
     round_no = int(npc.combat_round) + 1
-    roll_player = _below(rng, _dex(target))
-    roll_enemy = _below(rng, _dex(npc))
+    exits = sorted(str(x) for x in (state.locations.get(target.location, {}).get("exits") or []))
     base = {
         "mode": "wimpy",
         "npc": str(npc.id),
@@ -53,19 +53,33 @@ def _wimpy_escape(state: WorldState, npc: Any, target: Any, rng: Any, intent: In
         "max_hp": max_hp,
         "dex_target": _dex(target),
         "dex_npc": _dex(npc),
-        "roll_target": roll_player,
-        "roll_npc": roll_enemy,
+        "intent_tick": int(intent.tick),
+        "reason": "wimpy",
     }
-    if roll_player <= roll_enemy:
-        base.update(result="failed", from_location=str(target.location))
-        return [Effect(op="wimpy_log", data=base)], False
-
-    exits = sorted(str(x) for x in (state.locations.get(target.location, {}).get("exits") or []))
     if not exits:
-        base.update(result="no_exit", from_location=str(target.location))
+        base.update(result="no_exit", from_location=str(target.location), exit_count=0, roll_order=[])
         return [Effect(op="wimpy_log", data=base)], False
 
-    dest = exits[_below(rng, len(exits))]
+    # 原版顺序：先 `random(sizeof(directions))` 选出口（失败也消费这一笔）。
+    exit_index = _below(rng, len(exits))
+    dest = exits[exit_index]
+    roll_player = _below(rng, _dex(target))
+    roll_enemy = _below(rng, _dex(npc))
+    base.update(
+        exit_index=exit_index,
+        exit_count=len(exits),
+        roll_order=["exit_index", "roll_target", "roll_npc"],
+        roll_target=roll_player,
+        roll_npc=roll_enemy,
+    )
+    if roll_player <= roll_enemy:
+        base.update(
+            result="failed",
+            from_location=str(target.location),
+            attempted_exit=dest,
+        )
+        return [Effect(op="wimpy_log", data=base)], False
+
     effects: list[Effect] = [
         Effect(op="set_location", data={"entity": target.id, "to": dest}),
     ]
@@ -77,10 +91,6 @@ def _wimpy_escape(state: WorldState, npc: Any, target: Any, rng: Any, intent: In
         result="success",
         from_location=str(target.location),
         to_location=dest,
-        exit_index=exits.index(dest),
-        exit_count=len(exits),
-        reason="wimpy",
-        intent_tick=int(intent.tick),
     )
     effects.append(Effect(op="wimpy_log", data=base))
     return effects, True

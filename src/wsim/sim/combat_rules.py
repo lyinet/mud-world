@@ -28,6 +28,7 @@ from .skill_actions import (  # noqa: E402  (与库同级的内部模块)
     mapped_skill,
     select_action,
     select_default_action,
+    select_weapon_action,
 )
 
 # 原版 `combatd.lpc:728 fight()` 每 heartbeat 只走一次交手，靠
@@ -192,6 +193,7 @@ class _Actor:
         self.apply_armor = int(self.temp_apply.get("apply/armor", 0))
         self.apply_armor_vs_force = int(self.temp_apply.get("apply/armor_vs_force", 0))
         self.weapon = has_weapon(ent)
+        self.weapon_type = str(getattr(ent, "weapon_type", "") or "") if self.weapon else ""
         self.spi = attr(ent, "spi")
         # 原版 `query_skill_mapped(type)` 与内功发力状态（force.lpc hit_ob）。
         self.map_skills = {
@@ -408,6 +410,14 @@ def simulate_fight(
             if skill_actions:
                 move = select_action(skill_actions, src.level(mapped), prng)
                 selection = "skill"
+            elif not mapped and src.weapon:
+                # `feature/attack.lpc:214-224`：没有映射技能时先让武器对象出招
+                # （`weapond.lpc query_action()`），武器类型缺失才回落到种族动作。
+                move = select_weapon_action(src.weapon_type, prng)
+                selection = "weapon" if move else ""
+                if move is None:
+                    move = select_default_action(src.race, prng)
+                    selection = "default" if move else ""
             else:
                 # 原版 `reset_action()` 无映射技能时回落到种族 `combat_action`。
                 move = select_default_action(src.race, prng)

@@ -1530,7 +1530,9 @@ class XKXShell:
         """替换原版 `combat_action` 的 `$N/$n/$l` 等占位符，不把 `$x` 露给玩家。"""
         mapping = {
             "N": who, "n": whom, "p": "对方", "P": "对方",
-            "l": "要害", "w": "", "W": "", "d": "外",
+            # 武器动作文案（weapond.lpc）用 `$w`；引擎没有把兵器实物名传进战报，
+            # 按 spec 统一显示“武器”，不暴露内部 item id。
+            "l": "要害", "w": "武器", "W": "武器", "d": "外",
         }
         rendered = re.sub(
             r"\$[A-Za-z]", lambda m: mapping.get(m.group(0)[1:], ""), str(text or "")
