@@ -31,6 +31,30 @@ PRESENCE_OFFLINE_SECONDS = 60.0
 # 初始资产的唯一事实来源：genesis 预置与首次进入发放共用。
 STARTING_MONEY = 300
 STARTING_ITEMS: dict[str, int] = {"flatbread": 3, "coarse_cloth": 1}
+
+# ---- 玩家创世气血与属性 ----
+# 来源区分（必须和内容包数值分开看）：
+# - max_hp=100 是**原版**数值：logind.lpc:917-925 新玩家 max_qi=eff_qi=100；
+#   race/human.lpc:116 在 age<=14 时 max_qi=max_jing=100；clone/user/user.lpc:59
+#   初始 age=14。所以 100 不是我们编的。
+# - 六维属性是**我们的默认**：xkx 登录时由玩家掷点决定，不可确定复刻；这里按身份
+#   给一组固定值，保证新角色一定有属性、战斗可结算。
+PLAYER_MAX_HP = 100
+DEFAULT_ARCHETYPE = "游侠"
+ARCHETYPE_ATTRS: dict[str, dict[str, int]] = {
+    # 膂力 / 根骨 / 身法 / 悟性 / 精神 / 耐力
+    "游侠": {"str": 20, "con": 20, "dex": 18, "int": 15, "spi": 15, "sta": 20},
+    "商人": {"str": 15, "con": 16, "dex": 15, "int": 20, "spi": 18, "sta": 18},
+    "捕快": {"str": 18, "con": 18, "dex": 17, "int": 17, "spi": 16, "sta": 19},
+}
+
+
+def _player_vitals(archetype: str = "") -> dict:
+    """确定性玩家气血/属性；未知身份回落到游侠。"""
+    attrs = ARCHETYPE_ATTRS.get(archetype or DEFAULT_ARCHETYPE, ARCHETYPE_ATTRS[DEFAULT_ARCHETYPE])
+    return {"max_hp": PLAYER_MAX_HP, "hp": PLAYER_MAX_HP, "attrs": dict(attrs)}
+
+
 ENDOWMENT_SOURCE = "genesis_player_endowment"
 RUNTIME_ENDOWMENT_SOURCE = "player_endowment"
 CARRY_SOURCE = "genesis_player_carry"
@@ -87,6 +111,9 @@ PLAYER_VERBS = frozenset(
         "use_item",
         # 战斗：一次动作原子结算最多 20 回合，只写 1 条事件（rounds[] 战报）。
         "fight",
+        # 取物：loot 与 get 是同一动作的两个 verb，取当前房间地面掉落。
+        "loot",
+        "get",
     }
 )
 
@@ -157,19 +184,19 @@ def player_genesis_effects(
 ) -> list[Effect]:
     """创世预置：允许铸币/造物的玩家入口之一（另一条是首次进入发放）。"""
     items = items if items is not None else dict(STARTING_ITEMS)
+    entity_data = {
+        "id": pid,
+        "name": name,
+        "role": "visitor",
+        "location": at,
+        "home": at,
+        "stamina": 100.0,
+        "max_stamina": 100.0,
+    }
+    # 预置账号没有身份参数，按默认身份（游侠）落地气血与属性。
+    entity_data.update(_player_vitals(DEFAULT_ARCHETYPE))
     effects: list[Effect] = [
-        Effect(
-            "create_entity",
-            {
-                "id": pid,
-                "name": name,
-                "role": "visitor",
-                "location": at,
-                "home": at,
-                "stamina": 100.0,
-                "max_stamina": 100.0,
-            },
-        ),
+        Effect("create_entity", entity_data),
         Effect("create_account", {"account": wallet(pid), "balance": 0}),
         Effect("mint", {"account": wallet(pid), "amount": money, "source": ENDOWMENT_SOURCE}),
         Effect(
@@ -186,8 +213,29 @@ def player_genesis_effects(
     return effects
 
 
+def content_has_combat_data(content) -> bool:
+    """内容包是否带战斗数据（xkx 切片有 vitals/attrs/skills，legacy 没有）。
+
+    玩家创世气血只在带战斗数据的世界上生效：旧 `content/` 世界（九地点）的
+    玩家创世事件与哈希因此逐字节不变。
+    """
+    return any(
+        any(key in npc for key in ("vitals", "attrs", "skills"))
+        for npc in (getattr(content, "npcs", None) or [])
+    )
+
+
 class PlayerEnterAction(Action):
     verb = "player_enter"
+
+    def __init__(self, content=None) -> None:
+        self.content = content
+
+    def _vitals(self, archetype: str) -> dict:
+        # content=None（单测/旧调用）按开启处理，避免新角色无血。
+        if self.content is not None and not content_has_combat_data(self.content):
+            return {}
+        return _player_vitals(archetype)
 
     def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
         pid = _player_id(intent)
@@ -237,20 +285,17 @@ class PlayerEnterAction(Action):
             archetype = archetype or "游侠"
             role = ARCHETYPES[archetype]
             if pid not in state.entities:
-                effects.append(
-                    Effect(
-                        "create_entity",
-                        {
-                            "id": pid,
-                            "name": display,
-                            "role": role,
-                            "location": at,
-                            "home": at,
-                            "stamina": 100.0,
-                            "max_stamina": 100.0,
-                        },
-                    )
-                )
+                data = {
+                    "id": pid,
+                    "name": display,
+                    "role": role,
+                    "location": at,
+                    "home": at,
+                    "stamina": 100.0,
+                    "max_stamina": 100.0,
+                }
+                data.update(self._vitals(archetype))
+                effects.append(Effect("create_entity", data))
             if wallet(pid) not in state.accounts:
                 effects.append(Effect("create_account", {"account": wallet(pid), "balance": 0}))
             # 职业技能初始 0.35；身份只影响 role/skill，不产生资产。
@@ -264,20 +309,23 @@ class PlayerEnterAction(Action):
         else:
             role = prof.role or ARCHETYPES.get(archetype, "visitor")
             if pid not in state.entities:
-                effects.append(
-                    Effect(
-                        "create_entity",
-                        {
-                            "id": pid,
-                            "name": prof.name,
-                            "role": role,
-                            "location": at,
-                            "home": at,
-                            "stamina": 100.0,
-                            "max_stamina": 100.0,
-                        },
-                    )
-                )
+                data = {
+                    "id": pid,
+                    "name": prof.name,
+                    "role": role,
+                    "location": at,
+                    "home": at,
+                    "stamina": 100.0,
+                    "max_stamina": 100.0,
+                }
+                data.update(self._vitals(archetype or prof.archetype))
+                effects.append(Effect("create_entity", data))
+            elif int(state.entities[pid].max_hp) <= 0:
+                # 早于本次改动创建的旧玩家实体没有气血：进入时补一次，
+                # 保证 8011 上的既有存档也不会“没有血量”。
+                backfill = self._vitals(archetype or prof.archetype)
+                if backfill:
+                    effects.append(Effect("vitals_set", {"entity": pid, **backfill}))
             if wallet(pid) not in state.accounts:
                 effects.append(Effect("create_account", {"account": wallet(pid), "balance": 0}))
             if archetype and prof.archetype and archetype != prof.archetype:

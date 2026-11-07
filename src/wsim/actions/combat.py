@@ -117,12 +117,27 @@ class FightAction(Action):
                 )
 
         # 掉落：只有被击杀的目标掉落；玩家尸体不产生掉落。
+        # API 壳不传 loot 时，按内容里的“尸体可带走物”确定性产出：
+        # 背包物品 + 已装备物品（equipment），全部落到尸体所在地面。
         if str(defender.id) in dead_ids and not str(defender.id).startswith("player:"):
+            if not loot:
+                for item in sorted(defender.inventory):
+                    qty = int(defender.inventory[item])
+                    if qty > 0:
+                        loot[item] = qty
+                for item in sorted(set(defender.equipped.values())):
+                    if item and item not in loot:
+                        loot[item] = 1
             for item in sorted(loot):
                 effects.append(
                     Effect(
                         op="loot_create",
-                        data={"entity": attacker.id, "item": item, "qty": int(loot[item]), "reason": "fight"},
+                        data={
+                            "location": str(defender.location),
+                            "item": item,
+                            "qty": int(loot[item]),
+                            "reason": "fight",
+                        },
                     )
                 )
 

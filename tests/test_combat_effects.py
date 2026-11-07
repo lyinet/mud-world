@@ -104,11 +104,22 @@ def test_revive_restores_hp_and_clears_death_fields():
     assert "death_tick" not in ent.to_dict()
 
 
-def test_loot_create_goes_through_projection():
+def test_loot_create_goes_to_ground_and_loot_take_moves_it_to_inventory():
     state = _state()
     apply_effects(state, [Effect("create_entity", _hero())])
     apply_effects(state, [Effect("loot_create", {"entity": "npc.hero", "item": "item.hide", "qty": 2})])
+    # 掉落在房间地面，不直接进背包。
+    assert state.ground["inn"]["item.hide"] == 2
+    assert "item.hide" not in state.entities["npc.hero"].inventory
+    assert state.items_created["item.hide"] == 2
+
+    apply_effects(
+        state,
+        [Effect("loot_take", {"entity": "npc.hero", "location": "inn", "item": "item.hide", "qty": 2})],
+    )
     assert state.entities["npc.hero"].inventory["item.hide"] == 2
+    assert "inn" not in state.ground
+    # 取物不是造物：items_created 不重复计。
     assert state.items_created["item.hide"] == 2
 
 

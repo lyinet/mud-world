@@ -75,10 +75,13 @@ BASELINE = {
     "events_total": 4,  # genesis + system_spawn + fight + fight
     # 切换到 tools/xkx_formula 后重新采样（2026-11-07）：
     # 旧值 dc0aa76e… / 7968aebf… 属于引擎自维护公式，已废弃。
-    "state_final": "3eae4e85e27e4f268c3f9d2579aac42d0e6465d759c2ebca7b3a93ff77627f86",
+    # 再次重采（2026-11-07，掉落改落地面）：loot_create 不再直塞攻击者背包，
+    # 状态里出现 ground（item.boar_hide / item.tusk），旧值 3eae4e85… 仅作漂移记录。
+    "state_final": "91097d90bca6fd9097ff9190f1b4158a4d76f51f3b5e3940cd8b3b34617b995e",
     # event 哈希在 hp_add 增量钳制修复后重采样：状态未变（仍是 3eae4e85…），
     # 只有事件里的 delta 从“超额值”改成实际变化（如 -41 → -40）。
-    "event_final": "046a13318b526911ded164f828c58ea0516d85492d2b8e917bd7467838d74db3",
+    # 掉落改地面后，loot_create 的 data 新增 location 并去掉 entity，事件哈希同步重采。
+    "event_final": "412be54550c2a71a1f3e9f6175a78965c3bb753b2c2245e20c0f97a58d3cac6b",
 }
 
 

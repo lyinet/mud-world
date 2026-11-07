@@ -436,6 +436,9 @@ class WorldState:
     # 玩家婚姻元数据：键为排序后的 "a|b"。只有至少一方是玩家时才写入；
     # 为空时不影响哈希，保证无玩家世界逐字节不变。
     marriages: dict[str, dict[str, Any]] = field(default_factory=dict)
+    # 地面掉落：location -> {item_id: qty}。所有写入只经 loot_create / loot_take
+    # 两个 Effect；为空时不写进 to_dict()，旧世界哈希逐字节不变。
+    ground: dict[str, dict[str, int]] = field(default_factory=dict)
 
     def clone(self) -> "WorldState":
         """整世界深拷贝（写事务的 trial 副本）。
@@ -479,6 +482,10 @@ class WorldState:
         if self.marriages:
             data["marriages"] = {
                 k: dict(sorted(v.items())) for k, v in sorted(self.marriages.items())
+            }
+        if self.ground:
+            data["ground"] = {
+                k: dict(sorted(v.items())) for k, v in sorted(self.ground.items()) if v
             }
         return data
 

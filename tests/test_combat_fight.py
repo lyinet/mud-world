@@ -112,7 +112,9 @@ def test_fight_writes_one_event_with_rounds_and_kills_target():
 
     boar = writer.state.entities["npc.boar"]
     assert (boar.status, boar.hp) == ("dead", 0)
-    assert writer.state.entities["player:hero"].inventory["item.boar_hide"] == 1
+    # 掉落到地面（不是直接进攻击者背包）；捡拾由 loot/get 动作完成。
+    assert writer.state.ground["inn"]["item.boar_hide"] == 1
+    assert "item.boar_hide" not in writer.state.entities["player:hero"].inventory
 
     # 经验/技能成长由库的 Reward + improve_skill 给出，再落成 Effect。
     xp = [e for e in event.effects if e["op"] == "combat_exp_add"]

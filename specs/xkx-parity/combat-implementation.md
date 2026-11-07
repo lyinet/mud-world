@@ -204,3 +204,89 @@ vs `npc.boar`（40hp、attack 10、def 2、str 20、dex 15、unarmed 40），带
 - `system_spawn` 是无内容时的“零事件”保障；若外部强行提交空 spawn 意图，
   `Writer` 仍会记一条 `effects=[]` 的事件（事件溯源框架的既有语义），因此事件侧
   约束由调度层负责，测试锁在 headless。
+
+## 9. vitals / loot 里程碑（2026-11-07）
+
+目标：让真实 xkx 世界（`content/xkx`，195 房 / 92 NPC）从“能走能买卖”推进到“能打一场并捡起掉落”。
+
+### 9.1 玩家创世气血与属性
+
+`src/wsim/actions/player.py` 的 `player_genesis_effects()` 与 `PlayerEnterAction` 两条创世路径
+都会写 `max_hp/hp/attrs`。数值来源必须分开看：
+
+| 字段 | 值 | 来源 |
+| --- | --- | --- |
+| `max_hp` | 100 | **原版**：`logind.lpc:917-925` 新玩家 `max_qi=eff_qi=100`；`race/human.lpc:116` `age<=14 → max_qi=max_jing=100`；`clone/user/user.lpc:59` 初始 `age=14` |
+| `hp` | 100（= max_hp） | **原版**：新玩家 `eff_qi=max_qi` |
+| `attrs.str`（膂力） | 游侠 20 / 商人 15 / 捕快 18 | **我们的默认**：xkx 登录掷点非确定，不可复刻 |
+| `attrs.con`（根骨） | 20 / 16 / 18 | 同上 |
+| `attrs.dex`（身法） | 18 / 15 / 17 | 同上 |
+| `attrs.int`（悟性） | 15 / 20 / 17 | 同上 |
+| `attrs.spi`（精神） | 15 / 18 / 16 | 同上 |
+| `attrs.sta`（耐力） | 20 / 18 / 19 | 同上 |
+
+- 身份键沿用既有 `ARCHETYPES`（游侠 / 商人 / 捕快）；预置账号无身份，用 `DEFAULT_ARCHETYPE="游侠"`。
+- 旧玩家实体（`max_hp<=0`）在 `player_enter` 时补一次 `vitals_set`，8011 的既有存档也不会“没有血量”。
+- **门控**：仅当内容包 NPC 带 `vitals/attrs/skills` 键（xkx 切片）时生效。旧 `content/`（九地点）
+  没有这些键，玩家创世事件与旧 golden / 无玩家哈希逐字节不变。
+
+### 9.2 NPC 创世 `max_hp`
+
+`src/wsim/sim/vitals.py` 的 `resolve_npc_vitals()`：
+
+1. `vitals.max_qi > 0` → `max_hp = max_qi`（**原版口径**，气血上限就是 max_qi），`hp = max_hp`。
+2. 缺失时按最高技能等级给默认（**我们的默认**，可解释）：
+
+| 判据 | 默认 `max_hp` | 内容包实例 |
+| --- | --- | --- |
+| 最高技能 ≥ 80 | 500 | 李拙道人（100）、清明禅师（100） |
+| 0 < 最高技能 < 80 | 300 | 土匪（25）、进香客（20）、书生（literate 40） |
+| 无技能 | 200 | 老虎、挑夫 |
+
+3. `max(1, …)` 兜底；测试断言 105 条内容 NPC（92 slice + 13 external）全部 `> 0`。
+4. `attrs` / `vitals.combat_exp` / `skills` 原样带入：`attrs` 进 `Entity.attrs`，
+   `skills`（整数等级）进 `Entity.skill_levels`，`combat_exp` 进 `Entity.combat_exp`。
+5. xkx 的 `equipment` 在创世时逐件 `item_create` 进 NPC 背包（`reason="genesis_equipment"`），
+   死亡时随尸体掉到地面；不额外编造掉落表。
+
+实测缺失 `max_qi` 的 4 个：老虎 200、李拙道人 500、清明禅师 500、土匪 300。
+
+### 9.3 地面掉落与 `loot` / `get`
+
+- `WorldState.ground: dict[location, dict[item, qty]]`；只在非空时写进 `to_dict()`，
+  旧世界哈希不受影响。
+- `loot_create {location?, entity?, item, qty, reason?}`：落到**房间地面**（`location` 优先，
+  缺省取实体所在地）；`items_created` 记一次造物。
+- `loot_take {entity, location, item, qty, weight}`：地面 → `Entity.inventory`；数量不足整事务回滚；
+  不重复计 `items_created`。
+- `LootAction`（`src/wsim/actions/loot.py`）：`verb="loot"`，`aliases=("get",)`，由
+  `ActionRegistry.register()` 同时注册两个 verb。未指定 `item` 时按 item id 排序全取；
+  `weight = content.items[item].weight × qty` 写进事件，可直接核对重量。
+- 原因码：`player_required` / `player_not_entered` / `player_dead` / `not_here` /
+  `bad_qty` / `loot_not_found`。
+- `FightAction` 在 API 壳不传 `loot` 时的掉落来源：`defender.inventory`（排序）+
+  `defender.equipped.values()`（排序去重），逐件 `loot_create` 到尸体所在地面。
+- xkx 房间 `objects` 中 `kind=="item"` 且 `count` 为整数的条目在创世时落到地面
+  （`reason="genesis_ground"`）；`count_expr=random(...)` 一律跳过。
+
+### 9.4 真实世界战报（`content/xkx`，seed=7）
+
+- 世界：195 房间 / 92 NPC / 4 个房间有地面物品（共 5 件）。
+- 目标：`/d/hangzhou/npc/poorman`（穷汉，`/d/hangzhou/duanqiao`），`vitals` 缺失 →
+  默认 `max_hp=200`；`combat_exp=250`；装备 `cloth`（weight 3000）已进背包。
+- 玩家：默认创世 100 血 + 六维（游侠）；为验证战斗/掉落链路，脚本额外注入
+  `combat_exp=250` 与 `unarmed/dodge/parry=40`（模拟已从师父处学艺；默认新手是 0 经验、无武功）。
+- 结果：14 回合，玩家胜；`hp_add` 增量 `player:-46` / `poorman:-200`，状态变化
+  `100→54` / `200→0`，两侧逐项相等；`overkill={"poorman":1}`。
+- 掉落：`loot_create {location:"/d/hangzhou/duanqiao", item:"/d/hangzhou/npc/obj/cloth", qty:1}`；
+  `loot` 后 `loot_take {qty:1, weight:3000}`，背包 `cloth ×1`，地面清空。
+- 同 seed 二跑 `state_hash=6655f7a0…` 完全一致。
+
+### 9.5 测试与基线
+
+- 新增：`tests/test_combat_vitals.py`（玩家/NPC 气血来源、缺失档位、legacy 门控）、
+  `tests/test_combat_loot.py`（取物、原因码、重量、同 seed 顺序）。
+- `tests/test_xkx_determinism_combat.py` 因掉落改地面而显式重采：
+  `state_final=91097d90…`、`event_final=412be545…`（旧值保留为漂移记录）。
+- 未变：`tests/test_xkx_determinism_legacy.py`（735 events / `009076f0…` / `02d5f812…`）、
+  `tests/test_p3e_golden.py` 全部通过。

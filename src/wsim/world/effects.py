@@ -102,6 +102,10 @@ EFFECT_OPS = frozenset(
         "entity_status",
         "revive",
         "loot_create",
+        # 从房间地面取物（loot/get 的唯一变更载体）。
+        "loot_take",
+        # 旧玩家实体补气血/属性（只在 max_hp<=0 时由 player_enter 发一次）。
+        "vitals_set",
         "combat_exp_add",
         "skill_xp_add",
         # 公式库 improve_skill 的落库载体：直接写回等级/熟练度（纯 Effect）。
@@ -429,13 +433,53 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         return
 
     if op == "loot_create":
-        ent = _entity(state, str(d["entity"]))
+        # 掉落到**房间地面**，不直接进背包。`location` 优先；缺省用实体所在地，
+        # 兼容旧事件里只写 entity 的写法。
         item = str(d["item"])
         qty = _as_int(d["qty"], "qty")
         if qty <= 0:
             raise EffectError("掉落数量必须为正")
-        ent.inventory[item] = int(ent.inventory.get(item, 0)) + qty
+        loc = str(d.get("location") or "")
+        if not loc:
+            loc = _entity(state, str(d["entity"])).location
+        if loc not in state.locations:
+            raise EffectError(f"地点不存在: {loc}")
+        bucket = state.ground.setdefault(loc, {})
+        bucket[item] = int(bucket.get(item, 0)) + qty
         state.items_created[item] = state.items_created.get(item, 0) + qty
+        return
+
+    if op == "loot_take":
+        # 地面 → 背包。数量不足直接报错，由外层事务整体回滚，不会半取。
+        ent = _entity(state, str(d["entity"]))
+        loc = str(d["location"])
+        item = str(d["item"])
+        qty = _as_int(d["qty"], "qty")
+        if qty <= 0:
+            raise EffectError("取物数量必须为正")
+        bucket = state.ground.get(loc) or {}
+        if int(bucket.get(item, 0)) < qty:
+            raise EffectError(f"地面物品不足: {loc} {item}")
+        left = int(bucket[item]) - qty
+        if left > 0:
+            bucket[item] = left
+        else:
+            bucket.pop(item, None)
+        if not bucket:
+            state.ground.pop(loc, None)
+        ent.inventory[item] = int(ent.inventory.get(item, 0)) + qty
+        return
+
+    if op == "vitals_set":
+        # 只给没有战斗字段的旧实体补一次基础气血/属性；内容包创世不经过这里。
+        ent = _entity(state, str(d["entity"]))
+        max_hp = _as_int(d["max_hp"], "max_hp")
+        if max_hp <= 0:
+            raise EffectError("vitals_set 的 max_hp 必须为正")
+        ent.max_hp = max_hp
+        ent.hp = max(0, min(max_hp, _as_int(d.get("hp", max_hp), "hp")))
+        if "attrs" in d:
+            ent.attrs = {str(k): _as_int(v, f"attrs.{k}") for k, v in dict(d["attrs"] or {}).items()}
         return
 
     if op == "combat_exp_add":
