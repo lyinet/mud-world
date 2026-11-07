@@ -147,6 +147,8 @@ class LODScheduler:
         self.lod: dict[str, str] = {}
         self.wake_counts: dict[str, int] = {npc: 0 for npc in npc_ids}
         self.process_count = 0
+        # 因单步配额被跳过、未调用 reasoner 的到期唤醒数（共享世界追赶时记账用）。
+        self.skipped_wakes = 0
         # 外部可核对的计数器：decide 调用数 / state_provider 调用数 / 分档唤醒数。
         self.decide_calls = 0
         self.state_provider_calls = 0
@@ -162,7 +164,13 @@ class LODScheduler:
             phase = int(_unit(npc, seed, "lod_phase") * interval)
             heapq.heappush(self._heap, (start_tick + max(1, phase), npc, 0))
 
-    def advance_to(self, target_tick: int) -> list[WakeResult]:
+    def advance_to(self, target_tick: int, max_wakes: int | None = None) -> list[WakeResult]:
+        """弹出 tick <= target_tick 的唤醒项。
+
+        `max_wakes` 给定时，单次调用最多真正唤醒/决策这么多个 NPC；其余到期项只
+        跳过并记账（不调用 reasoner），把下一次唤醒按正常间隔推回堆。堆的 now 仍
+        推进到 target_tick，因此世界时间不会落后；被跳过的只是事件产出。
+        """
         if target_tick < self.now:
             raise ValueError("不能回拨 tick")
         wakes: list[WakeResult] = []
@@ -170,6 +178,15 @@ class LODScheduler:
             tick, npc, gen = heapq.heappop(self._heap)
             if gen != self._gen.get(npc, 0):
                 continue  # 档位变化后旧的唤醒项作废
+            if max_wakes is not None and len(wakes) >= max_wakes:
+                self.skipped_wakes += 1
+                tier = self.lod[npc]
+                interval = self.config.tiers[tier].wake_interval_ticks
+                jitter = PRNG(
+                    self.seed, self.wake_counts.get(npc, 0) + 1, f"lod_jitter:{npc}"
+                ).randint(0, max(1, interval // 4))
+                heapq.heappush(self._heap, (tick + interval + jitter, npc, gen))
+                continue
             result = self._wake(npc, tick)
             wakes.append(result)
             self.process_count += 1
@@ -309,6 +326,7 @@ class LODScheduler:
             "now": self.now,
             "npc_count": len(self.lod),
             "processed_wakes": self.process_count,
+            "skipped_wakes": self.skipped_wakes,
             "decide_calls": self.decide_calls,
             "state_provider_calls": self.state_provider_calls,
             "decide_by_tier": dict(self.decide_by_tier),

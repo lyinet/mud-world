@@ -13,6 +13,7 @@ import socket
 import sys
 import threading
 import time
+from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -222,12 +223,35 @@ def _dialogue_llm_payload(session: WorldSession) -> dict[str, Any]:
     return payload
 
 
+def _iso_age_s(value: Any, now: float) -> float | None:
+    """把状态文件里的墙钟时间换算成“距今多少秒”；解析失败返回 None。"""
+    text = str(value or "").strip()
+    if not text:
+        return None
+    for fmt in ("%Y-%m-%dT%H:%M:%S%z", "%Y-%m-%dT%H:%M:%S"):
+        try:
+            parsed = datetime.strptime(text, fmt)
+        except ValueError:
+            continue
+        if parsed.tzinfo is None:
+            parsed = parsed.astimezone()
+        return max(0.0, now - parsed.timestamp())
+    return None
+
+
 def _ambient_health_payload(session: WorldSession) -> dict[str, Any]:
-    """只读 ambient_status.json；缺失/过期/进程消失都收敛为 stopped。"""
+    """只读 ambient_status.json：heartbeat 判“活着”，last_tick_at 判“有推进”。
+
+    三种结论不再混为一谈：
+    - stopped：状态文件缺失 / 主动 stopped / 心跳过期 / 进程消失（真死）
+    - running_but_idle：心跳新鲜、进程活着，但超过 stale 秒没有推进 tick（活但空转）
+    - running / paused：心跳与推进都正常
+    """
     base: dict[str, Any] = {
         "ambient": "stopped",
         "ambient_tick": None,
         "ambient_last_tick_at": "",
+        "ambient_heartbeat_at": "",
         "ambient_reason": "status_file_missing",
         "ambient_pid": None,
         "ambient_speed": None,
@@ -240,35 +264,42 @@ def _ambient_health_payload(session: WorldSession) -> dict[str, Any]:
     if not isinstance(data, dict):
         return base
     state = str(data.get("state") or "")
+    detail: dict[str, Any] = {
+        "ambient_tick": data.get("ambient_tick", data.get("tick")),
+        "ambient_world_tick": data.get("world_tick", data.get("tick")),
+        "ambient_last_tick_at": str(data.get("last_tick_at") or ""),
+        "ambient_heartbeat_at": str(data.get("heartbeat_at") or ""),
+        "ambient_pid": data.get("pid"),
+        "ambient_speed": data.get("speed"),
+        "ambient_lag_ticks": data.get("lag_ticks"),
+        "ambient_skipped_days": data.get("skipped_days"),
+        "ambient_skipped_wakes": data.get("skipped_wakes"),
+        "ambient_dropped_stale": data.get("dropped_stale"),
+        "ambient_queue_backlog": data.get("queue_backlog"),
+    }
     if state not in ("running", "paused"):
-        base.update(
-            {
-                "ambient": "stopped",
-                "ambient_tick": data.get("tick"),
-                "ambient_last_tick_at": str(data.get("last_tick_at") or ""),
-                "ambient_reason": str(data.get("reason") or state or "stopped"),
-                "ambient_pid": data.get("pid"),
-                "ambient_speed": data.get("speed"),
-            }
-        )
+        base.update(detail)
+        base["ambient_reason"] = str(data.get("reason") or state or "stopped")
         return base
     try:
         stale_s = float(os.environ.get("XKX_AMBIENT_STALE_S") or 120.0)
     except ValueError:
         stale_s = 120.0
-    try:
-        age = max(0.0, time.clock_gettime(time.CLOCK_REALTIME) - path.stat().st_mtime)
-    except OSError:
-        age = stale_s + 1.0
-    if age > stale_s:
+    now = time.clock_gettime(time.CLOCK_REALTIME)
+    hb_age = _iso_age_s(data.get("heartbeat_at"), now)
+    if hb_age is None:
+        # 兼容旧状态文件：没有 heartbeat_at 时回退文件 mtime。
+        try:
+            hb_age = max(0.0, now - path.stat().st_mtime)
+        except OSError:
+            hb_age = stale_s + 1.0
+    if hb_age > stale_s:
+        base.update(detail)
         base.update(
             {
                 "ambient": "stopped",
-                "ambient_tick": data.get("tick"),
-                "ambient_last_tick_at": str(data.get("last_tick_at") or ""),
                 "ambient_reason": "status_stale",
-                "ambient_pid": data.get("pid"),
-                "ambient_speed": data.get("speed"),
+                "ambient_heartbeat_age_s": round(hb_age, 1),
             }
         )
         return base
@@ -277,26 +308,36 @@ def _ambient_health_payload(session: WorldSession) -> dict[str, Any]:
         try:
             os.kill(pid, 0)
         except (ProcessLookupError, PermissionError):
+            base.update(detail)
             base.update(
                 {
                     "ambient": "stopped",
-                    "ambient_tick": data.get("tick"),
-                    "ambient_last_tick_at": str(data.get("last_tick_at") or ""),
                     "ambient_reason": "process_gone",
-                    "ambient_pid": pid,
-                    "ambient_speed": data.get("speed"),
+                    "ambient_heartbeat_age_s": round(hb_age, 1),
                 }
             )
             return base
-    return {
+    tick_age = _iso_age_s(data.get("last_tick_at"), now)
+    if tick_age is not None and tick_age > stale_s:
+        base.update(detail)
+        base.update(
+            {
+                "ambient": "running_but_idle",
+                "ambient_reason": "no_tick_progress",
+                "ambient_heartbeat_age_s": round(hb_age, 1),
+                "ambient_tick_age_s": round(tick_age, 1),
+            }
+        )
+        return base
+    healthy: dict[str, Any] = {
         "ambient": state,
-        # 自走与玩家共用同一份事件日志：running/paused 时以世界 tick 为准。
-        "ambient_tick": int(session.state.tick),
-        "ambient_last_tick_at": str(data.get("last_tick_at") or ""),
+        **detail,
         "ambient_reason": str(data.get("reason") or ""),
-        "ambient_pid": pid,
-        "ambient_speed": data.get("speed"),
+        "ambient_heartbeat_age_s": round(hb_age, 1),
     }
+    if tick_age is not None:
+        healthy["ambient_tick_age_s"] = round(tick_age, 1)
+    return healthy
 
 
 def resolve_auth_required(root: str | Path, mode: str = "auto") -> bool:

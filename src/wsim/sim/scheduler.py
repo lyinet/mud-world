@@ -80,6 +80,19 @@ class AmbientConfig:
     max_ticks: int | None = None
     # 起始 tick（重启续跑时使用；默认 0）。
     start_tick: int = 0
+    # 共享世界：ambient 每轮最多追赶多少个世界 tick。
+    # 玩家一次写推进 6 tick，世界时钟可比 ambient 配速快数百倍；用这个上限
+    # 限制单步的 LOD 唤醒量与写入尖峰，追不上的部分记到 lag_ticks 并告警。
+    # 1200 ≈ 50 玩家、think-time 2s 时一个 6s 配速步的世界跨度（约 870），
+    # 留余量；追上世界时钟后按 ambient 自己的配速再推进一格。
+    max_catchup_ticks: int = 1200
+    # 共享世界：每轮最多真正唤醒多少个 NPC。超出配额不调用 reasoner，只跳过并
+    # 记到 skipped_wakes；LOD 时间仍推进，因此世界时间不落后，只是事件被稀释。
+    max_wakes_per_step: int = 8
+    # 共享世界：每轮最多消费多少个队列事件；超出的留在队列，下一轮继续。
+    max_intents_per_step: int = 16
+    # 心跳间隔（秒）：与 tick 解耦，idle 时也刷新状态文件的 heartbeat_at。
+    heartbeat_s: float = 1.0
 
     def normalized_speed(self) -> float:
         return _nearest_speed(self.speed)
@@ -199,7 +212,16 @@ class AmbientScheduler:
         self.out_dir = Path(cfg.out_dir)
         self.clock = clock or time.perf_counter
         self.sleeper = sleeper or time.sleep
-        self.cpu_clock = cpu_clock or time.process_time
+        # 共享世界下 ambient 跑在 API 进程的后台线程里：护栏必须只看自走线程
+        # 自己的 CPU（time.thread_time），否则 50 玩家的请求 CPU 会被算到自走头上，
+        # 自走被误判超限并反复暂停 —— 这正是“玩家活跃时 ambient 饿死”的来源之一。
+        # 独立进程模式下进程 CPU 与线程 CPU 等价，沿用 process_time。
+        if cpu_clock is not None:
+            self.cpu_clock = cpu_clock
+        elif writer is not None:
+            self.cpu_clock = time.thread_time
+        else:
+            self.cpu_clock = time.process_time
         self.content = content or load_content(
             self.root, min_npcs=0, allow_fixture=False, use_content=True
         )
@@ -333,6 +355,16 @@ class AmbientScheduler:
                 "content": self.content,
             },
         )
+        # 共享世界的两个时钟：world_tick 是玩家推进的世界时钟；
+        # processed_world_tick 是 ambient 已结算到的世界时间点；差值即 lag。
+        self._world_tick = int(self.writer.state.tick) if self.shared else 0
+        self._processed_world_tick = self._world_tick
+        self._lag_ticks = 0
+        self._skipped_days = 0
+        self._dropped_stale = 0
+        self._lag_streak = 0
+        self._heartbeat_at = self._now_iso()
+        self._max_queue_backlog = 0
         self._log_line(
             f"[{stamp(0)}] ambient_boot npcs={len(self.npc_ids)} locations={len(self.content.locations)} "
             f"seed={cfg.seed} content={self.content.content_hash[:12]} speed={self.speed:g}x"
@@ -357,6 +389,7 @@ class AmbientScheduler:
     def _write_status(self, state: str, reason: str = "") -> None:
         """原子写 ambient_status.json：API/UI 只读它，不碰世界状态。"""
         self._status_written_at = self.clock()
+        self._heartbeat_at = self._now_iso()
         payload = {
             "ok": state in ("running", "paused"),
             "run_id": self.cfg.run_id,
@@ -364,8 +397,22 @@ class AmbientScheduler:
             "state": state,
             "reason": reason,
             "tick": int(self.writer.state.tick) if self.shared else int(self.tick),
+            "heartbeat_at": self._heartbeat_at,
             "last_tick_at": self._last_tick_at,
             "updated_at": self._now_iso(),
+            "ambient_tick": int(self._processed_world_tick) if self.shared else int(self.tick),
+            "world_tick": int(self.writer.state.tick) if self.shared else int(self.tick),
+            "lag_ticks": (
+                max(0, int(self.writer.state.tick) - int(self._processed_world_tick))
+                if self.shared
+                else 0
+            ),
+            "lag_steps": int(self._lag_streak) if self.shared else 0,
+            "skipped_days": int(self._skipped_days) if self.shared else 0,
+            "skipped_wakes": int(self.lod.skipped_wakes),
+            "dropped_stale": int(self._dropped_stale),
+            "queue_backlog": len(self._queue),
+            "max_queue_backlog": int(self._max_queue_backlog),
             "speed": self.speed,
             "npc_count": len(self.npc_ids),
             "events_total": self._events_total,
@@ -393,7 +440,7 @@ class AmbientScheduler:
             self._log_line(f"[{stamp(self.tick)}] ambient_status_write_failed {type(exc).__name__}: {exc}")
 
     def _maybe_status_heartbeat(self) -> None:
-        if self.clock() - self._status_written_at >= 1.0:
+        if self.clock() - self._status_written_at >= float(self.cfg.heartbeat_s):
             self._write_status("paused" if self.paused else "running", self._pause_reason)
 
     def _parent_gone(self) -> bool:
@@ -414,24 +461,17 @@ class AmbientScheduler:
         return self._lock if self._lock is not None else contextlib.nullcontext()
 
     def _sync_shared_tick(self) -> None:
-        """把世界 tick 与在线玩家同步进来。
+        """把世界 tick 与在线玩家同步进来；不覆盖 ambient 自己的配速时钟。
 
-        玩家动作一次推进 6 tick。这里只承认世界当前 tick，绝不补跑：
-        补跑会重复消费系统日界/NPC 事件，等于双倍走时。
+        玩家动作一次推进 6 tick，世界时钟会远快于 ambient 配速。ambient 仍按
+        自己的配速决定“何时执行一次调度步”，并在 _process_tick 里用
+        max_catchup_ticks 限制单步追赶的世界 tick 跨度；事件 tick 取世界当前
+        tick，保证不倒退。补跑时保留队列里的旧意图，由调度步按配额消费。
         """
         if not self.shared:
             return
         with self._guard():
-            cur = int(self.writer.state.tick)
-            if cur > self.tick:
-                # 玩家跨过的 tick 不补跑：丢弃为那些时刻排队的旧意图，
-                # 否则它们会带着旧 tick 晚到落账，破坏 tick 单调。
-                while self._queue and self._queue[0][0] <= cur:
-                    heapq.heappop(self._queue)
-                self.tick = cur
-                # 重新锚定配速基准，避免“玩家推进 + 自走追赶”叠成双倍时钟。
-                self._anchor_tick = cur
-                self._anchor_time = self.clock()
+            self._world_tick = int(self.writer.state.tick)
             self._online_players = {
                 pid for pid, prof in self.writer.state.players.items() if prof.online
             }
@@ -532,8 +572,9 @@ class AmbientScheduler:
         )
 
     # ---------------------------------------------------------------- 日界
-    def _day_start(self, tick: int) -> None:
-        day = tick // TICKS_PER_DAY
+    def _day_start(self, tick: int, day: int | None = None) -> None:
+        if day is None:
+            day = tick // TICKS_PER_DAY
         self._emit_system(Intent("system", "system_recover", {}, tick, "system"))
         self._emit_system(Intent("system", "system_quest_post", {"day": day}, tick, "system"))
         for npc in self.npc_ids:
@@ -606,39 +647,105 @@ class AmbientScheduler:
     # ---------------------------------------------------------------- tick 推进
     def _process_tick(self) -> None:
         if self.shared:
-            # 世界 tick 的唯一事实源是 Writer.state.tick；玩家推进过就直接从那里往后推一格。
-            self.tick = max(self.tick, int(self.writer.state.tick)) + 1
+            # 调度步由 ambient 自己的配速驱动；世界时钟只作为结算时间轴。
+            self.tick += 1
+            world = int(self.writer.state.tick)
+            self._world_tick = world
+            # 单步最多追赶 max_catchup_ticks 个世界 tick：限制 LOD 唤醒量与写入尖峰。
+            cap = max(1, int(self.cfg.max_catchup_ticks))
+            catchup_target = self._processed_world_tick + cap
+            if catchup_target <= world:
+                # 被追赶上限截断：本步只结算到 processed+cap，剩余差额记 lag 并告警，
+                # 保证“世界永久落后于玩家时钟”不会静默发生。
+                target = catchup_target
+                self._lag_ticks = max(0, world - target)
+                self._lag_streak += 1
+                if self._lag_streak == 1 or self._lag_streak % 60 == 0:
+                    self._log_line(
+                        f"[{stamp(world)}] ambient_catchup_truncated lag={self._lag_ticks} "
+                        f"cap={cap} streak={self._lag_streak} processed={self._processed_world_tick}"
+                    )
+            else:
+                # 已追上玩家世界时钟：按 ambient 自己的配速再推进一格。
+                # 无玩家时世界时钟正是靠这一步前进，与旧行为一致。
+                target = world + 1
+                self._lag_ticks = 0
+                self._lag_streak = 0
+            if target < self._processed_world_tick:
+                target = self._processed_world_tick
+            skipped = target // TICKS_PER_DAY - self._processed_world_tick // TICKS_PER_DAY
+            if skipped > 1:
+                self._skipped_days += skipped - 1
+            self._processed_world_tick = target
             self._online_players = {
                 pid for pid, prof in self.writer.state.players.items() if prof.online
             }
+            # 事件时间轴：追平时用 target（推进世界一格）；追赶时用 world（不倒退）。
+            t = target if target > world else world
         elif self._first_tick_pending:
             self._first_tick_pending = False
+            t = self.tick
         else:
             self.tick += 1
+            t = self.tick
         self._processed += 1
-        t = self.tick
+        # sched_t：ambient 本次结算到的世界时间点。共享世界用它驱动 LOD/队列，限额追赶。
+        sched_t = self._processed_world_tick if self.shared else t
         self._tick_events = 0
-        day = t // TICKS_PER_DAY
+        if self.shared:
+            # 日界必须按 ambient 自己的配速推进，不能跟着玩家世界时钟跑：
+            # 50 玩家会把一天压到不足 1 秒，若按世界日每步结算一次，等于给 NPC
+            # 每天缴 144 倍生活费（会把钱包扣成负数），系统事件率也会被放大百倍。
+            # 共享世界因此用 ambient tick 作为“NPC 日”：144 步 = 1 个 NPC 日。
+            day = self.tick // TICKS_PER_DAY
+        else:
+            day = t // TICKS_PER_DAY
         if self._day_marker is None:
             self._day_marker = day
-            if t % TICKS_PER_DAY == 0:
+            if self.shared or t % TICKS_PER_DAY == 0:
                 self._today_heat = Counter()
-                self._day_start(t)
+                self._day_start(t, day=day)
                 self._replan_today = Counter()
         elif day != self._day_marker:
             old = self._day_marker
-            # 共享世界里玩家可能一次跳过日界；补一次日结（用当前 tick，事件 tick 仍单调），
-            # 但绝不在同一日重复结算——那是“双倍走时”的来源。
+            # 共享世界里结算点比世界日稀疏得多；用当前世界 tick 作事件时间戳
+            # （事件 tick 仍单调），但日编号用 ambient 日，绝不在同一日重复结算。
             if self.shared:
                 self._day_end(t, day=old)
             self._day_marker = day
             self._today_heat = Counter()
-            self._day_start(t)
+            self._day_start(t, day=day)
             self._replan_today = Counter()
-        for wake in self.lod.advance_to(t):
-            self._enqueue(wake.intents, t)
-        while self._queue and self._queue[0][0] <= t:
+        wake_budget = int(self.cfg.max_wakes_per_step) if self.shared else None
+        intent_budget = int(self.cfg.max_intents_per_step) if self.shared else None
+        enqueued = 0
+        for wake in self.lod.advance_to(sched_t, max_wakes=wake_budget):
+            if intent_budget is not None and enqueued >= intent_budget:
+                # 按“实际事件数”再做一次预算：一次唤醒可能产出多个 Intent，
+                # 只按 wake 数限流仍会超产。被截断的唤醒记 skipped_wakes。
+                self.lod.skipped_wakes += 1
+                continue
+            self._enqueue(wake.intents, sched_t)
+            enqueued += len(wake.intents)
+        consumed = 0
+        dropped = 0
+        stale_before = sched_t - TICKS_PER_DAY if self.shared else None
+        while self._queue and self._queue[0][0] <= sched_t:
+            if stale_before is not None and self._queue[0][0] < stale_before:
+                # 队列里超过一天没被消费的意图已经过时（任务状态/位置都变了），
+                # 提交只会被拒并触发 replan 雪崩；直接丢弃并记账。
+                if dropped >= 512:
+                    break
+                heapq.heappop(self._queue)
+                self._dropped_stale += 1
+                dropped += 1
+                continue
+            if self.shared and consumed >= int(self.cfg.max_intents_per_step):
+                # 配额用完：剩余留在队列，下一调度步继续；防止玩家把世界时钟
+                # 推得很快时 NPC 一次性补跑几千步造成写入尖峰。
+                break
             _, _prio, _seq, kind, payload = heapq.heappop(self._queue)
+            consumed += 1
             if kind == "intent":
                 if self.shared and int(payload.tick) < t:
                     # 安全网：任何迟到的旧意图都归并到当前 tick，事件 tick 不倒退。
@@ -674,6 +781,7 @@ class AmbientScheduler:
                 self._emit_system(
                     Intent("system", "system_escort_arrive", {}, t, "system")
                 )
+        self._max_queue_backlog = max(self._max_queue_backlog, len(self._queue))
         if not self.shared and t % TICKS_PER_DAY == (TICKS_PER_DAY - 1):
             # 日末结算：t=143 对应第 0 日结束，与 headless 的 base+143 对齐。
             # 共享模式改由“日界变更”分支结算，避免玩家跳 tick 时漏结算或重复结算。
@@ -692,7 +800,8 @@ class AmbientScheduler:
         if self._replan_today[payload.actor] >= 6:
             return
         self._replan_today[payload.actor] += 1
-        self._push(self.tick + 1, 3, "replan", payload.actor)
+        base = self._processed_world_tick if self.shared else self.tick
+        self._push(base + 1, 3, "replan", payload.actor)
 
     def _write_progress(self, t: int) -> None:
         state_digest = state_hash(self.writer.state)
@@ -989,6 +1098,8 @@ class AmbientScheduler:
             self._poll_control()
             # 玩家可能在同一把锁里刚推进了世界时钟：先对齐，再决定是否自走。
             self._sync_shared_tick()
+            # 心跳与 tick 解耦：idle 分支也刷新状态文件，health 才不会把活进程判成 stopped。
+            self._maybe_status_heartbeat()
             now = self.clock()
             if now >= self._next_parent_check:
                 self._next_parent_check = now + 0.5
