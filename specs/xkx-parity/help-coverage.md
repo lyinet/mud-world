@@ -58,7 +58,7 @@
 | 22 | `fight` | 切磋、较量 | <人物> | 向目标发起战斗，按回合结算招式、伤害与胜负。 | 战斗 | **已实现** | FightAction（src/wsim/actions/combat.py）已注册，文字壳的 fight/打/战斗/出手 可直接调用；单场最多 20 回合。 |
 | 23 | `follow` | 跟随 | [<生物>\|none] | 跟随某个生物行动，或取消跟随。 | 社交 | **不做** | 玩家/NPC 跟随关系未建模，V1 只支持固定房间移动。 |
 | 24 | `gamble` | 赌博 | <大\|小> <钱> <种类> <数量> | 在赌场押注，按骰子结果结算输赢。 | 经济 | **不做** | 赌博属产品明确排除内容，且会破坏经济模型。 |
-| 25 | `get` | 拿、捡 | <物品> [from <容器>] | 从地面或容器中取走物品。 | 物品 | **待实现** | 战斗会产生 loot_create 效果（src/wsim/world/effects.py），但缺少 LootAction；地面物品模型也未建模。 |
+| 25 | `get` | 拿、捡 | <物品> [from <容器>] | 从地面或容器中取走物品。 | 物品 | **待实现** | 战斗掉落只产出 loot_create 效果（src/wsim/world/effects.py:104 定义、:422 处理），src/wsim/actions/combat.py:124 在战斗结算里发出该效果，但没有 LootAction 消费它；地面物品模型也未建模。 |
 | 26 | `give` | 给、赠送 | <物品> to <某人> | 把物品无偿转交给他人。 | 物品 | **待实现** | 现有 TradeAction 只支持双方对价交易，没有单向转移动作；可复用装备/背包模型后补。 |
 | 27 | `go` | 走、前往 | <方向> | 沿指定方向移动到相邻房间。 | 移动 | **已实现** | MoveAction（src/wsim/actions/basic.py）；出口校验见 session._location_view。 |
 | 28 | `guard` | 护卫 | [<某人>\|<物品>\|<出口>\|cancel] | 为某人、某物或某个出口担任护卫。 | 战斗 | **不做** | 护卫/拦截玩法依赖战斗与实时对抗，本版不开放。 |
@@ -71,7 +71,7 @@
 | 35 | `jiasi` | 装死 | — | 在战斗中假装死亡以脱离战斗。 | 战斗 | **不做** | 假死/脱离战斗判定未实现，且属玩家对抗向玩法。 |
 | 36 | `jiebai` | 结拜 | <某人> | 与另一名玩家结为异姓兄弟或姐妹。 | 社交 | **待实现** | 关系模型已有好感/信任，但没有结拜关系与仪式；可在关系系统上扩展。 |
 | 37 | `kantou` | 割头 | <尸体> | 从尸体上割下首级。 | 物品 | **不做** | 尸体与死亡掉落未建模。 |
-| 38 | `kill` | 杀、击杀 | <人物> | 对目标下杀手，进入生死战斗。 | 战斗 | **不做** | kill 动词在 src/wsim/api/session.py 的 FORBIDDEN_VERBS 中禁用；对 NPC 的战斗请用 fight，本版不开放玩家击杀。 |
+| 38 | `kill` | 杀、击杀 | <人物> | 对目标下杀手，进入生死战斗。 | 战斗 | **不做** | kill 动词被列入 src/wsim/api/session.py:216-217 的 FORBIDDEN_VERBS，并在 :2181 逐动词拦截；对 NPC 的战斗请用 fight，本版不开放玩家击杀。 |
 | 39 | `list` | 看货、货单 | [<玩家ID>] | 查看当前店铺出售的货物、价格与库存。 | 经济 | **已实现** | 房间 services_detail 与店铺只读视图（src/wsim/api/session.py）已提供货物、价格、库存。 |
 | 40 | `locate` | 找物 | <物品> | 在任务中定位指定任务物品所在的房间。 | 系统 | **待实现** | 任务系统只有委托接取/交付，没有任务物品坐标与定位索引。 |
 | 41 | `location` | 寻人 | <玩家ID> | 查看某个在线玩家当前所在的位置。 | 系统 | **已实现** | src/wsim/api/session.py 的 _online_players_view 提供 location 字段；本版对所有玩家开放，不设门派技能门槛。 |
@@ -93,7 +93,7 @@
 | 57 | `shexin` | 慑心 | <某人> to <指令> | 以慑心术控制他人执行一条指令。 | 门派 | **不做** | 精神控制类门派技能未建模，且属 PK 向玩法。 |
 | 58 | `shop` | 店务 | [open\|close\|reset\|owner …] | 巫师管理店铺开关、归属与重置。 | 经济 | **不做** | 这是巫师管理指令；玩家侧摆摊用 baitan/open_shop，不开放原始店务后台。 |
 | 59 | `shoplist` | 查价、物价 | <物品id或中文名> | 查询某物品在各店铺的售价与库存。 | 经济 | **已实现** | 房间 services_detail 与店铺只读视图（src/wsim/api/session.py）提供价格/库存。 |
-| 60 | `sleep` | 睡觉、歇息 | [<人物>] | 在客栈或安全处睡觉，恢复体力。 | 系统 | **待实现** | PlayerRestAction（src/wsim/actions/player.py）已写好但未在 src/wsim/actions/registry.py 注册，rest 尚不可执行。 |
+| 60 | `sleep` | 睡觉、歇息 | [<人物>] | 在客栈或安全处睡觉，恢复体力。 | 系统 | **待实现** | PlayerRestAction 定义在 src/wsim/actions/player.py:433，但 src/wsim/actions/registry.py:98-126 的动作注册列表未包含它，rest 尚不可执行。 |
 | 61 | `stay` | 留宠 | <动物> | 让跟随的动物留在原地。 | 系统 | **不做** | 宠物与坐骑实体、驯服度均未建模；本版不开放宠物玩法。 |
 | 62 | `steal` | 偷窃 | <物品> from <某人> | 从他人身上偷取物品。 | 社交 | **不做** | PK/偷抢属产品明确排除内容。 |
 | 63 | `stop` | 止宠 | <动物> | 让动物停止攻击。 | 系统 | **不做** | 宠物与坐骑实体、驯服度均未建模；本版不开放宠物玩法。 |
@@ -196,7 +196,7 @@
 
 - `guard`（护卫）：护卫/拦截玩法依赖战斗与实时对抗，本版不开放。
 - `jiasi`（装死）：假死/脱离战斗判定未实现，且属玩家对抗向玩法。
-- `kill`（杀、击杀）：kill 动词在 src/wsim/api/session.py 的 FORBIDDEN_VERBS 中禁用；对 NPC 的战斗请用 fight，本版不开放玩家击杀。
+- `kill`（杀、击杀）：kill 动词被列入 src/wsim/api/session.py:216-217 的 FORBIDDEN_VERBS，并在 :2181 逐动词拦截；对 NPC 的战斗请用 fight，本版不开放玩家击杀。
 - `steal`（偷窃）：PK/偷抢属产品明确排除内容。
 - `trap`（设陷阱）：陷阱与移动触发判定未建模。
 - `persuade`（劝架）：战斗与劝架判定未建模；V1 不开放 PK 向互动。
@@ -292,7 +292,7 @@
 
 **战利品系统（1 条）**
 
-- `get`（拿、捡）：战斗会产生 loot_create 效果（src/wsim/world/effects.py），但缺少 LootAction；地面物品模型也未建模。
+- `get`（拿、捡）：战斗掉落只产出 loot_create 效果（src/wsim/world/effects.py:104 定义、:422 处理），src/wsim/actions/combat.py:124 在战斗结算里发出该效果，但没有 LootAction 消费它；地面物品模型也未建模。
 
 **战斗系统（13 条）**
 
@@ -350,7 +350,7 @@
 
 **系统动作未注册（1 条）**
 
-- `sleep`（睡觉、歇息）：PlayerRestAction（src/wsim/actions/player.py）已写好但未在 src/wsim/actions/registry.py 注册，rest 尚不可执行。
+- `sleep`（睡觉、歇息）：PlayerRestAction 定义在 src/wsim/actions/player.py:433，但 src/wsim/actions/registry.py:98-126 的动作注册列表未包含它，rest 尚不可执行。
 
 ### 4.3 排期建议
 
@@ -417,3 +417,51 @@ python3 -m pytest tests/test_xkx_help.py -q
 
 `inventory.txt` 与 `topics_index.txt` 是冻结口径；源码条数或主题索引漂移时，`--src` 会直接报错，不会静默改写矩阵。
 输出不含时间戳，重复运行应逐字节一致。
+
+## 七、帮助接入字段契约（玩家壳照此接线）
+
+本内容包只读消费，玩家壳不得因接线修改 `ui/**` 或 `src/wsim/api/**`；壳侧只读取 `content/xkx_help/` 并按下列字段渲染。
+
+### 7.1 主题对象
+
+来源 `content/xkx_help/topics.yaml`。文件结构：`schema_version`、`source`、`topics[]`。
+
+| 字段 | 类型 | 约束 | 接头用途 |
+| --- | --- | --- | --- |
+| `id` | string | 必填；稳定标识，与 `tools/xkx_help/topics_index.txt` 一致 | 路由键；`help <id>` 直接命中 |
+| `title` | string | 必填；界面标题 | 列表与详情页标题 |
+| `category` | string | 必填；枚举：入门、规则、设置、管理、角色、系统、社交、移动、门派、战斗、任务、经济、生活 | 侧栏/分页分组 |
+| `status` | string | 必填；枚举：开放、部分开放、未开放、管理 | 未开放/管理主题置灰或加提示 |
+| `body` | string | 必填；多行中文，YAML `\|` 块文本，保留换行 | 正文渲染；按行切段，不假设 Markdown |
+
+### 7.2 命令对象
+
+来源 `content/xkx_help/commands.yaml`。文件结构：`schema_version`、`source`、`commands[]`；顺序已按源码层（std/usr/skill）冻结。
+
+| 字段 | 类型 | 约束 | 接头用途 |
+| --- | --- | --- | --- |
+| `name` | string | 必填；英文命令名，包内唯一 | 命令查找键 |
+| `layer` | string | 必填；`std` / `usr` / `skill` | 来源分层，排序用 |
+| `aliases` | string[] | 必填；中文别名数组，可含多个 | 中文输入匹配；按别名建索引 |
+| `system` | string | 必填；枚举：移动、战斗、物品、社交、门派、经济、系统 | 命令分类页 |
+| `status` | string | 必填；枚举：已实现、待实现、不做 | 控制可用性；非「已实现」不可直接执行 |
+| `blocker` | string | 待实现/不做时必填 | 不可用原因的分组标签 |
+| `evidence` | string | 必填；引擎落点或不做理由，含文件与行号 | 详情页依据；排期核对 |
+| `params` | string | 必填；参数提示串 | 补全与用法提示 |
+| `summary` | string | 必填；一句话中文说明 | 列表副标题 |
+| `canonical` | string | 可选；同义归并指向的 `name` | 多个别名共用同一实现时归并 |
+| `parent` | string | 可选；父命令 `name` | 子命令挂载（如 `vote/chblk`） |
+
+壳侧执行前先读 `status`：`已实现` 走引擎动作；`待实现` / `不做` 只展示帮助与 `blocker`，不得当作可执行命令。
+
+### 7.3 manifest 与缓存
+
+`content/xkx_help/manifest.json` 字段：`schema_version`（当前 1）、`generated_by`、`source`（`repo/commit/inventory/topics_index/note`）、`counts`（`commands/topics/status/system`）、`files`（各文件 sha256）、`content_hash`（`commands.yaml + topics.yaml` 的 sha256）。
+
+壳按 `content_hash` 做缓存与校验：哈希不一致时视为内容包已更新，应重新加载；不得在壳内手改已生成文件。
+
+### 7.4 边界
+
+- 本包只负责内容与字面契约；`help` 命令入口、输入匹配、渲染与缓存都在玩家壳完成。
+- 引擎侧命令动作及其注册仍由 `src/wsim/actions/registry.py` 负责；本包不新增动作、不改 API。
+- 新增或调整命令时先改 `tools/xkx_help/data/*.yaml`，再重跑生成器，避免壳侧手写第二份清单。

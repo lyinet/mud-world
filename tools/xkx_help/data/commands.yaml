@@ -222,7 +222,7 @@ commands:
     system: 物品
     status: 待实现
     blocker: "战利品系统"
-    evidence: "战斗会产生 loot_create 效果（src/wsim/world/effects.py），但缺少 LootAction；地面物品模型也未建模。"
+    evidence: "战斗掉落只产出 loot_create 效果（src/wsim/world/effects.py:104 定义、:422 处理），src/wsim/actions/combat.py:124 在战斗结算里发出该效果，但没有 LootAction 消费它；地面物品模型也未建模。"
   - name: give
     layer: std
     aliases: ["给", "赠送"]
@@ -338,7 +338,7 @@ commands:
     system: 战斗
     status: 不做
     blocker: "PK/偷抢/对抗"
-    evidence: "kill 动词在 src/wsim/api/session.py 的 FORBIDDEN_VERBS 中禁用；对 NPC 的战斗请用 fight，本版不开放玩家击杀。"
+    evidence: "kill 动词被列入 src/wsim/api/session.py:216-217 的 FORBIDDEN_VERBS，并在 :2181 逐动词拦截；对 NPC 的战斗请用 fight，本版不开放玩家击杀。"
   - name: list
     layer: std
     aliases: ["看货", "货单"]
@@ -531,7 +531,7 @@ commands:
     system: 系统
     status: 待实现
     blocker: "系统动作未注册"
-    evidence: "PlayerRestAction（src/wsim/actions/player.py）已写好但未在 src/wsim/actions/registry.py 注册，rest 尚不可执行。"
+    evidence: "PlayerRestAction 定义在 src/wsim/actions/player.py:433，但 src/wsim/actions/registry.py:98-126 的动作注册列表未包含它，rest 尚不可执行。"
   - name: stay
     layer: std
     aliases: ["留宠"]
