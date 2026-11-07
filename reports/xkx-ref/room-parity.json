@@ -57,7 +57,19 @@
   "头衔/状态前缀": 2,
   "在场/缺失": 1
  },
- "corrections": [],
+ "corrections": [
+  {
+   "date": "2026-11-07",
+   "commit": "cd4ca62",
+   "text": "此前报告的 npcs 89.74% 是度量工具硬编码 `cnt = 1` 造成的低估：复刻侧对每个 NPC 模板只计 1 只，没有计入原版 `set(\"objects\")` 的 count（17 房）。P2/P3 让复刻真实创建同模板多实例后，工具改为读取 wsim 派生的真实实例数（按房间+模板），归一化 6 条未改，重算得 98.46%。",
+   "figures": {
+    "npcs 旧值": "175/195 = 89.74%（normalization 未变）",
+    "npcs 新值": "192/195 = 98.46%",
+    "items": "189/195 = 96.92%，前后不变",
+    "npcs 差异房": "20 -> 3（2 房 <昏迷不醒>、1 房 road1 游走）"
+   }
+  }
+ ],
  "samples": {
   "npcs_mismatch": {
    "id": "/d/hangzhou/huanglongdong",
