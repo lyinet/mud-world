@@ -97,6 +97,9 @@ class Entity:
     combat_target: str = ""
     combat_tick: int = 0
     combat_round: int = 0
+    # 原版 `env/wimpy`：当「气」百分比低于该值时自动尝试逃跑（0 为关闭）。
+    # 只在玩家显式设置后写入；0 不输出，旧世界哈希逐字节不变。
+    wimpy: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         data = {
@@ -182,6 +185,8 @@ class Entity:
             data["combat_target"] = self.combat_target
             data["combat_tick"] = int(self.combat_tick)
             data["combat_round"] = int(self.combat_round)
+        if self.wimpy:
+            data["wimpy"] = int(self.wimpy)
         return data
 
 

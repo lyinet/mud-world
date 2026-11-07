@@ -41,6 +41,8 @@ _ENTITY_FIELDS = {
     "combat_target",
     "combat_tick",
     "combat_round",
+    # 原版 `env/wimpy` 阈值（玩家命令 wimpy 写入，0..80）。
+    "wimpy",
 }
 
 # 插件只能声明/返回这些原语。`mint` 虽然存在，但只允许 genesis/system 使用，
@@ -131,6 +133,8 @@ EFFECT_OPS = frozenset(
         "combat_log",
         # NPC 主动攻击判定明细（只读）：whether/roll/round 写进事件，便于审计与验收。
         "aggression_log",
+        # 原版 wimpy 自动逃跑明细（只读）：roll/出口/成败，供审计。
+        "wimpy_log",
     }
 )
 
@@ -289,6 +293,8 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             ent.template = str(d.get("template") or "")
         if "instance" in d:
             ent.instance = max(0, _as_int(d.get("instance", 0), "instance"))
+        if "wimpy" in d:
+            ent.wimpy = max(0, min(80, _as_int(d.get("wimpy", 0), "wimpy")))
         state.entities[ent.id] = ent
         return
 
@@ -705,7 +711,7 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         ent.death_count = int(ent.death_count) + 1
         return
 
-    if op in ("combat_log", "growth_log", "death_log", "aggression_log"):
+    if op in ("combat_log", "growth_log", "death_log", "aggression_log", "wimpy_log"):
         # 只读战报：rounds[]/成长明细随事件持久化，回放时不改状态。
         return
 

@@ -15,6 +15,77 @@ from .combat import combat_effects
 from .registry import Action
 
 
+def _below(rng: Any, n: int) -> int:
+    """`random(n)` 的确定性等价：n<=0 时返回 0 且不消费随机流。"""
+    n = int(n)
+    return rng.randint(0, n - 1) if n > 0 else 0
+
+
+def _dex(ent: Any) -> int:
+    # 与 combat_rules 的属性缺省一致：内容未写 dex 时按 10。
+    return int((getattr(ent, "attrs", None) or {}).get("dex", 10) or 0)
+
+
+def _wimpy_escape(state: WorldState, npc: Any, target: Any, rng: Any, intent: Intent):
+    """原版 `char.lpc:80-97` 心跳里的自动逃跑。
+
+    先按气血比例判断 wimpy，再按 `go.lpc:60-79` 的 dex 骰决定成败。
+    返回 `(effects, escaped)`；`escaped=True` 时调用方跳过本回合伤害。
+    """
+    threshold = int(getattr(target, "wimpy", 0) or 0)
+    max_hp = int(getattr(target, "max_hp", 0) or 0)
+    hp = int(getattr(target, "hp", 0) or 0)
+    if threshold <= 0 or max_hp <= 0 or hp * 100 > threshold * max_hp:
+        return [], False
+
+    round_no = int(npc.combat_round) + 1
+    roll_player = _below(rng, _dex(target))
+    roll_enemy = _below(rng, _dex(npc))
+    base = {
+        "mode": "wimpy",
+        "npc": str(npc.id),
+        "npc_name": str(npc.name),
+        "target": str(target.id),
+        "target_name": str(target.name),
+        "round": round_no,
+        "threshold": threshold,
+        "hp": hp,
+        "max_hp": max_hp,
+        "dex_target": _dex(target),
+        "dex_npc": _dex(npc),
+        "roll_target": roll_player,
+        "roll_npc": roll_enemy,
+    }
+    if roll_player <= roll_enemy:
+        base.update(result="failed", from_location=str(target.location))
+        return [Effect(op="wimpy_log", data=base)], False
+
+    exits = sorted(str(x) for x in (state.locations.get(target.location, {}).get("exits") or []))
+    if not exits:
+        base.update(result="no_exit", from_location=str(target.location))
+        return [Effect(op="wimpy_log", data=base)], False
+
+    dest = exits[_below(rng, len(exits))]
+    effects: list[Effect] = [
+        Effect(op="set_location", data={"entity": target.id, "to": dest}),
+    ]
+    # 等价 `remove_all_enemy()`：清空所有正在打玩家的 NPC，而不是只清当前这只。
+    for other in sorted(state.entities.values(), key=lambda e: e.id):
+        if str(getattr(other, "combat_target", "")) == str(target.id):
+            effects.extend(_reset(other))
+    base.update(
+        result="success",
+        from_location=str(target.location),
+        to_location=dest,
+        exit_index=exits.index(dest),
+        exit_count=len(exits),
+        reason="wimpy",
+        intent_tick=int(intent.tick),
+    )
+    effects.append(Effect(op="wimpy_log", data=base))
+    return effects, True
+
+
 def _reset(npc: Any) -> list[Effect]:
     return [
         Effect(op="set_field", data={"entity": npc.id, "field": "combat_target", "value": ""}),
@@ -124,16 +195,33 @@ class NpcAggressionAction(Action):
             )
             return effects
 
-        # continue：一个心跳回合。
+        # continue：一个心跳回合。原版 char.lpc 先判 wimpy 自动逃跑，再攻击。
         if target is None or target.status != "alive" or target.location != npc.location:
             return [*_reset(npc), _log(npc, target, "reset", result="target_gone")]
 
         round_no = int(npc.combat_round) + 1
+        wimpy_effects, escaped = _wimpy_escape(state, npc, target, rng, intent)
+        if escaped:
+            effects = [*wimpy_effects]
+            effects.append(
+                _log(
+                    npc,
+                    target,
+                    "continue",
+                    triggered=False,
+                    result="escaped",
+                    round=round_no,
+                    reason="wimpy",
+                )
+            )
+            return effects
+
         effects = [
+            *wimpy_effects,
             Effect(
                 op="set_field",
                 data={"entity": npc.id, "field": "combat_round", "value": round_no},
-            )
+            ),
         ]
         effects.extend(
             combat_effects(

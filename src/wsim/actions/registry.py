@@ -109,6 +109,7 @@ def build_registry(
         SystemQuestPostAction,
     )
     from .xkx_quests import XkxQuestAcceptAction, XkxQuestDeliverAction
+    from .wimpy import WimpyAction
 
     reg = ActionRegistry()
     reg.register(MoveAction(content))
@@ -180,6 +181,7 @@ def build_registry(
     reg.register(NpcAggressionAction(aggression_rules(content)))
     reg.register(LootAction(content))
     reg.register(DropAction(content))
+    reg.register(WimpyAction())
     reg.register(SystemSpawnAction(spawns))
 
     root = Path(__file__).resolve().parents[3]

@@ -122,6 +122,7 @@ VERB_ALIASES: dict[str, str] = {
     "sell": "sell", "卖": "sell", "出售": "sell",
     "fight": "fight", "打": "fight", "战斗": "fight", "出手": "fight",
     "loot": "loot", "捡": "loot", "拾取": "loot",
+    "wimpy": "wimpy",
     "get": "loot", "拿": "loot", "取": "loot",
     "wear": "wear", "穿": "wear", "穿上": "wear", "穿戴": "wear",
     "wield": "wield", "持": "wield", "持起": "wield", "握": "wield",
@@ -162,6 +163,7 @@ _EXTRA_REASON_TEXT = {
     "quest_already_completed": "这条支线已经完成了。",
     "quest_item_missing": "你身上没有这件任务物品。",
     "bad_qty": "数量不对；捡东西至少要 1 件。",
+    "bad_wimpy": "用法：wimpy [<逃跑时「气」的百分比 0-80>]",
     "player_dead": "你已经倒下了，先想办法回魂。",
     "unknown_item": "这里没有这种货。",
     "wrong_location": "你不在这个交易地点。",
@@ -426,6 +428,8 @@ class XKXShell:
                 return self._cmd_fight(account, rest, state, raw, request_id)
             if verb == "loot":
                 return self._cmd_loot(account, rest, state, raw, request_id)
+            if verb == "wimpy":
+                return self._cmd_wimpy(account, rest, state, raw, request_id)
             if verb in ("wear", "wield", "remove", "unwield", "drop"):
                 return self._cmd_item_action(account, verb, rest, state, raw, request_id)
             if verb in ("rest", "sleep"):
@@ -1719,6 +1723,42 @@ class XKXShell:
         lines.extend(self._equip_summary_lines(after))
         return self._reply(account, verb, True, lines, after, raw, request_id)
 
+    def _cmd_wimpy(
+        self, account: str, rest: str, state: dict[str, Any], raw: str, request_id: str
+    ) -> dict[str, Any]:
+        """原版 `wimpy` 命令：无参显示阈值，参数只接受 0..80。"""
+        ent = self._entity(state)
+        current = int(getattr(ent, "wimpy", 0) or 0) if ent is not None else 0
+        text = str(rest or "").strip()
+        if not text:
+            return self._reply(
+                account, "wimpy", True,
+                [("info", f"你现在的当「气」低于 {current}% 时就会尝试逃跑。")],
+                state, raw, request_id,
+            )
+        try:
+            value = int(text)
+        except ValueError:
+            value = -1
+        if value < 0 or value > 80:
+            return self._reply(
+                account, "wimpy", False,
+                [("error", self._reason("bad_wimpy"))], state, raw, request_id,
+            )
+        resp = self.session.perform(account, "wimpy", {"value": value})
+        if not resp.get("ok"):
+            return self._reply(
+                account, "wimpy", False,
+                [("error", self._reason(str(resp.get("reject_reason") or ""), fallback="现在没法设置自动逃跑阈值。"))],
+                state, raw, request_id,
+            )
+        after = self._state(account) or state
+        return self._reply(
+            account, "wimpy", True,
+            [("info", f"你现在的当「气」低于 {value}% 时就会尝试逃跑。")],
+            after, raw, request_id,
+        )
+
     def _cmd_rest(
         self, account: str, verb: str, rest: str, state: dict[str, Any], raw: str, request_id: str
     ) -> dict[str, Any]:
@@ -1897,10 +1937,16 @@ class XKXShell:
             ("info", f"所在：{player.get('location_name', '未知')}"),
         ]
         lines.extend(self._score_core_lines(state))
-        sect = state.get("sect") or {}
+        # `session._sect_view` 返回两层：{"in_sect": bool, "sect": {...}}。
+        # 老实现按一层读，永远取不到 name，于是恒显示“尚未拜入门派”。
+        sect_view = state.get("sect") or {}
+        sect = sect_view.get("sect") if isinstance(sect_view.get("sect"), dict) else sect_view
         sect_name = str(sect.get("name") or sect.get("sect_name") or "")
-        if sect_name and sect_name != "无":
-            lines.append(("info", f"门派：{sect_name}（{sect.get('rank') or '门人'}）"))
+        in_sect = bool(sect_view.get("in_sect", bool(sect_name)))
+        if in_sect and sect_name and sect_name != "无":
+            role = str(sect.get("role") or "")
+            label = "门主" if role == "leader" else "弟子" if role else "门人"
+            lines.append(("info", f"门派：{sect_name}（{label}）"))
         else:
             lines.append(("info", "门派：尚未拜入门派。"))
         skills = list(player.get("skills_detail") or [])
