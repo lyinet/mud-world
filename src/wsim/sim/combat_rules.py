@@ -153,6 +153,16 @@ class _Actor:
         self.curiousness = bool((getattr(ent, "personality", None) or {}).get("curiousness", False))
         self.attack = max(0, int(getattr(ent, "attack", 0)))
         self.defense = max(0, int(getattr(ent, "defense", 0)))
+        # `set_temp("apply/...")`：内容里 known=true 的整数项。语义按源码：
+        # - apply/attack / apply/defense 进入 skill_power 的 level（再 800 封顶）；
+        # - apply/armor 作为护甲减伤值；
+        # - apply/damage 只有持兵器时才是基础伤害，空手用 apply/unarmed_damage。
+        self.temp_apply = {
+            str(k): int(v) for k, v in (getattr(ent, "temp_apply", None) or {}).items()
+        }
+        self.apply_attack = int(self.temp_apply.get("apply/attack", 0))
+        self.apply_defense = int(self.temp_apply.get("apply/defense", 0))
+        self.apply_armor = int(self.temp_apply.get("apply/armor", 0))
         self.weapon = has_weapon(ent)
         self.spi = attr(ent, "spi")
 
@@ -177,7 +187,7 @@ class _Actor:
 def _attack_power(actor: _Actor, skill: str) -> int:
     return xf.skill_power(
         skill_level=actor.level(skill),
-        apply_bonus=0,
+        apply_bonus=actor.apply_attack,
         combat_exp=actor.exp,
         attr_effective=attr(actor.ent, "str"),
         attr_base=_base(actor.ent, "str"),
@@ -188,7 +198,7 @@ def _attack_power(actor: _Actor, skill: str) -> int:
 def _defense_power(actor: _Actor, skill: str) -> int:
     return xf.skill_power(
         skill_level=actor.level(skill),
-        apply_bonus=0,
+        apply_bonus=actor.apply_defense,
         combat_exp=actor.exp,
         attr_effective=attr(actor.ent, "dex"),
         attr_base=_base(actor.ent, "dex"),
@@ -289,8 +299,11 @@ def simulate_fight(
                 return "alive"
 
             breakdown = xf.resolve_damage(
-                raw_damage=src.attack,
-                armor=dst.defense,
+                # `combatd.lpc:436-440`：持兵器取 apply/damage，空手取
+                # apply/unarmed_damage；`Entity.attack` 是旧内容的等价基础伤害入口。
+                raw_damage=src.attack
+                + int(src.temp_apply.get("apply/damage" if src.weapon else "apply/unarmed_damage", 0)),
+                armor=dst.defense + dst.apply_armor,
                 str_effective=attr(src.ent, "str"),
                 attacker_exp=src.exp,
                 defender_exp=dst.exp,
@@ -304,14 +317,16 @@ def simulate_fight(
             new_hp = xf.apply_qi_damage(dst.hp, breakdown.final_damage)
             wounded = xf.roll_wound(
                 damage=breakdown.final_damage,
-                armor=dst.defense,
+                armor=dst.defense + dst.apply_armor,
                 killing=KILLING,
                 has_weapon=src.weapon,
                 prng=prng,
             )
             new_eff = dst.eff_hp
             if wounded:
-                vitals = xf.apply_qi_wound(new_hp, dst.eff_hp, breakdown.final_damage - dst.defense)
+                vitals = xf.apply_qi_wound(
+                    new_hp, dst.eff_hp, breakdown.final_damage - (dst.defense + dst.apply_armor)
+                )
                 new_hp, new_eff = vitals.qi, vitals.eff_qi
 
             reward = xf.damage_rewards(

@@ -209,6 +209,10 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             ent.attack = _as_int(d["attack"], "attack")
         if "defense" in d:
             ent.defense = _as_int(d["defense"], "defense")
+        if "temp_apply" in d:
+            ent.temp_apply = {
+                str(k): _as_int(v, f"temp_apply.{k}") for k, v in dict(d["temp_apply"] or {}).items()
+            }
         if "equipment" in d:
             ent.equipment = [str(x) for x in (d.get("equipment") or []) if str(x)]
         if "attrs" in d:

@@ -243,6 +243,29 @@ def build_genesis(
                     mismatches.append(f"unknown_equipment_item:{nid}:{ref}")
             if equipment:
                 entity_data["equipment"] = equipment
+            # xkx 的 `set_temp("apply/...")`：只取 known=true 且 value 为整数的项，
+            # 作为临时攻防落地。known=false（armor/is_riding/...）与无法求值的
+            # 表达式一律不进数值，写诊断，不静默丢、不猜值。
+            temp_apply: dict[str, int] = {}
+            for row in npc.get("temp_apply") or []:
+                if not isinstance(row, dict):
+                    continue
+                key = str(row.get("key") or "")
+                if not key:
+                    continue
+                if row.get("known") is not True:
+                    src = row.get("source") or {}
+                    mismatches.append(
+                        f"unknown_temp_apply:{nid}:{key}:{src.get('path', '')}:{src.get('line', '')}"
+                    )
+                    continue
+                value = row.get("value")
+                if isinstance(value, bool) or not isinstance(value, int):
+                    mismatches.append(f"unresolved_temp_apply:{nid}:{key}")
+                    continue
+                temp_apply[key] = int(value)
+            if temp_apply:
+                entity_data["temp_apply"] = dict(sorted(temp_apply.items()))
 
     # 4a2) 房间地面初始物品：只认内容显式给出的整数 count。
     # `count_expr: random(...)` 这类表达式一律跳过，不在创世里引入随机。

@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+import copy
 import sys
 from pathlib import Path
 
@@ -115,10 +116,19 @@ def test_xkx_genesis_moves_equipment_into_entity_not_inventory():
     poorman = state.entities["/d/hangzhou/npc/poorman"]
     assert "/d/hangzhou/npc/obj/cloth" in poorman.equipment
     assert poorman.inventory == {}
-    # 物品表里没有的装备 id 要进诊断，且不编造数值。
-    assert any(m.startswith("unknown_equipment_item:") for m in result.mismatches)
+    # 内容线已补齐装备物品：真实内容不应再有缺失诊断。
+    assert not any(m.startswith("unknown_equipment_item:") for m in result.mismatches)
     for npc in content.npcs:
         expected = [str((row or {}).get("ref") or "") for row in (npc.get("equipment") or [])]
         expected = [ref for ref in expected if ref]
         if expected:
             assert state.entities[str(npc["id"])].equipment == expected, npc["id"]
+
+    # 缺失路径仍在：临时给穷汉塞一个不存在的 ref，必须只写诊断、不编造数值。
+    broken = copy.deepcopy(next(n for n in content.npcs if n["id"] == "/d/hangzhou/npc/poorman"))
+    broken["equipment"].append({"ref": "missing/ghost_blade"})
+    state2 = WorldState(locations=content.locations)
+    result2 = build_genesis(content, [broken], root=ROOT, state=state2)
+    apply_effects(state2, result2.effects)
+    assert "unknown_equipment_item:/d/hangzhou/npc/poorman:missing/ghost_blade" in result2.mismatches
+    assert "missing/ghost_blade" in state2.entities["/d/hangzhou/npc/poorman"].equipment

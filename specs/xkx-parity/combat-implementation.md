@@ -418,12 +418,52 @@ vs `npc.boar`（40hp、attack 10、def 2、str 20、dex 15、unarmed 40），带
 - 若以后要改变某一档，只能从内容侧补 `set_temp("apply/...")` 或武器，不改默认值/公式。
 - 经验压制：`modify_damage_by_exp` 原版逻辑保持不变。
 
-### 10.5 待接：`set_temp` 临时攻防（等字段确认）
+### 10.5 `set_temp` 临时攻防（已接入）
 
-内容线计划把原版 `set_temp("apply/attack|defense|armor|dodge|parry")` 抽进
-`npcs.json` 的新字段。**字段名与 schema 以内容线落地为准，本引擎暂不改代码、
-不猜字段名。** 字段确认后，创世时把临时加成并入 NPC 的攻防计算；与原版
-“每次 reset 重设”的差异（本引擎只在创世写一次）届时写进本节。
+内容字段：`npcs.json` 每条 NPC 的 `temp_apply[]`，每项
+`{key, value, value_expr, known, source_kind, source{path,line}}`。
+创世只把 `known=true` 且 `value` 为整数的项写进 `Entity.temp_apply`。
+
+按 `combatd.lpc` 原语义接入，**不自行发明叠加方式**：
+
+| 字段 | 源码依据 | 引擎落点 |
+| --- | --- | --- |
+| `apply/attack` | `combatd.lpc:207` | `skill_power` 的 `apply_bonus`（攻击）；`level = 技能 + apply`，再 800 封顶 |
+| `apply/defense` | `combatd.lpc:210` | 同上（防御）：同时作用于闪避 dp、招架 pp、空手 pp |
+| `apply/armor` | `combatd.lpc:451-456`、`560-565` | 护甲减伤值，同时用于伤势判定；膂力加成在护甲之后加，不被护甲吃掉 |
+| `apply/damage` | `combatd.lpc:436-440` | **只有持兵器时**才作为基础伤害；空手取 `apply/unarmed_damage` |
+
+- 当前 xkx 内容没有 `apply/unarmed_damage`，引擎也没有兵器建模，所以
+  `apply/damage` 目前不进入任何 NPC 的伤害；这是源码语义，不是漏接。
+  真正影响这四只的是 `apply/attack` / `apply/defense` / `apply/armor`。
+- 与原版差异：原版 `set_temp` 每次 reset 重设；本引擎只在**创世写一次**，
+  战斗内不重设、不衰减。
+- `known=false` 的 5 条（`is_riding`、`is_rided_by`、`qingshu`、`armor`、`shoupa`）
+  忽略，并写诊断 `unknown_temp_apply:<npc>:<key>:<path>:<line>`；
+  同类 NPC 的 known=true 项照常生效，不因同一条记录里的未知项被整条丢弃。
+- `Entity.temp_apply` 只在非空时写进 `to_dict()`；旧九地点 NPC 没有该字段，
+  世界哈希逐字节不变。
+
+#### 接入前后对比（3 seeds × 60 回合，双方各 180 次；真实对局 100 血 / 20 回合）
+
+| 目标 | 接入前 我/敌 | 接入后 我/敌 | 60 回合受伤 前→后 | 真实对局 前→后 |
+| --- | --- | --- | --- | --- |
+| 店小二 | 96.7% / 1.1% | **96.7% / 1.1%** | 12 → 12 | 稳赢 0 伤 → 稳赢 0 伤 |
+| 穷汉 | 97.2% / 1.1% | **97.2% / 1.1%** | 32 → 32 | 稳赢 0 伤 → 稳赢 0 伤 |
+| 流氓 | 78.9% / 10.0% | **60.0% / 16.1%** | 162 → 244 | 平手 9–17 伤 → 平手 30–51 伤 |
+| 老虎 | 6.7% / 77.2% | **0.0% / 100.0%** | 970 → 1269 | 必死 16–20 回合 → 必死 15 回合，造成 0 |
+
+哪条变了、为什么：
+
+- **店小二/穷汉没变**：内容里没有 `temp_apply`，数值与接入前逐项相同。
+- **流氓变难**：`apply/attack=10` 使 ap 594 → 1496；`apply/defense=10` 使
+  dp/pp 594 → 1496。玩家命中 78.9% → 60.0%，对方命中 10.0% → 16.1%；
+  仍 20 回合平手，但掉血从 9–17 升到 30–51。
+- **老虎变成原版形状**：`apply/attack=20000` / `apply/defense=30000` 进入
+  `skill_power` 后被 800 封顶，ap/dp 从 15000 变为 **21,287,500**；
+  `apply/armor=1000` 同时吃减伤与伤势判定。结果玩家命中 0.0%、
+  对方命中 100.0%、玩家必死且造成 0 伤害。与原版“老虎 ap/dp ~10^7、
+  armor 1000”一致；之前的 6.7% 命中只是因为内容没把 `set_temp` 抽出来。
 
 ## 11. NPC 死亡：随身装备落地（不建模尸体）
 

@@ -52,6 +52,10 @@ class Entity:
     max_hp: int = 0
     attack: int = 0  # 基础伤害（兵器/拳脚），0 视为 1
     defense: int = 0  # 护甲减伤
+    # 原版 `set_temp("apply/...")` 的临时攻防（内容 `temp_apply[]` 中 known=true 的
+    # 整数项）。键为 `apply/attack` / `apply/defense` / `apply/armor` /
+    # `apply/damage`；旧内容没有该字段，空字典不写进 to_dict()，哈希不变。
+    temp_apply: dict[str, int] = field(default_factory=dict)
     attrs: dict[str, int] = field(default_factory=dict)  # str/int/con/dex/sta/spi/kar/cps/cor
     combat_exp: int = 0
     skill_levels: dict[str, int] = field(default_factory=dict)  # 技能等级（0..800）
@@ -99,6 +103,8 @@ class Entity:
             data["attack"] = int(self.attack)
         if self.defense:
             data["defense"] = int(self.defense)
+        if self.temp_apply:
+            data["temp_apply"] = dict(sorted(self.temp_apply.items()))
         if self.attrs:
             data["attrs"] = dict(sorted(self.attrs.items()))
         if self.combat_exp:
