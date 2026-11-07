@@ -76,6 +76,27 @@ def _check_equipment_items(diags: list[dict], pack: dict) -> None:
                 })
 
 
+def _check_npc_temp_apply(diags: list[dict], pack: dict) -> None:
+    """set_temp 记录必须能溯源：值要么是整数，要么保留原式；不许两边都空。"""
+    for npc in pack.get("npcs", []):
+        for entry in npc.get("temp_apply", []):
+            if entry.get("value") is None and entry.get("value_expr") is None:
+                diags.append({
+                    "rule": "E_TEMP_VALUE_MISSING", "severity": "error",
+                    "path": entry.get("source", {}).get("path") or npc["source"]["path"],
+                    "line": entry.get("source", {}).get("line"),
+                    "message": f"NPC {npc['id']} 的 set_temp {entry.get('key')} 既无整数值也无原式",
+                    "id": npc["id"], "key": entry.get("key"),
+                })
+            if entry.get("source_kind") != "lpc":
+                diags.append({
+                    "rule": "E_TEMP_SOURCE_KIND", "severity": "error",
+                    "path": npc["source"]["path"], "line": npc["source"]["line"],
+                    "message": f"NPC {npc['id']} 的 set_temp 来源标记不是 lpc",
+                    "id": npc["id"], "key": entry.get("key"),
+                })
+
+
 def _check_npc_drops(diags: list[dict], pack: dict) -> None:
     """NPC 掉落：无掉落必须显式留痕；概率无法折算时保留原式；物品必须在 items 表。"""
     item_ids = {i["id"] for i in pack.get("items", [])}
@@ -372,6 +393,9 @@ def validate(pack: dict) -> list[dict]:
 
     # 11. NPC 装备：每个 ref 必须在 items 表，缺一个即 error
     _check_equipment_items(diags, pack)
+
+    # 12. NPC 临时属性：set_temp 必须可溯源，值不许两边都空
+    _check_npc_temp_apply(diags, pack)
 
     return diags
 

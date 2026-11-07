@@ -12,7 +12,9 @@
     "W_BOUNDARY_EXIT": 6,
     "W_MISSING_SKILL": 1,
     "W_NO_EXIT": 4,
-    "W_NO_PRICE": 11
+    "W_NO_PRICE": 11,
+    "W_TEMP_KEY_UNKNOWN": 5,
+    "W_TEMP_VALUE_EXPR": 2
   },
   "counts": {
     "aggressive_npcs": 7,
@@ -46,7 +48,29 @@
     "skill_special_actions": 4,
     "skill_stat_default_fields": 48,
     "skill_stat_rows": 48,
-    "skills": 48
+    "skills": 48,
+    "temp_apply_entries": 78,
+    "temp_apply_keys": {
+      "apply/armor": 14,
+      "apply/attack": 25,
+      "apply/damage": 11,
+      "apply/defense": 23,
+      "armor": 1,
+      "is_rided_by": 1,
+      "is_riding": 1,
+      "qingshu": 1,
+      "shoupa": 1
+    },
+    "temp_apply_npcs": 34,
+    "temp_apply_npcs_in_slice": 28,
+    "temp_apply_unknown_entries": 5,
+    "temp_apply_unknown_keys": [
+      "armor",
+      "is_rided_by",
+      "is_riding",
+      "qingshu",
+      "shoupa"
+    ]
   },
   "coverage": {
     "source": {
@@ -104,5 +128,5 @@
   },
   "errors": 0,
   "infos": 48,
-  "warnings": 42
+  "warnings": 49
 }

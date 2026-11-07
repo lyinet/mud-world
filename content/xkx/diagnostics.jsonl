@@ -1,4 +1,8 @@
 {"line":12,"message":"边界出口 westup -> /d/meizhuang/shijie（区外，有回程，可通行）","path":"d/hangzhou/gushan.lpc","rule":"W_BOUNDARY_EXIT","severity":"warning","target":"/d/meizhuang/shijie"}
+{"key":"is_riding","line":68,"message":"set_temp 键 is_riding 不在战斗白名单，原样保留待确认","path":"d/hangzhou/honghua/huo.lpc","rule":"W_TEMP_KEY_UNKNOWN","severity":"warning"}
+{"key":"is_riding","line":68,"message":"临时属性 is_riding 的值不是整数字面量，保留原式不折算","path":"d/hangzhou/honghua/huo.lpc","rule":"W_TEMP_VALUE_EXPR","severity":"warning"}
+{"key":"is_rided_by","line":25,"message":"set_temp 键 is_rided_by 不在战斗白名单，原样保留待确认","path":"d/hangzhou/honghua/obj/horse.lpc","rule":"W_TEMP_KEY_UNKNOWN","severity":"warning"}
+{"key":"is_rided_by","line":25,"message":"临时属性 is_rided_by 的值不是整数字面量，保留原式不折算","path":"d/hangzhou/honghua/obj/horse.lpc","rule":"W_TEMP_VALUE_EXPR","severity":"warning"}
 {"line":10,"message":"源码没有 set(\"value\") 价格","path":"d/hangzhou/honghua/obj/huangshan.lpc","rule":"W_NO_PRICE","severity":"warning"}
 {"line":13,"message":"物品价格为 0","path":"d/hangzhou/honghua/obj/tiedan.lpc","rule":"I_PRICE_ZERO","severity":"info"}
 {"line":31,"message":"边界出口 up -> /clone/shop/hangzhou_shop（区外，有回程，可通行）","path":"d/hangzhou/majiu.lpc","rule":"W_BOUNDARY_EXIT","severity":"warning","target":"/clone/shop/hangzhou_shop"}
@@ -48,6 +52,8 @@
 {"dir":"west","line":14,"message":"/d/shiliang/jinshedong1 的 west 出口到 /d/shiliang/jinshedong，但目标没有回程出口","path":"d/shiliang/jinshedong1.lpc","rule":"W_ASYMMETRIC_EXIT","severity":"warning","target":"/d/shiliang/jinshedong"}
 {"line":4,"message":"房间没有任何出口","path":"d/shiliang/midao.lpc","rule":"W_NO_EXIT","severity":"warning"}
 {"line":22,"message":"对话主题「阿凤」的值是函数，静态不可搬；保留主题键并转 fallback","path":"d/shiliang/npc/atu.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"阿凤"}
+{"key":"qingshu","line":25,"message":"set_temp 键 qingshu 不在战斗白名单，原样保留待确认","path":"d/shiliang/npc/atu.lpc","rule":"W_TEMP_KEY_UNKNOWN","severity":"warning"}
+{"key":"armor","line":19,"message":"set_temp 键 armor 不在战斗白名单，原样保留待确认","path":"d/shiliang/npc/fish.lpc","rule":"W_TEMP_KEY_UNKNOWN","severity":"warning"}
 {"line":32,"message":"对话主题「金蛇吐雾」的值是函数，静态不可搬；保留主题键并转 fallback","path":"d/shiliang/npc/jinshe.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"金蛇吐雾"}
 {"line":32,"message":"对话主题「锁剑诀」的值是函数，静态不可搬；保留主题键并转 fallback","path":"d/shiliang/npc/jinshe.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"锁剑诀"}
 {"line":32,"message":"对话主题「附骨缠身」的值是函数，静态不可搬；保留主题键并转 fallback","path":"d/shiliang/npc/jinshe.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"附骨缠身"}
@@ -55,6 +61,7 @@
 {"line":4,"message":"源码没有 set(\"value\") 价格","path":"d/shiliang/npc/obj/saoba.lpc","rule":"W_NO_PRICE","severity":"warning"}
 {"line":4,"message":"源码没有 set(\"value\") 价格","path":"d/shiliang/npc/obj/shoupa.lpc","rule":"W_NO_PRICE","severity":"warning"}
 {"line":24,"message":"对话主题「手帕」的值是函数，静态不可搬；保留主题键并转 fallback","path":"d/shiliang/npc/wenyi.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"手帕"}
+{"key":"shoupa","line":28,"message":"set_temp 键 shoupa 不在战斗白名单，原样保留待确认","path":"d/shiliang/npc/wenyi.lpc","rule":"W_TEMP_KEY_UNKNOWN","severity":"warning"}
 {"line":11,"message":"源码没有 set(\"value\") 价格","path":"d/shiliang/obj/hole.lpc","rule":"W_NO_PRICE","severity":"warning"}
 {"dir":"east","line":11,"message":"/d/shiliang/shandong1 的 east 出口到 /d/shiliang/shandong2，但目标没有回程出口","path":"d/shiliang/shandong1.lpc","rule":"W_ASYMMETRIC_EXIT","severity":"warning","target":"/d/shiliang/shandong2"}
 {"dir":"west","line":11,"message":"/d/shiliang/shandong2 的 west 出口到 /d/shiliang/shandong3，但目标没有回程出口","path":"d/shiliang/shandong2.lpc","rule":"W_ASYMMETRIC_EXIT","severity":"warning","target":"/d/shiliang/shandong3"}

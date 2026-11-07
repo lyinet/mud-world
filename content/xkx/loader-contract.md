@@ -149,6 +149,7 @@
 | `drops` | array | 死亡掉落，见 5.1；**没有掉落也写空表** |
 | `drops_source` | `"lpc"` \| `"none"` | `lpc` = `die()` 中有真实掉物；`none` = 源码无掉落 |
 | `drops_note` | string \| null | `drops_source="none"` 时必填，写明为什么没有 |
+| `temp_apply` | array | `create()` 内 `set_temp` 的静态快照，见 5.2 |
 | `origin` | `"slice"` \| `"external"` | |
 
 `skills` 的键是技能 id，中文名在 `skills.json` 查。`map_skills` 表示“用哪个技能顶替基础技能”，不是等级。
@@ -195,6 +196,32 @@
 - 装备物品缺 `set_weight()` 时按基类 `inherit/item/item.lpc` 的默认 `set("weight",100)` 写入，并带 `weight_source="default"` + `weight_reason`；
 - 名称/价格/描述一律照原版；原版没有 `set("long")` 的，`desc=null`、`desc_source=null`，不补写；
 - 原版没有 `set("value")` 的，`price=null`，不按 0 假装有价。
+
+### 5.2 `temp_apply[]` — 临时属性（`set_temp`）
+
+```json
+{ "key": "apply/defense",
+  "value": 30000,
+  "value_expr": null,
+  "known": true,
+  "source_kind": "lpc",
+  "source": { "path": "d/hangzhou/npc/laohu.lpc", "line": 29 } }
+```
+
+| 字段 | 含义 |
+| --- | --- |
+| `key` | 原版 `set_temp` 的键名，原样保留 |
+| `value` | 整数字面量；非整数时为 `null` |
+| `value_expr` | `value=null` 时的源码原式（如 `ma`、`"huo qingtong"`）；不折算 |
+| `known` | 是否在战斗白名单内；`false` 表示抽取器不认识，原样保留并记 `W_TEMP_KEY_UNKNOWN` |
+| `source_kind` | 固定 `lpc`，表示照源码静态搬运 |
+| `source` | 源码文件与行号 |
+
+战斗白名单：`apply/attack`、`apply/defense`、`apply/armor`、`apply/dodge`、`apply/parry`、`apply/damage`。白名单外的键（如 `armor`、`qingshu`、`shoupa`、`is_riding`、`is_rided_by`）不丢弃、不猜测，`known=false` 供引擎侧确认。
+
+**只取 `create()` 作用域**：原版同名对象在运行期（`init()`、任务函数等）也会 `set_temp` 改状态，那些不是创世属性，抽取器按函数体行号排除。
+
+**与原版的差异（重要）**：原版 `set_temp` 是运行期临时加成，`reset()` 或对象重建后会按 `create()` 重新设置；本项目按**创世即带**处理——加载器在创建 NPC 时一次性应用这些加成，不做运行期重算。对静态战斗数值（`apply/attack`、`apply/defense` 等）两者等价；若将来引入“加成被临时修改”的机制，需要单独建模，不能假设这里会随 `reset` 刷新。
 
 ## 6. `dialogue.json`
 

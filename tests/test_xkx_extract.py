@@ -169,7 +169,26 @@ def test_slice_pack_counts_and_zero_errors():
             item = next(i for i in pack["items"] if i["id"] == slot["ref"])
             assert item["name"]
             assert item["weight"] is not None and item["weight"] > 0
-    # NPC 掉落：空表必须带原因；掉落物必须在 items 表；概率不让引擎猜
+    # NPC 临时属性：只取 create()，值/来源可溯源，未知键不丢
+    assert counts["temp_apply_npcs"] == 34
+    assert counts["temp_apply_npcs_in_slice"] == 28
+    assert counts["temp_apply_entries"] == 78
+    assert counts["temp_apply_keys"]["apply/attack"] == 25
+    assert counts["temp_apply_keys"]["apply/defense"] == 23
+    assert counts["temp_apply_unknown_keys"] == [
+        "armor", "is_rided_by", "is_riding", "qingshu", "shoupa",
+    ]
+    laohu = next(n for n in pack["npcs"] if n["id"] == "/d/hangzhou/npc/laohu")
+    temps = {e["key"]: e for e in laohu["temp_apply"]}
+    assert temps["apply/attack"]["value"] == 20000
+    assert temps["apply/defense"]["value"] == 30000
+    assert temps["apply/armor"]["value"] == 1000
+    for npc in pack["npcs"]:
+        for entry in npc["temp_apply"]:
+            assert entry["source_kind"] == "lpc"
+            assert entry["source"]["path"] and entry["source"]["line"]
+            assert entry["value"] is not None or entry["value_expr"] is not None
+    # 掉落：空表必须带原因；掉落物必须在 items 表；概率不让引擎猜
     item_ids = {i["id"] for i in pack["items"]}
     holders = {n["id"] for n in pack["npcs"] if n["drops"]}
     assert holders == {

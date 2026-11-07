@@ -64,6 +64,7 @@
         "line": 9,
         "path": "d/hangzhou/honghua/an.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -137,6 +138,7 @@
         "line": 9,
         "path": "d/hangzhou/honghua/chang1.lpc"
       },
+      "temp_apply": [],
       "title": "红花会五当家",
       "vendor": false,
       "vitals": {
@@ -210,6 +212,7 @@
         "line": 9,
         "path": "d/hangzhou/honghua/chang2.lpc"
       },
+      "temp_apply": [],
       "title": "红花会六当家",
       "vendor": false,
       "vitals": {
@@ -306,6 +309,7 @@
         "line": 9,
         "path": "d/hangzhou/honghua/chen.lpc"
       },
+      "temp_apply": [],
       "title": "红花会总舵主",
       "vendor": false,
       "vitals": {
@@ -394,6 +398,19 @@
         "line": 11,
         "path": "d/hangzhou/honghua/huo.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "is_riding",
+          "known": false,
+          "source": {
+            "line": 68,
+            "path": "d/hangzhou/honghua/huo.lpc"
+          },
+          "source_kind": "lpc",
+          "value": null,
+          "value_expr": "ma"
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -469,6 +486,7 @@
         "line": 9,
         "path": "d/hangzhou/honghua/jiang.lpc"
       },
+      "temp_apply": [],
       "title": "红花会十三当家",
       "vendor": false,
       "vitals": {
@@ -549,6 +567,7 @@
         "line": 9,
         "path": "d/hangzhou/honghua/lu.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -631,6 +650,7 @@
         "line": 9,
         "path": "d/hangzhou/honghua/luo.lpc"
       },
+      "temp_apply": [],
       "title": "红花会十一当家",
       "vendor": false,
       "vitals": {
@@ -706,6 +726,7 @@
         "line": 9,
         "path": "d/hangzhou/honghua/meng.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -748,6 +769,52 @@
         "line": 8,
         "path": "d/hangzhou/honghua/obj/horse.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 22,
+            "path": "d/hangzhou/honghua/obj/horse.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 50,
+          "value_expr": null
+        },
+        {
+          "key": "apply/armor",
+          "known": true,
+          "source": {
+            "line": 23,
+            "path": "d/hangzhou/honghua/obj/horse.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 15,
+          "value_expr": null
+        },
+        {
+          "key": "apply/damage",
+          "known": true,
+          "source": {
+            "line": 24,
+            "path": "d/hangzhou/honghua/obj/horse.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 25,
+          "value_expr": null
+        },
+        {
+          "key": "is_rided_by",
+          "known": false,
+          "source": {
+            "line": 25,
+            "path": "d/hangzhou/honghua/obj/horse.lpc"
+          },
+          "source_kind": "lpc",
+          "value": null,
+          "value_expr": "\"huo qingtong\""
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -820,6 +887,7 @@
         "line": 9,
         "path": "d/hangzhou/honghua/shi.lpc"
       },
+      "temp_apply": [],
       "title": "红花会十二当家",
       "vendor": false,
       "vitals": {
@@ -896,6 +964,7 @@
         "line": 9,
         "path": "d/hangzhou/honghua/wei.lpc"
       },
+      "temp_apply": [],
       "title": "红花会九当家",
       "vendor": false,
       "vitals": {
@@ -970,6 +1039,7 @@
         "line": 9,
         "path": "d/hangzhou/honghua/wen.lpc"
       },
+      "temp_apply": [],
       "title": "红花会四当家",
       "vendor": false,
       "vitals": {
@@ -1044,6 +1114,7 @@
         "line": 6,
         "path": "d/hangzhou/honghua/wuchen.lpc"
       },
+      "temp_apply": [],
       "title": "红花会二当家",
       "vendor": false,
       "vitals": {
@@ -1127,6 +1198,7 @@
         "line": 9,
         "path": "d/hangzhou/honghua/xinyan.lpc"
       },
+      "temp_apply": [],
       "title": "红花会书僮",
       "vendor": false,
       "vitals": {
@@ -1209,6 +1281,7 @@
         "line": 9,
         "path": "d/hangzhou/honghua/xu.lpc"
       },
+      "temp_apply": [],
       "title": "红花会七当家",
       "vendor": false,
       "vitals": {
@@ -1290,6 +1363,7 @@
         "line": 9,
         "path": "d/hangzhou/honghua/yang.lpc"
       },
+      "temp_apply": [],
       "title": "红花会八当家",
       "vendor": false,
       "vitals": {
@@ -1387,6 +1461,7 @@
         "line": 9,
         "path": "d/hangzhou/honghua/yu.lpc"
       },
+      "temp_apply": [],
       "title": "红花会十四当家",
       "vendor": false,
       "vitals": {
@@ -1468,6 +1543,7 @@
         "line": 9,
         "path": "d/hangzhou/honghua/zhang.lpc"
       },
+      "temp_apply": [],
       "title": "红花会十当家",
       "vendor": false,
       "vitals": {
@@ -1552,6 +1628,7 @@
         "line": 6,
         "path": "d/hangzhou/honghua/zhao.lpc"
       },
+      "temp_apply": [],
       "title": "红花会三当家",
       "vendor": false,
       "vitals": {
@@ -1627,6 +1704,7 @@
         "line": 9,
         "path": "d/hangzhou/honghua/zhou.lpc"
       },
+      "temp_apply": [],
       "title": "铁胆庄庄主",
       "vendor": false,
       "vitals": {
@@ -1702,6 +1780,7 @@
         "line": 8,
         "path": "d/hangzhou/honghua/zhouyi.lpc"
       },
+      "temp_apply": [],
       "title": "铁胆庄大小姐",
       "vendor": false,
       "vitals": {
@@ -1764,6 +1843,7 @@
         "line": 8,
         "path": "d/hangzhou/npc/baizhen.lpc"
       },
+      "temp_apply": [],
       "title": "御前侍卫",
       "vendor": false,
       "vitals": {
@@ -1810,6 +1890,19 @@
         "line": 6,
         "path": "d/hangzhou/npc/boy.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 18,
+            "path": "d/hangzhou/npc/boy.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 10,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -1857,6 +1950,7 @@
         "line": 6,
         "path": "d/hangzhou/npc/caichanu.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -1897,6 +1991,7 @@
         "line": 10,
         "path": "d/hangzhou/npc/camel.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -1956,6 +2051,7 @@
         "line": 8,
         "path": "d/hangzhou/npc/chuyuan.lpc"
       },
+      "temp_apply": [],
       "title": "御前侍卫",
       "vendor": false,
       "vitals": {
@@ -2008,6 +2104,7 @@
         "line": 8,
         "path": "d/hangzhou/npc/dao-ke.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -2045,6 +2142,41 @@
         "line": 8,
         "path": "d/hangzhou/npc/dushe.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 19,
+            "path": "d/hangzhou/npc/dushe.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 10,
+          "value_expr": null
+        },
+        {
+          "key": "apply/damage",
+          "known": true,
+          "source": {
+            "line": 20,
+            "path": "d/hangzhou/npc/dushe.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 10,
+          "value_expr": null
+        },
+        {
+          "key": "apply/armor",
+          "known": true,
+          "source": {
+            "line": 21,
+            "path": "d/hangzhou/npc/dushe.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 10,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -2092,6 +2224,19 @@
         "line": 6,
         "path": "d/hangzhou/npc/girl.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 10,
+            "path": "d/hangzhou/npc/girl.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 5,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -2138,6 +2283,30 @@
         "line": 6,
         "path": "d/hangzhou/npc/guanjia.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 14,
+            "path": "d/hangzhou/npc/guanjia.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 30,
+          "value_expr": null
+        },
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 15,
+            "path": "d/hangzhou/npc/guanjia.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 40,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -2178,6 +2347,7 @@
         "line": 9,
         "path": "d/hangzhou/npc/guest.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {}
@@ -2229,6 +2399,7 @@
         "line": 8,
         "path": "d/hangzhou/npc/honghua1.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -2282,6 +2453,7 @@
         "line": 8,
         "path": "d/hangzhou/npc/honghua2.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -2328,6 +2500,7 @@
         "line": 13,
         "path": "d/hangzhou/npc/hongniang.lpc"
       },
+      "temp_apply": [],
       "title": "红娘庄",
       "vendor": false,
       "vitals": {
@@ -2366,6 +2539,7 @@
         "line": 8,
         "path": "d/hangzhou/npc/huqingyu.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -2411,6 +2585,30 @@
         "line": 6,
         "path": "d/hangzhou/npc/jiading.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 13,
+            "path": "d/hangzhou/npc/jiading.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 10,
+          "value_expr": null
+        },
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 14,
+            "path": "d/hangzhou/npc/jiading.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 10,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -2463,6 +2661,7 @@
         "line": 8,
         "path": "d/hangzhou/npc/jian-ke.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -2515,6 +2714,41 @@
         "line": 7,
         "path": "d/hangzhou/npc/laohu.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 28,
+            "path": "d/hangzhou/npc/laohu.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 20000,
+          "value_expr": null
+        },
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 29,
+            "path": "d/hangzhou/npc/laohu.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 30000,
+          "value_expr": null
+        },
+        {
+          "key": "apply/armor",
+          "known": true,
+          "source": {
+            "line": 30,
+            "path": "d/hangzhou/npc/laohu.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 1000,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -2570,6 +2804,7 @@
         "line": 8,
         "path": "d/hangzhou/npc/likexiu.lpc"
       },
+      "temp_apply": [],
       "title": "杭州提督",
       "vendor": false,
       "vitals": {
@@ -2615,6 +2850,30 @@
         "line": 6,
         "path": "d/hangzhou/npc/liumang.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 18,
+            "path": "d/hangzhou/npc/liumang.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 10,
+          "value_expr": null
+        },
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 19,
+            "path": "d/hangzhou/npc/liumang.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 10,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -2661,6 +2920,30 @@
         "line": 6,
         "path": "d/hangzhou/npc/liumangtou.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 17,
+            "path": "d/hangzhou/npc/liumangtou.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 20,
+          "value_expr": null
+        },
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 18,
+            "path": "d/hangzhou/npc/liumangtou.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 20,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -2731,6 +3014,7 @@
         "line": 8,
         "path": "d/hangzhou/npc/liyuanzhi.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -2794,6 +3078,7 @@
         "line": 8,
         "path": "d/hangzhou/npc/longjun.lpc"
       },
+      "temp_apply": [],
       "title": "御前侍卫",
       "vendor": false,
       "vitals": {
@@ -2829,6 +3114,41 @@
         "line": 7,
         "path": "d/hangzhou/npc/maque.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 14,
+            "path": "d/hangzhou/npc/maque.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 3,
+          "value_expr": null
+        },
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 15,
+            "path": "d/hangzhou/npc/maque.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 5,
+          "value_expr": null
+        },
+        {
+          "key": "apply/armor",
+          "known": true,
+          "source": {
+            "line": 16,
+            "path": "d/hangzhou/npc/maque.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 1,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -2875,6 +3195,7 @@
         "line": 10,
         "path": "d/hangzhou/npc/meipo.lpc"
       },
+      "temp_apply": [],
       "title": "红娘庄",
       "vendor": false,
       "vitals": {
@@ -2942,6 +3263,7 @@
         "line": 5,
         "path": "d/hangzhou/npc/mengmian.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -2994,6 +3316,7 @@
         "line": 6,
         "path": "d/hangzhou/npc/oldwoman.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -3030,6 +3353,7 @@
         "line": 18,
         "path": "d/hangzhou/npc/ouyezi.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -3077,6 +3401,7 @@
         "line": 6,
         "path": "d/hangzhou/npc/poorman.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -3121,6 +3446,7 @@
         "line": 8,
         "path": "d/hangzhou/npc/qianlong.lpc"
       },
+      "temp_apply": [],
       "title": "清高宗",
       "vendor": false,
       "vitals": {
@@ -3173,6 +3499,7 @@
         "line": 8,
         "path": "d/hangzhou/npc/qingbing.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -3234,6 +3561,7 @@
         "line": 5,
         "path": "d/hangzhou/npc/seng.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -3291,6 +3619,41 @@
         "line": 5,
         "path": "d/hangzhou/npc/shami.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 31,
+            "path": "d/hangzhou/npc/shami.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 15,
+          "value_expr": null
+        },
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 32,
+            "path": "d/hangzhou/npc/shami.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 15,
+          "value_expr": null
+        },
+        {
+          "key": "apply/damage",
+          "known": true,
+          "source": {
+            "line": 33,
+            "path": "d/hangzhou/npc/shami.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 5,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -3335,6 +3698,7 @@
         "line": 6,
         "path": "d/hangzhou/npc/shu-sheng.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {}
@@ -3375,6 +3739,7 @@
         "line": 7,
         "path": "d/hangzhou/npc/smith.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": true,
       "vitals": {
@@ -3427,6 +3792,7 @@
         "line": 6,
         "path": "d/hangzhou/npc/tangzi.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -3474,6 +3840,7 @@
         "line": 6,
         "path": "d/hangzhou/npc/tiao-fu.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {}
@@ -3525,6 +3892,41 @@
         "line": 6,
         "path": "d/hangzhou/npc/wolfdog.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 22,
+            "path": "d/hangzhou/npc/wolfdog.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 15,
+          "value_expr": null
+        },
+        {
+          "key": "apply/damage",
+          "known": true,
+          "source": {
+            "line": 23,
+            "path": "d/hangzhou/npc/wolfdog.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 6,
+          "value_expr": null
+        },
+        {
+          "key": "apply/armor",
+          "known": true,
+          "source": {
+            "line": 24,
+            "path": "d/hangzhou/npc/wolfdog.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 2,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -3561,6 +3963,41 @@
         "line": 7,
         "path": "d/hangzhou/npc/wuya.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 14,
+            "path": "d/hangzhou/npc/wuya.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 3,
+          "value_expr": null
+        },
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 15,
+            "path": "d/hangzhou/npc/wuya.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 5,
+          "value_expr": null
+        },
+        {
+          "key": "apply/armor",
+          "known": true,
+          "source": {
+            "line": 16,
+            "path": "d/hangzhou/npc/wuya.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 1,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -3617,6 +4054,52 @@
         "line": 6,
         "path": "d/hangzhou/npc/xianghuo.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 21,
+            "path": "d/hangzhou/npc/xianghuo.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 40,
+          "value_expr": null
+        },
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 22,
+            "path": "d/hangzhou/npc/xianghuo.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 40,
+          "value_expr": null
+        },
+        {
+          "key": "apply/damage",
+          "known": true,
+          "source": {
+            "line": 23,
+            "path": "d/hangzhou/npc/xianghuo.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 20,
+          "value_expr": null
+        },
+        {
+          "key": "apply/armor",
+          "known": true,
+          "source": {
+            "line": 24,
+            "path": "d/hangzhou/npc/xianghuo.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 30,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -3660,6 +4143,7 @@
         "line": 7,
         "path": "d/hangzhou/npc/xiaoer2.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": true,
       "vitals": {
@@ -3697,6 +4181,41 @@
         "line": 6,
         "path": "d/hangzhou/npc/xiezi.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 19,
+            "path": "d/hangzhou/npc/xiezi.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 10,
+          "value_expr": null
+        },
+        {
+          "key": "apply/damage",
+          "known": true,
+          "source": {
+            "line": 20,
+            "path": "d/hangzhou/npc/xiezi.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 10,
+          "value_expr": null
+        },
+        {
+          "key": "apply/armor",
+          "known": true,
+          "source": {
+            "line": 21,
+            "path": "d/hangzhou/npc/xiezi.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 10,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -3736,6 +4255,7 @@
         "line": 6,
         "path": "d/hangzhou/npc/you-ke.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -3793,6 +4313,52 @@
         "line": 9,
         "path": "d/hangzhou/npc/youfang.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 25,
+            "path": "d/hangzhou/npc/youfang.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 40,
+          "value_expr": null
+        },
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 26,
+            "path": "d/hangzhou/npc/youfang.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 40,
+          "value_expr": null
+        },
+        {
+          "key": "apply/damage",
+          "known": true,
+          "source": {
+            "line": 27,
+            "path": "d/hangzhou/npc/youfang.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 20,
+          "value_expr": null
+        },
+        {
+          "key": "apply/armor",
+          "known": true,
+          "source": {
+            "line": 28,
+            "path": "d/hangzhou/npc/youfang.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 80,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -3863,6 +4429,7 @@
         "line": 8,
         "path": "d/hangzhou/npc/zhang.lpc"
       },
+      "temp_apply": [],
       "title": "御林军骁骑营佐领",
       "vendor": false,
       "vitals": {
@@ -3913,6 +4480,19 @@
         "line": 6,
         "path": "d/jiaxing/npc/boy.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 18,
+            "path": "d/jiaxing/npc/boy.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 10,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -3959,6 +4539,19 @@
         "line": 6,
         "path": "d/jiaxing/npc/girl.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 11,
+            "path": "d/jiaxing/npc/girl.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 5,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -4023,6 +4616,7 @@
         "line": 10,
         "path": "d/jiaxing/npc/hai.lpc"
       },
+      "temp_apply": [],
       "title": "东厂千户",
       "vendor": false,
       "vitals": {
@@ -4091,6 +4685,7 @@
         "line": 6,
         "path": "d/jiaxing/npc/shagu.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -4155,6 +4750,7 @@
         "line": 24,
         "path": "d/jiaxing/npc/tang.lpc"
       },
+      "temp_apply": [],
       "title": "武林盟主",
       "vendor": false,
       "vitals": {
@@ -4219,6 +4815,7 @@
         "line": 20,
         "path": "d/jiaxing/npc/tang1.lpc"
       },
+      "temp_apply": [],
       "title": "赏善使者",
       "vendor": false,
       "vitals": {
@@ -4283,6 +4880,7 @@
         "line": 20,
         "path": "d/jiaxing/npc/tang2.lpc"
       },
+      "temp_apply": [],
       "title": "罚恶使者",
       "vendor": false,
       "vitals": {
@@ -4347,6 +4945,7 @@
         "line": 24,
         "path": "d/jiaxing/npc/tang3.lpc"
       },
+      "temp_apply": [],
       "title": "武林盟主",
       "vendor": false,
       "vitals": {
@@ -4388,6 +4987,41 @@
         "line": 5,
         "path": "d/jiaxing/npc/wuya.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 12,
+            "path": "d/jiaxing/npc/wuya.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 3,
+          "value_expr": null
+        },
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 13,
+            "path": "d/jiaxing/npc/wuya.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 5,
+          "value_expr": null
+        },
+        {
+          "key": "apply/armor",
+          "known": true,
+          "source": {
+            "line": 14,
+            "path": "d/jiaxing/npc/wuya.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 1,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -4431,6 +5065,7 @@
         "line": 8,
         "path": "d/jiaxing/npc/xiaoer.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": true,
       "vitals": {
@@ -4479,6 +5114,7 @@
         "line": 5,
         "path": "d/shiliang/npc/afeng.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -4527,6 +5163,19 @@
         "line": 5,
         "path": "d/shiliang/npc/atu.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "qingshu",
+          "known": false,
+          "source": {
+            "line": 25,
+            "path": "d/shiliang/npc/atu.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 1,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -4573,6 +5222,7 @@
         "line": 4,
         "path": "d/shiliang/npc/dashifu.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -4631,6 +5281,41 @@
         "line": 5,
         "path": "d/shiliang/npc/fish.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 17,
+            "path": "d/shiliang/npc/fish.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 45,
+          "value_expr": null
+        },
+        {
+          "key": "apply/damage",
+          "known": true,
+          "source": {
+            "line": 18,
+            "path": "d/shiliang/npc/fish.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 60,
+          "value_expr": null
+        },
+        {
+          "key": "armor",
+          "known": false,
+          "source": {
+            "line": 19,
+            "path": "d/shiliang/npc/fish.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 53,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -4697,6 +5382,7 @@
         "line": 11,
         "path": "d/shiliang/npc/jinshe.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -4755,6 +5441,7 @@
         "line": 6,
         "path": "d/shiliang/npc/li.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -4803,6 +5490,7 @@
         "line": 4,
         "path": "d/shiliang/npc/nongfu.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -4856,6 +5544,7 @@
         "line": 6,
         "path": "d/shiliang/npc/qingming.lpc"
       },
+      "temp_apply": [],
       "title": "十方寺方丈",
       "vendor": false,
       "vitals": {
@@ -4903,6 +5592,7 @@
         "line": 6,
         "path": "d/shiliang/npc/tufei2.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -4960,6 +5650,30 @@
         "line": 5,
         "path": "d/shiliang/npc/wenfangda.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 37,
+            "path": "d/shiliang/npc/wenfangda.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 50,
+          "value_expr": null
+        },
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 38,
+            "path": "d/shiliang/npc/wenfangda.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 50,
+          "value_expr": null
+        }
+      ],
       "title": "温家老大",
       "vendor": false,
       "vitals": {
@@ -5022,6 +5736,30 @@
         "line": 5,
         "path": "d/shiliang/npc/wenfangnan.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 32,
+            "path": "d/shiliang/npc/wenfangnan.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 50,
+          "value_expr": null
+        },
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 33,
+            "path": "d/shiliang/npc/wenfangnan.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 50,
+          "value_expr": null
+        }
+      ],
       "title": "温家老五",
       "vendor": false,
       "vitals": {
@@ -5084,6 +5822,30 @@
         "line": 5,
         "path": "d/shiliang/npc/wenfangshan.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 32,
+            "path": "d/shiliang/npc/wenfangshan.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 50,
+          "value_expr": null
+        },
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 33,
+            "path": "d/shiliang/npc/wenfangshan.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 50,
+          "value_expr": null
+        }
+      ],
       "title": "温家老三",
       "vendor": false,
       "vitals": {
@@ -5146,6 +5908,30 @@
         "line": 5,
         "path": "d/shiliang/npc/wenfangshi.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 32,
+            "path": "d/shiliang/npc/wenfangshi.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 50,
+          "value_expr": null
+        },
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 33,
+            "path": "d/shiliang/npc/wenfangshi.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 50,
+          "value_expr": null
+        }
+      ],
       "title": "温家老四",
       "vendor": false,
       "vitals": {
@@ -5208,6 +5994,30 @@
         "line": 5,
         "path": "d/shiliang/npc/wenfangwu.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 32,
+            "path": "d/shiliang/npc/wenfangwu.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 50,
+          "value_expr": null
+        },
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 33,
+            "path": "d/shiliang/npc/wenfangwu.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 50,
+          "value_expr": null
+        }
+      ],
       "title": "温家老大",
       "vendor": false,
       "vitals": {
@@ -5276,6 +6086,19 @@
         "line": 5,
         "path": "d/shiliang/npc/wenyi.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "shoupa",
+          "known": false,
+          "source": {
+            "line": 28,
+            "path": "d/shiliang/npc/wenyi.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 1,
+          "value_expr": null
+        }
+      ],
       "title": "温家小姐",
       "vendor": false,
       "vitals": {
@@ -5324,6 +6147,7 @@
         "line": 4,
         "path": "d/shiliang/npc/yahuan.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -5361,6 +6185,7 @@
         "line": 9,
         "path": "d/city/npc/xiaoer.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -5398,6 +6223,41 @@
         "line": 11,
         "path": "d/city/npc/zaohongma.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 25,
+            "path": "d/city/npc/zaohongma.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 50,
+          "value_expr": null
+        },
+        {
+          "key": "apply/armor",
+          "known": true,
+          "source": {
+            "line": 26,
+            "path": "d/city/npc/zaohongma.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 15,
+          "value_expr": null
+        },
+        {
+          "key": "apply/damage",
+          "known": true,
+          "source": {
+            "line": 27,
+            "path": "d/city/npc/zaohongma.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 25,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -5437,6 +6297,41 @@
         "line": 7,
         "path": "d/city/npc/huangbiaoma.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 23,
+            "path": "d/city/npc/huangbiaoma.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 50,
+          "value_expr": null
+        },
+        {
+          "key": "apply/armor",
+          "known": true,
+          "source": {
+            "line": 24,
+            "path": "d/city/npc/huangbiaoma.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 15,
+          "value_expr": null
+        },
+        {
+          "key": "apply/damage",
+          "known": true,
+          "source": {
+            "line": 25,
+            "path": "d/city/npc/huangbiaoma.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 25,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -5476,6 +6371,41 @@
         "line": 7,
         "path": "d/city/npc/ziliuma.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 22,
+            "path": "d/city/npc/ziliuma.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 50,
+          "value_expr": null
+        },
+        {
+          "key": "apply/armor",
+          "known": true,
+          "source": {
+            "line": 23,
+            "path": "d/city/npc/ziliuma.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 15,
+          "value_expr": null
+        },
+        {
+          "key": "apply/damage",
+          "known": true,
+          "source": {
+            "line": 24,
+            "path": "d/city/npc/ziliuma.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 25,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -5522,6 +6452,41 @@
         "line": 773,
         "path": "clone/misc/mafu.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/attack",
+          "known": true,
+          "source": {
+            "line": 787,
+            "path": "clone/misc/mafu.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 40,
+          "value_expr": null
+        },
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 788,
+            "path": "clone/misc/mafu.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 40,
+          "value_expr": null
+        },
+        {
+          "key": "apply/armor",
+          "known": true,
+          "source": {
+            "line": 789,
+            "path": "clone/misc/mafu.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 30,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -5590,6 +6555,7 @@
         "line": 11,
         "path": "d/mingjiao/npc/chengchaofeng.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -5667,6 +6633,7 @@
         "line": 7,
         "path": "kungfu/class/heimuya/xiang.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -5708,6 +6675,7 @@
         "line": 10,
         "path": "d/taohua/npc/laoda.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -5775,6 +6743,7 @@
         "line": 13,
         "path": "kungfu/class/gumu/limochou.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -5826,6 +6795,7 @@
         "line": 6,
         "path": "d/village/npc/kid.lpc"
       },
+      "temp_apply": [],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -5872,6 +6842,19 @@
         "line": 6,
         "path": "d/village/npc/girl.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 11,
+            "path": "d/village/npc/girl.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 5,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -5918,6 +6901,19 @@
         "line": 6,
         "path": "d/village/npc/boy.lpc"
       },
+      "temp_apply": [
+        {
+          "key": "apply/defense",
+          "known": true,
+          "source": {
+            "line": 18,
+            "path": "d/village/npc/boy.lpc"
+          },
+          "source_kind": "lpc",
+          "value": 10,
+          "value_expr": null
+        }
+      ],
       "title": null,
       "vendor": false,
       "vitals": {
@@ -5993,6 +6989,7 @@
         "line": 14,
         "path": "kungfu/class/baituo/ouyangfeng1.lpc"
       },
+      "temp_apply": [],
       "title": "白驼山庄主",
       "vendor": false,
       "vitals": {

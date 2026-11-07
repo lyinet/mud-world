@@ -68,6 +68,17 @@ ROOM_FLAGS = {
     "no_drop", "valid_startroom", "shop_type", "owner", "no_fight_area",
 }
 
+# set_temp 的战斗白名单：这些键原版由战斗代码直接读取。其余键照原样保留，
+# 但在诊断里记一条未知键，避免静默吞掉。
+TEMP_APPLY_KEYS = {
+    "apply/attack",
+    "apply/defense",
+    "apply/armor",
+    "apply/dodge",
+    "apply/parry",
+    "apply/damage",
+}
+
 _INHERIT_RE = re.compile(r"^inherit\s+([A-Za-z_][A-Za-z0-9_]*)\s*;", re.M)
 _SKILL_HEADER_RE = re.compile(r"^//\s*([A-Za-z0-9_\-]+)\.(?:c|lpc)\s+(.+)$")
 _SKILL_WRITE_NAME_RE = re.compile(r'"\\n([\u4e00-\u9fff][^"\\n：:]{1,11})[：:]"')
@@ -80,6 +91,39 @@ def _sha256(text: str) -> str:
     import hashlib
 
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _function_span(text: str, name: str) -> tuple[int, int] | None:
+    """返回具名函数体的行号区间（含首尾大括号所在行）；找不到返回 None。
+
+    set_temp 只取 create() 里的调用：原版同名函数在运行期还会改临时标记，
+    那些不是创世属性，混进来会让引擎在出生时套错状态。
+    """
+    tokens = lpc.lex(text)
+    for i in range(len(tokens) - 3):
+        if not (
+            tokens[i].kind == "IDENT"
+            and tokens[i].value == name
+            and tokens[i + 1].kind == "PUNCT"
+            and tokens[i + 1].value == "("
+            and tokens[i + 2].kind == "PUNCT"
+            and tokens[i + 2].value == ")"
+            and tokens[i + 3].kind == "PUNCT"
+            and tokens[i + 3].value == "{"
+        ):
+            continue
+        depth = 0
+        start_line = tokens[i + 3].line
+        for tok in tokens[i + 3:]:
+            if tok.kind != "PUNCT":
+                continue
+            if tok.value == "{":
+                depth += 1
+            elif tok.value == "}":
+                depth -= 1
+                if depth == 0:
+                    return start_line, tok.line
+    return None
 
 
 class Extractor:
@@ -603,6 +647,7 @@ class Extractor:
 
     def _parse_npc(self, rel_path, mid, text, bases, origin="slice"):
         emit_diag = origin == "slice"
+        create_span = _function_span(text, "create")
         ctx = lpc.ParseContext(mid, lpc.mudlib_dir(rel_path), lpc.extract_defines(text))
         calls, errors = lpc.scan_calls(text, ctx)
         name = None
@@ -614,6 +659,7 @@ class Extractor:
         prepare_skills: list[str] = []
         equipment: list[dict] = []
         topics: list[dict] = []
+        temp_apply: "OrderedDict[str, dict]" = OrderedDict()
         for cname, args, line, method in calls:
             if cname == "set_name" and args and isinstance(args[0], str) and name is None:
                 name = lpc.clean_text(args[0])
@@ -629,6 +675,12 @@ class Extractor:
                         f"技能 {args[0]} 等级不是整数字面量",
                         detail=getattr(args[1], "text", str(args[1])),
                     )
+            elif cname == "set_temp" and args and isinstance(args[0], str):
+                if create_span is not None and not (create_span[0] <= line <= create_span[1]):
+                    continue
+                temp_apply[args[0]] = self._make_temp_apply(
+                    args[0], args[1] if len(args) > 1 else None, line, rel_path, emit_diag
+                )
             elif cname == "map_skill" and len(args) >= 2 and isinstance(args[0], str) and isinstance(args[1], str):
                 map_skills[args[0]] = args[1]
             elif cname == "prepare_skill" and args and isinstance(args[0], str):
@@ -691,6 +743,7 @@ class Extractor:
             "map_skills": map_skills,
             "prepare_skills": prepare_skills,
             "equipment": equipment,
+            "temp_apply": list(temp_apply.values()),
             "is_master": is_master,
             "sect": sect if is_master else None,
             "vendor": vendor,
@@ -698,6 +751,36 @@ class Extractor:
             "source": {"path": rel_path, "line": name_line or 1},
             "_topics": topics,
         }
+
+    def _make_temp_apply(self, key, value, line, rel_path, emit_diag):
+        """把一条 create() 内的 set_temp 转成记录；非整数值保留原式，不折算。"""
+        known = key in TEMP_APPLY_KEYS
+        entry = {
+            "key": key,
+            "value": value if isinstance(value, int) else None,
+            "value_expr": None,
+            "known": known,
+            "source_kind": "lpc",
+            "source": {"path": rel_path, "line": line},
+        }
+        if not isinstance(value, int):
+            if isinstance(value, str):
+                entry["value_expr"] = '"' + value + '"'
+            elif value is not None:
+                entry["value_expr"] = getattr(value, "text", None)
+            if emit_diag:
+                self.diag(
+                    "W_TEMP_VALUE_EXPR", "warning", rel_path, line,
+                    f"临时属性 {key} 的值不是整数字面量，保留原式不折算",
+                    key=key,
+                )
+        if not known and emit_diag:
+            self.diag(
+                "W_TEMP_KEY_UNKNOWN", "warning", rel_path, line,
+                f"set_temp 键 {key} 不在战斗白名单，原样保留待确认",
+                key=key,
+            )
+        return entry
 
     def _make_topic(self, topic, answer, line, rel_path):
         entry = {
@@ -1000,6 +1083,13 @@ class Extractor:
     # -- 统计 ---------------------------------------------------------------
 
     def counts(self):
+        temp_entries = [
+            entry
+            for npc in self.npcs.values()
+            for entry in npc.get("temp_apply", [])
+        ]
+        temp_keys = Counter(entry["key"] for entry in temp_entries)
+        temp_unknown = sorted(k for k in temp_keys if k not in TEMP_APPLY_KEYS)
         return {
             "rooms_in_slice": sum(1 for r in self.rooms.values() if r["origin"] == "slice"),
             "rooms_boundary_stub": sum(1 for r in self.rooms.values() if r["origin"] == "boundary"),
@@ -1042,6 +1132,17 @@ class Extractor:
             "equipment_items_added": self.equipment_counts.get("equipment_items_added", 0),
             "equipment_items_unresolved": self.equipment_counts.get("equipment_items_unresolved", 0),
             "equipment_refs_normalized": self.equipment_counts.get("equipment_refs_normalized", 0),
+            "temp_apply_npcs": sum(1 for n in self.npcs.values() if n.get("temp_apply")),
+            "temp_apply_npcs_in_slice": sum(
+                1 for n in self.npcs.values()
+                if n.get("origin") == "slice" and n.get("temp_apply")
+            ),
+            "temp_apply_entries": len(temp_entries),
+            "temp_apply_unknown_entries": sum(
+                n for k, n in temp_keys.items() if k not in TEMP_APPLY_KEYS
+            ),
+            "temp_apply_keys": dict(sorted(temp_keys.items())),
+            "temp_apply_unknown_keys": temp_unknown,
         }
 
 

@@ -140,6 +140,7 @@ def build_outputs(pack, diagnostics, counts, coverage, source_info) -> dict[str,
                 "drops_source": "lpc 表示 die() 中有真实掉落；none 表示源码无掉落，drops 为空表且 drops_note 写明原因。",
             },
             "npc_equipment": "equipment[].ref 必须在 items.json 中存在；ref 已补前导 / 并去掉 .lpc；缺 set_weight 时按基类默认 100 并带 weight_source=default。",
+            "npc_temp_apply": "create() 内 set_temp 的静态快照，按创世即带处理；key 为原版键名，known=false 表示不在战斗白名单（原样保留并记诊断）；value 为整数时直接可用，为 null 时读 value_expr，不折算；source_kind=lpc 表示照源码搬运。",
         },
         "authored_descriptions": authored,
         "coverage_semantics": {
