@@ -276,6 +276,9 @@ class AmbientScheduler:
         self._lod_changes: deque[dict[str, Any]] = deque(maxlen=_AMBIENT_IN_MEM_MAX)
         self._final: dict[str, Any] | None = None
         self._day_marker: int | None = None
+        # NPC 主动攻击心跳：记录每个 NPC 在本 tick 是否已判定/结算过，
+        # 保证“一个 tick 内同一 NPC 只判定一次”。
+        self._aggression_ticks: dict[str, int] = {}
 
         self.out_dir.mkdir(parents=True, exist_ok=True)
         self.status_path = (
@@ -646,6 +649,11 @@ class AmbientScheduler:
         while self._queue and self._queue[0][0] <= t:
             _, _prio, _seq, kind, payload = heapq.heappop(self._queue)
             if kind == "intent":
+                # 原版交战中 NPC 的心跳归 combat 所有：`kill_ob` 后不会继续游走。
+                # 正在打玩家的 NPC 跳过其它计划（尤其 move），否则会在同一 tick
+                # 走出房间让 `clean_up_enemy` 收兵，玩家永远等不到下一回合。
+                if payload.verb == "move" and self._actor_in_combat(payload.actor):
+                    continue
                 if self.shared and int(payload.tick) < t:
                     # 安全网：任何迟到的旧意图都归并到当前 tick，事件 tick 不倒退。
                     payload = replace(payload, tick=t)
@@ -680,6 +688,9 @@ class AmbientScheduler:
                 self._emit_system(
                     Intent("system", "system_escort_arrive", {}, t, "system")
                 )
+        # 原版 NPC 的 `kill_ob` 只是开战并登记心跳，真正的出手在下一个心跳；
+        # 这里每个 tick 对“已交战”的 NPC 结算一回合（目标不在同房/不在线/已死则收兵）。
+        self._process_npc_aggression(t)
         if not self.shared and t % TICKS_PER_DAY == (TICKS_PER_DAY - 1):
             # 日末结算：t=143 对应第 0 日结束，与 headless 的 base+143 对齐。
             # 共享模式改由“日界变更”分支结算，避免玩家跳 tick 时漏结算或重复结算。
@@ -691,6 +702,52 @@ class AmbientScheduler:
         self._write_status("paused" if self.paused else "running", self._pause_reason)
         if self.cfg.summary_every_ticks > 0 and t % self.cfg.summary_every_ticks == 0:
             self._write_summary(t)
+
+    def _actor_in_combat(self, actor: str) -> bool:
+        ent = self.writer.state.entities.get(str(actor)) if self.writer is not None else None
+        return bool(getattr(ent, "combat_target", ""))
+
+    def _process_npc_aggression(self, tick: int) -> None:
+        """每 tick 给“已交战”的 NPC 发一条 continue/reset 意图。
+
+        - 规则表为空（旧九地点内容）时整段跳过，不写任何事件；
+        - 同一 NPC 同一 tick 最多一条意图，本 tick 已处理过直接跳过；
+        - 目标不在同一房间、已死/昏迷/离线，或 NPC 自己已死 -> reset（收兵）。
+        """
+        action = self.registry.get("npc_aggression") if self.registry is not None else None
+        rules = getattr(action, "rules", None) if action is not None else None
+        if not rules:
+            return
+        state = self.writer.state
+        for npc_id in sorted(state.entities):
+            if self._aggression_ticks.get(npc_id) == tick:
+                continue
+            npc = state.entities[npc_id]
+            target_id = str(npc.combat_target or "")
+            if not target_id or npc_id.startswith("player:"):
+                continue
+            target = state.entities.get(target_id)
+            prof = state.players.get(target_id)
+            engaged = (
+                npc.status == "alive"
+                and target is not None
+                and target.status == "alive"
+                and target.location == npc.location
+                and prof is not None
+                and bool(prof.online)
+            )
+            mode = "continue" if engaged else "reset"
+            self._aggression_ticks[npc_id] = tick
+            self._submit(
+                Intent(
+                    actor=npc_id,
+                    verb="npc_aggression",
+                    args={"mode": mode, "target": target_id},
+                    tick=int(tick),
+                    source="npc",
+                    reason=f"{npc_id} 心跳 {tick}",
+                )
+            )
 
     def _maybe_replan(self, payload: Intent) -> None:
         if payload.source not in ("planner", "llm"):

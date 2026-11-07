@@ -77,7 +77,10 @@ def test_player_genesis_has_hp_and_attrs():
     create = next(e for e in effects if e.op == "create_entity")
     assert create.data["max_hp"] == PLAYER_MAX_HP == 100
     assert create.data["hp"] == 100
-    assert set(create.data["attrs"]) == {"str", "con", "dex", "int", "spi", "sta"}
+    # 六维 + 原版主动攻击判定用的 kar/per（福缘/容貌，确定性定值 20/20）。
+    assert set(create.data["attrs"]) == {
+        "str", "con", "dex", "int", "spi", "sta", "kar", "per"
+    }
     # MID 产品档位：6400 = 原版技能 40 级的最低经验（40^3/10），三项技能同级 40。
     assert create.data["combat_exp"] == 6400
     assert create.data["skill_levels"] == {"unarmed": 40, "dodge": 40, "parry": 40}

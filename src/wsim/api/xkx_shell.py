@@ -739,6 +739,13 @@ class XKXShell:
             return self._reply(account, "go", True, [("info", f"你来到了{row['name']}。")], state, raw, request_id)
         where = "往" + row["direction_label"] if row["direction"] else "沿路"
         lines: list[tuple[str, str]] = [(("info"), f"你{where}走，来到{row['name']}。")]
+        # 原版 aggressive NPC 的 kill_ob 会立刻提示“看起来XX想杀死你！”；
+        # 复刻此时只登记交战，下一心跳才结算伤害。
+        for row_ag in (resp.get("details") or {}).get("aggression") or []:
+            if row_ag.get("triggered"):
+                lines.append(
+                    ("warn", f"{row_ag.get('name') or row_ag.get('npc')}看起来想杀死你！")
+                )
         lines.extend(self._room_lines(after))
         return self._reply(account, "go", True, lines, after, raw, request_id)
 

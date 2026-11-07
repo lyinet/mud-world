@@ -37,6 +37,10 @@ _ENTITY_FIELDS = {
     "last_action_tick",
     "presence",
     "last_seen_tick",
+    # NPC 主动攻击交战状态（只由 xkx 规则写入）。
+    "combat_target",
+    "combat_tick",
+    "combat_round",
 }
 
 # 插件只能声明/返回这些原语。`mint` 虽然存在，但只允许 genesis/system 使用，
@@ -125,6 +129,8 @@ EFFECT_OPS = frozenset(
         "growth_log",
         # 只读战报载体（与 shop_report 同类）：不修改状态，只把 rounds[] 写进事件。
         "combat_log",
+        # NPC 主动攻击判定明细（只读）：whether/roll/round 写进事件，便于审计与验收。
+        "aggression_log",
     }
 )
 
@@ -699,7 +705,7 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         ent.death_count = int(ent.death_count) + 1
         return
 
-    if op in ("combat_log", "growth_log", "death_log"):
+    if op in ("combat_log", "growth_log", "death_log", "aggression_log"):
         # 只读战报：rounds[]/成长明细随事件持久化，回放时不改状态。
         return
 

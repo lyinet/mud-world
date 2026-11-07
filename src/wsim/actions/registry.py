@@ -46,6 +46,7 @@ class ActionRegistry:
 def build_registry(
     content, seed: int, plugin_dir: Path | None = None, spawns: list[dict] | None = None
 ) -> ActionRegistry:
+    from .aggression import NpcAggressionAction
     from .basic import ConsumeAction, CultivateAction, MoveAction, WorkAction
     from .combat import FightAction, SystemSpawnAction
     from .business import (
@@ -172,6 +173,11 @@ def build_registry(
     reg.register(SystemPlayerPresenceAction())
     reg.register(SystemTickAction())
     reg.register(FightAction())
+    # NPC 主动攻击：规则只从内容包派生；旧九地点内容没有 aggressive/三个专属 id，
+    # 规则表为空，动作永远拒绝，事件流不变。
+    from ..sim.aggression import aggression_rules
+
+    reg.register(NpcAggressionAction(aggression_rules(content)))
     reg.register(LootAction(content))
     reg.register(DropAction(content))
     reg.register(SystemSpawnAction(spawns))

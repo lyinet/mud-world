@@ -51,9 +51,11 @@ PLAYER_START_SKILL_LEVELS: dict[str, int] = {"unarmed": 40, "dodge": 40, "parry"
 DEFAULT_ARCHETYPE = "游侠"
 ARCHETYPE_ATTRS: dict[str, dict[str, int]] = {
     # 膂力 / 根骨 / 身法 / 悟性 / 精神 / 耐力
-    "游侠": {"str": 20, "con": 20, "dex": 18, "int": 15, "spi": 15, "sta": 20},
-    "商人": {"str": 15, "con": 16, "dex": 15, "int": 20, "spi": 18, "sta": 18},
-    "捕快": {"str": 18, "con": 18, "dex": 17, "int": 17, "spi": 16, "sta": 19},
+    # kar(福缘) / per(容貌)：原版 logind 用 `10 + random(21)` 各取一次；
+    # 复刻改为确定性定值 20/20（大狼狗 `random(kar+per)` 判定的输入）。
+    "游侠": {"str": 20, "con": 20, "dex": 18, "int": 15, "spi": 15, "sta": 20, "kar": 20, "per": 20},
+    "商人": {"str": 15, "con": 16, "dex": 15, "int": 20, "spi": 18, "sta": 18, "kar": 20, "per": 20},
+    "捕快": {"str": 18, "con": 18, "dex": 17, "int": 17, "spi": 16, "sta": 19, "kar": 20, "per": 20},
 }
 
 

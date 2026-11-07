@@ -92,6 +92,11 @@ class Entity:
     # 规范实例留空/0，to_dict() 不输出，旧世界哈希逐字节不变。
     template: str = ""
     instance: int = 0
+    # NPC 主动攻击交战状态（原版 `enemy` / `killer` + 心跳）。
+    # 只在 xkx 主动攻击真正发生时写入；空值不输出，旧九地点哈希逐字节不变。
+    combat_target: str = ""
+    combat_tick: int = 0
+    combat_round: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         data = {
@@ -173,6 +178,10 @@ class Entity:
         if self.template:
             data["template"] = self.template
             data["instance"] = int(self.instance)
+        if self.combat_target:
+            data["combat_target"] = self.combat_target
+            data["combat_tick"] = int(self.combat_tick)
+            data["combat_round"] = int(self.combat_round)
         return data
 
 
