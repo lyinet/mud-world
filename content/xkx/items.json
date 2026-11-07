@@ -93,7 +93,9 @@
         "path": "d/hangzhou/honghua/obj/tiedan.lpc"
       },
       "unit": "些",
-      "weight": null
+      "weight": 100,
+      "weight_reason": "基类 inherit/item/item.lpc 的 setup() 默认 set(\"weight\",100)",
+      "weight_source": "default"
     },
     {
       "category": "weapon",
@@ -1006,6 +1008,620 @@
       },
       "unit": "颗",
       "weight": 30000
+    },
+    {
+      "category": "armor",
+      "desc": null,
+      "desc_source": null,
+      "equip_slot": "cloth",
+      "food_supply": null,
+      "id": "/clone/misc/cloth",
+      "material": "cloth",
+      "name": "布衣",
+      "origin": "external",
+      "price": null,
+      "price_expr": null,
+      "source": {
+        "line": 10,
+        "path": "clone/misc/cloth.lpc"
+      },
+      "unit": "件",
+      "weight": 3000
+    },
+    {
+      "category": "armor",
+      "desc": null,
+      "desc_source": null,
+      "equip_slot": "cloth",
+      "food_supply": null,
+      "id": "/clone/cloth/jinduan",
+      "material": "丝",
+      "name": "锦缎",
+      "origin": "external",
+      "price": 5000,
+      "price_expr": null,
+      "source": {
+        "line": 8,
+        "path": "clone/cloth/jinduan.lpc"
+      },
+      "unit": "件",
+      "weight": 3000
+    },
+    {
+      "category": "armor",
+      "desc": null,
+      "desc_source": null,
+      "equip_slot": "waist",
+      "food_supply": null,
+      "id": "/d/beijing/obj/yaodai",
+      "material": "leather",
+      "name": "腰带",
+      "origin": "external",
+      "price": 1000,
+      "price_expr": null,
+      "source": {
+        "line": 8,
+        "path": "d/beijing/obj/yaodai.lpc"
+      },
+      "unit": "条",
+      "weight": 500
+    },
+    {
+      "category": "weapon",
+      "desc": "这是一柄普通的精钢剑，一般的剑客都配带此剑。",
+      "desc_source": "lpc",
+      "equip_slot": "sword",
+      "food_supply": null,
+      "id": "/clone/weapon/changjian",
+      "material": "steel",
+      "name": "长剑",
+      "origin": "external",
+      "price": 100,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "clone/weapon/changjian.lpc"
+      },
+      "unit": "柄",
+      "weight": 5000
+    },
+    {
+      "category": "armor",
+      "desc": "一件普普通通的灰布道袍。",
+      "desc_source": "lpc",
+      "equip_slot": "cloth",
+      "food_supply": null,
+      "id": "/d/wudang/obj/greyrobe",
+      "material": "cloth",
+      "name": "灰色道袍",
+      "origin": "external",
+      "price": null,
+      "price_expr": null,
+      "source": {
+        "line": 9,
+        "path": "d/wudang/obj/greyrobe.lpc"
+      },
+      "unit": "件",
+      "weight": 3000
+    },
+    {
+      "category": "weapon",
+      "desc": "这是一柄亮晃晃的钢刀，普通官兵的常备武器。",
+      "desc_source": "lpc",
+      "equip_slot": "blade",
+      "food_supply": null,
+      "id": "/clone/weapon/gangdao",
+      "material": "steel",
+      "name": "钢刀",
+      "origin": "external",
+      "price": 1000,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "clone/weapon/gangdao.lpc"
+      },
+      "unit": "柄",
+      "weight": 7000
+    },
+    {
+      "category": "armor",
+      "desc": null,
+      "desc_source": null,
+      "equip_slot": "cloth",
+      "food_supply": null,
+      "id": "/d/wudang/obj/bluecloth",
+      "material": "cloth",
+      "name": "青布长衫",
+      "origin": "external",
+      "price": null,
+      "price_expr": null,
+      "source": {
+        "line": 8,
+        "path": "d/wudang/obj/bluecloth.lpc"
+      },
+      "unit": "件",
+      "weight": 3000
+    },
+    {
+      "category": "weapon",
+      "desc": "这是一柄普通的长鞭，由水牛精工编织而成。",
+      "desc_source": "lpc",
+      "equip_slot": "whip",
+      "food_supply": null,
+      "id": "/clone/weapon/changbian",
+      "material": "leather",
+      "name": "长鞭",
+      "origin": "external",
+      "price": 100,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "clone/weapon/changbian.lpc"
+      },
+      "unit": "柄",
+      "weight": 500
+    },
+    {
+      "category": "weapon",
+      "desc": "这是一根粗重的钢杖，是星宿派专用之物。",
+      "desc_source": "lpc",
+      "equip_slot": "staff",
+      "food_supply": null,
+      "id": "/clone/weapon/gangzhang",
+      "material": "steel",
+      "name": "钢杖",
+      "origin": "external",
+      "price": 1500,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "clone/weapon/gangzhang.lpc"
+      },
+      "unit": "根",
+      "weight": 5000
+    },
+    {
+      "category": "weapon",
+      "desc": "毒蒺藜是淬毒暗器，寸许大小，发出诡异的光。",
+      "desc_source": "lpc",
+      "equip_slot": "throwing",
+      "food_supply": null,
+      "id": "/clone/weapon/jili",
+      "material": "iron",
+      "name": "毒蒺藜",
+      "origin": "external",
+      "price": 0,
+      "price_expr": null,
+      "source": {
+        "line": 8,
+        "path": "clone/weapon/jili.lpc"
+      },
+      "unit": "袋",
+      "weight": 100,
+      "weight_reason": "基类 inherit/item/item.lpc 的 setup() 默认 set(\"weight\",100)",
+      "weight_source": "default"
+    },
+    {
+      "category": "armor",
+      "desc": null,
+      "desc_source": null,
+      "equip_slot": "cloth",
+      "food_supply": null,
+      "id": "/clone/cloth/cloth",
+      "material": "cloth",
+      "name": "布衣",
+      "origin": "external",
+      "price": null,
+      "price_expr": null,
+      "source": {
+        "line": 9,
+        "path": "clone/cloth/cloth.lpc"
+      },
+      "unit": "件",
+      "weight": 3000
+    },
+    {
+      "category": "armor",
+      "desc": null,
+      "desc_source": null,
+      "equip_slot": "cloth",
+      "food_supply": null,
+      "id": "/d/city/obj/tiejia",
+      "material": "steel",
+      "name": "铁甲",
+      "origin": "external",
+      "price": 2000,
+      "price_expr": null,
+      "source": {
+        "line": 9,
+        "path": "d/city/obj/tiejia.lpc"
+      },
+      "unit": "件",
+      "weight": 20000
+    },
+    {
+      "category": "misc",
+      "desc": "这是一根白缨长钢枪，长可丈二，枪头隐隐透出寒光。",
+      "desc_source": "lpc",
+      "equip_slot": null,
+      "food_supply": null,
+      "id": "/clone/weapon/changqiang",
+      "material": "steel",
+      "name": "长枪",
+      "origin": "external",
+      "price": 1500,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "clone/weapon/changqiang.lpc"
+      },
+      "unit": "杆",
+      "weight": 5000
+    },
+    {
+      "category": "armor",
+      "desc": "这是一件有点旧的官兵服。",
+      "desc_source": "lpc",
+      "equip_slot": "cloth",
+      "food_supply": null,
+      "id": "/d/city/obj/junfu",
+      "material": "cloth",
+      "name": "军服",
+      "origin": "external",
+      "price": 200,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "d/city/obj/junfu.lpc"
+      },
+      "unit": "件",
+      "weight": 2000
+    },
+    {
+      "category": "armor",
+      "desc": "这件粉红色的绸衫上面绣着几只黄鹊，闻起来还有一股淡香。",
+      "desc_source": "lpc",
+      "equip_slot": "cloth",
+      "food_supply": null,
+      "id": "/d/fuzhou/obj/pink_cloth",
+      "material": "cloth",
+      "name": "粉红绸衫",
+      "origin": "external",
+      "price": 600,
+      "price_expr": null,
+      "source": {
+        "line": 8,
+        "path": "d/fuzhou/obj/pink_cloth.lpc"
+      },
+      "unit": "件",
+      "weight": 1000
+    },
+    {
+      "category": "armor",
+      "desc": null,
+      "desc_source": null,
+      "equip_slot": "cloth",
+      "food_supply": null,
+      "id": "/d/shaolin/npc/obj/dao-cloth",
+      "material": "cloth",
+      "name": "灰布镶边袈裟",
+      "origin": "external",
+      "price": null,
+      "price_expr": null,
+      "source": {
+        "line": 9,
+        "path": "d/shaolin/npc/obj/dao-cloth.lpc"
+      },
+      "unit": "件",
+      "weight": 5000
+    },
+    {
+      "category": "weapon",
+      "desc": "这是一柄剑身短小的精钢剑，一般的剑客都配带此剑。",
+      "desc_source": "lpc",
+      "equip_slot": "sword",
+      "food_supply": null,
+      "id": "/d/city/obj/duanjian",
+      "material": "steel",
+      "name": "短剑",
+      "origin": "external",
+      "price": 500,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "d/city/obj/duanjian.lpc"
+      },
+      "unit": "柄",
+      "weight": 2000
+    },
+    {
+      "category": "armor",
+      "desc": "这是件素雅洁净的白色道袍。",
+      "desc_source": "lpc",
+      "equip_slot": "cloth",
+      "food_supply": null,
+      "id": "/d/wudang/obj/whiterobe",
+      "material": "cloth",
+      "name": "白色道袍",
+      "origin": "external",
+      "price": null,
+      "price_expr": null,
+      "source": {
+        "line": 9,
+        "path": "d/wudang/obj/whiterobe.lpc"
+      },
+      "unit": "件",
+      "weight": 4500
+    },
+    {
+      "category": "weapon",
+      "desc": "这是一把通体晶莹剔透的剑，是武当镇派之宝！",
+      "desc_source": "lpc",
+      "equip_slot": "sword",
+      "food_supply": null,
+      "id": "/clone/weapon/treasure/green_sword",
+      "material": "crimsonsteel",
+      "name": "凝碧剑",
+      "origin": "external",
+      "price": 4000,
+      "price_expr": null,
+      "source": {
+        "line": 9,
+        "path": "clone/weapon/treasure/green_sword.lpc"
+      },
+      "unit": "把",
+      "weight": 7000
+    },
+    {
+      "category": "weapon",
+      "desc": "这是一柄普通的精钢剑，一般的剑客都配带此剑。",
+      "desc_source": "lpc",
+      "equip_slot": "sword",
+      "food_supply": null,
+      "id": "/d/shaolin/obj/changjian",
+      "material": "steel",
+      "name": "长剑",
+      "origin": "external",
+      "price": 1500,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "d/shaolin/obj/changjian.lpc"
+      },
+      "unit": "柄",
+      "weight": 5000
+    },
+    {
+      "category": "armor",
+      "desc": null,
+      "desc_source": null,
+      "equip_slot": "cloth",
+      "food_supply": null,
+      "id": "/d/city/obj/cloth",
+      "material": "cloth",
+      "name": "布衣",
+      "origin": "external",
+      "price": null,
+      "price_expr": null,
+      "source": {
+        "line": 10,
+        "path": "d/city/obj/cloth.lpc"
+      },
+      "unit": "件",
+      "weight": 3000
+    },
+    {
+      "category": "armor",
+      "desc": "这是件质地轻软的青色道袍，边上还镂着花呢。",
+      "desc_source": "lpc",
+      "equip_slot": "cloth",
+      "food_supply": null,
+      "id": "/d/wudang/obj/greenrobe",
+      "material": "cloth",
+      "name": "青色道袍",
+      "origin": "external",
+      "price": null,
+      "price_expr": null,
+      "source": {
+        "line": 9,
+        "path": "d/wudang/obj/greenrobe.lpc"
+      },
+      "unit": "件",
+      "weight": 1500
+    },
+    {
+      "category": "armor",
+      "desc": null,
+      "desc_source": null,
+      "equip_slot": "cloth",
+      "food_supply": null,
+      "id": "/d/shaolin/obj/dao-cloth",
+      "material": "cloth",
+      "name": "灰布镶边袈裟",
+      "origin": "external",
+      "price": null,
+      "price_expr": null,
+      "source": {
+        "line": 9,
+        "path": "d/shaolin/obj/dao-cloth.lpc"
+      },
+      "unit": "件",
+      "weight": 5000
+    },
+    {
+      "category": "weapon",
+      "desc": "这是一柄精工制成的钢剑，这种剑在将领之间非常流行。",
+      "desc_source": "lpc",
+      "equip_slot": "sword",
+      "food_supply": null,
+      "id": "/d/city/obj/gangjian",
+      "material": "steel",
+      "name": "钢剑",
+      "origin": "external",
+      "price": 2000,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "d/city/obj/gangjian.lpc"
+      },
+      "unit": "柄",
+      "weight": 6000
+    },
+    {
+      "category": "armor",
+      "desc": null,
+      "desc_source": null,
+      "equip_slot": "neck",
+      "food_supply": null,
+      "id": "/d/city/obj/necklace",
+      "material": "gold",
+      "name": "金项链",
+      "origin": "external",
+      "price": 2500,
+      "price_expr": null,
+      "source": {
+        "line": 8,
+        "path": "d/city/obj/necklace.lpc"
+      },
+      "unit": "串",
+      "weight": 100,
+      "weight_reason": "基类 inherit/item/item.lpc 的 setup() 默认 set(\"weight\",100)",
+      "weight_source": "default"
+    },
+    {
+      "category": "armor",
+      "desc": "这件粉红色的绸衫上面绣着几只黄鹊，闻起来还有一股淡香。",
+      "desc_source": "lpc",
+      "equip_slot": "cloth",
+      "food_supply": null,
+      "id": "/d/city/obj/pink_cloth",
+      "material": "cloth",
+      "name": "粉红绸衫",
+      "origin": "external",
+      "price": 600,
+      "price_expr": null,
+      "source": {
+        "line": 8,
+        "path": "d/city/obj/pink_cloth.lpc"
+      },
+      "unit": "件",
+      "weight": 1000
+    },
+    {
+      "category": "armor",
+      "desc": null,
+      "desc_source": null,
+      "equip_slot": "boots",
+      "food_supply": null,
+      "id": "/d/city/obj/flower_shoe",
+      "material": "cloth",
+      "name": "绣花小鞋",
+      "origin": "external",
+      "price": 300,
+      "price_expr": null,
+      "source": {
+        "line": 8,
+        "path": "d/city/obj/flower_shoe.lpc"
+      },
+      "unit": "双",
+      "weight": 900
+    },
+    {
+      "category": "armor",
+      "desc": null,
+      "desc_source": null,
+      "equip_slot": "finger",
+      "food_supply": null,
+      "id": "/d/city/obj/goldring",
+      "material": "gold",
+      "name": "金戒指",
+      "origin": "external",
+      "price": 2000,
+      "price_expr": null,
+      "source": {
+        "line": 8,
+        "path": "d/city/obj/goldring.lpc"
+      },
+      "unit": "个",
+      "weight": 100,
+      "weight_reason": "基类 inherit/item/item.lpc 的 setup() 默认 set(\"weight\",100)",
+      "weight_source": "default"
+    },
+    {
+      "category": "armor",
+      "desc": "这是件白布长袍，虽不奢华，却洗得一尘不染，在袍襟上绣了一团血红的火焰，\n颇为鲜艳。",
+      "desc_source": "lpc",
+      "equip_slot": "cloth",
+      "food_supply": null,
+      "id": "/d/mingjiao/obj/baipao",
+      "material": "cloth",
+      "name": "白布长袍",
+      "origin": "external",
+      "price": null,
+      "price_expr": null,
+      "source": {
+        "line": 9,
+        "path": "d/mingjiao/obj/baipao.lpc"
+      },
+      "unit": "件",
+      "weight": 1000
+    },
+    {
+      "category": "weapon",
+      "desc": "这是一柄拂尘，做工精细，是很阴毒的兵器。",
+      "desc_source": "lpc",
+      "equip_slot": "whip",
+      "food_supply": null,
+      "id": "/d/quanzhou/obj/fuchen",
+      "material": "leather",
+      "name": "拂尘",
+      "origin": "external",
+      "price": 30,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "d/quanzhou/obj/fuchen.lpc"
+      },
+      "unit": "柄",
+      "weight": 300
+    },
+    {
+      "category": "armor",
+      "desc": null,
+      "desc_source": null,
+      "equip_slot": "cloth",
+      "food_supply": null,
+      "id": "/d/village/npc/obj/cloth",
+      "material": "cloth",
+      "name": "布衣",
+      "origin": "external",
+      "price": null,
+      "price_expr": null,
+      "source": {
+        "line": 10,
+        "path": "d/village/npc/obj/cloth.lpc"
+      },
+      "unit": "件",
+      "weight": 3000
+    },
+    {
+      "category": "armor",
+      "desc": "这是件质量上佳的白色长袍。",
+      "desc_source": "lpc",
+      "equip_slot": "cloth",
+      "food_supply": null,
+      "id": "/kungfu/class/baituo/obj/baipao",
+      "material": "cloth",
+      "name": "白色长袍",
+      "origin": "external",
+      "price": 100,
+      "price_expr": null,
+      "source": {
+        "line": 7,
+        "path": "kungfu/class/baituo/obj/baipao.lpc"
+      },
+      "unit": "件",
+      "weight": 2000
     }
   ]
 }

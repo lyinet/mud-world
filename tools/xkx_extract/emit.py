@@ -139,6 +139,7 @@ def build_outputs(pack, diagnostics, counts, coverage, source_info) -> dict[str,
                 "source_landing": "原版实际放置位置（corpse/ground），仅作溯源，不影响引擎落地。",
                 "drops_source": "lpc 表示 die() 中有真实掉落；none 表示源码无掉落，drops 为空表且 drops_note 写明原因。",
             },
+            "npc_equipment": "equipment[].ref 必须在 items.json 中存在；ref 已补前导 / 并去掉 .lpc；缺 set_weight 时按基类默认 100 并带 weight_source=default。",
         },
         "authored_descriptions": authored,
         "coverage_semantics": {

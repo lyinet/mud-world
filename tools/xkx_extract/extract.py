@@ -100,6 +100,7 @@ class Extractor:
         self.skills_stats: list[dict] = []
         self.skill_counts: dict[str, int] = {}
         self.drop_counts: dict[str, int] = {}
+        self.equipment_counts: dict[str, int] = {}
         self._text_cache: dict[str, str] = {}
         self._item_refs: set[str] = set()
         self._npc_refs: set[str] = set()
@@ -188,6 +189,7 @@ class Extractor:
         self._collect_skills()
         self._collect_sects()
         self._collect_drops()
+        self._collect_equipment_items()
         self._collect_skill_tables()
         self._coverage()
         return {
@@ -226,6 +228,76 @@ class Extractor:
             self.items[ref] = self._parse_item(
                 rel, ref, text, self.bases_of(text), origin="external"
             )
+
+    def _canonical_item_ref(self, ref: str, rel_path: str, line) -> str:
+        """装备引用归一化：补前导 `/`、去掉 `.lpc`；真实文件存在才改，否则留原样。"""
+        original = ref
+        fixed = "/" + ref.lstrip("/")
+        if fixed.endswith(".lpc"):
+            fixed = fixed[:-4]
+        if fixed == original:
+            return ref
+        if os.path.isfile(os.path.join(self.src_root, fixed.lstrip("/") + ".lpc")):
+            self.diag(
+                "I_EQUIP_REF_NORMALIZED", "info", rel_path, line,
+                f"装备引用 {original} 归一化为 {fixed}",
+                id=fixed,
+            )
+            return fixed
+        return original
+
+    @staticmethod
+    def _ensure_item_weight(rec):
+        """装备物品缺 set_weight() 时补基类默认 100，并留来源。"""
+        if rec.get("weight") is not None:
+            return
+        rec["weight"] = 100
+        rec["weight_source"] = "default"
+        rec["weight_reason"] = (
+            "基类 inherit/item/item.lpc 的 setup() 默认 set(\"weight\",100)"
+        )
+
+    def _collect_equipment_items(self):
+        added = 0
+        unresolved = 0
+        normalized = 0
+        for npc in self.npcs.values():
+            rel_path = npc["source"]["path"]
+            line = npc["source"]["line"]
+            for slot in npc.get("equipment", []):
+                ref = self._canonical_item_ref(slot["ref"], rel_path, line)
+                if ref != slot["ref"]:
+                    normalized += 1
+                    slot["ref"] = ref
+                if ref in self.items:
+                    self._ensure_item_weight(self.items[ref])
+                    slot["item_resolved"] = True
+                    continue
+                rel_item = ref.lstrip("/") + ".lpc"
+                text = self.read(rel_item)
+                if text is None:
+                    unresolved += 1
+                    slot["item_resolved"] = False
+                    self.diag(
+                        "W_EQUIP_ITEM_MISSING", "warning", rel_path, line,
+                        f"装备 {ref} 的源文件不存在，无法抽进 items.json",
+                        id=npc["id"], ref=ref,
+                    )
+                    continue
+                origin = "slice" if ref.startswith((
+                    "/d/hangzhou/", "/d/jiaxing/", "/d/shiliang/",
+                )) else "external"
+                self.items[ref] = self._parse_item(
+                    rel_item, ref, text, self.bases_of(text), origin=origin
+                )
+                self._ensure_item_weight(self.items[ref])
+                added += 1
+                slot["item_resolved"] = True
+        self.equipment_counts = {
+            "equipment_items_added": added,
+            "equipment_items_unresolved": unresolved,
+            "equipment_refs_normalized": normalized,
+        }
 
     # -- 房间 ---------------------------------------------------------------
 
@@ -967,6 +1039,9 @@ class Extractor:
             "drops_random": self.drop_counts.get("drops_random", 0),
             "drops_unresolved_chance": self.drop_counts.get("drops_unresolved_chance", 0),
             "npcs_no_drops": self.drop_counts.get("npcs_no_drops", 0),
+            "equipment_items_added": self.equipment_counts.get("equipment_items_added", 0),
+            "equipment_items_unresolved": self.equipment_counts.get("equipment_items_unresolved", 0),
+            "equipment_refs_normalized": self.equipment_counts.get("equipment_refs_normalized", 0),
         }
 
 

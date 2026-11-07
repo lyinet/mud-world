@@ -61,7 +61,7 @@
       "table": "npcs"
     }
   ],
-  "content_hash": "c5fd1db22d77d0f7021aeb9ddbdfaa3c49067f2208635768e14cb3262a404493",
+  "content_hash": "2e19d36cf7fc2e2bcdbc016a8d9cd9a04e1ce7695cecb78c6bee7d289ad0c1e3",
   "counts": {
     "aggressive_npcs": 7,
     "desc_authored_items": 7,
@@ -72,8 +72,11 @@
     "drops_guaranteed": 3,
     "drops_random": 0,
     "drops_unresolved_chance": 0,
+    "equipment_items_added": 32,
+    "equipment_items_unresolved": 0,
+    "equipment_refs_normalized": 3,
     "exits": 427,
-    "items_external": 14,
+    "items_external": 46,
     "items_in_slice": 39,
     "masters": 22,
     "npcs_external": 13,
@@ -165,6 +168,7 @@
       "landing": "引擎实际落地方式；本项目不建模尸体，统一为 ground。",
       "source_landing": "原版实际放置位置（corpse/ground），仅作溯源，不影响引擎落地。"
     },
+    "npc_equipment": "equipment[].ref 必须在 items.json 中存在；ref 已补前导 / 并去掉 .lpc；缺 set_weight 时按基类默认 100 并带 weight_source=default。",
     "skill_action_source": {
       "default": "原版缺键，按 LPC mapping 语义取 0；缺键记入 coefficient_gaps 与 diagnostics.jsonl。",
       "derived": "原版只给公式或结构，数值由抽取器按源码公式解释得出。",
@@ -175,8 +179,8 @@
   },
   "files": {
     "diagnostics.jsonl": {
-      "bytes": 17924,
-      "sha256": "8d27ec86f16bf7653577089eb2309b69f1e91070709437ebe30f4da5a52fefa6"
+      "bytes": 18548,
+      "sha256": "ff31badf2b45e614b0bdf09d5fa0d34783f825911818ab58d856a546e05bcde1"
     },
     "dialogue.json": {
       "bytes": 19197,
@@ -187,12 +191,12 @@
       "sha256": "a1fdb78e2a4d7f1f54b01688bfad4c4b374819bb88ec2d379f94edc835eac63e"
     },
     "items.json": {
-      "bytes": 27132,
-      "sha256": "73904bb18dd06d9dd3c34308eb4dcd57b7cda269f1d73c0bd506dadd3d62606a"
+      "bytes": 42985,
+      "sha256": "adbdd8264b1d36e15dc86abf9267edb6679b5fb01c0124f291fa92ec9c26ed70"
     },
     "npcs.json": {
-      "bytes": 145027,
-      "sha256": "c5ca4018a2d5d42509e01f541c67f325400d2be4158063b4513f814dabb8a71b"
+      "bytes": 149546,
+      "sha256": "aad72d4b8f579f08df28f73dd6b7d4313845f3828259d7111a96cf60e21c8f75"
     },
     "rooms.json": {
       "bytes": 142167,
@@ -219,8 +223,8 @@
       "sha256": "79f507b476c52d101cc2b7c12ec8eb14d144c1b2183f403241d2ed0fd3e52f09"
     },
     "summary.json": {
-      "bytes": 2214,
-      "sha256": "5bad7ce8cced63cf65661e9735e5fc60d348ac1be4888204eb495e9e941c93e3"
+      "bytes": 2353,
+      "sha256": "8491864bee7556ebc6788c439c0ddb16f8619c3b0e6a78c453517f32b85cba33"
     }
   },
   "generator": "tools/xkx_extract",

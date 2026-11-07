@@ -5,11 +5,14 @@
 {"id":"/d/hangzhou/npc/guanjia","line":6,"message":"NPC /d/hangzhou/npc/guanjia 使用自撰描述（desc_source=authored），不计入 source 覆盖率","path":"d/hangzhou/npc/guanjia.lpc","rule":"I_DESC_AUTHORED","severity":"info"}
 {"id":"/d/hangzhou/npc/guest","line":9,"message":"NPC /d/hangzhou/npc/guest 使用自撰描述（desc_source=authored），不计入 source 覆盖率","path":"d/hangzhou/npc/guest.lpc","rule":"I_DESC_AUTHORED","severity":"info"}
 {"id":"/d/hangzhou/npc/jiading","line":6,"message":"NPC /d/hangzhou/npc/jiading 使用自撰描述（desc_source=authored），不计入 source 覆盖率","path":"d/hangzhou/npc/jiading.lpc","rule":"I_DESC_AUTHORED","severity":"info"}
+{"id":"/clone/weapon/jili","line":8,"message":"装备引用 clone/weapon/jili 归一化为 /clone/weapon/jili","path":"d/hangzhou/npc/longjun.lpc","rule":"I_EQUIP_REF_NORMALIZED","severity":"info"}
 {"id":"/d/hangzhou/npc/obj/cloth","line":10,"message":"物品 /d/hangzhou/npc/obj/cloth 使用自撰描述（desc_source=authored），不计入 source 覆盖率","path":"d/hangzhou/npc/obj/cloth.lpc","rule":"I_DESC_AUTHORED","severity":"info"}
 {"line":10,"message":"源码没有 set(\"value\") 价格","path":"d/hangzhou/npc/obj/cloth.lpc","rule":"W_NO_PRICE","severity":"warning"}
 {"id":"/d/hangzhou/npc/obj/goupi","line":10,"message":"物品 /d/hangzhou/npc/obj/goupi 使用自撰描述（desc_source=authored），不计入 source 覆盖率","path":"d/hangzhou/npc/obj/goupi.lpc","rule":"I_DESC_AUTHORED","severity":"info"}
 {"id":"/d/hangzhou/npc/obj/marry_card","line":6,"message":"物品 /d/hangzhou/npc/obj/marry_card 使用自撰描述（desc_source=authored），不计入 source 覆盖率","path":"d/hangzhou/npc/obj/marry_card.lpc","rule":"I_DESC_AUTHORED","severity":"info"}
 {"line":6,"message":"源码没有 set(\"value\") 价格","path":"d/hangzhou/npc/obj/marry_card.lpc","rule":"W_NO_PRICE","severity":"warning"}
+{"id":"/d/shaolin/npc/obj/dao-cloth","line":5,"message":"装备引用 /d/shaolin/npc/obj/dao-cloth.lpc 归一化为 /d/shaolin/npc/obj/dao-cloth","path":"d/hangzhou/npc/shami.lpc","rule":"I_EQUIP_REF_NORMALIZED","severity":"info"}
+{"id":"/clone/misc/cloth","line":6,"message":"装备引用 clone/misc/cloth 归一化为 /clone/misc/cloth","path":"d/hangzhou/npc/tiao-fu.lpc","rule":"I_EQUIP_REF_NORMALIZED","severity":"info"}
 {"id":"/d/hangzhou/npc/you-ke","line":6,"message":"NPC /d/hangzhou/npc/you-ke 使用自撰描述（desc_source=authored），不计入 source 覆盖率","path":"d/hangzhou/npc/you-ke.lpc","rule":"I_DESC_AUTHORED","severity":"info"}
 {"line":16,"message":"物品价格为 0","path":"d/hangzhou/obj/eluanshi.lpc","rule":"I_PRICE_ZERO","severity":"info"}
 {"line":15,"message":"物品价格为 0","path":"d/hangzhou/obj/shitou.lpc","rule":"I_PRICE_ZERO","severity":"info"}

@@ -188,6 +188,14 @@
 
 当前只有 3 个 NPC 有掉落（`laohu`、`wolfdog`、`fish`），均必掉；其余 102 个 NPC 为 `drops: []` + `drops_note`。
 
+**装备对账**：`equipment[].ref` 必须能在 `items.json` 查到，抽取器对两侧做硬校验，缺一个即 `E_EQUIP_ITEM_NOT_IN_ITEMS`。装备物品与普通物品共用同一张 `items.json`：
+
+- `ref` 已归一化：补前导 `/`、去掉 `.lpc`（原版有 3 处写法不规范），加载器按 `ref` 直接查表即可；
+- `equipment[].item_resolved` 表示该物品源文件是否真实存在；false 时校验报 error；
+- 装备物品缺 `set_weight()` 时按基类 `inherit/item/item.lpc` 的默认 `set("weight",100)` 写入，并带 `weight_source="default"` + `weight_reason`；
+- 名称/价格/描述一律照原版；原版没有 `set("long")` 的，`desc=null`、`desc_source=null`，不补写；
+- 原版没有 `set("value")` 的，`price=null`，不按 0 假装有价。
+
 ## 6. `dialogue.json`
 
 67 条 = 40 条切片内 + 27 条来自区外 NPC。一条记录 = 一个可问的主题（`set("inquiry")` 的键）。

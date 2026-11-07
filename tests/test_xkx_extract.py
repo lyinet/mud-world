@@ -158,6 +158,17 @@ def test_slice_pack_counts_and_zero_errors():
     assert counts["npcs_no_drops"] == 102
     errors = [d for d in emit.dedupe(diags) if d["severity"] == "error"]
     assert not errors
+    assert counts["equipment_items_added"] == 32
+    assert counts["equipment_items_unresolved"] == 0
+    assert counts["equipment_refs_normalized"] == 3
+    item_ids = {i["id"] for i in pack["items"]}
+    for npc in pack["npcs"]:
+        for slot in npc.get("equipment", []):
+            assert slot["ref"] in item_ids, (npc["id"], slot)
+            assert slot["ref"].startswith("/") and not slot["ref"].endswith(".lpc")
+            item = next(i for i in pack["items"] if i["id"] == slot["ref"])
+            assert item["name"]
+            assert item["weight"] is not None and item["weight"] > 0
     # NPC 掉落：空表必须带原因；掉落物必须在 items 表；概率不让引擎猜
     item_ids = {i["id"] for i in pack["items"]}
     holders = {n["id"] for n in pack["npcs"] if n["drops"]}

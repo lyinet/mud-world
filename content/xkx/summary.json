@@ -3,6 +3,7 @@
     "I_ACTION_TEXT_DYNAMIC": 2,
     "I_DESC_AUTHORED": 11,
     "I_DIALOGUE_FUNC": 22,
+    "I_EQUIP_REF_NORMALIZED": 3,
     "I_PATH_NORMALIZED": 1,
     "I_PRICE_ZERO": 4,
     "I_STUB_EXIT_DROPPED": 5,
@@ -23,8 +24,11 @@
     "drops_guaranteed": 3,
     "drops_random": 0,
     "drops_unresolved_chance": 0,
+    "equipment_items_added": 32,
+    "equipment_items_unresolved": 0,
+    "equipment_refs_normalized": 3,
     "exits": 427,
-    "items_external": 14,
+    "items_external": 46,
     "items_in_slice": 39,
     "masters": 22,
     "npcs_external": 13,
@@ -99,6 +103,6 @@
     }
   },
   "errors": 0,
-  "infos": 45,
+  "infos": 48,
   "warnings": 42
 }

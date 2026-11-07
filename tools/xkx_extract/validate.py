@@ -54,6 +54,28 @@ def _check_desc_source(diags: list[dict], rec: dict, kind: str) -> None:
 SOURCE_VALUES = {"lpc", "derived", "default", "missing"}
 
 
+def _check_equipment_items(diags: list[dict], pack: dict) -> None:
+    """NPC 装备引用的每个物品都必须在 items 表；缺一个就 error。"""
+    item_ids = {i["id"] for i in pack.get("items", [])}
+    for npc in pack.get("npcs", []):
+        for slot in npc.get("equipment", []):
+            ref = slot.get("ref")
+            if ref not in item_ids:
+                diags.append({
+                    "rule": "E_EQUIP_ITEM_NOT_IN_ITEMS", "severity": "error",
+                    "path": npc["source"]["path"], "line": npc["source"]["line"],
+                    "message": f"NPC {npc['id']} 装备 {ref} 在 items 表中不存在",
+                    "id": npc["id"], "ref": ref,
+                })
+            if slot.get("item_resolved") is False:
+                diags.append({
+                    "rule": "E_EQUIP_ITEM_UNRESOLVED", "severity": "error",
+                    "path": npc["source"]["path"], "line": npc["source"]["line"],
+                    "message": f"NPC {npc['id']} 装备 {ref} 源码不可解析",
+                    "id": npc["id"], "ref": ref,
+                })
+
+
 def _check_npc_drops(diags: list[dict], pack: dict) -> None:
     """NPC 掉落：无掉落必须显式留痕；概率无法折算时保留原式；物品必须在 items 表。"""
     item_ids = {i["id"] for i in pack.get("items", [])}
@@ -347,6 +369,9 @@ def validate(pack: dict) -> list[dict]:
 
     # 10. NPC 掉落：无掉落必须显式留痕，概率不折算成必掉
     _check_npc_drops(diags, pack)
+
+    # 11. NPC 装备：每个 ref 必须在 items 表，缺一个即 error
+    _check_equipment_items(diags, pack)
 
     return diags
 

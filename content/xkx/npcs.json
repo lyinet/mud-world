@@ -24,10 +24,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         },
         {
+          "item_resolved": true,
           "ref": "/d/hangzhou/honghua/obj/tiedan",
           "slot": "wield"
         }
@@ -97,6 +99,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         }
@@ -169,6 +172,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         }
@@ -241,14 +245,17 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/cloth/jinduan",
           "slot": "wear"
         },
         {
+          "item_resolved": true,
           "ref": "/d/beijing/obj/yaodai",
           "slot": "wear"
         },
         {
+          "item_resolved": true,
           "ref": "/clone/weapon/changjian",
           "slot": "wield"
         }
@@ -334,14 +341,17 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/hangzhou/honghua/obj/cuiyu",
           "slot": "wear"
         },
         {
+          "item_resolved": true,
           "ref": "/d/hangzhou/honghua/obj/huangshan",
           "slot": "wear"
         },
         {
+          "item_resolved": true,
           "ref": "/d/hangzhou/honghua/obj/shortsword",
           "slot": "wield"
         }
@@ -419,10 +429,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         },
         {
+          "item_resolved": true,
           "ref": "/d/hangzhou/honghua/obj/tiejiang",
           "slot": "wield"
         }
@@ -492,10 +504,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/wudang/obj/greyrobe",
           "slot": "wear"
         },
         {
+          "item_resolved": true,
           "ref": "/clone/weapon/changjian",
           "slot": "wield"
         }
@@ -570,10 +584,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/cloth/jinduan",
           "slot": "wear"
         },
         {
+          "item_resolved": true,
           "ref": "/clone/weapon/gangdao",
           "slot": "wield"
         }
@@ -650,10 +666,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         },
         {
+          "item_resolved": true,
           "ref": "/d/hangzhou/honghua/obj/tiedan",
           "slot": "wield"
         }
@@ -762,10 +780,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         },
         {
+          "item_resolved": true,
           "ref": "/clone/weapon/changjian",
           "slot": "wield"
         }
@@ -835,10 +855,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/wudang/obj/bluecloth",
           "slot": "wear"
         },
         {
+          "item_resolved": true,
           "ref": "/clone/weapon/changjian",
           "slot": "wield"
         }
@@ -909,6 +931,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         }
@@ -982,10 +1005,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/weapon/changjian",
           "slot": "wield"
         },
         {
+          "item_resolved": true,
           "ref": "/d/wudang/obj/greyrobe",
           "slot": "wear"
         }
@@ -1053,10 +1078,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         },
         {
+          "item_resolved": true,
           "ref": "/clone/weapon/changbian",
           "slot": "wield"
         }
@@ -1135,10 +1162,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         },
         {
+          "item_resolved": true,
           "ref": "/clone/weapon/gangdao",
           "slot": "wield"
         }
@@ -1215,10 +1244,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         },
         {
+          "item_resolved": true,
           "ref": "/d/hangzhou/honghua/obj/tiebian",
           "slot": "wield"
         }
@@ -1294,14 +1325,17 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/cloth/jinduan",
           "slot": "wear"
         },
         {
+          "item_resolved": true,
           "ref": "/d/beijing/obj/yaodai",
           "slot": "wear"
         },
         {
+          "item_resolved": true,
           "ref": "/clone/weapon/changjian",
           "slot": "wield"
         }
@@ -1388,10 +1422,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/weapon/gangzhang",
           "slot": "wield"
         },
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         }
@@ -1467,14 +1503,17 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/weapon/changjian",
           "slot": "wield"
         },
         {
+          "item_resolved": true,
           "ref": "/clone/weapon/jili",
           "slot": "wield"
         },
         {
+          "item_resolved": true,
           "ref": "/clone/cloth/cloth",
           "slot": "wear"
         }
@@ -1548,10 +1587,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         },
         {
+          "item_resolved": true,
           "ref": "/d/hangzhou/honghua/obj/tiedan",
           "slot": "wield"
         }
@@ -1621,10 +1662,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/cloth/jinduan",
           "slot": "wear"
         },
         {
+          "item_resolved": true,
           "ref": "/clone/weapon/gangdao",
           "slot": "wield"
         }
@@ -1688,6 +1731,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/tiejia",
           "slot": "wear"
         }
@@ -1747,6 +1791,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/hangzhou/npc/obj/cloth",
           "slot": "wear"
         }
@@ -1789,6 +1834,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/cloth/cloth",
           "slot": "wear"
         }
@@ -1875,10 +1921,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/tiejia",
           "slot": "wear"
         },
         {
+          "item_resolved": true,
           "ref": "/clone/weapon/changjian",
           "slot": "wield"
         }
@@ -1931,10 +1979,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/gangdao",
           "slot": "wield"
         },
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         }
@@ -2023,6 +2073,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/hangzhou/npc/obj/cloth",
           "slot": "wear"
         }
@@ -2064,6 +2115,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         }
@@ -2148,10 +2200,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/weapon/changjian",
           "slot": "wield"
         },
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         }
@@ -2199,10 +2253,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/weapon/changqiang",
           "slot": "wield"
         },
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/junfu",
           "slot": "wear"
         }
@@ -2249,6 +2305,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         }
@@ -2332,6 +2389,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         }
@@ -2376,10 +2434,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/changjian",
           "slot": "wield"
         },
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         }
@@ -2481,10 +2541,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/gangdao",
           "slot": "wield"
         },
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/tiejia",
           "slot": "wear"
         }
@@ -2531,6 +2593,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         }
@@ -2576,6 +2639,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         }
@@ -2627,10 +2691,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/weapon/changjian",
           "slot": "wield"
         },
         {
+          "item_resolved": true,
           "ref": "/d/fuzhou/obj/pink_cloth",
           "slot": "wear"
         }
@@ -2693,11 +2759,13 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/tiejia",
           "slot": "wear"
         },
         {
-          "ref": "clone/weapon/jili",
+          "item_resolved": true,
+          "ref": "/clone/weapon/jili",
           "slot": "wield"
         }
       ],
@@ -2784,6 +2852,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         }
@@ -2835,10 +2904,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/gangdao",
           "slot": "wield"
         },
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         }
@@ -2904,6 +2975,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/hangzhou/npc/obj/cloth",
           "slot": "wear"
         }
@@ -2986,6 +3058,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/hangzhou/npc/obj/cloth",
           "slot": "wear"
         }
@@ -3029,6 +3102,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         }
@@ -3070,10 +3144,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/weapon/changqiang",
           "slot": "wield"
         },
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/junfu",
           "slot": "wear"
         }
@@ -3125,6 +3201,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         }
@@ -3190,7 +3267,8 @@
       "drops_source": "none",
       "equipment": [
         {
-          "ref": "/d/shaolin/npc/obj/dao-cloth.lpc",
+          "item_resolved": true,
+          "ref": "/d/shaolin/npc/obj/dao-cloth",
           "slot": "wear"
         }
       ],
@@ -3278,6 +3356,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/cloth/cloth",
           "slot": "wear"
         }
@@ -3319,10 +3398,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/duanjian",
           "slot": "wield"
         },
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         }
@@ -3374,7 +3455,8 @@
       "drops_source": "none",
       "equipment": [
         {
-          "ref": "clone/misc/cloth",
+          "item_resolved": true,
+          "ref": "/clone/misc/cloth",
           "slot": "wear"
         }
       ],
@@ -3506,10 +3588,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/weapon/changjian",
           "slot": null
         },
         {
+          "item_resolved": true,
           "ref": "/d/wudang/obj/whiterobe",
           "slot": "wear"
         }
@@ -3557,6 +3641,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         }
@@ -3678,10 +3763,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/weapon/changjian",
           "slot": null
         },
         {
+          "item_resolved": true,
           "ref": "/d/wudang/obj/whiterobe",
           "slot": "wear"
         }
@@ -3736,10 +3823,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/weapon/treasure/green_sword",
           "slot": "wield"
         },
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/tiejia",
           "slot": "wear"
         }
@@ -3805,6 +3894,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/jiaxing/npc/obj/cloth",
           "slot": "wear"
         }
@@ -3850,6 +3940,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/jiaxing/npc/obj/cloth",
           "slot": "wear"
         }
@@ -3897,10 +3988,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/weapon/changjian",
           "slot": "wield"
         },
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         }
@@ -3963,6 +4056,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         }
@@ -4031,10 +4125,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/shaolin/obj/changjian",
           "slot": "wield"
         },
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/cloth",
           "slot": "wear"
         }
@@ -4093,10 +4189,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/shaolin/obj/changjian",
           "slot": "wield"
         },
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/cloth",
           "slot": "wear"
         }
@@ -4155,10 +4253,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/shaolin/obj/changjian",
           "slot": "wield"
         },
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/cloth",
           "slot": "wear"
         }
@@ -4217,10 +4317,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/shaolin/obj/changjian",
           "slot": "wield"
         },
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/cloth",
           "slot": "wear"
         }
@@ -4310,6 +4412,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         }
@@ -4357,6 +4460,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         }
@@ -4404,6 +4508,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         }
@@ -4556,10 +4661,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         },
         {
+          "item_resolved": true,
           "ref": "/clone/weapon/changjian",
           "slot": "wield"
         }
@@ -4619,10 +4726,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/wudang/obj/greenrobe",
           "slot": "wear"
         },
         {
+          "item_resolved": true,
           "ref": "/clone/weapon/changjian",
           "slot": "wield"
         }
@@ -4675,6 +4784,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         }
@@ -4717,10 +4827,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/shaolin/obj/dao-cloth",
           "slot": "wear"
         },
         {
+          "item_resolved": true,
           "ref": "/clone/weapon/gangdao",
           "slot": "wield"
         }
@@ -4768,6 +4880,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         }
@@ -4818,10 +4931,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/gangjian",
           "slot": "wield"
         },
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/tiejia",
           "slot": "wear"
         }
@@ -4878,10 +4993,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/gangjian",
           "slot": "wield"
         },
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/tiejia",
           "slot": "wear"
         }
@@ -4938,10 +5055,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/gangjian",
           "slot": "wield"
         },
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/tiejia",
           "slot": "wear"
         }
@@ -4998,10 +5117,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/gangjian",
           "slot": "wield"
         },
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/tiejia",
           "slot": "wear"
         }
@@ -5058,10 +5179,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/gangjian",
           "slot": "wield"
         },
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/tiejia",
           "slot": "wear"
         }
@@ -5119,18 +5242,22 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/necklace",
           "slot": "wear"
         },
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/pink_cloth",
           "slot": "wear"
         },
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/flower_shoe",
           "slot": "wear"
         },
         {
+          "item_resolved": true,
           "ref": "/d/city/obj/goldring",
           "slot": "wear"
         }
@@ -5178,6 +5305,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/clone/misc/cloth",
           "slot": "wear"
         }
@@ -5423,6 +5551,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/mingjiao/obj/baipao",
           "slot": "wear"
         }
@@ -5495,10 +5624,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/mingjiao/obj/baipao",
           "slot": "wear"
         },
         {
+          "item_resolved": true,
           "ref": "/clone/weapon/changjian",
           "slot": "wield"
         }
@@ -5607,10 +5738,12 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/quanzhou/obj/fuchen",
           "slot": "wield"
         },
         {
+          "item_resolved": true,
           "ref": "/d/wudang/obj/greenrobe",
           "slot": "wear"
         }
@@ -5674,6 +5807,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/village/npc/obj/cloth",
           "slot": "wear"
         }
@@ -5719,6 +5853,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/village/npc/obj/cloth",
           "slot": "wear"
         }
@@ -5764,6 +5899,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/d/village/npc/obj/cloth",
           "slot": "wear"
         }
@@ -5811,6 +5947,7 @@
       "drops_source": "none",
       "equipment": [
         {
+          "item_resolved": true,
           "ref": "/kungfu/class/baituo/obj/baipao",
           "slot": "wear"
         }
