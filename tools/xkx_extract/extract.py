@@ -26,6 +26,7 @@ AREA_DIRS = ("hangzhou", "jiaxing", "shiliang")
 # 只收 setup 中 `if (undefinedp(my["str"])) my["str"] = random(N) + M;` 这类
 # 明确掷骰的键；显式 set("str", ...) 的键不覆盖。
 RACE_ATTR_FILES = {
+    "人类": "adm/daemons/race/human.lpc",
     "走兽": "adm/daemons/race/beast.lpc",
     "野兽": "adm/daemons/race/beast1.lpc",
     "走畜": "adm/daemons/race/stock.lpc",
@@ -34,7 +35,21 @@ RACE_ATTR_FILES = {
     "爬蛇": "adm/daemons/race/snake.lpc",
     "昆虫": "adm/daemons/race/insect.lpc",
 }
-ATTR_KEYS = ("str", "int", "con", "dex", "per", "kar")
+# 人类 setup 掷骰的键（`human.lpc:60-68`）：str/con/dex/per/kar/sta/cps/cor。
+# `int` 不是掷骰，而是 `80 - str - con - dex`（`human.lpc:63`），单列 attrs_derive。
+ATTR_KEYS = ("str", "int", "con", "dex", "per", "kar", "sta", "cps", "cor", "spi")
+
+# 原版 `adm/daemons/chard.lpc:25-30`：没有显式 set("race") 的对象一律按人类
+# 调 `HUMAN_RACE->setup_human()`。
+DEFAULT_RACE = "人类"
+DEFAULT_RACE_SOURCE = {"kind": "lpc", "path": "adm/daemons/chard.lpc", "line": 25}
+# `human.lpc:63`：`my["int"] = 80 - my["str"] - my["con"] - my["dex"];`
+HUMAN_INT_DERIVE = {
+    "kind": "difference",
+    "total": 80,
+    "minus": ["str", "con", "dex"],
+    "source": {"kind": "lpc", "path": "adm/daemons/race/human.lpc", "line": 63},
+}
 
 # 原版装备加成最终都落到临时 apply/<key>。这里把 armor_prop/weapon_prop
 # 映射成 apply/<key>；不在白名单的键照原样保留并进诊断，不猜语义。
@@ -44,8 +59,13 @@ KNOWN_APPLY_KEYS = {
     "apply/damage", "apply/unarmed_damage", "apply/dodge", "apply/parry",
 }
 _RACE_ATTR_ROLL_RE = re.compile(
-    r'if\s*\(\s*undefinedp\(\s*my\[\s*"([a-z]+)"\s*\]\s*\)\s*\)'
-    r'\s*my\[\s*"\1"\s*\]\s*=\s*random\(\s*(\d+)\s*\)\s*\+\s*(\d+)\s*;'
+    r'if\s*\(\s*undefinedp\(\s*my\[\s*"([a-z]+)"\s*\]\s*\)'
+    # 人类 sta/cps/cor 的条件是 `undefinedp(...) || my[...] == 0`
+    r'(?:\s*\|\|\s*my\[\s*"\1"\s*\]\s*==\s*0\s*)?'
+    r'\)\s*my\[\s*"\1"\s*\]\s*=\s*'
+    # 两种写法都收：beast 的 random(N)+M、人类的 M+random(N)
+    r'(?:random\(\s*(\d+)\s*\)\s*\+\s*(\d+)|(\d+)\s*\+\s*random\(\s*(\d+)\s*\))'
+    r'\s*;'
 )
 
 ROOM_BASE = "ROOM"
@@ -969,15 +989,23 @@ class Extractor:
                 attrs[key] = values[key][0]
         race_value, race_line = values.get("race", (None, None))
         race = race_value if isinstance(race_value, str) else None
+        race_source = {"kind": "lpc", "path": rel_path, "line": race_line} if race else None
+        if race is None:
+            # 原版 chard.lpc:25：没有显式种族的对象默认按人类初始化。
+            race = DEFAULT_RACE
+            race_source = dict(DEFAULT_RACE_SOURCE)
         attrs_roll = {}
         attrs_roll_sources = {}
-        if race:
-            for key, meta in self._race_attr_defaults(race).items():
-                # 显式 set 过的键（含无法静态取值的表达式）不覆盖。
-                if key in values:
-                    continue
-                attrs_roll[key] = [meta["min"], meta["max"]]
-                attrs_roll_sources[key] = meta["source"]
+        for key, meta in self._race_attr_defaults(race).items():
+            # 显式 set 过的键（含无法静态取值的表达式）不覆盖。
+            if key in values:
+                continue
+            attrs_roll[key] = [meta["min"], meta["max"]]
+            attrs_roll_sources[key] = meta["source"]
+        attrs_derive = {}
+        # 人类 int 是派生值，不是掷骰：只在该键没有被显式 set 时输出。
+        if race == "人类" and "int" not in values:
+            attrs_derive["int"] = dict(HUMAN_INT_DERIVE)
         vitals = {}
         for key in ("max_qi", "max_jing", "max_neili", "neili", "jiali", "combat_exp"):
             if key in values and isinstance(values[key][0], int):
@@ -1009,12 +1037,11 @@ class Extractor:
             "attitude": attitude,
             "aggressive": attitude == "aggressive",
             "race": race,
-            "race_source": {
-                "kind": "lpc", "path": rel_path, "line": race_line,
-            } if race else None,
+            "race_source": race_source,
             "attrs": attrs,
             "attrs_roll": attrs_roll,
             "attrs_roll_source": attrs_roll_sources,
+            "attrs_derive": attrs_derive,
             "vitals": vitals,
             "skills": skills,
             "map_skills": map_skills,
@@ -1089,7 +1116,11 @@ class Extractor:
                     m = _RACE_ATTR_ROLL_RE.search(src_line)
                     if not m:
                         continue
-                    key, raw_n, raw_base = m.group(1), int(m.group(2)), int(m.group(3))
+                    key = m.group(1)
+                    if m.group(2) is not None:
+                        raw_n, raw_base = int(m.group(2)), int(m.group(3))
+                    else:
+                        raw_base, raw_n = int(m.group(4)), int(m.group(5))
                     if key not in ATTR_KEYS:
                         continue
                     defaults[key] = {
@@ -1566,6 +1597,14 @@ class Extractor:
             "npcs_in_slice": sum(1 for n in self.npcs.values() if n["origin"] == "slice"),
             "npcs_external": sum(1 for n in self.npcs.values() if n["origin"] == "external"),
             "npcs_with_attrs_roll": sum(1 for n in self.npcs.values() if n.get("attrs_roll")),
+            "npcs_human_attrs_roll": sum(
+                1 for n in self.npcs.values()
+                if n.get("race") == "人类" and n.get("attrs_roll")
+            ),
+            "npcs_with_attrs_derive": sum(1 for n in self.npcs.values() if n.get("attrs_derive")),
+            "attrs_derive_fields": sum(
+                len(n.get("attrs_derive") or {}) for n in self.npcs.values()
+            ),
             "npcs_with_attrs_roll_in_slice": sum(
                 1 for n in self.npcs.values()
                 if n["origin"] == "slice" and n.get("attrs_roll")

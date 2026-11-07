@@ -115,6 +115,39 @@ def roll_attrs(
     return rolled
 
 
+def _apply_attrs_derive(
+    npc_id: str,
+    rules: Any,
+    attrs: dict[str, int],
+    errors: list[str] | None,
+) -> None:
+    """按内容包 `attrs_derive` 计算派生属性（原版 human.lpc:63 的 int）。
+
+    规则只支持 `kind=difference`：`attr = total - sum(minus)`。
+    显式值 / 掷点值优先，不覆盖；任一被减项缺失时不派生，并记诊断。
+    """
+    if not isinstance(rules, dict):
+        return
+    for attr, rule in rules.items():
+        attr = str(attr)
+        if attr in attrs:
+            continue
+        if attr not in ROLLABLE_ATTRS or not isinstance(rule, dict):
+            if errors is not None:
+                errors.append(f"bad_attrs_derive:{npc_id}:{attr}")
+            continue
+        minus = [str(k) for k in (rule.get("minus") or [])]
+        if rule.get("kind") != "difference" or not minus:
+            if errors is not None:
+                errors.append(f"bad_attrs_derive:{npc_id}:{attr}")
+            continue
+        if any(k not in attrs for k in minus):
+            if errors is not None:
+                errors.append(f"incomplete_attrs_derive:{npc_id}:{attr}")
+            continue
+        attrs[attr] = _int_or(rule.get("total")) - sum(attrs[k] for k in minus)
+
+
 def resolve_npc_vitals(
     npc: dict[str, Any],
     *,
@@ -122,7 +155,7 @@ def resolve_npc_vitals(
     errors: list[str] | None = None,
 ) -> dict[str, Any] | None:
     """返回可直接并入 `create_entity` 的字段；legacy NPC 返回 None。"""
-    if not any(k in npc for k in ("vitals", "attrs", "skills", "attrs_roll")):
+    if not any(k in npc for k in ("vitals", "attrs", "skills", "attrs_roll", "attrs_derive")):
         return None
     vitals = dict(npc.get("vitals") or {})
     max_qi = _int_or(vitals.get("max_qi"))
@@ -136,6 +169,7 @@ def resolve_npc_vitals(
     }
     rolled = roll_attrs(str(npc.get("id") or ""), npc.get("attrs_roll"), seed, errors)
     attrs.update(rolled)
+    _apply_attrs_derive(str(npc.get("id") or ""), npc.get("attrs_derive"), attrs, errors)
     skills = {
         str(k): max(0, min(800, _int_or(v)))
         for k, v in (npc.get("skills") or {}).items()

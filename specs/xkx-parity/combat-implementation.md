@@ -363,7 +363,42 @@ vs `npc.boar`（40hp、attack 10、def 2、str 20、dex 15、unarmed 40），带
   因为 liumang 还有 `apply/attack 10`，双方同倍缩放后 apply 占比变小，玩家防御相对更高，
   命中率被进一步压低；两者都修正后反推约 5.3%。
 - 结论：**不是 apply 缺失、不是持械/空手错配；是 NPC str/dex 取了下限 10（原版实例 20）
-  + `query_skill` 未半档**。未修。
+  + `query_skill` 未半档**。两条已按原版语义修复，见 §9.1.3 与 §10.6。
+
+### 9.1.3 NPC 六维：按原版种族 setup 掷点（2026-11-08）
+
+原版没有 `set("race")` 的对象走人类初始化（`adm/daemons/chard.lpc:25-30`），
+再由 `adm/daemons/race/human.lpc:60-68` 掷点：
+
+| 属性 | 原版写法 | 说明 |
+| --- | --- | --- |
+| str/con/dex/per/kar | `10 + random(21)` | 闭区间 10..30 |
+| sta/cps/cor | `10 + random(21)`，条件含 `|| my[x] == 0` | 同上 |
+| int | `80 - str - con - dex` | **派生值，不掷骰** |
+
+修复内容：
+
+- 抽取器 `tools/xkx_extract/extract.py`：
+  - `RACE_ATTR_FILES` 增加 `人类 -> adm/daemons/race/human.lpc`；
+  - 无显式 `set("race")` 时按 `chard.lpc:25` 落 `race="人类"`，`race_source` 指向该行；
+  - `ATTR_KEYS` 补齐 `sta/cps/cor/spi`（`spi` 只收显式值；人类 setup 不掷它）；
+  - `_RACE_ATTR_ROLL_RE` 同时接受 `random(N) + M`（兽）与 `M + random(N)`（人），
+    并接受 `undefinedp(...) || my[...] == 0` 条件；
+  - 人类 `int` 未被显式 set 时输出 `attrs_derive.int`（`difference`, total 80,
+    minus `[str, con, dex]`, source `human.lpc:63`）。
+- 引擎 `src/wsim/sim/vitals.py`：
+  - `roll_attrs` 原有盐 `xkx-attrs:<seed>:<npc_id>:<attr>` 不变，同 seed 双跑一致；
+  - 新增 `_apply_attrs_derive`：在显式值 + 掷点之后按 `attrs_derive` 计算；
+    显式/掷点值优先不覆盖；缺任一被减项时不派生并记
+    `incomplete_attrs_derive:<npc>:<attr>` 诊断。
+- 例外：显式 `set("str", …)` 等（含无法静态取值的表达式）不掷、不覆盖；
+  显式 `set("int", …)` 时不输出 `attrs_derive`。
+
+旧世界隔离：只有 `content/xkx` 重新生成；`resolve_npc_vitals` 仍只对带
+`vitals/attrs/skills/attrs_roll/attrs_derive` 任一键的 NPC 生效，旧 `content/`
+30 个 legacy NPC 一个键都没有，事件与哈希逐字节不变。xkx 世界 `content_hash`
+按预期变化（`06bdaf46…` → `99a23a90…`），旧 run 启动即 `content_hash_mismatch`，
+需 `--reset`，已登记 `docs/GOLDEN-BASELINE-LOG.md`。
 
 ### 9.2 NPC 创世 `max_hp`
 
