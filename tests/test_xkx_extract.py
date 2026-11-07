@@ -113,13 +113,18 @@ def test_build_outputs_is_bytewise_deterministic():
     diags = [{"rule": "W_NO_EXIT", "severity": "warning", "path": "a.lpc",
               "line": 1, "message": "x"}]
     counts = {"rooms_in_slice": 1}
-    coverage = {"rooms_desc": {"hit": 1, "total": 1, "ratio": 1.0, "target": 0.961}}
+    coverage = {
+        "source": {"rooms_desc": {"hit": 1, "total": 1, "ratio": 1.0, "threshold": 0.96}},
+        "total": {"rooms_desc": {"hit": 1, "total": 1, "ratio": 1.0, "threshold": 1.0}},
+    }
     src = {"repo": "fluffos/xkx100", "commit": "c1b87db", "areas": ["hangzhou"]}
     first = emit.build_outputs(pack, diags, counts, coverage, src)
     second = emit.build_outputs(pack, diags, counts, coverage, src)
     assert first == second
     manifest = json.loads(first["manifest.json"])
     assert manifest["content_hash"]
+    assert manifest["field_semantics"]["desc_source"]["authored"]
+    assert manifest["coverage_semantics"]["total"]
 
 
 @pytest.mark.skipif(not SRC.is_dir(), reason="未 clone xkx100 源码")
@@ -136,12 +141,31 @@ def test_slice_pack_counts_and_zero_errors():
     assert counts["sects"] == 1
     assert counts["skills"] == 48
     assert counts["dialogue_topics_in_slice"] == 40
+    assert counts["desc_authored_items"] == 7
+    assert counts["desc_authored_npcs"] == 4
     errors = [d for d in emit.dedupe(diags) if d["severity"] == "error"]
     assert not errors
     # 房间/出口目标不允许悬空
     room_ids = {r["id"] for r in pack["rooms"]}
     assert all(e["to"] in room_ids for e in pack["exits"] if e.get("from_kind") != "boundary_stub")
     assert all(e["dir"] for e in pack["exits"])
+    # 两条口径：source 只认 lpc；total 含 authored 必须 100%
+    assert set(ex.coverage) == {"source", "total"}
+    assert ex.coverage["source"]["items_desc"]["ratio"] >= 0.82
+    assert ex.coverage["source"]["npcs_desc"]["ratio"] >= 0.90
+    assert ex.coverage["source"]["rooms_desc"]["ratio"] >= 0.96
+    assert ex.coverage["source"]["room_exits"]["ratio"] >= 0.97
+    assert ex.coverage["source"]["dialogue_text"]["ratio"] >= 0.63
+    for data in ex.coverage["total"].values():
+        assert data["ratio"] == 1.0
+    # 自撰条目必须逐条标 authored，且不混进 source 计数
+    authored = [
+        r for r in pack["items"] + pack["npcs"]
+        if r.get("origin") == "slice" and r.get("desc_source") == "authored"
+    ]
+    assert len(authored) == 11
+    assert all(r["desc"] for r in authored)
+    assert all(r.get("desc_source") in ("lpc", "authored") for r in pack["items"] + pack["npcs"] if r.get("origin") == "slice")
 
 
 @pytest.mark.skipif(not SRC.is_dir(), reason="未 clone xkx100 源码")

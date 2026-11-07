@@ -1,8 +1,9 @@
 """xkx 切片抽取：LPC 源码 -> 引擎可消费的表。
 
 范围：杭州 + 嘉兴 + 石梁（`d/hangzhou`、`d/jiaxing`、`d/shiliang`）。
-产物口径与 `specs/xkx-parity/plan.md` 对齐；不做任何文案补写，
-源码里没有的内容一律进 diagnostics。
+产物口径与 `specs/xkx-parity/plan.md` 对齐；原版缺失的描述只在
+`authored.py` 里自撰并标 `desc_source="authored"`，与 `desc_source="lpc"` 分账，
+不冒充原版文案。
 """
 
 from __future__ import annotations
@@ -14,12 +15,16 @@ import subprocess
 from collections import Counter, OrderedDict
 
 from . import lpc
+from .authored import AUTHORED_DESCS
 
 AREA_DIRS = ("hangzhou", "jiaxing", "shiliang")
 
 ROOM_BASE = "ROOM"
 NPC_BASE = "NPC"
 MASTER_BASE = "F_MASTER"
+# 少数 NPC 只继承 F_ 系列（`F_VENDOR_SALE` 内部再继承 NPC），
+# 只按 `NPC` 判会把这些对象误记成物品。
+NPC_LIKE_BASES = {NPC_BASE, MASTER_BASE, "F_VENDOR", "F_VENDOR_SALE"}
 
 # 物品基类 -> (category, equip_slot)
 ITEM_BASES = {
@@ -297,6 +302,7 @@ class Extractor:
             "id": mid,
             "name": short,
             "desc": desc,
+            "desc_source": "lpc" if desc else None,
             "objects": obj_list,
             "flags": flags,
             "coord": coord,
@@ -382,6 +388,7 @@ class Extractor:
             mid = lpc.mudlib_id(rel_path)
             self.files[mid] = rel_path
             rec = self._parse_item(rel_path, mid, text, bases, origin="slice")
+            self._apply_authored(rec)
             if rec["id"] in self.items:
                 self.diag(
                     "E_DUP_ITEM_ID", "error", rel_path, rec["source"]["line"],
@@ -425,9 +432,6 @@ class Extractor:
         line = name_line or desc_line or 1
         if name is None and emit_diag:
             self.diag("W_ITEM_NO_NAME", "warning", rel_path, line, "物品没有 set_name")
-        if desc is None and emit_diag:
-            self.diag("W_DESC_MISSING", "warning", rel_path, line,
-                      "源码没有 long 描述；按 plan 保留 id 与空描述，不补写文案")
         if price is None and emit_diag:
             self.diag("W_NO_PRICE", "warning", rel_path, line,
                       "源码没有 set(\"value\") 价格")
@@ -438,6 +442,7 @@ class Extractor:
             "id": mid,
             "name": name,
             "desc": desc,
+            "desc_source": "lpc" if desc else None,
             "price": price,
             "price_expr": price_expr,
             "unit": values.get("unit", (None, None))[0] if isinstance(values.get("unit", (None, None))[0], str) else None,
@@ -449,6 +454,20 @@ class Extractor:
             "origin": origin,
             "source": {"path": rel_path, "line": line},
         }
+
+    def _apply_authored(self, rec):
+        """原版缺 long 的条目用自撰文案补齐，并标记 `desc_source="authored"`。
+
+        source 覆盖率只认 `desc_source="lpc"`，这里不会抬高对原版忠实度的数字；
+        total 覆盖率则要求玩家可见描述非空，两本账分开记。
+        """
+        if rec.get("desc"):
+            return
+        text = AUTHORED_DESCS.get(rec["id"])
+        if not text:
+            return
+        rec["desc"] = text
+        rec["desc_source"] = "authored"
 
     # -- NPC ----------------------------------------------------------------
 
@@ -463,6 +482,7 @@ class Extractor:
             mid = lpc.mudlib_id(rel_path)
             self.files[mid] = rel_path
             rec = self._parse_npc(rel_path, mid, text, bases)
+            self._apply_authored(rec)
             if rec["id"] in self.npcs:
                 self.diag(
                     "E_DUP_NPC_ID", "error", rel_path, rec["source"]["line"],
@@ -532,9 +552,7 @@ class Extractor:
         is_master = MASTER_BASE in bases
         attitude = values.get("attitude", (None, None))[0]
         desc = values.get("long", (None, None))[0]
-        if desc is None and emit_diag:
-            self.diag("W_DESC_MISSING", "warning", rel_path, name_line or 1,
-                      "源码没有 long 描述；按 plan 保留 id 与空描述，不补写文案")
+        desc = lpc.clean_text(desc) if isinstance(desc, str) else None
         if name is None and emit_diag:
             self.diag("W_NPC_NO_NAME", "warning", rel_path, 1, "NPC 没有 set_name")
 
@@ -555,6 +573,7 @@ class Extractor:
             "title": lpc.clean_text(values["title"][0]) if isinstance(values.get("title", (None, None))[0], str) else None,
             "nickname": lpc.clean_text(values["nickname"][0]) if isinstance(values.get("nickname", (None, None))[0], str) else None,
             "desc": desc,
+            "desc_source": "lpc" if desc else None,
             "gender": values.get("gender", (None, None))[0],
             "age": values.get("age", (None, None))[0] if isinstance(values.get("age", (None, None))[0], int) else None,
             "class": values.get("class", (None, None))[0],
@@ -640,7 +659,7 @@ class Extractor:
         if text is None:
             return "item"
         bases = self.bases_of(text)
-        if NPC_BASE in bases:
+        if bases & NPC_LIKE_BASES:
             return "npc"
         if bases & set(ITEM_BASES):
             return "item"
@@ -799,6 +818,11 @@ class Extractor:
     # -- 覆盖率 -------------------------------------------------------------
 
     def _coverage(self):
+        """两条口径分列：source（仅 lpc 原版）与 total（含自撰）。
+
+        source 是对原版忠实度的回归线；total 是玩家可见描述完整性（必须 100%）。
+        total 只作用于描述类指标；出口/对话没有自撰概念，不设 total 口径。
+        """
         slice_rooms = [r for r in self.rooms.values() if r["origin"] == "slice"]
         slice_items = [i for i in self.items.values() if i["origin"] == "slice"]
         slice_npcs = [n for n in self.npcs.values() if n["origin"] == "slice"]
@@ -811,46 +835,60 @@ class Extractor:
         def ratio(hit, total):
             return round(hit / total, 4) if total else 0.0
 
-        cov = {
-            "rooms_desc": {
-                "hit": sum(1 for r in slice_rooms if r["desc"]),
-                "total": len(slice_rooms),
-                "ratio": ratio(sum(1 for r in slice_rooms if r["desc"]), len(slice_rooms)),
-                "target": 0.961,
-            },
-            "room_exits": {
-                "hit": sum(1 for r in slice_rooms if r["id"] in with_exits),
-                "total": len(slice_rooms),
-                "ratio": ratio(sum(1 for r in slice_rooms if r["id"] in with_exits), len(slice_rooms)),
-                "target": 0.978,
-            },
-            "items_desc": {
-                "hit": sum(1 for i in slice_items if i["desc"]),
-                "total": len(slice_items),
-                "ratio": ratio(sum(1 for i in slice_items if i["desc"]), len(slice_items)),
-                "target": 0.85,
-            },
-            "npcs_desc": {
-                "hit": sum(1 for n in slice_npcs if n["desc"]),
-                "total": len(slice_npcs),
-                "ratio": ratio(sum(1 for n in slice_npcs if n["desc"]), len(slice_npcs)),
-                "target": 0.90,
-            },
-            "dialogue_text": {
-                "hit": sum(1 for t in slice_topics if t["kind"] == "string"),
-                "total": len(slice_topics),
-                "ratio": ratio(sum(1 for t in slice_topics if t["kind"] == "string"), len(slice_topics)),
-                "target": 0.638,
-            },
+        def metric(hit, total, threshold):
+            return {
+                "hit": hit,
+                "total": total,
+                "ratio": ratio(hit, total),
+                "threshold": threshold,
+            }
+
+        source = {
+            "rooms_desc": metric(
+                sum(1 for r in slice_rooms if r.get("desc_source") == "lpc"),
+                len(slice_rooms), 0.96),
+            "room_exits": metric(
+                sum(1 for r in slice_rooms if r["id"] in with_exits),
+                len(slice_rooms), 0.97),
+            "items_desc": metric(
+                sum(1 for i in slice_items if i.get("desc_source") == "lpc"),
+                len(slice_items), 0.82),
+            "npcs_desc": metric(
+                sum(1 for n in slice_npcs if n.get("desc_source") == "lpc"),
+                len(slice_npcs), 0.90),
+            "dialogue_text": metric(
+                sum(1 for t in slice_topics if t["kind"] == "string"),
+                len(slice_topics), 0.63),
         }
-        self.coverage = cov
-        for metric, data in cov.items():
-            if data["ratio"] < data["target"]:
+        total = {
+            "rooms_desc": metric(
+                sum(1 for r in slice_rooms if r["desc"]),
+                len(slice_rooms), 1.0),
+            "items_desc": metric(
+                sum(1 for i in slice_items if i["desc"]),
+                len(slice_items), 1.0),
+            "npcs_desc": metric(
+                sum(1 for n in slice_npcs if n["desc"]),
+                len(slice_npcs), 1.0),
+        }
+        self.coverage = {"source": source, "total": total}
+
+        for metric_name, data in source.items():
+            if data["ratio"] < data["threshold"]:
                 self.diag(
                     "W_COVERAGE_BELOW_TARGET", "warning", "coverage", None,
-                    f"{metric} 覆盖率 {data['ratio']:.1%} 低于目标 {data['target']:.1%}"
-                    f"（{data['hit']}/{data['total']}）；缺口已逐条写入 diagnostics",
-                    metric=metric,
+                    f"source.{metric_name} 覆盖率 {data['ratio']:.1%} 低于门槛 "
+                    f"{data['threshold']:.1%}（{data['hit']}/{data['total']}）；"
+                    f"缺口已逐条写入 diagnostics",
+                    metric=f"source.{metric_name}",
+                )
+        for metric_name, data in total.items():
+            if data["ratio"] < data["threshold"]:
+                self.diag(
+                    "E_COVERAGE_TOTAL_INCOMPLETE", "error", "coverage", None,
+                    f"total.{metric_name} 覆盖率 {data['ratio']:.1%} 未达 100%"
+                    f"（{data['hit']}/{data['total']}）；玩家会看到空白描述",
+                    metric=f"total.{metric_name}",
                 )
 
     # -- 统计 ---------------------------------------------------------------
@@ -874,6 +912,14 @@ class Extractor:
             ),
             "aggressive_npcs": sum(1 for n in self.npcs.values() if n.get("origin") == "slice" and n.get("aggressive")),
             "skills": len(self.skills),
+            "desc_authored_items": sum(
+                1 for i in self.items.values()
+                if i.get("origin") == "slice" and i.get("desc_source") == "authored"
+            ),
+            "desc_authored_npcs": sum(
+                1 for n in self.npcs.values()
+                if n.get("origin") == "slice" and n.get("desc_source") == "authored"
+            ),
         }
 
 

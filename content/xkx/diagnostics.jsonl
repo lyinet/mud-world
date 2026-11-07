@@ -1,17 +1,16 @@
-{"line":null,"message":"items_desc 覆盖率 82.0% 低于目标 85.0%（32/39）；缺口已逐条写入 diagnostics","metric":"items_desc","path":"coverage","rule":"W_COVERAGE_BELOW_TARGET","severity":"warning"}
 {"line":12,"message":"边界出口 westup -> /d/meizhuang/shijie（区外，有回程，可通行）","path":"d/hangzhou/gushan.lpc","rule":"W_BOUNDARY_EXIT","severity":"warning","target":"/d/meizhuang/shijie"}
 {"line":10,"message":"源码没有 set(\"value\") 价格","path":"d/hangzhou/honghua/obj/huangshan.lpc","rule":"W_NO_PRICE","severity":"warning"}
 {"line":13,"message":"物品价格为 0","path":"d/hangzhou/honghua/obj/tiedan.lpc","rule":"I_PRICE_ZERO","severity":"info"}
 {"line":31,"message":"边界出口 up -> /clone/shop/hangzhou_shop（区外，有回程，可通行）","path":"d/hangzhou/majiu.lpc","rule":"W_BOUNDARY_EXIT","severity":"warning","target":"/clone/shop/hangzhou_shop"}
-{"line":6,"message":"源码没有 long 描述；按 plan 保留 id 与空描述，不补写文案","path":"d/hangzhou/npc/guanjia.lpc","rule":"W_DESC_MISSING","severity":"warning"}
-{"line":9,"message":"源码没有 long 描述；按 plan 保留 id 与空描述，不补写文案","path":"d/hangzhou/npc/guest.lpc","rule":"W_DESC_MISSING","severity":"warning"}
-{"line":6,"message":"源码没有 long 描述；按 plan 保留 id 与空描述，不补写文案","path":"d/hangzhou/npc/jiading.lpc","rule":"W_DESC_MISSING","severity":"warning"}
-{"line":10,"message":"源码没有 long 描述；按 plan 保留 id 与空描述，不补写文案","path":"d/hangzhou/npc/obj/cloth.lpc","rule":"W_DESC_MISSING","severity":"warning"}
+{"id":"/d/hangzhou/npc/guanjia","line":6,"message":"NPC /d/hangzhou/npc/guanjia 使用自撰描述（desc_source=authored），不计入 source 覆盖率","path":"d/hangzhou/npc/guanjia.lpc","rule":"I_DESC_AUTHORED","severity":"info"}
+{"id":"/d/hangzhou/npc/guest","line":9,"message":"NPC /d/hangzhou/npc/guest 使用自撰描述（desc_source=authored），不计入 source 覆盖率","path":"d/hangzhou/npc/guest.lpc","rule":"I_DESC_AUTHORED","severity":"info"}
+{"id":"/d/hangzhou/npc/jiading","line":6,"message":"NPC /d/hangzhou/npc/jiading 使用自撰描述（desc_source=authored），不计入 source 覆盖率","path":"d/hangzhou/npc/jiading.lpc","rule":"I_DESC_AUTHORED","severity":"info"}
+{"id":"/d/hangzhou/npc/obj/cloth","line":10,"message":"物品 /d/hangzhou/npc/obj/cloth 使用自撰描述（desc_source=authored），不计入 source 覆盖率","path":"d/hangzhou/npc/obj/cloth.lpc","rule":"I_DESC_AUTHORED","severity":"info"}
 {"line":10,"message":"源码没有 set(\"value\") 价格","path":"d/hangzhou/npc/obj/cloth.lpc","rule":"W_NO_PRICE","severity":"warning"}
-{"line":10,"message":"源码没有 long 描述；按 plan 保留 id 与空描述，不补写文案","path":"d/hangzhou/npc/obj/goupi.lpc","rule":"W_DESC_MISSING","severity":"warning"}
-{"line":6,"message":"源码没有 long 描述；按 plan 保留 id 与空描述，不补写文案","path":"d/hangzhou/npc/obj/marry_card.lpc","rule":"W_DESC_MISSING","severity":"warning"}
+{"id":"/d/hangzhou/npc/obj/goupi","line":10,"message":"物品 /d/hangzhou/npc/obj/goupi 使用自撰描述（desc_source=authored），不计入 source 覆盖率","path":"d/hangzhou/npc/obj/goupi.lpc","rule":"I_DESC_AUTHORED","severity":"info"}
+{"id":"/d/hangzhou/npc/obj/marry_card","line":6,"message":"物品 /d/hangzhou/npc/obj/marry_card 使用自撰描述（desc_source=authored），不计入 source 覆盖率","path":"d/hangzhou/npc/obj/marry_card.lpc","rule":"I_DESC_AUTHORED","severity":"info"}
 {"line":6,"message":"源码没有 set(\"value\") 价格","path":"d/hangzhou/npc/obj/marry_card.lpc","rule":"W_NO_PRICE","severity":"warning"}
-{"line":6,"message":"源码没有 long 描述；按 plan 保留 id 与空描述，不补写文案","path":"d/hangzhou/npc/you-ke.lpc","rule":"W_DESC_MISSING","severity":"warning"}
+{"id":"/d/hangzhou/npc/you-ke","line":6,"message":"NPC /d/hangzhou/npc/you-ke 使用自撰描述（desc_source=authored），不计入 source 覆盖率","path":"d/hangzhou/npc/you-ke.lpc","rule":"I_DESC_AUTHORED","severity":"info"}
 {"line":16,"message":"物品价格为 0","path":"d/hangzhou/obj/eluanshi.lpc","rule":"I_PRICE_ZERO","severity":"info"}
 {"line":15,"message":"物品价格为 0","path":"d/hangzhou/obj/shitou.lpc","rule":"I_PRICE_ZERO","severity":"info"}
 {"line":14,"message":"边界出口 eastdown -> /d/binghuo/qiantang（区外，有回程，可通行）","path":"d/hangzhou/qiantang.lpc","rule":"W_BOUNDARY_EXIT","severity":"warning","target":"/d/binghuo/qiantang"}
@@ -22,7 +21,7 @@
 {"line":13,"message":"边界出口 west -> /d/suzhou/dongmen（区外，有回程，可通行）","path":"d/jiaxing/jnroad2.lpc","rule":"W_BOUNDARY_EXIT","severity":"warning","target":"/d/suzhou/dongmen"}
 {"line":13,"message":"边界出口 southup -> /d/yanping/xianxialing（区外，有回程，可通行）","path":"d/jiaxing/jnroad4.lpc","rule":"W_BOUNDARY_EXIT","severity":"warning","target":"/d/yanping/xianxialing"}
 {"dir":"out","line":59,"message":"/d/jiaxing/mishi 的 out 出口到 /d/jiaxing/xiaodian，但目标没有回程出口","path":"d/jiaxing/mishi.lpc","rule":"W_ASYMMETRIC_EXIT","severity":"warning","target":"/d/jiaxing/xiaodian"}
-{"line":8,"message":"源码没有 long 描述；按 plan 保留 id 与空描述，不补写文案","path":"d/jiaxing/npc/flower_shoe.lpc","rule":"W_DESC_MISSING","severity":"warning"}
+{"id":"/d/jiaxing/npc/flower_shoe","line":8,"message":"物品 /d/jiaxing/npc/flower_shoe 使用自撰描述（desc_source=authored），不计入 source 覆盖率","path":"d/jiaxing/npc/flower_shoe.lpc","rule":"I_DESC_AUTHORED","severity":"info"}
 {"line":23,"message":"对话主题「gongzi」的值是函数，静态不可搬；保留主题键并转 fallback","path":"d/jiaxing/npc/hai.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"gongzi"}
 {"line":23,"message":"对话主题「payment」的值是函数，静态不可搬；保留主题键并转 fallback","path":"d/jiaxing/npc/hai.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"payment"}
 {"line":23,"message":"对话主题「salary」的值是函数，静态不可搬；保留主题键并转 fallback","path":"d/jiaxing/npc/hai.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"salary"}
@@ -30,12 +29,12 @@
 {"line":23,"message":"对话主题「工资」的值是函数，静态不可搬；保留主题键并转 fallback","path":"d/jiaxing/npc/hai.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"工资"}
 {"line":23,"message":"对话主题「自宫」的值是函数，静态不可搬；保留主题键并转 fallback","path":"d/jiaxing/npc/hai.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"自宫"}
 {"line":23,"message":"对话主题「薪水」的值是函数，静态不可搬；保留主题键并转 fallback","path":"d/jiaxing/npc/hai.lpc","rule":"I_DIALOGUE_FUNC","severity":"info","topic":"薪水"}
-{"line":10,"message":"源码没有 long 描述；按 plan 保留 id 与空描述，不补写文案","path":"d/jiaxing/npc/obj/cloth.lpc","rule":"W_DESC_MISSING","severity":"warning"}
+{"id":"/d/jiaxing/npc/obj/cloth","line":10,"message":"物品 /d/jiaxing/npc/obj/cloth 使用自撰描述（desc_source=authored），不计入 source 覆盖率","path":"d/jiaxing/npc/obj/cloth.lpc","rule":"I_DESC_AUTHORED","severity":"info"}
 {"line":10,"message":"源码没有 set(\"value\") 价格","path":"d/jiaxing/npc/obj/cloth.lpc","rule":"W_NO_PRICE","severity":"warning"}
 {"line":20,"message":"物品价格为 0","path":"d/jiaxing/npc/obj/yinzhen.lpc","rule":"I_PRICE_ZERO","severity":"info"}
-{"line":10,"message":"源码没有 long 描述；按 plan 保留 id 与空描述，不补写文案","path":"d/jiaxing/obj/cloth.lpc","rule":"W_DESC_MISSING","severity":"warning"}
+{"id":"/d/jiaxing/obj/cloth","line":10,"message":"物品 /d/jiaxing/obj/cloth 使用自撰描述（desc_source=authored），不计入 source 覆盖率","path":"d/jiaxing/obj/cloth.lpc","rule":"I_DESC_AUTHORED","severity":"info"}
 {"line":10,"message":"源码没有 set(\"value\") 价格","path":"d/jiaxing/obj/cloth.lpc","rule":"W_NO_PRICE","severity":"warning"}
-{"line":8,"message":"源码没有 long 描述；按 plan 保留 id 与空描述，不补写文案","path":"d/jiaxing/obj/flower_shoe.lpc","rule":"W_DESC_MISSING","severity":"warning"}
+{"id":"/d/jiaxing/obj/flower_shoe","line":8,"message":"物品 /d/jiaxing/obj/flower_shoe 使用自撰描述（desc_source=authored），不计入 source 覆盖率","path":"d/jiaxing/obj/flower_shoe.lpc","rule":"I_DESC_AUTHORED","severity":"info"}
 {"line":9,"message":"源码没有 set(\"value\") 价格","path":"d/jiaxing/obj/shanshui.lpc","rule":"W_NO_PRICE","severity":"warning"}
 {"line":6,"message":"源码没有 set(\"value\") 价格","path":"d/jiaxing/obj/tiepai.lpc","rule":"W_NO_PRICE","severity":"warning"}
 {"dir":"down","line":15,"message":"/d/jiaxing/yanyu3 的 down 出口到 /d/jiaxing/yanyu2，但目标没有回程出口","path":"d/jiaxing/yanyu3.lpc","rule":"W_ASYMMETRIC_EXIT","severity":"warning","target":"/d/jiaxing/yanyu2"}

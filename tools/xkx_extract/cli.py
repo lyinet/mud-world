@@ -4,10 +4,11 @@
     python tools/xkx_extract/cli.py \
         --src tools/xkx_extract/_src/xkx100 \
         --areas hangzhou,jiaxing,shiliang \
-        --out content/xkx --strict
+        --out content/xkx --strict-source --strict-total
 
---strict：errors 非零或任一覆盖率低于目标时退出码非零。
-（默认只把 errors 当阻断项，覆盖率缺口写入 diagnostics 并打印。）
+--strict-source：source 覆盖率（只计 desc_source=lpc）低于门槛即失败。
+--strict-total：total 覆盖率（含自撰 authored）未到 100% 即失败。
+两个开关独立生效；默认只把 errors 当阻断项。
 """
 
 from __future__ import annotations
@@ -31,7 +32,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--areas", default=",".join(extract_mod.AREA_DIRS), help="切片区域，逗号分隔")
     p.add_argument("--commit", default=None, help="覆盖 manifest 里的源 commit")
     p.add_argument("--verify", action="store_true", help="重抽一遍并逐文件比对，不写盘")
-    p.add_argument("--strict", action="store_true", help="覆盖率不达标也视为失败")
+    p.add_argument("--strict-source", action="store_true",
+                   help="source 覆盖率（仅原版 lpc）低于门槛即失败")
+    p.add_argument("--strict-total", action="store_true",
+                   help="total 覆盖率（含自撰 authored）未到 100%% 即失败")
     return p
 
 
@@ -77,10 +81,17 @@ def main(argv=None) -> int:
     print(f"  NPC：切片 {counts['npcs_in_slice']} + 外部引用 {counts['npcs_external']}")
     print(f"  对话：{counts['dialogue_topics_in_slice']} 个主题（外部 {counts['dialogue_topics'] - counts['dialogue_topics_in_slice']}）")
     print(f"  商店 {counts['shops']} / 门派 {counts['sects']} / 师父 {counts['masters']} / 主动攻击 {counts['aggressive_npcs']} / 技能 {counts['skills']}")
-    print("== 覆盖率 ==")
-    for metric, data in ex.coverage.items():
-        flag = "OK" if data["ratio"] >= data["target"] else "LOW"
-        print(f"  {metric}: {data['hit']}/{data['total']} = {data['ratio']:.1%} (目标 {data['target']:.1%}) {flag}")
+    print("== 覆盖率 source（仅原版 lpc，守忠实度） ==")
+    for metric, data in ex.coverage["source"].items():
+        flag = "OK" if data["ratio"] >= data["threshold"] else "LOW"
+        print(f"  {metric}: {data['hit']}/{data['total']} = {data['ratio']:.1%} "
+              f"(门槛 {data['threshold']:.1%}) {flag}")
+    print("== 覆盖率 total（含自撰 authored，须 100%） ==")
+    for metric, data in ex.coverage["total"].items():
+        flag = "OK" if data["ratio"] >= data["threshold"] else "LOW"
+        print(f"  {metric}: {data['hit']}/{data['total']} = {data['ratio']:.1%} "
+              f"(门槛 {data['threshold']:.1%}) {flag}")
+    print(f"  自撰描述：物品 {counts['desc_authored_items']} 条 / NPC {counts['desc_authored_npcs']} 条")
     print("== 诊断 ==")
     print(f"  errors={summary['errors']} warnings={summary['warnings']} infos={summary['infos']}")
     for rule, n in sorted(summary["by_rule"].items()):
@@ -93,10 +104,15 @@ def main(argv=None) -> int:
     if summary["errors"] > 0:
         print("error 级诊断阻断发布，详见 diagnostics.jsonl", file=sys.stderr)
         return 1
-    if args.strict:
-        low = [m for m, d in ex.coverage.items() if d["ratio"] < d["target"]]
+    if args.strict_source:
+        low = [m for m, d in ex.coverage["source"].items() if d["ratio"] < d["threshold"]]
         if low:
-            print(f"strict 模式：覆盖率未达标 {low}", file=sys.stderr)
+            print(f"strict-source：source 覆盖率未达标 {low}", file=sys.stderr)
+            return 1
+    if args.strict_total:
+        low = [m for m, d in ex.coverage["total"].items() if d["ratio"] < d["threshold"]]
+        if low:
+            print(f"strict-total：total 覆盖率未达 100% {low}", file=sys.stderr)
             return 1
     return 0
 

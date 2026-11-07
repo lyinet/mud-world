@@ -16,6 +16,41 @@ DIRECTIONS = {
 }
 
 
+def _check_desc_source(diags: list[dict], rec: dict, kind: str) -> None:
+    """描述来源只允许 lpc / authored / null；authored 必须逐条留痕。"""
+    desc = rec.get("desc")
+    source = rec.get("desc_source")
+    if source not in ("lpc", "authored", None):
+        diags.append({
+            "rule": "E_DESC_SOURCE_INVALID", "severity": "error",
+            "path": rec["source"]["path"], "line": rec["source"]["line"],
+            "message": f"{kind} {rec['id']} 的 desc_source 取值非法：{source!r}",
+            "id": rec["id"],
+        })
+    elif source == "authored":
+        if not desc:
+            diags.append({
+                "rule": "E_DESC_AUTHORED_EMPTY", "severity": "error",
+                "path": rec["source"]["path"], "line": rec["source"]["line"],
+                "message": f"{kind} {rec['id']} 标记为 authored 但没有描述文本",
+                "id": rec["id"],
+            })
+            return
+        diags.append({
+            "rule": "I_DESC_AUTHORED", "severity": "info",
+            "path": rec["source"]["path"], "line": rec["source"]["line"],
+            "message": f"{kind} {rec['id']} 使用自撰描述（desc_source=authored），不计入 source 覆盖率",
+            "id": rec["id"],
+        })
+    elif desc and source is None:
+        diags.append({
+            "rule": "E_DESC_SOURCE_INVALID", "severity": "error",
+            "path": rec["source"]["path"], "line": rec["source"]["line"],
+            "message": f"{kind} {rec['id']} 有描述但未标 desc_source",
+            "id": rec["id"],
+        })
+
+
 def validate(pack: dict) -> list[dict]:
     """返回诊断列表；调用方负责合并进 diagnostics.jsonl。"""
     diags: list[dict] = []
@@ -91,7 +126,7 @@ def validate(pack: dict) -> list[dict]:
                 "id": rid,
             })
 
-    # 5. 物品无价 / 无描述（集合阶段已记，这里补 slice 全量口径核对）
+    # 5. 物品无价 / 描述来源标记
     for item in pack["items"]:
         if item["origin"] != "slice":
             continue
@@ -101,23 +136,13 @@ def validate(pack: dict) -> list[dict]:
                 "path": item["source"]["path"], "line": item["source"]["line"],
                 "message": "源码没有 set(\"value\") 价格", "id": item["id"],
             })
-        if item["desc"] is None:
-            diags.append({
-                "rule": "W_DESC_MISSING", "severity": "warning",
-                "path": item["source"]["path"], "line": item["source"]["line"],
-                "message": "源码没有 long 描述；按 plan 保留 id 与空描述，不补写文案", "id": item["id"],
-            })
+        _check_desc_source(diags, item, "物品")
 
-    # 6. NPC 无描述
+    # 6. NPC 描述来源标记
     for npc in pack["npcs"]:
         if npc["origin"] != "slice":
             continue
-        if npc["desc"] is None:
-            diags.append({
-                "rule": "W_DESC_MISSING", "severity": "warning",
-                "path": npc["source"]["path"], "line": npc["source"]["line"],
-                "message": "源码没有 long 描述；按 plan 保留 id 与空描述，不补写文案", "id": npc["id"],
-            })
+        _check_desc_source(diags, npc, "NPC")
 
     # 7. 商店库存必须能落到物品
     for shop in pack["shops"]:

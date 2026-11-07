@@ -4,16 +4,75 @@
     "jiaxing",
     "shiliang"
   ],
-  "content_hash": "dae52e5293648034981e463f8ab7e5213fe02747eaf780400ef1dd4dd48f64af",
+  "authored_descriptions": [
+    {
+      "desc": "一件洗得发白的粗布衣裳，针脚细密，是寻常人家最常穿的衣物。",
+      "id": "/d/hangzhou/npc/obj/cloth",
+      "table": "items"
+    },
+    {
+      "desc": "一块硝制过的狗皮，皮毛粗糙却厚实，披在身上倒也挡风。",
+      "id": "/d/hangzhou/npc/obj/goupi",
+      "table": "items"
+    },
+    {
+      "desc": "一本描金的婚约，写着你与结发之人的名字，须得去红娘庄才能解除。",
+      "id": "/d/hangzhou/npc/obj/marry_card",
+      "table": "items"
+    },
+    {
+      "desc": "一双绣着并蒂莲的软底小鞋，针线精巧，鞋面还带着淡淡的脂粉香。",
+      "id": "/d/jiaxing/npc/flower_shoe",
+      "table": "items"
+    },
+    {
+      "desc": "一件半旧的粗布短衣，浆洗得干净，是嘉兴一带百姓的常服。",
+      "id": "/d/jiaxing/npc/obj/cloth",
+      "table": "items"
+    },
+    {
+      "desc": "一件素色布衣，布料虽粗，却缝补得整整齐齐。",
+      "id": "/d/jiaxing/obj/cloth",
+      "table": "items"
+    },
+    {
+      "desc": "一双大红缎面的绣花小鞋，鞋尖缀着绒球，走起路来悄无声息。",
+      "id": "/d/jiaxing/obj/flower_shoe",
+      "table": "items"
+    },
+    {
+      "desc": "一位年过花甲的老管家，背略微驼，守在刘庄门内，见人先拱手问安。",
+      "id": "/d/hangzhou/npc/guanjia",
+      "table": "npcs"
+    },
+    {
+      "desc": "一位风尘仆仆的进香客，手里攥着香烛，神色虔诚。",
+      "id": "/d/hangzhou/npc/guest",
+      "table": "npcs"
+    },
+    {
+      "desc": "一名短打装束的家丁，腰间系着布带，目光守着庄内动静。",
+      "id": "/d/hangzhou/npc/jiading",
+      "table": "npcs"
+    },
+    {
+      "desc": "一个游兴正浓的年轻人，东张西望，时不时停下来打量泉边的景致。",
+      "id": "/d/hangzhou/npc/you-ke",
+      "table": "npcs"
+    }
+  ],
+  "content_hash": "4bc06f04faffdd9466ef0dea9c317e51626cc2e765937fdfb00e87c6ad9cee85",
   "counts": {
     "aggressive_npcs": 7,
+    "desc_authored_items": 7,
+    "desc_authored_npcs": 4,
     "dialogue_topics": 67,
     "dialogue_topics_in_slice": 40,
     "exits": 427,
-    "items_external": 13,
+    "items_external": 12,
     "items_in_slice": 39,
     "masters": 22,
-    "npcs_external": 12,
+    "npcs_external": 13,
     "npcs_in_slice": 92,
     "rooms_boundary_stub": 6,
     "rooms_in_slice": 195,
@@ -22,41 +81,75 @@
     "skills": 48
   },
   "coverage": {
-    "dialogue_text": {
-      "hit": 28,
-      "ratio": 0.7,
-      "target": 0.638,
-      "total": 40
+    "source": {
+      "dialogue_text": {
+        "hit": 28,
+        "ratio": 0.7,
+        "threshold": 0.63,
+        "total": 40
+      },
+      "items_desc": {
+        "hit": 32,
+        "ratio": 0.8205,
+        "threshold": 0.82,
+        "total": 39
+      },
+      "npcs_desc": {
+        "hit": 88,
+        "ratio": 0.9565,
+        "threshold": 0.9,
+        "total": 92
+      },
+      "room_exits": {
+        "hit": 191,
+        "ratio": 0.9795,
+        "threshold": 0.97,
+        "total": 195
+      },
+      "rooms_desc": {
+        "hit": 195,
+        "ratio": 1.0,
+        "threshold": 0.96,
+        "total": 195
+      }
     },
-    "items_desc": {
-      "hit": 32,
-      "ratio": 0.8205,
-      "target": 0.85,
-      "total": 39
-    },
-    "npcs_desc": {
-      "hit": 88,
-      "ratio": 0.9565,
-      "target": 0.9,
-      "total": 92
-    },
-    "room_exits": {
-      "hit": 191,
-      "ratio": 0.9795,
-      "target": 0.978,
-      "total": 195
-    },
-    "rooms_desc": {
-      "hit": 195,
-      "ratio": 1.0,
-      "target": 0.961,
-      "total": 195
+    "total": {
+      "items_desc": {
+        "hit": 39,
+        "ratio": 1.0,
+        "threshold": 1.0,
+        "total": 39
+      },
+      "npcs_desc": {
+        "hit": 92,
+        "ratio": 1.0,
+        "threshold": 1.0,
+        "total": 92
+      },
+      "rooms_desc": {
+        "hit": 195,
+        "ratio": 1.0,
+        "threshold": 1.0,
+        "total": 195
+      }
+    }
+  },
+  "coverage_semantics": {
+    "source": "对原版忠实度：只统计 desc_source=lpc 的条目；低于 threshold 视为回归。",
+    "total": "玩家可见描述完整性：含 authored，必须 100%。"
+  },
+  "field_semantics": {
+    "desc": "玩家可见描述文本（房间 short/long 中的 long、物品/NPC 的 long）。",
+    "desc_source": {
+      "authored": "原版缺 long，由本项目按原版器物/身份常识自撰，不计入 source 覆盖率，只计入 total 覆盖率。",
+      "lpc": "从 xkx100 LPC 源码静态抽取，计入 source 覆盖率。",
+      "null": "描述缺失，玩家会看到空白；total 覆盖率不达标即 error。"
     }
   },
   "files": {
     "diagnostics.jsonl": {
-      "bytes": 14205,
-      "sha256": "7961eb9e92f7fd5b644a9819c4e36a219d56ffc61bc214876f3e974046460f84"
+      "bytes": 14631,
+      "sha256": "037e6258bf6f2069e21ad3a41bb39d500f3317783d61cc9df7837887525b01be"
     },
     "dialogue.json": {
       "bytes": 19197,
@@ -67,16 +160,16 @@
       "sha256": "a1fdb78e2a4d7f1f54b01688bfad4c4b374819bb88ec2d379f94edc835eac63e"
     },
     "items.json": {
-      "bytes": 24541,
-      "sha256": "06a81637cb412a712079a14646aae402b097e02ca543b00cebc163037456c82b"
+      "bytes": 26082,
+      "sha256": "39d8ffe387ebbf4b593fca51b6c484df49c58916e5d06fe5e901e4f8e0bebe18"
     },
     "npcs.json": {
-      "bytes": 126514,
-      "sha256": "d13abc4e155ecbfe269f796dd02e67cab0b41dc289c5d43c888ac23417d17319"
+      "bytes": 130569,
+      "sha256": "276098c9bd5eaf250467b33a303fd1c543987f64d47c49812ee033f1752971ff"
     },
     "rooms.json": {
-      "bytes": 136540,
-      "sha256": "bc469bc6c71e1dc153d98ee52919dda2f40e30b53ac8d5eefee567c01df99b95"
+      "bytes": 142167,
+      "sha256": "267344a6e42d762aa496ddd2ccd85f9b4ed4640656b6d11078491a35e3d882cc"
     },
     "sects.json": {
       "bytes": 842,
@@ -91,8 +184,8 @@
       "sha256": "60c825b86644093c88862bd5e95c11cae30b3f4f4397ab1430d5a9acc89f17ae"
     },
     "summary.json": {
-      "bytes": 1270,
-      "sha256": "b27a7d93f87b55dc23ac850e64659f091b53513b2cb518b2a1a18d1532167848"
+      "bytes": 1766,
+      "sha256": "3be31386be261a7661cd378a5a485b5b189d3af03978b7e2aaf00995d5c4585d"
     }
   },
   "generator": "tools/xkx_extract",

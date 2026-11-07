@@ -3,6 +3,7 @@
     {
       "category": "armor",
       "desc": "一支翠绿的羽毛。",
+      "desc_source": "lpc",
       "equip_slot": "head",
       "food_supply": null,
       "id": "/d/hangzhou/honghua/obj/cuiyu",
@@ -21,6 +22,7 @@
     {
       "category": "armor",
       "desc": "一件鹅黄色的女子长衫。",
+      "desc_source": "lpc",
       "equip_slot": "cloth",
       "food_supply": null,
       "id": "/d/hangzhou/honghua/obj/huangshan",
@@ -39,6 +41,7 @@
     {
       "category": "weapon",
       "desc": "这是一柄的短剑，据说剑里藏着一个极大秘密，几\n百年来辗转相传，始终无人参详得出。",
+      "desc_source": "lpc",
       "equip_slot": "sword",
       "food_supply": null,
       "id": "/d/hangzhou/honghua/obj/shortsword",
@@ -57,6 +60,7 @@
     {
       "category": "weapon",
       "desc": "这是一柄粗大的铁鞭，总有三十来斤重。",
+      "desc_source": "lpc",
       "equip_slot": "whip",
       "food_supply": null,
       "id": "/d/hangzhou/honghua/obj/tiebian",
@@ -75,6 +79,7 @@
     {
       "category": "weapon",
       "desc": "一些溜圆的铁胆，是一种凶猛的暗器。",
+      "desc_source": "lpc",
       "equip_slot": "throwing",
       "food_supply": null,
       "id": "/d/hangzhou/honghua/obj/tiedan",
@@ -93,6 +98,7 @@
     {
       "category": "weapon",
       "desc": "这是一根铁桨，举可齐眉，看来很是沉重，可攻击大片敌人。",
+      "desc_source": "lpc",
       "equip_slot": "club",
       "food_supply": null,
       "id": "/d/hangzhou/honghua/obj/tiejiang",
@@ -111,6 +117,7 @@
     {
       "category": "misc",
       "desc": "一个煎得油澄澄、香喷喷的百果油包。",
+      "desc_source": "lpc",
       "equip_slot": null,
       "food_supply": 20,
       "id": "/d/hangzhou/npc/obj/baozi",
@@ -129,6 +136,7 @@
     {
       "category": "misc",
       "desc": "一只被烤得流油，香味扑鼻的叫化鸡。",
+      "desc_source": "lpc",
       "equip_slot": null,
       "food_supply": 100,
       "id": "/d/hangzhou/npc/obj/chicken",
@@ -146,7 +154,8 @@
     },
     {
       "category": "armor",
-      "desc": null,
+      "desc": "一件洗得发白的粗布衣裳，针脚细密，是寻常人家最常穿的衣物。",
+      "desc_source": "authored",
       "equip_slot": "cloth",
       "food_supply": null,
       "id": "/d/hangzhou/npc/obj/cloth",
@@ -165,6 +174,7 @@
     {
       "category": "misc",
       "desc": "一盘清甜可人的西湖醋鱼，用西湖中的金色鲤鱼\n烧制而成，是西湖第一名菜。",
+      "desc_source": "lpc",
       "equip_slot": null,
       "food_supply": 20,
       "id": "/d/hangzhou/npc/obj/fish",
@@ -183,6 +193,7 @@
     {
       "category": "misc",
       "desc": "一碗香气馥郁的桂花鲜栗羹。",
+      "desc_source": "lpc",
       "equip_slot": null,
       "food_supply": 20,
       "id": "/d/hangzhou/npc/obj/geng",
@@ -200,7 +211,8 @@
     },
     {
       "category": "armor",
-      "desc": null,
+      "desc": "一块硝制过的狗皮，皮毛粗糙却厚实，披在身上倒也挡风。",
+      "desc_source": "authored",
       "equip_slot": "cloth",
       "food_supply": null,
       "id": "/d/hangzhou/npc/obj/goupi",
@@ -219,6 +231,7 @@
     {
       "category": "weapon",
       "desc": "这是一把通体晶莹剔透的剑，是武当镇派之宝！",
+      "desc_source": "lpc",
       "equip_slot": "sword",
       "food_supply": null,
       "id": "/d/hangzhou/npc/obj/green_sword",
@@ -237,6 +250,7 @@
     {
       "category": "misc",
       "desc": "一个晶莹碧绿的的大酒瓶，装了熏熏醉人的竹叶青。",
+      "desc_source": "lpc",
       "equip_slot": null,
       "food_supply": null,
       "id": "/d/hangzhou/npc/obj/jiuping",
@@ -254,7 +268,8 @@
     },
     {
       "category": "misc",
-      "desc": null,
+      "desc": "一本描金的婚约，写着你与结发之人的名字，须得去红娘庄才能解除。",
+      "desc_source": "authored",
       "equip_slot": null,
       "food_supply": null,
       "id": "/d/hangzhou/npc/obj/marry_card",
@@ -273,6 +288,7 @@
     {
       "category": "misc",
       "desc": "一碗香喷喷的东坡肉，用文火煨肥猪肉而成，\n苏东坡在牧守杭州时看到民间吃肉而烧制不得法，遗惠此法至千年以下。",
+      "desc_source": "lpc",
       "equip_slot": null,
       "food_supply": 100,
       "id": "/d/hangzhou/npc/obj/pork",
@@ -291,6 +307,7 @@
     {
       "category": "misc",
       "desc": "酽酽浓浓的一盘龙井虾仁。",
+      "desc_source": "lpc",
       "equip_slot": null,
       "food_supply": 20,
       "id": "/d/hangzhou/npc/obj/shrimp",
@@ -309,6 +326,7 @@
     {
       "category": "weapon",
       "desc": "这是一粒平平常常的鹅卵石。",
+      "desc_source": "lpc",
       "equip_slot": "throwing",
       "food_supply": null,
       "id": "/d/hangzhou/obj/eluanshi",
@@ -327,6 +345,7 @@
     {
       "category": "weapon",
       "desc": "这是一平平常常的大石头。",
+      "desc_source": "lpc",
       "equip_slot": "hammer",
       "food_supply": null,
       "id": "/d/hangzhou/obj/shitou",
@@ -345,6 +364,7 @@
     {
       "category": "weapon",
       "desc": "这是一根爬山用的树枝。",
+      "desc_source": "lpc",
       "equip_slot": "staff",
       "food_supply": null,
       "id": "/d/hangzhou/obj/shuzhi",
@@ -362,7 +382,8 @@
     },
     {
       "category": "armor",
-      "desc": null,
+      "desc": "一双绣着并蒂莲的软底小鞋，针线精巧，鞋面还带着淡淡的脂粉香。",
+      "desc_source": "authored",
       "equip_slot": "boots",
       "food_supply": null,
       "id": "/d/jiaxing/npc/flower_shoe",
@@ -380,7 +401,8 @@
     },
     {
       "category": "armor",
-      "desc": null,
+      "desc": "一件半旧的粗布短衣，浆洗得干净，是嘉兴一带百姓的常服。",
+      "desc_source": "authored",
       "equip_slot": "cloth",
       "food_supply": null,
       "id": "/d/jiaxing/npc/obj/cloth",
@@ -399,6 +421,7 @@
     {
       "category": "weapon",
       "desc": "这是一柄拂尘，做工精细，是很阴毒的兵器。",
+      "desc_source": "lpc",
       "equip_slot": "whip",
       "food_supply": null,
       "id": "/d/jiaxing/npc/obj/fuchen",
@@ -417,6 +440,7 @@
     {
       "category": "misc",
       "desc": "臭鸭蛋闻着臭，吃着香。",
+      "desc_source": "lpc",
       "equip_slot": null,
       "food_supply": 80,
       "id": "/d/jiaxing/npc/obj/yadan",
@@ -435,6 +459,7 @@
     {
       "category": "weapon",
       "desc": "这就是武林中人闻之色变的冰魄银针，针身缕刻花纹，打造得极是精细，令人忍不住想把玩(bawan)一番。",
+      "desc_source": "lpc",
       "equip_slot": "throwing",
       "food_supply": null,
       "id": "/d/jiaxing/npc/obj/yinzhen",
@@ -453,6 +478,7 @@
     {
       "category": "misc",
       "desc": "一个香喷喷的肉粽子，包它的粽子叶泛出一股清香。",
+      "desc_source": "lpc",
       "equip_slot": null,
       "food_supply": 50,
       "id": "/d/jiaxing/npc/obj/zongzi",
@@ -470,7 +496,8 @@
     },
     {
       "category": "armor",
-      "desc": null,
+      "desc": "一件素色布衣，布料虽粗，却缝补得整整齐齐。",
+      "desc_source": "authored",
       "equip_slot": "cloth",
       "food_supply": null,
       "id": "/d/jiaxing/obj/cloth",
@@ -488,7 +515,8 @@
     },
     {
       "category": "armor",
-      "desc": null,
+      "desc": "一双大红缎面的绣花小鞋，鞋尖缀着绒球，走起路来悄无声息。",
+      "desc_source": "authored",
       "equip_slot": "boots",
       "food_supply": null,
       "id": "/d/jiaxing/obj/flower_shoe",
@@ -507,6 +535,7 @@
     {
       "category": "weapon",
       "desc": "这是一柄拂尘，做工精细，是很阴毒的兵器。",
+      "desc_source": "lpc",
       "equip_slot": "whip",
       "food_supply": null,
       "id": "/d/jiaxing/obj/fuchen",
@@ -525,6 +554,7 @@
     {
       "category": "misc",
       "desc": "只见画中是一座陡峭突兀的高山，共有五座山峰，中间一峰尤高，\n笔立指天，耸入云表，山侧生着一排松树，松梢积雪，树身尽皆向南弯\n曲，想见北风之烈。峰西独有一棵老松，却是挺然直起，巍巍秀拔，树\n下朱笔画着一个迎风舞剑的将军。这人面目难见，但衣袂飘举，资形脱\n俗。全幅画都是水墨山水，独此人殷红如火，更加显得卓荦不群。画上\n并无书款，只题着一首诗云：“经年尘土满征衣，特特寻芳上翠微，好\n山好水看不足，马蹄催趁月明归。”",
+      "desc_source": "lpc",
       "equip_slot": null,
       "food_supply": null,
       "id": "/d/jiaxing/obj/shanshui",
@@ -543,6 +573,7 @@
     {
       "category": "misc",
       "desc": "一面做成八卦形状的铁牌，翻过来看，背面写着一个“曲”字。",
+      "desc_source": "lpc",
       "equip_slot": null,
       "food_supply": null,
       "id": "/d/jiaxing/obj/tiepai",
@@ -561,6 +592,7 @@
     {
       "category": "misc",
       "desc": "这是据说已经失传了的范宽真迹，对于爱画之人，算是无价之宝了。",
+      "desc_source": "lpc",
       "equip_slot": null,
       "food_supply": null,
       "id": "/d/jiaxing/obj/xishanxinglvtu",
@@ -579,6 +611,7 @@
     {
       "category": "misc",
       "desc": "臭鸭蛋闻着臭，吃着香。",
+      "desc_source": "lpc",
       "equip_slot": null,
       "food_supply": 80,
       "id": "/d/jiaxing/obj/yadan",
@@ -597,6 +630,7 @@
     {
       "category": "misc",
       "desc": "一个香喷喷的肉粽子，包它的粽子叶泛出一股清香。",
+      "desc_source": "lpc",
       "equip_slot": null,
       "food_supply": 50,
       "id": "/d/jiaxing/obj/zongzi",
@@ -615,6 +649,7 @@
     {
       "category": "misc",
       "desc": "这就是记载着金蛇郎君一生心血的金蛇剑谱。",
+      "desc_source": "lpc",
       "equip_slot": null,
       "food_supply": null,
       "id": "/d/shiliang/npc/obj/jianpu",
@@ -633,6 +668,7 @@
     {
       "category": "misc",
       "desc": "这是阿土送给阿凤的情书，你可不要私自打开来看哦。",
+      "desc_source": "lpc",
       "equip_slot": null,
       "food_supply": null,
       "id": "/d/shiliang/npc/obj/qingshu",
@@ -651,6 +687,7 @@
     {
       "category": "misc",
       "desc": "这是一把用来的打扫卫生的扫把。",
+      "desc_source": "lpc",
       "equip_slot": null,
       "food_supply": null,
       "id": "/d/shiliang/npc/obj/saoba",
@@ -669,6 +706,7 @@
     {
       "category": "misc",
       "desc": "这是一张绣花手帕。",
+      "desc_source": "lpc",
       "equip_slot": null,
       "food_supply": null,
       "id": "/d/shiliang/npc/obj/shoupa",
@@ -687,6 +725,7 @@
     {
       "category": "misc",
       "desc": "一个很小的洞。",
+      "desc_source": "lpc",
       "equip_slot": null,
       "food_supply": null,
       "id": "/d/shiliang/obj/hole",
@@ -705,6 +744,7 @@
     {
       "category": "misc",
       "desc": "这是一朵盛开的白薇，看来可以入药。",
+      "desc_source": "lpc",
       "equip_slot": null,
       "food_supply": null,
       "id": "/clone/medicine/vegetable/baiwei",
@@ -723,6 +763,7 @@
     {
       "category": "misc",
       "desc": "这是一朵盛开的白芷，看来可以入药。",
+      "desc_source": "lpc",
       "equip_slot": null,
       "food_supply": null,
       "id": "/clone/medicine/vegetable/baizhi",
@@ -740,25 +781,8 @@
     },
     {
       "category": "misc",
-      "desc": "这位店小二正笑咪咪地忙著，还不时拿起挂在脖子上的抹布擦脸。",
-      "equip_slot": null,
-      "food_supply": null,
-      "id": "/d/city/npc/xiaoer",
-      "material": null,
-      "name": "店小二",
-      "origin": "external",
-      "price": null,
-      "price_expr": null,
-      "source": {
-        "line": 9,
-        "path": "d/city/npc/xiaoer.lpc"
-      },
-      "unit": null,
-      "weight": null
-    },
-    {
-      "category": "misc",
       "desc": "这是一片碧绿的荷叶，看来可以入药。",
+      "desc_source": "lpc",
       "equip_slot": null,
       "food_supply": null,
       "id": "/clone/medicine/vegetable/heye",
@@ -777,6 +801,7 @@
     {
       "category": "misc",
       "desc": "这是一把椅子。",
+      "desc_source": "lpc",
       "equip_slot": null,
       "food_supply": null,
       "id": "/d/changan/obj/chairs",
@@ -795,6 +820,7 @@
     {
       "category": "weapon",
       "desc": "这是一柄普通的精钢剑，一般的剑客都配带此剑。",
+      "desc_source": "lpc",
       "equip_slot": "sword",
       "food_supply": null,
       "id": "/d/city/obj/changjian",
@@ -813,6 +839,7 @@
     {
       "category": "weapon",
       "desc": "这是一把沈重的铁锤，打造的相当坚实。",
+      "desc_source": "lpc",
       "equip_slot": "hammer",
       "food_supply": null,
       "id": "/d/city/obj/hammer",
@@ -831,6 +858,7 @@
     {
       "category": "weapon",
       "desc": "这是一血淋淋的屠刀。",
+      "desc_source": "lpc",
       "equip_slot": "blade",
       "food_supply": null,
       "id": "/d/beijing/obj/tudao",
@@ -849,6 +877,7 @@
     {
       "category": "weapon",
       "desc": "这是一根浑铁棍，似乎威力不大。",
+      "desc_source": "lpc",
       "equip_slot": "staff",
       "food_supply": null,
       "id": "/d/xingxiu/obj/tiegun",
@@ -867,6 +896,7 @@
     {
       "category": "weapon",
       "desc": "这是一柄亮晃晃的钢刀，普通官兵的常备武器。",
+      "desc_source": "lpc",
       "equip_slot": "blade",
       "food_supply": null,
       "id": "/d/city/obj/gangdao",
@@ -885,6 +915,7 @@
     {
       "category": "weapon",
       "desc": "一枝烤得香喷喷的鸡腿。",
+      "desc_source": "lpc",
       "equip_slot": "hammer",
       "food_supply": 40,
       "id": "/clone/food/jitui",
@@ -903,6 +934,7 @@
     {
       "category": "misc",
       "desc": "一个香喷喷的肉包子。",
+      "desc_source": "lpc",
       "equip_slot": null,
       "food_supply": 20,
       "id": "/clone/food/baozi",
@@ -921,6 +953,7 @@
     {
       "category": "misc",
       "desc": "一个用来装米酒的大酒袋，大概装得八、九升的酒。",
+      "desc_source": "lpc",
       "equip_slot": null,
       "food_supply": null,
       "id": "/clone/food/liquid/jiudai",

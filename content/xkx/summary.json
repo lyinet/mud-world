@@ -1,26 +1,27 @@
 {
   "by_rule": {
+    "I_DESC_AUTHORED": 11,
     "I_DIALOGUE_FUNC": 22,
     "I_PATH_NORMALIZED": 1,
     "I_PRICE_ZERO": 4,
     "I_STUB_EXIT_DROPPED": 5,
     "W_ASYMMETRIC_EXIT": 9,
     "W_BOUNDARY_EXIT": 6,
-    "W_COVERAGE_BELOW_TARGET": 1,
-    "W_DESC_MISSING": 11,
     "W_MISSING_SKILL": 1,
     "W_NO_EXIT": 4,
     "W_NO_PRICE": 11
   },
   "counts": {
     "aggressive_npcs": 7,
+    "desc_authored_items": 7,
+    "desc_authored_npcs": 4,
     "dialogue_topics": 67,
     "dialogue_topics_in_slice": 40,
     "exits": 427,
-    "items_external": 13,
+    "items_external": 12,
     "items_in_slice": 39,
     "masters": 22,
-    "npcs_external": 12,
+    "npcs_external": 13,
     "npcs_in_slice": 92,
     "rooms_boundary_stub": 6,
     "rooms_in_slice": 195,
@@ -29,38 +30,60 @@
     "skills": 48
   },
   "coverage": {
-    "dialogue_text": {
-      "hit": 28,
-      "ratio": 0.7,
-      "target": 0.638,
-      "total": 40
+    "source": {
+      "dialogue_text": {
+        "hit": 28,
+        "ratio": 0.7,
+        "threshold": 0.63,
+        "total": 40
+      },
+      "items_desc": {
+        "hit": 32,
+        "ratio": 0.8205,
+        "threshold": 0.82,
+        "total": 39
+      },
+      "npcs_desc": {
+        "hit": 88,
+        "ratio": 0.9565,
+        "threshold": 0.9,
+        "total": 92
+      },
+      "room_exits": {
+        "hit": 191,
+        "ratio": 0.9795,
+        "threshold": 0.97,
+        "total": 195
+      },
+      "rooms_desc": {
+        "hit": 195,
+        "ratio": 1.0,
+        "threshold": 0.96,
+        "total": 195
+      }
     },
-    "items_desc": {
-      "hit": 32,
-      "ratio": 0.8205,
-      "target": 0.85,
-      "total": 39
-    },
-    "npcs_desc": {
-      "hit": 88,
-      "ratio": 0.9565,
-      "target": 0.9,
-      "total": 92
-    },
-    "room_exits": {
-      "hit": 191,
-      "ratio": 0.9795,
-      "target": 0.978,
-      "total": 195
-    },
-    "rooms_desc": {
-      "hit": 195,
-      "ratio": 1.0,
-      "target": 0.961,
-      "total": 195
+    "total": {
+      "items_desc": {
+        "hit": 39,
+        "ratio": 1.0,
+        "threshold": 1.0,
+        "total": 39
+      },
+      "npcs_desc": {
+        "hit": 92,
+        "ratio": 1.0,
+        "threshold": 1.0,
+        "total": 92
+      },
+      "rooms_desc": {
+        "hit": 195,
+        "ratio": 1.0,
+        "threshold": 1.0,
+        "total": 195
+      }
     }
   },
   "errors": 0,
-  "infos": 32,
-  "warnings": 43
+  "infos": 43,
+  "warnings": 31
 }

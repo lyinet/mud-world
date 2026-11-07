@@ -94,6 +94,18 @@ def build_outputs(pack, diagnostics, counts, coverage, source_info) -> dict[str,
         "".join(f"{name}:{hashes[name]}\n" for name in sorted(hashes)).encode("utf-8")
     ).hexdigest()
 
+    authored = []
+    for table, key in (("items", "items"), ("npcs", "npcs")):
+        for rec in pack[key]:
+            if rec.get("desc_source") != "authored":
+                continue
+            authored.append({
+                "table": table,
+                "id": rec["id"],
+                "desc": rec["desc"],
+            })
+    authored.sort(key=lambda r: (r["table"], r["id"]))
+
     manifest = {
         "schema_version": 1,
         "rules_version": 1,
@@ -102,6 +114,19 @@ def build_outputs(pack, diagnostics, counts, coverage, source_info) -> dict[str,
         "areas": source_info.get("areas", []),
         "counts": counts,
         "coverage": coverage,
+        "field_semantics": {
+            "desc": "玩家可见描述文本（房间 short/long 中的 long、物品/NPC 的 long）。",
+            "desc_source": {
+                "lpc": "从 xkx100 LPC 源码静态抽取，计入 source 覆盖率。",
+                "authored": "原版缺 long，由本项目按原版器物/身份常识自撰，不计入 source 覆盖率，只计入 total 覆盖率。",
+                "null": "描述缺失，玩家会看到空白；total 覆盖率不达标即 error。",
+            },
+        },
+        "authored_descriptions": authored,
+        "coverage_semantics": {
+            "source": "对原版忠实度：只统计 desc_source=lpc 的条目；低于 threshold 视为回归。",
+            "total": "玩家可见描述完整性：含 authored，必须 100%。",
+        },
         "files": {
             name: {"sha256": hashes[name], "bytes": len(files[name].encode("utf-8"))}
             for name in sorted(files)
