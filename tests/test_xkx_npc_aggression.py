@@ -146,12 +146,22 @@ def test_always_trigger_only_marks_combat_then_rounds_happen_on_heartbeat():
     assert npc.combat_round == 0
     assert target.hp == 100
 
-    # 第一回合心跳：伤害开始结算。
+    # 心跳开始逐回合结算。NPC 的伤害在命中回合才落到玩家身上：
+    # 本 seed 下前 8 回合玩家都闪避，第 9 回合首次被打到 35 点（PRNG 序列锁定）。
     event1 = _continue(writer, 1)
     assert event1.outcome == "ok"
     assert _log(event1)["round"] == 1
-    assert writer.state.entities[PLAYER_ID].hp < 100
+    assert writer.state.entities[PLAYER_ID].hp == 100
+    assert writer.state.entities[NPC_ID].hp < 500
     assert writer.state.entities[NPC_ID].combat_round == 1
+    for tick in range(2, 9):
+        ev = _continue(writer, tick)
+        assert ev.outcome == "ok"
+        assert writer.state.entities[PLAYER_ID].hp == 100
+    ev9 = _continue(writer, 9)
+    assert ev9.outcome == "ok"
+    assert _log(ev9)["round"] == 9
+    assert writer.state.entities[PLAYER_ID].hp == 35
 
 
 def test_continue_until_dead_resets_combat():
