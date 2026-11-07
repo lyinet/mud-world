@@ -246,6 +246,17 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             ent.potential = max(0, _as_int(d["potential"], "potential"))
         if "learned_points" in d:
             ent.learned_points = max(0, _as_int(d["learned_points"], "learned_points"))
+        if "map_skills" in d:
+            ent.map_skills = {
+                str(k): str(v) for k, v in dict(d["map_skills"] or {}).items() if str(v)
+            }
+        if "prepare_skills" in d:
+            ent.prepare_skills = [str(x) for x in (d.get("prepare_skills") or []) if str(x)]
+        if "race" in d:
+            ent.race = str(d.get("race") or "")
+        for key in ("neili", "max_neili", "jiali"):
+            if key in d:
+                setattr(ent, key, max(0, _as_int(d[key], key)))
         state.entities[ent.id] = ent
         return
 
@@ -512,6 +523,17 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             }
         if "potential" in d and not ent.potential:
             ent.potential = max(0, _as_int(d["potential"], "potential"))
+        if "map_skills" in d:
+            ent.map_skills = {
+                str(k): str(v) for k, v in dict(d["map_skills"] or {}).items() if str(v)
+            }
+        if "prepare_skills" in d:
+            ent.prepare_skills = [str(x) for x in (d.get("prepare_skills") or []) if str(x)]
+        if "race" in d:
+            ent.race = str(d.get("race") or "")
+        for key in ("neili", "max_neili", "jiali"):
+            if key in d:
+                setattr(ent, key, max(0, _as_int(d[key], key)))
         return
 
     if op == "combat_exp_add":

@@ -385,7 +385,9 @@ def test_fight_reports_real_rounds_and_death(session):
     assert result["ok"] is True, result.get("reject_reason")
     text = "\n".join(_texts(result))
     assert "第1回合" in text
-    assert "击中店小二，伤害" in text
+    # 招式接入后，人类默认招式以 `combat_action` 文案展示，不再固定“击中X，伤害N”。
+    assert "挥拳攻击店小二" in text
+    assert "造成20点伤害" in text
     assert "你赢了，店小二倒下了" in text
     # 战报细节来自引擎 details.combat（回合数、超额伤害），不是壳层编的。
     combat = result["engine_details"]["combat"]

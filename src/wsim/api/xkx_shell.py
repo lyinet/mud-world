@@ -1111,18 +1111,32 @@ class XKXShell:
                 who = self._combat_name(act.get("actor"), target)
                 whom = self._combat_name(act.get("target"), target)
                 result = str(act.get("result") or "")
+                move = str(act.get("move") or "")
+                move_text = str(act.get("move_text") or "")
+                # 武功招式显示 `name`（如「白虹贯日」）；没有名字时退回原版种族
+                # `combat_action` 文案，占位符在这里替换，玩家可见文本不残留 `$x`。
+                if move and "$" not in move:
+                    prefix = f"使出一招「{move}」，"
+                    desc = ""
+                else:
+                    prefix = ""
+                    desc = self._render_action_text(move_text, who, whom) if move_text else ""
                 if result == "dodge":
-                    lines.append(("combat", f"  {who}出手，{whom}闪开了。"))
+                    line = f"  {desc}，但{whom}闪开了。" if desc else f"  {who}{prefix}{whom}闪开了。"
+                    lines.append(("combat", line))
                 elif result == "parry":
-                    lines.append(("combat", f"  {who}出手，{whom}架住了。"))
+                    line = f"  {desc}，被{whom}架住了。" if desc else f"  {who}{prefix}{whom}架住了。"
+                    lines.append(("combat", line))
                 else:
                     damage = int(act.get("damage") or 0)
                     hp_before = int(act.get("hp_before") or 0)
                     hp_after = int(act.get("hp_after") or 0)
                     wound = "，受了伤" if act.get("wounded") else ""
-                    lines.append(
-                        ("combat", f"  {who}击中{whom}，伤害{damage}，气血{hp_before}→{hp_after}{wound}。")
-                    )
+                    if desc:
+                        line = f"  {desc}，造成{damage}点伤害（气血{hp_before}→{hp_after}{wound}）。"
+                    else:
+                        line = f"  {who}{prefix}击中{whom}，伤害{damage}，气血{hp_before}→{hp_after}{wound}。"
+                    lines.append(("combat", line))
         winner = str(combat.get("winner") or "")
         rounds_used = int(combat.get("rounds_used") or len(rounds))
         if winner == "attacker":
@@ -1365,6 +1379,18 @@ class XKXShell:
         ]
         after = self._state(account) or state
         return self._reply(account, "revive", True, lines, after, raw, request_id)
+
+    @staticmethod
+    def _render_action_text(text: Any, who: str, whom: str) -> str:
+        """替换原版 `combat_action` 的 `$N/$n/$l` 等占位符，不把 `$x` 露给玩家。"""
+        mapping = {
+            "N": who, "n": whom, "p": "对方", "P": "对方",
+            "l": "要害", "w": "", "W": "", "d": "外",
+        }
+        rendered = re.sub(
+            r"\$[A-Za-z]", lambda m: mapping.get(m.group(0)[1:], ""), str(text or "")
+        )
+        return rendered.replace("$", "").strip()
 
     def _cmd_loot(
         self, account: str, rest: str, state: dict[str, Any], raw: str, request_id: str

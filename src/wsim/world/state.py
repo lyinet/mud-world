@@ -68,6 +68,18 @@ class Entity:
     skill_xp: dict[str, int] = field(default_factory=dict)
     # 原版 `learned_points`：学技能时按潜能差额记账（死亡清零）。
     learned_points: int = 0
+    # 原版 query_skill_mapped(type)：基础技能 → 具体武功（`skills_actions.json` 的招式归属）。
+    # 旧内容不提供，空字典不写进 to_dict()，旧世界哈希不变。
+    map_skills: dict[str, str] = field(default_factory=dict)
+    # 原版 query_skill_prepare() 的键（保留；当前战斗只读 map_skills）。
+    prepare_skills: list[str] = field(default_factory=list)
+    # 原版种族（`set("race", ...)`）；无映射技能时用它取 `combat_action` 默认招式。
+    race: str = ""
+    # 内功发力（`force.lpc hit_ob`）：neili 当前内力、jiali 加力、max_neili 上限。
+    # 全部为 0 时不写进 to_dict()。
+    neili: int = 0
+    max_neili: int = 0
+    jiali: int = 0
     death_tick: int = 0
     death_location: str = ""
     death_count: int = 0
@@ -126,6 +138,18 @@ class Entity:
             data["skill_levels"] = dict(sorted(self.skill_levels.items()))
         if self.skill_xp:
             data["skill_xp"] = dict(sorted(self.skill_xp.items()))
+        if self.map_skills:
+            data["map_skills"] = dict(sorted(self.map_skills.items()))
+        if self.prepare_skills:
+            data["prepare_skills"] = list(self.prepare_skills)
+        if self.race:
+            data["race"] = self.race
+        if self.neili:
+            data["neili"] = int(self.neili)
+        if self.max_neili:
+            data["max_neili"] = int(self.max_neili)
+        if self.jiali:
+            data["jiali"] = int(self.jiali)
         if self.death_tick or self.death_location:
             data["death_tick"] = int(self.death_tick)
             data["death_location"] = self.death_location

@@ -20,6 +20,37 @@ from typing import Any
 # 200：无战斗技能（野兽 / 杂役）。
 DEFAULT_MAX_HP_TIERS: tuple[tuple[int, int], ...] = ((80, 500), (1, 300), (0, 200))
 
+# 内容包没有原版 `set("race", ...)` 字段；按 NPC id 末段/性别做最小推断。
+# 只给战斗默认招式用，不参与任何数值公式。未列出的非人类按“走兽”处理。
+_RACE_BY_ID = {
+    "laohu": "走兽",
+    "wolfdog": "走兽",
+    "camel": "走兽",
+    "horse": "走兽",
+    "zaohongma": "走兽",
+    "huangbiaoma": "走兽",
+    "ziliuma": "走兽",
+    "dushe": "爬虫",
+    "xiezi": "爬虫",
+    "maque": "飞禽",
+    "wuya": "飞禽",
+    "fish": "鱼类",
+    "hai": "人类",
+}
+_HUMAN_GENDERS = {"男性", "女性", "无性"}
+
+
+def _infer_race(npc: dict[str, Any]) -> str:
+    raw = str(npc.get("race") or "").strip()
+    if raw:
+        return raw
+    tail = str(npc.get("id") or "").rsplit("/", 1)[-1]
+    if tail in _RACE_BY_ID:
+        return _RACE_BY_ID[tail]
+    if str(npc.get("gender") or "").strip() in _HUMAN_GENDERS:
+        return "人类"
+    return "走兽"
+
 
 def _int_or(value: Any, default: int = 0) -> int:
     try:
@@ -62,10 +93,30 @@ def resolve_npc_vitals(npc: dict[str, Any]) -> dict[str, Any] | None:
         str(k): max(0, min(800, _int_or(v)))
         for k, v in (npc.get("skills") or {}).items()
     }
-    return {
+    map_skills = {
+        str(k): str(v)
+        for k, v in (npc.get("map_skills") or {}).items()
+        if str(v)
+    }
+    prepare_skills = [str(x) for x in (npc.get("prepare_skills") or []) if str(x)]
+    race = _infer_race(npc)
+    resolved: dict[str, Any] = {
         "max_hp": max_hp,
         "hp": max_hp,
         "attrs": attrs,
         "combat_exp": max(0, _int_or(vitals.get("combat_exp"))),
         "skill_levels": skills,
     }
+    if race:
+        resolved["race"] = race
+    # 内功发力与映射技能：原版 `vitals{neili,jiali}` / `query_skill_mapped`。
+    # 为 0 / 空时不落键，保持旧内容实体与旧世界哈希不变。
+    for key in ("neili", "max_neili", "jiali"):
+        value = max(0, _int_or(vitals.get(key)))
+        if value:
+            resolved[key] = value
+    if map_skills:
+        resolved["map_skills"] = map_skills
+    if prepare_skills:
+        resolved["prepare_skills"] = prepare_skills
+    return resolved

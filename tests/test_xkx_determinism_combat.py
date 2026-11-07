@@ -81,7 +81,11 @@ BASELINE = {
     # event 哈希在 hp_add 增量钳制修复后重采样：状态未变（仍是 3eae4e85…），
     # 只有事件里的 delta 从“超额值”改成实际变化（如 -41 → -40）。
     # 掉落改地面后，loot_create 的 data 新增 location 并去掉 entity，事件哈希同步重采。
-    "event_final": "412be54550c2a71a1f3e9f6175a78965c3bb753b2c2245e20c0f97a58d3cac6b",
+    # 招式接入后重采（2026-11-07）：state 哈希未变（91097d90…），说明无 map_skills
+    # 的实体不选招、不新增取数，数值投影逐字节等价；event 哈希变化只来自
+    # rounds[].actions[] 新增的 action_skill/selection/move/move_text/move_index/
+    # force_hit/martial_hit/force_reflected 字段。
+    "event_final": "273b5455003ce199f46d2b7385a560f83ea3ca1281b9cdf8803845ce11cfc929",
 }
 
 

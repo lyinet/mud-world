@@ -20,6 +20,16 @@ if str(_TOOLS_DIR) not in sys.path:
 
 import xkx_formula as xf  # noqa: E402
 
+from .skill_actions import (  # noqa: E402  (与库同级的内部模块)
+    coefficient,
+    has_code_hook,
+    load_action_table,
+    load_hook_table,
+    mapped_skill,
+    select_action,
+    select_default_action,
+)
+
 MAX_ROUNDS = 20
 SKILL_MAX = 800
 _ATTR_DEFAULTS = {"str": 10, "int": 10, "con": 10, "dex": 10, "sta": 10, "spi": 10}
@@ -27,19 +37,21 @@ _ATTR_DEFAULTS = {"str": 10, "int": 10, "con": 10, "dex": 10, "sta": 10, "spi": 
 # ---- 库第 4 节“调用方必须自己算好的东西”：引擎侧当前取值 ----
 # 这些参数在 xkx 里依赖技能虚函数、对象临时状态与行动队列；引擎尚无对应建模，
 # 一律取源码的中性值（0/False），并在 combat-implementation.md 逐项登记。
-ACTION_SEQUENCE = {"dodge": 0, "parry": 0, "force": 0, "damage": 0}  # reset_action()
+#
+# 招式系数不再固定 0：每次挥击按 `query_action()` 选招后，把
+# `action={dodge,parry,force,damage}` 喂给库的既有参数。无映射技能的实体
+# 仍走全 0 路径，取数与旧实现一致。
 VICTIM_BUSY = False  # is_busy()
 BIXIE_CIZU = False  # query_temp("bixie/cizu")
 BIXIE_CIWAN = False  # query_temp("bixie/ciwan")
 KILLING = True  # fight 即击杀模式
 KONGMING = False  # 空明拳属于守方技能
-# force/martial/weapon 的 hit_ob / be_hit_ob 整数增量，按源码顺序。
-SKILL_HOOKS = {
-    "force_hit": 0,
-    "victim_force_hit": 0,
-    "martial_hit": 0,
-    "victim_parry_hit": 0,
-    "weapon_hit": 0,
+# 只保留三项“原版没有可调用实现”的钩子；force_hit / martial_hit 由
+# `_skill_hooks()` 按技能分派（见 force.lpc hit_ob 与 mantian-xing/yunlong-zhua）。
+UNMODELED_HOOKS = {
+    "victim_force_hit": 0,  # force.lpc be_hit_ob 整段被注释
+    "victim_parry_hit": 0,  # 招架类 be_hit_ob 同样无实现
+    "weapon_hit": 0,  # 由武器对象 hit_ob 提供，技能表不可得
 }
 
 
@@ -163,11 +175,24 @@ class _Actor:
         self.apply_attack = int(self.temp_apply.get("apply/attack", 0))
         self.apply_defense = int(self.temp_apply.get("apply/defense", 0))
         self.apply_armor = int(self.temp_apply.get("apply/armor", 0))
+        self.apply_armor_vs_force = int(self.temp_apply.get("apply/armor_vs_force", 0))
         self.weapon = has_weapon(ent)
         self.spi = attr(ent, "spi")
+        # 原版 `query_skill_mapped(type)` 与内功发力状态（force.lpc hit_ob）。
+        self.map_skills = {
+            str(k): str(v) for k, v in (getattr(ent, "map_skills", None) or {}).items()
+        }
+        self.race = str(getattr(ent, "race", "") or "")
+        self.neili = max(0, int(getattr(ent, "neili", 0)))
+        self.max_neili = max(0, int(getattr(ent, "max_neili", 0)))
+        self.jiali = max(0, int(getattr(ent, "jiali", 0)))
 
     def level(self, skill: str) -> int:
         return max(0, min(SKILL_MAX, int(self.levels.get(skill, 0))))
+
+    def mapped(self, base_skill: str) -> str:
+        value = self.map_skills.get(str(base_skill))
+        return str(value) if value else ""
 
     def learn(self, skill: str, amount: int) -> None:
         progress = xf.improve_skill(
@@ -207,6 +232,97 @@ def _defense_power(actor: _Actor, skill: str) -> int:
     )
 
 
+def _force_hit(
+    src: _Actor,
+    dst: _Actor,
+    damage_bonus: int,
+    prng: Any,
+    hook_table: dict[str, dict[str, Any]],
+) -> tuple[int, int]:
+    """`inherit/skill/force.lpc:5-30 hit_ob` 的整数增量与反震气血。
+
+    只有同时满足原版入口条件才执行：
+    `my["jiali"] && my["neili"] > my["jiali"] && 映射内功有 code 钩子`。
+    返回值 `(damage_bonus 增量, 反震对攻击者造成的 qi 伤害)`。
+    字符串返回分支（反震）对 damage_bonus 的增量是 0，但攻击者会真的掉血。
+    """
+    force_skill = src.mapped("force")
+    if src.jiali <= 0 or src.neili <= src.jiali:
+        return 0, 0
+    hooks = hook_table.get(force_skill) if force_skill else None
+    if not has_code_hook(hooks, "force_hit"):
+        return 0, 0
+
+    factor = src.jiali
+    src.neili -= factor
+    # LPC 的 `/` 在非负操作数上就是整除。
+    damage = src.neili // 20 + factor - dst.neili // 25
+
+    if damage < 0:
+        if not src.weapon and prng.below(dst.level("force")) > src.level("force") // 2:
+            damage = -damage
+            src.hp = xf.apply_qi_damage(src.hp, damage * 2)
+            vitals = xf.apply_qi_wound(src.hp, src.eff_hp, damage)
+            src.hp, src.eff_hp = vitals.qi, vitals.eff_qi
+            return 0, damage * 2
+        if damage_bonus + damage < 0:
+            return -damage_bonus, 0
+        return damage, 0
+
+    damage -= dst.apply_armor_vs_force
+    if damage_bonus + damage < 0:
+        return -damage_bonus, 0
+    if prng.below(src.level("force")) < damage:
+        return damage, 0
+    return 0, 0
+
+
+def _martial_hit(
+    src: _Actor,
+    dst: _Actor,
+    skill: str,
+    prng: Any,
+    hook_table: dict[str, dict[str, Any]],
+) -> int:
+    """`martian-xing` / `yunlong-zhua hit_ob`：只上毒，整数增量恒 0。
+
+    毒（`apply_condition`）未建模；这里按原文消费随机数，保证取数流一致：
+    - mantian-xing：`random(skill) > 50` → `random(2)`；
+    - yunlong-zhua：`yunlong-shengong > 70` → `random(skill) > 30` → `random(ningxue/10)`。
+    """
+    if not skill:
+        return 0
+    hooks = hook_table.get(skill)
+    if not has_code_hook(hooks, "martial_hit"):
+        return 0
+    if skill == "mantian-xing":
+        if prng.below(src.level("mantian-xing")) > 50:
+            prng.below(2)
+    elif skill == "yunlong-zhua":
+        if src.level("yunlong-shengong") > 70:
+            if prng.below(src.level("yunlong-zhua")) > 30:
+                prng.below(src.level("ningxue-shenzhua") // 10)
+    return 0
+
+
+def _skill_hooks(
+    src: _Actor,
+    dst: _Actor,
+    martial_skill: str,
+    prng: Any,
+    hook_table: dict[str, dict[str, Any]],
+) -> tuple[dict[str, int], int]:
+    """按源码顺序求五项钩子的整数增量；后三项保持 0（见 `UNMODELED_HOOKS`）。"""
+    force_delta, reflected = _force_hit(
+        src, dst, attr(src.ent, "str"), prng, hook_table
+    )
+    martial_delta = _martial_hit(src, dst, martial_skill, prng, hook_table)
+    hooks = dict(UNMODELED_HOOKS)
+    hooks["force_hit"] = force_delta
+    hooks["martial_hit"] = martial_delta
+    return hooks, reflected
+
+
 def simulate_fight(
     attacker: Any,
     defender: Any,
@@ -217,12 +333,18 @@ def simulate_fight(
     max_rounds: int = MAX_ROUNDS,
     trace: list | None = None,
     player_ids: set[str] | None = None,
+    action_table: dict[str, list[dict[str, Any]]] | None = None,
+    hook_table: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """原子结算最多 `max_rounds` 回合；全部数值来自 `xkx_formula`。
 
-    先手按 (dex + dodge 等级)，平手由发起方先手。
+    先手按 (dex + dodge 等级)，平手由发起方先手。每次挥击先按原版
+    `query_action()` 选招（走同一个 PRNG），再把招式系数喂给库的既有参数。
+    无 `map_skills` 的实体不选招、不掷点，取数与旧实现一致。
     """
     player_ids = player_ids or set()
+    actions_by_skill = load_action_table() if action_table is None else action_table
+    hooks_by_skill = load_hook_table() if hook_table is None else hook_table
     me = _Actor(attacker, player_ids)
     victim = _Actor(defender, player_ids)
     if me.max_hp <= 0 or victim.max_hp <= 0:
@@ -243,16 +365,30 @@ def simulate_fight(
         def strike(src: _Actor, dst: _Actor, src_skill: str) -> str:
             ap = _attack_power(src, src_skill)
             dp = _defense_power(dst, "dodge")
+            mapped = src.mapped(src_skill)
+            skill_actions = actions_by_skill.get(mapped, []) if mapped else []
+            if skill_actions:
+                move = select_action(skill_actions, src.level(mapped), prng)
+                selection = "skill"
+            else:
+                # 原版 `reset_action()` 无映射技能时回落到种族 `combat_action`。
+                move = select_default_action(src.race, prng)
+                selection = "default" if move else ""
             entry: dict[str, Any] = {
                 "round": round_no,
                 "actor": src.id,
                 "target": dst.id,
                 "skill": src_skill,
+                "action_skill": mapped,
+                "selection": selection,
+                "move": str(move["name"]) if move else "",
+                "move_text": str(move["text"]) if move else "",
+                "move_index": int(move["index"]) if move else -1,
             }
             hp_before = dst.hp
 
             if xf.resolve_dodge(ap=ap, dp=dp, victim_busy=VICTIM_BUSY,
-                                dodge_action_bonus=ACTION_SEQUENCE["dodge"],
+                                dodge_action_bonus=coefficient(move, "dodge"),
                                 cizu=BIXIE_CIZU, prng=prng):
                 reward = xf.dodge_rewards(
                     ap=ap, dp=dp,
@@ -280,7 +416,7 @@ def simulate_fight(
                 unarmed_power=_defense_power(dst, "unarmed"),
             )
             if xf.resolve_parry(ap=ap, pp=pp, victim_busy=VICTIM_BUSY,
-                                parry_action_bonus=ACTION_SEQUENCE["parry"],
+                                parry_action_bonus=coefficient(move, "parry"),
                                 ciwan=BIXIE_CIWAN, prng=prng):
                 reward = xf.parry_rewards(
                     ap=ap, dp=dp,
@@ -298,6 +434,8 @@ def simulate_fight(
                 actions.append(entry)
                 return "alive"
 
+            # 钩子先算整数增量（force/martial 的随机在此消费），再交给库。
+            hooks, force_reflected = _skill_hooks(src, dst, mapped, prng, hooks_by_skill)
             breakdown = xf.resolve_damage(
                 # `combatd.lpc:436-440`：持兵器取 apply/damage，空手取
                 # apply/unarmed_damage；`Entity.attack` 是旧内容的等价基础伤害入口。
@@ -308,11 +446,11 @@ def simulate_fight(
                 attacker_exp=src.exp,
                 defender_exp=dst.exp,
                 prng=prng,
-                action_damage=ACTION_SEQUENCE["damage"],
-                action_force=ACTION_SEQUENCE["force"],
+                action_damage=coefficient(move, "damage"),
+                action_force=coefficient(move, "force"),
                 kongming=KONGMING,
                 power_point_permille=power_point_permille(src.ent, src_skill),
-                **SKILL_HOOKS,
+                **hooks,
             )
             new_hp = xf.apply_qi_damage(dst.hp, breakdown.final_damage)
             wounded = xf.roll_wound(
@@ -362,6 +500,9 @@ def simulate_fight(
                 "eff_hp_after": max(0, new_eff),
                 "armor_absorbed": breakdown.armor_absorbed,
                 "strength_bonus": breakdown.strength_bonus,
+                "force_hit": hooks["force_hit"],
+                "martial_hit": hooks["martial_hit"],
+                "force_reflected": force_reflected,
                 "state": state,
             })
             actions.append(entry)

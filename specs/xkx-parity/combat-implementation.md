@@ -70,15 +70,20 @@ Effect 里做一次，并把钳制后的**实际**增量回写进 `Effect.data["
 - **一次动作 = 1 条事件**：最多 20 回合全部在同一次 `apply()` 内结算，事件
   `effects` 末尾是一条 `combat_log`，其 `data.rounds[]` 即完整战报（结构未变）。
   不存在“每回合一条事件”，`max_rounds` 只能调小（`>20` 被硬截断）。
-- 调用顺序严格按 `INTERFACE.md` §2：
-  1. `skill_power(attack)` / `skill_power(dodge, DEFENSE)`；
-  2. `resolve_dodge` →（闪避）`dodge_rewards`；
-  3. `select_parry_power` → `resolve_parry` →（招架）`parry_rewards`；
-  4. `resolve_damage`（内部：武器伤害 → 护甲 → 膂力 → 经验压制 → 空明 → 威力系数）；
-  5. `apply_qi_damage` → `roll_wound` →（受伤）`apply_qi_wound`；
-  6. `damage_rewards` → `death_state`。
+- 调用顺序严格按 `INTERFACE.md` §2，并在最前面加一步原版选招：
+  1. **选招**：`reset_action()` → `query_action()`，一笔 `random(seq)`；
+     有映射技能用技能招式，否则回落种族 `combat_action`；
+  2. `skill_power(attack)` / `skill_power(dodge, DEFENSE)`；
+  3. `resolve_dodge` →（闪避）`dodge_rewards`；
+  4. `select_parry_power` → `resolve_parry` →（招架）`parry_rewards`；
+  5. `resolve_damage`（内部：武器伤害 → 护甲 → 膂力 → 经验压制 → 空明 → 威力系数）；
+  6. `apply_qi_damage` → `roll_wound` →（受伤）`apply_qi_wound`；
+  7. `damage_rewards` → `death_state`。
 - 引擎侧自己算、不进库的量（库第 4 节要求）：
   - 攻击技能名：`intent.args.skill` 优先，其次 `role` 命中技能表，否则 `unarmed`；
+    具体武功走 `Entity.map_skills[基础技能]`（原版 `query_skill_mapped`）；
+  - 无映射技能时用种族 `combat_action`（人类 5 条、走兽 3 条；走兽 `damage`
+    50/30/30 来自原版 `race/beast.lpc`，不新增伤害来源）；
   - 先手：`dex + dodge 等级` 大者先手，平手由发起方先手（xkx 由心跳队列决定，
     引擎无行动队列，这是引擎规则、不是 xkx 公式）；
   - `power_point` 千分位：读 `attrs["power_point"]`，缺省 `1000`（=1.0，中性值）；
@@ -92,10 +97,12 @@ Effect 里做一次，并把钳制后的**实际**增量回写进 `Effect.data["
   `skill_progress`。`potential` 未建模，奖励里的潜能增量忽略（见 §7 第 8 项）。
 - 随机：`Writer` 注入 `PRNG(seed, seq, salt="action:fight")`；`TraceRandom` 把
   `rng.randint(0, n-1)` 适配成库的 `RandomSource.below(n)`（`n<=0` 记一次调用、
-  返回 0、不消费随机流）。取数顺序即库的源码顺序，锁在
-  `tests/test_combat_fight.py::test_prng_draw_order_is_locked`：
-  `dodge → parry → weapon_damage → armor → strength → exp_check → wound(护甲) →
-  wound(killing 组) → damage_rewards`。切换库后该战例为 **9 次**取数（旧实现 15 次）。
+  返回 0、不消费随机流）。取数顺序为 **选招在最前**：
+  `move(query_action) → dodge → parry → weapon_damage → armor → strength → exp_check →
+  wound(护甲) → wound(killing 组) → damage_rewards`。无映射技能且无 `race` 的实体
+  不选招，原 9 次取数顺序保持，锁在
+  `tests/test_combat_fight.py::test_prng_draw_order_is_locked`；有招式路径锁在
+  `tests/test_combat_moves.py`（首笔 `(2,1)`）。
 - **没有暴击**：xkx `combatd` 全仓检索 `暴击`/`critical` 零命中，本实现不引入暴击；
   战报断言里显式禁止出现 `critical`/`暴击` 字样（`test_fight_writes_one_event_*`）。
 
@@ -114,7 +121,7 @@ Effect 里做一次，并把钳制后的**实际**增量回写进 `Effect.data["
 |---|---|
 | 旧 golden | `tests/test_p3e_golden.py` 两条 V6 测试保持绿（791 events，`6be665b…` / `0c15b0d…`） |
 | 旧无玩家世界 | 735 events，state `009076f0346352e328d8c158a3017a3e26fbc0b2c59ef7ca20c8fc3d1f780ce9`，event `02d5f812c427833387e592ad9321ebd72a9c5c719825b958f53af83d795078ae`，business_cash 11442 |
-| 新战斗基线 | 4 events（genesis + spawn + fight ×2），state `3eae4e85e27e4f268c3f9d2579aac42d0e6465d759c2ebca7b3a93ff77627f86`，event `046a13318b526911ded164f828c58ea0516d85492d2b8e917bd7467838d74db3`（`tests/test_xkx_determinism_combat.py`） |
+| 新战斗基线 | 4 events（genesis + spawn + fight ×2），state `91097d90…`（未变），event `273b5455003ce199f46d2b7385a560f83ea3ca1281b9cdf8803845ce11cfc929`（招式接入后因 `rounds[]` 新字段重采，`tests/test_xkx_determinism_combat.py`） |
 | 同 seed 双跑 | 新基线测试内双跑 state/event 哈希逐字节一致 |
 | 回放等价 | 从 `events.sqlite` 逐条 `apply_effects` 重建的投影与实跑 state 哈希一致 |
 | 战斗账本自洽 | 干净 worktree（`b587b60`）审计第 7 项 PASS：`effect_sum == state_delta`（120→112 `-8/-8`，70→0 `-70/-70`），`problems=[]` |
@@ -123,6 +130,11 @@ Effect 里做一次，并把钳制后的**实际**增量回写进 `Effect.data["
 event 哈希两次采样说明：切库时先采 `bb1698b…`；随后修 `hp_add` 超额伤害的账本
 不自洽（delta 回写实际值，如 -41 → -40）后重采为 `046a133…`，state 哈希**未变**
 （`3eae4e85…`），证明这次修复只动账本、不动投影。
+
+招式接入说明：2026-11-07 接入招式名与技能钩子后，`state_final` 仍是 `91097d90…`
+（合成场景实体没有 `map_skills`/`race`，不选招、不掷点、不新增伤害）；`event_final`
+因 `rounds[].actions[]` 增加 `action_skill/selection/move/move_text/move_index/force_hit/
+martial_hit/force_reflected` 而重采为 `273b5455…`，属于战报字段变化，不是数值变化。
 
 基线迁移说明：`dc0aa76e…` / `7968aebf…` 是**引擎自维护公式**时代的采样值；切换到
 `tools/xkx_formula` 后按“以库为准”重新采样，不是把数值调回去凑旧哈希。旧 golden
@@ -173,8 +185,8 @@ vs `npc.boar`（40hp、attack 10、def 2、str 20、dex 15、unarmed 40），带
 
 | # | 库列出的项 | 引擎侧处理 | 状态 |
 |---|---|---|---|
-| 1 | 技能虚函数钩子（force/martial/weapon 的 `hit_ob`/`be_hit_ob`） | 无技能配置/虚函数机制，`SKILL_HOOKS` 五项固定传 0，参数位置保留在 `resolve_damage` 的源码顺序上 | 缺口：需内容侧先定义技能钩子 |
-| 2 | 招式序列（`reset_action()` 的 dodge/parry/force/damage） | `ACTION_SEQUENCE` 四项固定 0（中性值），不做招式选择与连招 | 缺口：需招式表与选择规则 |
+| 1 | 技能虚函数钩子（force/martial/weapon 的 `hit_ob`/`be_hit_ob`） | `force_hit`（6 个有 code 的内功共用 `inherit/skill/force.lpc hit_ob`）与 `martial_hit`（mantian-xing / yunlong-zhua，只上毒、整数增量 0）已接；`victim_force_hit`（`force.lpc be_hit_ob` 源码整段被注释）、`victim_parry_hit`（无实现）、`weapon_hit`（由武器对象 `hit_ob` 提供，技能表不可得）保持 0，不查表、不掷点 | 部分：三项 0 已写明原因 |
+| 2 | 招式序列（`reset_action()` 的 dodge/parry/force/damage） | 已按原版 `query_action()` 选招：`seq=max{i|level>action[i-1].lvl}`、`seq=random(seq)`、取 `action[seq]`；系数走既有 `dodge_action_bonus/parry_action_bonus/action_damage/action_force`，无映射技能回落种族 `combat_action`；`special_actions`（perform）仍不自动触发 | 已接入普通招式；perform 另立任务 |
 | 3 | 战斗状态位（`is_busy`、`bixie/cizu`、`bixie/ciwan`、`killing`、`weapon`、`apply/armor`） | `killing=True`（`fight` 即击杀模式）；`weapon` 读 `equipped["weapon"]`；`armor` 读 `Entity.defense`；`is_busy`/`cizu`/`ciwan` 无行动队列与临时标记，固定 `False` | 部分：`is_busy`/`cizu`/`ciwan` 为缺口 |
 | 4 | 身份与存活判定（`userp`/`living`/`noliving`） | `player:` 前缀或 `state.players` 视为玩家；`living` 固定 `True`（死亡实体已被 `preconditions` 挡在战斗外）；`noliving` 未建模 | 部分：`noliving` 为缺口 |
 | 5 | 轻功与 `power_point` 千分位系数 | 防御侧 `dodge_power_point_permille=None`（引擎无“映射轻功”概念）；攻击侧读 `attrs["power_point"]`，缺省 1000 | 部分：轻功映射为缺口；`jing` 用 `hp` 近似 |
@@ -186,7 +198,9 @@ vs `npc.boar`（40hp、attack 10、def 2、str 20、dex 15、unarmed 40），带
 （`formula-map.md` §4.1），本实现不引入，战报与事件里不出现该字段。
 
 待补清单（按依赖排序，均不在本次可交付范围）：
-1. 技能虚函数钩子 + 招式序列（依赖内容侧技能/招式定义）；
+1. `special_actions`（perform 分支）与三项未实现钩子（`victim_force_hit` /
+   `victim_parry_hit` / `weapon_hit`）——前者依赖任务/冷却/内力触发，后者源码被注释
+   或由武器对象提供；
 2. `is_busy` / `bixie cizu` / `bixie ciwan` 临时状态位（依赖行动队列）；
 3. 轻功映射与 `power_point` 按技能求值；
 4. `receive_damage` 副作用（怒气、`heart_beat`）与 `noliving`；
@@ -544,3 +558,100 @@ combatd.lpc:342  clamp [1, 200,000,000]                    -> 21,287,500（未�
 `tests/test_xkx_determinism_legacy.py` 全绿：735 events /
 state `009076f0…` / event `02d5f812…` / business_cash 11442 / blocked 6 / pruned 3。
 `tests/test_p3e_golden.py` 全绿。旧内容 NPC 没有 `equipment`，死亡路径不新增任何 Effect。
+
+## 12. 招式名与技能钩子接入（2026-11-07）
+
+### 12.1 数据与语义
+
+- `src/wsim/sim/skill_actions.py` 只读加载 `content/xkx/skills_actions.json`：
+  22 个武功 / 247 条普通招式 / 4 条 `special_actions`；`default` 系数 126 个，全为 0。
+- 选招严格按 `query_action()`：
+  `seq = max{i | level > action[i-1].lvl}` → `seq = random(seq)` → `action[seq]`；
+  `seq=0` 时仍记一笔 `below(0)` 并取第 0 条。映射技能为空时回落种族 `combat_action`
+  （人类 5 条无系数；走兽 3 条 `damage` 50/30/30）。
+- 缺键与 `coefficient_source=="default"` 都取 0；`tests/test_skill_actions.py`
+  遍历 247 条断言四键齐全且 default 全 0，`tests/test_combat_moves.py` 锁死
+  “缺 `force` 键 = 0、战报 JSON 不含 `None/NaN`”。
+- 钩子：`force_hit` 按 `force.lpc hit_ob` 接入 6 个有 code 的内功；
+  `martial_hit` 接入 mantian-xing / yunlong-zhua（只上毒，整数增量 0，但消费随机）；
+  `victim_force_hit`（`be_hit_ob` 整段被注释）、`victim_parry_hit`（无实现）、
+  `weapon_hit`（由武器对象 `hit_ob` 提供，技能表不可得）保持 0，不查表、不掷点。
+
+### 12.2 真实 xkx 世界两场（`content/xkx`，seed=42，新号 100 血）
+
+弱怪 `/d/hangzhou/npc/xiaoer2`（店小二，200 血）：
+
+```text
+第1回合
+  你挥拳攻击店小二的要害，造成20点伤害（气血200→180）。
+  店小二往你的要害一抓，但你闪开了。
+...
+共11回合，你赢了，店小二倒下了。
+```
+
+老虎 `/d/hangzhou/npc/laohu`（200 血）：
+
+```text
+第1回合
+  你挥拳攻击老虎的要害，但老虎闪开了。
+  老虎跃起来用前掌往你的要害猛地一拍，造成9点伤害（气血100→91）。
+...
+第15回合
+  你提起拳头往老虎的要害捶去，但老虎闪开了。
+  老虎扑上来张嘴往你的要害狠狠地一咬，造成5点伤害（气血1→0，受了伤）。
+共15回合，你倒下了。
+```
+
+两只 NPC 内容里都没有 `map_skills`，所以按原版 `reset_action()` 回落种族
+`combat_action`，战报展示的是原版动作文案（不是新造的招式名）。有映射技能的
+真实 NPC（李沅芷，`map_skills.unarmed=taiji-quan`）战报示例：
+
+```text
+李沅芷使出一招「白蛇吐信」，击中你，伤害108，气血100→0。
+```
+
+### 12.3 同 seed 伤害序列对比（`PRNG(42, 0, "action:fight")`）
+
+三组：A 接入前（无 `map_skills/race`，空表）、B 只选招并把系数归零、
+C 接入后。B→C 为 **0 个差异回合**，说明本次接入没有新增伤害来源；A→B 的差异
+全部来自原版每回合都会发生的一次 `query_action` 掷点（`combatd.lpc:280-295`
+调用 `reset_action()`/`query_action()`），下游随机流整体平移。
+
+老虎（走兽默认招式，16 回合）：
+
+| 回合 | A 伤害 | B/C 伤害 |
+|---|---|---|
+| 4 | 6 | 5 |
+| 6 | 7 | 5 |
+| 7 | 6 | 8 |
+| 8 | 9 | 6 |
+| 9 | 7 | 9 |
+| 10 | 7 | 8 |
+| 11 | 8 | 6 |
+| 12 | 5 | 6 |
+| 13 | 9 | 6 |
+| 14 | 5 | 9 |
+| 15 | 7 | 5 |
+| 16 | 7 | 8 |
+
+其余 4 回合数值相同。店小二（12 回合）A→B 差异 10 回合，同样只来自掷点平移；
+B→C 仍为 0。
+
+为什么 B→C 全为 0：这两个实体的 `attack` 为 0，伤害几乎全部来自 `roll_strength_bonus`，
+`combatd action["damage"]` 的 `damage += action["damage"]*damage/200` 乘在 0 上；
+人类默认招式四系数全 0，走兽默认招式只有 `damage` 且被上式吞掉。因此本战例没有
+可观察的系数增量，但参数通路已由 `tests/test_combat_moves.py` 用
+`dodge=50/parry=40` 直接验证透传。
+
+### 12.4 确定性证据
+
+- 旧九地点：`tests/test_xkx_determinism_legacy.py` 原值通过，
+  state `009076f0346352e328d8c158a3017a3e26fbc0b2c59ef7ca20c8fc3d1f780ce9`，
+  event `02d5f812c427833387e592ad9321ebd72a9c5c719825b958f53af83d795078ae`；
+  `tests/test_p3e_golden.py` 原值通过。
+- 同 seed 双跑（真实老虎场景，两条独立会话，走同一条路线再 `fight 老虎`）：
+  state `c22f4b14096aaaa48436f19e77c89163df0f2c178bb2fab77fd58af6806f3b4d`（两次相同），
+  event `0e4ef8d9a15fecaf62b91a10940c44ea0db8a7782b42b00f55075ea4e26f1638`（两次相同），
+  战报文本逐行相同。
+- 合成战斗基线：`state_final` 仍 `91097d90…`（无 `map_skills/race` 的实体不选招、
+  不掷点、数值不变）；`event_final` 因 `rounds[]` 新增字段重采为 `273b5455…`。

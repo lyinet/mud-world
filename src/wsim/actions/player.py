@@ -69,6 +69,9 @@ def _player_vitals(archetype: str = "") -> dict:
         # 原版 logind.lpc 新玩家 potential = 99，learned_points 从 0 起。
         "potential": 99,
         "learned_points": 0,
+        # 原版人类 `combat_action` 兜底招式（`adm/daemons/race/human.lpc`）。
+        # 只由带战斗数据的内容包启用；旧九地点玩家创世不带这些键。
+        "race": "人类",
     }
 
 
