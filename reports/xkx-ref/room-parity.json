@@ -1,8 +1,8 @@
 {
  "source": {
   "reference": "/Users/lyinet/projects/XKX/world-sim/tools/xkx_ref/run/mudlib-parity (config-parity.ini, port 4021)",
-  "reference_mudlib": "/Users/lyinet/projects/XKX/world-sim/tools/xkx_ref/run/mudlib",
-  "replica": "/Users/lyinet/projects/XKX/world-sim/content/xkx/rooms.json",
+  "reference_mudlib": "/private/tmp/xkx-parity-fix/tools/xkx_ref/run/mudlib",
+  "replica": "/private/tmp/xkx-parity-fix/content/xkx/rooms.json",
   "start_room": "/d/hangzhou/duanqiao",
   "player": "xkxref",
   "tag": "",
@@ -45,28 +45,28 @@
   },
   "npcs": {
    "observable": 195,
-   "match": 175,
-   "rate": 0.8974
+   "match": 192,
+   "rate": 0.9846
   }
  },
  "categories": {
-  "npcs_mismatch": 20,
+  "npcs_mismatch": 3,
   "items_mismatch": 6
  },
  "npc_breakdown": {
-  "数量不同": 17,
   "头衔/状态前缀": 2,
   "在场/缺失": 1
  },
+ "corrections": [],
  "samples": {
   "npcs_mismatch": {
-   "id": "/d/hangzhou/road6",
-   "short": "青石大道",
+   "id": "/d/hangzhou/huanglongdong",
+   "short": "黄龙洞",
    "fields": {
     "name": {
      "match": true,
-     "orig": "青石大道",
-     "repl": "青石大道"
+     "orig": "黄龙洞",
+     "repl": "黄龙洞"
     },
     "desc": {
      "match": true
@@ -74,16 +74,10 @@
     "exits": {
      "match": true,
      "orig": [
-      "east",
-      "north",
-      "south",
-      "west"
+      "south"
      ],
      "repl": [
-      "east",
-      "north",
-      "south",
-      "west"
+      "south"
      ]
     },
     "items": {
@@ -94,12 +88,10 @@
     "npcs": {
      "match": false,
      "orig": {
-      "流氓头": 1,
-      "流氓": 4
+      "毒蛇 <昏迷不醒>": 1
      },
      "repl": {
-      "流氓": 1,
-      "流氓头": 1
+      "毒蛇": 1
      }
     }
    },
@@ -792,18 +784,18 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "流氓头": 1,
       "流氓": 4
      },
      "repl": {
-      "流氓": 1,
+      "流氓": 4,
       "流氓头": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/road12",
@@ -836,18 +828,18 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "绿营清兵": 4,
       "杭州提督 李可秀": 1
      },
      "repl": {
       "杭州提督 李可秀": 1,
-      "绿营清兵": 1
+      "绿营清兵": 4
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/tiejiangpu",
@@ -1022,18 +1014,18 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "绿营会众": 2,
       "明教青龙坛坛主 明教第三十五代弟子 程嘲风": 1
      },
      "repl": {
       "明教青龙坛坛主 明教第三十五代弟子 程嘲风": 1,
-      "绿营会众": 1
+      "绿营会众": 2
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/suti1",
@@ -1649,7 +1641,7 @@
       "大狼狗 <昏迷不醒>": 2
      },
      "repl": {
-      "大狼狗": 1
+      "大狼狗": 2
      }
     }
    },
@@ -1760,16 +1752,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "女孩": 2
      },
      "repl": {
-      "女孩": 1
+      "女孩": 2
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/majiu",
@@ -1882,7 +1874,7 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "麻雀": 2,
       "乌鸦": 1,
@@ -1891,11 +1883,11 @@
      "repl": {
       "武当派第十四代弟子 李沅芷": 1,
       "乌鸦": 1,
-      "麻雀": 1
+      "麻雀": 2
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/quyuanfenghe",
@@ -1998,18 +1990,18 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "红花会众": 2,
       "挑夫": 1
      },
      "repl": {
       "挑夫": 1,
-      "红花会众": 1
+      "红花会众": 2
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/yuhuangsj",
@@ -2040,16 +2032,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "红花会众": 2
      },
      "repl": {
-      "红花会众": 1
+      "红花会众": 2
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/road16",
@@ -2494,18 +2486,18 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "麻雀": 2,
       "乌鸦": 1
      },
      "repl": {
-      "麻雀": 1,
+      "麻雀": 2,
       "乌鸦": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/suti6",
@@ -2738,18 +2730,18 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "管家": 1,
       "家丁": 2
      },
      "repl": {
       "管家": 1,
-      "家丁": 1
+      "家丁": 2
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/yuhuangsd",
@@ -2930,16 +2922,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "男孩": 2
      },
      "repl": {
-      "男孩": 1
+      "男孩": 2
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/fajingsi",
@@ -3218,16 +3210,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "采茶女": 2
      },
      "repl": {
-      "采茶女": 1
+      "采茶女": 2
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/shanlu2",
@@ -3258,16 +3250,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "绿营会众": 2
      },
      "repl": {
-      "绿营会众": 1
+      "绿营会众": 2
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/jiaxing/jiaxing",
@@ -3336,16 +3328,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "乌鸦": 4
      },
      "repl": {
-      "乌鸦": 1
+      "乌鸦": 4
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/jiaxing/jnroad4",
@@ -4216,18 +4208,18 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "进香客": 2,
       "老和尚": 1
      },
      "repl": {
-      "进香客": 1,
+      "进香客": 2,
       "老和尚": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/chashi",
@@ -4328,16 +4320,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "男孩": 3
      },
      "repl": {
-      "男孩": 1
+      "男孩": 3
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/jiaxing/jnroad1",
@@ -6630,18 +6622,18 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "温家老大 温方达": 1,
       "丫环": 2
      },
      "repl": {
       "温家老大 温方达": 1,
-      "丫环": 1
+      "丫环": 2
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/shiliang/dongxiangfang",
@@ -6914,16 +6906,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "噬人鱼": 2
      },
      "repl": {
-      "噬人鱼": 1
+      "噬人鱼": 2
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/shiliang/jinshedong",

@@ -3,8 +3,8 @@
 **全量 195 个房间**（复刻杭州切片共 195 个房间，全覆盖）。
 
 - 房间数：195 / 195
-- 原版来源：`/Users/lyinet/projects/XKX/world-sim/tools/xkx_ref/run/mudlib-parity (config-parity.ini, port 4021)`（mudlib = `/Users/lyinet/projects/XKX/world-sim/tools/xkx_ref/run/mudlib`，与 4004 同一棵树）
-- 复刻来源：`/Users/lyinet/projects/XKX/world-sim/content/xkx/rooms.json`
+- 原版来源：`/Users/lyinet/projects/XKX/world-sim/tools/xkx_ref/run/mudlib-parity (config-parity.ini, port 4021)`（mudlib = `/private/tmp/xkx-parity-fix/tools/xkx_ref/run/mudlib`，与 4004 同一棵树）
+- 复刻来源：`/private/tmp/xkx-parity-fix/content/xkx/rooms.json`
 - 采集方式：startroom（逐房改存档 startroom 直接登录 look）
 
 ## 方法与顺序
@@ -33,20 +33,19 @@
 | desc | 195 | 195 | 100.0% |
 | exits | 195 | 195 | 100.0% |
 | items | 195 | 189 | 96.9% |
-| npcs | 195 | 175 | 89.7% |
+| npcs | 195 | 192 | 98.5% |
 
 ## 差异分类
 
 | 分类 | 数量 |
 |------|------|
 | items_mismatch | 6 |
-| npcs_mismatch | 20 |
+| npcs_mismatch | 3 |
 
 ### NPC 差异细分
 
 | 细类 | 房间数 |
 |------|--------|
-| 数量不同 | 17 |
 | 头衔/状态前缀 | 2 |
 | 在场/缺失 | 1 |
 
@@ -56,45 +55,28 @@
 
 | 房间 | 字段 | 说明 |
 |------|------|------|
-| `/d/hangzhou/road6` | npcs | 原版 {'流氓头': 1, '流氓': 4} vs 复刻 {'流氓': 1, '流氓头': 1} |
-| `/d/hangzhou/road12` | npcs | 原版 {'绿营清兵': 4, '杭州提督 李可秀': 1} vs 复刻 {'杭州提督 李可秀': 1, '绿营清兵': 1} |
 | `/d/hangzhou/huanglongdong` | npcs | 原版 {'毒蛇 <昏迷不醒>': 1} vs 复刻 {'毒蛇': 1} |
-| `/d/hangzhou/yuelang` | npcs | 原版 {'绿营会众': 2, '明教青龙坛坛主 明教第三十五代弟子 程嘲风': 1} vs 复刻 {'明教青龙坛坛主 明教第三十五代弟子 程嘲风': 1, '绿营会众': 1} |
 | `/d/hangzhou/dadao1` | items | 原版 {} vs 复刻 {'白薇': 1} |
 | `/d/hangzhou/kedian` | items | 原版 {'客店留言板(Board)': 1} vs 复刻 {} |
-| `/d/hangzhou/guozhuang` | npcs | 原版 {'大狼狗 <昏迷不醒>': 2} vs 复刻 {'大狼狗': 1} |
-| `/d/hangzhou/qingbomen` | npcs | 原版 {'女孩': 2} vs 复刻 {'女孩': 1} |
-| `/d/hangzhou/suti4` | npcs | 原版 {'麻雀': 2, '乌鸦': 1, '武当派第十四代弟子 李沅芷': 1} vs 复刻 {'武当派第十四代弟子 李沅芷': 1, '乌鸦': 1, '麻雀': 1} |
-| `/d/hangzhou/dalu1` | npcs | 原版 {'红花会众': 2, '挑夫': 1} vs 复刻 {'挑夫': 1, '红花会众': 1} |
-| `/d/hangzhou/yuhuangsj` | npcs | 原版 {'红花会众': 2} vs 复刻 {'红花会众': 1} |
-| `/d/hangzhou/liulangqiao` | npcs | 原版 {'麻雀': 2, '乌鸦': 1} vs 复刻 {'麻雀': 1, '乌鸦': 1} |
+| `/d/hangzhou/guozhuang` | npcs | 原版 {'大狼狗 <昏迷不醒>': 2} vs 复刻 {'大狼狗': 2} |
 | `/d/hangzhou/road1` | npcs | 原版 {'武当派第四代弟子 香火道人': 1} vs 复刻 {} |
-| `/d/hangzhou/liuzhuang` | npcs | 原版 {'管家': 1, '家丁': 2} vs 复刻 {'管家': 1, '家丁': 1} |
 | `/d/hangzhou/huagang` | items | 原版 {} vs 复刻 {'白芷': 1} |
-| `/d/hangzhou/tulu1` | npcs | 原版 {'男孩': 2} vs 复刻 {'男孩': 1} |
-| `/d/hangzhou/shanlu5` | npcs | 原版 {'采茶女': 2} vs 复刻 {'采茶女': 1} |
-| `/d/hangzhou/shanlu2` | npcs | 原版 {'绿营会众': 2} vs 复刻 {'绿营会众': 1} |
-| `/d/jiaxing/tieqiang` | npcs | 原版 {'乌鸦': 4} vs 复刻 {'乌鸦': 1} |
 | `/d/jiaxing/nanhu` | items | 原版 {} vs 复刻 {'白芷': 1} |
-| `/d/hangzhou/faxisi` | npcs | 原版 {'进香客': 2, '老和尚': 1} vs 复刻 {'进香客': 1, '老和尚': 1} |
-| `/d/hangzhou/shanlu3` | npcs | 原版 {'男孩': 3} vs 复刻 {'男孩': 1} |
-| `/d/shiliang/dating` | npcs | 原版 {'温家老大 温方达': 1, '丫环': 2} vs 复刻 {'温家老大 温方达': 1, '丫环': 1} |
 | `/d/shiliang/dongxiangfang` | items | 原版 {'锦面折叠长椅': 1} vs 复刻 {'椅子': 1} |
-| `/d/shiliang/huli` | npcs | 原版 {'噬人鱼': 2} vs 复刻 {'噬人鱼': 1} |
 | `/d/shiliang/xixiangfang` | items | 原版 {'锦面躺椅': 1} vs 复刻 {'椅子': 1} |
 
 ## 差异样例
 
-### npcs_mismatch — `/d/hangzhou/road6` (青石大道)
+### npcs_mismatch — `/d/hangzhou/huanglongdong` (黄龙洞)
 ```json
 {
- "id": "/d/hangzhou/road6",
- "short": "青石大道",
+ "id": "/d/hangzhou/huanglongdong",
+ "short": "黄龙洞",
  "fields": {
   "name": {
    "match": true,
-   "orig": "青石大道",
-   "repl": "青石大道"
+   "orig": "黄龙洞",
+   "repl": "黄龙洞"
   },
   "desc": {
    "match": true
@@ -102,16 +84,10 @@
   "exits": {
    "match": true,
    "orig": [
-    "east",
-    "north",
-    "south",
-    "west"
+    "south"
    ],
    "repl": [
-    "east",
-    "north",
-    "south",
-    "west"
+    "south"
    ]
   },
   "items": {
@@ -122,12 +98,10 @@
   "npcs": {
    "match": false,
    "orig": {
-    "流氓头": 1,
-    "流氓": 4
+    "毒蛇 <昏迷不醒>": 1
    },
    "repl": {
-    "流氓": 1,
-    "流氓头": 1
+    "毒蛇": 1
    }
   }
  },

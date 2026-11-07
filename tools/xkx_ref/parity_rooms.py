@@ -283,7 +283,28 @@ def load_content():
     return rooms, graph, exit_map, items, npcs
 
 
+def load_instance_counts():
+    """(房间, 模板) -> 复刻真实实例数。
+
+    实例不是按 set("objects") 的 count 硬造，而是由 content 派生：规范实例
+    占模板的首个 home，其余槽位是 `模板@房间#槽位`。直接读同一份派生结果，
+    避免对拍工具自己再实现一遍规则而与运行时漂移。
+    """
+    sys.path.insert(0, os.path.join(REPO, "src"))
+    from wsim.api.xkx_content import load_xkx_content
+
+    content = load_xkx_content(CONTENT)
+    counts: dict[tuple[str, str], int] = {}
+    for row in content.npc_instances:
+        key = (str(row["room"]), str(row["template"]))
+        counts[key] = max(counts.get(key, 1), int(row["instance"]))
+    return counts
+
+
 SRC_SHORT_CACHE = {}
+
+# (房间, 模板) -> 真实实例数；由 load_instance_counts() 在读取内容时填充。
+INSTANCE_COUNTS: dict[tuple[str, str], int] = {}
 
 
 def source_short(rid: str):
@@ -341,9 +362,9 @@ def replica_field(room, items, npcs):
             # 原版一件物品可自带数量（set_amount），如鹅卵石 10 块。
             cnt *= max(1, int(rec["amount"]))
         if kind == "npc":
-            # 复刻运行时一个 NPC 模板只建一个实体（genesis 按 content.npcs 建实体），
-            # 不按 set("objects") 的 count 复制；这是已知架构差异，不造假实例。
-            cnt = 1
+            # 复刻运行时按 (房间, 模板) 的真实实例数创建实体（room.c reset()
+            # 的 objects count 语义）；这里读同一份派生结果，不再假设单实例。
+            cnt = INSTANCE_COUNTS.get((str(room.get("id") or ""), ref), 1)
         nm = rec["name"] if rec else source_name(ref)
         if kind == "npc" and rec:
             # 原版 short() 会拼 title/门派/party/nickname；display_name 由抽取器按
@@ -806,6 +827,8 @@ def main():
     args = ap.parse_args()
 
     rooms, graph, exit_map, items, npcs = load_content()
+    global INSTANCE_COUNTS
+    INSTANCE_COUNTS = load_instance_counts()
     phases = load_day_phases()
     build_npc_names()
 
@@ -948,6 +971,7 @@ def main():
            ],
            "rooms": len(records), "summary": summary, "categories": dict(cats),
            "npc_breakdown": dict(nb),
+           "corrections": prev.get("corrections") or [],
            "samples": samples, "records": records}
     os.makedirs(OUTDIR, exist_ok=True)
     with open(os.path.join(OUTDIR, f"room-parity{suffix}.json"), "w", encoding="utf-8") as fh:
@@ -1001,6 +1025,12 @@ def write_md(out, md_path):
     lines += ["", "## 差异分类", "", "| 分类 | 数量 |", "|------|------|"]
     for k, v in sorted(out["categories"].items()):
         lines.append(f"| {k} | {v} |")
+    if out.get("corrections"):
+        lines += ["", "## 更正记录", ""]
+        for c in out["corrections"]:
+            lines.append(f"- **{c.get('date', '')} {c.get('commit', '')}**：{c.get('text', '')}")
+            for k, v in (c.get("figures") or {}).items():
+                lines.append(f"  - {k}：{v}")
     if out.get("npc_breakdown"):
         lines += ["", "### NPC 差异细分", "", "| 细类 | 房间数 |", "|------|--------|"]
         for k, v in sorted(out["npc_breakdown"].items(), key=lambda x: -x[1]):
