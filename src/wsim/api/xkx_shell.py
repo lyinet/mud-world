@@ -124,6 +124,12 @@ VERB_ALIASES: dict[str, str] = {
     "score": "score", "状态": "score", "属性": "score",
     "inventory": "inventory", "i": "inventory", "背包": "inventory", "物品": "inventory",
     "help": "help", "帮助": "help", "?": "help",
+    "bai": "bai", "拜师": "bai", "拜": "bai", "投师": "bai",
+    "learn": "learn", "学": "learn", "学习": "learn", "请教": "learn",
+    "practice": "practice", "练": "practice", "练习": "practice", "修炼": "practice",
+    "climb": "climb", "爬": "climb", "攀": "climb", "爬树": "climb",
+    "jump": "jump", "跳": "jump", "跃": "jump", "跳木桩": "jump",
+    "revive": "revive", "还阳": "revive", "复活": "revive", "回魂": "revive",
 }
 
 _EXTRA_REASON_TEXT = {
@@ -157,6 +163,32 @@ _EXTRA_REASON_TEXT = {
     "unknown_verb": "这个动作还没有接上。",
     "forbidden_verb": "这个动作当前不开放。",
     "not_implemented_for_player": "这个玩法还没对玩家开放。",
+    "master_not_here": "这里没有你说的这位师父。",
+    "master_ambiguous": "这里有不止一个人符合这个称呼，请说清楚。",
+    "master_dead": "这位师父已经不在人世。",
+    "not_a_master": "对方不是可以拜师的人物。",
+    "already_apprentice": "你已经是这位师父的弟子了。",
+    "already_has_master": "你已经另有师父；原版不允许随意改投。",
+    "already_in_sect": "你已经身在门派之中。",
+    "in_ghost_gate": "你身处鬼门关，做不得阳间的事。",
+    "unknown_skill": "没有这门技能。",
+    "not_apprentice_of_teacher": "你与这位师父没有师承关系，他不能教你。",
+    "teacher_lacks_skill": "这位师父不会这门技能。",
+    "skill_not_lower": "你的这门技能已经不低于师父，学不到新东西了。",
+    "master_wont_teach": "技能已到 250 级，师父无法再教。",
+    "insufficient_combat_exp": "你的实战经验不足以驾驭这门技能。",
+    "insufficient_potential": "潜能不足，付不起这次学习。",
+    "insufficient_jing": "精力不足，支撑不了这么多次学习。",
+    "skill_not_learned": "你还没有学会这门技能，无法自行练习。",
+    "basic_skill_missing": "你还没有对应的基本功，无法练习这门技能。",
+    "practice_ratio_low": "基本功相对这门技能还太浅，练不上去。",
+    "insufficient_stamina": "体力不足 30，练不动了。",
+    "climb_wrong_place": "这里没有可以攀爬的树。",
+    "dodge_too_low": "你的轻功还不到 50 级，爬不上去。",
+    "jump_wrong_place": "这里不是跳木桩的地方。",
+    "jump_target_unknown": "你要跳向什么？原版这里只有木桩。",
+    "not_dead": "你还活着，不必还阳。",
+    "not_in_ghost_gate": "你不在鬼门关，无法还阳。",
 }
 
 
@@ -254,6 +286,18 @@ class XKXShell:
                 return self._cmd_fight(account, rest, state, raw, request_id)
             if verb == "loot":
                 return self._cmd_loot(account, rest, state, raw, request_id)
+            if verb == "bai":
+                return self._cmd_bai(account, rest, state, raw, request_id)
+            if verb == "learn":
+                return self._cmd_learn(account, rest, state, raw, request_id)
+            if verb == "practice":
+                return self._cmd_practice(account, rest, state, raw, request_id)
+            if verb == "climb":
+                return self._cmd_climb(account, rest, state, raw, request_id)
+            if verb == "jump":
+                return self._cmd_jump(account, rest, state, raw, request_id)
+            if verb == "revive":
+                return self._cmd_revive(account, state, raw, request_id)
             if verb == "score":
                 return self._reply(
                     account, "score", True, self._score_lines(state), state, raw, request_id
@@ -748,10 +792,43 @@ class XKXShell:
             lines.append(
                 ("info", "掉落：" + "、".join(self._take_text(row) for row in drops) + "。")
             )
+        death = (resp.get("details") or {}).get("death")
+        if isinstance(death, dict) and death:
+            lines.extend(self._death_lines(death))
         lines.extend(self._score_core_lines(after))
         reply = self._reply(account, "fight", True, lines, after, raw, request_id)
         reply["engine_details"] = dict(resp.get("details") or {})
         return reply
+
+    def _death_lines(self, death: dict[str, Any]) -> list[tuple[str, str]]:
+        lines: list[tuple[str, str]] = [
+            ("error", "你倒下了，一缕魂魄被押入鬼门关。"),
+        ]
+        exp_loss = int(death.get("exp_loss") or 0)
+        if exp_loss:
+            lines.append(
+                (
+                    "warn",
+                    f"死亡后果：实战经验 {int(death.get('combat_exp_before') or 0)} → "
+                    f"{int(death.get('combat_exp_after') or 0)}（损失 {exp_loss}）。",
+                )
+            )
+        pot_loss = int(death.get("potential_loss") or 0)
+        if pot_loss:
+            lines.append(("warn", f"潜能损失 {pot_loss}，余 {int(death.get('potential_after') or 0)}。"))
+        lost = list(death.get("skills_lost") or [])
+        if lost:
+            lines.append(("warn", "技能各降一级并清零熟练度：" + "、".join(map(str, lost)) + "。"))
+        dropped = list(death.get("dropped") or [])
+        if dropped:
+            lines.append(("info", "随身物品落在死亡地点：" + "、".join(map(str, dropped)) + "。"))
+        lines.append(
+            (
+                "info",
+                f"死亡计数：{int(death.get('death_count') or 0)}。输入「还阳」复活。",
+            )
+        )
+        return lines
 
     def _combat_report_lines(self, combat: dict[str, Any], target: dict[str, Any]) -> list[tuple[str, str]]:
         """按引擎返回的 rounds[] 原样转述：回合号、每击结果、伤害与气血变化、胜负与超额伤害。"""
@@ -820,6 +897,207 @@ class XKXShell:
     def _combat_name(entity_id: Any, target: dict[str, Any]) -> str:
         eid = str(entity_id or "")
         return "你" if eid.startswith("player:") else str(target.get("name") or "对手")
+
+    # ------------------------------------------------------------- 成长线与生死
+    def _cmd_bai(
+        self, account: str, rest: str, state: dict[str, Any], raw: str, request_id: str
+    ) -> dict[str, Any]:
+        target = str(rest or "").strip()
+        if not target:
+            return self._reply(
+                account, "bai", False,
+                [("error", "要拜谁为师？用法：bai 师父名")], state, raw, request_id,
+            )
+        resp = self.session.perform(account, "bai", {"target": target})
+        if not resp.get("ok"):
+            code = str(resp.get("reject_reason") or "")
+            return self._reply(
+                account, "bai", False,
+                [("error", self._reason(code, fallback="这一拜没有成。"))],
+                state, raw, request_id,
+            )
+        growth = dict((resp.get("details") or {}).get("growth") or {})
+        master = str(growth.get("master_name") or target)
+        sect = str(growth.get("sect_name") or "")
+        text = f"你向{master}叩拜，正式列入门墙。"
+        if sect:
+            text += f" 门派：{sect}。"
+        after = self._state(account) or state
+        return self._reply(
+            account, "bai", True, [("cmd", f"bai {target}"), ("npc", text)], after, raw, request_id
+        )
+
+    def _cmd_learn(
+        self, account: str, rest: str, state: dict[str, Any], raw: str, request_id: str
+    ) -> dict[str, Any]:
+        tokens = [t for t in str(rest or "").split() if t not in ("from", "向", "跟", "从")]
+        if len(tokens) < 2:
+            return self._reply(
+                account, "learn", False,
+                [("error", "用法：learn 师父 技能 [次数]（原版：learn 师父 技能 次数）")],
+                state, raw, request_id,
+            )
+        teacher, skill = tokens[0], tokens[1]
+        times = 1
+        if len(tokens) >= 3:
+            try:
+                times = max(1, int(tokens[2]))
+            except ValueError:
+                return self._reply(
+                    account, "learn", False,
+                    [("error", "次数必须是正整数。")], state, raw, request_id,
+                )
+        resp = self.session.perform(
+            account, "learn", {"teacher": teacher, "skill": skill, "times": times}
+        )
+        if not resp.get("ok"):
+            code = str(resp.get("reject_reason") or "")
+            return self._reply(
+                account, "learn", False,
+                [("error", self._reason(code, fallback="师父没有教你。"))],
+                state, raw, request_id,
+            )
+        growth = dict((resp.get("details") or {}).get("growth") or {})
+        name = str(growth.get("skill_name") or skill)
+        level_before = int(growth.get("level_before") or 0)
+        level_after = int(growth.get("level_after") or 0)
+        xp_after = int(growth.get("xp_after") or 0)
+        limit = (level_after + 1) * (level_after + 1)
+        lines = [
+            ("cmd", f"learn {teacher} {skill} {times}"),
+            (
+                "info",
+                f"你向{growth.get('teacher_name') or teacher}请教「{name}」{int(growth.get('times') or 0)} 次："
+                f"耗潜能 {int(growth.get('times') or 0)}、精力 {int(growth.get('jing_cost') or 0)}。",
+            ),
+            (
+                "info",
+                f"「{name}」等级 {level_before} → {level_after}，学习点数 {xp_after}/{limit}。",
+            ),
+        ]
+        after = self._state(account) or state
+        return self._reply(account, "learn", True, lines, after, raw, request_id)
+
+    def _cmd_practice(
+        self, account: str, rest: str, state: dict[str, Any], raw: str, request_id: str
+    ) -> dict[str, Any]:
+        tokens = str(rest or "").split()
+        if not tokens:
+            return self._reply(
+                account, "practice", False,
+                [("error", "用法：practice 技能 [次数]")], state, raw, request_id,
+            )
+        skill = tokens[0]
+        times = 1
+        if len(tokens) >= 2:
+            try:
+                times = max(1, int(tokens[1]))
+            except ValueError:
+                return self._reply(
+                    account, "practice", False,
+                    [("error", "次数必须是正整数。")], state, raw, request_id,
+                )
+        resp = self.session.perform(account, "practice", {"skill": skill, "times": times})
+        if not resp.get("ok"):
+            code = str(resp.get("reject_reason") or "")
+            return self._reply(
+                account, "practice", False,
+                [("error", self._reason(code, fallback="这一练没有进展。"))],
+                state, raw, request_id,
+            )
+        growth = dict((resp.get("details") or {}).get("growth") or {})
+        name = str(growth.get("skill_name") or skill)
+        level_before = int(growth.get("level_before") or 0)
+        level_after = int(growth.get("level_after") or 0)
+        xp_after = int(growth.get("xp_after") or 0)
+        limit = (level_after + 1) * (level_after + 1)
+        lines = [
+            ("cmd", f"practice {skill} {times}"),
+            (
+                "info",
+                f"你运功练习「{name}」{int(growth.get('times') or 0)} 次，耗体力 "
+                f"{int(growth.get('stamina_cost') or 0)}。",
+            ),
+            (
+                "info",
+                f"「{name}」等级 {level_before} → {level_after}，学习点数 {xp_after}/{limit}。",
+            ),
+        ]
+        if growth.get("partial"):
+            lines.append(("warn", "体力用尽，练习提前停止。"))
+        after = self._state(account) or state
+        return self._reply(account, "practice", True, lines, after, raw, request_id)
+
+    def _cmd_climb(
+        self, account: str, rest: str, state: dict[str, Any], raw: str, request_id: str
+    ) -> dict[str, Any]:
+        resp = self.session.perform(account, "climb", {"arg": str(rest or "")})
+        if not resp.get("ok"):
+            code = str(resp.get("reject_reason") or "")
+            return self._reply(
+                account, "climb", False,
+                [("error", self._reason(code, fallback="爬不上去。"))],
+                state, raw, request_id,
+            )
+        growth = dict((resp.get("details") or {}).get("growth") or {})
+        lines = [
+            ("cmd", f"climb {rest}".strip()),
+            (
+                "info",
+                f"你依仗轻功（{int(growth.get('dodge') or 0)} 级）攀上树去，落在"
+                f"{self._loc_name(str(growth.get('to') or ''))}。",
+            ),
+        ]
+        after = self._state(account) or state
+        return self._reply(account, "climb", True, lines, after, raw, request_id)
+
+    def _cmd_jump(
+        self, account: str, rest: str, state: dict[str, Any], raw: str, request_id: str
+    ) -> dict[str, Any]:
+        resp = self.session.perform(account, "jump", {"arg": str(rest or "")})
+        if not resp.get("ok"):
+            code = str(resp.get("reject_reason") or "")
+            return self._reply(
+                account, "jump", False,
+                [("error", self._reason(code, fallback="跳不过去。"))],
+                state, raw, request_id,
+            )
+        growth = dict((resp.get("details") or {}).get("growth") or {})
+        dodge = int(growth.get("dodge") or 0)
+        landing = str(growth.get("landing") or "")
+        if growth.get("fell"):
+            text = f"你纵身一跃，轻功（{dodge} 级）不足百级，收势不住，跌进了{landing}。"
+        else:
+            text = f"你借木桩发力，轻功（{dodge} 级）稳稳掠过水面，落在{landing}。"
+        lines = [
+            ("cmd", f"jump {rest}".strip()),
+            ("info", text),
+        ]
+        after = self._state(account) or state
+        return self._reply(account, "jump", True, lines, after, raw, request_id)
+
+    def _cmd_revive(
+        self, account: str, state: dict[str, Any], raw: str, request_id: str
+    ) -> dict[str, Any]:
+        resp = self.session.perform(account, "revive", {})
+        if not resp.get("ok"):
+            code = str(resp.get("reject_reason") or "")
+            return self._reply(
+                account, "revive", False,
+                [("error", self._reason(code, fallback="你还阳不了。"))],
+                state, raw, request_id,
+            )
+        growth = dict((resp.get("details") or {}).get("growth") or {})
+        lines = [
+            ("cmd", "还阳"),
+            (
+                "info",
+                f"你从鬼门关还阳，回到{self._loc_name(str(growth.get('to') or ''))}。"
+                f"（累计死亡 {int(growth.get('death_count') or 0)} 次）",
+            ),
+        ]
+        after = self._state(account) or state
+        return self._reply(account, "revive", True, lines, after, raw, request_id)
 
     def _cmd_loot(
         self, account: str, rest: str, state: dict[str, Any], raw: str, request_id: str
@@ -1047,7 +1325,16 @@ class XKXShell:
         else:
             lines.append(("info", "门派：尚未拜入门派。"))
         skills = list(player.get("skills_detail") or [])
-        if skills:
+        martial = list(player.get("martial_skills") or [])
+        if martial:
+            lines.append(
+                (
+                    "info",
+                    "武学："
+                    + "、".join(f"{s['name']} {s['level']}级" for s in martial),
+                )
+            )
+        elif skills:
             lines.append(
                 (
                     "info",
@@ -1055,6 +1342,20 @@ class XKXShell:
                     + "、".join(f"{s['name']} {s['level']}级" for s in skills),
                 )
             )
+        lines.append(
+            (
+                "info",
+                f"实战经验：{int(player.get('combat_exp') or 0)} / 潜能：{int(player.get('potential') or 0)}"
+                f" / 已学点数：{int(player.get('learned_points') or 0)}",
+            )
+        )
+        master = player.get("master") or {}
+        if master.get("id"):
+            lines.append(("info", f"师承：{master.get('name') or master.get('id')}"))
+        if int(player.get("death_count") or 0):
+            lines.append(("info", f"死亡：{int(player.get('death_count') or 0)} 次"))
+        if str(player.get("status") or "") != "alive":
+            lines.append(("warn", "你现在处于死亡状态，输入「还阳」复活。"))
         return lines
 
     def _score_core_lines(self, state: dict[str, Any]) -> list[tuple[str, str]]:
@@ -1128,6 +1429,12 @@ class XKXShell:
             ("info", "sell <货> [数量]  把身上的货卖给当前店铺。"),
             ("info", f"fight <人>        动手。{fight_text}。"),
             ("info", f"loot [物品]       捡起地上物品；不带名字则按引擎顺序全捡（也可用 get）。{loot_text}。"),
+            ("info", "bai <师父>        向在场师父拜师（原版 bai），加入师承/门派。"),
+            ("info", "learn <师父> <技能> [次数]  向自己的师父请教技能，消耗潜能与精力。"),
+            ("info", "practice <技能> [次数]      自行练习已学技能，消耗体力。"),
+            ("info", "climb tree        石梁温宅：轻功≥50 才能爬树。"),
+            ("info", "jump 木桩         玫瑰小亭：轻功≥100 上小岛，否则落湖里。"),
+            ("info", "revive（还阳）    死亡后从鬼门关复活。"),
             ("info", "score（状态）     看自己的体力/银两/技能。"),
             ("info", "inventory（背包） 看行囊与装备。"),
             ("info", "help（帮助）      再看这张表。"),
@@ -1178,7 +1485,7 @@ class XKXShell:
         return self.session.state.entities.get(pid) if pid else None
 
     def _loc_name(self, loc_id: str) -> str:
-        row = (self.session.content.locations or {}).get(str(loc_id)) or {}
+        row = (self.session.state.locations or {}).get(str(loc_id)) or {}
         return str(row.get("name") or loc_id or "未知地点")
 
     def _reason(self, code: str, fallback: str = "") -> str:

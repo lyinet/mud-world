@@ -59,9 +59,15 @@ class Entity:
     attrs: dict[str, int] = field(default_factory=dict)  # str/int/con/dex/sta/spi/kar/cps/cor
     combat_exp: int = 0
     skill_levels: dict[str, int] = field(default_factory=dict)  # 技能等级（0..800）
-    skill_xp: dict[str, int] = field(default_factory=dict)  # 技能经验（0..99）
+    # 技能学习点数：课程/练习按原版 `improve_skill` 的 (level+1)^2 阈值累积；
+    # 战斗 tick 的 skill_xp_add 仍沿用 100 点一级的旧语义。
+    skill_xp: dict[str, int] = field(default_factory=dict)
+    # 原版 `potential` / `learned_points`：学技能消耗 1 潜能，learned_points 记账。
+    potential: int = 0
+    learned_points: int = 0
     death_tick: int = 0
     death_location: str = ""
+    death_count: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         data = {
@@ -116,6 +122,12 @@ class Entity:
         if self.death_tick or self.death_location:
             data["death_tick"] = int(self.death_tick)
             data["death_location"] = self.death_location
+        if self.potential:
+            data["potential"] = int(self.potential)
+        if self.learned_points:
+            data["learned_points"] = int(self.learned_points)
+        if self.death_count:
+            data["death_count"] = int(self.death_count)
         return data
 
 

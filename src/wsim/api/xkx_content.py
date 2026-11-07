@@ -102,6 +102,9 @@ def load_xkx_content(pack_root: Path | str) -> Content:
     items_raw = _rows(_read_json(pack / "items.json"), "items") if (pack / "items.json").is_file() else []
     shops_raw = _rows(_read_json(pack / "shops.json"), "shops") if (pack / "shops.json").is_file() else []
     sects_raw = _rows(_read_json(pack / "sects.json"), "sects") if (pack / "sects.json").is_file() else []
+    skills_raw = _rows(_read_json(pack / "skills.json"), "skills") if (pack / "skills.json").is_file() else []
+    stats_path = pack / "skills_stats.json"
+    skills_stats_raw = _rows(_read_json(stats_path), "skills_stats") if stats_path.is_file() else []
 
     rooms: dict[str, dict[str, Any]] = {}
     for raw in rooms_raw:
@@ -310,6 +313,10 @@ def load_xkx_content(pack_root: Path | str) -> Content:
             "name": str(raw.get("name") or sid),
             "location": location,
         }
+
+    # 技能元数据只读加载：learn/practice 按原版曲线取 learn_bonus/practice_bonus。
+    content.skills = list(skills_raw)
+    content.skills_stats = list(skills_stats_raw)
 
     # 经济参数：沿用引擎默认；只把商人房间准备金调小到“够找零”的量。
     content.economy = dict(DEFAULT_ECONOMY)

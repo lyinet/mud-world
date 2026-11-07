@@ -110,6 +110,8 @@ EFFECT_OPS = frozenset(
         "skill_xp_add",
         # 公式库 improve_skill 的落库载体：直接写回等级/熟练度（纯 Effect）。
         "skill_progress",
+        # 成长线（拜师）：只读成长明细，随事件持久化。
+        "growth_log",
         # 只读战报载体（与 shop_report 同类）：不修改状态，只把 rounds[] 写进事件。
         "combat_log",
     }
@@ -532,8 +534,8 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         ent.skill_xp[skill] = learned
         return
 
-    if op == "combat_log":
-        # 只读战报：rounds[] 随事件持久化，回放时不改状态。
+    if op in ("combat_log", "growth_log"):
+        # 只读战报：rounds[]/成长明细随事件持久化，回放时不改状态。
         return
 
     if op == "set_field":

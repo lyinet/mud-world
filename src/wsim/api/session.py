@@ -17,6 +17,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable
 
+from ..actions.growth import BaiAction
 from ..actions.player import (
     ACCOUNT_RE,
     ARCHETYPES,
@@ -149,6 +150,13 @@ WRITE_ACTIONS: dict[str, str] = {
     "fight": "fight",
     "loot": "loot",
     "flee": "flee",
+    # 成长线与生死：拜师 / 学习 / 练习 / 攀爬 / 跳跃 / 还阳。
+    "bai": "bai",
+    "learn": "learn",
+    "practice": "practice",
+    "climb": "climb",
+    "jump": "jump",
+    "revive": "revive",
 }
 
 # 门派写动作：响应统一附带最新私有快照（details.sect，与 player.sect 同源）。
@@ -209,6 +217,12 @@ ACTION_ALIASES: dict[str, str] = {
     "fight": "fight",
     "loot": "loot",
     "flee": "flee",
+    "bai": "bai",
+    "learn": "learn",
+    "practice": "practice",
+    "climb": "climb",
+    "jump": "jump",
+    "revive": "revive",
 }
 
 # NPC 专属动作：玩家请求必须得到明确的“未开放”，而不是未知操作。
@@ -220,7 +234,9 @@ FORBIDDEN_VERBS = frozenset(
 
 # xkx 文字壳可用的战斗动词：仅在 actions/ 层真正注册了同名动作时放行，
 # 避免 API 层提前把未实现的动词暴露给玩家。
-XKX_EXTRA_PLAYER_VERBS = frozenset({"fight", "loot", "flee"})
+XKX_EXTRA_PLAYER_VERBS = frozenset(
+    {"fight", "loot", "flee", "bai", "learn", "practice", "climb", "jump", "revive"}
+)
 
 # `/api/world/feed` 的固定上限与“重要事件”动词白名单（公共信息，不含玩家私有数据）。
 WORLD_FEED_LIMIT_MAX = 50
@@ -231,6 +247,8 @@ WORLD_FEED_IMPORTANT_VERBS = frozenset(
         "found_sect",
         "join_sect",
         "apprentice",
+        "bai",
+        "revive",
         "recruit",
         "escort",
         "quest_deliver",
@@ -372,6 +390,34 @@ REASON_TEXT: dict[str, str] = {
     "bad_arg:amount": "金额必须是 1–10000 的整数。",
     "bad_arg:name": "门派名号需 2–12 字。",
     "bad_arg:day": "结算日必须是非负整数。",
+    # 成长线与生死
+    "master_not_here": "这里没有你说的这位师父。",
+    "master_ambiguous": "这里有不止一个人符合这个称呼，请说清楚。",
+    "master_dead": "这位师父已经不在人世。",
+    "not_a_master": "对方不是可以拜师的人物。",
+    "already_apprentice": "你已经是这位师父的弟子了。",
+    "already_has_master": "你已经另有师父；原版不允许随意改投。",
+    "already_in_sect": "你已经身在门派之中。",
+    "self_target": "不能拜自己为师。",
+    "in_ghost_gate": "你身处鬼门关，做不得阳间的事。",
+    "unknown_skill": "没有这门技能。",
+    "not_apprentice_of_teacher": "你与这位师父没有师承关系，他不能教你。",
+    "teacher_lacks_skill": "这位师父不会这门技能。",
+    "skill_not_lower": "你的这门技能已经不低于师父，学不到新东西了。",
+    "master_wont_teach": "技能已到 250 级，师父无法再教。",
+    "insufficient_combat_exp": "你的实战经验不足以驾驭这门技能。",
+    "insufficient_potential": "潜能不足：需要潜能减去已学点数至少够付这次次数。",
+    "insufficient_jing": "精力不足，支撑不了这么多次学习。",
+    "skill_not_learned": "你还没有学会这门技能，无法自行练习。",
+    "basic_skill_missing": "你还没有对应的基本功，无法练习这门技能。",
+    "practice_ratio_low": "基本功相对这门技能还太浅，练不上去。",
+    "insufficient_stamina": "体力不足 30，练不动了。",
+    "climb_wrong_place": "这里没有可以攀爬的树。",
+    "dodge_too_low": "你的轻功还不到 50 级，爬不上去。",
+    "jump_wrong_place": "这里不是跳木桩的地方。",
+    "jump_target_unknown": "你要跳向什么？原版这里只有木桩。",
+    "not_dead": "你还活着，不必还阳。",
+    "not_in_ghost_gate": "你不在鬼门关，无法还阳。",
 }
 
 
@@ -463,12 +509,15 @@ class WorldSession:
         self.registry.register(PlayerPayDisciplesAction(self.content))
         self.registry.register(PlayerSectDepositAction(self.content))
         self.registry.register(PlayerSectWithdrawAction(self.content))
+        # 成长线与生死（只在本会话注册，不影响 NPC/系统动作链）。
+        self.registry.register(BaiAction(self.content))
         # 存档优先：已有事件日志时回放，绝不重新创世/重复发放初始资产。
         self.replayed = self.store.count() > 0
+        locations = self._world_locations()
         if self.replayed:
             try:
                 verify_content_hash(self.store, self.content.content_hash, self.run_dir)
-                state, player_ticks = replay_into(self.store, self.content.locations)
+                state, player_ticks = replay_into(self.store, locations)
             except Exception:
                 # 拒绝启动时释放 sqlite，避免部署脚本/测试留下锁文件。
                 self.store.close()
@@ -477,7 +526,7 @@ class WorldSession:
             self.writer._player_ticks.update(player_ticks)
             self.writer.committed_intents = self.store.count()
         else:
-            state = WorldState(locations=self.content.locations)
+            state = WorldState(locations=locations)
             self.writer = Writer(state, self.store, self.registry, seed)
             genesis = build_genesis(self.content, npcs, root=self.root)
             self.writer.bootstrap(genesis.effects, tick=0, verb="genesis")
@@ -523,6 +572,24 @@ class WorldSession:
         self.store.set_meta("seed", str(seed))
         self.store.set_meta("content_hash", self.content.content_hash)
         self.store.set_meta("player_id", player_id)
+
+    def _world_locations(self) -> dict[str, Any]:
+        """内容地点副本；xkx 包额外注入原版鬼门关（不进 content_hash/房间统计）。"""
+        locations = dict(self.content.locations)
+        if any(str(lid).startswith("/d/") for lid in locations) and "/d/death/gate" not in locations:
+            locations["/d/death/gate"] = {
+                "id": "/d/death/gate",
+                "kind": "room",
+                "name": "鬼门关",
+                "desc": "这里就是著名的阴间入口「鬼门关」，在你面前矗立着一座高大的\n"
+                "黑色城楼，许多亡魂正哭哭啼啼地列队前进。",
+                "desc_source": "lpc",
+                "origin": "virtual",
+                "flags": {"no_fight": 1, "no_clean_up": 0, "outdoors": ""},
+                "objects": [],
+                "source": {"line": 8, "path": "d/death/gate.lpc"},
+            }
+        return locations
 
     @property
     def state(self):
@@ -669,6 +736,19 @@ class WorldSession:
                 "skills": {k: round(float(v), 4) for k, v in sorted(ent.skills.items())},
                 # 只增不改：skills 保持字典；skills_detail 给每个技能等级/下一级/说明。
                 "skills_detail": self._skills_detail(ent),
+                # xkx 成长线：真实技能等级、经验/潜能、师承与死亡记录。
+                "status": ent.status,
+                "hp": round(float(ent.hp), 3),
+                "max_hp": round(float(ent.max_hp), 3),
+                "combat_exp": int(ent.combat_exp),
+                "potential": int(ent.potential),
+                "learned_points": int(ent.learned_points),
+                "death_count": int(ent.death_count),
+                "master": {
+                    "id": ent.master,
+                    "name": self._npc_name(ent.master) if ent.master else "",
+                },
+                "martial_skills": self._martial_skills_view(ent),
                 "equipment": self._equipment_view(ent),
                 "relations": view["relations"],
                 "active_quests": view["active_quests"],
@@ -1497,8 +1577,14 @@ class WorldSession:
         return ""
 
     def _loc_name(self, loc_id: str) -> str:
-        row = (self.content.locations or {}).get(loc_id) or {}
+        row = (self.state.locations or {}).get(loc_id) or {}
         return str(row.get("name") or loc_id or "未知地点")
+
+    def _npc_name(self, npc_id: str) -> str:
+        for raw in getattr(self.content, "npcs", []) or []:
+            if str(raw.get("id") or "") == npc_id:
+                return str(raw.get("name") or npc_id)
+        return npc_id
 
     def _item_name(self, item_id: str) -> str:
         row = (self.content.items or {}).get(item_id) or {}
@@ -1569,6 +1655,33 @@ class WorldSession:
                     "next_at": next_at,
                     "to_next": round(max(0.0, (next_at or val) - val), 4) if next_at is not None else 0.0,
                     "description": self._SKILL_TEXT.get(str(name), f"{name}行当的基本功。"),
+                }
+            )
+        return rows
+
+    def _martial_skills_view(self, ent) -> list[dict[str, Any]]:
+        """xkx 技能等级（skill_levels/skill_xp）：成长线写入的真实成长值。"""
+        meta = {}
+        for raw in getattr(self.content, "skills", []) or []:
+            if isinstance(raw, dict) and raw.get("id"):
+                meta[str(raw["id"])] = raw
+        rows: list[dict[str, Any]] = []
+        for sid in sorted(set(ent.skill_levels) | set(ent.skill_xp)):
+            level = int(ent.skill_levels.get(sid, 0))
+            xp = int(ent.skill_xp.get(sid, 0))
+            if level <= 0 and xp <= 0:
+                continue
+            row = meta.get(sid) or {}
+            limit = (level + 1) * (level + 1)
+            rows.append(
+                {
+                    "id": sid,
+                    "name": str(row.get("name") or sid),
+                    "type": str(row.get("type") or ""),
+                    "level": level,
+                    "learned": xp,
+                    "next_learned": limit,
+                    "to_next": max(0, limit - xp),
                 }
             )
         return rows
@@ -1647,7 +1760,7 @@ class WorldSession:
         pid: str = "",
         prices: dict[str, tuple[int, int]] | None = None,
     ) -> dict[str, Any]:
-        row = (self.content.locations or {}).get(loc_id) or {}
+        row = (self.state.locations or {}).get(loc_id) or {}
         exits = []
         for nxt in sorted(str(x) for x in (row.get("exits") or [])):
             exits.append(
@@ -1879,11 +1992,16 @@ class WorldSession:
                 continue
             trust_by[other] = max(trust_by.get(other, 0.0), float(rel.trust))
         rows = []
+        npc_meta = {}
+        for raw in getattr(self.content, "npcs", []) or []:
+            if isinstance(raw, dict) and raw.get("id"):
+                npc_meta[str(raw["id"])] = raw
         for ent in sorted(self.state.entities.values(), key=lambda e: e.id):
             if ent.id == pid or str(ent.id).startswith("player:"):
                 continue
             if ent.location != loc_id or ent.status != "alive":
                 continue
+            meta = npc_meta.get(ent.id) or {}
             top = max(ent.skills.items(), key=lambda kv: (float(kv[1]), kv[0])) if ent.skills else None
             rows.append(
                 {
@@ -1893,6 +2011,8 @@ class WorldSession:
                     "location": ent.location,
                     "presence": ent.presence,
                     "doing": "",
+                    "is_master": bool(meta.get("is_master")),
+                    "sect": str(meta.get("sect") or ""),
                     "skills": (
                         {"name": str(top[0]), "level": round(float(top[1]), 4)}
                         if top is not None
@@ -2426,6 +2546,21 @@ class WorldSession:
                 }
             )
             return base
+        if action in ("bai", "learn", "practice", "climb", "jump"):
+            if action == "bai":
+                base["target"] = str(payload.get("target") or "")
+            elif action == "learn":
+                base["teacher"] = str(payload.get("teacher") or "")
+                base["skill"] = str(payload.get("skill") or "")
+                base["times"] = payload.get("times", 1)
+            elif action == "practice":
+                base["skill"] = str(payload.get("skill") or "")
+                base["times"] = payload.get("times", 1)
+            else:
+                base["arg"] = str(payload.get("arg") or "")
+            return base
+        if action == "revive":
+            return base
         if action == "move":
             base["to"] = str(payload.get("to") or "")
             return base
@@ -2901,6 +3036,12 @@ class WorldSession:
             elif eff.get("op") == "combat_log":
                 # 战斗战报：原样透传引擎的 rounds[]/overkill，不做任何截断或重排。
                 details["combat"] = dict(eff.get("data") or {})
+            elif eff.get("op") == "growth_log":
+                # 成长线明细：拜师/学习/练习/攀爬/跳跃/还阳，逐字段原样透传。
+                details["growth"] = dict(eff.get("data") or {})
+            elif eff.get("op") == "death_log":
+                # 死亡结算：掉经验/掉技能/掉落/死亡计数，供壳层写“死亡后果”。
+                details["death"] = dict(eff.get("data") or {})
             elif eff.get("op") == "loot_take":
                 # 捡拾明细：一条 loot_take 一件物品，供壳层逐条显示。
                 ld = dict(eff.get("data") or {})

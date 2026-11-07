@@ -65,6 +65,10 @@ class Content:
     quests: dict[str, dict[str, Any]] = field(default_factory=dict)
     escort_routes: dict[str, dict[str, Any]] = field(default_factory=dict)
     personas: dict[str, str] = field(default_factory=dict)
+    # 技能元数据（xkx JSON 内容包）：只供成长线读取，不参与 content_hash，
+    # 避免给旧内容包补字段时改写既有 run 的 content_hash。
+    skills: list[dict[str, Any]] = field(default_factory=list)
+    skills_stats: list[dict[str, Any]] = field(default_factory=list)
     manifest_version: str = ""
     sources: dict[str, str] = field(default_factory=dict)
 

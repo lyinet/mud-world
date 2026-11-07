@@ -66,6 +66,9 @@ def _player_vitals(archetype: str = "") -> dict:
         "attrs": dict(attrs),
         "combat_exp": PLAYER_START_COMBAT_EXP,
         "skill_levels": dict(PLAYER_START_SKILL_LEVELS),
+        # 原版 logind.lpc 新玩家 potential = 99，learned_points 从 0 起。
+        "potential": 99,
+        "learned_points": 0,
     }
 
 
