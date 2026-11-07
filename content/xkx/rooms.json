@@ -17,6 +17,19 @@
       "name": "白堤",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/baiti.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/baiti.lpc"
@@ -51,6 +64,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/baoshishan.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/baoshishan.lpc"
@@ -73,6 +99,19 @@
       "name": "保淑塔",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/baoshuta.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/baoshuta.lpc"
@@ -94,6 +133,19 @@
       "name": "茶室",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/chashi.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/chashi.lpc"
@@ -116,6 +168,19 @@
       "name": "翠微亭",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/cuiweiting.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/cuiweiting.lpc"
@@ -146,6 +211,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/dadao1.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/dadao1.lpc"
@@ -168,6 +246,19 @@
       "name": "沿湖大道",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/dadao2.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/dadao2.lpc"
@@ -190,6 +281,19 @@
       "name": "沿湖大道",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/dadao3.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/dadao3.lpc"
@@ -224,6 +328,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/dalu1.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/dalu1.lpc"
@@ -252,6 +369,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/duanqiao.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/duanqiao.lpc"
@@ -273,6 +403,19 @@
       "name": "大雄宝殿",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/dxbaodian1.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/dxbaodian1.lpc"
@@ -294,6 +437,19 @@
       "name": "大雄宝殿",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/dxbaodian2.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/dxbaodian2.lpc"
@@ -328,6 +484,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/fajingsi.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/fajingsi.lpc"
@@ -362,6 +531,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/fajinsi.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/fajinsi.lpc"
@@ -384,6 +566,19 @@
       "name": "放鹤亭",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/fangheting.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/fangheting.lpc"
@@ -418,6 +613,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/faxisi.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/faxisi.lpc"
@@ -440,6 +648,19 @@
       "name": "飞来峰",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/feilaifeng.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/feilaifeng.lpc"
@@ -466,6 +687,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 8,
+        "path": "d/hangzhou/guozhuang.lpc"
+      },
       "source": {
         "line": 8,
         "path": "d/hangzhou/guozhuang.lpc"
@@ -488,6 +722,19 @@
       "name": "孤山",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/gushan.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/gushan.lpc"
@@ -510,6 +757,19 @@
       "name": "孤山平台",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/gushanpingtai.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/gushanpingtai.lpc"
@@ -532,6 +792,19 @@
       "name": "洪春桥",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/hongchunqiao.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/hongchunqiao.lpc"
@@ -562,6 +835,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/huagang.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/huagang.lpc"
@@ -588,6 +874,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/huanglongdong.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/huanglongdong.lpc"
@@ -610,6 +909,19 @@
       "name": "黄泥岭",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/huangniling.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/huangniling.lpc"
@@ -632,6 +944,19 @@
       "name": "虎跑泉",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/hupaoquan.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/hupaoquan.lpc"
@@ -653,6 +978,19 @@
       "name": "净慈寺",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/jingci.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/jingci.lpc"
@@ -674,6 +1012,19 @@
       "name": "净慈寺",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/jingcisi.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/jingcisi.lpc"
@@ -700,6 +1051,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/jiulou.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/jiulou.lpc"
@@ -734,6 +1098,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/jujingyuan.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/jujingyuan.lpc"
@@ -765,6 +1142,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/hangzhou/kedian.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/hangzhou/kedian.lpc"
@@ -786,6 +1176,19 @@
       "name": "天外天客店二楼",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/kedian2.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/kedian2.lpc"
@@ -808,6 +1211,19 @@
       "name": "天外天客店二楼",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 5,
+        "path": "d/hangzhou/kedian3.lpc"
+      },
       "source": {
         "line": 5,
         "path": "d/hangzhou/kedian3.lpc"
@@ -830,6 +1246,19 @@
       "name": "冷泉亭",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/lengquanting.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/lengquanting.lpc"
@@ -858,6 +1287,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/lingyinsi.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/lingyinsi.lpc"
@@ -892,6 +1334,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/liuhe1.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/liuhe1.lpc"
@@ -926,6 +1381,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/liuhe2.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/liuhe2.lpc"
@@ -954,6 +1422,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/liuhe3.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/liuhe3.lpc"
@@ -982,6 +1463,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/liuhe4.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/liuhe4.lpc"
@@ -1010,6 +1504,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/liuhe5.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/liuhe5.lpc"
@@ -1038,6 +1545,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/liuhe6.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/liuhe6.lpc"
@@ -1066,6 +1586,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/liuhe7.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/liuhe7.lpc"
@@ -1100,6 +1633,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/liuhe8.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/liuhe8.lpc"
@@ -1128,6 +1674,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/liuhe9.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/liuhe9.lpc"
@@ -1156,6 +1715,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/liuhea.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/liuhea.lpc"
@@ -1184,6 +1756,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/liuheb.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/liuheb.lpc"
@@ -1212,6 +1797,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/liuhec.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/liuhec.lpc"
@@ -1240,6 +1838,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/liuhed.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/liuhed.lpc"
@@ -1262,6 +1873,19 @@
       "name": "六和塔底",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/liuheta.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/liuheta.lpc"
@@ -1296,6 +1920,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/liulangqiao.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/liulangqiao.lpc"
@@ -1328,6 +1965,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 8,
+        "path": "d/hangzhou/liuzhuang.lpc"
+      },
       "source": {
         "line": 8,
         "path": "d/hangzhou/liuzhuang.lpc"
@@ -1350,6 +2000,19 @@
       "name": "龙泓洞",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/longhongdong.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/longhongdong.lpc"
@@ -1372,6 +2035,19 @@
       "name": "龙井",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/longjing.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/longjing.lpc"
@@ -1393,6 +2069,19 @@
       "name": "相约轩",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 45,
+        "path": "d/hangzhou/loveroom.lpc"
+      },
       "source": {
         "line": 45,
         "path": "d/hangzhou/loveroom.lpc"
@@ -1445,6 +2134,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/hangzhou/majiu.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/hangzhou/majiu.lpc"
@@ -1467,6 +2169,19 @@
       "name": "满觉陇",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/manjuelong.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/manjuelong.lpc"
@@ -1507,6 +2222,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/maojiabu.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/maojiabu.lpc"
@@ -1537,6 +2265,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/marryroom.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/marryroom.lpc"
@@ -1559,6 +2300,19 @@
       "name": "临安码头",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 31,
+        "path": "d/hangzhou/matou.lpc"
+      },
       "source": {
         "line": 31,
         "path": "d/hangzhou/matou.lpc"
@@ -1581,6 +2335,19 @@
       "name": "平湖秋月",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/pinghuqiuyue.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/pinghuqiuyue.lpc"
@@ -1609,6 +2376,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/qiantang.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/qiantang.lpc"
@@ -1637,6 +2417,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/qingbomen.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/qingbomen.lpc"
@@ -1659,6 +2452,19 @@
       "name": "清林洞",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/qinglindong.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/qinglindong.lpc"
@@ -1681,6 +2487,19 @@
       "name": "曲院风荷",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/quyuanbei.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/quyuanbei.lpc"
@@ -1703,6 +2522,19 @@
       "name": "曲院风荷",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/quyuanfenghe.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/quyuanfenghe.lpc"
@@ -1725,6 +2557,19 @@
       "name": "青石大道",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/road1.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/road1.lpc"
@@ -1747,6 +2592,19 @@
       "name": "青石大道",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/road10.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/road10.lpc"
@@ -1769,6 +2627,19 @@
       "name": "青石大道",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/road11.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/road11.lpc"
@@ -1803,6 +2674,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/road12.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/road12.lpc"
@@ -1831,6 +2715,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/road13.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/road13.lpc"
@@ -1865,6 +2762,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/road14.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/road14.lpc"
@@ -1887,6 +2797,19 @@
       "name": "青石大道",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/road15.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/road15.lpc"
@@ -1915,6 +2838,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/road16.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/road16.lpc"
@@ -1949,6 +2885,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/road17.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/road17.lpc"
@@ -1971,6 +2920,19 @@
       "name": "青石大道",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/road18.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/road18.lpc"
@@ -2005,6 +2967,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/road19.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/road19.lpc"
@@ -2033,6 +3008,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/road2.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/road2.lpc"
@@ -2055,6 +3043,19 @@
       "name": "青石大道",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/road20.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/road20.lpc"
@@ -2077,6 +3078,19 @@
       "name": "青石大道",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/road3.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/road3.lpc"
@@ -2099,6 +3113,19 @@
       "name": "青石大道",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/road4.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/road4.lpc"
@@ -2133,6 +3160,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/road5.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/road5.lpc"
@@ -2167,6 +3207,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/road6.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/road6.lpc"
@@ -2195,6 +3248,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/road7.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/road7.lpc"
@@ -2217,6 +3283,19 @@
       "name": "青石大道",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/road8.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/road8.lpc"
@@ -2239,6 +3318,19 @@
       "name": "青石大道",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/road9.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/road9.lpc"
@@ -2261,6 +3353,19 @@
       "name": "三潭印月",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/hangzhou/santan.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/hangzhou/santan.lpc"
@@ -2283,6 +3388,19 @@
       "name": "山路",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/shanlu1.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/shanlu1.lpc"
@@ -2311,6 +3429,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/shanlu2.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/shanlu2.lpc"
@@ -2339,6 +3470,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/shanlu3.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/shanlu3.lpc"
@@ -2361,6 +3505,19 @@
       "name": "山路",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/shanlu4.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/shanlu4.lpc"
@@ -2389,6 +3546,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/shanlu5.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/shanlu5.lpc"
@@ -2423,6 +3593,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/shanlu6.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/shanlu6.lpc"
@@ -2445,6 +3628,19 @@
       "name": "山路",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/shanlu7.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/shanlu7.lpc"
@@ -2467,6 +3663,19 @@
       "name": "山路",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/shanlu8.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/shanlu8.lpc"
@@ -2495,6 +3704,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/shexudong.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/shexudong.lpc"
@@ -2521,6 +3743,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/shiwudong.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/shiwudong.lpc"
@@ -2542,6 +3777,19 @@
       "name": "水乐洞",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/shuiledong.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/shuiledong.lpc"
@@ -2563,6 +3811,19 @@
       "name": "凤池书院",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/shuyuan.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/shuyuan.lpc"
@@ -2585,6 +3846,19 @@
       "name": "苏堤",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/suti1.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/suti1.lpc"
@@ -2615,6 +3889,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/suti2.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/suti2.lpc"
@@ -2637,6 +3924,19 @@
       "name": "苏堤",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/suti3.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/suti3.lpc"
@@ -2677,6 +3977,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/suti4.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/suti4.lpc"
@@ -2699,6 +4012,19 @@
       "name": "苏堤",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/suti5.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/suti5.lpc"
@@ -2721,6 +4047,19 @@
       "name": "苏堤",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/hangzhou/suti6.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/hangzhou/suti6.lpc"
@@ -2749,6 +4088,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/suti7.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/suti7.lpc"
@@ -2770,6 +4122,19 @@
       "name": "天王殿",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/tianwangdian.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/tianwangdian.lpc"
@@ -2796,6 +4161,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/tiejiangpu.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/tiejiangpu.lpc"
@@ -2824,6 +4202,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/tulu1.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/tulu1.lpc"
@@ -2846,6 +4237,19 @@
       "name": "西湖",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/hangzhou/xihu.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/hangzhou/xihu.lpc"
@@ -2868,6 +4272,19 @@
       "name": "西泠桥",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/xilingqiao.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/xilingqiao.lpc"
@@ -2890,6 +4307,19 @@
       "name": "夕照山",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/xizhaoshan.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/xizhaoshan.lpc"
@@ -2911,6 +4341,19 @@
       "name": "烟霞洞",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/yanxiadong.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/yanxiadong.lpc"
@@ -2941,6 +4384,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/yaodian.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/yaodian.lpc"
@@ -2963,6 +4419,19 @@
       "name": "岳坟",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/yuefen.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/yuefen.lpc"
@@ -2996,6 +4465,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/yuelang.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/yuelang.lpc"
@@ -3024,6 +4506,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/yuhuangsd.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/yuhuangsd.lpc"
@@ -3046,6 +4541,19 @@
       "name": "玉皇山",
       "objects": [],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/yuhuangshan.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/yuhuangshan.lpc"
@@ -3074,6 +4582,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/yuhuangsj.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/yuhuangsj.lpc"
@@ -3102,6 +4623,19 @@
         }
       ],
       "origin": "slice",
+      "region": "hangzhou",
+      "region_name": "杭州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 18,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/hangzhou/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/hangzhou/yuquan.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/hangzhou/yuquan.lpc"
@@ -3131,6 +4665,19 @@
         }
       ],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/jiaxing/chating.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/jiaxing/chating.lpc"
@@ -3155,6 +4702,19 @@
       "name": "钓鱼亭",
       "objects": [],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 8,
+        "path": "d/jiaxing/diaoyu.lpc"
+      },
       "source": {
         "line": 8,
         "path": "d/jiaxing/diaoyu.lpc"
@@ -3176,6 +4736,19 @@
       "name": "郭家民房",
       "objects": [],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/jiaxing/guojia.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/jiaxing/guojia.lpc"
@@ -3198,6 +4771,19 @@
       "name": "海滨",
       "objects": [],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 11,
+        "path": "d/jiaxing/haibin.lpc"
+      },
       "source": {
         "line": 11,
         "path": "d/jiaxing/haibin.lpc"
@@ -3220,6 +4806,19 @@
       "name": "江畔",
       "objects": [],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/jiaxing/jiangpan1.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/jiaxing/jiangpan1.lpc"
@@ -3242,6 +4841,19 @@
       "name": "江畔",
       "objects": [],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/jiaxing/jiangpan2.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/jiaxing/jiangpan2.lpc"
@@ -3264,6 +4876,19 @@
       "name": "江畔",
       "objects": [],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/jiaxing/jiangpan3.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/jiaxing/jiangpan3.lpc"
@@ -3286,6 +4911,19 @@
       "name": "嘉兴城",
       "objects": [],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 8,
+        "path": "d/jiaxing/jiaxing.lpc"
+      },
       "source": {
         "line": 8,
         "path": "d/jiaxing/jiaxing.lpc"
@@ -3316,6 +4954,19 @@
         }
       ],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/jiaxing/jiaxinggang.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/jiaxing/jiaxinggang.lpc"
@@ -3338,6 +4989,19 @@
       "name": "山路",
       "objects": [],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/jiaxing/jnroad1.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/jiaxing/jnroad1.lpc"
@@ -3360,6 +5024,19 @@
       "name": "山路",
       "objects": [],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/jiaxing/jnroad2.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/jiaxing/jnroad2.lpc"
@@ -3382,6 +5059,19 @@
       "name": "山路",
       "objects": [],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/jiaxing/jnroad3.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/jiaxing/jnroad3.lpc"
@@ -3404,6 +5094,19 @@
       "name": "山路",
       "objects": [],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/jiaxing/jnroad4.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/jiaxing/jnroad4.lpc"
@@ -3426,6 +5129,19 @@
       "name": "嘉兴南门",
       "objects": [],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/jiaxing/jxnanmen.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/jiaxing/jxnanmen.lpc"
@@ -3447,6 +5163,19 @@
       "name": "密室",
       "objects": [],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 42,
+        "path": "d/jiaxing/mishi.lpc"
+      },
       "source": {
         "line": 42,
         "path": "d/jiaxing/mishi.lpc"
@@ -3483,6 +5212,19 @@
         }
       ],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/jiaxing/nanhu.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/jiaxing/nanhu.lpc"
@@ -3512,6 +5254,19 @@
         }
       ],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 10,
+        "path": "d/jiaxing/nanhu1.lpc"
+      },
       "source": {
         "line": 10,
         "path": "d/jiaxing/nanhu1.lpc"
@@ -3542,6 +5297,19 @@
         }
       ],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/jiaxing/njeast.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/jiaxing/njeast.lpc"
@@ -3564,6 +5332,19 @@
       "name": "村中小路",
       "objects": [],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/jiaxing/njroad1.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/jiaxing/njroad1.lpc"
@@ -3593,6 +5374,19 @@
         }
       ],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/jiaxing/njroad2.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/jiaxing/njroad2.lpc"
@@ -3615,6 +5409,19 @@
       "name": "村中小路",
       "objects": [],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/jiaxing/njroad3.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/jiaxing/njroad3.lpc"
@@ -3645,6 +5452,19 @@
         }
       ],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/jiaxing/njroad4.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/jiaxing/njroad4.lpc"
@@ -3667,6 +5487,19 @@
       "name": "村中小路",
       "objects": [],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/jiaxing/njroad5.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/jiaxing/njroad5.lpc"
@@ -3689,6 +5522,19 @@
       "name": "牛家村口",
       "objects": [],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/jiaxing/njwest.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/jiaxing/njwest.lpc"
@@ -3711,6 +5557,19 @@
       "name": "土路",
       "objects": [],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/jiaxing/road.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/jiaxing/road.lpc"
@@ -3733,6 +5592,19 @@
       "name": "土路",
       "objects": [],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/jiaxing/road1.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/jiaxing/road1.lpc"
@@ -3755,6 +5627,19 @@
       "name": "土路",
       "objects": [],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/jiaxing/road2.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/jiaxing/road2.lpc"
@@ -3783,6 +5668,19 @@
         }
       ],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/jiaxing/tieqiang.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/jiaxing/tieqiang.lpc"
@@ -3809,6 +5707,19 @@
         }
       ],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 10,
+        "path": "d/jiaxing/xiaodian.lpc"
+      },
       "source": {
         "line": 10,
         "path": "d/jiaxing/xiaodian.lpc"
@@ -3830,6 +5741,19 @@
       "name": "杨家民房",
       "objects": [],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/jiaxing/yangjia.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/jiaxing/yangjia.lpc"
@@ -3858,6 +5782,19 @@
         }
       ],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/jiaxing/yanyu.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/jiaxing/yanyu.lpc"
@@ -3879,6 +5816,19 @@
       "name": "烟雨楼二楼",
       "objects": [],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 12,
+        "path": "d/jiaxing/yanyu2.lpc"
+      },
       "source": {
         "line": 12,
         "path": "d/jiaxing/yanyu2.lpc"
@@ -3906,6 +5856,19 @@
         }
       ],
       "origin": "slice",
+      "region": "jiaxing",
+      "region_name": "嘉兴",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 23,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/jiaxing/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/jiaxing/yanyu3.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/jiaxing/yanyu3.lpc"
@@ -3927,6 +5890,19 @@
       "name": "暗道",
       "objects": [],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 5,
+        "path": "d/shiliang/andao1.lpc"
+      },
       "source": {
         "line": 5,
         "path": "d/shiliang/andao1.lpc"
@@ -3948,6 +5924,19 @@
       "name": "暗道",
       "objects": [],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 5,
+        "path": "d/shiliang/andao2.lpc"
+      },
       "source": {
         "line": 5,
         "path": "d/shiliang/andao2.lpc"
@@ -3969,6 +5958,19 @@
       "name": "暗道尽头",
       "objects": [],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 8,
+        "path": "d/shiliang/andao3.lpc"
+      },
       "source": {
         "line": 8,
         "path": "d/shiliang/andao3.lpc"
@@ -3995,6 +5997,19 @@
         }
       ],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/chufang.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/chufang.lpc"
@@ -4027,6 +6042,19 @@
         }
       ],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/dating.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/dating.lpc"
@@ -4060,6 +6088,19 @@
         }
       ],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/dongxiangfang.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/dongxiangfang.lpc"
@@ -4086,6 +6127,19 @@
         }
       ],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/fang1.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/fang1.lpc"
@@ -4112,6 +6166,19 @@
         }
       ],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/fang2.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/fang2.lpc"
@@ -4144,6 +6211,19 @@
         }
       ],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/fang3.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/fang3.lpc"
@@ -4176,6 +6256,19 @@
         }
       ],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/fang4.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/fang4.lpc"
@@ -4198,6 +6291,19 @@
       "name": "温宅大门",
       "objects": [],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/shiliang/gate.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/shiliang/gate.lpc"
@@ -4226,6 +6332,19 @@
         }
       ],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/houyuan.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/houyuan.lpc"
@@ -4252,6 +6371,19 @@
         }
       ],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/shiliang/huli.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/shiliang/huli.lpc"
@@ -4278,6 +6410,19 @@
         }
       ],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/jinshedong.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/jinshedong.lpc"
@@ -4299,6 +6444,19 @@
       "name": "石室",
       "objects": [],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 8,
+        "path": "d/shiliang/jinshedong1.lpc"
+      },
       "source": {
         "line": 8,
         "path": "d/shiliang/jinshedong1.lpc"
@@ -4318,6 +6476,19 @@
       "name": "山洞底",
       "objects": [],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/midao.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/midao.lpc"
@@ -4346,6 +6517,19 @@
         }
       ],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/road1.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/road1.lpc"
@@ -4368,6 +6552,19 @@
       "name": "青石大道",
       "objects": [],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/road2.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/road2.lpc"
@@ -4396,6 +6593,19 @@
         }
       ],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/shandao1.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/shandao1.lpc"
@@ -4424,6 +6634,19 @@
         }
       ],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/shandao2.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/shandao2.lpc"
@@ -4445,6 +6668,19 @@
       "name": "山洞口",
       "objects": [],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/shandao3.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/shandao3.lpc"
@@ -4464,6 +6700,19 @@
       "name": "山洞",
       "objects": [],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/shandong1.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/shandong1.lpc"
@@ -4483,6 +6732,19 @@
       "name": "山洞",
       "objects": [],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/shandong2.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/shandong2.lpc"
@@ -4502,6 +6764,19 @@
       "name": "山洞",
       "objects": [],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/shandong3.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/shandong3.lpc"
@@ -4521,6 +6796,19 @@
       "name": "山洞",
       "objects": [],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/shandong4.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/shandong4.lpc"
@@ -4540,6 +6828,19 @@
       "name": "山洞",
       "objects": [],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/shandong5.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/shandong5.lpc"
@@ -4559,6 +6860,19 @@
       "name": "山洞",
       "objects": [],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/shandong6.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/shandong6.lpc"
@@ -4578,6 +6892,19 @@
       "name": "山洞尽头",
       "objects": [],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/shiliang/shandong7.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/shiliang/shandong7.lpc"
@@ -4599,6 +6926,19 @@
       "name": "书房",
       "objects": [],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/shufang.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/shufang.lpc"
@@ -4621,6 +6961,19 @@
       "name": "玫瑰小亭",
       "objects": [],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/shiliang/tingzi.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/shiliang/tingzi.lpc"
@@ -4643,6 +6996,19 @@
       "name": "湖心小岛",
       "objects": [],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/xiaodao.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/xiaodao.lpc"
@@ -4665,6 +7031,19 @@
       "name": "湖心小岛",
       "objects": [],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/xiaodao1.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/xiaodao1.lpc"
@@ -4691,6 +7070,19 @@
         }
       ],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/xiaolou.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/xiaolou.lpc"
@@ -4717,6 +7109,19 @@
         }
       ],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 5,
+        "path": "d/shiliang/xiaoting.lpc"
+      },
       "source": {
         "line": 5,
         "path": "d/shiliang/xiaoting.lpc"
@@ -4739,6 +7144,19 @@
       "name": "小院子",
       "objects": [],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/xiaoyuan.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/xiaoyuan.lpc"
@@ -4771,6 +7189,19 @@
         }
       ],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/xixiangfang.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/xixiangfang.lpc"
@@ -4793,6 +7224,19 @@
       "name": "大院",
       "objects": [],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 9,
+        "path": "d/shiliang/yuanzi.lpc"
+      },
       "source": {
         "line": 9,
         "path": "d/shiliang/yuanzi.lpc"
@@ -4814,6 +7258,19 @@
       "name": "走廊",
       "objects": [],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/zoulang1.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/zoulang1.lpc"
@@ -4835,6 +7292,19 @@
       "name": "走廊",
       "objects": [],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/zoulang2.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/zoulang2.lpc"
@@ -4856,6 +7326,19 @@
       "name": "走廊",
       "objects": [],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/zoulang3.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/zoulang3.lpc"
@@ -4877,6 +7360,19 @@
       "name": "走廊尽头",
       "objects": [],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/zoulang4.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/zoulang4.lpc"
@@ -4898,6 +7394,19 @@
       "name": "走廊",
       "objects": [],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/zoulang5.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/zoulang5.lpc"
@@ -4919,6 +7428,19 @@
       "name": "走廊",
       "objects": [],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/zoulang6.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/zoulang6.lpc"
@@ -4940,6 +7462,19 @@
       "name": "走廊",
       "objects": [],
       "origin": "slice",
+      "region": "shiliang",
+      "region_name": "石梁",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 497,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/shiliang/",
+        "kind": "derived_path",
+        "line": 4,
+        "path": "d/shiliang/zoulang7.lpc"
+      },
       "source": {
         "line": 4,
         "path": "d/shiliang/zoulang7.lpc"
@@ -4967,6 +7502,10 @@
         }
       ],
       "origin": "boundary",
+      "region": null,
+      "region_name": null,
+      "region_name_source": null,
+      "region_source": null,
       "source": {
         "line": 6,
         "path": "clone/shop/hangzhou_shop.lpc"
@@ -4989,6 +7528,15 @@
       "name": "钱塘江畔",
       "objects": [],
       "origin": "boundary",
+      "region": "binghuo",
+      "region_name": null,
+      "region_name_source": null,
+      "region_source": {
+        "basis": "路径 d/binghuo/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/binghuo/qiantang.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/binghuo/qiantang.lpc"
@@ -5011,6 +7559,19 @@
       "name": "孤山石阶",
       "objects": [],
       "origin": "boundary",
+      "region": "meizhuang",
+      "region_name": "梅庄",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 45,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/meizhuang/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/meizhuang/shijie.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/meizhuang/shijie.lpc"
@@ -5041,6 +7602,19 @@
         }
       ],
       "origin": "boundary",
+      "region": "suzhou",
+      "region_name": "苏州",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 17,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/suzhou/",
+        "kind": "derived_path",
+        "line": 8,
+        "path": "d/suzhou/dongmen.lpc"
+      },
       "source": {
         "line": 8,
         "path": "d/suzhou/dongmen.lpc"
@@ -5075,6 +7649,19 @@
         }
       ],
       "origin": "boundary",
+      "region": "taishan",
+      "region_name": "泰山",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 38,
+        "path": "adm/daemons/mapd.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/taishan/",
+        "kind": "derived_path",
+        "line": 6,
+        "path": "d/taishan/yidao1.lpc"
+      },
       "source": {
         "line": 6,
         "path": "d/taishan/yidao1.lpc"
@@ -5101,6 +7688,19 @@
         }
       ],
       "origin": "boundary",
+      "region": "yanping",
+      "region_name": "延平",
+      "region_name_source": {
+        "kind": "lpc",
+        "line": 496,
+        "path": "adm/daemons/logind.lpc"
+      },
+      "region_source": {
+        "basis": "路径 d/yanping/",
+        "kind": "derived_path",
+        "line": 7,
+        "path": "d/yanping/xianxialing.lpc"
+      },
       "source": {
         "line": 7,
         "path": "d/yanping/xianxialing.lpc"

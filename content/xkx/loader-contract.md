@@ -48,6 +48,10 @@
 | `desc` | string \| null | 房间长描述，对应 `set("long")` |
 | `desc_source` | `"lpc"` \| `null` | 房间没有自撰描述 |
 | `kind` | `"room"` \| `"boundary_stub"` | 与 `origin` 对应 |
+| `region` | string \| null | 区域目录 id，由路径 `d/<region>/...` 推导；不在 `d/` 下时为 null |
+| `region_name` | string \| null | 区域中文名；只从 `mapd.lpc` `map_short()` 或 `logind.lpc` `hometown` 取，取不到为 null |
+| `region_source` | object \| null | `{"kind":"derived_path","path":"...","line":N,"basis":"路径 d/hangzhou/"}` |
+| `region_name_source` | object \| null | `{"kind":"lpc","path":"adm/daemons/mapd.lpc","line":18}` |
 | `flags` | object | 原版房间标记，**值是原始值，不是统一布尔**：`outdoors` 常见为区域名（如 `"xihu"`）、`no_clean_up` 可能为 `0` |
 | `coord` | object | `{"x": 4130, "y": -1450, "z": 0}`，可能为空 `{}`；用于地图定位，不参与寻路 |
 | `objects` | array | 房间初始物件，见下 |
@@ -73,6 +77,14 @@
 | `origin` | `"external"` | 仅 `in_slice=false` 时出现 |
 
 加载顺序：先读 `items.json` / `npcs.json` 建索引，再按 `objects` 实例化。
+
+### 2.1 区域归属口径
+
+- 原版有 87 个 `d/<区域>/` 目录；本切片房间全部落在 `hangzhou`、`jiaxing`、`shiliang` 三个目录。
+- `region` **不是** `flags.outdoors`：`outdoors` 是户内外/小地名标记（如 `xihu`），`region` 是区域目录归属。两者都保留，不互相替代。
+- `region_name` 只信原版表：`mapd.lpc` 的全局映射 `map_short`（`hangzhou=杭州` 第 18 行、`jiaxing=嘉兴` 第 23 行、`suzhou=苏州` 第 17 行、`meizhuang=梅庄` 第 45 行、`taishan=泰山` 第 38 行）和 `logind.lpc` 的 `hometown`（`shiliang=石梁` 第 497 行）。注意：源码写的是 **石梁**，不是“十里凉”。
+- 边界替身沿用目标路径的区域目录：`suzhou=苏州`、`meizhuang=梅庄`、`taishan=泰山`、`yanping=延平`（`logind.lpc:496`）。`binghuo` 在 `mapd`/`logind` 中查不到中文名，`region_name` 如实为 `null`；`clone/shop` 不在 `d/` 下，`region` 也为 `null`。这些缺口全部记入 `diagnostics.jsonl` 的 `I_REGION_NAME_MISSING` / `I_REGION_UNRESOLVED`，不猜名。
+- `region_source` 的 `kind=derived_path` 表示归属由房间自身路径推导，行号取房间 `source` 行；`region_name_source` 的 `kind=lpc` 表示中文名来自源码表。
 
 ## 3. `exits.json`
 

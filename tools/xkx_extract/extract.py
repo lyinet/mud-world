@@ -179,6 +179,7 @@ class Extractor:
         self.equipment_counts: dict[str, int] = {}
         self._text_cache: dict[str, str] = {}
         self._race_attr_cache: dict[str, dict] = {}
+        self._region_name_cache: dict[str, dict] | None = None
         self._item_refs: set[str] = set()
         self._npc_refs: set[str] = set()
         self._stub_reachable: set[str] = set()
@@ -481,17 +482,50 @@ class Extractor:
         if not exits:
             self.diag("W_NO_EXIT", "warning", rel_path, short_line, "房间没有任何出口")
 
+        source = {"path": rel_path, "line": short_line or desc_line or 1}
+        parts = rel_path.split("/")
+        region = parts[1] if parts and parts[0] == "d" and len(parts) > 2 else None
+        region_name = None
+        region_source = None
+        region_name_source = None
+        if region:
+            region_source = {
+                "kind": "derived_path",
+                "path": rel_path,
+                "line": source["line"],
+                "basis": f"路径 d/{region}/",
+            }
+            info = self._region_name_sources().get(region)
+            if info:
+                region_name = info["name"]
+                region_name_source = dict(info["source"])
+            else:
+                self.diag(
+                    "I_REGION_NAME_MISSING", "info", rel_path, source["line"],
+                    f"区域 {region} 在 mapd/logind 中没有中文名来源，region_name=null",
+                    region=region,
+                )
+        else:
+            self.diag(
+                "I_REGION_UNRESOLVED", "info", rel_path, source["line"],
+                "房间不在 d/<区域>/ 目录下，region=null",
+            )
+
         return {
             "id": mid,
             "name": short,
             "desc": desc,
             "desc_source": "lpc" if desc else None,
+            "region": region,
+            "region_name": region_name,
+            "region_source": region_source,
+            "region_name_source": region_name_source,
             "objects": obj_list,
             "flags": flags,
             "coord": coord,
             "kind": "room",
             "origin": "slice",
-            "source": {"path": rel_path, "line": short_line or desc_line or 1},
+            "source": source,
             "_exits": list(exits.values()),
         }
 
@@ -805,6 +839,53 @@ class Extractor:
             "source": {"path": rel_path, "line": name_line or 1},
             "_topics": topics,
         }
+
+    def _region_name_sources(self) -> dict[str, dict]:
+        """区域名只从原版区域表/出生地表取，取不到就不编。"""
+        if self._region_name_cache is not None:
+            return self._region_name_cache
+        names: dict[str, dict] = {}
+        mapd = self.read("adm/daemons/mapd.lpc")
+        if mapd:
+            lines = mapd.splitlines()
+            span = None
+            for idx, line in enumerate(lines):
+                if re.search(r"\bmapping\s+map_short\s*=\s*\(\[", line):
+                    end = None
+                    for j in range(idx, len(lines)):
+                        if re.search(r"\]\s*\)\s*;", lines[j]):
+                            end = j
+                            break
+                    if end is not None:
+                        span = (idx + 1, end + 1)
+                    break
+            if span is None:
+                span = _function_span(mapd, "map_short")
+            if span:
+                start, end = span
+                for lineno, line in enumerate(lines[start - 1:end], start):
+                    m = re.search(r'"([a-z_]+)"\s*:\s*"([^"]+)"', line)
+                    if m:
+                        area, name = m.group(1), m.group(2)
+                        names.setdefault(area, {
+                            "name": name,
+                            "source": {"kind": "lpc", "path": "adm/daemons/mapd.lpc", "line": lineno},
+                        })
+        logind = self.read("adm/daemons/logind.lpc")
+        if logind:
+            for lineno, line in enumerate(logind.splitlines(), 1):
+                m = re.search(
+                    r'hometown\s*=\s*"([^"]+)";\s*my\["START_ROOM"\]\s*=\s*"/d/([a-z_]+)/',
+                    line,
+                )
+                if m:
+                    name, area = m.group(1), m.group(2)
+                    names.setdefault(area, {
+                        "name": name,
+                        "source": {"kind": "lpc", "path": "adm/daemons/logind.lpc", "line": lineno},
+                    })
+        self._region_name_cache = names
+        return names
 
     def _race_attr_defaults(self, race: str) -> dict[str, dict]:
         """按种族 setup 抽 `random(N)+M` 掷骰区间；不写死具体值。"""
@@ -1259,6 +1340,10 @@ class Extractor:
         return {
             "rooms_in_slice": sum(1 for r in self.rooms.values() if r["origin"] == "slice"),
             "rooms_boundary_stub": sum(1 for r in self.rooms.values() if r["origin"] == "boundary"),
+            "rooms_with_region": sum(1 for r in self.rooms.values() if r.get("region")),
+            "rooms_with_region_name": sum(1 for r in self.rooms.values() if r.get("region_name")),
+            "rooms_region_null": sum(1 for r in self.rooms.values() if not r.get("region")),
+            "rooms_region_name_null": sum(1 for r in self.rooms.values() if not r.get("region_name")),
             "exits": len(self.exits),
             "items_in_slice": sum(1 for i in self.items.values() if i["origin"] == "slice"),
             "items_external": sum(1 for i in self.items.values() if i["origin"] == "external"),

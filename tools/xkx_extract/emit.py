@@ -125,6 +125,7 @@ def build_outputs(pack, diagnostics, counts, coverage, source_info) -> dict[str,
                 "authored": "原版缺 long，由本项目按原版器物/身份常识自撰，不计入 source 覆盖率，只计入 total 覆盖率。",
                 "null": "描述缺失，玩家会看到空白；total 覆盖率不达标即 error。",
             },
+            "room_region": "region 由房间源码路径 d/<region>/ 推导（kind=derived_path）；region_name 只从 mapd.lpc 全局映射 map_short/logind.lpc hometown 取（kind=lpc），取不到为 null 并记 diagnostics。region 不是 flags.outdoors。",
             "skill_action_source": {
                 "lpc": "招式/系数在原版 LPC 中直接写死，原样搬运。",
                 "derived": "原版只给公式或结构，数值由抽取器按源码公式解释得出。",

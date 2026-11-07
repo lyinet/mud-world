@@ -61,7 +61,7 @@
       "table": "npcs"
     }
   ],
-  "content_hash": "90fa64d0cfcdcba0f956bbe2a63d913808c152d4084b3a5815fd10e52d1a22fc",
+  "content_hash": "233be794a6b34416ae8659ca63b0744b6af6edf639b5d407ae31d5730fba5d49",
   "counts": {
     "aggressive_npcs": 7,
     "attrs_roll_fields": 66,
@@ -92,6 +92,10 @@
     "npcs_with_drops": 3,
     "rooms_boundary_stub": 6,
     "rooms_in_slice": 195,
+    "rooms_region_name_null": 2,
+    "rooms_region_null": 1,
+    "rooms_with_region": 200,
+    "rooms_with_region_name": 199,
     "sects": 1,
     "shops": 3,
     "skill_action_entries": 247,
@@ -205,6 +209,7 @@
     },
     "npc_equipment": "equipment[].ref 必须在 items.json 中存在；ref 已补前导 / 并去掉 .lpc；缺 set_weight 时按基类默认 100 并带 weight_source=default。",
     "npc_temp_apply": "create() 内 set_temp 的静态快照，按创世即带处理；key 为原版键名，known=false 表示不在战斗白名单（原样保留并记诊断）；value 为整数时直接可用，为 null 时读 value_expr，不折算；source_kind=lpc 表示照源码搬运。",
+    "room_region": "region 由房间源码路径 d/<region>/ 推导（kind=derived_path）；region_name 只从 mapd.lpc 全局映射 map_short/logind.lpc hometown 取（kind=lpc），取不到为 null 并记 diagnostics。region 不是 flags.outdoors。",
     "skill_action_source": {
       "default": "原版缺键，按 LPC mapping 语义取 0；缺键记入 coefficient_gaps 与 diagnostics.jsonl。",
       "derived": "原版只给公式或结构，数值由抽取器按源码公式解释得出。",
@@ -215,8 +220,8 @@
   },
   "files": {
     "diagnostics.jsonl": {
-      "bytes": 21007,
-      "sha256": "4a58e5beac93777b67ba579889aebc404ce40b527e7773214882c34da84fde4a"
+      "bytes": 21362,
+      "sha256": "a063985ed0d48c99263393f79d67d6095e78da0af3ea4ce5b945ca5bae42e1fa"
     },
     "dialogue.json": {
       "bytes": 26396,
@@ -235,8 +240,8 @@
       "sha256": "3d0d487ac5e22a674d1b598d5fd7389c37f55a05f0d8fd2631e6ec46ce97a065"
     },
     "rooms.json": {
-      "bytes": 142167,
-      "sha256": "267344a6e42d762aa496ddd2ccd85f9b4ed4640656b6d11078491a35e3d882cc"
+      "bytes": 211278,
+      "sha256": "80ffb08f2fbfb3102c28598bb886911484cf036f05f827b3cb2eb24bd133f5d0"
     },
     "sects.json": {
       "bytes": 842,
@@ -259,8 +264,8 @@
       "sha256": "4f059d1cb3c991a138fd9dc658548de736e0cd2671bc3074155b6f592b44db1e"
     },
     "summary.json": {
-      "bytes": 3276,
-      "sha256": "3f77f5653f7f9228ec31b2e12c9db4b3cd96819138e9914edafbada4aedeacba"
+      "bytes": 3464,
+      "sha256": "089b5d38206c69d89a20fa250cd4c31aad9ebdd24592e3ff632a9f94f662885c"
     }
   },
   "generator": "tools/xkx_extract",

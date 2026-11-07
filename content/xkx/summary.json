@@ -6,6 +6,8 @@
     "I_EQUIP_REF_NORMALIZED": 3,
     "I_PATH_NORMALIZED": 1,
     "I_PRICE_ZERO": 4,
+    "I_REGION_NAME_MISSING": 1,
+    "I_REGION_UNRESOLVED": 1,
     "I_STUB_EXIT_DROPPED": 5,
     "W_ACTION_COEFF_DEFAULT": 11,
     "W_ASYMMETRIC_EXIT": 9,
@@ -46,6 +48,10 @@
     "npcs_with_drops": 3,
     "rooms_boundary_stub": 6,
     "rooms_in_slice": 195,
+    "rooms_region_name_null": 2,
+    "rooms_region_null": 1,
+    "rooms_with_region": 200,
+    "rooms_with_region_name": 199,
     "sects": 1,
     "shops": 3,
     "skill_action_entries": 247,
@@ -137,6 +143,6 @@
     }
   },
   "errors": 0,
-  "infos": 38,
+  "infos": 40,
   "warnings": 49
 }
