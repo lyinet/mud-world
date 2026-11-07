@@ -201,32 +201,40 @@ def parse_look(text: str, phases: list[str]) -> dict:
     desc = []
     exits = set()
     exits_observable = True
-    inv = []
-    i = 0
-    while i < len(body):
-        ln = body[i]
+    # 房间 desc 是 name 行到出口行之间的全部内容；原版 LONG 里允许出现
+    # 两个空格缩进的行（如 longjing 的“蒙面人(Mengmian ren)”），不能当物品/NPC。
+    exit_idx = None
+    for j, ln in enumerate(body):
         if is_exit_line(ln):
-            exits = parse_exits(ln)
-            if exits is None:
-                exits_observable = False
-                exits = set()
-            i += 1
+            exit_idx = j
             break
-        if ln.startswith("  ") and not ln.startswith("    "):
-            break
-        if is_day_phase(ln, phases):
-            i += 1
-            continue
-        desc.append(ln)
-        i += 1
-    while i < len(body):
-        ln = body[i]
+    if exit_idx is not None:
+        for ln in body[:exit_idx]:
+            if not is_day_phase(ln, phases):
+                desc.append(ln)
+        exits = parse_exits(body[exit_idx])
+        if exits is None:
+            exits_observable = False
+            exits = set()
+        inv_start = exit_idx + 1
+    else:
+        k = 0
+        while k < len(body):
+            ln = body[k]
+            if ln.startswith("  ") and not ln.startswith("    "):
+                break
+            if not is_day_phase(ln, phases):
+                desc.append(ln)
+            k += 1
+        inv_start = k
+
+    inv: list[str] = []
+    for ln in body[inv_start:]:
         if ln.startswith("  ") and not ln.startswith("    "):
             got = parse_inv_line(ln)
             if got:
                 nm, qty = got
                 inv.extend([nm] * qty)
-        i += 1
 
     return {"ok": True, "name": name, "desc": "\n".join(desc),
             "exits": sorted(exits), "exits_observable": exits_observable,
@@ -678,8 +686,20 @@ def build_npc_names():
                 continue
             if "inherit NPC" not in txt and "inherit __DIR__" not in txt:
                 continue
-            for m in re.finditer(r'set_name\("([^"]+)"', txt):
+            for m in re.finditer(r'set_name\(\s*(?:[A-Z][A-Z0-9_]*\s*)?"([^"]+)"', txt):
                 NPC_NAME_SET.add(m.group(1))
+    # 内容包里已判定为 NPC 的基名也纳入判定；源码 set_name 可能带颜色宏
+    # （如 HIY "黄骠马" NOR），单靠上面的正则抓不到。
+    npcs_path = os.path.join(CONTENT, "npcs.json")
+    if os.path.exists(npcs_path):
+        try:
+            for npc in json.load(open(npcs_path, encoding="utf-8")).get("npcs", []):
+                for key in ("name", "display_name"):
+                    val = str(npc.get(key) or "").strip()
+                    if val:
+                        NPC_NAME_SET.add(val)
+        except (OSError, ValueError):
+            pass
 
 
 def main():

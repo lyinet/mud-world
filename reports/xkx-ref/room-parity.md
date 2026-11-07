@@ -30,28 +30,26 @@
 | 字段 | 可观察 | 一致 | 一致率 |
 |------|--------|------|--------|
 | name | 192 | 192 | 100.0% |
-| desc | 192 | 191 | 99.5% |
-| exits | 192 | 191 | 99.5% |
-| items | 192 | 185 | 96.4% |
-| npcs | 192 | 171 | 89.1% |
+| desc | 192 | 192 | 100.0% |
+| exits | 192 | 192 | 100.0% |
+| items | 192 | 186 | 96.9% |
+| npcs | 192 | 173 | 90.1% |
 
 ## 差异分类
 
 | 分类 | 数量 |
 |------|------|
-| desc_extra | 1 |
-| exits_mismatch | 1 |
-| items_mismatch | 7 |
+| items_mismatch | 6 |
 | landing_mismatch | 3 |
-| npcs_mismatch | 21 |
+| npcs_mismatch | 19 |
 
 ### NPC 差异细分
 
 | 细类 | 房间数 |
 |------|--------|
 | 数量不同 | 16 |
-| 在场/缺失 | 3 |
 | 头衔/状态前缀 | 2 |
+| 在场/缺失 | 1 |
 
 “头衔/状态前缀”= 原版显示名带门派头衔或「<昏迷不醒>」状态、复刻只存基名；“在场/缺失”= 一侧在场另一侧不在（含共享实例里 NPC 游走/已离开）；“数量不同”= 同名 NPC 两侧 clone 数不一致。
 
@@ -67,8 +65,6 @@
 | `/d/hangzhou/kedian` | items | 原版 {'客店留言板(Board)': 1} vs 复刻 {} |
 | `/d/hangzhou/guozhuang` | npcs | 原版 {'大狼狗 <昏迷不醒>': 2} vs 复刻 {'大狼狗': 1} |
 | `/d/hangzhou/qingbomen` | npcs | 原版 {'女孩': 2} vs 复刻 {'女孩': 1} |
-| `/d/hangzhou/majiu` | items | 原版 {'黄骠马': 1} vs 复刻 {} |
-| `/d/hangzhou/majiu` | npcs | 原版 {'枣红马': 1, '马夫': 1, '紫骝马': 1} vs 复刻 {'枣红马': 1, '黄骠马': 1, '紫骝马': 1, '马夫': 1} |
 | `/d/hangzhou/suti4` | npcs | 原版 {'麻雀': 2, '乌鸦': 1, '武当派第十四代弟子 李沅芷': 1} vs 复刻 {'武当派第十四代弟子 李沅芷': 1, '乌鸦': 1, '麻雀': 1} |
 | `/d/hangzhou/dalu1` | npcs | 原版 {'红花会众': 2, '挑夫': 1} vs 复刻 {'挑夫': 1, '红花会众': 1} |
 | `/d/hangzhou/yuhuangsj` | npcs | 原版 {'红花会众': 2} vs 复刻 {'红花会众': 1} |
@@ -80,9 +76,6 @@
 | `/d/hangzhou/shanlu5` | npcs | 原版 {'采茶女': 2} vs 复刻 {'采茶女': 1} |
 | `/d/hangzhou/shanlu2` | npcs | 原版 {'绿营会众': 2} vs 复刻 {'绿营会众': 1} |
 | `/d/jiaxing/tieqiang` | npcs | 原版 {'乌鸦': 4} vs 复刻 {'乌鸦': 1} |
-| `/d/hangzhou/longjing` | desc | 复刻多 16 字 / 少 0 字 |
-| `/d/hangzhou/longjing` | exits | 原版 [] vs 复刻 ['east', 'south'] |
-| `/d/hangzhou/longjing` | npcs | 原版 {'蒙面人': 1} vs 复刻 {} |
 | `/d/jiaxing/nanhu` | items | 原版 {} vs 复刻 {'白芷': 1} |
 | `/d/hangzhou/faxisi` | npcs | 原版 {'进香客': 2, '老和尚': 1} vs 复刻 {'进香客': 1, '老和尚': 1} |
 | `/d/hangzhou/shanlu3` | npcs | 原版 {'男孩': 3} vs 复刻 {'男孩': 1} |
@@ -182,102 +175,6 @@
   "npcs": {
    "match": true,
    "orig": {},
-   "repl": {}
-  }
- },
- "status": "differ"
-}
-```
-
-### exits_mismatch — `/d/hangzhou/longjing` (龙井)
-```json
-{
- "id": "/d/hangzhou/longjing",
- "short": "龙井",
- "fields": {
-  "name": {
-   "match": true,
-   "orig": "龙井",
-   "repl": "龙井"
-  },
-  "desc": {
-   "match": false,
-   "extra_chars": 16,
-   "missing_chars": 0,
-   "repl_empty": false,
-   "samples": [
-    {
-     "orig": "茶室。往南便回大路。",
-     "repl": "茶室。往南便回大路。蒙面人(Mengmianren)"
-    }
-   ]
-  },
-  "exits": {
-   "match": false,
-   "orig": [],
-   "repl": [
-    "east",
-    "south"
-   ]
-  },
-  "items": {
-   "match": true,
-   "orig": {},
-   "repl": {}
-  },
-  "npcs": {
-   "match": false,
-   "orig": {
-    "蒙面人": 1
-   },
-   "repl": {}
-  }
- },
- "status": "differ"
-}
-```
-
-### desc_extra — `/d/hangzhou/longjing` (龙井)
-```json
-{
- "id": "/d/hangzhou/longjing",
- "short": "龙井",
- "fields": {
-  "name": {
-   "match": true,
-   "orig": "龙井",
-   "repl": "龙井"
-  },
-  "desc": {
-   "match": false,
-   "extra_chars": 16,
-   "missing_chars": 0,
-   "repl_empty": false,
-   "samples": [
-    {
-     "orig": "茶室。往南便回大路。",
-     "repl": "茶室。往南便回大路。蒙面人(Mengmianren)"
-    }
-   ]
-  },
-  "exits": {
-   "match": false,
-   "orig": [],
-   "repl": [
-    "east",
-    "south"
-   ]
-  },
-  "items": {
-   "match": true,
-   "orig": {},
-   "repl": {}
-  },
-  "npcs": {
-   "match": false,
-   "orig": {
-    "蒙面人": 1
-   },
    "repl": {}
   }
  },

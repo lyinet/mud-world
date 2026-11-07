@@ -30,36 +30,34 @@
   },
   "desc": {
    "observable": 192,
-   "match": 191,
-   "rate": 0.9948
+   "match": 192,
+   "rate": 1.0
   },
   "exits": {
    "observable": 192,
-   "match": 191,
-   "rate": 0.9948
+   "match": 192,
+   "rate": 1.0
   },
   "items": {
    "observable": 192,
-   "match": 185,
-   "rate": 0.9635
+   "match": 186,
+   "rate": 0.9688
   },
   "npcs": {
    "observable": 192,
-   "match": 171,
-   "rate": 0.8906
+   "match": 173,
+   "rate": 0.901
   }
  },
  "categories": {
-  "npcs_mismatch": 21,
-  "items_mismatch": 7,
-  "exits_mismatch": 1,
-  "desc_extra": 1,
+  "npcs_mismatch": 19,
+  "items_mismatch": 6,
   "landing_mismatch": 3
  },
  "npc_breakdown": {
   "数量不同": 16,
   "头衔/状态前缀": 2,
-  "在场/缺失": 3
+  "在场/缺失": 1
  },
  "samples": {
   "npcs_mismatch": {
@@ -143,94 +141,6 @@
     "npcs": {
      "match": true,
      "orig": {},
-     "repl": {}
-    }
-   },
-   "status": "differ"
-  },
-  "exits_mismatch": {
-   "id": "/d/hangzhou/longjing",
-   "short": "龙井",
-   "fields": {
-    "name": {
-     "match": true,
-     "orig": "龙井",
-     "repl": "龙井"
-    },
-    "desc": {
-     "match": false,
-     "extra_chars": 16,
-     "missing_chars": 0,
-     "repl_empty": false,
-     "samples": [
-      {
-       "orig": "茶室。往南便回大路。",
-       "repl": "茶室。往南便回大路。蒙面人(Mengmianren)"
-      }
-     ]
-    },
-    "exits": {
-     "match": false,
-     "orig": [],
-     "repl": [
-      "east",
-      "south"
-     ]
-    },
-    "items": {
-     "match": true,
-     "orig": {},
-     "repl": {}
-    },
-    "npcs": {
-     "match": false,
-     "orig": {
-      "蒙面人": 1
-     },
-     "repl": {}
-    }
-   },
-   "status": "differ"
-  },
-  "desc_extra": {
-   "id": "/d/hangzhou/longjing",
-   "short": "龙井",
-   "fields": {
-    "name": {
-     "match": true,
-     "orig": "龙井",
-     "repl": "龙井"
-    },
-    "desc": {
-     "match": false,
-     "extra_chars": 16,
-     "missing_chars": 0,
-     "repl_empty": false,
-     "samples": [
-      {
-       "orig": "茶室。往南便回大路。",
-       "repl": "茶室。往南便回大路。蒙面人(Mengmianren)"
-      }
-     ]
-    },
-    "exits": {
-     "match": false,
-     "orig": [],
-     "repl": [
-      "east",
-      "south"
-     ]
-    },
-    "items": {
-     "match": true,
-     "orig": {},
-     "repl": {}
-    },
-    "npcs": {
-     "match": false,
-     "orig": {
-      "蒙面人": 1
-     },
      "repl": {}
     }
    },
@@ -1915,16 +1825,15 @@
      ]
     },
     "items": {
-     "match": false,
-     "orig": {
-      "黄骠马": 1
-     },
+     "match": true,
+     "orig": {},
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "枣红马": 1,
+      "黄骠马": 1,
       "马夫": 1,
       "紫骝马": 1
      },
@@ -1936,7 +1845,7 @@
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/kedian2",
@@ -3818,20 +3727,14 @@
      "repl": "龙井"
     },
     "desc": {
-     "match": false,
-     "extra_chars": 16,
-     "missing_chars": 0,
-     "repl_empty": false,
-     "samples": [
-      {
-       "orig": "茶室。往南便回大路。",
-       "repl": "茶室。往南便回大路。蒙面人(Mengmianren)"
-      }
-     ]
+     "match": true
     },
     "exits": {
-     "match": false,
-     "orig": [],
+     "match": true,
+     "orig": [
+      "east",
+      "south"
+     ],
      "repl": [
       "east",
       "south"
@@ -3843,14 +3746,12 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
-     "orig": {
-      "蒙面人": 1
-     },
+     "match": true,
+     "orig": {},
      "repl": {}
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/yanxiadong",
