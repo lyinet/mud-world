@@ -223,6 +223,11 @@ def build_genesis(
         npc_vitals = resolve_npc_vitals(npc)
         if npc_vitals is not None:
             entity_data.update(npc_vitals)
+        # P4a：内容包显式标注的参考快照初始状态（如采集时被打晕的毒蛇/大狼狗）。
+        # 不引入随机、不碰调度器；没有该键的 NPC（含旧九地点）事件不变。
+        initial_state = str(npc.get("initial_state") or "")
+        if initial_state and initial_state != "alive":
+            entity_data["status"] = initial_state
 
         effects.append(Effect("create_account", {"account": acc}))
         effects.append(Effect("create_entity", entity_data))

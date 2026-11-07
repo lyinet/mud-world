@@ -97,7 +97,9 @@ def test_genesis_creates_all_instances_with_template_stats(session, content):
     meta = {str(npc["id"]): npc for npc in content.npcs}
     for ent in clones:
         base = state.entities[ent.template]
-        assert ent.status == "alive"
+        # P4a：大狼狗的额外实例同样继承内容包的参考快照初始态。
+        expected_status = "unconcious" if ent.template == "/d/hangzhou/npc/wolfdog" else "alive"
+        assert ent.status == expected_status
         assert ent.location == next(row["room"] for row in content.npc_instances if row["id"] == ent.id)
         assert ent.name == base.name
         assert ent.hp == base.hp == ent.max_hp
@@ -126,7 +128,7 @@ def test_present_view_resolves_clone_display_names(session):
     assert sorted(row["instance"] for row in qingbing) == [0, 2, 3, 4]
 
 
-def _road12_session(tmp_path, tag: str):
+def _road12_session(tmp_path, tag: str, room: str = "/d/hangzhou/road12"):
     cfg = yaml.safe_load(WORLD_CONFIG.read_text(encoding="utf-8")) or {}
     return WorldSession(
         ROOT,
@@ -136,7 +138,7 @@ def _road12_session(tmp_path, tag: str):
         run_dir=tmp_path / f"run-{tag}",
         content_root=XKX_CONTENT,
         world_config=WORLD_CONFIG,
-        spawn="/d/hangzhou/road12",
+        spawn=room,
     )
 
 
@@ -204,3 +206,37 @@ def test_fight_index_out_of_range_has_no_target(road12_session):
     assert not reply["ok"]
     text = "\n".join(line["text"] for line in reply["lines"])
     assert "没有第5个" in text
+
+
+def test_genesis_marks_reference_unconcious_npcs(tmp_path):
+    snake_session = _road12_session(tmp_path, "snake", "/d/hangzhou/huanglongdong")
+    dog_session = _road12_session(tmp_path, "dogs", "/d/hangzhou/guozhuang")
+    try:
+        snake = snake_session.state.entities["/d/hangzhou/npc/dushe"]
+        assert snake.status == "unconcious"
+        dogs = [
+            ent
+            for ent in dog_session.state.entities.values()
+            if ent.template == "/d/hangzhou/npc/wolfdog"
+            or ent.id == "/d/hangzhou/npc/wolfdog"
+        ]
+        assert len(dogs) == 2
+        assert all(ent.status == "unconcious" for ent in dogs)
+        # 其余 NPC 不受影响，仍是 alive。
+        assert snake_session.state.entities["/d/hangzhou/npc/qingbing"].status == "alive"
+    finally:
+        snake_session.close()
+        dog_session.close()
+
+
+def test_look_appends_unconcious_tag_to_snake_and_wolfdogs(tmp_path):
+    snake_session = _road12_session(tmp_path, "look-snake", "/d/hangzhou/huanglongdong")
+    dog_session = _road12_session(tmp_path, "look-dogs", "/d/hangzhou/guozhuang")
+    try:
+        snake_text = "\n".join(line["text"] for line in _cmd(snake_session, "look")["lines"])
+        dog_text = "\n".join(line["text"] for line in _cmd(dog_session, "look")["lines"])
+    finally:
+        snake_session.close()
+        dog_session.close()
+    assert "毒蛇 <昏迷不醒>" in snake_text
+    assert "二只大狼狗 <昏迷不醒>" in dog_text

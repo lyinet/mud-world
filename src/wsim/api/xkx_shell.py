@@ -1033,19 +1033,23 @@ class XKXShell:
         return cls._CN_DIGITS[tens] + "十" + (cls._CN_DIGITS[ones] if ones else "")
 
     def _npc_present_text(self, npcs: list[dict[str, Any]]) -> list[str]:
-        """在场人物按 (模板, 名称) 分组；同模板多实例只写一次并标数量。"""
-        groups: dict[tuple[str, str], list[dict[str, Any]]] = {}
+        """在场人物按 (模板, 名称, 状态) 分组；同模板多实例只写一次并标数量。"""
+        groups: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
         for row in npcs:
             name = str(row.get("name") or "")
-            key = (str(row.get("template") or row.get("id") or ""), name)
+            status = str(row.get("status") or "alive")
+            key = (str(row.get("template") or row.get("id") or ""), name, status)
             groups.setdefault(key, []).append(row)
         parts: list[str] = []
-        for (template, name), rows in groups.items():
+        for (template, name, status), rows in groups.items():
+            # 原版 short() 在非 living 时拼 query("disable_type")；当前只有
+            # 参考快照的 `unconcious` 一种，按 P4a 最小范围只渲染这一种。
+            tag = " <昏迷不醒>" if status == "unconcious" else ""
             if len(rows) == 1:
-                parts.append(name)
+                parts.append(name + tag)
                 continue
             unit = self._RACE_UNIT.get(self._content_race(template), "位")
-            parts.append(f"{self._cn_count(len(rows))}{unit}{name}")
+            parts.append(f"{self._cn_count(len(rows))}{unit}{name}{tag}")
         return parts
 
     def _match_fight_target(

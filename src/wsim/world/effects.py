@@ -209,6 +209,13 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             skills={str(k): float(v) for k, v in (d.get("skills") or {}).items()},
             personality=dict(d.get("personality") or {}),
         )
+        # 参考快照初始状态（P4a）：原版 NPC 的 <昏迷不醒> 是战斗临时态，
+        # 内容包用 initial_state 显式标注；旧事件不带该键，仍为 alive。
+        if "status" in d:
+            status = str(d.get("status") or "alive")
+            if status not in ("alive", "unconcious"):
+                raise EffectError(f"非法实体状态: {status}")
+            ent.status = status
         if ent.id in state.entities:
             raise EffectError(f"实体已存在: {ent.id}")
         if ent.location not in state.locations:

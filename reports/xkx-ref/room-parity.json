@@ -45,16 +45,15 @@
   },
   "npcs": {
    "observable": 195,
-   "match": 192,
-   "rate": 0.9846
+   "match": 194,
+   "rate": 0.9949
   }
  },
  "categories": {
-  "npcs_mismatch": 3,
-  "items_mismatch": 6
+  "items_mismatch": 6,
+  "npcs_mismatch": 1
  },
  "npc_breakdown": {
-  "头衔/状态前缀": 2,
   "在场/缺失": 1
  },
  "corrections": [
@@ -71,44 +70,6 @@
   }
  ],
  "samples": {
-  "npcs_mismatch": {
-   "id": "/d/hangzhou/huanglongdong",
-   "short": "黄龙洞",
-   "fields": {
-    "name": {
-     "match": true,
-     "orig": "黄龙洞",
-     "repl": "黄龙洞"
-    },
-    "desc": {
-     "match": true
-    },
-    "exits": {
-     "match": true,
-     "orig": [
-      "south"
-     ],
-     "repl": [
-      "south"
-     ]
-    },
-    "items": {
-     "match": true,
-     "orig": {},
-     "repl": {}
-    },
-    "npcs": {
-     "match": false,
-     "orig": {
-      "毒蛇 <昏迷不醒>": 1
-     },
-     "repl": {
-      "毒蛇": 1
-     }
-    }
-   },
-   "status": "differ"
-  },
   "items_mismatch": {
    "id": "/d/hangzhou/dadao1",
    "short": "沿湖大道",
@@ -144,6 +105,48 @@
     "npcs": {
      "match": true,
      "orig": {},
+     "repl": {}
+    }
+   },
+   "status": "differ"
+  },
+  "npcs_mismatch": {
+   "id": "/d/hangzhou/road1",
+   "short": "青石大道",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "青石大道",
+     "repl": "青石大道"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "north",
+      "northeast",
+      "northwest",
+      "south"
+     ],
+     "repl": [
+      "north",
+      "northeast",
+      "northwest",
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "武当派第四代弟子 香火道人": 1
+     },
      "repl": {}
     }
    },
@@ -986,16 +989,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "毒蛇 <昏迷不醒>": 1
      },
      "repl": {
-      "毒蛇": 1
+      "毒蛇 <昏迷不醒>": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/yuelang",
@@ -1648,16 +1651,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "大狼狗 <昏迷不醒>": 2
      },
      "repl": {
-      "大狼狗": 2
+      "大狼狗 <昏迷不醒>": 2
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/road15",

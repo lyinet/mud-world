@@ -370,6 +370,10 @@ def replica_field(room, items, npcs):
             # 原版 short() 会拼 title/门派/party/nickname；display_name 由抽取器按
             # feature/name.c 的拼接顺序生成，这里比对玩家真正看到的名字。
             nm = rec.get("display_name") or nm
+            # P4a：内容包显式标注的参考快照初始态，与原版 short() 的
+            # disable_type 后缀对齐（` <昏迷不醒>`）。
+            if rec.get("initial_state") == "unconcious":
+                nm = f"{nm} <昏迷不醒>"
         if not nm:
             unresolved.append(ref)
             nm = os.path.basename(ref)

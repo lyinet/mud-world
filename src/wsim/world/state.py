@@ -23,7 +23,7 @@ class Entity:
     home: str = ""
     stamina: float = 100.0
     max_stamina: float = 100.0
-    status: str = "alive"  # alive / dead / reincarnated
+    status: str = "alive"  # alive / unconcious / dead / reincarnated
     inventory: dict[str, int] = field(default_factory=dict)
     # 已装备槽位 → 物品 id。空字典不写进 to_dict()，确保无玩家世界哈希不变。
     equipped: dict[str, str] = field(default_factory=dict)

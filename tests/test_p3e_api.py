@@ -85,10 +85,10 @@ def test_state_contract_fields(session):
     for row in state["location"]["exits"]:
         assert {"id", "name", "exists"} == set(row)
     # present_npcs 自 xkx-growth 起暴露师门字段（is_master/sect）、自同模板多实例
-    # 起暴露 template/instance；断言仍是精确集合，不放松。
+    # 起暴露 template/instance、P4a 起暴露 status；断言仍是精确集合，不放松。
     assert all(
         set(row) == {
-            "id", "name", "role", "location", "presence", "doing",
+            "id", "name", "role", "location", "presence", "status", "doing",
             "template", "instance",
             "skills", "skills_detail", "employed_by", "bond", "trust",
             "is_master", "sect",

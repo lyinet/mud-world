@@ -2251,7 +2251,7 @@ class WorldSession:
         for ent in sorted(self.state.entities.values(), key=lambda e: e.id):
             if ent.id == pid or str(ent.id).startswith("player:"):
                 continue
-            if ent.location != loc_id or ent.status != "alive":
+            if ent.location != loc_id or ent.status not in ("alive", "unconcious"):
                 continue
             # 同模板多实例没有自己的元数据，显示名/身份回到模板那一行。
             meta = npc_meta.get(ent.template or ent.id) or {}
@@ -2263,6 +2263,9 @@ class WorldSession:
                     "role": ent.role,
                     "location": ent.location,
                     "presence": ent.presence,
+                    # P4a：参考快照初始状态（unconcious）也要可见；look 据此追加
+                    # `<昏迷不醒>`，其余状态与原版一致（dead 不显示）。
+                    "status": ent.status,
                     "doing": "",
                     # 同模板多实例：模板维度供 look 数量分组，槽位供 fight 按序号取目标。
                     # 规范实例 template 为空、instance 为 0，行为与改造前一致。
