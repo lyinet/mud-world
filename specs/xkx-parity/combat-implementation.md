@@ -655,3 +655,5 @@ B→C 仍为 0。
   战报文本逐行相同。
 - 合成战斗基线：`state_final` 仍 `91097d90…`（无 `map_skills/race` 的实体不选招、
   不掷点、数值不变）；`event_final` 因 `rounds[]` 新增字段重采为 `273b5455…`。
+- 下游战例：真实战斗的 `combat_exp` 245→247（`test_xkx_growth`），同样来自
+  `query_action` 掷点平移，不是新增伤害/经验来源。

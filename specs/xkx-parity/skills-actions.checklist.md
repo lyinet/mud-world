@@ -11,7 +11,7 @@
 - [x] 同 seed 伤害序列差异逐项归因到 `combatd.lpc:280-295` 的 `reset_action()/query_action()` 掷点平移。
 - [x] 旧九地点世界哈希逐字节不变：state `009076f0…` / event `02d5f812…`，`test_xkx_determinism_legacy` 与 `test_p3e_golden` 原值通过。
 - [x] 同 seed 两条真实老虎会话双跑：state `c22f4b14…`、event `0e4ef8d9…` 两次一致，战报文本逐行一致。
-- [x] `pytest tests` 全绿：884 passed，18 skipped。
+- [x] `pytest tests` 全绿：899 passed，18 skipped（含上游 xkx-growth 的 15 条）。
 - [x] `combat-implementation.md` §3 / §5 / §7 / §12 已更新；`skills-actions.spec.md` 已补默认种族招式与 `race` 推断。
 - [x] 显式路径 `git add`，未带入其他工作流文件。
 - [x] 提交并推 `origin xkx-parity`（未推 `master`）。

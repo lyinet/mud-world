@@ -536,7 +536,9 @@ def test_combat_death_and_revive_real_session(tmp_path):
         assert player.status == "dead"
         assert player.location == DEATH_GATE
         assert player.death_count == 1
-        assert player.combat_exp == 245
+        # 接入原版 query_action 掷点后，同 seed 的伤害流整体平移；245→247 是
+        # combatd.lpc:280-295 每回合一次选招掷点的下游结果，不是新增伤害来源。
+        assert player.combat_exp == 247
         assert player.skill_levels == {"dodge": 9, "parry": 9, "unarmed": 39}
 
         # 尸体留在死亡地点，可从地面捡回。
