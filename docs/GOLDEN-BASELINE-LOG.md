@@ -196,3 +196,10 @@ xkx 内容包的 `content_hash` 与实体数不写进旧世界 golden 常量（�
 | d13eb30 | XKX_CONTENT | content_hash | c5df62d794eb53484e3c85dbe37b0147bdcad94e1af64d7299aaf4e31bc004de | 2b52983fb8f04210947d39f46bd89156c6e2805f3653faae5c9fc899f26d35e5 | 提交正文 | 提交正文：“原版房间 reset() 按 (房间, 模板) -> count 逐个 new()；P1 派生了 44 个额外槽位，本次真正落到世界里”；`npc_instances` 非空后进入 `Content.content_hash` payload，因此 xkx 世界 content_hash 必须变，旧 run 启动即 `content_hash_mismatch`，需 `--reset`。 | 已复现：`PYTHONPATH=src python -c "from wsim.api.xkx_content import load_xkx_content; c=load_xkx_content('content/xkx'); print(c.content_hash)"`；把 `npc_instances` 临时置空可复现旧值 |
 | d13eb30 | XKX_WORLD | npc_entities | 105 | 149 | 提交正文 | 同上：105 个规范 NPC + 44 个同模板实例；world feed 白名单与 `_present_view` 的 `npc_meta` 回查同步按模板维度。 | 已复现：`tests/test_xkx_clone_instances.py::test_genesis_creates_all_instances_with_template_stats` |
 | d13eb30 | XKX_WORLD | clone_instances | 新增 | 44 | 提交正文 | 同上：19 个模板、44 个额外槽位，全部落在原版 `objects` 声明 count 的解内，顺序按 (模板, 房间, 槽位) 固定。 | 已复现：`tests/test_xkx_clone_instances.py::test_instances_are_room_scoped_and_unique` |
+| 6b798ac | XKX_CONTENT | content_hash | 2b52983fb8f04210947d39f46bd89156c6e2805f3653faae5c9fc899f26d35e5 | 9fc1d247a5840ebc8555f2e5cada284a79b5366a1782f91ed34e4af83c9d62a5 | 提交正文 | P4a 给 `npcs.json` 的 dushe/wolfdog 加了 `initial_state: unconcious`；`Content.content_hash` 的 `npcs` payload 因内容字段变化而漂移，旧 run 启动即 `content_hash_mismatch`，需 `--reset`。 | 已复现：`PYTHONPATH=src python -c "from wsim.api.xkx_content import load_xkx_content; print(load_xkx_content('content/xkx').content_hash)"` |
+| 6b798ac | XKX_WORLD | npc_status_unconcious | 0 | 3 | 提交正文 | P4a：黄龙洞 `毒蛇` 1 只 + 郭庄 `大狼狗` 2 只（规范实例 + 同模板额外实例）以 `status=unconcious` 创世；其余 NPC 仍 `alive`。 | 已复现：`tests/test_xkx_clone_instances.py::test_genesis_marks_reference_unconcious_npcs` |
+
+P4a 后旧九地点三项仍逐字节不变：`735` 事件、`state_final 009076f0346352e3…`、
+`event_final 02d5f812c4278333…`、`business_cash 11442`、`blocked 6`、`pruned 3`
+（`tests/test_xkx_determinism_legacy.py` 通过；旧内容包没有 `initial_state` 键，
+`create_entity` 事件不带 `status`）。
