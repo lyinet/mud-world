@@ -9,6 +9,29 @@
 
 ---
 
+## [文档/发布] 2026-11-07 — 修正 legacy tag 语义并新增 pre-xkx 快照 tag
+
+- **改了什么**：
+  - `docs/OPS-RUNBOOK.md` §13.1/§13.2：删除“xkx 开工前”的错误表述，`world-legacy-20261107`
+    改述为“**切分支时的九地点可用状态（已含 xkx 内容包接入）**”；新增 tag 语义对照表
+    （含指向 commit、日期、提交标题）与用途区分；后续小节顺延编号。
+  - 新增 annotated tag `pre-xkx-20261107` → `df2b37c`（tag 对象 `bff65ba`，2026-11-07，
+    `docs(dialogue): DIALOGUE-QUALITY 补 model_delivery_rate 指标与 ≥80% 门槛`），
+    说明为“侠客行承接方案（`7f9550c`）与 xkx 内容接入之前的九地点世界快照”，已推远端。
+  - 记录 `df2b37c..121fb37` 的 xkx 线边界：16 个提交中 15 个属 xkx 线，仅 `377b815`
+    （scheduler 留存封顶）是通用修复。
+- **为什么**：原 `world-legacy-20261107` 打在 `121fb37` 上，而该 commit 本身即
+  `feat(xkx-player): 接入 xkx 真实内容包`，tag message 与实际内容不符；
+  已推送的 tag 按 `docs/GIT-WORKFLOW.md` §4 **永不改写**，因此不改旧 tag，另加一个真正无 xkx
+  改动的快照，供“整体回滚到纯九地点世界”时使用。
+- **验证**：
+  - `git ls-remote origin 'refs/tags/world-legacy-20261107*'` → tag 对象 `473a09e`，解引用 `121fb37`（未变）；
+  - `git ls-remote origin 'refs/tags/pre-xkx-20261107*'` → 对象 `bff65ba`，解引用 `df2b37c`；
+  - `git log --format='%h|%ad|%s' --date=short df2b37c..121fb37` 得到 16 条，逐条核对归属。
+- **commit**：见本条目所在提交。
+
+---
+
 ## [修复] 2026-11-07 — 修复 2h soak RSS 无界增长漏点（p3m 门禁 rss_growth）
 
 - **改了什么**：`src/wsim/sim/scheduler.py`
