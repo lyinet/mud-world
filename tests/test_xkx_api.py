@@ -52,19 +52,19 @@ def test_help_lists_all_required_commands(session):
     for verb in ("look", "go", "ask", "buy", "fight", "loot", "score", "inventory"):
         assert verb in text
     assert "195 间房" in text
-    assert "92 位 NPC" in text
+    assert "105 位 NPC" in text
 
 
 def test_content_counts_match_pack_exactly(session):
     stats = session.content.world_stats
     assert len(session.content.locations) == 195
-    assert len(session.content.npcs) == 92
+    assert len(session.content.npcs) == 105
     assert stats["rooms_total"] == 201
     assert stats["rooms_in_slice"] == 195
     assert stats["rooms_boundary"] == 6
-    assert stats["npcs_in_slice"] == 92
+    assert stats["npcs_in_slice"] == 105
     assert stats["npcs_total"] == 105
-    assert stats["masters"] == 22
+    assert stats["masters"] == 24
     assert stats["shops"] == 3
     assert stats["exits_total"] == 427
     assert stats["exits_from_slice"] == 421

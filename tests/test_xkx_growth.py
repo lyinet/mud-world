@@ -92,10 +92,10 @@ def _bare_state(locations: dict) -> WorldState:
 # ---------------------------------------------------------------- 拜师（bai）
 
 
-def test_content_has_22_masters_and_one_sect(xkx_content):
+def test_content_has_24_masters_and_one_sect(xkx_content):
     masters = _master_rows(xkx_content)
-    assert len(masters) == 22
-    assert xkx_content.world_stats["masters"] == 22
+    assert len(masters) == 24
+    assert xkx_content.world_stats["masters"] == 24
     sects = {str(raw.get("sect") or "") for raw in masters}
     sects.discard("")
     assert sects == {"honghua"}
@@ -103,7 +103,7 @@ def test_content_has_22_masters_and_one_sect(xkx_content):
 
 
 def test_every_content_master_can_be_bai(xkx_content):
-    """22 位师父逐一可拜：在只含该师父的房间里调用 BaiAction。"""
+    """24 位师父逐一可拜：在只含该师父的房间里调用 BaiAction。"""
     for raw in _master_rows(xkx_content):
         loc = JIULOU
         locations = {loc: {"id": loc, "name": loc, "exits": []}}

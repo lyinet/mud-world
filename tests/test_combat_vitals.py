@@ -147,7 +147,7 @@ def test_xkx_genesis_lands_hp_on_every_npc_entity():
     state = WorldState(locations=content.locations)
     result = build_genesis(content, content.npcs, root=ROOT, state=state)
     apply_effects(state, result.effects)
-    assert len(content.npcs) == 92
+    assert len(content.npcs) == 105
     assert all(state.entities[str(n["id"])].max_hp > 0 for n in content.npcs)
     assert state.entities["/d/hangzhou/npc/laohu"].max_hp == 200
     assert state.entities["/d/shiliang/npc/li"].max_hp == 500
