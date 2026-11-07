@@ -45,15 +45,16 @@
   },
   "npcs": {
    "observable": 195,
-   "match": 194,
-   "rate": 0.9949
+   "match": 192,
+   "rate": 0.9846
   }
  },
  "categories": {
-  "items_mismatch": 6,
-  "npcs_mismatch": 1
+  "npcs_mismatch": 3,
+  "items_mismatch": 6
  },
  "npc_breakdown": {
+  "采样态差异（战斗临时态）": 2,
   "在场/缺失": 1
  },
  "corrections": [
@@ -78,9 +79,58 @@
     "items": "189/195 = 96.92%，前后不变",
     "npcs 差异房": "3 -> 1（仅 road1 游走）"
    }
+  },
+  {
+   "date": "2026-11-07",
+   "commit": "279c957",
+   "text": "回滚 P4a 内容侧 `initial_state`：源码核实 `<昏迷不醒>` 只来自 `feature/damage.lpc` 的 `unconcious()`（采集时探针被攻击、又把它打昏的战斗临时态），不是出生态；把采样战斗态写成出生态是虚假状态换一致率，故撤销，创世回到 alive。引擎保留 `status=unconcious` 的可见/显示能力。对拍新增“采样态差异（战斗临时态）”类别，判据：LPC 无初始标记 + 差异仅出现在 `disable_type` 类运行时字段，**不计入真差异**；归一化 6 条未改。",
+   "figures": {
+    "npcs": "194/195 = 99.49% -> 192/195 = 98.46%",
+    "npcs 差异房": "1 -> 3（2 房采样态差异、1 房真差异 road1）",
+    "content_hash": "9fc1d247… -> 2b52983f…（回到 P2 基线，需 --reset）",
+    "items": "189/195 = 96.92%，前后不变"
+   }
   }
  ],
  "samples": {
+  "npcs_mismatch": {
+   "id": "/d/hangzhou/huanglongdong",
+   "short": "黄龙洞",
+   "fields": {
+    "name": {
+     "match": true,
+     "orig": "黄龙洞",
+     "repl": "黄龙洞"
+    },
+    "desc": {
+     "match": true
+    },
+    "exits": {
+     "match": true,
+     "orig": [
+      "south"
+     ],
+     "repl": [
+      "south"
+     ]
+    },
+    "items": {
+     "match": true,
+     "orig": {},
+     "repl": {}
+    },
+    "npcs": {
+     "match": false,
+     "orig": {
+      "毒蛇 <昏迷不醒>": 1
+     },
+     "repl": {
+      "毒蛇": 1
+     }
+    }
+   },
+   "status": "differ"
+  },
   "items_mismatch": {
    "id": "/d/hangzhou/dadao1",
    "short": "沿湖大道",
@@ -116,48 +166,6 @@
     "npcs": {
      "match": true,
      "orig": {},
-     "repl": {}
-    }
-   },
-   "status": "differ"
-  },
-  "npcs_mismatch": {
-   "id": "/d/hangzhou/road1",
-   "short": "青石大道",
-   "fields": {
-    "name": {
-     "match": true,
-     "orig": "青石大道",
-     "repl": "青石大道"
-    },
-    "desc": {
-     "match": true
-    },
-    "exits": {
-     "match": true,
-     "orig": [
-      "north",
-      "northeast",
-      "northwest",
-      "south"
-     ],
-     "repl": [
-      "north",
-      "northeast",
-      "northwest",
-      "south"
-     ]
-    },
-    "items": {
-     "match": true,
-     "orig": {},
-     "repl": {}
-    },
-    "npcs": {
-     "match": false,
-     "orig": {
-      "武当派第四代弟子 香火道人": 1
-     },
      "repl": {}
     }
    },
@@ -1000,16 +1008,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": true,
+     "match": false,
      "orig": {
       "毒蛇 <昏迷不醒>": 1
      },
      "repl": {
-      "毒蛇 <昏迷不醒>": 1
+      "毒蛇": 1
      }
     }
    },
-   "status": "match"
+   "status": "differ"
   },
   {
    "id": "/d/hangzhou/yuelang",
@@ -1662,16 +1670,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": true,
+     "match": false,
      "orig": {
       "大狼狗 <昏迷不醒>": 2
      },
      "repl": {
-      "大狼狗 <昏迷不醒>": 2
+      "大狼狗": 2
      }
     }
    },
-   "status": "match"
+   "status": "differ"
   },
   {
    "id": "/d/hangzhou/road15",
