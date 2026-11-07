@@ -119,7 +119,8 @@ def attr(ent: Any, name: str) -> int:
 def attack_skill(ent: Any, explicit: str | None = None) -> str:
     """`combatd.lpc:268-274`：有武器取武器技能，否则取 prepare，再否则 `unarmed`。
 
-    这里没有建模武器技能与 `prepare_skill`，所以默认固定 `unarmed`。
+    武器技能类型来自 `Entity.weapon_type`（物品 `equip_slot`）；没有建模
+    `prepare_skill`，所以空手固定 `unarmed`。
     注意：`role`（“镖师”“wanderer”等身份/职业）不是武功，绝不能当技能兜底：
     旧实现会让玩家的 `unarmed=40` 被 `skills={"镖师":0.35}` 遮蔽，也让 NPC 用
     职业等级 41 代替 `unarmed`，属于参数映射错误。
@@ -127,6 +128,10 @@ def attack_skill(ent: Any, explicit: str | None = None) -> str:
     levels = skill_map(ent)
     if explicit and explicit in levels:
         return str(explicit)
+    if has_weapon(ent):
+        weapon_type = str(getattr(ent, "weapon_type", "") or "")
+        if weapon_type:
+            return weapon_type
     return "unarmed"
 
 
@@ -169,9 +174,15 @@ class _Actor:
         # - apply/attack / apply/defense 进入 skill_power 的 level（再 800 封顶）；
         # - apply/armor 作为护甲减伤值；
         # - apply/damage 只有持兵器时才是基础伤害，空手用 apply/unarmed_damage。
-        self.temp_apply = {
-            str(k): int(v) for k, v in (getattr(ent, "temp_apply", None) or {}).items()
-        }
+        # 装备加成（`feature/equip.lpc`）与原版 set_temp 一样是 `apply/*` 临时加成，
+        # 逐键相加后只走既有入参，不改公式。
+        self.temp_apply: dict[str, int] = {}
+        for source in (
+            getattr(ent, "temp_apply", None) or {},
+            getattr(ent, "equipped_apply", None) or {},
+        ):
+            for key, value in source.items():
+                self.temp_apply[str(key)] = int(self.temp_apply.get(str(key), 0)) + int(value)
         self.apply_attack = int(self.temp_apply.get("apply/attack", 0))
         self.apply_defense = int(self.temp_apply.get("apply/defense", 0))
         self.apply_armor = int(self.temp_apply.get("apply/armor", 0))

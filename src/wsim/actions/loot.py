@@ -12,6 +12,8 @@ from typing import Any
 
 from ..core.models import Effect, Intent
 from ..world.state import WorldState
+from .common import memory, overweight_reason
+from .equipment import item_weight
 from .registry import Action
 
 
@@ -63,6 +65,13 @@ class LootAction(Action):
                 return ["loot_not_found"]
             if isinstance(raw_qty, int) and raw_qty > available:
                 return ["loot_not_found"]
+            targets = [(item, int(raw_qty or available))]
+        else:
+            targets = [(name, int(bucket[name])) for name in sorted(bucket)]
+        added = sum(item_weight(self.content, name) * qty for name, qty in targets)
+        reason = overweight_reason(self.content, ent, added)
+        if reason:
+            return [reason]
         return []
 
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
@@ -80,7 +89,7 @@ class LootAction(Action):
         for name, qty in targets:
             if qty <= 0:
                 continue
-            weight = int((getattr(self.content, "items", {}) or {}).get(name, {}).get("weight", 0) or 0)
+            weight = item_weight(self.content, name)
             effects.append(
                 Effect(
                     "loot_take",
@@ -94,3 +103,51 @@ class LootAction(Action):
                 )
             )
         return effects
+
+
+class DropAction(Action):
+    """把背包物品放到当前房间地面；与 loot_create 共用 WorldState.ground。"""
+
+    verb = "drop"
+
+    def __init__(self, content: Any = None) -> None:
+        self.content = content
+
+    def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
+        pid = _player_id(intent)
+        if not pid:
+            return ["player_required"]
+        ent = state.entities.get(pid)
+        if ent is None:
+            return ["player_not_entered"]
+        if ent.status == "dead":
+            return ["player_dead"]
+        item = str(intent.args.get("item") or "").strip()
+        if not item:
+            return ["item_missing"]
+        qty = intent.args.get("qty", 1)
+        if isinstance(qty, bool) or not isinstance(qty, int) or qty < 1 or qty > 20:
+            return ["bad_qty"]
+        if int(ent.inventory.get(item, 0)) < qty:
+            return ["item_missing"]
+        if item in (ent.equipped or {}).values():
+            return ["item_equipped"]
+        if not ent.location or ent.location not in state.locations:
+            return ["bad_location"]
+        return []
+
+    def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
+        pid = _player_id(intent)
+        ent = state.entities.get(pid)
+        item = str(intent.args.get("item") or "").strip()
+        qty = int(intent.args.get("qty") or 1)
+        name = str(((getattr(self.content, "items", {}) or {}).get(item) or {}).get("name") or item)
+        return [
+            Effect("item_consume", {"owner": pid, "item": item, "qty": qty}),
+            Effect(
+                "loot_create",
+                {"location": ent.location, "item": item, "qty": qty, "reason": "drop"},
+            ),
+            Effect("set_field", {"entity": pid, "field": "last_action_tick", "value": intent.tick}),
+            *memory(state, pid, intent.tick, f"丢下了{name}x{qty}", 0.05),
+        ]

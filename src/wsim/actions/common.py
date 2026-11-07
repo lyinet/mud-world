@@ -93,6 +93,56 @@ def founding_members(
     return sorted(members)
 
 
+def max_encumbrance(ent: Entity) -> int:
+    """原版负重上限：base_str*5000 + (query_str-base_str)*1000。
+
+    `query_str` 的提升按有效武功等级/10 估算；旧内容实体没有 attrs 时返回 0，
+    表示“不启用负重”，保持旧世界行为。
+    """
+    base = int((ent.attrs or {}).get("str", 0) or 0)
+    if base <= 0:
+        return 0
+    improve = 0
+    for level in (ent.skill_levels or {}).values():
+        try:
+            improve = max(improve, int(level) // 10)
+        except (TypeError, ValueError):
+            continue
+    return base * 5000 + improve * 1000
+
+
+def carried_weight(content, ent: Entity) -> int:
+    """背包 + 已装备物品的总重量；缺失 weight 按 0。"""
+    items = getattr(content, "items", {}) or {}
+
+    def weight_of(item: str) -> int:
+        value = (items.get(item) or {}).get("weight")
+        if isinstance(value, bool) or not isinstance(value, int):
+            return 0
+        return int(value)
+
+    total = 0
+    for item, qty in (ent.inventory or {}).items():
+        try:
+            total += weight_of(item) * int(qty)
+        except (TypeError, ValueError):
+            continue
+    for item in (ent.equipped or {}).values():
+        total += weight_of(item)
+    return total
+
+
+def overweight_reason(content, ent: Entity, added_weight: int) -> str:
+    """超重时返回 `overloaded:<need>:<max>`，否则空串。"""
+    limit = max_encumbrance(ent)
+    if limit <= 0:
+        return ""
+    need = carried_weight(content, ent) + max(0, int(added_weight))
+    if need <= limit:
+        return ""
+    return f"overloaded:{need}:{limit}"
+
+
 def arg_str(intent, key: str, required: bool = True) -> str | None:
     v = intent.args.get(key)
     if v is None:

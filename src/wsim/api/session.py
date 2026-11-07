@@ -184,6 +184,12 @@ WRITE_ACTIONS: dict[str, str] = {
     "equip": "equip",
     "unequip": "unequip",
     "use_item": "use_item",
+    "wear": "wear",
+    "wield": "wield",
+    "remove": "remove",
+    "unwield": "unwield",
+    "drop": "drop",
+    "sleep": "sleep",
     # xkx 文字壳：战斗动词由 actions 层提供，API 只在动作已注册时放行。
     "fight": "fight",
     "loot": "loot",
@@ -252,6 +258,12 @@ ACTION_ALIASES: dict[str, str] = {
     "equip": "equip",
     "unequip": "unequip",
     "use_item": "use_item",
+    "wear": "wear",
+    "wield": "wield",
+    "remove": "remove",
+    "unwield": "unwield",
+    "drop": "drop",
+    "sleep": "sleep",
     "fight": "fight",
     "loot": "loot",
     "flee": "flee",
@@ -331,6 +343,16 @@ REASON_TEXT: dict[str, str] = {
     "quest_item_missing": "采购类任务需要你持有目标物品。",
     "quest_step_incomplete": "你还没有真正完成这单的目标动作；请先到指定地点上工/交易/买入或把镖单送到目标地点，再回来交付。",
     "item_not_equippable": "这件物品不能装备。",
+    "item_not_wearable": "这件物品不能穿戴。",
+    "item_not_weapon": "这件物品不是兵器。",
+    "weapon_already_wielded": "你双手已经持有兵器；先放下再换。",
+    "item_not_equipped": "你没有装备这件物品。",
+    "not_worn_use_unwield": "兵器要用 unwield 放下，remove 只脱护具。",
+    "not_wielded": "你手里没有兵器。",
+    "item_equipped": "这件物品正装备在身上，先脱下再丢。",
+    "player_required": "该操作需要玩家身份。",
+    "player_dead": "你已经倒下，无法行动。",
+    "loot_not_found": "这里地上没有你要找的东西。",
     "equipment_slot_empty": "该装备槽位没有已装备物品。",
     "unknown_equipment_slot": "未知的装备槽位。",
     "item_not_usable": "这件物品不能直接使用；只有食物、酒水和药品可用。",
@@ -464,6 +486,15 @@ REASON_TEXT: dict[str, str] = {
 def _reason_text(code: str) -> str:
     if not code:
         return ""
+    if code.startswith("overloaded:"):
+        parts = code.split(":")
+        if len(parts) == 3:
+            return f"负重超限：需要 {parts[1]}，上限 {parts[2]}；请先丢下物品或分批携带。"
+    if code.startswith("slot_occupied:"):
+        slot = code.split(":", 1)[1]
+        return f"{SLOT_LABELS.get(slot, slot)}槽位已经有装备了；先脱下再换。"
+    if code.startswith("bad_arg:"):
+        return REASON_TEXT.get(code) or f"参数不合法：{code.split(':', 1)[1]}。"
     return REASON_TEXT.get(code) or f"操作未完成：{code}（详见 docs/player-api.md 错误码表）。"
 
 
@@ -576,7 +607,7 @@ class WorldSession:
         else:
             state = WorldState(locations=locations)
             self.writer = Writer(state, self.store, self.registry, seed)
-            genesis = build_genesis(self.content, npcs, root=self.root)
+            genesis = build_genesis(self.content, npcs, root=self.root, seed=self.seed)
             self.writer.bootstrap(genesis.effects, tick=0, verb="genesis")
             # 创世预置账号：唯一发放 300 文 + 炊饼×3 + 粗布×1 的地方。
             seed_ids = [player_id]
@@ -768,49 +799,33 @@ class WorldSession:
         return rows
 
     def _weight_view(self, ent) -> dict[str, Any]:
-        """负重：行囊 + 已装备按内容包 weight 求和；上限引擎没有，如实给 null。"""
-        total = 0
-        missing = 0
+        """负重：行囊 + 已装备按内容包 weight 求和；上限按膂力/武功计算。"""
+        from ..actions.common import carried_weight, max_encumbrance
 
-        def add(item: str, qty: int) -> None:
-            nonlocal total, missing
-            row = self.content.items.get(item)
-            weight = row.get("weight") if isinstance(row, dict) else None
-            if isinstance(weight, (int, float)):
-                total += int(weight) * qty
-            else:
-                missing += 1
-
-        for item, qty in (ent.inventory or {}).items():
-            if int(qty) > 0:
-                add(str(item), int(qty))
-        for item in (ent.equipped or {}).values():
-            if item:
-                add(str(item), 1)
-        reason = "引擎没有负重上限字段，只显示当前负重（内容包 weight 原值求和）。"
-        if missing:
-            reason += f"另有 {missing} 件物品没有 weight 记录，合计不完整。"
-        return {
-            "current": total,
-            "max": None,
-            "unit": "内容包原值",
-            "reason": reason,
-        }
+        current = carried_weight(self.content, ent)
+        limit = max_encumbrance(ent)
+        if limit <= 0:
+            return {
+                "current": current,
+                "max": None,
+                "unit": "内容包原值",
+                "reason": "当前角色没有膂力属性，负重上限不启用；只显示当前负重。",
+            }
+        return {"current": current, "max": limit, "unit": "内容包原值", "reason": ""}
 
     def _equipment_actions(self) -> dict[str, Any]:
-        """穿脱按钮可用性：动作未注册或文字壳未接入口时一律给原因。"""
-        registered = self.registry.get("equip") is not None and self.registry.get(
-            "unequip"
-        ) is not None
-        if registered:
-            reason = "引擎穿脱动作已注册，但文字壳尚未接入穿脱命令；暂不提供按钮。"
-        else:
-            reason = "引擎尚未注册穿脱动作，暂不可用。"
+        """穿脱按钮可用性：四个新 verb 与兼容 verb 都已在注册表。"""
+        verbs = ("wear", "wield", "remove", "unwield", "equip", "unequip")
+        registered = all(self.registry.get(verb) is not None for verb in verbs)
         return {
-            "equip": False,
-            "unequip": False,
+            "equip": bool(self.registry.get("equip") is not None),
+            "unequip": bool(self.registry.get("unequip") is not None),
+            "wear": bool(self.registry.get("wear") is not None),
+            "wield": bool(self.registry.get("wield") is not None),
+            "remove": bool(self.registry.get("remove") is not None),
+            "unwield": bool(self.registry.get("unwield") is not None),
             "engine_registered": bool(registered),
-            "reason": reason,
+            "reason": "" if registered else "部分穿脱动作未注册。",
         }
 
     def _visited_locations(self, pid: str) -> set[str]:
@@ -935,6 +950,8 @@ class WorldSession:
                 "role": ent.role,
                 "location": ent.location,
                 "location_name": self._loc_name(ent.location),
+                "region": (self.content.locations.get(ent.location) or {}).get("region"),
+                "region_name": (self.content.locations.get(ent.location) or {}).get("region_name"),
                 "home": ent.home or "",
                 "stamina": round(float(ent.stamina), 3),
                 "max_stamina": round(float(ent.max_stamina), 3),
@@ -1844,14 +1861,14 @@ class WorldSession:
             description = str((catalog.get(item_id) or {}).get("usage") or "")
         if not description:
             description = self._ITEM_CATEGORY_TEXT.get(category, "普通物品。")
-        slot = slot_for_item(item_id, category)
         raw_slot = str(row.get("equip_slot") or "")
+        slot = slot_for_item(item_id, category, raw_slot)
         return {
             "category": category,
             "description": description,
             "equippable": bool(slot),
             "slot": slot or None,
-            # 内容包自己的装备槽（只读展示；与引擎 tool/accessory 不是同一套）。
+            # 内容包自己的装备槽（护具即引擎槽；兵器另给技能类型）。
             "equip_slot": raw_slot,
             "equip_slot_label": XKX_EQUIP_SLOT_LABELS.get(raw_slot, raw_slot),
         }
@@ -1936,8 +1953,7 @@ class WorldSession:
                     "description": meta.get("description", ""),
                 }
             )
-        # 内容包 equip_slot 只读 schema：让玩家看到有哪些槽，但引擎未接通，
-        # available=false + reason，绝不显示成可穿脱的空槽按钮。
+        # 内容包 equip_slot：护具按 equip_slot 分槽，兵器统一进 weapon 槽。
         counts: dict[str, int] = {}
         for row in (self.content.items or {}).values():
             slot = str(row.get("equip_slot") or "")
@@ -1946,19 +1962,21 @@ class WorldSession:
         xkx_slots = [
             {
                 "slot": slot,
-                "label": XKX_EQUIP_SLOT_LABELS.get(slot, slot),
+                "label": SLOT_LABELS.get(slot, XKX_EQUIP_SLOT_LABELS.get(slot, slot)),
                 "items": counts[slot],
             }
             for slot in sorted(counts)
         ]
         return {
             "slots": slots,
+            "weapon_type": str(getattr(ent, "weapon_type", "") or ""),
+            "applied": dict(sorted((getattr(ent, "equipped_apply", None) or {}).items())),
             "effects": {
                 "cultivate_bonus_pct": int(round(equip_cultivate_bonus(self.content, ent) * 100)),
             },
             "xkx_slots": xkx_slots,
-            "xkx_slots_available": False,
-            "xkx_slots_reason": "引擎当前只支持 tool/accessory 两个槽；内容包 equip_slot 尚未接通，暂不可穿脱。",
+            "xkx_slots_available": True,
+            "xkx_slots_reason": "",
         }
 
 
@@ -2065,6 +2083,8 @@ class WorldSession:
             "id": loc_id,
             "name": str(row.get("name") or loc_id),
             "description": str(row.get("description") or ""),
+            "region": row.get("region"),
+            "region_name": row.get("region_name"),
             "exits": exits,
             # 原字段保持不变（仍是 item id 列表）；价格与买卖上限走并列的新字段。
             "services": services,
@@ -2684,7 +2704,7 @@ class WorldSession:
             # 上工/修炼按声明小时真实推进世界钟（1 小时 = TICKS_PER_HOUR tick），
             # 不能只推 1 小时却让界面假装 N 小时；其余动作仍按 tick_step。
             step = None
-            if action in ("rest", "work", "cultivate") and event.outcome == "ok":
+            if action in ("rest", "sleep", "work", "cultivate") and event.outcome == "ok":
                 hours = event.args.get("hours")
                 if isinstance(hours, int) and not isinstance(hours, bool):
                     step = hours * TICKS_PER_HOUR
@@ -2955,8 +2975,19 @@ class WorldSession:
                 base["cargo_value"] = payload.get("cargo_value", 100)
             base["fee"] = payload.get("fee", 0)
             return base
-        if action == "rest":
+        if action in ("rest", "sleep"):
             base["hours"] = payload.get("hours", 4)
+            return base
+        if action in ("wear", "wield"):
+            base["item"] = str(payload.get("item") or "")
+            return base
+        if action in ("remove", "unwield"):
+            base["item"] = str(payload.get("item") or "")
+            base["slot"] = str(payload.get("slot") or "")
+            return base
+        if action == "drop":
+            base["item"] = str(payload.get("item") or "")
+            base["qty"] = payload.get("qty", 1)
             return base
         if action == "equip":
             base["item"] = str(payload.get("item") or "")

@@ -69,6 +69,7 @@ def build_genesis(
     npcs: list[dict[str, Any]],
     root: Path | None = None,
     state: WorldState | None = None,
+    seed: int = 0,
 ) -> GenesisResult:
     """构建创世事件。
 
@@ -220,7 +221,7 @@ def build_genesis(
         }
         # 带内容战斗数据的 NPC（xkx 切片）落 max_hp/attrs/skills；
         # legacy 内容没有 vitals/attrs/skills 键，解析结果为 None，事件逐字节不变。
-        npc_vitals = resolve_npc_vitals(npc)
+        npc_vitals = resolve_npc_vitals(npc, seed=seed, errors=mismatches)
         if npc_vitals is not None:
             entity_data.update(npc_vitals)
         # P4a：内容包显式标注的参考快照初始状态（如采集时被打晕的毒蛇/大狼狗）。

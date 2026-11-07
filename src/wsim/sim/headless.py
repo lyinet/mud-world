@@ -177,7 +177,7 @@ def run_headless(
     registry = build_registry(content, cfg.seed, spawns=spawns)
     writer = Writer(state, store, registry, cfg.seed)
 
-    genesis = build_genesis(content, npcs, root=root)
+    genesis = build_genesis(content, npcs, root=root, seed=cfg.seed)
     genesis_event = writer.bootstrap(genesis.effects, tick=0, verb="genesis")
     events = [genesis_event]
     state = writer.state

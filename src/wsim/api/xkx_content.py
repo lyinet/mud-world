@@ -275,9 +275,9 @@ def load_xkx_content(pack_root: Path | str) -> Content:
             "objects": objects_by_room.get(rid) or [],
             "coord": raw.get("coord") or {},
             "flags": raw.get("flags") or {},
-            # 区域信息只读透传：内容包没有时留空，API 层给「暂不可用」原因，不猜。
-            "region": str(raw.get("region") or ""),
-            "region_name": str(raw.get("region_name") or ""),
+            # 区域信息只读透传：内容包没有时为 None（JSON null），不猜、不补默认层级。
+            "region": raw.get("region"),
+            "region_name": raw.get("region_name"),
             "origin": str(raw.get("origin") or "slice"),
         }
 
