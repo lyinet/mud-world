@@ -1,7 +1,10 @@
-# P4b：xkx NPC 游走方案（只设计，不写代码）
+# P4b：xkx NPC 游走方案（已实现）
 
-> 状态：待用户评审。默认关闭、由世界配置显式打开；不另造机制，复用 `LODScheduler` + `Writer` 单写者事件流。
-> 分支：`fix/xkx-room-parity` → `origin/xkx-parity`。本文件不含实现。
+> 状态：**已实现**（提交 `ed1e5cc`）。`npc_wander` 默认关闭，仅 `config/worlds/xkx.yaml` 显式打开；
+> 关闭态两日 xkx 与实现前逐字节一致（`97c4287e… / 6988bddf… / 1296` 事件），
+> 打开态同 seed 双跑一致（`1c413110… / 45941d7a… / 382` 事件），1 日哈希 = 2 日首日哈希。
+> 不另造机制，复用 `LODScheduler` + `Writer` 单写者事件流。
+> 分支：`fix/xkx-room-parity` → `origin/xkx-parity`。实现见 `ed1e5cc`，本文件保留方案与验收记录。
 
 ## 0. 结论先行
 
