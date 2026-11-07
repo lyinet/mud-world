@@ -2255,7 +2255,7 @@ class WorldSession:
             rows.append(
                 {
                     "id": ent.id,
-                    "name": ent.name,
+                    "name": str(meta.get("display_name") or ent.name),
                     "role": ent.role,
                     "location": ent.location,
                     "presence": ent.presence,

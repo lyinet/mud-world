@@ -30,30 +30,28 @@
 | 字段 | 可观察 | 一致 | 一致率 |
 |------|--------|------|--------|
 | name | 192 | 192 | 100.0% |
-| desc | 192 | 188 | 97.9% |
+| desc | 192 | 191 | 99.5% |
 | exits | 192 | 191 | 99.5% |
 | items | 192 | 185 | 96.4% |
-| npcs | 192 | 140 | 72.9% |
+| npcs | 192 | 171 | 89.1% |
 
 ## 差异分类
 
 | 分类 | 数量 |
 |------|------|
 | desc_extra | 1 |
-| desc_missing_text | 3 |
 | exits_mismatch | 1 |
 | items_mismatch | 7 |
 | landing_mismatch | 3 |
-| npcs_mismatch | 52 |
+| npcs_mismatch | 21 |
 
 ### NPC 差异细分
 
 | 细类 | 房间数 |
 |------|--------|
-| 头衔/状态前缀 | 33 |
-| 数量不同 | 12 |
-| 头衔/状态前缀+数量不同 | 4 |
+| 数量不同 | 16 |
 | 在场/缺失 | 3 |
+| 头衔/状态前缀 | 2 |
 
 “头衔/状态前缀”= 原版显示名带门派头衔或「<昏迷不醒>」状态、复刻只存基名；“在场/缺失”= 一侧在场另一侧不在（含共享实例里 NPC 游走/已离开）；“数量不同”= 同名 NPC 两侧 clone 数不一致。
 
@@ -61,80 +59,46 @@
 
 | 房间 | 字段 | 说明 |
 |------|------|------|
-| `/d/hangzhou/road7` | npcs | 原版 {'武当派第三代弟子 游方道人': 1} vs 复刻 {'游方道人': 1} |
-| `/d/hangzhou/marryroom` | npcs | 原版 {'红娘庄 红娘': 1} vs 复刻 {'红娘': 1} |
 | `/d/hangzhou/road6` | npcs | 原版 {'流氓头': 1, '流氓': 1} vs 复刻 {'流氓': 4, '流氓头': 1} |
-| `/d/hangzhou/road12` | npcs | 原版 {'绿营清兵': 1, '杭州提督 李可秀': 1} vs 复刻 {'李可秀': 1, '绿营清兵': 4} |
-| `/d/hangzhou/huanglongdong` | npcs | 原版 {'毒蛇(Dushe) <昏迷不醒>': 1} vs 复刻 {'毒蛇': 1} |
-| `/d/hangzhou/yuelang` | npcs | 原版 {'绿营会众': 1, '明教青龙坛坛主 明教第三十五代弟子 程嘲风': 1} vs 复刻 {'程嘲风': 1, '绿营会众': 2} |
-| `/d/hangzhou/road13` | npcs | 原版 {'御林军骁骑营佐领「火手判官」张召重': 1} vs 复刻 {'张召重': 1} |
+| `/d/hangzhou/road12` | npcs | 原版 {'绿营清兵': 1, '杭州提督 李可秀': 1} vs 复刻 {'杭州提督 李可秀': 1, '绿营清兵': 4} |
+| `/d/hangzhou/huanglongdong` | npcs | 原版 {'毒蛇 <昏迷不醒>': 1} vs 复刻 {'毒蛇': 1} |
+| `/d/hangzhou/yuelang` | npcs | 原版 {'绿营会众': 1, '明教青龙坛坛主 明教第三十五代弟子 程嘲风': 1} vs 复刻 {'明教青龙坛坛主 明教第三十五代弟子 程嘲风': 1, '绿营会众': 2} |
 | `/d/hangzhou/dadao1` | items | 原版 {} vs 复刻 {'白薇': 1} |
-| `/d/hangzhou/road14` | npcs | 原版 {'红花会十一当家「鸳鸯刀」骆冰': 1, '红花会四当家「奔雷手」文泰来': 1} vs 复刻 {'文泰来': 1, '骆冰': 1} |
 | `/d/hangzhou/kedian` | items | 原版 {'客店留言板(Board)': 1} vs 复刻 {} |
-| `/d/hangzhou/guozhuang` | npcs | 原版 {'大狼狗(Wolf dog) <昏迷不醒>': 1} vs 复刻 {'大狼狗': 2} |
+| `/d/hangzhou/guozhuang` | npcs | 原版 {'大狼狗 <昏迷不醒>': 1} vs 复刻 {'大狼狗': 2} |
 | `/d/hangzhou/qingbomen` | npcs | 原版 {'女孩': 1} vs 复刻 {'女孩': 2} |
 | `/d/hangzhou/majiu` | items | 原版 {'黄骠马': 1} vs 复刻 {} |
 | `/d/hangzhou/majiu` | npcs | 原版 {'枣红马': 1, '马夫': 1, '紫骝马': 1} vs 复刻 {'枣红马': 1, '黄骠马': 1, '紫骝马': 1, '马夫': 1} |
-| `/d/hangzhou/suti4` | npcs | 原版 {'麻雀': 1, '乌鸦': 1, '武当派第十四代弟子 李沅芷': 1} vs 复刻 {'李沅芷': 1, '乌鸦': 1, '麻雀': 2} |
+| `/d/hangzhou/suti4` | npcs | 原版 {'麻雀': 1, '乌鸦': 1, '武当派第十四代弟子 李沅芷': 1} vs 复刻 {'武当派第十四代弟子 李沅芷': 1, '乌鸦': 1, '麻雀': 2} |
 | `/d/hangzhou/dalu1` | npcs | 原版 {'红花会众': 1, '挑夫': 1} vs 复刻 {'挑夫': 1, '红花会众': 2} |
 | `/d/hangzhou/yuhuangsj` | npcs | 原版 {'红花会众': 1} vs 复刻 {'红花会众': 2} |
-| `/d/hangzhou/road16` | npcs | 原版 {'御前侍卫「金爪铁钩」白振': 1} vs 复刻 {'白振': 1} |
-| `/d/hangzhou/road2` | npcs | 原版 {'武当派第四代弟子 香火道人': 1} vs 复刻 {'香火道人': 1} |
 | `/d/hangzhou/liulangqiao` | npcs | 原版 {'麻雀': 1, '乌鸦': 1} vs 复刻 {'麻雀': 2, '乌鸦': 1} |
 | `/d/hangzhou/road1` | npcs | 原版 {'武当派第四代弟子 香火道人': 1} vs 复刻 {} |
-| `/d/hangzhou/road19` | npcs | 原版 {'御前侍卫 龙骏': 1, '刀客': 1} vs 复刻 {'刀客': 1, '龙骏': 1} |
 | `/d/hangzhou/liuzhuang` | npcs | 原版 {'管家': 1, '家丁': 1} vs 复刻 {'管家': 1, '家丁': 2} |
-| `/d/hangzhou/yuhuangsd` | npcs | 原版 {'红花会十四当家「金笛秀才」余鱼同': 1} vs 复刻 {'余鱼同': 1} |
 | `/d/hangzhou/huagang` | items | 原版 {} vs 复刻 {'白芷': 1} |
 | `/d/hangzhou/tulu1` | npcs | 原版 {'男孩': 1} vs 复刻 {'男孩': 2} |
 | `/d/hangzhou/shanlu5` | npcs | 原版 {'采茶女': 1} vs 复刻 {'采茶女': 2} |
 | `/d/hangzhou/shanlu2` | npcs | 原版 {'绿营会众': 1} vs 复刻 {'绿营会众': 2} |
 | `/d/jiaxing/tieqiang` | npcs | 原版 {'乌鸦': 1} vs 复刻 {'乌鸦': 4} |
-| `/d/hangzhou/road17` | npcs | 原版 {'挑夫': 1, '御前侍卫 褚圆': 1} vs 复刻 {'挑夫': 1, '褚圆': 1} |
 | `/d/hangzhou/longjing` | desc | 复刻多 16 字 / 少 0 字 |
 | `/d/hangzhou/longjing` | exits | 原版 [] vs 复刻 ['east', 'south'] |
 | `/d/hangzhou/longjing` | npcs | 原版 {'蒙面人': 1} vs 复刻 {} |
 | `/d/jiaxing/nanhu` | items | 原版 {} vs 复刻 {'白芷': 1} |
-| `/d/jiaxing/nanhu` | npcs | 原版 {'古墓派第三代弟子「赤练仙子」李莫愁': 1} vs 复刻 {'李莫愁': 1} |
-| `/d/jiaxing/chating` | npcs | 原版 {'日月神教第八代光明左使黑木崖第八代弟子「天王老子」向问天': 1} vs 复刻 {'向问天': 1} |
 | `/d/hangzhou/faxisi` | npcs | 原版 {'进香客': 1, '老和尚': 1} vs 复刻 {'进香客': 2, '老和尚': 1} |
 | `/d/hangzhou/shanlu3` | npcs | 原版 {'男孩': 1} vs 复刻 {'男孩': 3} |
-| `/d/shiliang/shandao1` | npcs | 原版 {'崆峒派第五代弟子 李拙道人': 1} vs 复刻 {'李拙道人': 1} |
-| `/d/shiliang/shandao2` | npcs | 原版 {'十方寺方丈 清明禅师': 1} vs 复刻 {'清明禅师': 1} |
 | `/d/hangzhou/liuhe1` | landing | 落点异常：期望「六和塔」，实得「武庙」，未按 startroom 落入目标房（该房不计入一致率） |
-| `/d/hangzhou/liuhe2` | npcs | 原版 {'红花会书僮 心砚': 1, '铁胆庄大小姐「俏李逵」周绮': 1} vs 复刻 {'心砚': 1, '周绮': 1} |
-| `/d/hangzhou/liuhe3` | npcs | 原版 {'红花会十三当家「铜头鳄鱼」蒋四根': 1} vs 复刻 {'蒋四根': 1} |
-| `/d/hangzhou/liuhe4` | npcs | 原版 {'红花会十二当家「鬼见愁」石双英': 1} vs 复刻 {'石双英': 1} |
-| `/d/hangzhou/liuhe5` | npcs | 原版 {'红花会九当家「九命锦豹子」卫春华': 1} vs 复刻 {'卫春华': 1} |
-| `/d/hangzhou/liuhe6` | npcs | 原版 {'红花会八当家「铁塔」杨成协': 1} vs 复刻 {'杨成协': 1} |
-| `/d/hangzhou/liuhe7` | npcs | 原版 {'红花会七当家「武诸葛」徐天宏': 1} vs 复刻 {'徐天宏': 1} |
 | `/d/hangzhou/liuhe8` | landing | 落点异常：期望「六和塔」，实得「鬼门关」，未按 startroom 落入目标房（该房不计入一致率） |
-| `/d/hangzhou/liuhe9` | npcs | 原版 {'红花会三当家「千臂如来」赵半山': 1} vs 复刻 {'赵半山': 1} |
-| `/d/hangzhou/liuhea` | npcs | 原版 {'铁胆庄庄主「铁胆」周仲英': 1} vs 复刻 {'周仲英': 1} |
-| `/d/hangzhou/liuheb` | npcs | 原版 {'武当派第十七代掌门「绵里针」陆菲青': 1} vs 复刻 {'陆菲青': 1} |
-| `/d/hangzhou/liuhec` | npcs | 原版 {'红花会二当家「追魂夺命剑」无尘道长': 1} vs 复刻 {'无尘道长': 1} |
-| `/d/hangzhou/liuhed` | npcs | 原版 {'红花会总舵主「玉面神龙」陈家洛': 1} vs 复刻 {'陈家洛': 1} |
-| `/d/hangzhou/santan` | desc | 复刻多 0 字 / 少 1 字 |
-| `/d/hangzhou/xihu` | desc | 复刻多 0 字 / 少 1 字 |
-| `/d/jiaxing/yanyu3` | npcs | 原版 {'白驼山庄主「西毒」欧阳锋': 1} vs 复刻 {'欧阳锋': 1} |
-| `/d/shiliang/dating` | npcs | 原版 {'温家老大 温方达': 1, '丫环': 1} vs 复刻 {'温方达': 1, '丫环': 2} |
-| `/d/shiliang/dongxiangfang` | items | 原版 {'锦面折叠长椅': 1} vs 复刻 {'chairs': 1} |
-| `/d/shiliang/fang1` | npcs | 原版 {'温家老大 温方悟': 1} vs 复刻 {'温方悟': 1} |
-| `/d/shiliang/fang2` | npcs | 原版 {'温家老三 温方山': 1} vs 复刻 {'温方山': 1} |
-| `/d/shiliang/fang3` | npcs | 原版 {'温家老四 温方施': 1, '丫环': 1} vs 复刻 {'温方施': 1, '丫环': 1} |
-| `/d/shiliang/fang4` | npcs | 原版 {'温家老五 温方南': 1, '丫环': 1} vs 复刻 {'温方南': 1, '丫环': 1} |
+| `/d/shiliang/dating` | npcs | 原版 {'温家老大 温方达': 1, '丫环': 1} vs 复刻 {'温家老大 温方达': 1, '丫环': 2} |
+| `/d/shiliang/dongxiangfang` | items | 原版 {'锦面折叠长椅': 1} vs 复刻 {'椅子': 1} |
 | `/d/shiliang/huli` | landing | 落点异常：期望「湖里」，实得「鬼门关」，未按 startroom 落入目标房（该房不计入一致率） |
-| `/d/shiliang/jinshedong` | npcs | 原版 {'「金蛇郎君」夏雪宜': 1} vs 复刻 {'夏雪宜': 1} |
-| `/d/shiliang/midao` | desc | 复刻多 0 字 / 少 1 字 |
-| `/d/shiliang/xiaolou` | npcs | 原版 {'温家小姐 温仪': 1} vs 复刻 {'温仪': 1} |
-| `/d/shiliang/xixiangfang` | items | 原版 {'锦面躺椅': 1} vs 复刻 {'chairs': 1} |
+| `/d/shiliang/xixiangfang` | items | 原版 {'锦面躺椅': 1} vs 复刻 {'椅子': 1} |
 
 ## 差异样例
 
-### npcs_mismatch — `/d/hangzhou/road7` (青石大道)
+### npcs_mismatch — `/d/hangzhou/road6` (青石大道)
 ```json
 {
- "id": "/d/hangzhou/road7",
+ "id": "/d/hangzhou/road6",
  "short": "青石大道",
  "fields": {
   "name": {
@@ -148,14 +112,14 @@
   "exits": {
    "match": true,
    "orig": [
+    "east",
     "north",
-    "northeast",
     "south",
     "west"
    ],
    "repl": [
+    "east",
     "north",
-    "northeast",
     "south",
     "west"
    ]
@@ -168,10 +132,12 @@
   "npcs": {
    "match": false,
    "orig": {
-    "武当派第三代弟子 游方道人": 1
+    "流氓头": 1,
+    "流氓": 1
    },
    "repl": {
-    "游方道人": 1
+    "流氓": 4,
+    "流氓头": 1
    }
   }
  },
@@ -349,49 +315,6 @@
    "observable": false
   }
  }
-}
-```
-
-### desc_missing_text — `/d/hangzhou/santan` (三潭印月)
-```json
-{
- "id": "/d/hangzhou/santan",
- "short": "三潭印月",
- "fields": {
-  "name": {
-   "match": true,
-   "orig": "三潭印月",
-   "repl": "三潭印月"
-  },
-  "desc": {
-   "match": false,
-   "extra_chars": 0,
-   "missing_chars": 1,
-   "repl_empty": false,
-   "samples": [
-    {
-     "orig": "u)是送游客去苏堤。>",
-     "repl": "u)是送游客去苏堤。"
-    }
-   ]
-  },
-  "exits": {
-   "match": true,
-   "orig": [],
-   "repl": []
-  },
-  "items": {
-   "match": true,
-   "orig": {},
-   "repl": {}
-  },
-  "npcs": {
-   "match": true,
-   "orig": {},
-   "repl": {}
-  }
- },
- "status": "differ"
 }
 ```
 

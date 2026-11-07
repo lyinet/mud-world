@@ -21,6 +21,7 @@
       "class": "fighter",
       "desc": "他是铁胆周仲英的二弟子，对师父始终忠心不二。",
       "desc_source": "lpc",
+      "display_name": "少林派第五十二代俗家弟子「独角虎」安健刚",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -36,6 +37,11 @@
           "slot": "wield"
         }
       ],
+      "family": {
+        "generation": 52,
+        "name": "少林派",
+        "title": "俗家弟子"
+      },
       "gender": "男性",
       "id": "/d/hangzhou/honghua/an",
       "is_master": true,
@@ -49,6 +55,7 @@
       "name": "安健刚",
       "nickname": "独角虎",
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -69,7 +76,7 @@
         "path": "d/hangzhou/honghua/an.lpc"
       },
       "temp_apply": [],
-      "title": null,
+      "title": "少林派第五十二代俗家弟子",
       "vendor": false,
       "vitals": {
         "combat_exp": 50000,
@@ -101,6 +108,7 @@
       "class": "fighter",
       "desc": "他身材又高又瘦，脸色蜡黄，眼睛凹进，眼角上有一粒黑痣，眉毛\n斜斜的倒垂下来，形相甚是可怖。他是青城派慧侣道人的徒弟。黑沙\n掌的功夫，江湖上无人能敌。黑白无常两兄弟是川江上著名的侠盗，\n一向劫富济贫，不过心狠手辣，因此得了这难听的外号。",
       "desc_source": "lpc",
+      "display_name": "红花会五当家「黑无常」常赫志",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -111,6 +119,11 @@
           "slot": "wear"
         }
       ],
+      "family": {
+        "generation": 21,
+        "name": "青城派",
+        "title": "弟子"
+      },
       "gender": "男性",
       "id": "/d/hangzhou/honghua/chang1",
       "is_master": true,
@@ -124,6 +137,7 @@
       "name": "常赫志",
       "nickname": "黑无常",
       "origin": "slice",
+      "party": null,
       "prepare_skills": [
         "hand",
         "claw"
@@ -179,6 +193,7 @@
       "class": "fighter",
       "desc": "他身材又高又瘦，脸色蜡黄，眼睛凹进，眉毛斜斜的倒垂下来，形\n相甚是可怖。他是青城派慧侣道人的徒弟。黑沙掌的功夫，江湖上无\n人能敌。黑白无常两兄弟是川江上著名的侠盗，一向劫富济贫，不过\n心狠手辣，因此得了这难听的外号。",
       "desc_source": "lpc",
+      "display_name": "红花会六当家「白无常」常伯志",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -189,6 +204,11 @@
           "slot": "wear"
         }
       ],
+      "family": {
+        "generation": 21,
+        "name": "青城派",
+        "title": "弟子"
+      },
       "gender": "男性",
       "id": "/d/hangzhou/honghua/chang2",
       "is_master": true,
@@ -202,6 +222,7 @@
       "name": "常伯志",
       "nickname": "白无常",
       "origin": "slice",
+      "party": null,
       "prepare_skills": [
         "hand",
         "claw"
@@ -257,6 +278,7 @@
       "class": "scholar",
       "desc": "他一副模样直是个富贵人家的纨裤子弟，丰姿如玉，目朗似星，轻\n袍缓带，手中摇着一柄折扇，神采飞扬，气度闲雅，吐属斯文。服\n饰俨然是个贵介公子。",
       "desc_source": "lpc",
+      "display_name": "红花会总舵主「玉面神龙」陈家洛",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -277,6 +299,7 @@
           "slot": "wield"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/honghua/chen",
       "is_master": true,
@@ -294,6 +317,7 @@
       "name": "陈家洛",
       "nickname": "玉面神龙",
       "origin": "slice",
+      "party": null,
       "prepare_skills": [
         "hand",
         "claw"
@@ -358,6 +382,7 @@
       "class": "swordsman",
       "desc": "这女郎秀美中透着一股英气，光采照人，当真是丽若春梅绽雪，神如\n秋蕙披霜，两颊融融，霞映澄塘，双目晶晶，月射寒江。腰插匕首，\n长辨垂肩，一身鹅黄衫子，头戴金丝绣的小帽，帽边插了一根长长的\n翠绿羽毛，革履青马，旖旎如画。",
       "desc_source": "lpc",
+      "display_name": "「翠羽黄衫」霍青桐",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -378,6 +403,7 @@
           "slot": "wield"
         }
       ],
+      "family": null,
       "gender": "女性",
       "id": "/d/hangzhou/honghua/huo",
       "is_master": true,
@@ -392,6 +418,7 @@
       "name": "霍青桐",
       "nickname": "翠羽黄衫",
       "origin": "slice",
+      "party": null,
       "prepare_skills": [
         "hand",
         "claw"
@@ -463,6 +490,7 @@
       "class": "fighter",
       "desc": "铜头鳄鱼蒋四根在会中坐第十三把交椅，兵器是铁桨。",
       "desc_source": "lpc",
+      "display_name": "红花会十三当家「铜头鳄鱼」蒋四根",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -478,6 +506,7 @@
           "slot": "wield"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/honghua/jiang",
       "is_master": true,
@@ -491,6 +520,7 @@
       "name": "蒋四根",
       "nickname": "铜头鳄鱼",
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -543,6 +573,7 @@
       "class": "scholar",
       "desc": "陆菲青，乃武当派大侠，壮年时在大江南北行侠仗义，端的名\n震江湖，原是屠龙帮中一位响当当的人物。屠龙帮是反清的秘\n帮，雍正年间声势十分浩大，后来雍正、乾隆两朝厉行镇压，\n到乾隆七八年时，屠龙帮终于落得瓦解冰消。陆菲青远走边疆。\n当时清廷曾四下派人追拿，但他为人机警，兼之武功高强，得\n脱大难，但清廷继续严加查缉。陆菲青想到“大隐隐于朝、中\n隐隐于市、小隐隐于野”之理，混到李可秀府中设帐教读。",
       "desc_source": "lpc",
+      "display_name": "武当派第十七代掌门「绵里针」陆菲青",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -558,6 +589,11 @@
           "slot": "wield"
         }
       ],
+      "family": {
+        "generation": 17,
+        "name": "武当派",
+        "title": "掌门"
+      },
       "gender": "男性",
       "id": "/d/hangzhou/honghua/lu",
       "is_master": true,
@@ -572,6 +608,7 @@
       "name": "陆菲青",
       "nickname": "绵里针",
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -596,7 +633,7 @@
         "path": "d/hangzhou/honghua/lu.lpc"
       },
       "temp_apply": [],
-      "title": null,
+      "title": "武当派第十七代掌门",
       "vendor": false,
       "vitals": {
         "combat_exp": 1000000,
@@ -628,6 +665,7 @@
       "class": "fighter",
       "desc": "她是一个秀美的少妇。一手短刀，一手握着一柄长刀。",
       "desc_source": "lpc",
+      "display_name": "红花会十一当家「鸳鸯刀」骆冰",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -643,6 +681,7 @@
           "slot": "wield"
         }
       ],
+      "family": null,
       "gender": "女性",
       "id": "/d/hangzhou/honghua/luo",
       "is_master": true,
@@ -657,6 +696,7 @@
       "name": "骆冰",
       "nickname": "鸳鸯刀",
       "origin": "slice",
+      "party": null,
       "prepare_skills": [
         "hand",
         "claw"
@@ -715,6 +755,7 @@
       "class": "fighter",
       "desc": "他是铁胆周仲英的大弟子，对师父忠心耿耿。",
       "desc_source": "lpc",
+      "display_name": "少林派第五十二代俗家弟子「神弹子」孟健雄",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -730,6 +771,11 @@
           "slot": "wield"
         }
       ],
+      "family": {
+        "generation": 52,
+        "name": "少林派",
+        "title": "俗家弟子"
+      },
       "gender": "男性",
       "id": "/d/hangzhou/honghua/meng",
       "is_master": true,
@@ -743,6 +789,7 @@
       "name": "孟健雄",
       "nickname": "神弹子",
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -763,7 +810,7 @@
         "path": "d/hangzhou/honghua/meng.lpc"
       },
       "temp_apply": [],
-      "title": null,
+      "title": "少林派第五十二代俗家弟子",
       "vendor": false,
       "vitals": {
         "combat_exp": 60000,
@@ -836,10 +883,12 @@
       "class": null,
       "desc": "这是一匹回部宝马，日行千里，夜行八百。\n玩家可以骑上它去指定的地方(ride)。",
       "desc_source": "lpc",
+      "display_name": "青骢马",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
       "equipment": [],
+      "family": null,
       "gender": null,
       "id": "/d/hangzhou/honghua/obj/horse",
       "is_master": false,
@@ -847,6 +896,7 @@
       "name": "青骢马",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": "走畜",
       "race_source": {
@@ -935,6 +985,7 @@
       "class": "scholar",
       "desc": "鬼见愁石双英在会中坐第十二把交椅，执掌刑堂，铁面无私，心狠手\n辣，犯了规条的就是逃到天涯海角，他也必派人抓来处刑，原来依据红\n花会规条，会中兄弟犯了大罪，若是一时胡涂，此后诚心悔悟，可在开\n香堂执法之前，自行用尖刀在大腿上连戳三刀，这三刀须对穿而过，即\n所谓“三刀六洞”，然后向该管舵主和执法香主求恕，有望从轻发落，\n但若真正罪重出自不能饶恕。是以红花会数万兄弟，提到鬼见愁时无不\n悚然。",
       "desc_source": "lpc",
+      "display_name": "红花会十二当家「鬼见愁」石双英",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -950,6 +1001,11 @@
           "slot": "wield"
         }
       ],
+      "family": {
+        "generation": 8,
+        "name": "太极门",
+        "title": "弟子"
+      },
       "gender": "男性",
       "id": "/d/hangzhou/honghua/shi",
       "is_master": true,
@@ -963,6 +1019,7 @@
       "name": "石双英",
       "nickname": "鬼见愁",
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -1015,6 +1072,7 @@
       "class": "swordsman",
       "desc": "他长得面目英俊，穿一件青布长衫，三十岁左右年纪，双目炯炯，\n英气逼人。凡逢江湖上凶殴争斗、对抗官兵之时，卫春华总是不顾\n性命的勇往直前，一生所遇凶险不计其数，但连重伤也未受过一次，\n是以说他有九条性命。",
       "desc_source": "lpc",
+      "display_name": "红花会九当家「九命锦豹子」卫春华",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -1030,6 +1088,7 @@
           "slot": "wield"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/honghua/wei",
       "is_master": true,
@@ -1043,6 +1102,7 @@
       "name": "卫春华",
       "nickname": "九命锦豹子",
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -1096,6 +1156,7 @@
       "class": "fighter",
       "desc": "文泰来号称“奔雷手”，十五岁起浪荡江湖，手掌下不知击毙\n过多少神奸巨憝、凶徒恶霸。",
       "desc_source": "lpc",
+      "display_name": "红花会四当家「奔雷手」文泰来",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -1106,6 +1167,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/honghua/wen",
       "is_master": true,
@@ -1119,6 +1181,7 @@
       "name": "文泰来",
       "nickname": "奔雷手",
       "origin": "slice",
+      "party": null,
       "prepare_skills": [
         "hand",
         "claw"
@@ -1175,6 +1238,7 @@
       "class": "taoist",
       "desc": "他就是无尘道人。少年时混迹绿林，劫富济贫，做下了无数巨案，武\n功高强，手下兄弟又众，官府奈何他不得。有一次他见到一位官家小\n姐，竟然死心塌地的爱上了她。那位小姐却对无尘并没真心，受了父\n亲教唆，一天夜里无尘偷偷来见她之时，那小姐说：“你对我全是假\n意，没半点诚心。”无尘当然赌誓罚咒。那小姐道：“你们男人啊，\n这样的话个个会说。你隔这么久来瞧我一次，我可不够。你要是真心\n爱我，就把你一条手膀砍来给我。有你这条臂膀陪着，也免得我寂寞\n孤单。”无尘一语不发，真的拔剑将自己的左臂砍了下来。小姐楼上\n早埋伏了许多官差，一见都涌了出来。无尘已痛晕在地，哪里还能抵\n抗？无尘手下的兄弟们大会群豪，打破城池，将他救出，又把小姐全\n家都捉了来听他发落。众人以为无尘不是把他们都杀了，就是要了这\n小姐做妻子。哪知他看见小姐，心肠一软，叫众人把她和家人都放了，\n自己当夜悄悄离开了那地方，心灰意懒，就此出家做了道人。人虽然\n出了家，可是本性难移，仍是豪迈豁达，行侠江湖，被红花会老当家\n于万亭请出来做了副手。",
       "desc_source": "lpc",
+      "display_name": "红花会二当家「追魂夺命剑」无尘道长",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -1190,6 +1254,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/honghua/wuchen",
       "is_master": false,
@@ -1203,6 +1268,7 @@
       "name": "无尘道长",
       "nickname": "追魂夺命剑",
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -1253,6 +1319,7 @@
       "class": "scholar",
       "desc": "他是红花会总舵主陈家洛的贴身书僮。",
       "desc_source": "lpc",
+      "display_name": "红花会书僮 心砚",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -1268,6 +1335,7 @@
           "slot": "wield"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/honghua/xinyan",
       "is_master": true,
@@ -1283,6 +1351,7 @@
       "name": "心砚",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [
         "hand",
         "claw"
@@ -1342,6 +1411,7 @@
       "class": "scholar",
       "desc": "其人身材矮小，足智多谋，是红花会的智囊军师，武功也颇\n不弱，冷静持重。",
       "desc_source": "lpc",
+      "display_name": "红花会七当家「武诸葛」徐天宏",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -1357,6 +1427,7 @@
           "slot": "wield"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/honghua/xu",
       "is_master": true,
@@ -1371,6 +1442,7 @@
       "name": "徐天宏",
       "nickname": "武诸葛",
       "origin": "slice",
+      "party": null,
       "prepare_skills": [
         "hand",
         "claw"
@@ -1429,6 +1501,7 @@
       "class": "fighter",
       "desc": "他又肥又高，手执钢鞭，鞭身甚是粗重，看模样少说也有三十来斤。",
       "desc_source": "lpc",
+      "display_name": "红花会八当家「铁塔」杨成协",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -1444,6 +1517,7 @@
           "slot": "wield"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/honghua/yang",
       "is_master": true,
@@ -1458,6 +1532,7 @@
       "name": "杨成协",
       "nickname": "铁塔",
       "origin": "slice",
+      "party": null,
       "prepare_skills": [
         "hand",
         "claw"
@@ -1515,6 +1590,7 @@
       "class": "scholar",
       "desc": "一个长身玉立，眉清目秀，风流英俊的书生。余鱼同乃江南望族\n子弟，中过秀才。他父亲因和一家豪门争一块坟地，官司打得倾家\n荡产，又被豪门借故陷害，瘐死狱中。余鱼同一气出走，得遇机缘，\n拜马真为师，弃文习武，回来把士豪刺死，从此亡命江湖，后来入\n了红花会。他为人机警灵巧，多识各地乡谈，在会中任联络四方、\n刺探讯息之职。",
       "desc_source": "lpc",
+      "display_name": "红花会十四当家「金笛秀才」余鱼同",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -1535,6 +1611,11 @@
           "slot": "wield"
         }
       ],
+      "family": {
+        "generation": 18,
+        "name": "武当派",
+        "title": "弟子"
+      },
       "gender": "男性",
       "id": "/d/hangzhou/honghua/yu",
       "is_master": true,
@@ -1552,6 +1633,7 @@
       "name": "余鱼同",
       "nickname": "金笛秀才",
       "origin": "slice",
+      "party": null,
       "prepare_skills": [
         "hand",
         "claw"
@@ -1617,6 +1699,7 @@
       "class": "fighter",
       "desc": "他是个驼子，最是直性子。他天生残疾，可是神力惊人，练\n就了一身外家的硬功夫。他身有缺陷，最恼别人取笑他的驼\n背，他和人说话时自称“章驼子”，那是好端端地，然而别\n人若是在他面前提到个“驼”字，甚至冲着他的驼背一笑，\n这人算是惹上了祸啦。笑他之人如是常人也还罢了，如会武\n艺，往往就被他结结实实的打上一顿。他在红花会中最听骆\n冰的话，因他脾气古怪，旁人都忌他三分，骆冰却怜他残废，\n衣着饮食，时加细心照料，当他是小兄弟一般。衣服极为光\n鲜。相貌却颇为丑陋。",
       "desc_source": "lpc",
+      "display_name": "红花会十当家「石敢当」章进",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -1632,6 +1715,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/honghua/zhang",
       "is_master": true,
@@ -1646,6 +1730,7 @@
       "name": "章进",
       "nickname": "石敢当",
       "origin": "slice",
+      "party": null,
       "prepare_skills": [
         "hand",
         "claw"
@@ -1703,6 +1788,7 @@
       "class": "fighter",
       "desc": "他一张胖胖的脸，笑起来给人一副很慈祥的感觉。他\n原是温州王氏太极门掌门大弟子。豪迈豁达，行侠江\n湖，一手暗器功夫和太极剑少有能匹敌。屠龙帮风流\n云散之后，投入红花会。很得被红花会老当家于万亭\n赏识。",
       "desc_source": "lpc",
+      "display_name": "红花会三当家「千臂如来」赵半山",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -1723,6 +1809,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/honghua/zhao",
       "is_master": false,
@@ -1737,6 +1824,7 @@
       "name": "赵半山",
       "nickname": "千臂如来",
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -1792,6 +1880,7 @@
       "class": "fighter",
       "desc": "他白发飘动，精神矍铄，乃是西北武林的领袖人物铁胆周仲英。",
       "desc_source": "lpc",
+      "display_name": "铁胆庄庄主「铁胆」周仲英",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -1807,6 +1896,11 @@
           "slot": "wield"
         }
       ],
+      "family": {
+        "generation": 51,
+        "name": "少林派",
+        "title": "俗家弟子"
+      },
       "gender": "男性",
       "id": "/d/hangzhou/honghua/zhou",
       "is_master": true,
@@ -1820,6 +1914,7 @@
       "name": "周仲英",
       "nickname": "铁胆",
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -1872,6 +1967,7 @@
       "class": "fighter",
       "desc": "这是铁胆庄的大小姐，周仲英的宝贝女儿。她性格豪迈，颇\n有乃父之风，爱管闲事，好打不平，西北武林中人送了她个\n外号，叫做“俏李逵”。",
       "desc_source": "lpc",
+      "display_name": "铁胆庄大小姐「俏李逵」周绮",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -1887,6 +1983,11 @@
           "slot": "wield"
         }
       ],
+      "family": {
+        "generation": 51,
+        "name": "少林派",
+        "title": "俗家弟子"
+      },
       "gender": "女性",
       "id": "/d/hangzhou/honghua/zhouyi",
       "is_master": true,
@@ -1900,6 +2001,7 @@
       "name": "周绮",
       "nickname": "俏李逵",
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -1946,6 +2048,7 @@
       "class": null,
       "desc": "白振是嵩阳派高手，三十年前就驰名武林了。",
       "desc_source": "lpc",
+      "display_name": "御前侍卫「金爪铁钩」白振",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -1956,6 +2059,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/npc/baizhen",
       "is_master": false,
@@ -1967,6 +2071,7 @@
       "name": "白振",
       "nickname": "金爪铁钩",
       "origin": "slice",
+      "party": null,
       "prepare_skills": [
         "claw"
       ],
@@ -2011,6 +2116,7 @@
       "class": null,
       "desc": "这是个农家少年，大概因从小物农，虽然年纪不大，可已长的很粗壮了。",
       "desc_source": "lpc",
+      "display_name": "男孩",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -2021,6 +2127,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/npc/boy",
       "is_master": false,
@@ -2028,6 +2135,7 @@
       "name": "男孩",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -2071,6 +2179,7 @@
       "class": null,
       "desc": "江南清秀的采茶姑娘一样楚楚动人。",
       "desc_source": "lpc",
+      "display_name": "采茶女",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -2081,6 +2190,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "女性",
       "id": "/d/hangzhou/npc/caichanu",
       "is_master": false,
@@ -2088,6 +2198,7 @@
       "name": "采茶女",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -2146,10 +2257,12 @@
       "class": null,
       "desc": "一匹白骆驼。",
       "desc_source": "lpc",
+      "display_name": "白骆驼",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
       "equipment": [],
+      "family": null,
       "gender": null,
       "id": "/d/hangzhou/npc/camel",
       "is_master": false,
@@ -2157,6 +2270,7 @@
       "name": "白骆驼",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": "走畜",
       "race_source": {
@@ -2192,6 +2306,7 @@
       "class": null,
       "desc": "褚圆原是和尚，法名智圆，后来犯了清规，被追缴度牒，逐\n出庙门，他索性还了俗，做了大内侍卫。",
       "desc_source": "lpc",
+      "display_name": "御前侍卫 褚圆",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -2207,6 +2322,7 @@
           "slot": "wield"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/npc/chuyuan",
       "is_master": false,
@@ -2218,6 +2334,7 @@
       "name": "褚圆",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -2255,6 +2372,7 @@
       "class": null,
       "desc": "这家伙满脸横肉，一付凶神恶煞的模样，令人望而生畏。",
       "desc_source": "lpc",
+      "display_name": "刀客",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -2270,6 +2388,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/npc/dao-ke",
       "is_master": false,
@@ -2277,6 +2396,7 @@
       "name": "刀客",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -2360,10 +2480,12 @@
       "class": null,
       "desc": "一支昂首吐信的毒蛇正虎视眈眈地盯著你。",
       "desc_source": "lpc",
+      "display_name": "毒蛇",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
       "equipment": [],
+      "family": null,
       "gender": null,
       "id": "/d/hangzhou/npc/dushe",
       "is_master": false,
@@ -2371,6 +2493,7 @@
       "name": "毒蛇",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": "爬蛇",
       "race_source": {
@@ -2444,6 +2567,7 @@
       "class": null,
       "desc": "这是个农家少女，虽然只有十二、三岁，身材已经开始发育。",
       "desc_source": "lpc",
+      "display_name": "女孩",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -2454,6 +2578,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "女性",
       "id": "/d/hangzhou/npc/girl",
       "is_master": false,
@@ -2461,6 +2586,7 @@
       "name": "女孩",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -2503,6 +2629,7 @@
       "class": null,
       "desc": "一位年过花甲的老管家，背略微驼，守在刘庄门内，见人先拱手问安。",
       "desc_source": "authored",
+      "display_name": "管家",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -2513,6 +2640,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/npc/guanjia",
       "is_master": false,
@@ -2520,6 +2648,7 @@
       "name": "管家",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -2578,10 +2707,12 @@
       "class": null,
       "desc": "一位风尘仆仆的进香客，手里攥着香烛，神色虔诚。",
       "desc_source": "authored",
+      "display_name": "进香客",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
       "equipment": [],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/npc/guest",
       "is_master": false,
@@ -2589,6 +2720,7 @@
       "name": "进香客",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -2621,6 +2753,7 @@
       "class": null,
       "desc": "这是位青年壮汉，虎背熊腰，胸前配带一朵大红花。",
       "desc_source": "lpc",
+      "display_name": "红花会众",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -2636,6 +2769,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/npc/honghua1",
       "is_master": false,
@@ -2643,6 +2777,7 @@
       "name": "红花会众",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -2679,6 +2814,7 @@
       "class": null,
       "desc": "这是位手执长枪的绿营清兵，红花会在江南声势大盛，绿营也\n多有会众。",
       "desc_source": "lpc",
+      "display_name": "绿营会众",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -2694,6 +2830,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/npc/honghua2",
       "is_master": false,
@@ -2701,6 +2838,7 @@
       "name": "绿营会众",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -2736,6 +2874,7 @@
       "class": null,
       "desc": "一位明眸皓齿的小姑娘。",
       "desc_source": "lpc",
+      "display_name": "红娘庄 红娘",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -2746,6 +2885,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "女性",
       "id": "/d/hangzhou/npc/hongniang",
       "is_master": false,
@@ -2753,6 +2893,7 @@
       "name": "红娘",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -2789,10 +2930,12 @@
       "class": null,
       "desc": "胡庆余是当世一大巫医，他的本事神奇无比。真有生死肉骨之功。",
       "desc_source": "lpc",
+      "display_name": "胡庆余",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
       "equipment": [],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/npc/huqingyu",
       "is_master": false,
@@ -2800,6 +2943,7 @@
       "name": "胡庆余",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -2830,6 +2974,7 @@
       "class": null,
       "desc": "一名短打装束的家丁，腰间系着布带，目光守着庄内动静。",
       "desc_source": "authored",
+      "display_name": "家丁",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -2840,6 +2985,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/npc/jiading",
       "is_master": false,
@@ -2847,6 +2993,7 @@
       "name": "家丁",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -2903,6 +3050,7 @@
       "class": null,
       "desc": "这是位中年武人，肩背长剑，长长的剑穗随风飘扬，看来似乎身怀绝艺。",
       "desc_source": "lpc",
+      "display_name": "剑客",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -2918,6 +3066,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/npc/jian-ke",
       "is_master": false,
@@ -2925,6 +3074,7 @@
       "name": "剑客",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -3017,6 +3167,7 @@
       "class": null,
       "desc": "一只斑斓猛虎，雄伟极了。\n\n         _.-'\"''--..__.(\"\\-''-'\")\n ('.__.-' (  *  ) .-'    ( @ _@'\n  `-..-''.' _.'  (   _.  `(._Y_)\n         `. `._`--\\  \\_-.._`--'.._\n          `-.!))  `.(il)   ''-.(li)",
       "desc_source": "lpc",
+      "display_name": "老虎",
       "drops": [
         {
           "chance": 1.0,
@@ -3036,6 +3187,7 @@
       "drops_note": null,
       "drops_source": "lpc",
       "equipment": [],
+      "family": null,
       "gender": null,
       "id": "/d/hangzhou/npc/laohu",
       "is_master": false,
@@ -3043,6 +3195,7 @@
       "name": "老虎",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": "走兽",
       "race_source": {
@@ -3114,6 +3267,7 @@
       "class": null,
       "desc": "李可秀一身军功而成封疆大吏，一身武功自然不容轻视。",
       "desc_source": "lpc",
+      "display_name": "杭州提督 李可秀",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -3129,6 +3283,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/npc/likexiu",
       "is_master": false,
@@ -3136,6 +3291,7 @@
       "name": "李可秀",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -3171,6 +3327,7 @@
       "class": null,
       "desc": "他是一个成天游手好闲的流氓，长得倒是白白胖胖的，也许以前有过钱。",
       "desc_source": "lpc",
+      "display_name": "流氓",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -3181,6 +3338,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/npc/liumang",
       "is_master": false,
@@ -3188,6 +3346,7 @@
       "name": "流氓",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -3245,6 +3404,7 @@
       "class": null,
       "desc": "他长得奸嘴猴腮的，一看就不像是个好人。",
       "desc_source": "lpc",
+      "display_name": "流氓头",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -3255,6 +3415,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/npc/liumangtou",
       "is_master": false,
@@ -3262,6 +3423,7 @@
       "name": "流氓头",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -3325,6 +3487,7 @@
       "class": null,
       "desc": "她是杭州提督李可秀的千金，武当名宿陆菲青的入室弟子。",
       "desc_source": "lpc",
+      "display_name": "武当派第十四代弟子 李沅芷",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -3340,6 +3503,11 @@
           "slot": "wear"
         }
       ],
+      "family": {
+        "generation": 14,
+        "name": "武当派",
+        "title": "弟子"
+      },
       "gender": "女性",
       "id": "/d/hangzhou/npc/liyuanzhi",
       "is_master": false,
@@ -3353,6 +3521,7 @@
       "name": "李沅芷",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -3373,7 +3542,7 @@
         "path": "d/hangzhou/npc/liyuanzhi.lpc"
       },
       "temp_apply": [],
-      "title": null,
+      "title": "武当派第十四代弟子",
       "vendor": false,
       "vitals": {
         "combat_exp": 200000,
@@ -3398,6 +3567,7 @@
       "class": null,
       "desc": "龙骏是大内高手，一手喂毒暗器，少有其匹。",
       "desc_source": "lpc",
+      "display_name": "御前侍卫 龙骏",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -3413,6 +3583,7 @@
           "slot": "wield"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/npc/longjun",
       "is_master": false,
@@ -3424,6 +3595,7 @@
       "name": "龙骏",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -3516,10 +3688,12 @@
       "class": null,
       "desc": "一只小麻雀，在树枝间跳上跳下。",
       "desc_source": "lpc",
+      "display_name": "麻雀",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
       "equipment": [],
+      "family": null,
       "gender": null,
       "id": "/d/hangzhou/npc/maque",
       "is_master": false,
@@ -3527,6 +3701,7 @@
       "name": "麻雀",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": "飞禽",
       "race_source": {
@@ -3595,6 +3770,7 @@
       "class": null,
       "desc": "一位精明能干的老媒婆",
       "desc_source": "lpc",
+      "display_name": "红娘庄 媒婆",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -3605,6 +3781,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "女性",
       "id": "/d/hangzhou/npc/meipo",
       "is_master": false,
@@ -3612,6 +3789,7 @@
       "name": "媒婆",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -3652,6 +3830,7 @@
       "class": null,
       "desc": "一个蒙面大汉，杀气腾腾。",
       "desc_source": "lpc",
+      "display_name": "蒙面人",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -3667,6 +3846,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/npc/mengmian",
       "is_master": false,
@@ -3679,6 +3859,7 @@
       "name": "蒙面人",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -3728,6 +3909,7 @@
       "class": null,
       "desc": "一个满脸风霜之色的老婆婆。",
       "desc_source": "lpc",
+      "display_name": "老大娘",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -3738,6 +3920,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "女性",
       "id": "/d/hangzhou/npc/oldwoman",
       "is_master": false,
@@ -3745,6 +3928,7 @@
       "name": "老大娘",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -3775,10 +3959,12 @@
       "class": null,
       "desc": "欧冶子是当世铸剑大师。他铸的剑锋利无比。可是你给的钱太少可也\n不行。一分钱一分货么。",
       "desc_source": "lpc",
+      "display_name": "欧冶子",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
       "equipment": [],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/npc/ouyezi",
       "is_master": false,
@@ -3786,6 +3972,7 @@
       "name": "欧冶子",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -3821,6 +4008,7 @@
       "class": null,
       "desc": "一个骨瘦如柴，满脸菜色的穷汉。",
       "desc_source": "lpc",
+      "display_name": "穷汉",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -3831,6 +4019,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/npc/poorman",
       "is_master": false,
@@ -3838,6 +4027,7 @@
       "name": "穷汉",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -3870,6 +4060,7 @@
       "class": null,
       "desc": "乾隆皇帝姓爱新觉罗，名弘历，是大清入关后第四位在位皇帝，生平\n号称有十大武功，自称“十全老人”。",
       "desc_source": "lpc",
+      "display_name": "清高宗 乾隆皇帝",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -3880,6 +4071,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/npc/qianlong",
       "is_master": false,
@@ -3887,6 +4079,7 @@
       "name": "乾隆皇帝",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -3917,6 +4110,7 @@
       "class": null,
       "desc": "这是位手执长枪的绿营清兵，满脸凶狠。",
       "desc_source": "lpc",
+      "display_name": "绿营清兵",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -3932,6 +4126,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/npc/qingbing",
       "is_master": false,
@@ -3939,6 +4134,7 @@
       "name": "绿营清兵",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -3979,6 +4175,7 @@
       "class": "bonze",
       "desc": "一个慈眉善目的老和尚。",
       "desc_source": "lpc",
+      "display_name": "老和尚",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -3989,6 +4186,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/npc/seng",
       "is_master": false,
@@ -4001,6 +4199,7 @@
       "name": "老和尚",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -4050,6 +4249,7 @@
       "class": "bonze",
       "desc": "他是本寺小沙弥。",
       "desc_source": "lpc",
+      "display_name": "小沙弥",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -4060,6 +4260,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/npc/shami",
       "is_master": false,
@@ -4067,6 +4268,7 @@
       "name": "小沙弥",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -4142,10 +4344,12 @@
       "class": null,
       "desc": "这是个饱读诗书，却手无缚鸡之力的年轻书生。",
       "desc_source": "lpc",
+      "display_name": "书生",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
       "equipment": [],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/npc/shu-sheng",
       "is_master": false,
@@ -4153,6 +4357,7 @@
       "name": "书生",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -4183,6 +4388,7 @@
       "class": null,
       "desc": "铁匠正用铁钳夹住一块红热的铁块放进炉中。",
       "desc_source": "lpc",
+      "display_name": "铁匠",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -4193,6 +4399,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/npc/smith",
       "is_master": false,
@@ -4200,6 +4407,7 @@
       "name": "铁匠",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -4230,6 +4438,7 @@
       "class": null,
       "desc": "这是个镖局趟子手，长得虎背熊腰，一身横练功夫。",
       "desc_source": "lpc",
+      "display_name": "趟子手",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -4245,6 +4454,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/npc/tangzi",
       "is_master": false,
@@ -4252,6 +4462,7 @@
       "name": "趟子手",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -4292,6 +4503,7 @@
       "class": null,
       "desc": "这是个老实巴交的穷挑夫，长得膀阔腰圆，一身肌肉。",
       "desc_source": "lpc",
+      "display_name": "挑夫",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -4302,6 +4514,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/npc/tiao-fu",
       "is_master": false,
@@ -4309,6 +4522,7 @@
       "name": "挑夫",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -4386,6 +4600,7 @@
       "class": null,
       "desc": "一只昂首挺胸，吐着长舌头的大狼狗。像是财主家里养的宠物。",
       "desc_source": "lpc",
+      "display_name": "大狼狗",
       "drops": [
         {
           "chance": 1.0,
@@ -4405,6 +4620,7 @@
       "drops_note": null,
       "drops_source": "lpc",
       "equipment": [],
+      "family": null,
       "gender": null,
       "id": "/d/hangzhou/npc/wolfdog",
       "is_master": false,
@@ -4412,6 +4628,7 @@
       "name": "大狼狗",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": "走兽",
       "race_source": {
@@ -4536,10 +4753,12 @@
       "class": null,
       "desc": "一只黑色的乌鸦，丑陋极了。",
       "desc_source": "lpc",
+      "display_name": "乌鸦",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
       "equipment": [],
+      "family": null,
       "gender": null,
       "id": "/d/hangzhou/npc/wuya",
       "is_master": false,
@@ -4547,6 +4766,7 @@
       "name": "乌鸦",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": "飞禽",
       "race_source": {
@@ -4619,6 +4839,7 @@
       "class": null,
       "desc": "武当派四方香火的弟子。",
       "desc_source": "lpc",
+      "display_name": "武当派第四代弟子 香火道人",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -4634,6 +4855,11 @@
           "slot": "wear"
         }
       ],
+      "family": {
+        "generation": 4,
+        "name": "武当派",
+        "title": "弟子"
+      },
       "gender": "男性",
       "id": "/d/hangzhou/npc/xianghuo",
       "is_master": false,
@@ -4641,6 +4867,7 @@
       "name": "香火道人",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -4701,7 +4928,7 @@
           "value_expr": null
         }
       ],
-      "title": null,
+      "title": "武当派第四代弟子",
       "vendor": false,
       "vitals": {
         "combat_exp": 50000
@@ -4722,6 +4949,7 @@
       "class": null,
       "desc": "这位店小二正笑咪咪地忙著，还不时拿起挂在脖子上的抹布擦脸。",
       "desc_source": "lpc",
+      "display_name": "店小二",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -4732,6 +4960,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/npc/xiaoer2",
       "is_master": false,
@@ -4739,6 +4968,7 @@
       "name": "店小二",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -4817,10 +5047,12 @@
       "class": null,
       "desc": "一只蝎子正虎视眈眈地盯著你。",
       "desc_source": "lpc",
+      "display_name": "蝎子",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
       "equipment": [],
+      "family": null,
       "gender": null,
       "id": "/d/hangzhou/npc/xiezi",
       "is_master": false,
@@ -4828,6 +5060,7 @@
       "name": "蝎子",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": "昆虫",
       "race_source": {
@@ -4896,10 +5129,12 @@
       "class": null,
       "desc": "一个游兴正浓的年轻人，东张西望，时不时停下来打量泉边的景致。",
       "desc_source": "authored",
+      "display_name": "游客",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
       "equipment": [],
+      "family": null,
       "gender": "男性",
       "id": "/d/hangzhou/npc/you-ke",
       "is_master": false,
@@ -4907,6 +5142,7 @@
       "name": "游客",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -4944,6 +5180,7 @@
       "class": null,
       "desc": "武当派游方道人．",
       "desc_source": "lpc",
+      "display_name": "武当派第三代弟子 游方道人",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -4959,6 +5196,11 @@
           "slot": "wear"
         }
       ],
+      "family": {
+        "generation": 3,
+        "name": "武当派",
+        "title": "弟子"
+      },
       "gender": "男性",
       "id": "/d/hangzhou/npc/youfang",
       "is_master": false,
@@ -4966,6 +5208,7 @@
       "name": "游方道人",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -5027,7 +5270,7 @@
           "value_expr": null
         }
       ],
-      "title": null,
+      "title": "武当派第三代弟子",
       "vendor": false,
       "vitals": {
         "combat_exp": 80000
@@ -5054,6 +5297,7 @@
       "class": null,
       "desc": "张召重人称“火手判官”，身材魁梧，留一丛短胡子。江湖盛\n言“宁挨一枪，莫遇一张”就是指他了。他热衷功名利禄，投\n身朝廷，此人办事卖力，这些年来更是青云直上。",
       "desc_source": "lpc",
+      "display_name": "御林军骁骑营佐领「火手判官」张召重",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -5069,6 +5313,11 @@
           "slot": "wear"
         }
       ],
+      "family": {
+        "generation": 13,
+        "name": "武当派",
+        "title": "弟子"
+      },
       "gender": "男性",
       "id": "/d/hangzhou/npc/zhang",
       "is_master": false,
@@ -5082,6 +5331,7 @@
       "name": "张召重",
       "nickname": "火手判官",
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -5130,6 +5380,7 @@
       "class": null,
       "desc": "这是个城里的少年。",
       "desc_source": "lpc",
+      "display_name": "男孩",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -5140,6 +5391,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/jiaxing/npc/boy",
       "is_master": false,
@@ -5147,6 +5399,7 @@
       "name": "男孩",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -5193,6 +5446,7 @@
       "class": null,
       "desc": "这是个农家少女，虽然只有十二、三岁，身材已经开始发育。",
       "desc_source": "lpc",
+      "display_name": "女孩",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -5203,6 +5457,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "女性",
       "id": "/d/jiaxing/npc/girl",
       "is_master": false,
@@ -5210,6 +5465,7 @@
       "name": "女孩",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -5258,6 +5514,7 @@
       "class": "eunach",
       "desc": "他是东厂大太监海大富，乔装改扮成商人模样出京寻欢作乐，长得既像\n老头又像老太太。",
       "desc_source": "lpc",
+      "display_name": "东厂千户 海公公",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -5273,6 +5530,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "无性",
       "id": "/d/jiaxing/npc/hai",
       "is_master": false,
@@ -5284,6 +5542,7 @@
       "name": "海公公",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -5331,6 +5590,7 @@
       "class": null,
       "desc": "这是一个傻乎乎的小姑娘。",
       "desc_source": "lpc",
+      "display_name": "傻姑",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -5341,6 +5601,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "女性",
       "id": "/d/jiaxing/npc/shagu",
       "is_master": false,
@@ -5353,6 +5614,7 @@
       "name": "傻姑",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [
         "strike"
       ],
@@ -5405,6 +5667,7 @@
       "class": null,
       "desc": "他就是雄踞武林，号召天下，威风赫赫的当今武林盟主。",
       "desc_source": "lpc",
+      "display_name": "武林盟主 魏无双",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -5420,6 +5683,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/jiaxing/npc/tang",
       "is_master": true,
@@ -5427,6 +5691,7 @@
       "name": "魏无双",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -5474,6 +5739,7 @@
       "class": null,
       "desc": "一位笑容可掬的中年人，他就是乐善好施，爱贫如子的武林赏善使者。",
       "desc_source": "lpc",
+      "display_name": "赏善使者 东方日",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -5489,6 +5755,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/jiaxing/npc/tang1",
       "is_master": false,
@@ -5496,6 +5763,7 @@
       "name": "东方日",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -5543,6 +5811,7 @@
       "class": null,
       "desc": "一位神色严峻的中年武人，他就是嫉恶如仇，侠名远播的武林罚恶使者。",
       "desc_source": "lpc",
+      "display_name": "罚恶使者 西方月",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -5558,6 +5827,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/jiaxing/npc/tang2",
       "is_master": false,
@@ -5565,6 +5835,7 @@
       "name": "西方月",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -5612,6 +5883,7 @@
       "class": null,
       "desc": "他就是雄踞武林，号召天下，威风赫赫的当今武林盟主。",
       "desc_source": "lpc",
+      "display_name": "武林盟主 魏无双",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -5627,6 +5899,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/jiaxing/npc/tang3",
       "is_master": true,
@@ -5634,6 +5907,7 @@
       "name": "魏无双",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -5731,10 +6005,12 @@
       "class": null,
       "desc": "一只黑色的乌鸦，丑陋极了。",
       "desc_source": "lpc",
+      "display_name": "乌鸦",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
       "equipment": [],
+      "family": null,
       "gender": null,
       "id": "/d/jiaxing/npc/wuya",
       "is_master": false,
@@ -5742,6 +6018,7 @@
       "name": "乌鸦",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": "飞禽",
       "race_source": {
@@ -5811,6 +6088,7 @@
       "class": null,
       "desc": "这位店小二正笑咪咪地忙著，还不时拿起挂在脖子上的抹布擦脸。",
       "desc_source": "lpc",
+      "display_name": "店小二",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -5821,6 +6099,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/jiaxing/npc/xiaoer",
       "is_master": false,
@@ -5828,6 +6107,7 @@
       "name": "店小二",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -5864,6 +6144,7 @@
       "class": null,
       "desc": "这是一个活泼可爱的女仆人。",
       "desc_source": "lpc",
+      "display_name": "阿凤",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -5874,6 +6155,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "女性",
       "id": "/d/shiliang/npc/afeng",
       "is_master": false,
@@ -5881,6 +6163,7 @@
       "name": "阿凤",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -5917,6 +6200,7 @@
       "class": null,
       "desc": "这是一个英俊潇洒的仆人。",
       "desc_source": "lpc",
+      "display_name": "阿土",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -5927,6 +6211,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/shiliang/npc/atu",
       "is_master": false,
@@ -5934,6 +6219,7 @@
       "name": "阿土",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -5981,10 +6267,12 @@
       "class": "bonze",
       "desc": "这是位胖乎乎的大师傅，是陈麻婆一手调教出来的，他要是发现你的偷看他做豆腐，可是会打人的哦。",
       "desc_source": "lpc",
+      "display_name": "大师傅",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
       "equipment": [],
+      "family": null,
       "gender": "男性",
       "id": "/d/shiliang/npc/dashifu",
       "is_master": false,
@@ -5992,6 +6280,7 @@
       "name": "大师傅",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -6081,6 +6370,7 @@
       "class": null,
       "desc": "这是一只身形并不很大的鱼，浑身覆满绚丽的鳞片，\n一口锋利的牙齿，正虎视耽耽的看着你",
       "desc_source": "lpc",
+      "display_name": "噬人鱼",
       "drops": [
         {
           "chance": 1.0,
@@ -6100,6 +6390,7 @@
       "drops_note": null,
       "drops_source": "lpc",
       "equipment": [],
+      "family": null,
       "gender": null,
       "id": "/d/shiliang/npc/fish",
       "is_master": false,
@@ -6107,6 +6398,7 @@
       "name": "噬人鱼",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": "游鱼",
       "race_source": {
@@ -6182,6 +6474,7 @@
       "class": null,
       "desc": "他就是人称“金蛇郎君”的一代怪杰——夏雪宜。\n他做事全凭好恶，时正时邪，端地是独来独往，好不潇洒！\n听说他的身世很惨，人也变得偏激起来。\n看起来他好象受了点伤，脸色很难看。",
       "desc_source": "lpc",
+      "display_name": "「金蛇郎君」夏雪宜",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -6197,6 +6490,7 @@
           "slot": "wield"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/shiliang/npc/jinshe",
       "is_master": true,
@@ -6208,6 +6502,7 @@
       "name": "夏雪宜",
       "nickname": "金蛇郎君",
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -6252,6 +6547,7 @@
       "class": null,
       "desc": "这是一个十分凶恶的崆峒派道人。",
       "desc_source": "lpc",
+      "display_name": "崆峒派第五代弟子 李拙道人",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -6267,6 +6563,11 @@
           "slot": "wield"
         }
       ],
+      "family": {
+        "generation": 5,
+        "name": "崆峒派",
+        "title": "弟子"
+      },
       "gender": "男性",
       "id": "/d/shiliang/npc/li",
       "is_master": false,
@@ -6274,6 +6575,7 @@
       "name": "李拙道人",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -6289,7 +6591,7 @@
         "path": "d/shiliang/npc/li.lpc"
       },
       "temp_apply": [],
-      "title": null,
+      "title": "崆峒派第五代弟子",
       "vendor": false,
       "vitals": {
         "combat_exp": 120000
@@ -6315,6 +6617,7 @@
       "class": null,
       "desc": "这是一个山间农夫，十分粗俗。",
       "desc_source": "lpc",
+      "display_name": "农夫",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -6325,6 +6628,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/shiliang/npc/nongfu",
       "is_master": false,
@@ -6332,6 +6636,7 @@
       "name": "农夫",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -6363,6 +6668,7 @@
       "class": null,
       "desc": "这是一个满脸横肉的和尚。",
       "desc_source": "lpc",
+      "display_name": "十方寺方丈 清明禅师",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -6378,6 +6684,7 @@
           "slot": "wield"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/shiliang/npc/qingming",
       "is_master": false,
@@ -6385,6 +6692,7 @@
       "name": "清明禅师",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -6421,6 +6729,7 @@
       "class": null,
       "desc": "这家伙满脸横肉一付凶神恶煞的模样，令人望而生畏。",
       "desc_source": "lpc",
+      "display_name": "土匪",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -6431,6 +6740,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/shiliang/npc/tufei2",
       "is_master": false,
@@ -6438,6 +6748,7 @@
       "name": "土匪",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -6477,6 +6788,7 @@
       "class": null,
       "desc": "这位便是这家大宅的主人，温氏五老的大哥：温方达。",
       "desc_source": "lpc",
+      "display_name": "温家老大 温方达",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -6492,6 +6804,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/shiliang/npc/wenfangda",
       "is_master": false,
@@ -6499,6 +6812,7 @@
       "name": "温方达",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -6567,6 +6881,7 @@
       "class": null,
       "desc": "这位便是温家老五：温方南。",
       "desc_source": "lpc",
+      "display_name": "温家老五 温方南",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -6582,6 +6897,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/shiliang/npc/wenfangnan",
       "is_master": false,
@@ -6589,6 +6905,7 @@
       "name": "温方南",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -6657,6 +6974,7 @@
       "class": null,
       "desc": "这位便是温家老三：温方山。",
       "desc_source": "lpc",
+      "display_name": "温家老三 温方山",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -6672,6 +6990,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/shiliang/npc/wenfangshan",
       "is_master": false,
@@ -6679,6 +6998,7 @@
       "name": "温方山",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -6747,6 +7067,7 @@
       "class": null,
       "desc": "这位便是温家老四：温方施。",
       "desc_source": "lpc",
+      "display_name": "温家老四 温方施",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -6762,6 +7083,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/shiliang/npc/wenfangshi",
       "is_master": false,
@@ -6769,6 +7091,7 @@
       "name": "温方施",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -6837,6 +7160,7 @@
       "class": null,
       "desc": "这位便是温家老二：温方悟。",
       "desc_source": "lpc",
+      "display_name": "温家老大 温方悟",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -6852,6 +7176,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/shiliang/npc/wenfangwu",
       "is_master": false,
@@ -6859,6 +7184,7 @@
       "name": "温方悟",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -6928,6 +7254,7 @@
       "class": null,
       "desc": "这是一个美如天仙的女子，眉宇间却是仿佛隐藏着深忧。",
       "desc_source": "lpc",
+      "display_name": "温家小姐 温仪",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -6953,6 +7280,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "女性",
       "id": "/d/shiliang/npc/wenyi",
       "is_master": false,
@@ -6960,6 +7288,7 @@
       "name": "温仪",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -7008,6 +7337,7 @@
       "class": null,
       "desc": "这是一个小丫环，容貌清秀脱俗。",
       "desc_source": "lpc",
+      "display_name": "丫环",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -7018,6 +7348,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "女性",
       "id": "/d/shiliang/npc/yahuan",
       "is_master": false,
@@ -7025,6 +7356,7 @@
       "name": "丫环",
       "nickname": null,
       "origin": "slice",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -7056,10 +7388,12 @@
       "class": null,
       "desc": "这位店小二正笑咪咪地忙著，还不时拿起挂在脖子上的抹布擦脸。",
       "desc_source": "lpc",
+      "display_name": "店小二",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
       "equipment": [],
+      "family": null,
       "gender": "男性",
       "id": "/d/city/npc/xiaoer",
       "is_master": false,
@@ -7067,6 +7401,7 @@
       "name": "店小二",
       "nickname": null,
       "origin": "external",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -7145,10 +7480,12 @@
       "class": null,
       "desc": "一匹骏马，全身火红，无一根杂毛。\n玩家可以骑上它去指定的地方(ride)。",
       "desc_source": "lpc",
+      "display_name": "枣红马",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
       "equipment": [],
+      "family": null,
       "gender": null,
       "id": "/d/city/npc/zaohongma",
       "is_master": false,
@@ -7156,6 +7493,7 @@
       "name": "枣红马",
       "nickname": null,
       "origin": "external",
+      "party": null,
       "prepare_skills": [],
       "race": "走畜",
       "race_source": {
@@ -7274,10 +7612,12 @@
       "class": null,
       "desc": "这是一匹黄骠骏马，全身金黄，没有一丝杂毛。\n玩家可以骑上它去指定的地方(ride)。",
       "desc_source": "lpc",
+      "display_name": "黄骠马",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
       "equipment": [],
+      "family": null,
       "gender": "雄性",
       "id": "/d/city/npc/huangbiaoma",
       "is_master": false,
@@ -7285,6 +7625,7 @@
       "name": "黄骠马",
       "nickname": null,
       "origin": "external",
+      "party": null,
       "prepare_skills": [],
       "race": "走畜",
       "race_source": {
@@ -7403,10 +7744,12 @@
       "class": null,
       "desc": "这是一匹紫骝宝马，日行千里，夜行八百。\n玩家可以骑上它去指定的地方(ride)。",
       "desc_source": "lpc",
+      "display_name": "紫骝马",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
       "equipment": [],
+      "family": null,
       "gender": "雄性",
       "id": "/d/city/npc/ziliuma",
       "is_master": false,
@@ -7414,6 +7757,7 @@
       "name": "紫骝马",
       "nickname": null,
       "origin": "external",
+      "party": null,
       "prepare_skills": [],
       "race": "走畜",
       "race_source": {
@@ -7487,10 +7831,12 @@
       "class": null,
       "desc": "驯马和租马的小贩，给他租金就可以雇到马。",
       "desc_source": "lpc",
+      "display_name": "马夫",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
       "equipment": [],
+      "family": null,
       "gender": "男性",
       "id": "/clone/misc/mafu",
       "is_master": false,
@@ -7498,6 +7844,7 @@
       "name": "马夫",
       "nickname": null,
       "origin": "external",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -7573,6 +7920,7 @@
       "class": null,
       "desc": "他是一位身宽体胖的老者，身穿一件白布长袍。\n他正笑嘻嘻地看着你，好象对你颇有好感。",
       "desc_source": "lpc",
+      "display_name": "明教青龙坛坛主 明教第三十五代弟子 程嘲风",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -7583,6 +7931,11 @@
           "slot": "wear"
         }
       ],
+      "family": {
+        "generation": 35,
+        "name": "明教",
+        "title": "弟子"
+      },
       "gender": "男性",
       "id": "/d/mingjiao/npc/chengchaofeng",
       "is_master": false,
@@ -7596,6 +7949,10 @@
       "name": "程嘲风",
       "nickname": null,
       "origin": "external",
+      "party": {
+        "name": "明教",
+        "rank": "青龙坛坛主"
+      },
       "prepare_skills": [
         "finger"
       ],
@@ -7620,7 +7977,7 @@
         "path": "d/mingjiao/npc/chengchaofeng.lpc"
       },
       "temp_apply": [],
-      "title": null,
+      "title": "明教第三十五代弟子",
       "vendor": false,
       "vitals": {
         "combat_exp": 50000,
@@ -7651,6 +8008,7 @@
       "class": null,
       "desc": "他就是日月神教的光明左使。为人极为豪爽。只见他容貌清癯，颏下疏疏朗朗一丛花白长须，垂在胸前。",
       "desc_source": "lpc",
+      "display_name": "日月神教第八代光明左使黑木崖第八代弟子「天王老子」向问天",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -7666,6 +8024,11 @@
           "slot": "wield"
         }
       ],
+      "family": {
+        "generation": 8,
+        "name": "黑木崖",
+        "title": "弟子"
+      },
       "gender": "男性",
       "id": "/kungfu/class/heimuya/xiang",
       "is_master": false,
@@ -7680,6 +8043,10 @@
       "name": "向问天",
       "nickname": "天王老子",
       "origin": "external",
+      "party": {
+        "name": "日月神教",
+        "rank": "第八代光明左使"
+      },
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -7702,7 +8069,7 @@
         "path": "kungfu/class/heimuya/xiang.lpc"
       },
       "temp_apply": [],
-      "title": null,
+      "title": "黑木崖第八代弟子",
       "vendor": false,
       "vitals": {
         "combat_exp": 2500000,
@@ -7727,10 +8094,12 @@
       "class": null,
       "desc": null,
       "desc_source": null,
+      "display_name": "船老大",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
       "equipment": [],
+      "family": null,
       "gender": "男性",
       "id": "/d/taohua/npc/laoda",
       "is_master": false,
@@ -7738,6 +8107,7 @@
       "name": "船老大",
       "nickname": null,
       "origin": "external",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -7775,6 +8145,7 @@
       "class": null,
       "desc": "她生得极为美貌，但冰冷的目光让人不寒而栗。",
       "desc_source": "lpc",
+      "display_name": "古墓派第三代弟子「赤练仙子」李莫愁",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -7790,6 +8161,11 @@
           "slot": "wear"
         }
       ],
+      "family": {
+        "generation": 3,
+        "name": "古墓派",
+        "title": "弟子"
+      },
       "gender": "女性",
       "id": "/kungfu/class/gumu/limochou",
       "is_master": true,
@@ -7801,6 +8177,7 @@
       "name": "李莫愁",
       "nickname": "赤练仙子",
       "origin": "external",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -7820,7 +8197,7 @@
         "path": "kungfu/class/gumu/limochou.lpc"
       },
       "temp_apply": [],
-      "title": null,
+      "title": "古墓派第三代弟子",
       "vendor": false,
       "vitals": {
         "combat_exp": 95000,
@@ -7849,6 +8226,7 @@
       "class": null,
       "desc": "这是个农家小孩子",
       "desc_source": "lpc",
+      "display_name": "小孩",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -7859,6 +8237,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/village/npc/kid",
       "is_master": false,
@@ -7866,6 +8245,7 @@
       "name": "小孩",
       "nickname": null,
       "origin": "external",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -7900,6 +8280,7 @@
       "class": null,
       "desc": "这是个农家少女，虽然只有十二、三岁，身材已经开始发育。",
       "desc_source": "lpc",
+      "display_name": "女孩",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -7910,6 +8291,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "女性",
       "id": "/d/village/npc/girl",
       "is_master": false,
@@ -7917,6 +8299,7 @@
       "name": "女孩",
       "nickname": null,
       "origin": "external",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -7963,6 +8346,7 @@
       "class": null,
       "desc": "这是个农家少年，大概因从小务农，虽然年纪不大，可已长的很粗壮了。",
       "desc_source": "lpc",
+      "display_name": "男孩",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -7973,6 +8357,7 @@
           "slot": "wear"
         }
       ],
+      "family": null,
       "gender": "男性",
       "id": "/d/village/npc/boy",
       "is_master": false,
@@ -7980,6 +8365,7 @@
       "name": "男孩",
       "nickname": null,
       "origin": "external",
+      "party": null,
       "prepare_skills": [],
       "race": null,
       "race_source": null,
@@ -8028,6 +8414,7 @@
       "class": null,
       "desc": "他是白驼山庄主，号称“西毒”的欧阳锋。\n由于习练「九阴真经」走火入魔，已变得精\n神错乱，整日披头散发。",
       "desc_source": "lpc",
+      "display_name": "白驼山庄主「西毒」欧阳锋",
       "drops": [],
       "drops_note": "源码无 die() 覆盖，按无掉落处理，不虚构",
       "drops_source": "none",
@@ -8038,6 +8425,11 @@
           "slot": "wear"
         }
       ],
+      "family": {
+        "generation": 1,
+        "name": "白驼山派",
+        "title": "开山祖师"
+      },
       "gender": "男性",
       "id": "/kungfu/class/baituo/ouyangfeng1",
       "is_master": true,
@@ -8053,6 +8445,7 @@
       "name": "欧阳锋",
       "nickname": "西毒",
       "origin": "external",
+      "party": null,
       "prepare_skills": [
         "strike",
         "hand"

@@ -501,6 +501,8 @@ RECORDED_CALLS = {
     "carry_object",
     "add_money",
     "set_weight",
+    "create_family",
+    "set_amount",
 }
 
 

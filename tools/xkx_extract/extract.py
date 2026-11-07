@@ -47,6 +47,36 @@ MASTER_BASE = "F_MASTER"
 # 只按 `NPC` 判会把这些对象误记成物品。
 NPC_LIKE_BASES = {NPC_BASE, MASTER_BASE, "F_VENDOR", "F_VENDOR_SALE"}
 
+
+def _cn_number(n: int) -> str:
+    """LPC chinese_number() 的 1..99 子集，用于门派代数。"""
+    digits = "零一二三四五六七八九"
+    if n < 10:
+        return digits[n]
+    if n < 20:
+        return "十" + (digits[n % 10] if n % 10 else "")
+    if n < 100:
+        return digits[n // 10] + "十" + (digits[n % 10] if n % 10 else "")
+    return str(n)
+
+
+def _npc_display_name(name: str, title, nickname, family, party) -> str:
+    """复刻 feature/name.c 的 short() 拼接顺序：
+
+    [guard][degree][party][title + 空格(无 nickname 时)][「nickname」]name
+    本切片只需 title / party / nickname；degree/guard 无来源。
+    """
+    s = name or ""
+    if nickname:
+        s = f"「{nickname}」{s}"
+    if title:
+        s = title + ("" if nickname else " ") + s
+    if party:
+        p = str(party.get("name") or "") + str(party.get("rank") or "")
+        s = p + ("" if nickname else " ") + s
+    return s
+
+
 # 物品基类 -> (category, equip_slot)
 ITEM_BASES = {
     "ITEM": ("misc", None),
@@ -635,12 +665,16 @@ class Extractor:
         name_line = None
         values: dict[str, object] = {}
         weight = None
+        amount = None
         for cname, args, line, _method in calls:
             if cname == "set_name" and args and isinstance(args[0], str) and name is None:
                 name = lpc.clean_text(args[0])
                 name_line = line
             elif cname == "set_weight" and args and isinstance(args[0], int):
                 weight = args[0]
+            elif cname == "set_amount" and args and isinstance(args[0], int):
+                # 原版一件物品自带的数量（如鹅卵石 set_amount(10)）。
+                amount = args[0]
             elif cname == "set" and args and isinstance(args[0], str):
                 values.setdefault(args[0], (args[1] if len(args) > 1 else None, line))
 
@@ -660,6 +694,13 @@ class Extractor:
             price_expr = getattr(raw, "text", str(raw))
 
         line = name_line or desc_line or 1
+        if name is None and desc:
+            # 少数物品的 set_name() 是 random() 拼接（如 chairs），静态取不到。
+            # 从源码自己的 long（“这是一把椅子。”）取中文名词，不另编名字。
+            m = re.match(r"^这是一(?:[把张只个条匹本块件支面])?(.+?)[。.]?$", desc)
+            if m:
+                name = m.group(1)
+                name_line = desc_line
         if name is None and emit_diag:
             self.diag("W_ITEM_NO_NAME", "warning", rel_path, line, "物品没有 set_name")
         if price is None and emit_diag:
@@ -680,6 +721,7 @@ class Extractor:
             "equip_slot": equip_slot,
             "material": values.get("material", (None, None))[0] if isinstance(values.get("material", (None, None))[0], str) else None,
             "weight": weight,
+            "amount": amount,
             "food_supply": values.get("food_supply", (None, None))[0] if isinstance(values.get("food_supply", (None, None))[0], int) else None,
             "origin": origin,
             "source": {"path": rel_path, "line": line},
@@ -734,6 +776,7 @@ class Extractor:
         name_line = None
         aliases: list[str] = []
         values: dict[str, object] = {}
+        family = None
         skills: dict[str, int] = {}
         map_skills: dict[str, str] = {}
         prepare_skills: list[str] = []
@@ -746,6 +789,22 @@ class Extractor:
                 name_line = line
                 if len(args) > 1 and isinstance(args[1], list):
                     aliases = [a for a in args[1] if isinstance(a, str)]
+            elif (
+                cname == "create_family"
+                and len(args) >= 3
+                and isinstance(args[0], str)
+                and isinstance(args[1], int)
+                and isinstance(args[2], str)
+                and family is None
+                and not method
+                and (create_span is None or create_span[0] <= line <= create_span[1])
+            ):
+                family = {
+                    "name": lpc.clean_text(args[0]),
+                    "generation": args[1],
+                    "title": lpc.clean_text(args[2]),
+                    "line": line,
+                }
             elif cname == "set_skill" and args and isinstance(args[0], str):
                 if isinstance(args[1], int):
                     skills[args[0]] = args[1]
@@ -798,6 +857,33 @@ class Extractor:
         if name is None and emit_diag:
             self.diag("W_NPC_NO_NAME", "warning", rel_path, 1, "NPC 没有 set_name")
 
+        explicit_title = (
+            lpc.clean_text(values["title"][0])
+            if isinstance(values.get("title", (None, None))[0], str)
+            else None
+        )
+        nickname = (
+            lpc.clean_text(values["nickname"][0])
+            if isinstance(values.get("nickname", (None, None))[0], str)
+            else None
+        )
+        # create_family() 只在没有显式 title 时补门派头衔（与 feature/apprentice.c 一致）。
+        title = explicit_title
+        if not title and family:
+            title = (
+                f"{family['name']}第{_cn_number(family['generation'])}代"
+                f"{family['title']}"
+            )
+        party = None
+        party_name = values.get("party/party_name", (None, None))[0]
+        party_rank = values.get("party/rank", (None, None))[0]
+        if isinstance(party_name, str) and isinstance(party_rank, str):
+            party = {
+                "name": lpc.clean_text(party_name),
+                "rank": lpc.clean_text(party_rank),
+            }
+        display_name = _npc_display_name(name or "", title, nickname, family, party)
+
         attrs = {}
         for key in ATTR_KEYS:
             if key in values and isinstance(values[key][0], int):
@@ -823,8 +909,19 @@ class Extractor:
             "id": mid,
             "name": name,
             "aliases": aliases,
-            "title": lpc.clean_text(values["title"][0]) if isinstance(values.get("title", (None, None))[0], str) else None,
-            "nickname": lpc.clean_text(values["nickname"][0]) if isinstance(values.get("nickname", (None, None))[0], str) else None,
+            "title": title,
+            "nickname": nickname,
+            "family": (
+                {
+                    "name": family["name"],
+                    "generation": family["generation"],
+                    "title": family["title"],
+                }
+                if family
+                else None
+            ),
+            "party": party,
+            "display_name": display_name,
             "desc": desc,
             "desc_source": "lpc" if desc else None,
             "gender": values.get("gender", (None, None))[0],

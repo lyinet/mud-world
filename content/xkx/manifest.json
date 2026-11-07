@@ -61,7 +61,7 @@
       "table": "npcs"
     }
   ],
-  "content_hash": "71f3d11780482667e45109e38c29fbd8f78d98dc1fbed77e8b95c41004678945",
+  "content_hash": "9f256ed8c8a88f3fbc42931d4f070f806d1cda2b3b97291581881d9804fb7f25",
   "counts": {
     "aggressive_npcs": 7,
     "attrs_roll_fields": 66,
@@ -242,12 +242,12 @@
       "sha256": "a1fdb78e2a4d7f1f54b01688bfad4c4b374819bb88ec2d379f94edc835eac63e"
     },
     "items.json": {
-      "bytes": 42985,
-      "sha256": "adbdd8264b1d36e15dc86abf9267edb6679b5fb01c0124f291fa92ec9c26ed70"
+      "bytes": 44850,
+      "sha256": "1b664c32a248d817dd4e29e3db4db10d834a2f4c0e7abd2237b283677ed9e99a"
     },
     "npcs.json": {
-      "bytes": 197035,
-      "sha256": "3d0d487ac5e22a674d1b598d5fd7389c37f55a05f0d8fd2631e6ec46ce97a065"
+      "bytes": 208446,
+      "sha256": "fc5fc17cfec17d526dcc7b0ca0094f29088f3622bb191cd82b24b5b349a79f35"
     },
     "quests.json": {
       "bytes": 5569,

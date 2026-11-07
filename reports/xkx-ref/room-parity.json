@@ -30,8 +30,8 @@
   },
   "desc": {
    "observable": 192,
-   "match": 188,
-   "rate": 0.9792
+   "match": 191,
+   "rate": 0.9948
   },
   "exits": {
    "observable": 192,
@@ -45,27 +45,25 @@
   },
   "npcs": {
    "observable": 192,
-   "match": 140,
-   "rate": 0.7292
+   "match": 171,
+   "rate": 0.8906
   }
  },
  "categories": {
-  "npcs_mismatch": 52,
+  "npcs_mismatch": 21,
   "items_mismatch": 7,
   "exits_mismatch": 1,
   "desc_extra": 1,
-  "landing_mismatch": 3,
-  "desc_missing_text": 3
+  "landing_mismatch": 3
  },
  "npc_breakdown": {
-  "头衔/状态前缀": 33,
-  "数量不同": 12,
-  "头衔/状态前缀+数量不同": 4,
+  "数量不同": 16,
+  "头衔/状态前缀": 2,
   "在场/缺失": 3
  },
  "samples": {
   "npcs_mismatch": {
-   "id": "/d/hangzhou/road7",
+   "id": "/d/hangzhou/road6",
    "short": "青石大道",
    "fields": {
     "name": {
@@ -79,14 +77,14 @@
     "exits": {
      "match": true,
      "orig": [
+      "east",
       "north",
-      "northeast",
       "south",
       "west"
      ],
      "repl": [
+      "east",
       "north",
-      "northeast",
       "south",
       "west"
      ]
@@ -99,10 +97,12 @@
     "npcs": {
      "match": false,
      "orig": {
-      "武当派第三代弟子 游方道人": 1
+      "流氓头": 1,
+      "流氓": 1
      },
      "repl": {
-      "游方道人": 1
+      "流氓": 4,
+      "流氓头": 1
      }
     }
    },
@@ -264,45 +264,6 @@
      "observable": false
     }
    }
-  },
-  "desc_missing_text": {
-   "id": "/d/hangzhou/santan",
-   "short": "三潭印月",
-   "fields": {
-    "name": {
-     "match": true,
-     "orig": "三潭印月",
-     "repl": "三潭印月"
-    },
-    "desc": {
-     "match": false,
-     "extra_chars": 0,
-     "missing_chars": 1,
-     "repl_empty": false,
-     "samples": [
-      {
-       "orig": "u)是送游客去苏堤。>",
-       "repl": "u)是送游客去苏堤。"
-      }
-     ]
-    },
-    "exits": {
-     "match": true,
-     "orig": [],
-     "repl": []
-    },
-    "items": {
-     "match": true,
-     "orig": {},
-     "repl": {}
-    },
-    "npcs": {
-     "match": true,
-     "orig": {},
-     "repl": {}
-    }
-   },
-   "status": "differ"
   }
  },
  "records": [
@@ -607,16 +568,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "武当派第三代弟子 游方道人": 1
      },
      "repl": {
-      "游方道人": 1
+      "武当派第三代弟子 游方道人": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/road11",
@@ -723,16 +684,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "红娘庄 红娘": 1
      },
      "repl": {
-      "红娘": 1
+      "红娘庄 红娘": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/gushan",
@@ -1001,7 +962,7 @@
       "杭州提督 李可秀": 1
      },
      "repl": {
-      "李可秀": 1,
+      "杭州提督 李可秀": 1,
       "绿营清兵": 4
      }
     }
@@ -1143,7 +1104,7 @@
     "npcs": {
      "match": false,
      "orig": {
-      "毒蛇(Dushe) <昏迷不醒>": 1
+      "毒蛇 <昏迷不醒>": 1
      },
      "repl": {
       "毒蛇": 1
@@ -1187,7 +1148,7 @@
       "明教青龙坛坛主 明教第三十五代弟子 程嘲风": 1
      },
      "repl": {
-      "程嘲风": 1,
+      "明教青龙坛坛主 明教第三十五代弟子 程嘲风": 1,
       "绿营会众": 2
      }
     }
@@ -1307,16 +1268,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "御林军骁骑营佐领「火手判官」张召重": 1
      },
      "repl": {
-      "张召重": 1
+      "御林军骁骑营佐领「火手判官」张召重": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/shuyuan",
@@ -1575,18 +1536,18 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "红花会十一当家「鸳鸯刀」骆冰": 1,
       "红花会四当家「奔雷手」文泰来": 1
      },
      "repl": {
-      "文泰来": 1,
-      "骆冰": 1
+      "红花会四当家「奔雷手」文泰来": 1,
+      "红花会十一当家「鸳鸯刀」骆冰": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/kedian",
@@ -1805,7 +1766,7 @@
     "npcs": {
      "match": false,
      "orig": {
-      "大狼狗(Wolf dog) <昏迷不醒>": 1
+      "大狼狗 <昏迷不醒>": 1
      },
      "repl": {
       "大狼狗": 2
@@ -2049,7 +2010,7 @@
       "武当派第十四代弟子 李沅芷": 1
      },
      "repl": {
-      "李沅芷": 1,
+      "武当派第十四代弟子 李沅芷": 1,
       "乌鸦": 1,
       "麻雀": 2
      }
@@ -2244,16 +2205,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "御前侍卫「金爪铁钩」白振": 1
      },
      "repl": {
-      "白振": 1
+      "御前侍卫「金爪铁钩」白振": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/jujingyuan",
@@ -2434,16 +2395,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "武当派第四代弟子 香火道人": 1
      },
      "repl": {
-      "香火道人": 1
+      "武当派第四代弟子 香火道人": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/dadao3",
@@ -2858,18 +2819,18 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "御前侍卫 龙骏": 1,
       "刀客": 1
      },
      "repl": {
       "刀客": 1,
-      "龙骏": 1
+      "御前侍卫 龙骏": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/liuzhuang",
@@ -2940,16 +2901,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "红花会十四当家「金笛秀才」余鱼同": 1
      },
      "repl": {
-      "余鱼同": 1
+      "红花会十四当家「金笛秀才」余鱼同": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/jingci",
@@ -3762,18 +3723,18 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "挑夫": 1,
       "御前侍卫 褚圆": 1
      },
      "repl": {
       "挑夫": 1,
-      "褚圆": 1
+      "御前侍卫 褚圆": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/yuhuangshan",
@@ -4046,12 +4007,12 @@
      }
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "古墓派第三代弟子「赤练仙子」李莫愁": 1
      },
      "repl": {
-      "李莫愁": 1
+      "古墓派第三代弟子「赤练仙子」李莫愁": 1
      }
     }
    },
@@ -4124,16 +4085,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "日月神教第八代光明左使黑木崖第八代弟子「天王老子」向问天": 1
      },
      "repl": {
-      "向问天": 1
+      "日月神教第八代光明左使黑木崖第八代弟子「天王老子」向问天": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/dxbaodian1",
@@ -4722,16 +4683,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "崆峒派第五代弟子 李拙道人": 1
      },
      "repl": {
-      "李拙道人": 1
+      "崆峒派第五代弟子 李拙道人": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/dxbaodian2",
@@ -4948,16 +4909,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "十方寺方丈 清明禅师": 1
      },
      "repl": {
-      "清明禅师": 1
+      "十方寺方丈 清明禅师": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/liuhe1",
@@ -5157,18 +5118,18 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "红花会书僮 心砚": 1,
       "铁胆庄大小姐「俏李逵」周绮": 1
      },
      "repl": {
-      "心砚": 1,
-      "周绮": 1
+      "红花会书僮 心砚": 1,
+      "铁胆庄大小姐「俏李逵」周绮": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/jiaxing/road2",
@@ -5275,16 +5236,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "红花会十三当家「铜头鳄鱼」蒋四根": 1
      },
      "repl": {
-      "蒋四根": 1
+      "红花会十三当家「铜头鳄鱼」蒋四根": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/jiaxing/njwest",
@@ -5391,16 +5352,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "红花会十二当家「鬼见愁」石双英": 1
      },
      "repl": {
-      "石双英": 1
+      "红花会十二当家「鬼见愁」石双英": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/jiaxing/njroad1",
@@ -5509,16 +5470,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "红花会九当家「九命锦豹子」卫春华": 1
      },
      "repl": {
-      "卫春华": 1
+      "红花会九当家「九命锦豹子」卫春华": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/jiaxing/njroad2",
@@ -5669,16 +5630,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "红花会八当家「铁塔」杨成协": 1
      },
      "repl": {
-      "杨成协": 1
+      "红花会八当家「铁塔」杨成协": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/jiaxing/njroad3",
@@ -5823,16 +5784,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "红花会七当家「武诸葛」徐天宏": 1
      },
      "repl": {
-      "徐天宏": 1
+      "红花会七当家「武诸葛」徐天宏": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/jiaxing/njeast",
@@ -6114,16 +6075,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "红花会三当家「千臂如来」赵半山": 1
      },
      "repl": {
-      "赵半山": 1
+      "红花会三当家「千臂如来」赵半山": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/jiaxing/jiangpan1",
@@ -6190,16 +6151,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "铁胆庄庄主「铁胆」周仲英": 1
      },
      "repl": {
-      "周仲英": 1
+      "铁胆庄庄主「铁胆」周仲英": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/jiaxing/jiangpan2",
@@ -6266,16 +6227,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "武当派第十七代掌门「绵里针」陆菲青": 1
      },
      "repl": {
-      "陆菲青": 1
+      "武当派第十七代掌门「绵里针」陆菲青": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/jiaxing/jiangpan3",
@@ -6342,16 +6303,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "红花会二当家「追魂夺命剑」无尘道长": 1
      },
      "repl": {
-      "无尘道长": 1
+      "红花会二当家「追魂夺命剑」无尘道长": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/jiaxing/haibin",
@@ -6414,16 +6375,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "红花会总舵主「玉面神龙」陈家洛": 1
      },
      "repl": {
-      "陈家洛": 1
+      "红花会总舵主「玉面神龙」陈家洛": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/duanqiao",
@@ -6475,16 +6436,7 @@
      "repl": "三潭印月"
     },
     "desc": {
-     "match": false,
-     "extra_chars": 0,
-     "missing_chars": 1,
-     "repl_empty": false,
-     "samples": [
-      {
-       "orig": "u)是送游客去苏堤。>",
-       "repl": "u)是送游客去苏堤。"
-      }
-     ]
+     "match": true
     },
     "exits": {
      "match": true,
@@ -6502,7 +6454,7 @@
      "repl": {}
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/hangzhou/xihu",
@@ -6514,16 +6466,7 @@
      "repl": "西湖"
     },
     "desc": {
-     "match": false,
-     "extra_chars": 0,
-     "missing_chars": 1,
-     "repl_empty": false,
-     "samples": [
-      {
-       "orig": "，淡妆浓抹总相宜。”>",
-       "repl": "，淡妆浓抹总相宜。”"
-      }
-     ]
+     "match": true
     },
     "exits": {
      "match": true,
@@ -6541,7 +6484,7 @@
      "repl": {}
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/jiaxing/mishi",
@@ -6604,16 +6547,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "白驼山庄主「西毒」欧阳锋": 1
      },
      "repl": {
-      "欧阳锋": 1
+      "白驼山庄主「西毒」欧阳锋": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/shiliang/andao1",
@@ -6796,7 +6739,7 @@
       "丫环": 1
      },
      "repl": {
-      "温方达": 1,
+      "温家老大 温方达": 1,
       "丫环": 2
      }
     }
@@ -6806,9 +6749,6 @@
   {
    "id": "/d/shiliang/dongxiangfang",
    "short": "东厢房",
-   "unresolved_refs": [
-    "/d/changan/obj/chairs"
-   ],
    "fields": {
     "name": {
      "match": true,
@@ -6833,7 +6773,7 @@
       "锦面折叠长椅": 1
      },
      "repl": {
-      "chairs": 1
+      "椅子": 1
      }
     },
     "npcs": {
@@ -6875,16 +6815,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "温家老大 温方悟": 1
      },
      "repl": {
-      "温方悟": 1
+      "温家老大 温方悟": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/shiliang/fang2",
@@ -6913,16 +6853,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "温家老三 温方山": 1
      },
      "repl": {
-      "温方山": 1
+      "温家老三 温方山": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/shiliang/fang3",
@@ -6951,18 +6891,18 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "温家老四 温方施": 1,
       "丫环": 1
      },
      "repl": {
-      "温方施": 1,
+      "温家老四 温方施": 1,
       "丫环": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/shiliang/fang4",
@@ -6991,18 +6931,18 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "温家老五 温方南": 1,
       "丫环": 1
      },
      "repl": {
-      "温方南": 1,
+      "温家老五 温方南": 1,
       "丫环": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/shiliang/houyuan",
@@ -7110,16 +7050,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "「金蛇郎君」夏雪宜": 1
      },
      "repl": {
-      "夏雪宜": 1
+      "「金蛇郎君」夏雪宜": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/shiliang/jinshedong1",
@@ -7165,16 +7105,7 @@
      "repl": "山洞底"
     },
     "desc": {
-     "match": false,
-     "extra_chars": 0,
-     "missing_chars": 1,
-     "repl_empty": false,
-     "samples": [
-      {
-       "orig": "石头(stone)。>",
-       "repl": "石头(stone)。"
-      }
-     ]
+     "match": true
     },
     "exits": {
      "match": true,
@@ -7192,7 +7123,7 @@
      "repl": {}
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/shiliang/shufang",
@@ -7359,16 +7290,16 @@
      "repl": {}
     },
     "npcs": {
-     "match": false,
+     "match": true,
      "orig": {
       "温家小姐 温仪": 1
      },
      "repl": {
-      "温仪": 1
+      "温家小姐 温仪": 1
      }
     }
    },
-   "status": "differ"
+   "status": "match"
   },
   {
    "id": "/d/shiliang/xiaoting",
@@ -7449,9 +7380,6 @@
   {
    "id": "/d/shiliang/xixiangfang",
    "short": "西厢房",
-   "unresolved_refs": [
-    "/d/changan/obj/chairs"
-   ],
    "fields": {
     "name": {
      "match": true,
@@ -7476,7 +7404,7 @@
       "锦面躺椅": 1
      },
      "repl": {
-      "chairs": 1
+      "椅子": 1
      }
     },
     "npcs": {

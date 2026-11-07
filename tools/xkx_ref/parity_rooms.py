@@ -61,6 +61,7 @@ ANSI_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 CN_NUM = "一二三四五六七八九十百千两"
 UNITS = "只个把件张块本支条匹头座位名颗枚粒朵片根坛包瓶盒串副双对群些柄幅"
 INV_RE = re.compile(r"^(?:[" + CN_NUM + r"]+[" + UNITS + r"])?(.+?)(?:\(([^)]*)\))?(\[.*\])?$")
+STATUS_RE = re.compile(r"\s*(<[^>]+>)\s*$")
 NAME_LINE_RE = re.compile(r"^(.{1,40}?) - *$")
 
 
@@ -125,20 +126,38 @@ def parse_exits(line: str):
 
 
 def parse_inv_line(line: str):
-    body = line[2:]  # combined() 固定两个空格前缀
-    m = INV_RE.match(body.strip())
+    body = line[2:].strip()
+    status = None
+    mstat = STATUS_RE.search(body)
+    if mstat:
+        # 状态位（如 <昏迷不醒>）属于玩家可见名字，保留；只从拼音里分离。
+        status = mstat.group(1)
+        body = body[: mstat.start()].strip()
+    m = INV_RE.match(body)
     if not m:
         return None
     name = (m.group(1) or "").strip()
     if not name:
         return None
+    if status:
+        name = f"{name} {status}"
     return name
 
 
 def parse_look(text: str, phases: list[str]) -> dict:
     text = clean_ansi(text).replace("\r", "")
     lines = [ln.rstrip() for ln in text.splitlines()]
-    lines = [ln for ln in lines if ln.strip() and not ln.lstrip().startswith("> ")]
+    # 提示符可能黏在上一行末尾（原版输出无换行）；只在非提示行、且不是
+    # `<昏迷不醒>` 这类状态尾巴时剥掉。
+    lines = [
+        ln[:-1].rstrip()
+        if ln.endswith(">")
+        and not ln.lstrip().startswith(">")
+        and not re.search(r"<[^<>]*>$", ln)
+        else ln
+        for ln in lines
+    ]
+    lines = [ln for ln in lines if ln.strip() and not ln.lstrip().startswith(">")]
     # 去掉频道/系统行
     lines = [ln for ln in lines if not re.match(r"^【(谣言|风闻|存盘|系统|帮助)】", ln.strip())]
 
@@ -256,6 +275,10 @@ def replica_field(room, items, npcs):
         cnt = int(ob.get("count") or 1)
         rec = (npcs if kind == "npc" else items).get(ref)
         nm = rec["name"] if rec else source_name(ref)
+        if kind == "npc" and rec:
+            # 原版 short() 会拼 title/门派/party/nickname；display_name 由抽取器按
+            # feature/name.c 的拼接顺序生成，这里比对玩家真正看到的名字。
+            nm = rec.get("display_name") or nm
         if not nm:
             unresolved.append(ref)
             nm = os.path.basename(ref)
