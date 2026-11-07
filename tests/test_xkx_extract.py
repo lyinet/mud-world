@@ -246,12 +246,16 @@ def test_slice_pack_counts_and_zero_errors():
             item = next(i for i in pack["items"] if i["id"] == slot["ref"])
             assert item["name"]
             assert item["weight"] is not None and item["weight"] > 0
-    # NPC 临时属性：只取 create()，值/来源可溯源，未知键不丢
-    assert counts["temp_apply_npcs"] == 34
-    assert counts["temp_apply_npcs_in_slice"] == 28
-    assert counts["temp_apply_entries"] == 78
-    assert counts["temp_apply_keys"]["apply/attack"] == 25
-    assert counts["temp_apply_keys"]["apply/defense"] == 23
+    # NPC 临时属性：只取 create()，值/来源可溯源，未知键不丢。
+    # 这些计数随内容包的 apply 抽取口径变化（改内容/抽取规则需同步改这里）：
+    # 45 = 34 个 set_temp(lpc) + 11 个永久 set("apply/…")(lpc_set)；
+    # 102 条 = 78 条 lpc + 24 条 lpc_set；apply/attack 36 = 25 + 11，
+    # apply/defense 34 = 23 + 11（切片内 39 = 28 + 11）。
+    assert counts["temp_apply_npcs"] == 45
+    assert counts["temp_apply_npcs_in_slice"] == 39
+    assert counts["temp_apply_entries"] == 102
+    assert counts["temp_apply_keys"]["apply/attack"] == 36
+    assert counts["temp_apply_keys"]["apply/defense"] == 34
     assert counts["temp_apply_unknown_keys"] == [
         "armor", "is_rided_by", "is_riding", "qingshu", "shoupa",
     ]
@@ -262,7 +266,8 @@ def test_slice_pack_counts_and_zero_errors():
     assert temps["apply/armor"]["value"] == 1000
     for npc in pack["npcs"]:
         for entry in npc["temp_apply"]:
-            assert entry["source_kind"] == "lpc"
+            # lpc = create() 内 set_temp；lpc_set = create() 内永久 set("apply/…")。
+            assert entry["source_kind"] in {"lpc", "lpc_set"}
             assert entry["source"]["path"] and entry["source"]["line"]
             assert entry["value"] is not None or entry["value_expr"] is not None
     # 掉落：空表必须带原因；掉落物必须在 items 表；概率不让引擎猜
