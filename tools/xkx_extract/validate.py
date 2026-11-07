@@ -54,6 +54,98 @@ def _check_desc_source(diags: list[dict], rec: dict, kind: str) -> None:
 SOURCE_VALUES = {"lpc", "derived", "default", "missing"}
 
 
+def _check_npc_drops(diags: list[dict], pack: dict) -> None:
+    """NPC 掉落：无掉落必须显式留痕；概率无法折算时保留原式；物品必须在 items 表。"""
+    item_ids = {i["id"] for i in pack.get("items", [])}
+    for npc in pack.get("npcs", []):
+        path = npc["source"]["path"]
+        line = npc["source"]["line"]
+        src = npc.get("drops_source")
+        if src not in ("lpc", "none"):
+            diags.append({
+                "rule": "E_DROP_SOURCE_INVALID", "severity": "error",
+                "path": path, "line": line,
+                "message": f"NPC {npc['id']} 的 drops_source 非法：{src!r}",
+                "id": npc["id"],
+            })
+        drops = npc.get("drops")
+        if not isinstance(drops, list):
+            diags.append({
+                "rule": "E_DROP_FIELD_MISSING", "severity": "error",
+                "path": path, "line": line,
+                "message": f"NPC {npc['id']} 缺少 drops 字段（无掉落也必须写空表）",
+                "id": npc["id"],
+            })
+            continue
+        if src == "none" and drops:
+            diags.append({
+                "rule": "E_DROP_SOURCE_INVALID", "severity": "error",
+                "path": path, "line": line,
+                "message": f"NPC {npc['id']} 标 drops_source=none 但 drops 非空",
+                "id": npc["id"],
+            })
+        if src == "none" and not npc.get("drops_note"):
+            diags.append({
+                "rule": "E_DROP_NOTE_MISSING", "severity": "error",
+                "path": path, "line": line,
+                "message": f"NPC {npc['id']} 无掉落但没有写 drops_note 原因",
+                "id": npc["id"],
+            })
+        for drop in drops:
+            item = drop.get("item")
+            if item not in item_ids:
+                diags.append({
+                    "rule": "E_DROP_ITEM_NOT_IN_ITEMS", "severity": "error",
+                    "path": path, "line": drop.get("source", {}).get("line"),
+                    "message": f"NPC {npc['id']} 的掉落物 {item} 不在 items 表",
+                    "id": npc["id"], "ref": item,
+                })
+            qty = drop.get("qty")
+            if not isinstance(qty, int) or qty < 1:
+                diags.append({
+                    "rule": "E_DROP_QTY_INVALID", "severity": "error",
+                    "path": path, "line": drop.get("source", {}).get("line"),
+                    "message": f"NPC {npc['id']} 掉落 {item} 的数量非法：{qty!r}",
+                    "id": npc["id"], "ref": item,
+                })
+            chance = drop.get("chance")
+            if chance is not None and not (isinstance(chance, (int, float)) and 0.0 <= chance <= 1.0):
+                diags.append({
+                    "rule": "E_DROP_CHANCE_INVALID", "severity": "error",
+                    "path": path, "line": drop.get("source", {}).get("line"),
+                    "message": f"NPC {npc['id']} 掉落 {item} 的概率非法：{chance!r}",
+                    "id": npc["id"], "ref": item,
+                })
+            if chance is None and not drop.get("chance_expr"):
+                diags.append({
+                    "rule": "E_DROP_CHANCE_NO_EXPR", "severity": "error",
+                    "path": path, "line": drop.get("source", {}).get("line"),
+                    "message": f"NPC {npc['id']} 掉落 {item} 的概率无法折算却没有保留原式",
+                    "id": npc["id"], "ref": item,
+                })
+            if drop.get("source_kind") != "lpc":
+                diags.append({
+                    "rule": "E_DROP_SOURCE_INVALID", "severity": "error",
+                    "path": path, "line": drop.get("source", {}).get("line"),
+                    "message": f"NPC {npc['id']} 掉落 {item} 的 source_kind 非法",
+                    "id": npc["id"], "ref": item,
+                })
+            if drop.get("landing") != "ground":
+                diags.append({
+                    "rule": "E_DROP_LANDING_INVALID", "severity": "error",
+                    "path": path, "line": drop.get("source", {}).get("line"),
+                    "message": f"NPC {npc['id']} 掉落 {item} 的 landing 必须是 ground（不建模尸体）",
+                    "id": npc["id"], "ref": item,
+                })
+            if drop.get("source_landing") not in ("corpse", "ground"):
+                diags.append({
+                    "rule": "E_DROP_LANDING_INVALID", "severity": "error",
+                    "path": path, "line": drop.get("source", {}).get("line"),
+                    "message": f"NPC {npc['id']} 掉落 {item} 的 source_landing 非法",
+                    "id": npc["id"], "ref": item,
+                })
+
+
 def _src_error(diags, path, line, sid, message):
     diags.append({
         "rule": "E_SKILL_SOURCE_INVALID", "severity": "error",
@@ -252,6 +344,9 @@ def validate(pack: dict) -> list[dict]:
 
     # 9. 招式表 / 技能属性表：来源标记互斥、默认值必须留痕
     _check_skill_tables(diags, pack)
+
+    # 10. NPC 掉落：无掉落必须显式留痕，概率不折算成必掉
+    _check_npc_drops(diags, pack)
 
     return diags
 

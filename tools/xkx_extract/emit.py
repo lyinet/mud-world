@@ -132,6 +132,13 @@ def build_outputs(pack, diagnostics, counts, coverage, source_info) -> dict[str,
                 "missing": "文案缺失，没有可搬运原文（仅 name_source 使用）。",
             },
             "skill_hook": "hooks 五项固定齐全；value_kind=code 表示钩子函数存在、value 为 null 而 expr 为源码函数体；value_kind=default 表示明确占位 value=0 并写 reason。",
+            "npc_drops": {
+                "chance": "1.0 表示原版必掉；小于 1 由源码 random 条件折算；null 表示无法静态折算，必须读 chance_expr。",
+                "chance_expr": "源码概率条件原文；null 表示原版没有概率判定。",
+                "landing": "引擎实际落地方式；本项目不建模尸体，统一为 ground。",
+                "source_landing": "原版实际放置位置（corpse/ground），仅作溯源，不影响引擎落地。",
+                "drops_source": "lpc 表示 die() 中有真实掉落；none 表示源码无掉落，drops 为空表且 drops_note 写明原因。",
+            },
         },
         "authored_descriptions": authored,
         "coverage_semantics": {

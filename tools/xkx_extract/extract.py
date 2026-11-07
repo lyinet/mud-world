@@ -16,6 +16,7 @@ from collections import Counter, OrderedDict
 
 from . import lpc
 from .authored import AUTHORED_DESCS
+from .npc_drops import extract_npc_drops
 from .skills_actions import extract_skill_tables
 
 AREA_DIRS = ("hangzhou", "jiaxing", "shiliang")
@@ -98,6 +99,7 @@ class Extractor:
         self.skills_actions: list[dict] = []
         self.skills_stats: list[dict] = []
         self.skill_counts: dict[str, int] = {}
+        self.drop_counts: dict[str, int] = {}
         self._text_cache: dict[str, str] = {}
         self._item_refs: set[str] = set()
         self._npc_refs: set[str] = set()
@@ -185,6 +187,7 @@ class Extractor:
         self._collect_shops()
         self._collect_skills()
         self._collect_sects()
+        self._collect_drops()
         self._collect_skill_tables()
         self._coverage()
         return {
@@ -206,6 +209,23 @@ class Extractor:
         )
         self.diagnostics.extend(diags)
         self.skill_counts = counts
+
+    def _collect_drops(self):
+        diags, counts, item_refs = extract_npc_drops(
+            self.src_root, list(self.npcs.values())
+        )
+        self.diagnostics.extend(diags)
+        self.drop_counts = counts
+        for ref in sorted(item_refs):
+            if ref in self.items:
+                continue
+            rel = ref.lstrip("/") + ".lpc"
+            text = self.read(rel)
+            if text is None:
+                continue
+            self.items[ref] = self._parse_item(
+                rel, ref, text, self.bases_of(text), origin="external"
+            )
 
     # -- 房间 ---------------------------------------------------------------
 
@@ -941,6 +961,12 @@ class Extractor:
             "skill_action_unresolved": self.skill_counts.get("unresolved_action_skills", 0),
             "skill_stat_rows": self.skill_counts.get("stat_rows", 0),
             "skill_stat_default_fields": self.skill_counts.get("stat_default_fields", 0),
+            "npcs_with_drops": self.drop_counts.get("npcs_with_drops", 0),
+            "drop_entries": self.drop_counts.get("drop_entries", 0),
+            "drops_guaranteed": self.drop_counts.get("drops_guaranteed", 0),
+            "drops_random": self.drop_counts.get("drops_random", 0),
+            "drops_unresolved_chance": self.drop_counts.get("drops_unresolved_chance", 0),
+            "npcs_no_drops": self.drop_counts.get("npcs_no_drops", 0),
         }
 
 

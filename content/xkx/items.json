@@ -968,6 +968,44 @@
       },
       "unit": "个",
       "weight": 700
+    },
+    {
+      "category": "misc",
+      "desc": "这是一块熬制过的虎骨，看来可以入药。",
+      "desc_source": "lpc",
+      "equip_slot": null,
+      "food_supply": null,
+      "id": "/clone/medicine/vegetable/hugu",
+      "material": null,
+      "name": "虎骨",
+      "origin": "external",
+      "price": 30000,
+      "price_expr": null,
+      "source": {
+        "line": 12,
+        "path": "clone/medicine/vegetable/hugu.lpc"
+      },
+      "unit": "块",
+      "weight": 500
+    },
+    {
+      "category": "misc",
+      "desc": "这是一颗夜明珠，悠悠的放着柔和的光，看起来是做装饰的好东西。",
+      "desc_source": "lpc",
+      "equip_slot": null,
+      "food_supply": null,
+      "id": "/d/npc/m_weapon/tan/item/zhenzhu",
+      "material": "iron",
+      "name": "夜明珠",
+      "origin": "external",
+      "price": 10000,
+      "price_expr": null,
+      "source": {
+        "line": 4,
+        "path": "d/npc/m_weapon/tan/item/zhenzhu.lpc"
+      },
+      "unit": "颗",
+      "weight": 30000
     }
   ]
 }

@@ -150,8 +150,35 @@ def test_slice_pack_counts_and_zero_errors():
     assert counts["skill_action_gaps"] == 11
     assert counts["skill_action_unresolved"] == 0
     assert counts["skill_stat_rows"] == 48
+    assert counts["npcs_with_drops"] == 3
+    assert counts["drop_entries"] == 3
+    assert counts["drops_guaranteed"] == 3
+    assert counts["drops_random"] == 0
+    assert counts["drops_unresolved_chance"] == 0
+    assert counts["npcs_no_drops"] == 102
     errors = [d for d in emit.dedupe(diags) if d["severity"] == "error"]
     assert not errors
+    # NPC 掉落：空表必须带原因；掉落物必须在 items 表；概率不让引擎猜
+    item_ids = {i["id"] for i in pack["items"]}
+    holders = {n["id"] for n in pack["npcs"] if n["drops"]}
+    assert holders == {
+        "/d/hangzhou/npc/laohu", "/d/hangzhou/npc/wolfdog", "/d/shiliang/npc/fish",
+    }
+    for npc in pack["npcs"]:
+        assert npc["drops_source"] in ("lpc", "none")
+        if not npc["drops"]:
+            assert npc["drops_note"]
+        for drop in npc["drops"]:
+            assert drop["item"] in item_ids
+            assert drop["qty"] >= 1
+            assert drop["chance"] == 1.0 and drop["chance_expr"] is None
+            assert drop["landing"] == "ground"
+            assert drop["source_landing"] in ("corpse", "ground")
+            assert drop["source_kind"] == "lpc"
+    for rid in ("/clone/medicine/vegetable/hugu", "/d/npc/m_weapon/tan/item/zhenzhu"):
+        item = next(i for i in pack["items"] if i["id"] == rid)
+        assert item["origin"] == "external"
+        assert item["desc"] and item["desc_source"] == "lpc"
     # 招式表：来源标记三分，缺键必须显式 default + 0
     for skill in pack["skills_actions"]:
         for act in skill["actions"]:

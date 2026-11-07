@@ -61,19 +61,25 @@
       "table": "npcs"
     }
   ],
-  "content_hash": "3331ff112cefd7c7754897303c4283697b2da9a3a6a6f62a8c25493a7352ec6b",
+  "content_hash": "c5fd1db22d77d0f7021aeb9ddbdfaa3c49067f2208635768e14cb3262a404493",
   "counts": {
     "aggressive_npcs": 7,
     "desc_authored_items": 7,
     "desc_authored_npcs": 4,
     "dialogue_topics": 67,
     "dialogue_topics_in_slice": 40,
+    "drop_entries": 3,
+    "drops_guaranteed": 3,
+    "drops_random": 0,
+    "drops_unresolved_chance": 0,
     "exits": 427,
-    "items_external": 12,
+    "items_external": 14,
     "items_in_slice": 39,
     "masters": 22,
     "npcs_external": 13,
     "npcs_in_slice": 92,
+    "npcs_no_drops": 102,
+    "npcs_with_drops": 3,
     "rooms_boundary_stub": 6,
     "rooms_in_slice": 195,
     "sects": 1,
@@ -152,6 +158,13 @@
       "lpc": "从 xkx100 LPC 源码静态抽取，计入 source 覆盖率。",
       "null": "描述缺失，玩家会看到空白；total 覆盖率不达标即 error。"
     },
+    "npc_drops": {
+      "chance": "1.0 表示原版必掉；小于 1 由源码 random 条件折算；null 表示无法静态折算，必须读 chance_expr。",
+      "chance_expr": "源码概率条件原文；null 表示原版没有概率判定。",
+      "drops_source": "lpc 表示 die() 中有真实掉落；none 表示源码无掉落，drops 为空表且 drops_note 写明原因。",
+      "landing": "引擎实际落地方式；本项目不建模尸体，统一为 ground。",
+      "source_landing": "原版实际放置位置（corpse/ground），仅作溯源，不影响引擎落地。"
+    },
     "skill_action_source": {
       "default": "原版缺键，按 LPC mapping 语义取 0；缺键记入 coefficient_gaps 与 diagnostics.jsonl。",
       "derived": "原版只给公式或结构，数值由抽取器按源码公式解释得出。",
@@ -174,12 +187,12 @@
       "sha256": "a1fdb78e2a4d7f1f54b01688bfad4c4b374819bb88ec2d379f94edc835eac63e"
     },
     "items.json": {
-      "bytes": 26082,
-      "sha256": "39d8ffe387ebbf4b593fca51b6c484df49c58916e5d06fe5e901e4f8e0bebe18"
+      "bytes": 27132,
+      "sha256": "73904bb18dd06d9dd3c34308eb4dcd57b7cda269f1d73c0bd506dadd3d62606a"
     },
     "npcs.json": {
-      "bytes": 130569,
-      "sha256": "276098c9bd5eaf250467b33a303fd1c543987f64d47c49812ee033f1752971ff"
+      "bytes": 145027,
+      "sha256": "c5ca4018a2d5d42509e01f541c67f325400d2be4158063b4513f814dabb8a71b"
     },
     "rooms.json": {
       "bytes": 142167,
@@ -206,8 +219,8 @@
       "sha256": "79f507b476c52d101cc2b7c12ec8eb14d144c1b2183f403241d2ed0fd3e52f09"
     },
     "summary.json": {
-      "bytes": 2055,
-      "sha256": "987f698568fa2d35e4cdbe3d32258d237b781775a6f419d718ad6e6ab99d67f6"
+      "bytes": 2214,
+      "sha256": "5bad7ce8cced63cf65661e9735e5fc60d348ac1be4888204eb495e9e941c93e3"
     }
   },
   "generator": "tools/xkx_extract",

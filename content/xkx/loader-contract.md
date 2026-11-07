@@ -146,9 +146,47 @@
 | `is_master` | bool | 是否 `inherit F_MASTER` |
 | `sect` | string \| null | 门派目录名（如 `honghua`），仅 `is_master=true` 时有值 |
 | `vendor` | bool | 是否有 `set("vendor_goods")`，即能否开店 |
+| `drops` | array | 死亡掉落，见 5.1；**没有掉落也写空表** |
+| `drops_source` | `"lpc"` \| `"none"` | `lpc` = `die()` 中有真实掉物；`none` = 源码无掉落 |
+| `drops_note` | string \| null | `drops_source="none"` 时必填，写明为什么没有 |
 | `origin` | `"slice"` \| `"external"` | |
 
 `skills` 的键是技能 id，中文名在 `skills.json` 查。`map_skills` 表示“用哪个技能顶替基础技能”，不是等级。
+
+### 5.1 `drops[]` — 死亡掉落
+
+```json
+{ "item": "/clone/medicine/vegetable/hugu",
+  "qty": 1,
+  "chance": 1.0,
+  "chance_expr": null,
+  "item_resolved": true,
+  "landing": "ground",
+  "source_landing": "corpse",
+  "source": { "path": "d/hangzhou/npc/laohu.lpc", "line": 45 },
+  "source_kind": "lpc" }
+```
+
+| 字段 | 含义 |
+| --- | --- |
+| `item` | 物品 id，必须在 `items.json` 中查得到（加载器对账，缺一即 error） |
+| `qty` | 每次死亡掉落数量，整数；原版循环创建时不会默认成 1，会进诊断 |
+| `chance` | `1.0` = 必掉；`<1` = 由源码 `random()` 折算；`null` = 无法静态折算 |
+| `chance_expr` | 源码概率条件原文（如 `random(3)==0`）；`null` 表示原版没有概率判定 |
+| `item_resolved` | 掉落物源文件是否存在；true 表示已并入 `items.json` |
+| `landing` | 引擎落地方式，本项目统一 `"ground"` |
+| `source_landing` | 原版实际放置位置：`corpse`（先入尸体）或 `ground`（直接落地），仅作溯源 |
+| `source_kind` | `lpc`，表示从 `die()` 静态抽取 |
+
+**概率口径**：`chance=null` 时加载器必须按 `chance_expr` 自行实现，不得把未知概率当必掉；`chance=1.0` 且 `chance_expr=null` 才是真正的必掉。
+
+**尸体简化（重要）**：原版死亡会先 `make_corpse()` 生成尸体，把 `die()` 里创建的物品和 NPC 随身装备一起塞进尸体，玩家再翻尸体取物。本项目**不建模尸体**：
+
+- `drops[]` 只记 `die()` 中显式创建的物品，`landing` 固定为 `ground`，引擎直接把物品放地面；
+- NPC 随身装备**不进 `drops`**，由引擎在 NPC 死亡时按 `npcs.json.equipment` 落地，避免与 `drops` 双计；
+- `source_landing="corpse"` 只用于溯源，加载器不要据此去创建尸体容器。
+
+当前只有 3 个 NPC 有掉落（`laohu`、`wolfdog`、`fish`），均必掉；其余 102 个 NPC 为 `drops: []` + `drops_note`。
 
 ## 6. `dialogue.json`
 
