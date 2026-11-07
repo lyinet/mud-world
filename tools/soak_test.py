@@ -534,6 +534,36 @@ def _lat_write_to(path, row):
             pass
 
 
+# GC 停顿 >15ms 单独记一条：区分"应用在等磁盘"和"解释器整体被 GC 停住"。
+_GC_PAUSE_PATH = os.path.join(_DIR, "gc_pauses.jsonl")
+_GC_T0: list[float] = []
+
+
+def _gc_pause_cb(phase, info):
+    try:
+        if phase == "start":
+            _GC_T0.append(time.perf_counter())
+            return
+        if not _GC_T0:
+            return
+        dt = _lat_ms(_GC_T0.pop())
+        if dt >= 15.0:
+            _lat_write_to(_GC_PAUSE_PATH, {
+                "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "gen": info.get("generation"),
+                "ms": round(dt, 2),
+                "collected": info.get("collected"),
+            })
+    except Exception:
+        pass
+
+
+try:
+    gc.callbacks.append(_gc_pause_cb)
+except Exception:
+    pass
+
+
 def _lat_stacks():
     out: dict[str, list[str]] = {}
     names = {t.ident: t.name for t in threading.enumerate()}
