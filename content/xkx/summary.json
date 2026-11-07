@@ -2,7 +2,7 @@
   "by_rule": {
     "I_ACTION_TEXT_DYNAMIC": 2,
     "I_DESC_AUTHORED": 11,
-    "I_DIALOGUE_FUNC": 22,
+    "I_DIALOGUE_FUNC": 12,
     "I_EQUIP_REF_NORMALIZED": 3,
     "I_PATH_NORMALIZED": 1,
     "I_PRICE_ZERO": 4,
@@ -22,6 +22,8 @@
     "attrs_roll_fields_in_slice": 51,
     "desc_authored_items": 7,
     "desc_authored_npcs": 4,
+    "dialogue_fallback_with_reason": 12,
+    "dialogue_staticized_from_func": 0,
     "dialogue_topics": 67,
     "dialogue_topics_in_slice": 40,
     "drop_entries": 3,
@@ -132,6 +134,6 @@
     }
   },
   "errors": 0,
-  "infos": 48,
+  "infos": 38,
   "warnings": 49
 }

@@ -118,21 +118,35 @@ def _function_span(text: str, name: str) -> tuple[int, int] | None:
     那些不是创世属性，混进来会让引擎在出生时套错状态。
     """
     tokens = lpc.lex(text)
-    for i in range(len(tokens) - 3):
+    n = len(tokens)
+    for i in range(n):
         if not (
             tokens[i].kind == "IDENT"
             and tokens[i].value == name
+            and i + 1 < n
             and tokens[i + 1].kind == "PUNCT"
             and tokens[i + 1].value == "("
-            and tokens[i + 2].kind == "PUNCT"
-            and tokens[i + 2].value == ")"
-            and tokens[i + 3].kind == "PUNCT"
-            and tokens[i + 3].value == "{"
         ):
             continue
+        # 跳过参数表，允许 `foo(object me, string arg)`；函数声明后面的
+        # 分号不会命中，因为这里要求右括号之后紧跟 `{`。
         depth = 0
-        start_line = tokens[i + 3].line
-        for tok in tokens[i + 3:]:
+        j = i + 1
+        while j < n:
+            tok = tokens[j]
+            if tok.kind == "PUNCT":
+                if tok.value == "(":
+                    depth += 1
+                elif tok.value == ")":
+                    depth -= 1
+                    if depth == 0:
+                        break
+            j += 1
+        if j + 1 >= n or tokens[j + 1].kind != "PUNCT" or tokens[j + 1].value != "{":
+            continue
+        depth = 0
+        start_line = tokens[j + 1].line
+        for tok in tokens[j + 1:]:
             if tok.kind != "PUNCT":
                 continue
             if tok.value == "{":
@@ -711,7 +725,11 @@ class Extractor:
                 value = args[1] if len(args) > 1 else None
                 if key == "inquiry" and isinstance(value, dict):
                     for topic, answer in value.items():
-                        topics.append(self._make_topic(topic, answer, line, rel_path))
+                        topics.append(
+                            self._make_topic(
+                                topic, answer, line, rel_path, text, origin
+                            )
+                        )
                 elif key == "long" and isinstance(value, str) and "long" not in values:
                     values["long"] = (lpc.clean_text(value), line)
                 elif key == "vendor_goods" and isinstance(value, list):
@@ -847,25 +865,108 @@ class Extractor:
             )
         return entry
 
-    def _make_topic(self, topic, answer, line, rel_path):
+    def _make_topic(self, topic, answer, line, rel_path, text="", origin="slice"):
         entry = {
             "topic": topic,
             "kind": "string",
             "text": None,
             "func": None,
+            "source_kind": "lpc",
             "source": {"path": rel_path, "line": line},
         }
         if isinstance(answer, str):
             entry["text"] = lpc.clean_text(answer)
-        else:
-            entry["kind"] = "fallback"
-            entry["func"] = getattr(answer, "text", str(answer))
-            self.diag(
-                "I_DIALOGUE_FUNC", "info", rel_path, line,
-                f"对话主题「{topic}」的值是函数，静态不可搬；保留主题键并转 fallback",
-                topic=topic,
-            )
+            return entry
+
+        entry["kind"] = "fallback"
+        func = getattr(answer, "text", str(answer))
+        entry["func"] = func
+        if origin != "slice":
+            return entry
+
+        analysis = self._analyze_dialogue_func(text, func, rel_path)
+        entry.update(analysis)
+        self.diag(
+            "I_DIALOGUE_FUNC", "info", rel_path, analysis["fallback_source"]["line"],
+            f"对话主题「{topic}」→ {func}：{analysis['fallback_reason']}",
+            topic=topic,
+            func=func,
+            features=",".join(analysis["fallback_features"]),
+        )
         return entry
+
+    def _analyze_dialogue_func(self, text, func, rel_path):
+        """只做静态判定，不编台词：能压成固定串就静态化，否则记原因。"""
+        func_name = None
+        m = re.fullmatch(r"\(\s*:\s*([A-Za-z_][A-Za-z0-9_]*)\s*:\s*\)", func.strip())
+        if m:
+            func_name = m.group(1)
+        span = _function_span(text, func_name) if func_name and text else None
+        if span is None:
+            return {
+                "fallback_reason": "函数引用不是本文件内的具名函数，无法静态解析函数体",
+                "fallback_features": ["unresolved_func"],
+                "fallback_source": {"kind": "lpc", "path": rel_path, "line": None},
+            }
+
+        start, end = span
+        body = "\n".join(text.splitlines()[start - 1:end])
+        inner = re.sub(r"^[^{]*\{", "", body, count=1).rsplit("}", 1)[0]
+
+        features = []
+        if re.search(r"\bif\s*\(", inner) or re.search(r"\belse\b", inner):
+            features.append("conditional")
+        if re.search(r"\b(set_temp|delete_temp|add|move|set|unconcious)\s*\(", inner):
+            features.append("state_write")
+        if re.search(r"\bnew\s*\(", inner):
+            features.append("item_create")
+        if re.search(r"\bteach_perform\s*\(", inner):
+            features.append("teaching")
+        if "RANK_D->" in inner or re.search(r'"\s*\+', inner):
+            features.append("dynamic_text")
+        label = {
+            "conditional": "if/else 条件分支",
+            "state_write": "运行时状态写入（set_temp/delete_temp/add/move/set）",
+            "item_create": "new() 创建物品",
+            "teaching": "teach_perform 教授技能",
+            "dynamic_text": "RANK_D 动态称谓/拼接文案",
+        }
+
+        # 保守静态化：无条件、无状态写入，只有固定 tell_object 和/或固定 return。
+        static_text = None
+        if not features:
+            tell_strings = re.findall(
+                r'tell_object\(\s*(?:me|this_player\(\))\s*,\s*'
+                r'"((?:[^"\\]|\\.)*)"\s*\)\s*;', inner, re.S,
+            )
+            residue = re.sub(
+                r'tell_object\(\s*(?:me|this_player\(\))\s*,\s*'
+                r'"((?:[^"\\]|\\.)*)"\s*\)\s*;', "", inner, flags=re.S,
+            )
+            ret = re.fullmatch(r'\s*return\s+"((?:[^"\\]|\\.)*)"\s*;\s*', residue, re.S)
+            if ret and (tell_strings or ret.group(1)):
+                chunks = [lpc.clean_text(s) for s in tell_strings]
+                if ret.group(1):
+                    chunks.append(lpc.clean_text(ret.group(1)))
+                static_text = "\n".join(c for c in chunks if c)
+
+        if static_text is not None:
+            return {
+                "kind": "string",
+                "text": static_text,
+                "staticized_from_func": func,
+                "fallback_reason": None,
+                "fallback_features": [],
+                "fallback_source": {"kind": "lpc", "path": rel_path, "line": start},
+            }
+
+        reason = "函数体含" + "、".join(label[f] for f in features)
+        reason += "；回复依赖玩家状态或运行时对象，无法压成单一固定文本，保留 fallback"
+        return {
+            "fallback_reason": reason,
+            "fallback_features": features,
+            "fallback_source": {"kind": "lpc", "path": rel_path, "line": start},
+        }
 
     # -- 外部引用 -----------------------------------------------------------
 
@@ -1181,6 +1282,12 @@ class Extractor:
             ),
             "dialogue_topics": len(self.dialogue),
             "dialogue_topics_in_slice": sum(1 for t in self.dialogue if t.get("origin") != "external"),
+            "dialogue_fallback_with_reason": sum(
+                1 for t in self.dialogue if t.get("fallback_reason")
+            ),
+            "dialogue_staticized_from_func": sum(
+                1 for t in self.dialogue if t.get("staticized_from_func")
+            ),
             "shops": len(self.shops),
             "sects": len(self.sects),
             "masters": sum(

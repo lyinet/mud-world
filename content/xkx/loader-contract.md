@@ -269,13 +269,32 @@
 | `kind` | `"string"` \| `"fallback"` | 答案类型 |
 | `text` | string \| null | `kind=string` 时的答案正文 |
 | `func` | string \| null | `kind=fallback` 时的原版函数名/表达式文本，静态不可搬运 |
-| `source` | object | 源码位置 |
+| `source_kind` | `"lpc"` | 本记录取自 LPC 源码 |
+| `source` | object | 主题注册位置（`set("inquiry")` 所在行） |
+| `fallback_reason` | string \| null | 切片内函数主题的判定原因；区外主题未判定时缺省 |
+| `fallback_features` | array | 判定依据：`conditional`/`state_write`/`item_create`/`teaching`/`dynamic_text` |
+| `fallback_source` | object \| null | `{"kind":"lpc","path":"...","line":<函数定义行>}` |
+| `staticized_from_func` | string \| null | 仅当函数体可保守压成固定串时出现 |
 
 加载器约束：
 
 - `kind=string`：直接显示 `text`。
 - `kind=fallback`：原版答案是函数（涉及状态、任务、条件），本内容包只保留主题键；加载器给一句通用占位或走引擎自己的处理器，**不要把它当成有答案**，也不要伪造文本。
 - 同一 NPC 多个主题共用同一答案文本是正常的（原版一个函数/字符串挂多个键）。
+
+### 6.1 切片内 12 个函数主题的判定结果
+
+逐条读函数体后：**0 条能静态化，12 条保留 `fallback` 并写 `fallback_reason`**。没有一个函数是“无条件、只返回固定串”；全部含条件分支、状态写入、物品创建或 `teach_perform`：
+
+| NPC / 函数 | 主题数 | 判定依据 | 处理 |
+| --- | --- | --- | --- |
+| `d/jiaxing/npc/hai.lpc` `ask_for_zigong` | 2 | 按性别/膂力/年龄分支，`set_temp("pending/zigong")` | fallback |
+| `d/jiaxing/npc/hai.lpc` `ask_for_gongzi` | 5 | 按太监身份/辟邪剑法等级/年龄分支，`new` 金币并 `add("paytimes")` | fallback |
+| `d/shiliang/npc/atu.lpc` `inquiry_afeng` | 1 | `RANK_D` 动态称谓 + 条件分支 + `new` 情书 + `set_temp("qingshu")` | fallback |
+| `d/shiliang/npc/jinshe.lpc` `ask_skill1/2/3` | 3 | `teach_perform` 教授锁剑诀/附骨缠身/金蛇吐雾，含技能等级校验 | fallback |
+| `d/shiliang/npc/wenyi.lpc` `inquiry_shoupa` | 1 | `RANK_D` 动态称谓 + 条件分支 + `new` 手帕 + `set_temp("shoupa")` | fallback |
+
+`fallback_features` 由函数体静态扫描得出（`if/else`、`set_temp/delete_temp/add/move/set`、`new()`、`teach_perform()`、`RANK_D->`/拼接），不是人工编造的对话内容。区外 10 条函数主题不在本块判定范围，保持原样。
 
 ## 7. `shops.json`
 

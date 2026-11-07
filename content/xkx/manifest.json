@@ -61,13 +61,15 @@
       "table": "npcs"
     }
   ],
-  "content_hash": "d5c51df24670529d68d095bd8fdd45c7e3e28b09069719733097dbd9bd447de9",
+  "content_hash": "e595fb98f4a604f74d77cb5d7233213ee849cbff89a3f2ec7600786e430b8b4e",
   "counts": {
     "aggressive_npcs": 7,
     "attrs_roll_fields": 66,
     "attrs_roll_fields_in_slice": 51,
     "desc_authored_items": 7,
     "desc_authored_npcs": 4,
+    "dialogue_fallback_with_reason": 12,
+    "dialogue_staticized_from_func": 0,
     "dialogue_topics": 67,
     "dialogue_topics_in_slice": 40,
     "drop_entries": 3,
@@ -188,7 +190,8 @@
       "lpc": "从 xkx100 LPC 源码静态抽取，计入 source 覆盖率。",
       "null": "描述缺失，玩家会看到空白；total 覆盖率不达标即 error。"
     },
-    "npc_attrs_roll": "attrs_roll[attr]=[min,max] 是原版种族 setup 的 random(N)+M 掷骰区间（闭区间）；仅当该属性没有被显式 set 时出现。引擎必须按创世种子生成随机值，不得取 min/max 固定值。attrs_roll_source 为每个区间的源码文件与行号。",
+    "dialogue_fallback": "kind=fallback 且带 fallback_reason 表示原版函数体含条件/状态/物品/教学，不能压成固定文本；fallback_source 指向函数定义行。loader 只保留主题键，不得伪造台词。",
+    "npc_attrs_roll": "attrs_roll[attr]=[min,max] 是原版种族 setup 的 random(N)+M 掷骰区间（闭区间）；仅当该属性没有被显式 set 时出现。引擎必须按创世种子生成随机值，不得取 min/max 或中位数写死。attrs_roll_source 为每个区间的源码文件与行号。",
     "npc_drops": {
       "chance": "1.0 表示原版必掉；小于 1 由源码 random 条件折算；null 表示无法静态折算，必须读 chance_expr。",
       "chance_expr": "源码概率条件原文；null 表示原版没有概率判定。",
@@ -208,12 +211,12 @@
   },
   "files": {
     "diagnostics.jsonl": {
-      "bytes": 19923,
-      "sha256": "8d75bda17790c62e0ccdcffed6b3fdffdb3c614834151e5f0435bf870738980b"
+      "bytes": 20537,
+      "sha256": "b22f9f39f313fc33447dcb34a6703897f4d10e3983085dcbc4a62a81c4409a37"
     },
     "dialogue.json": {
-      "bytes": 19197,
-      "sha256": "b9fe08d5b58443698e3d6ea3ce58d7bb171e2e2dc519088e8692669e8b4d62bd"
+      "bytes": 26396,
+      "sha256": "c1babef2caf88a0542f0e3eaae1fcc0045f423245dbf8085fbfc07cbb197212c"
     },
     "exits.json": {
       "bytes": 75536,
@@ -252,8 +255,8 @@
       "sha256": "79f507b476c52d101cc2b7c12ec8eb14d144c1b2183f403241d2ed0fd3e52f09"
     },
     "summary.json": {
-      "bytes": 3077,
-      "sha256": "01e1c3e6caa6fa96c0caa682012544b7fd62706796b9f2a872c07535918600d8"
+      "bytes": 3158,
+      "sha256": "8ff6451f5d35bed4afc85986a6a812c60fa100e2e5c9d4ae0a1b34a7a6a445b5"
     }
   },
   "generator": "tools/xkx_extract",
