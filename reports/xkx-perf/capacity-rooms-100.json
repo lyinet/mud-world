@@ -1,0 +1,137 @@
+{
+  "_merged_for_report": 1200,
+  "clone_ms": {
+    "count": 15,
+    "max": 1.164,
+    "mean": 0.816,
+    "p50": 0.776,
+    "p95": 1.069
+  },
+  "counts": {
+    "accounts": 201,
+    "businesses": 20,
+    "entities": 100,
+    "factions": 100,
+    "goals": 100,
+    "locations": 100,
+    "players": 0,
+    "relations": 0,
+    "schedule": 0
+  },
+  "elapsed_scale": "in-process",
+  "events_for_replay": 1,
+  "events_per_tick": 2.883,
+  "final_tick": 0,
+  "full_hash_ms": {
+    "count": 15,
+    "max": 5.24,
+    "mean": 2.161,
+    "p50": 1.916,
+    "p95": 2.288
+  },
+  "genesis_build_ms": 1.832,
+  "genesis_effects": 669,
+  "hash_bare_ms": {
+    "count": 30,
+    "max": 0.016,
+    "mean": 0.01,
+    "p50": 0.009,
+    "p95": 0.011
+  },
+  "hash_ms": {
+    "count": 30,
+    "max": 1.996,
+    "mean": 1.607,
+    "p50": 1.569,
+    "p95": 1.796
+  },
+  "hold_ms": {
+    "count": 600,
+    "max": 16.367,
+    "mean": 1.64,
+    "p50": 1.472,
+    "p95": 2.412
+  },
+  "max_hops": 18,
+  "npcs": 100,
+  "ok": 600,
+  "path_ms_by_hops": {
+    "1": {
+      "count": 60,
+      "max": 0.006,
+      "mean": 0.001,
+      "p50": 0.001,
+      "p95": 0.002,
+      "verified": 60
+    },
+    "10": {
+      "count": 60,
+      "max": 0.029,
+      "mean": 0.022,
+      "p50": 0.022,
+      "p95": 0.027,
+      "verified": 60
+    },
+    "18": {
+      "count": 30,
+      "max": 0.039,
+      "mean": 0.027,
+      "p50": 0.026,
+      "p95": 0.029,
+      "verified": 30
+    },
+    "2": {
+      "count": 60,
+      "max": 0.003,
+      "mean": 0.002,
+      "p50": 0.002,
+      "p95": 0.003,
+      "verified": 60
+    },
+    "5": {
+      "count": 60,
+      "max": 0.04,
+      "mean": 0.01,
+      "p50": 0.01,
+      "p95": 0.014,
+      "verified": 60
+    }
+  },
+  "path_overall_ms": {
+    "count": 200,
+    "max": 0.053,
+    "mean": 0.013,
+    "p50": 0.012,
+    "p95": 0.028
+  },
+  "players": 0,
+  "rejected": 0,
+  "replay_hash_equal": true,
+  "rooms": 100,
+  "rounds_per_seat": 6,
+  "rss_delta_mb": 2.75,
+  "rss_peak_mb": 42.516,
+  "samples": 600,
+  "scale": 100,
+  "seats": 100,
+  "seed": 42,
+  "shops": 20,
+  "startup_ms": 2.005,
+  "throughput_per_s": 398.465,
+  "tick": {
+    "count": 60,
+    "max": 31.574,
+    "mean": 7.865,
+    "p50": 6.955,
+    "p95": 13.405
+  },
+  "tick_samples": 60,
+  "tick_warmup": 30,
+  "total_ms": {
+    "count": 600,
+    "max": 229.306,
+    "mean": 195.653,
+    "p50": 196.552,
+    "p95": 223.24
+  }
+}

@@ -54,6 +54,28 @@ def manhattan(a: int, b: int, width: int) -> int:
     return abs(ar - br) + abs(ac - bc)
 
 
+def farthest_pair(rooms: int) -> tuple[str, str, int]:
+    """返回网格中存在的最远一对房间及跳数（处理末行不满的情况）。"""
+    width, height = grid_shape(rooms)
+    corners = {
+        0,
+        width - 1,
+        (height - 1) * width,
+        (height - 1) * width + width - 1,
+        rooms - 1,
+    }
+    valid = sorted(i for i in corners if 0 <= i < rooms)
+    best = (valid[0], valid[-1], 0)
+    for a in valid:
+        for b in valid:
+            if a == b:
+                continue
+            d = manhattan(a, b, width)
+            if d > best[2]:
+                best = (a, b, d)
+    return room_id(best[0]), room_id(best[1]), best[2]
+
+
 def pair_at_distance(
     rooms: int, width: int, distance: int, seed: int = 42, tries: int = 400
 ) -> tuple[str, str] | None:

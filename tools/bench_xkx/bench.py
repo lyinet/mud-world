@@ -35,6 +35,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 from bench_xkx.graphgen import (  # noqa: E402
     SyntheticSpec,
     build_content,
+    farthest_pair,
     grid_shape,
     pair_at_distance,
     write_content_pack,
@@ -52,7 +53,7 @@ from wsim.world.store import EventStore  # noqa: E402
 from wsim.world.writer import Writer  # noqa: E402
 
 SCALES = (195, 1000, 5683)
-CAPACITY_ROOMS = (300, 500, 750)
+CAPACITY_ROOMS = (100, 150, 200, 300, 500, 750)
 TICK_WARMUP = 30
 TICK_SAMPLES = 60
 WRITE_WARMUP = 2
@@ -167,8 +168,8 @@ def _measure_hash_clone(state: WorldState, content, repeat: int = 30) -> dict[st
 
 
 def _measure_path(state: WorldState, rooms: int) -> dict[str, Any]:
-    width, height = grid_shape(rooms)
-    max_hops = (width - 1) + (height - 1)
+    width, _height = grid_shape(rooms)
+    _far_a, _far_b, max_hops = farthest_pair(rooms)
     by_hops: dict[str, dict[str, Any]] = {}
     buckets = [1, 2, 5, 10, 25, 50, 75, max_hops]
     for d in buckets:
@@ -188,6 +189,17 @@ def _measure_path(state: WorldState, rooms: int) -> dict[str, Any]:
                     ok += 1
         if samples:
             by_hops[str(d)] = {**_ms_stats(samples), "verified": ok}
+
+    # 最远角点必须单独测：随机采样在 149 跳时几乎不可能命中。
+    far_samples: list[float] = []
+    far_ok = 0
+    for _ in range(30):
+        t0 = time.perf_counter()
+        route = path_between(state, _far_a, _far_b)
+        far_samples.append((time.perf_counter() - t0) * 1000.0)
+        if len(route) == max_hops:
+            far_ok += 1
+    by_hops[str(max_hops)] = {**_ms_stats(far_samples), "verified": far_ok}
 
     rng = random.Random(20261107)
     ids = sorted(state.locations)
@@ -694,13 +706,14 @@ def _markdown(
         f"- 5,683 房 + 100 席：写 P95 {_fmt(w5683)} ms，吞吐 {_fmt(s5683['throughput_per_s'])} 写/s；"
         f"即使没有写风暴，tick P95 约 {_fmt(s5683['tick']['p95'])} ms，约为 1x tick 间隔(6s)的 "
         f"{tick_pct:.1f}%，所以 tick 不是主要瓶颈，**写路径的全状态 clone 才是**。",
-        f"- 容量边界：实测 195 房已在 241 ms 边缘，300/500/750 房已分别到 "
-        f"{_fmt(capacity[0]['total_ms']['p95'])}/{_fmt(capacity[1]['total_ms']['p95'])}/"
-        f"{_fmt(capacity[2]['total_ms']['p95'])} ms；线性拟合触线房间数约 **{threshold}**。"
-        "建议以 **200 房/100 席、clone P50 > 1 ms、或 tick P95 > 100 ms** 作为分片触发阈值。",
-        "- 分片建议：按房间把 5,683 房切成约 200–300 房/片（19–29 片），每片独立 "
-        "Writer + EventStore + 进程；全服 100 席应按玩家所在片路由，避免 100 席同时打同一片；"
-        "跨片移动/全服账目走事件总线或异步汇总。195 房切片只建议承载 ≤100 席且需留余量。",
+        f"- 容量边界：100 房 100 席写 P95 {_fmt(capacity[0]['total_ms']['p95'])} ms（通过），"
+        f"150 房 {_fmt(capacity[1]['total_ms']['p95'])} ms、195 房 {_fmt(w195)} ms 已超线；"
+        f"线性拟合触线房间数约 **{threshold}**。因此 **约 150 房/100 席**是单进程安全边界，"
+        "195 房切片在 100 席同瞬写时已超线约 17%，不宜再当成安全容量。",
+        "- 分片建议：分片触发阈值取 **150 房/100 席、clone P50 > 0.8 ms、或 tick P95 > 100 ms**。"
+        "5,683 房若每片仍需承载 100 席并发写，按 150 房/片切约 38 片；若全服 100 席按玩家分布路由，"
+        "可用 300 房/片（约 19 片，每片并发写 ≤50）。每片独立 Writer + EventStore + 进程；"
+        "跨片移动/全服账目走事件总线或异步汇总。",
         "- 注意：NPC/商店扫描显示同 1,000 房下 NPC 从 100 → 500 时 tick P50 从 "
         f"{_fmt(sweep['rows'][1]['tick_p50_ms'])} → {_fmt(sweep['rows'][3]['tick_p50_ms'])} ms，"
         "真实 5,683 房若带 2,385 NPC，tick 成本会显著高于本表的固定 100 NPC。",
