@@ -97,9 +97,7 @@ def test_genesis_creates_all_instances_with_template_stats(session, content):
     meta = {str(npc["id"]): npc for npc in content.npcs}
     for ent in clones:
         base = state.entities[ent.template]
-        # P4a：大狼狗的额外实例同样继承内容包的参考快照初始态。
-        expected_status = "unconcious" if ent.template == "/d/hangzhou/npc/wolfdog" else "alive"
-        assert ent.status == expected_status
+        assert ent.status == "alive"
         assert ent.location == next(row["room"] for row in content.npc_instances if row["id"] == ent.id)
         assert ent.name == base.name
         assert ent.hp == base.hp == ent.max_hp
@@ -208,35 +206,19 @@ def test_fight_index_out_of_range_has_no_target(road12_session):
     assert "没有第5个" in text
 
 
-def test_genesis_marks_reference_unconcious_npcs(tmp_path):
-    snake_session = _road12_session(tmp_path, "snake", "/d/hangzhou/huanglongdong")
-    dog_session = _road12_session(tmp_path, "dogs", "/d/hangzhou/guozhuang")
+def test_unconcious_state_stays_visible_and_gets_look_tag(tmp_path):
+    # 引擎能力（不是内容初始态）：运行期把 NPC 置为昏迷，look 仍可见并追加状态后缀。
+    s = _road12_session(tmp_path, "unconcious", "/d/hangzhou/huanglongdong")
     try:
-        snake = snake_session.state.entities["/d/hangzhou/npc/dushe"]
-        assert snake.status == "unconcious"
-        dogs = [
-            ent
-            for ent in dog_session.state.entities.values()
-            if ent.template == "/d/hangzhou/npc/wolfdog"
-            or ent.id == "/d/hangzhou/npc/wolfdog"
-        ]
-        assert len(dogs) == 2
-        assert all(ent.status == "unconcious" for ent in dogs)
-        # 其余 NPC 不受影响，仍是 alive。
-        assert snake_session.state.entities["/d/hangzhou/npc/qingbing"].status == "alive"
+        snake = s.state.entities["/d/hangzhou/npc/dushe"]
+        assert snake.status == "alive"
+        snake.status = "unconcious"
+        rows = s._present_view("player:none", "/d/hangzhou/huanglongdong")
+        assert any(
+            row["id"] == "/d/hangzhou/npc/dushe" and row["status"] == "unconcious"
+            for row in rows
+        )
+        text = "\n".join(line["text"] for line in _cmd(s, "look")["lines"])
+        assert "毒蛇 <昏迷不醒>" in text
     finally:
-        snake_session.close()
-        dog_session.close()
-
-
-def test_look_appends_unconcious_tag_to_snake_and_wolfdogs(tmp_path):
-    snake_session = _road12_session(tmp_path, "look-snake", "/d/hangzhou/huanglongdong")
-    dog_session = _road12_session(tmp_path, "look-dogs", "/d/hangzhou/guozhuang")
-    try:
-        snake_text = "\n".join(line["text"] for line in _cmd(snake_session, "look")["lines"])
-        dog_text = "\n".join(line["text"] for line in _cmd(dog_session, "look")["lines"])
-    finally:
-        snake_session.close()
-        dog_session.close()
-    assert "毒蛇 <昏迷不醒>" in snake_text
-    assert "二只大狼狗 <昏迷不醒>" in dog_text
+        s.close()

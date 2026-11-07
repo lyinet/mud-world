@@ -33,14 +33,14 @@
 | desc | 195 | 195 | 100.0% |
 | exits | 195 | 195 | 100.0% |
 | items | 195 | 189 | 96.9% |
-| npcs | 195 | 194 | 99.5% |
+| npcs | 195 | 192 | 98.5% |
 
 ## 差异分类
 
 | 分类 | 数量 |
 |------|------|
 | items_mismatch | 6 |
-| npcs_mismatch | 1 |
+| npcs_mismatch | 3 |
 
 ## 更正记录
 
@@ -49,7 +49,6 @@
   - npcs 新值：192/195 = 98.46%
   - items：189/195 = 96.92%，前后不变
   - npcs 差异房：20 -> 3（2 房 <昏迷不醒>、1 房 road1 游走）
-
 - **2026-11-07 6b798ac**：P4a 把参考快照的昏迷态显式化为内容包 `initial_state`（毒蛇、大狼狗），复刻侧按该字段渲染 ` <昏迷不醒>`，黄龙洞/郭庄由 NPC 差异转为一致。源码核实：该状态只来自 `feature/damage.lpc` 的 `unconcious()`（`heart_beat` 的 qi/jing<0 触发），不是出生标记；此处是把采集快照显式复现，不代表原版出生态。归一化 6 条未改。
   - npcs 旧值：192/195 = 98.46%
   - npcs 新值：194/195 = 99.49%
@@ -60,16 +59,19 @@
 
 | 细类 | 房间数 |
 |------|--------|
+| 采样态差异（战斗临时态） | 2 |
 | 在场/缺失 | 1 |
 
-“头衔/状态前缀”= 原版显示名带门派头衔或「<昏迷不醒>」状态、复刻只存基名；“在场/缺失”= 一侧在场另一侧不在（含共享实例里 NPC 游走/已离开）；“数量不同”= 同名 NPC 两侧 clone 数不一致。
+“头衔/状态前缀”= 原版显示名带门派头衔、复刻只存基名；“采样态差异（战斗临时态）”= 原版显示名只多了一个 ` <...>` 运行时状态（disable_type，如 `<昏迷不醒>`）、复刻基名完全一致；判据：LPC 无初始标记，差异仅出现在运行时字段，**不计入真差异**；“在场/缺失”= 一侧在场另一侧不在（含共享实例里 NPC 游走/已离开）；“数量不同”= 同名 NPC 两侧 clone 数不一致。
 
 ## 差异清单
 
 | 房间 | 字段 | 说明 |
 |------|------|------|
+| `/d/hangzhou/huanglongdong` | npcs | 原版 {'毒蛇 <昏迷不醒>': 1} vs 复刻 {'毒蛇': 1} |
 | `/d/hangzhou/dadao1` | items | 原版 {} vs 复刻 {'白薇': 1} |
 | `/d/hangzhou/kedian` | items | 原版 {'客店留言板(Board)': 1} vs 复刻 {} |
+| `/d/hangzhou/guozhuang` | npcs | 原版 {'大狼狗 <昏迷不醒>': 2} vs 复刻 {'大狼狗': 2} |
 | `/d/hangzhou/road1` | npcs | 原版 {'武当派第四代弟子 香火道人': 1} vs 复刻 {} |
 | `/d/hangzhou/huagang` | items | 原版 {} vs 复刻 {'白芷': 1} |
 | `/d/jiaxing/nanhu` | items | 原版 {} vs 复刻 {'白芷': 1} |
@@ -77,6 +79,48 @@
 | `/d/shiliang/xixiangfang` | items | 原版 {'锦面躺椅': 1} vs 复刻 {'椅子': 1} |
 
 ## 差异样例
+
+### npcs_mismatch — `/d/hangzhou/huanglongdong` (黄龙洞)
+```json
+{
+ "id": "/d/hangzhou/huanglongdong",
+ "short": "黄龙洞",
+ "fields": {
+  "name": {
+   "match": true,
+   "orig": "黄龙洞",
+   "repl": "黄龙洞"
+  },
+  "desc": {
+   "match": true
+  },
+  "exits": {
+   "match": true,
+   "orig": [
+    "south"
+   ],
+   "repl": [
+    "south"
+   ]
+  },
+  "items": {
+   "match": true,
+   "orig": {},
+   "repl": {}
+  },
+  "npcs": {
+   "match": false,
+   "orig": {
+    "毒蛇 <昏迷不醒>": 1
+   },
+   "repl": {
+    "毒蛇": 1
+   }
+  }
+ },
+ "status": "differ"
+}
+```
 
 ### items_mismatch — `/d/hangzhou/dadao1` (沿湖大道)
 ```json
@@ -115,52 +159,6 @@
   "npcs": {
    "match": true,
    "orig": {},
-   "repl": {}
-  }
- },
- "status": "differ"
-}
-```
-
-### npcs_mismatch — `/d/hangzhou/road1` (青石大道)
-```json
-{
- "id": "/d/hangzhou/road1",
- "short": "青石大道",
- "fields": {
-  "name": {
-   "match": true,
-   "orig": "青石大道",
-   "repl": "青石大道"
-  },
-  "desc": {
-   "match": true
-  },
-  "exits": {
-   "match": true,
-   "orig": [
-    "north",
-    "northeast",
-    "northwest",
-    "south"
-   ],
-   "repl": [
-    "north",
-    "northeast",
-    "northwest",
-    "south"
-   ]
-  },
-  "items": {
-   "match": true,
-   "orig": {},
-   "repl": {}
-  },
-  "npcs": {
-   "match": false,
-   "orig": {
-    "武当派第四代弟子 香火道人": 1
-   },
    "repl": {}
   }
  },

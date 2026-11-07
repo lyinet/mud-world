@@ -302,6 +302,8 @@ def load_instance_counts():
 
 
 SRC_SHORT_CACHE = {}
+# 原版 display_name 末尾的运行时状态后缀（disable_type，如 ` <昏迷不醒>`）。
+STATE_TAG_RE = re.compile(r"\s*<[^>]+>\s*$")
 
 # (房间, 模板) -> 真实实例数；由 load_instance_counts() 在读取内容时填充。
 INSTANCE_COUNTS: dict[tuple[str, str], int] = {}
@@ -370,10 +372,6 @@ def replica_field(room, items, npcs):
             # 原版 short() 会拼 title/门派/party/nickname；display_name 由抽取器按
             # feature/name.c 的拼接顺序生成，这里比对玩家真正看到的名字。
             nm = rec.get("display_name") or nm
-            # P4a：内容包显式标注的参考快照初始态，与原版 short() 的
-            # disable_type 后缀对齐（` <昏迷不醒>`）。
-            if rec.get("initial_state") == "unconcious":
-                nm = f"{nm} <昏迷不醒>"
         if not nm:
             unresolved.append(ref)
             nm = os.path.basename(ref)
@@ -923,6 +921,18 @@ def main():
         else:
             only_o = [k for k in o if k not in p]
             only_p = [k for k in p if k not in o]
+            # 采样态差异（战斗临时态）：原版显示名 = 复刻基名 + 一个运行时状态后缀
+            # （disable_type，如 `<昏迷不醒>`）。判据见 room-parity.md：LPC 无初始
+            # 标记、差异只出现在 `<...>` 运行时字段，不计入真差异。
+            sampling = False
+            for k in list(only_o):
+                base = STATE_TAG_RE.sub("", k).strip()
+                if base != k and base in only_p:
+                    only_o.remove(k)
+                    only_p.remove(base)
+                    sampling = True
+            if sampling:
+                reasons.append("采样态差异（战斗临时态）")
             mapped = False
             for k in list(only_o):
                 cand = [q for q in only_p if k.endswith(q) or q in k]
@@ -1039,7 +1049,10 @@ def write_md(out, md_path):
         lines += ["", "### NPC 差异细分", "", "| 细类 | 房间数 |", "|------|--------|"]
         for k, v in sorted(out["npc_breakdown"].items(), key=lambda x: -x[1]):
             lines.append(f"| {k} | {v} |")
-        lines += ["", "“头衔/状态前缀”= 原版显示名带门派头衔或「<昏迷不醒>」状态、复刻只存基名；"
+        lines += ["", "“头衔/状态前缀”= 原版显示名带门派头衔、复刻只存基名；"
+                  "“采样态差异（战斗临时态）”= 原版显示名只多了一个 ` <...>` 运行时状态"
+                  "（disable_type，如 `<昏迷不醒>`）、复刻基名完全一致；判据：LPC 无初始标记，"
+                  "差异仅出现在运行时字段，**不计入真差异**；"
                   "“在场/缺失”= 一侧在场另一侧不在（含共享实例里 NPC 游走/已离开）；"
                   "“数量不同”= 同名 NPC 两侧 clone 数不一致。"]
     lines += ["", "## 差异清单", "",
