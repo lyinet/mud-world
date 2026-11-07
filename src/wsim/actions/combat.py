@@ -11,7 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..core.models import Effect, Intent
-from ..sim.combat_rules import MAX_ROUNDS, simulate_fight
+from ..sim.combat_rules import simulate_fight
 from ..sim.spawn import spawn_effects
 from ..world.state import WorldState
 from .growth import DEATH_GATE
@@ -28,12 +28,16 @@ def _int_dict(raw: Any) -> dict[str, int]:
     return {str(k): int(v) for k, v in raw.items() if int(v) > 0}
 
 
-def _round_cap(intent: Intent) -> int:
-    """硬上限 20 回合；参数只能调小，不能调大。"""
+def _round_cap(intent: Intent) -> int | None:
+    """默认不封顶（原版 `fight()` 无回合上限）。
+
+    `max_rounds` 只在调用方显式给出正整数时生效，用于审计/演练固定回合数；
+    引擎内部另有防挂死硬保护，不通过这个参数表达。
+    """
     raw = intent.args.get("max_rounds")
     if not isinstance(raw, int) or raw <= 0:
-        return MAX_ROUNDS
-    return min(MAX_ROUNDS, raw)
+        return None
+    return raw
 
 
 class FightAction(Action):

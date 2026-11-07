@@ -154,12 +154,25 @@ def test_fight_loss_kills_the_player_and_still_writes_one_event():
     assert "entity_status" in [e["op"] for e in event.effects]
 
 
-def test_round_cap_is_hard_twenty():
+def test_round_cap_is_opt_in_and_default_is_uncapped():
+    """原版 `fight()` 无回合上限；只有显式传入 max_rounds 才截断。"""
+    hero = Entity(id="player:hero", name="英雄", role="wanderer", location="inn",
+                  attrs={"str": 2, "dex": 10}, skills={"dodge": 0.0}, combat_exp=0,
+                  skill_levels={}, max_hp=200, hp=200, attack=0, defense=0)
+    monster = Entity(id="npc.boar", name="野猪", role="monster", location="inn",
+                     attrs={"str": 2, "dex": 10}, skills={"dodge": 0.0}, combat_exp=0,
+                     skill_levels={}, max_hp=200, hp=200, attack=0, defense=0)
+    uncapped = simulate_fight(hero, monster, PRNG(1, 1, "action:fight"))
+    assert uncapped["rounds_used"] > 20
+
+    capped = simulate_fight(hero, monster, PRNG(1, 1, "action:fight"), max_rounds=5)
+    assert capped["rounds_used"] == 5
+
     writer, store = _writer(_hero(), _monster())
-    event = _fight(writer, {"target": "npc.boar", "max_rounds": 99})
+    event = _fight(writer, {"target": "npc.boar", "max_rounds": 5})
     log = _log(event)
-    assert log["max_rounds"] == 20
-    assert log["rounds_used"] <= 20
+    assert log["max_rounds"] == 5
+    assert log["rounds_used"] <= 5
 
 
 def test_prng_draw_order_is_locked():
@@ -216,7 +229,8 @@ def test_formulas_are_delegated_to_xkx_formula(monkeypatch):
     boar = Entity(id="npc.boar", name="野猪", role="monster", location="inn",
                   attrs={"str": 20, "dex": 15}, skills={"dodge": 0.2}, combat_exp=5,
                   skill_levels={"unarmed": 40}, max_hp=40, hp=40, attack=10, defense=2)
-    result = simulate_fight(hero, boar, PRNG(42, 2, "action:fight"))
+    # 本用例只锁取数顺序，固定 20 回合；默认不封顶时全闪避会一路走到安全保护。
+    result = simulate_fight(hero, boar, PRNG(42, 2, "action:fight"), max_rounds=20)
 
     assert calls["dodge"] == 20 * 2  # 每回合双方各一次，且全部判闪避
     assert calls["damage"] == 0

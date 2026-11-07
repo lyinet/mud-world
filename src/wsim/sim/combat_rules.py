@@ -30,7 +30,11 @@ from .skill_actions import (  # noqa: E402  (与库同级的内部模块)
     select_default_action,
 )
 
-MAX_ROUNDS = 20
+# 原版 `combatd.lpc:728 fight()` 每 heartbeat 只走一次交手，靠
+# `feature/attack.lpc:228 attack()` 反复调用，直到一方倒下或被 `halt` 打断，
+# **没有任何回合上限**。本引擎一次 `fight` 请求必须自行终止，所以默认不封顶，
+# 另留一个远高于真实对局的防挂死硬保护（不参与玩法语义）。
+SAFETY_ROUNDS = 10000
 SKILL_MAX = 800
 _ATTR_DEFAULTS = {"str": 10, "int": 10, "con": 10, "dex": 10, "sta": 10, "spi": 10}
 
@@ -341,14 +345,16 @@ def simulate_fight(
     *,
     skill: str | None = None,
     defender_skill: str | None = None,
-    max_rounds: int = MAX_ROUNDS,
+    max_rounds: int | None = None,
     trace: list | None = None,
     player_ids: set[str] | None = None,
     action_table: dict[str, list[dict[str, Any]]] | None = None,
     hook_table: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """原子结算最多 `max_rounds` 回合；全部数值来自 `xkx_formula`。
+    """原子结算战斗；`max_rounds=None` 表示不封顶（原版语义）。
 
+    `max_rounds` 只在调用方显式给出时生效（例如审计/演练要固定回合数）；
+    无论如何都不会超过 `SAFETY_ROUNDS`，避免退化对局把单次请求挂死。
     先手按 (dex + dodge 等级)，平手由发起方先手。每次挥击先按原版
     `query_action()` 选招（走同一个 PRNG），再把招式系数喂给库的既有参数。
     无 `map_skills` 的实体不选招、不掷点，取数与旧实现一致。
@@ -370,7 +376,8 @@ def simulate_fight(
 
     rounds: list[dict[str, Any]] = []
     dead: set[str] = set()
-    for round_no in range(1, max(1, int(max_rounds)) + 1):
+    limit = SAFETY_ROUNDS if max_rounds is None else max(1, min(int(max_rounds), SAFETY_ROUNDS))
+    for round_no in range(1, limit + 1):
         actions: list[dict[str, Any]] = []
 
         def strike(src: _Actor, dst: _Actor, src_skill: str) -> str:
