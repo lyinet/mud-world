@@ -321,7 +321,7 @@ class LearnAction(Action):
             attempts += 1
         effects: list[Effect] = [
             Effect("stamina", {"entity": player.id, "delta": -jing_cost * attempts}),
-            Effect("potential_add", {"entity": player.id, "delta": -attempts}),
+            Effect("potential_spend", {"entity": player.id, "cost": attempts}),
             Effect("learned_points_add", {"entity": player.id, "delta": attempts}),
             Effect("skill_progress", {"entity": player.id, "skill": skill, "level": level, "learned": learned}),
             Effect(
