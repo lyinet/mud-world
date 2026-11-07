@@ -29,25 +29,24 @@
 
 | 字段 | 可观察 | 一致 | 一致率 |
 |------|--------|------|--------|
-| name | 192 | 192 | 100.0% |
-| desc | 192 | 192 | 100.0% |
-| exits | 192 | 192 | 100.0% |
-| items | 192 | 186 | 96.9% |
-| npcs | 192 | 173 | 90.1% |
+| name | 195 | 195 | 100.0% |
+| desc | 195 | 195 | 100.0% |
+| exits | 195 | 195 | 100.0% |
+| items | 195 | 189 | 96.9% |
+| npcs | 195 | 175 | 89.7% |
 
 ## 差异分类
 
 | 分类 | 数量 |
 |------|------|
 | items_mismatch | 6 |
-| landing_mismatch | 3 |
-| npcs_mismatch | 19 |
+| npcs_mismatch | 20 |
 
 ### NPC 差异细分
 
 | 细类 | 房间数 |
 |------|--------|
-| 数量不同 | 16 |
+| 数量不同 | 17 |
 | 头衔/状态前缀 | 2 |
 | 在场/缺失 | 1 |
 
@@ -79,11 +78,9 @@
 | `/d/jiaxing/nanhu` | items | 原版 {} vs 复刻 {'白芷': 1} |
 | `/d/hangzhou/faxisi` | npcs | 原版 {'进香客': 2, '老和尚': 1} vs 复刻 {'进香客': 1, '老和尚': 1} |
 | `/d/hangzhou/shanlu3` | npcs | 原版 {'男孩': 3} vs 复刻 {'男孩': 1} |
-| `/d/hangzhou/liuhe1` | landing | 落点异常：期望「六和塔」，实得「武庙」，未按 startroom 落入目标房（该房不计入一致率） |
-| `/d/hangzhou/liuhe8` | landing | 落点异常：期望「六和塔」，实得「鬼门关」，未按 startroom 落入目标房（该房不计入一致率） |
 | `/d/shiliang/dating` | npcs | 原版 {'温家老大 温方达': 1, '丫环': 2} vs 复刻 {'温家老大 温方达': 1, '丫环': 1} |
 | `/d/shiliang/dongxiangfang` | items | 原版 {'锦面折叠长椅': 1} vs 复刻 {'椅子': 1} |
-| `/d/shiliang/huli` | landing | 落点异常：期望「湖里」，实得「鬼门关」，未按 startroom 落入目标房（该房不计入一致率） |
+| `/d/shiliang/huli` | npcs | 原版 {'噬人鱼': 2} vs 复刻 {'噬人鱼': 1} |
 | `/d/shiliang/xixiangfang` | items | 原版 {'锦面躺椅': 1} vs 复刻 {'椅子': 1} |
 
 ## 差异样例
@@ -179,39 +176,6 @@
   }
  },
  "status": "differ"
-}
-```
-
-### landing_mismatch — `/d/hangzhou/liuhe1` (六和塔)
-```json
-{
- "id": "/d/hangzhou/liuhe1",
- "short": "六和塔",
- "status": "landing",
- "landed": "武庙",
- "reason": "落点异常：期望「六和塔」，实得「武庙」，未按 startroom 落入目标房",
- "fields": {
-  "name": {
-   "match": null,
-   "observable": false
-  },
-  "desc": {
-   "match": null,
-   "observable": false
-  },
-  "exits": {
-   "match": null,
-   "observable": false
-  },
-  "items": {
-   "match": null,
-   "observable": false
-  },
-  "npcs": {
-   "match": null,
-   "observable": false
-  }
- }
 }
 ```
 

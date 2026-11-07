@@ -172,7 +172,25 @@ def parse_inv_line(line: str):
     return name, max(1, qty)
 
 
-def parse_look(text: str, phases: list[str]) -> dict:
+def first_room_block(text: str) -> str:
+    """取登录转写里第一屏房间输出（截到下一屏房间名前）。
+
+    登录后可能立刻被房内 NPC 打死并落到鬼门关；落点观测只应取第一屏。
+    """
+    text = clean_ansi(text).replace("\r", "")
+    lines = text.splitlines()
+    start = next((i for i, ln in enumerate(lines) if NAME_LINE_RE.match(ln.rstrip())), None)
+    if start is None:
+        return text
+    end = len(lines)
+    for i in range(start + 1, len(lines)):
+        if NAME_LINE_RE.match(lines[i].rstrip()):
+            end = i
+            break
+    return "\n".join(lines[start:end])
+
+
+def parse_look(text: str, phases: list[str], first: bool = False) -> dict:
     text = clean_ansi(text).replace("\r", "")
     lines = [ln.rstrip() for ln in text.splitlines()]
     # 提示符可能黏在上一行末尾（原版输出无换行）；只在非提示行、且不是
@@ -193,8 +211,16 @@ def parse_look(text: str, phases: list[str]) -> dict:
     for i, ln in enumerate(lines):
         if NAME_LINE_RE.match(ln):
             name_idx = i
+            if first:
+                break
     if name_idx is None:
         return {"ok": False, "reason": "no-name-line", "raw": text}
+    if first:
+        # 登录转写可能包含「落点房间 → 被打死 → 鬼门关」两屏；落点只看第一屏。
+        for i in range(name_idx + 1, len(lines)):
+            if NAME_LINE_RE.match(lines[i]):
+                lines = lines[:i]
+                break
 
     name = NAME_LINE_RE.match(lines[name_idx]).group(1).strip()
     body = lines[name_idx + 1:]
@@ -411,6 +437,38 @@ def write_startroom(rid: str) -> None:
         fh.write(text)
 
 
+def logout(sess) -> bool:
+    """quit 并等到会话真正结束。
+
+    原版 quit 若因战斗忙碌/节流失败，玩家对象会以 netdead 留在原地；
+    下一次登录直接复用它，存档里新写的 startroom 会被忽略。因此每个
+    房间采集完必须确认「欢迎下次再来」并等驱动断链后再写下一位存档。
+    """
+    from probe_mud import plain
+    out = ""
+    for _ in range(2):
+        sess.send("quit")
+        out += plain(sess.recv_for(0.8))
+        if "欢迎下次再来" in out:
+            break
+        out += plain(sess._recv(idle=0.4, max_wait=2.0))
+        if "欢迎下次再来" in out:
+            break
+    ok = "欢迎下次再来" in out
+    # 等 socket 被驱动关闭（对象 destruct）再返回，避免与下一次写存档竞争。
+    end = time.time() + 2.0
+    while time.time() < end:
+        try:
+            if not sess.sock.recv(4096):
+                break
+        except socket.timeout:
+            continue
+        except OSError:
+            break
+    sess.close()
+    return ok
+
+
 def collect_by_startroom(port: int, room_ids: list[str], phases,
                          player=PLAYER, rawdir=RAWDIR):
     """每个房间都从存档 startroom 直接登录，避免用复刻出口图走路造成的串房。"""
@@ -418,22 +476,50 @@ def collect_by_startroom(port: int, room_ids: list[str], phases,
     os.makedirs(rawdir, exist_ok=True)
     raws, reasons = {}, {}
     for rid in room_ids:
-        try:
-            write_startroom(rid)
-            sess, _ = login(port, player)
-            sess.send("get fire")
-            plain(sess.recv_for(0.7))
-            sess.send("look")
-            text = plain(sess.recv_for(1.5))
-            raws[rid] = text
-            parsed = parse_look(text, phases)
-            if not parsed.get("ok"):
-                reasons[rid] = parsed.get("reason", "unparsed")
-            sess.send("quit")
-            plain(sess.recv_for(0.9))
-            sess.close()
-        except Exception as exc:  # 单个房间失败不应中断整轮
-            reasons[rid] = f"error: {exc}"
+        expect = source_short(rid)
+        obs_text = ""
+        last_text = ""
+        for attempt in range(3):
+            sess = None
+            try:
+                write_startroom(rid)
+                sess, login_text = login(port, player)
+                last_text = first_room_block(login_text)
+                landing = parse_look(last_text, phases)
+                landed_ok = bool(landing.get("ok")) and (
+                    not expect or landing["name"] == expect)
+                if landed_ok:
+                    sess.send("get fire")
+                    plain(sess.recv_for(0.7))
+                    sess.send("look")
+                    text = plain(sess.recv_for(1.5))
+                    parsed = parse_look(text, phases)
+                    if parsed.get("ok") and expect and parsed["name"] != expect:
+                        # 登录后立刻被房内 NPC 打死（如 liuhe8/huli），后置 look
+                        # 落在阴间；登录那一屏才是目标房的原版输出。
+                        text, parsed = last_text, landing
+                    obs_text = text
+                    reasons.pop(rid, None)
+                    if not parsed.get("ok"):
+                        reasons[rid] = parsed.get("reason", "unparsed")
+                    break
+                # 落点不对：多为上一会话 netdead 复用，干净退出后重登。
+                reasons[rid] = (f"landing: 期望「{expect}」，"
+                                f"实得「{landing.get('name')}」")
+                if sess is not None:
+                    logout(sess)
+                    sess = None
+            except Exception as exc:  # 单个房间失败不应中断整轮
+                reasons[rid] = f"error: {exc}"
+                if sess is not None:
+                    try:
+                        sess.close()
+                    except OSError:
+                        pass
+                    sess = None
+        if sess is not None:
+            logout(sess)
+        raws[rid] = obs_text or last_text
         safe = rid.strip("/").replace("/", "__")
         with open(os.path.join(rawdir, safe + ".txt"), "w", encoding="utf-8") as fh:
             fh.write(raws.get(rid, ""))
@@ -715,13 +801,17 @@ def main():
                     help="输出后缀，如 4004 -> room-parity-4004.json，raw 写到 raw-4004/")
     ap.add_argument("--by-startroom", action="store_true",
                     help="每个房间直接改存档 startroom 登录采集，不用复刻出口图走路")
+    ap.add_argument("--rooms", default="",
+                    help="逗号分隔的房间 id，只采集这些房（定向复验）")
     args = ap.parse_args()
 
     rooms, graph, exit_map, items, npcs = load_content()
     phases = load_day_phases()
     build_npc_names()
 
-    if args.all:
+    if args.rooms:
+        ids = [x.strip() for x in args.rooms.split(",") if x.strip()]
+    elif args.all:
         ids = [r for r in visit_order(graph, START_ROOM) if r in rooms]
         ids += [r for r in sorted(rooms) if r not in set(ids)]
     elif args.limit:
