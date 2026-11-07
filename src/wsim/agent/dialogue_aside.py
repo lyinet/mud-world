@@ -14,6 +14,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from wsim.admin.clock import now_utc
+
 DEFAULT_FILENAME = "dialogue_aside.jsonl"
 
 
@@ -81,7 +83,7 @@ class DialogueAside:
             "npc": npc,
             "text": text,
             "model": str(model or ""),
-            "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "created_at": datetime.fromtimestamp(now_utc(), tz=timezone.utc).isoformat(timespec="seconds"),
         }
         with self._lock:
             self._path.parent.mkdir(parents=True, exist_ok=True)

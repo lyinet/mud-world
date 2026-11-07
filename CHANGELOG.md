@@ -9,6 +9,30 @@
 
 ---
 
+## [后端] 2026-11-07 — 修复 pytest 红：确定性墙钟收敛 + W1 并发陈旧断言
+
+- **改了什么**：
+  - `src/wsim/agent/dialogue_aside.py`：旁路行 `created_at` 不再直接调用 `datetime.now`，
+    改走已白名单的 `wsim.admin.clock.now_utc()`（审计/遥测唯一墙钟入口）+
+    `datetime.fromtimestamp` 格式化；旁路仍不进入世界状态/事件/`state_hash`，红线不变。
+  - `tests/test_w1_concurrency.py`：任务隔离断言从“场景末尾”移到“接单后立即”，
+    末尾改为只校验不串档。根因是 `d169196` 后上工按声明小时真实推进世界钟，
+    截止较短的单会在后续动作中自然过期，原末尾严格相等断言与新契约冲突（陈旧断言，
+    处理方式同 `32a4cc2` 的 found_sect 先例）。
+- **为什么**：晨报核查发现全量 pytest 红（687 项中 2 项失败），HEAD 与 origin/master
+  同为红；不修复则 delivery-p3m 门禁（pytest 全绿 + 干净重跑）不满足，不能打 tag。
+- **验证**：
+  - `pytest tests/test_determinism_lint.py`：5/5 通过；
+  - `pytest tests/test_w1_concurrency.py`：通过；
+  - 全量 `pytest -q`：exit 0，**0 failed**（18 skipped，与修复前一致）。
+- **根因证据**：二分定位 `d169196^`（78876e5）测试通过、含 `d169196` 的 master 失败；
+  复现显示 `work hours=8` 在 master 推进 tick 264→312（父提交 264→270），
+  跨过 `quest:daily_market_inquiry:0` 的 `deadline_tick=288`，任务被标 `failed`，
+  使 `active_quests`（仅含 `status=="accepted"`）为空。
+- **commit**：见本条目所在提交。
+
+---
+
 ## [界面] 2026-11-07 — 地图即操作：点一步可达地名直接移动，方向按钮整块移除
 
 - **改了什么**：

@@ -71,6 +71,13 @@ def test_two_clients_twenty_interleaved_rounds_are_isolated(tmp_path):
         assert _request(base, "/api/player/quest/accept", body={"quest": acceptable[0]}, token=token_a)[1]["ok"]
         assert _request(base, "/api/player/quest/accept", body={"quest": acceptable[1]}, token=token_b)[1]["ok"]
 
+        # 任务隔离在接单后立即断言：上工/修炼按声明小时真实推进世界钟（d169196），
+        # 截止较短的单会在后续动作中自然过期，那是任务生命周期行为，与并发隔离无关。
+        _sa0 = _state(base, "u_a", token_a)
+        _sb0 = _state(base, "u_b", token_b)
+        assert set(_sa0["player"]["active_quests"]) == {acceptable[0]}
+        assert set(_sb0["player"]["active_quests"]) == {acceptable[1]}
+
         # 20 轮：两个客户端同时向同一个 NPC 说话；单写者串行落事件，但结果各自独立。
         errors: list[str] = []
         barrier = threading.Barrier(2)
@@ -110,9 +117,10 @@ def test_two_clients_twenty_interleaved_rounds_are_isolated(tmp_path):
         assert final_b["player"]["wallet"]["money"] == 300
         assert final_b["player"]["wallet"] == money_b_before
 
-        # 任务隔离：各自只持有自己接的任务。
-        assert set(final_a["player"]["active_quests"]) == {acceptable[0]}
-        assert set(final_b["player"]["active_quests"]) == {acceptable[1]}
+        # 末尾只校验“不串档”：截止较短的单可能已自然过期（见接单后断言），但对方
+        # 接的单绝不应出现在自己的 active_quests 里。
+        assert acceptable[1] not in final_a["player"]["active_quests"]
+        assert acceptable[0] not in final_b["player"]["active_quests"]
 
         # 物品隔离：两边初始物品一致且都未被对方动作污染。
         assert final_a["player"]["wallet"]["items"] == final_b["player"]["wallet"]["items"]
