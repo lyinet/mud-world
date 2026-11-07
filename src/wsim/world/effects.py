@@ -110,7 +110,10 @@ EFFECT_OPS = frozenset(
         "skill_xp_add",
         # 公式库 improve_skill 的落库载体：直接写回等级/熟练度（纯 Effect）。
         "skill_progress",
-        # 成长线（拜师）：只读成长明细，随事件持久化。
+        # 成长线（学习/练习）：潜能与已消耗学习点账本。
+        "potential_add",
+        "learned_points_add",
+        # 成长明细（拜师/学习/练习）：只读，随事件持久化。
         "growth_log",
         # 只读战报载体（与 shop_report 同类）：不修改状态，只把 rounds[] 写进事件。
         "combat_log",
@@ -231,6 +234,10 @@ def _apply_one(state: WorldState, e: Effect) -> None:
                 str(k): max(0, min(99, _as_int(v, f"skill_xp.{k}")))
                 for k, v in dict(d["skill_xp"] or {}).items()
             }
+        if "potential" in d:
+            ent.potential = max(0, _as_int(d["potential"], "potential"))
+        if "learned_points" in d:
+            ent.learned_points = max(0, _as_int(d["learned_points"], "learned_points"))
         state.entities[ent.id] = ent
         return
 
@@ -495,6 +502,8 @@ def _apply_one(state: WorldState, e: Effect) -> None:
                 str(k): max(0, min(800, _as_int(v, f"skill_levels.{k}")))
                 for k, v in dict(d["skill_levels"] or {}).items()
             }
+        if "potential" in d and not ent.potential:
+            ent.potential = max(0, _as_int(d["potential"], "potential"))
         return
 
     if op == "combat_exp_add":
@@ -532,6 +541,16 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             raise EffectError("技能熟练度不得为负")
         ent.skill_levels[skill] = level
         ent.skill_xp[skill] = learned
+        return
+
+    if op == "potential_add":
+        ent = _entity(state, str(d["entity"]))
+        ent.potential = max(0, int(ent.potential) + _as_int(d["delta"], "delta"))
+        return
+
+    if op == "learned_points_add":
+        ent = _entity(state, str(d["entity"]))
+        ent.learned_points = max(0, int(ent.learned_points) + _as_int(d["delta"], "delta"))
         return
 
     if op in ("combat_log", "growth_log"):

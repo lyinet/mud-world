@@ -17,7 +17,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable
 
-from ..actions.growth import BaiAction
+from ..actions.growth import BaiAction, LearnAction, PracticeAction
 from ..actions.player import (
     ACCOUNT_RE,
     ARCHETYPES,
@@ -511,6 +511,8 @@ class WorldSession:
         self.registry.register(PlayerSectWithdrawAction(self.content))
         # 成长线与生死（只在本会话注册，不影响 NPC/系统动作链）。
         self.registry.register(BaiAction(self.content))
+        self.registry.register(LearnAction(self.content))
+        self.registry.register(PracticeAction(self.content))
         # 存档优先：已有事件日志时回放，绝不重新创世/重复发放初始资产。
         self.replayed = self.store.count() > 0
         locations = self._world_locations()

@@ -11,10 +11,11 @@ from pathlib import Path
 import pytest
 import yaml
 
-from wsim.actions.growth import BaiAction
+from wsim.actions.growth import BaiAction, LearnAction, PracticeAction
 from wsim.api import WorldSession
 from wsim.api.xkx_content import load_xkx_content
-from wsim.core.models import Intent
+from wsim.core.models import Intent, Reject
+from wsim.core.rng import PRNG
 from wsim.world.effects import apply_effects
 from wsim.world.state import Entity, WorldState
 
@@ -167,3 +168,162 @@ def test_bai_rejections_are_explicit(session):
     result = _cmd(session, "bai 文泰来")
     assert result["ok"] is False
     assert "你已经另有师父" in _texts(result)
+
+
+# ------------------------------------------------------- 学习 / 练习（learn / practice）
+
+
+class RecordingPRNG(PRNG):
+    """记录每次 randint 的区间，锁死原版取数顺序。"""
+
+    def __init__(self, seed: int, seq: int, salt: str = ""):
+        super().__init__(seed, seq, salt)
+        self.calls: list[tuple[int, int]] = []
+
+    def randint(self, a: int, b: int) -> int:
+        self.calls.append((a, b))
+        return super().randint(a, b)
+
+
+def _study_state(content, *, master_id: str = "/d/hangzhou/honghua/luo", **fields):
+    loc = JIULOU
+    state = WorldState(locations={loc: {"id": loc, "name": loc, "exits": []}})
+    master = Entity(id=master_id, name="骆冰", role="fighter", location=loc, status="alive")
+    defaults = {
+        "attrs": {"int": 18},
+        "skill_levels": {"dodge": 10},
+        "skill_xp": {},
+        "combat_exp": 250,
+        "potential": 99,
+        "learned_points": 0,
+        "stamina": 100.0,
+        "master": master_id,
+        "home": loc,
+    }
+    defaults.update(fields)
+    player = Entity(id="player:p", name="游侠儿", role="player", location=loc, **defaults)
+    state.entities[player.id] = player
+    state.entities[master.id] = master
+    return state, player, master
+
+
+def test_learn_locks_prng_order_and_exact_result(xkx_content):
+    state, player, master = _study_state(xkx_content)
+    rng = RecordingPRNG(42, 3, "learn")
+    intent = _intent(player.id, "learn", teacher=master.name, skill="dodge", times=8)
+    action = LearnAction(xkx_content)
+    action.preconditions(state, intent)
+    effects = action.apply(state, intent, rng)
+    apply_effects(state, effects)
+
+    # 原版 learn.lpc：每次先 random(improve_points)，再做 (level+1)^2 进位。
+    # improve_points = (int+int)/2 + learn_bonus(30) = 48，所以区间恒为 0..47。
+    assert rng.calls == [(0, 47)] * 8
+    ent = state.entities[player.id]
+    assert ent.skill_levels["dodge"] == 11
+    assert ent.skill_xp.get("dodge", 0) == 0
+    assert ent.potential == 91
+    assert ent.learned_points == 8
+    assert ent.stamina == 36.0
+
+    log = next(e.data for e in effects if e.op == "growth_log")
+    assert log["action"] == "learn"
+    assert log["level_before"] == 10 and log["level_after"] == 11
+    assert log["jing_cost"] == 64
+
+
+def test_learn_rejections_are_explicit(xkx_content):
+    action = LearnAction(xkx_content)
+
+    state, player, master = _study_state(xkx_content, master="/d/hangzhou/honghua/wen")
+    with pytest.raises(Reject) as err:
+        action.preconditions(state, _intent(player.id, "learn", teacher=master.name, skill="dodge", times=1))
+    assert err.value.reason == "not_apprentice_of_teacher"
+
+    state, player, master = _study_state(xkx_content)
+    with pytest.raises(Reject) as err:
+        action.preconditions(state, _intent(player.id, "learn", teacher=master.name, skill="dodge", times=100))
+    assert err.value.reason == "insufficient_potential"
+
+    state, player, master = _study_state(xkx_content, skill_levels={"dodge": 20})
+    with pytest.raises(Reject) as err:
+        action.preconditions(state, _intent(player.id, "learn", teacher=master.name, skill="dodge", times=1))
+    assert err.value.reason == "insufficient_combat_exp"
+
+    state, player, master = _study_state(xkx_content, stamina=20.0)
+    with pytest.raises(Reject) as err:
+        action.preconditions(state, _intent(player.id, "learn", teacher=master.name, skill="dodge", times=5))
+    assert err.value.reason == "insufficient_jing"
+
+    state, player, master = _study_state(xkx_content)
+    with pytest.raises(Reject) as err:
+        action.preconditions(state, _intent(player.id, "learn", teacher=master.name, skill="不会", times=1))
+    assert err.value.reason == "unknown_skill"
+
+
+def test_learn_real_session_persists_and_replays(session):
+    _walk_to_road14(session)
+    assert _cmd(session, "bai 骆冰")["ok"] is True
+    result = _cmd(session, "learn 骆冰 dodge 5")
+    assert result["ok"] is True, _texts(result)
+    assert "你向骆冰请教" in _texts(result)
+    player = session.state.entities[f"player:{ACCOUNT}"]
+    assert player.potential == 94
+    assert player.learned_points == 5
+    assert int(player.skill_levels["dodge"]) >= 11
+
+    from wsim.api.persistence import replay_into
+
+    replayed, _ = replay_into(session.store, session._world_locations())
+    ent = replayed.entities[player.id]
+    assert ent.potential == 94
+    assert ent.learned_points == 5
+    assert int(ent.skill_levels["dodge"]) >= 11
+
+
+def test_practice_locks_prng_order_and_exact_result(xkx_content):
+    state, player, master = _study_state(
+        xkx_content,
+        skill_levels={"dodge": 10, "yunlong-shenfa": 1},
+    )
+    rng = RecordingPRNG(42, 5, "practice")
+    intent = _intent(player.id, "practice", skill="yunlong-shenfa", times=4)
+    action = PracticeAction(xkx_content)
+    action.preconditions(state, intent)
+    effects = action.apply(state, intent, rng)
+    apply_effects(state, effects)
+
+    # 原版 practice.lpc：span = (base^2)/(skill+1)/5 = 100/2/5 = 10。
+    # 体力 100、每趟 30，实际只练 3 趟。
+    assert rng.calls == [(0, 9)] * 3
+    ent = state.entities[player.id]
+    assert ent.skill_levels["yunlong-shenfa"] == 3
+    assert ent.skill_xp["yunlong-shenfa"] == 14
+    assert ent.stamina == 100.0 - 30 * 3
+    log = next(e.data for e in effects if e.op == "growth_log")
+    assert log["action"] == "practice"
+    assert log["gains"] == [15, 11, 14]
+    assert log["level_before"] == 1 and log["level_after"] == 3
+    assert log["times"] == 3 and log["requested"] == 4 and log["partial"] is True
+
+
+def test_practice_rejections_are_explicit(xkx_content):
+    action = PracticeAction(xkx_content)
+
+    state, player, _ = _study_state(xkx_content)
+    with pytest.raises(Reject) as err:
+        action.preconditions(state, _intent(player.id, "practice", skill="yunlong-shenfa", times=1))
+    assert err.value.reason == "skill_not_learned"
+
+    state, player, _ = _study_state(xkx_content, skill_levels={"dodge": 10, "yunlong-shenfa": 1}, stamina=10.0)
+    with pytest.raises(Reject) as err:
+        action.preconditions(state, _intent(player.id, "practice", skill="yunlong-shenfa", times=1))
+    assert err.value.reason == "insufficient_stamina"
+
+    state, player, _ = _study_state(
+        xkx_content,
+        skill_levels={"dodge": 40, "yunlong-shenfa": 20},
+    )
+    with pytest.raises(Reject) as err:
+        action.preconditions(state, _intent(player.id, "practice", skill="yunlong-shenfa", times=1))
+    assert err.value.reason == "insufficient_combat_exp"
