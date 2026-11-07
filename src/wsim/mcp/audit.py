@@ -169,21 +169,25 @@ class AuditLog:
         if self.path is None or self.max_bytes <= 0 or self.backups <= 0:
             return 0
         with self._rotate_lock:
-            # 改名期间持有写锁：先把长驻 fd 从旧 inode 上摘下来，
-            # 否则后续 append 会写进已改名为 .1 的备份文件。
+            # 只把"摘掉旧 inode"和重置计数放进写锁；改名/删除都在锁外，
+            # 否则删除 100MB 备份（APFS 释放大量块）会把写请求顶住数百毫秒。
             with self._lock:
                 self._close_fd()
-                for idx in range(self.backups, 0, -1):
-                    src = self._backup_path(idx)
-                    if not src.exists():
-                        continue
-                    if idx == self.backups:
-                        src.unlink()
-                    else:
-                        os.replace(src, self._backup_path(idx + 1))
-                if self.path.exists():
-                    os.replace(self.path, self._backup_path(1))
+            oldest = None
+            for idx in range(self.backups, 0, -1):
+                src = self._backup_path(idx)
+                if not src.exists():
+                    continue
+                if idx == self.backups:
+                    oldest = src
+                else:
+                    os.replace(src, self._backup_path(idx + 1))
+            if self.path.exists():
+                os.replace(self.path, self._backup_path(1))
+            with self._lock:
                 self._written = 0
+            if oldest is not None and oldest.exists():
+                oldest.unlink()
             self.rotation_count += 1
             return sum(1 for i in range(1, self.backups + 1) if self._backup_path(i).exists())
 
