@@ -137,7 +137,11 @@
 | `class` | string \| null | 职业模板：`fighter`、`scholar`、`bonze`、`swordsman`、`taoist` 等 |
 | `attitude` | string \| null | 原版原样：`friendly`、`peaceful`、`heroism`、`aggressive`、`peace` 等 |
 | `aggressive` | bool | **主动攻击标志**，仅当 `attitude == "aggressive"` 为 true；切片内共 7 个 |
+| `race` | string \| null | 原版 `set("race")`，如 `走兽`、`飞禽`、`爬蛇` |
+| `race_source` | object \| null | `{"kind":"lpc","path":"d/hangzhou/npc/laohu.lpc","line":7}` |
 | `attrs` | object | `str`/`int`/`con`/`dex`/`per`/`kar`，缺省键不出现 |
+| `attrs_roll` | object | 种族随机属性区间，见 5.3；没有掷骰键时为空 `{}` |
+| `attrs_roll_source` | object | 每个随机键的源码出处，见 5.3 |
 | `vitals` | object | `max_qi`/`max_jing`/`max_neili`/`neili`/`jiali`/`combat_exp`，缺省键不出现 |
 | `skills` | object | 技能 id → 等级（`set_skill`） |
 | `map_skills` | object | 基础技能 → 映射到的技能 id（`map_skill`），如 `{"unarmed": "jingang-quan"}` |
@@ -222,6 +226,37 @@
 **只取 `create()` 作用域**：原版同名对象在运行期（`init()`、任务函数等）也会 `set_temp` 改状态，那些不是创世属性，抽取器按函数体行号排除。
 
 **与原版的差异（重要）**：原版 `set_temp` 是运行期临时加成，`reset()` 或对象重建后会按 `create()` 重新设置；本项目按**创世即带**处理——加载器在创建 NPC 时一次性应用这些加成，不做运行期重算。对静态战斗数值（`apply/attack`、`apply/defense` 等）两者等价；若将来引入“加成被临时修改”的机制，需要单独建模，不能假设这里会随 `reset` 刷新。
+
+### 5.3 `attrs_roll` — 种族随机属性区间
+
+原版种族 daemon 在 `setup()` 里只对**没有显式 `set` 的属性**掷骰。我们不改写 `attrs`，而是把掷骰范围如实抽出来，交给引擎在创世时按种子生成：
+
+```json
+"race": "走兽",
+"attrs": {},
+"attrs_roll": {
+  "str": [5, 44], "int": [5, 14], "per": [5, 34],
+  "con": [5, 44], "dex": [5, 44], "kar": [5, 24]
+},
+"attrs_roll_source": {
+  "str": {"kind": "lpc", "path": "adm/daemons/race/beast.lpc", "line": 62},
+  "int": {"kind": "lpc", "path": "adm/daemons/race/beast.lpc", "line": 63},
+  "...": {"kind": "lpc", "path": "adm/daemons/race/beast.lpc", "line": 67}
+}
+```
+
+| 字段 | 含义 |
+| --- | --- |
+| `attrs` | 原版显式 `set("str", <整数>)` 的值；不掺随机结果 |
+| `attrs_roll[attr]` | `[min,max]` 闭区间，对应源码 `random(N) + M`，即 `M..M+N-1` |
+| `attrs_roll_source[attr]` | 该区间的 `source_kind`、源码文件、行号与原始表达式 |
+
+规则：
+
+- **只对 `attrs` 里没有的键生成**：显式 `set` 优先，原版 `undefinedp` 判断也是这个语义。表达式型 `set`（非整数字面量）不抽值，也不会被随机区间覆盖。
+- **引擎必须按创世种子生成**，不能取 `min`、`max` 或中位数写死。同一种子下同一 NPC 应得到可复现的六维。
+- 区间是原版 `random(N)+M` 的数学结果，不是我们估计的强弱范围。
+- 没有掷骰键（人类/妖魔等，或六维全部显式）时 `attrs_roll={}`、`attrs_roll_source={}`。
 
 ## 6. `dialogue.json`
 

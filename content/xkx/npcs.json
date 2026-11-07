@@ -16,6 +16,8 @@
         "per": 20,
         "str": 30
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": "fighter",
       "desc": "他是铁胆周仲英的二弟子，对师父始终忠心不二。",
       "desc_source": "lpc",
@@ -48,6 +50,8 @@
       "nickname": "独角虎",
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": "honghua",
       "skills": {
         "dodge": 50,
@@ -92,6 +96,8 @@
         "per": 14,
         "str": 30
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": "fighter",
       "desc": "他身材又高又瘦，脸色蜡黄，眼睛凹进，眼角上有一粒黑痣，眉毛\n斜斜的倒垂下来，形相甚是可怖。他是青城派慧侣道人的徒弟。黑沙\n掌的功夫，江湖上无人能敌。黑白无常两兄弟是川江上著名的侠盗，\n一向劫富济贫，不过心狠手辣，因此得了这难听的外号。",
       "desc_source": "lpc",
@@ -122,6 +128,8 @@
         "hand",
         "claw"
       ],
+      "race": null,
+      "race_source": null,
       "sect": "honghua",
       "skills": {
         "claw": 120,
@@ -166,6 +174,8 @@
         "per": 14,
         "str": 30
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": "fighter",
       "desc": "他身材又高又瘦，脸色蜡黄，眼睛凹进，眉毛斜斜的倒垂下来，形\n相甚是可怖。他是青城派慧侣道人的徒弟。黑沙掌的功夫，江湖上无\n人能敌。黑白无常两兄弟是川江上著名的侠盗，一向劫富济贫，不过\n心狠手辣，因此得了这难听的外号。",
       "desc_source": "lpc",
@@ -196,6 +206,8 @@
         "hand",
         "claw"
       ],
+      "race": null,
+      "race_source": null,
       "sect": "honghua",
       "skills": {
         "claw": 120,
@@ -240,6 +252,8 @@
         "per": 30,
         "str": 30
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": "scholar",
       "desc": "他一副模样直是个富贵人家的纨裤子弟，丰姿如玉，目朗似星，轻\n袍缓带，手中摇着一柄折扇，神采飞扬，气度闲雅，吐属斯文。服\n饰俨然是个贵介公子。",
       "desc_source": "lpc",
@@ -284,6 +298,8 @@
         "hand",
         "claw"
       ],
+      "race": null,
+      "race_source": null,
       "sect": "honghua",
       "skills": {
         "blade": 200,
@@ -337,6 +353,8 @@
         "per": 30,
         "str": 30
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": "swordsman",
       "desc": "这女郎秀美中透着一股英气，光采照人，当真是丽若春梅绽雪，神如\n秋蕙披霜，两颊融融，霞映澄塘，双目晶晶，月射寒江。腰插匕首，\n长辨垂肩，一身鹅黄衫子，头戴金丝绣的小帽，帽边插了一根长长的\n翠绿羽毛，革履青马，旖旎如画。",
       "desc_source": "lpc",
@@ -378,6 +396,8 @@
         "hand",
         "claw"
       ],
+      "race": null,
+      "race_source": null,
       "sect": "honghua",
       "skills": {
         "claw": 120,
@@ -438,6 +458,8 @@
         "per": 20,
         "str": 30
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": "fighter",
       "desc": "铜头鳄鱼蒋四根在会中坐第十三把交椅，兵器是铁桨。",
       "desc_source": "lpc",
@@ -470,6 +492,8 @@
       "nickname": "铜头鳄鱼",
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": "honghua",
       "skills": {
         "club": 80,
@@ -514,6 +538,8 @@
         "per": 23,
         "str": 30
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": "scholar",
       "desc": "陆菲青，乃武当派大侠，壮年时在大江南北行侠仗义，端的名\n震江湖，原是屠龙帮中一位响当当的人物。屠龙帮是反清的秘\n帮，雍正年间声势十分浩大，后来雍正、乾隆两朝厉行镇压，\n到乾隆七八年时，屠龙帮终于落得瓦解冰消。陆菲青远走边疆。\n当时清廷曾四下派人追拿，但他为人机警，兼之武功高强，得\n脱大难，但清廷继续严加查缉。陆菲青想到“大隐隐于朝、中\n隐隐于市、小隐隐于野”之理，混到李可秀府中设帐教读。",
       "desc_source": "lpc",
@@ -547,6 +573,8 @@
       "nickname": "绵里针",
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": "honghua",
       "skills": {
         "blade": 200,
@@ -595,6 +623,8 @@
         "per": 28,
         "str": 30
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": "fighter",
       "desc": "她是一个秀美的少妇。一手短刀，一手握着一柄长刀。",
       "desc_source": "lpc",
@@ -631,6 +661,8 @@
         "hand",
         "claw"
       ],
+      "race": null,
+      "race_source": null,
       "sect": "honghua",
       "skills": {
         "blade": 100,
@@ -678,6 +710,8 @@
         "per": 18,
         "str": 30
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": "fighter",
       "desc": "他是铁胆周仲英的大弟子，对师父忠心耿耿。",
       "desc_source": "lpc",
@@ -710,6 +744,8 @@
       "nickname": "神弹子",
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": "honghua",
       "skills": {
         "dodge": 50,
@@ -748,6 +784,55 @@
       "attrs": {
         "int": 30
       },
+      "attrs_roll": {
+        "con": [
+          5,
+          44
+        ],
+        "dex": [
+          5,
+          24
+        ],
+        "kar": [
+          5,
+          14
+        ],
+        "per": [
+          5,
+          24
+        ],
+        "str": [
+          5,
+          34
+        ]
+      },
+      "attrs_roll_source": {
+        "con": {
+          "kind": "lpc",
+          "line": 64,
+          "path": "adm/daemons/race/stock.lpc"
+        },
+        "dex": {
+          "kind": "lpc",
+          "line": 65,
+          "path": "adm/daemons/race/stock.lpc"
+        },
+        "kar": {
+          "kind": "lpc",
+          "line": 66,
+          "path": "adm/daemons/race/stock.lpc"
+        },
+        "per": {
+          "kind": "lpc",
+          "line": 63,
+          "path": "adm/daemons/race/stock.lpc"
+        },
+        "str": {
+          "kind": "lpc",
+          "line": 61,
+          "path": "adm/daemons/race/stock.lpc"
+        }
+      },
       "class": null,
       "desc": "这是一匹回部宝马，日行千里，夜行八百。\n玩家可以骑上它去指定的地方(ride)。",
       "desc_source": "lpc",
@@ -763,6 +848,12 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": "走畜",
+      "race_source": {
+        "kind": "lpc",
+        "line": 9,
+        "path": "d/hangzhou/honghua/obj/horse.lpc"
+      },
       "sect": null,
       "skills": {},
       "source": {
@@ -839,6 +930,8 @@
         "per": 26,
         "str": 30
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": "scholar",
       "desc": "鬼见愁石双英在会中坐第十二把交椅，执掌刑堂，铁面无私，心狠手\n辣，犯了规条的就是逃到天涯海角，他也必派人抓来处刑，原来依据红\n花会规条，会中兄弟犯了大罪，若是一时胡涂，此后诚心悔悟，可在开\n香堂执法之前，自行用尖刀在大腿上连戳三刀，这三刀须对穿而过，即\n所谓“三刀六洞”，然后向该管舵主和执法香主求恕，有望从轻发落，\n但若真正罪重出自不能饶恕。是以红花会数万兄弟，提到鬼见愁时无不\n悚然。",
       "desc_source": "lpc",
@@ -871,6 +964,8 @@
       "nickname": "鬼见愁",
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": "honghua",
       "skills": {
         "dodge": 90,
@@ -915,6 +1010,8 @@
         "per": 26,
         "str": 30
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": "swordsman",
       "desc": "他长得面目英俊，穿一件青布长衫，三十岁左右年纪，双目炯炯，\n英气逼人。凡逢江湖上凶殴争斗、对抗官兵之时，卫春华总是不顾\n性命的勇往直前，一生所遇凶险不计其数，但连重伤也未受过一次，\n是以说他有九条性命。",
       "desc_source": "lpc",
@@ -947,6 +1044,8 @@
       "nickname": "九命锦豹子",
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": "honghua",
       "skills": {
         "dodge": 100,
@@ -992,6 +1091,8 @@
         "per": 24,
         "str": 30
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": "fighter",
       "desc": "文泰来号称“奔雷手”，十五岁起浪荡江湖，手掌下不知击毙\n过多少神奸巨憝、凶徒恶霸。",
       "desc_source": "lpc",
@@ -1022,6 +1123,8 @@
         "hand",
         "claw"
       ],
+      "race": null,
+      "race_source": null,
       "sect": "honghua",
       "skills": {
         "claw": 150,
@@ -1067,6 +1170,8 @@
         "per": 21,
         "str": 21
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": "taoist",
       "desc": "他就是无尘道人。少年时混迹绿林，劫富济贫，做下了无数巨案，武\n功高强，手下兄弟又众，官府奈何他不得。有一次他见到一位官家小\n姐，竟然死心塌地的爱上了她。那位小姐却对无尘并没真心，受了父\n亲教唆，一天夜里无尘偷偷来见她之时，那小姐说：“你对我全是假\n意，没半点诚心。”无尘当然赌誓罚咒。那小姐道：“你们男人啊，\n这样的话个个会说。你隔这么久来瞧我一次，我可不够。你要是真心\n爱我，就把你一条手膀砍来给我。有你这条臂膀陪着，也免得我寂寞\n孤单。”无尘一语不发，真的拔剑将自己的左臂砍了下来。小姐楼上\n早埋伏了许多官差，一见都涌了出来。无尘已痛晕在地，哪里还能抵\n抗？无尘手下的兄弟们大会群豪，打破城池，将他救出，又把小姐全\n家都捉了来听他发落。众人以为无尘不是把他们都杀了，就是要了这\n小姐做妻子。哪知他看见小姐，心肠一软，叫众人把她和家人都放了，\n自己当夜悄悄离开了那地方，心灰意懒，就此出家做了道人。人虽然\n出了家，可是本性难移，仍是豪迈豁达，行侠江湖，被红花会老当家\n于万亭请出来做了副手。",
       "desc_source": "lpc",
@@ -1099,6 +1204,8 @@
       "nickname": "追魂夺命剑",
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "bibo-shengong": 200,
@@ -1141,6 +1248,8 @@
         "per": 25,
         "str": 30
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": "scholar",
       "desc": "他是红花会总舵主陈家洛的贴身书僮。",
       "desc_source": "lpc",
@@ -1178,6 +1287,8 @@
         "hand",
         "claw"
       ],
+      "race": null,
+      "race_source": null,
       "sect": "honghua",
       "skills": {
         "claw": 60,
@@ -1226,6 +1337,8 @@
         "per": 19,
         "str": 30
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": "scholar",
       "desc": "其人身材矮小，足智多谋，是红花会的智囊军师，武功也颇\n不弱，冷静持重。",
       "desc_source": "lpc",
@@ -1262,6 +1375,8 @@
         "hand",
         "claw"
       ],
+      "race": null,
+      "race_source": null,
       "sect": "honghua",
       "skills": {
         "blade": 100,
@@ -1309,6 +1424,8 @@
         "per": 20,
         "str": 30
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": "fighter",
       "desc": "他又肥又高，手执钢鞭，鞭身甚是粗重，看模样少说也有三十来斤。",
       "desc_source": "lpc",
@@ -1345,6 +1462,8 @@
         "hand",
         "claw"
       ],
+      "race": null,
+      "race_source": null,
       "sect": "honghua",
       "skills": {
         "claw": 100,
@@ -1391,6 +1510,8 @@
         "per": 27,
         "str": 30
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": "scholar",
       "desc": "一个长身玉立，眉清目秀，风流英俊的书生。余鱼同乃江南望族\n子弟，中过秀才。他父亲因和一家豪门争一块坟地，官司打得倾家\n荡产，又被豪门借故陷害，瘐死狱中。余鱼同一气出走，得遇机缘，\n拜马真为师，弃文习武，回来把士豪刺死，从此亡命江湖，后来入\n了红花会。他为人机警灵巧，多识各地乡谈，在会中任联络四方、\n刺探讯息之职。",
       "desc_source": "lpc",
@@ -1435,6 +1556,8 @@
         "hand",
         "claw"
       ],
+      "race": null,
+      "race_source": null,
       "sect": "honghua",
       "skills": {
         "blade": 200,
@@ -1489,6 +1612,8 @@
         "per": 12,
         "str": 30
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": "fighter",
       "desc": "他是个驼子，最是直性子。他天生残疾，可是神力惊人，练\n就了一身外家的硬功夫。他身有缺陷，最恼别人取笑他的驼\n背，他和人说话时自称“章驼子”，那是好端端地，然而别\n人若是在他面前提到个“驼”字，甚至冲着他的驼背一笑，\n这人算是惹上了祸啦。笑他之人如是常人也还罢了，如会武\n艺，往往就被他结结实实的打上一顿。他在红花会中最听骆\n冰的话，因他脾气古怪，旁人都忌他三分，骆冰却怜他残废，\n衣着饮食，时加细心照料，当他是小兄弟一般。衣服极为光\n鲜。相貌却颇为丑陋。",
       "desc_source": "lpc",
@@ -1525,6 +1650,8 @@
         "hand",
         "claw"
       ],
+      "race": null,
+      "race_source": null,
       "sect": "honghua",
       "skills": {
         "claw": 70,
@@ -1571,6 +1698,8 @@
         "per": 21,
         "str": 21
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": "fighter",
       "desc": "他一张胖胖的脸，笑起来给人一副很慈祥的感觉。他\n原是温州王氏太极门掌门大弟子。豪迈豁达，行侠江\n湖，一手暗器功夫和太极剑少有能匹敌。屠龙帮风流\n云散之后，投入红花会。很得被红花会老当家于万亭\n赏识。",
       "desc_source": "lpc",
@@ -1609,6 +1738,8 @@
       "nickname": "千臂如来",
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 150,
@@ -1656,6 +1787,8 @@
         "per": 20,
         "str": 30
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": "fighter",
       "desc": "他白发飘动，精神矍铄，乃是西北武林的领袖人物铁胆周仲英。",
       "desc_source": "lpc",
@@ -1688,6 +1821,8 @@
       "nickname": "铁胆",
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": "honghua",
       "skills": {
         "dodge": 140,
@@ -1732,6 +1867,8 @@
         "per": 25,
         "str": 30
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": "fighter",
       "desc": "这是铁胆庄的大小姐，周仲英的宝贝女儿。她性格豪迈，颇\n有乃父之风，爱管闲事，好打不平，西北武林中人送了她个\n外号，叫做“俏李逵”。",
       "desc_source": "lpc",
@@ -1764,6 +1901,8 @@
       "nickname": "俏李逵",
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": "honghua",
       "skills": {
         "blade": 50,
@@ -1802,6 +1941,8 @@
       ],
       "attitude": "heroism",
       "attrs": {},
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "白振是嵩阳派高手，三十年前就驰名武林了。",
       "desc_source": "lpc",
@@ -1829,6 +1970,8 @@
       "prepare_skills": [
         "claw"
       ],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "blade": 95,
@@ -1863,6 +2006,8 @@
         "int": 17,
         "str": 17
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这是个农家少年，大概因从小物农，虽然年纪不大，可已长的很粗壮了。",
       "desc_source": "lpc",
@@ -1884,6 +2029,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {},
       "source": {
@@ -1919,6 +2066,8 @@
       "attrs": {
         "per": 40
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "江南清秀的采茶姑娘一样楚楚动人。",
       "desc_source": "lpc",
@@ -1940,6 +2089,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 30,
@@ -1970,6 +2121,28 @@
         "int": 10,
         "str": 30
       },
+      "attrs_roll": {
+        "kar": [
+          5,
+          14
+        ],
+        "per": [
+          5,
+          24
+        ]
+      },
+      "attrs_roll_source": {
+        "kar": {
+          "kind": "lpc",
+          "line": 66,
+          "path": "adm/daemons/race/stock.lpc"
+        },
+        "per": {
+          "kind": "lpc",
+          "line": 63,
+          "path": "adm/daemons/race/stock.lpc"
+        }
+      },
       "class": null,
       "desc": "一匹白骆驼。",
       "desc_source": "lpc",
@@ -1985,6 +2158,12 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": "走畜",
+      "race_source": {
+        "kind": "lpc",
+        "line": 12,
+        "path": "d/hangzhou/npc/camel.lpc"
+      },
       "sect": null,
       "skills": {},
       "source": {
@@ -2008,6 +2187,8 @@
       ],
       "attitude": "heroism",
       "attrs": {},
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "褚圆原是和尚，法名智圆，后来犯了清规，被追缴度牒，逐\n出庙门，他索性还了俗，做了大内侍卫。",
       "desc_source": "lpc",
@@ -2038,6 +2219,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "damo-jian": 50,
@@ -2067,6 +2250,8 @@
       ],
       "attitude": "heroism",
       "attrs": {},
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这家伙满脸横肉，一付凶神恶煞的模样，令人望而生畏。",
       "desc_source": "lpc",
@@ -2093,6 +2278,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "blade": 45,
@@ -2121,6 +2308,55 @@
       "attrs": {
         "str": 10
       },
+      "attrs_roll": {
+        "con": [
+          5,
+          34
+        ],
+        "dex": [
+          5,
+          24
+        ],
+        "int": [
+          5,
+          14
+        ],
+        "kar": [
+          5,
+          14
+        ],
+        "per": [
+          5,
+          14
+        ]
+      },
+      "attrs_roll_source": {
+        "con": {
+          "kind": "lpc",
+          "line": 64,
+          "path": "adm/daemons/race/snake.lpc"
+        },
+        "dex": {
+          "kind": "lpc",
+          "line": 65,
+          "path": "adm/daemons/race/snake.lpc"
+        },
+        "int": {
+          "kind": "lpc",
+          "line": 62,
+          "path": "adm/daemons/race/snake.lpc"
+        },
+        "kar": {
+          "kind": "lpc",
+          "line": 66,
+          "path": "adm/daemons/race/snake.lpc"
+        },
+        "per": {
+          "kind": "lpc",
+          "line": 63,
+          "path": "adm/daemons/race/snake.lpc"
+        }
+      },
       "class": null,
       "desc": "一支昂首吐信的毒蛇正虎视眈眈地盯著你。",
       "desc_source": "lpc",
@@ -2136,6 +2372,12 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": "爬蛇",
+      "race_source": {
+        "kind": "lpc",
+        "line": 10,
+        "path": "d/hangzhou/npc/dushe.lpc"
+      },
       "sect": null,
       "skills": {},
       "source": {
@@ -2197,6 +2439,8 @@
         "int": 15,
         "str": 14
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这是个农家少女，虽然只有十二、三岁，身材已经开始发育。",
       "desc_source": "lpc",
@@ -2218,6 +2462,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {},
       "source": {
@@ -2252,6 +2498,8 @@
       ],
       "attitude": null,
       "attrs": {},
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "一位年过花甲的老管家，背略微驼，守在刘庄门内，见人先拱手问安。",
       "desc_source": "authored",
@@ -2273,6 +2521,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 40,
@@ -2323,6 +2573,8 @@
       ],
       "attitude": null,
       "attrs": {},
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "一位风尘仆仆的进香客，手里攥着香烛，神色虔诚。",
       "desc_source": "authored",
@@ -2338,6 +2590,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 20,
@@ -2362,6 +2616,8 @@
       ],
       "attitude": "heroism",
       "attrs": {},
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这是位青年壮汉，虎背熊腰，胸前配带一朵大红花。",
       "desc_source": "lpc",
@@ -2388,6 +2644,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 50,
@@ -2416,6 +2674,8 @@
       ],
       "attitude": "heroism",
       "attrs": {},
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这是位手执长枪的绿营清兵，红花会在江南声势大盛，绿营也\n多有会众。",
       "desc_source": "lpc",
@@ -2442,6 +2702,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "club": 60,
@@ -2469,6 +2731,8 @@
       ],
       "attitude": "friendly",
       "attrs": {},
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "一位明眸皓齿的小姑娘。",
       "desc_source": "lpc",
@@ -2490,6 +2754,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 200,
@@ -2518,6 +2784,8 @@
       ],
       "attitude": "friendly",
       "attrs": {},
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "胡庆余是当世一大巫医，他的本事神奇无比。真有生死肉骨之功。",
       "desc_source": "lpc",
@@ -2533,6 +2801,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {},
       "source": {
@@ -2555,6 +2825,8 @@
       ],
       "attitude": null,
       "attrs": {},
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "一名短打装束的家丁，腰间系着布带，目光守着庄内动静。",
       "desc_source": "authored",
@@ -2576,6 +2848,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 20,
@@ -2624,6 +2898,8 @@
       ],
       "attitude": "heroism",
       "attrs": {},
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这是位中年武人，肩背长剑，长长的剑穗随风飘扬，看来似乎身怀绝艺。",
       "desc_source": "lpc",
@@ -2650,6 +2926,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 50,
@@ -2678,6 +2956,64 @@
       ],
       "attitude": "aggressive",
       "attrs": {},
+      "attrs_roll": {
+        "con": [
+          5,
+          44
+        ],
+        "dex": [
+          5,
+          44
+        ],
+        "int": [
+          5,
+          14
+        ],
+        "kar": [
+          5,
+          24
+        ],
+        "per": [
+          5,
+          34
+        ],
+        "str": [
+          5,
+          44
+        ]
+      },
+      "attrs_roll_source": {
+        "con": {
+          "kind": "lpc",
+          "line": 65,
+          "path": "adm/daemons/race/beast.lpc"
+        },
+        "dex": {
+          "kind": "lpc",
+          "line": 66,
+          "path": "adm/daemons/race/beast.lpc"
+        },
+        "int": {
+          "kind": "lpc",
+          "line": 63,
+          "path": "adm/daemons/race/beast.lpc"
+        },
+        "kar": {
+          "kind": "lpc",
+          "line": 67,
+          "path": "adm/daemons/race/beast.lpc"
+        },
+        "per": {
+          "kind": "lpc",
+          "line": 64,
+          "path": "adm/daemons/race/beast.lpc"
+        },
+        "str": {
+          "kind": "lpc",
+          "line": 62,
+          "path": "adm/daemons/race/beast.lpc"
+        }
+      },
       "class": null,
       "desc": "一只斑斓猛虎，雄伟极了。\n\n         _.-'\"''--..__.(\"\\-''-'\")\n ('.__.-' (  *  ) .-'    ( @ _@'\n  `-..-''.' _.'  (   _.  `(._Y_)\n         `. `._`--\\  \\_-.._`--'.._\n          `-.!))  `.(il)   ''-.(li)",
       "desc_source": "lpc",
@@ -2708,6 +3044,12 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": "走兽",
+      "race_source": {
+        "kind": "lpc",
+        "line": 8,
+        "path": "d/hangzhou/npc/laohu.lpc"
+      },
       "sect": null,
       "skills": {},
       "source": {
@@ -2767,6 +3109,8 @@
       ],
       "attitude": "heroism",
       "attrs": {},
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "李可秀一身军功而成封疆大吏，一身武功自然不容轻视。",
       "desc_source": "lpc",
@@ -2793,6 +3137,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "blade": 75,
@@ -2820,6 +3166,8 @@
       ],
       "attitude": "peaceful",
       "attrs": {},
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "他是一个成天游手好闲的流氓，长得倒是白白胖胖的，也许以前有过钱。",
       "desc_source": "lpc",
@@ -2841,6 +3189,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 20,
@@ -2890,6 +3240,8 @@
       ],
       "attitude": "peaceful",
       "attrs": {},
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "他长得奸嘴猴腮的，一看就不像是个好人。",
       "desc_source": "lpc",
@@ -2911,6 +3263,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 40,
@@ -2966,6 +3320,8 @@
         "per": 26,
         "str": 26
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "她是杭州提督李可秀的千金，武当名宿陆菲青的入室弟子。",
       "desc_source": "lpc",
@@ -2998,6 +3354,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 70,
@@ -3035,6 +3393,8 @@
       ],
       "attitude": "heroism",
       "attrs": {},
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "龙骏是大内高手，一手喂毒暗器，少有其匹。",
       "desc_source": "lpc",
@@ -3065,6 +3425,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 60,
@@ -3093,6 +3455,64 @@
       ],
       "attitude": "peaceful",
       "attrs": {},
+      "attrs_roll": {
+        "con": [
+          5,
+          54
+        ],
+        "dex": [
+          5,
+          64
+        ],
+        "int": [
+          5,
+          14
+        ],
+        "kar": [
+          5,
+          24
+        ],
+        "per": [
+          5,
+          24
+        ],
+        "str": [
+          5,
+          14
+        ]
+      },
+      "attrs_roll_source": {
+        "con": {
+          "kind": "lpc",
+          "line": 64,
+          "path": "adm/daemons/race/bird.lpc"
+        },
+        "dex": {
+          "kind": "lpc",
+          "line": 65,
+          "path": "adm/daemons/race/bird.lpc"
+        },
+        "int": {
+          "kind": "lpc",
+          "line": 62,
+          "path": "adm/daemons/race/bird.lpc"
+        },
+        "kar": {
+          "kind": "lpc",
+          "line": 66,
+          "path": "adm/daemons/race/bird.lpc"
+        },
+        "per": {
+          "kind": "lpc",
+          "line": 63,
+          "path": "adm/daemons/race/bird.lpc"
+        },
+        "str": {
+          "kind": "lpc",
+          "line": 61,
+          "path": "adm/daemons/race/bird.lpc"
+        }
+      },
       "class": null,
       "desc": "一只小麻雀，在树枝间跳上跳下。",
       "desc_source": "lpc",
@@ -3108,6 +3528,12 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": "飞禽",
+      "race_source": {
+        "kind": "lpc",
+        "line": 8,
+        "path": "d/hangzhou/npc/maque.lpc"
+      },
       "sect": null,
       "skills": {},
       "source": {
@@ -3164,6 +3590,8 @@
       ],
       "attitude": "friendly",
       "attrs": {},
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "一位精明能干的老媒婆",
       "desc_source": "lpc",
@@ -3185,6 +3613,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 200,
@@ -3217,6 +3647,8 @@
         "int": 20,
         "str": 25
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "一个蒙面大汉，杀气腾腾。",
       "desc_source": "lpc",
@@ -3248,6 +3680,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "blade": 50,
@@ -3289,6 +3723,8 @@
         "int": 13,
         "str": 13
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "一个满脸风霜之色的老婆婆。",
       "desc_source": "lpc",
@@ -3310,6 +3746,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {},
       "source": {
@@ -3332,6 +3770,8 @@
       ],
       "attitude": "friendly",
       "attrs": {},
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "欧冶子是当世铸剑大师。他铸的剑锋利无比。可是你给的钱太少可也\n不行。一分钱一分货么。",
       "desc_source": "lpc",
@@ -3347,6 +3787,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {},
       "source": {
@@ -3374,6 +3816,8 @@
         "int": 13,
         "str": 20
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "一个骨瘦如柴，满脸菜色的穷汉。",
       "desc_source": "lpc",
@@ -3395,6 +3839,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {},
       "source": {
@@ -3419,6 +3865,8 @@
       "attrs": {
         "per": 24
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "乾隆皇帝姓爱新觉罗，名弘历，是大清入关后第四位在位皇帝，生平\n号称有十大武功，自称“十全老人”。",
       "desc_source": "lpc",
@@ -3440,6 +3888,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {},
       "source": {
@@ -3462,6 +3912,8 @@
       ],
       "attitude": "heroism",
       "attrs": {},
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这是位手执长枪的绿营清兵，满脸凶狠。",
       "desc_source": "lpc",
@@ -3488,6 +3940,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "club": 60,
@@ -3520,6 +3974,8 @@
         "int": 20,
         "str": 25
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": "bonze",
       "desc": "一个慈眉善目的老和尚。",
       "desc_source": "lpc",
@@ -3546,6 +4002,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "blade": 50,
@@ -3587,6 +4045,8 @@
         "int": 20,
         "str": 20
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": "bonze",
       "desc": "他是本寺小沙弥。",
       "desc_source": "lpc",
@@ -3608,6 +4068,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 20,
@@ -3675,6 +4137,8 @@
       "attrs": {
         "int": 28
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这是个饱读诗书，却手无缚鸡之力的年轻书生。",
       "desc_source": "lpc",
@@ -3690,6 +4154,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "literate": 40
@@ -3712,6 +4178,8 @@
       ],
       "attitude": "friendly",
       "attrs": {},
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "铁匠正用铁钳夹住一块红热的铁块放进炉中。",
       "desc_source": "lpc",
@@ -3733,6 +4201,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {},
       "source": {
@@ -3755,6 +4225,8 @@
       ],
       "attitude": "peaceful",
       "attrs": {},
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这是个镖局趟子手，长得虎背熊腰，一身横练功夫。",
       "desc_source": "lpc",
@@ -3781,6 +4253,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 40,
@@ -3813,6 +4287,8 @@
         "int": 15,
         "str": 25
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这是个老实巴交的穷挑夫，长得膀阔腰圆，一身肌肉。",
       "desc_source": "lpc",
@@ -3834,6 +4310,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {},
       "source": {
@@ -3855,6 +4333,55 @@
       "attitude": "peaceful",
       "attrs": {
         "str": 26
+      },
+      "attrs_roll": {
+        "con": [
+          5,
+          44
+        ],
+        "dex": [
+          5,
+          44
+        ],
+        "int": [
+          5,
+          14
+        ],
+        "kar": [
+          5,
+          24
+        ],
+        "per": [
+          5,
+          34
+        ]
+      },
+      "attrs_roll_source": {
+        "con": {
+          "kind": "lpc",
+          "line": 65,
+          "path": "adm/daemons/race/beast.lpc"
+        },
+        "dex": {
+          "kind": "lpc",
+          "line": 66,
+          "path": "adm/daemons/race/beast.lpc"
+        },
+        "int": {
+          "kind": "lpc",
+          "line": 63,
+          "path": "adm/daemons/race/beast.lpc"
+        },
+        "kar": {
+          "kind": "lpc",
+          "line": 67,
+          "path": "adm/daemons/race/beast.lpc"
+        },
+        "per": {
+          "kind": "lpc",
+          "line": 64,
+          "path": "adm/daemons/race/beast.lpc"
+        }
       },
       "class": null,
       "desc": "一只昂首挺胸，吐着长舌头的大狼狗。像是财主家里养的宠物。",
@@ -3886,6 +4413,12 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": "走兽",
+      "race_source": {
+        "kind": "lpc",
+        "line": 7,
+        "path": "d/hangzhou/npc/wolfdog.lpc"
+      },
       "sect": null,
       "skills": {},
       "source": {
@@ -3942,6 +4475,64 @@
       ],
       "attitude": "peaceful",
       "attrs": {},
+      "attrs_roll": {
+        "con": [
+          5,
+          54
+        ],
+        "dex": [
+          5,
+          64
+        ],
+        "int": [
+          5,
+          14
+        ],
+        "kar": [
+          5,
+          24
+        ],
+        "per": [
+          5,
+          24
+        ],
+        "str": [
+          5,
+          14
+        ]
+      },
+      "attrs_roll_source": {
+        "con": {
+          "kind": "lpc",
+          "line": 64,
+          "path": "adm/daemons/race/bird.lpc"
+        },
+        "dex": {
+          "kind": "lpc",
+          "line": 65,
+          "path": "adm/daemons/race/bird.lpc"
+        },
+        "int": {
+          "kind": "lpc",
+          "line": 62,
+          "path": "adm/daemons/race/bird.lpc"
+        },
+        "kar": {
+          "kind": "lpc",
+          "line": 66,
+          "path": "adm/daemons/race/bird.lpc"
+        },
+        "per": {
+          "kind": "lpc",
+          "line": 63,
+          "path": "adm/daemons/race/bird.lpc"
+        },
+        "str": {
+          "kind": "lpc",
+          "line": 61,
+          "path": "adm/daemons/race/bird.lpc"
+        }
+      },
       "class": null,
       "desc": "一只黑色的乌鸦，丑陋极了。",
       "desc_source": "lpc",
@@ -3957,6 +4548,12 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": "飞禽",
+      "race_source": {
+        "kind": "lpc",
+        "line": 8,
+        "path": "d/hangzhou/npc/wuya.lpc"
+      },
       "sect": null,
       "skills": {},
       "source": {
@@ -4017,6 +4614,8 @@
         "dex": 16,
         "str": 24
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "武当派四方香火的弟子。",
       "desc_source": "lpc",
@@ -4043,6 +4642,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 60,
@@ -4116,6 +4717,8 @@
       ],
       "attitude": "friendly",
       "attrs": {},
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这位店小二正笑咪咪地忙著，还不时拿起挂在脖子上的抹布擦脸。",
       "desc_source": "lpc",
@@ -4137,6 +4740,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {},
       "source": {
@@ -4160,6 +4765,55 @@
       "attrs": {
         "str": 10
       },
+      "attrs_roll": {
+        "con": [
+          5,
+          14
+        ],
+        "dex": [
+          5,
+          19
+        ],
+        "int": [
+          5,
+          9
+        ],
+        "kar": [
+          5,
+          14
+        ],
+        "per": [
+          5,
+          9
+        ]
+      },
+      "attrs_roll_source": {
+        "con": {
+          "kind": "lpc",
+          "line": 71,
+          "path": "adm/daemons/race/insect.lpc"
+        },
+        "dex": {
+          "kind": "lpc",
+          "line": 72,
+          "path": "adm/daemons/race/insect.lpc"
+        },
+        "int": {
+          "kind": "lpc",
+          "line": 69,
+          "path": "adm/daemons/race/insect.lpc"
+        },
+        "kar": {
+          "kind": "lpc",
+          "line": 73,
+          "path": "adm/daemons/race/insect.lpc"
+        },
+        "per": {
+          "kind": "lpc",
+          "line": 70,
+          "path": "adm/daemons/race/insect.lpc"
+        }
+      },
       "class": null,
       "desc": "一只蝎子正虎视眈眈地盯著你。",
       "desc_source": "lpc",
@@ -4175,6 +4829,12 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": "昆虫",
+      "race_source": {
+        "kind": "lpc",
+        "line": 9,
+        "path": "d/hangzhou/npc/xiezi.lpc"
+      },
       "sect": null,
       "skills": {},
       "source": {
@@ -4231,6 +4891,8 @@
       ],
       "attitude": null,
       "attrs": {},
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "一个游兴正浓的年轻人，东张西望，时不时停下来打量泉边的景致。",
       "desc_source": "authored",
@@ -4246,6 +4908,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 20,
@@ -4275,6 +4939,8 @@
         "dex": 16,
         "str": 24
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "武当派游方道人．",
       "desc_source": "lpc",
@@ -4301,6 +4967,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 60,
@@ -4381,6 +5049,8 @@
         "per": 20,
         "str": 30
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "张召重人称“火手判官”，身材魁梧，留一丛短胡子。江湖盛\n言“宁挨一枪，莫遇一张”就是指他了。他热衷功名利禄，投\n身朝廷，此人办事卖力，这些年来更是青云直上。",
       "desc_source": "lpc",
@@ -4413,6 +5083,8 @@
       "nickname": "火手判官",
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 100,
@@ -4453,6 +5125,8 @@
         "int": 17,
         "str": 17
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这是个城里的少年。",
       "desc_source": "lpc",
@@ -4474,6 +5148,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {},
       "source": {
@@ -4512,6 +5188,8 @@
         "int": 15,
         "str": 14
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这是个农家少女，虽然只有十二、三岁，身材已经开始发育。",
       "desc_source": "lpc",
@@ -4533,6 +5211,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {},
       "source": {
@@ -4573,6 +5253,8 @@
         "int": 20,
         "str": 25
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": "eunach",
       "desc": "他是东厂大太监海大富，乔装改扮成商人模样出京寻欢作乐，长得既像\n老头又像老太太。",
       "desc_source": "lpc",
@@ -4603,6 +5285,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "bixie-jian": 50,
@@ -4642,6 +5326,8 @@
         "int": 10,
         "str": 32
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这是一个傻乎乎的小姑娘。",
       "desc_source": "lpc",
@@ -4670,6 +5356,8 @@
       "prepare_skills": [
         "strike"
       ],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "anying-fuxiang": 65,
@@ -4712,6 +5400,8 @@
         "int": 25,
         "str": 25
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "他就是雄踞武林，号召天下，威风赫赫的当今武林盟主。",
       "desc_source": "lpc",
@@ -4738,6 +5428,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 100,
@@ -4777,6 +5469,8 @@
         "int": 25,
         "str": 25
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "一位笑容可掬的中年人，他就是乐善好施，爱贫如子的武林赏善使者。",
       "desc_source": "lpc",
@@ -4803,6 +5497,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 90,
@@ -4842,6 +5538,8 @@
         "int": 25,
         "str": 25
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "一位神色严峻的中年武人，他就是嫉恶如仇，侠名远播的武林罚恶使者。",
       "desc_source": "lpc",
@@ -4868,6 +5566,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 90,
@@ -4907,6 +5607,8 @@
         "int": 25,
         "str": 25
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "他就是雄踞武林，号召天下，威风赫赫的当今武林盟主。",
       "desc_source": "lpc",
@@ -4933,6 +5635,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 100,
@@ -4966,6 +5670,64 @@
       ],
       "attitude": "peaceful",
       "attrs": {},
+      "attrs_roll": {
+        "con": [
+          5,
+          54
+        ],
+        "dex": [
+          5,
+          64
+        ],
+        "int": [
+          5,
+          14
+        ],
+        "kar": [
+          5,
+          24
+        ],
+        "per": [
+          5,
+          24
+        ],
+        "str": [
+          5,
+          14
+        ]
+      },
+      "attrs_roll_source": {
+        "con": {
+          "kind": "lpc",
+          "line": 64,
+          "path": "adm/daemons/race/bird.lpc"
+        },
+        "dex": {
+          "kind": "lpc",
+          "line": 65,
+          "path": "adm/daemons/race/bird.lpc"
+        },
+        "int": {
+          "kind": "lpc",
+          "line": 62,
+          "path": "adm/daemons/race/bird.lpc"
+        },
+        "kar": {
+          "kind": "lpc",
+          "line": 66,
+          "path": "adm/daemons/race/bird.lpc"
+        },
+        "per": {
+          "kind": "lpc",
+          "line": 63,
+          "path": "adm/daemons/race/bird.lpc"
+        },
+        "str": {
+          "kind": "lpc",
+          "line": 61,
+          "path": "adm/daemons/race/bird.lpc"
+        }
+      },
       "class": null,
       "desc": "一只黑色的乌鸦，丑陋极了。",
       "desc_source": "lpc",
@@ -4981,6 +5743,12 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": "飞禽",
+      "race_source": {
+        "kind": "lpc",
+        "line": 6,
+        "path": "d/jiaxing/npc/wuya.lpc"
+      },
       "sect": null,
       "skills": {},
       "source": {
@@ -5038,6 +5806,8 @@
       ],
       "attitude": "friendly",
       "attrs": {},
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这位店小二正笑咪咪地忙著，还不时拿起挂在脖子上的抹布擦脸。",
       "desc_source": "lpc",
@@ -5059,6 +5829,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {},
       "source": {
@@ -5087,6 +5859,8 @@
         "int": 18,
         "str": 16
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这是一个活泼可爱的女仆人。",
       "desc_source": "lpc",
@@ -5108,6 +5882,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {},
       "source": {
@@ -5136,6 +5912,8 @@
         "int": 18,
         "str": 16
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这是一个英俊潇洒的仆人。",
       "desc_source": "lpc",
@@ -5157,6 +5935,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {},
       "source": {
@@ -5196,6 +5976,8 @@
         "int": 20,
         "str": 20
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": "bonze",
       "desc": "这是位胖乎乎的大师傅，是陈麻婆一手调教出来的，他要是发现你的偷看他做豆腐，可是会打人的哦。",
       "desc_source": "lpc",
@@ -5211,6 +5993,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 12,
@@ -5245,6 +6029,55 @@
       "attrs": {
         "str": 26
       },
+      "attrs_roll": {
+        "con": [
+          5,
+          14
+        ],
+        "dex": [
+          5,
+          24
+        ],
+        "int": [
+          5,
+          9
+        ],
+        "kar": [
+          5,
+          14
+        ],
+        "per": [
+          5,
+          9
+        ]
+      },
+      "attrs_roll_source": {
+        "con": {
+          "kind": "lpc",
+          "line": 60,
+          "path": "adm/daemons/race/fish.lpc"
+        },
+        "dex": {
+          "kind": "lpc",
+          "line": 61,
+          "path": "adm/daemons/race/fish.lpc"
+        },
+        "int": {
+          "kind": "lpc",
+          "line": 58,
+          "path": "adm/daemons/race/fish.lpc"
+        },
+        "kar": {
+          "kind": "lpc",
+          "line": 62,
+          "path": "adm/daemons/race/fish.lpc"
+        },
+        "per": {
+          "kind": "lpc",
+          "line": 59,
+          "path": "adm/daemons/race/fish.lpc"
+        }
+      },
       "class": null,
       "desc": "这是一只身形并不很大的鱼，浑身覆满绚丽的鳞片，\n一口锋利的牙齿，正虎视耽耽的看着你",
       "desc_source": "lpc",
@@ -5275,6 +6108,12 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": "游鱼",
+      "race_source": {
+        "kind": "lpc",
+        "line": 6,
+        "path": "d/shiliang/npc/fish.lpc"
+      },
       "sect": null,
       "skills": {},
       "source": {
@@ -5338,6 +6177,8 @@
         "int": 20,
         "str": 100
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "他就是人称“金蛇郎君”的一代怪杰——夏雪宜。\n他做事全凭好恶，时正时邪，端地是独来独往，好不潇洒！\n听说他的身世很惨，人也变得偏激起来。\n看起来他好象受了点伤，脸色很难看。",
       "desc_source": "lpc",
@@ -5368,6 +6209,8 @@
       "nickname": "金蛇郎君",
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 200,
@@ -5404,6 +6247,8 @@
       ],
       "attitude": "aggressive",
       "attrs": {},
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这是一个十分凶恶的崆峒派道人。",
       "desc_source": "lpc",
@@ -5430,6 +6275,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 100,
@@ -5463,6 +6310,8 @@
         "int": 19,
         "str": 18
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这是一个山间农夫，十分粗俗。",
       "desc_source": "lpc",
@@ -5484,6 +6333,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {},
       "source": {
@@ -5507,6 +6358,8 @@
       ],
       "attitude": "aggressive",
       "attrs": {},
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这是一个满脸横肉的和尚。",
       "desc_source": "lpc",
@@ -5533,6 +6386,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "blade": 100,
@@ -5561,6 +6416,8 @@
       ],
       "attitude": "aggressive",
       "attrs": {},
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这家伙满脸横肉一付凶神恶煞的模样，令人望而生畏。",
       "desc_source": "lpc",
@@ -5582,6 +6439,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 20,
@@ -5613,6 +6472,8 @@
         "int": 20,
         "str": 30
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这位便是这家大宅的主人，温氏五老的大哥：温方达。",
       "desc_source": "lpc",
@@ -5639,6 +6500,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 100,
@@ -5699,6 +6562,8 @@
         "int": 20,
         "str": 30
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这位便是温家老五：温方南。",
       "desc_source": "lpc",
@@ -5725,6 +6590,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 100,
@@ -5785,6 +6652,8 @@
         "int": 20,
         "str": 30
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这位便是温家老三：温方山。",
       "desc_source": "lpc",
@@ -5811,6 +6680,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 100,
@@ -5871,6 +6742,8 @@
         "int": 20,
         "str": 30
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这位便是温家老四：温方施。",
       "desc_source": "lpc",
@@ -5897,6 +6770,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 100,
@@ -5957,6 +6832,8 @@
         "int": 20,
         "str": 30
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这位便是温家老二：温方悟。",
       "desc_source": "lpc",
@@ -5983,6 +6860,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 100,
@@ -6044,6 +6923,8 @@
         "int": 18,
         "str": 16
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这是一个美如天仙的女子，眉宇间却是仿佛隐藏着深忧。",
       "desc_source": "lpc",
@@ -6080,6 +6961,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {},
       "source": {
@@ -6120,6 +7003,8 @@
         "int": 19,
         "str": 18
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这是一个小丫环，容貌清秀脱俗。",
       "desc_source": "lpc",
@@ -6141,6 +7026,8 @@
       "nickname": null,
       "origin": "slice",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {},
       "source": {
@@ -6164,6 +7051,8 @@
       ],
       "attitude": "friendly",
       "attrs": {},
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这位店小二正笑咪咪地忙著，还不时拿起挂在脖子上的抹布擦脸。",
       "desc_source": "lpc",
@@ -6179,6 +7068,8 @@
       "nickname": null,
       "origin": "external",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {},
       "source": {
@@ -6202,6 +7093,55 @@
       "attrs": {
         "int": 30
       },
+      "attrs_roll": {
+        "con": [
+          5,
+          44
+        ],
+        "dex": [
+          5,
+          24
+        ],
+        "kar": [
+          5,
+          14
+        ],
+        "per": [
+          5,
+          24
+        ],
+        "str": [
+          5,
+          34
+        ]
+      },
+      "attrs_roll_source": {
+        "con": {
+          "kind": "lpc",
+          "line": 64,
+          "path": "adm/daemons/race/stock.lpc"
+        },
+        "dex": {
+          "kind": "lpc",
+          "line": 65,
+          "path": "adm/daemons/race/stock.lpc"
+        },
+        "kar": {
+          "kind": "lpc",
+          "line": 66,
+          "path": "adm/daemons/race/stock.lpc"
+        },
+        "per": {
+          "kind": "lpc",
+          "line": 63,
+          "path": "adm/daemons/race/stock.lpc"
+        },
+        "str": {
+          "kind": "lpc",
+          "line": 61,
+          "path": "adm/daemons/race/stock.lpc"
+        }
+      },
       "class": null,
       "desc": "一匹骏马，全身火红，无一根杂毛。\n玩家可以骑上它去指定的地方(ride)。",
       "desc_source": "lpc",
@@ -6217,6 +7157,12 @@
       "nickname": null,
       "origin": "external",
       "prepare_skills": [],
+      "race": "走畜",
+      "race_source": {
+        "kind": "lpc",
+        "line": 14,
+        "path": "d/city/npc/zaohongma.lpc"
+      },
       "sect": null,
       "skills": {},
       "source": {
@@ -6276,6 +7222,55 @@
       "attrs": {
         "int": 30
       },
+      "attrs_roll": {
+        "con": [
+          5,
+          44
+        ],
+        "dex": [
+          5,
+          24
+        ],
+        "kar": [
+          5,
+          14
+        ],
+        "per": [
+          5,
+          24
+        ],
+        "str": [
+          5,
+          34
+        ]
+      },
+      "attrs_roll_source": {
+        "con": {
+          "kind": "lpc",
+          "line": 64,
+          "path": "adm/daemons/race/stock.lpc"
+        },
+        "dex": {
+          "kind": "lpc",
+          "line": 65,
+          "path": "adm/daemons/race/stock.lpc"
+        },
+        "kar": {
+          "kind": "lpc",
+          "line": 66,
+          "path": "adm/daemons/race/stock.lpc"
+        },
+        "per": {
+          "kind": "lpc",
+          "line": 63,
+          "path": "adm/daemons/race/stock.lpc"
+        },
+        "str": {
+          "kind": "lpc",
+          "line": 61,
+          "path": "adm/daemons/race/stock.lpc"
+        }
+      },
       "class": null,
       "desc": "这是一匹黄骠骏马，全身金黄，没有一丝杂毛。\n玩家可以骑上它去指定的地方(ride)。",
       "desc_source": "lpc",
@@ -6291,6 +7286,12 @@
       "nickname": null,
       "origin": "external",
       "prepare_skills": [],
+      "race": "走畜",
+      "race_source": {
+        "kind": "lpc",
+        "line": 8,
+        "path": "d/city/npc/huangbiaoma.lpc"
+      },
       "sect": null,
       "skills": {},
       "source": {
@@ -6350,6 +7351,55 @@
       "attrs": {
         "int": 30
       },
+      "attrs_roll": {
+        "con": [
+          5,
+          44
+        ],
+        "dex": [
+          5,
+          24
+        ],
+        "kar": [
+          5,
+          14
+        ],
+        "per": [
+          5,
+          24
+        ],
+        "str": [
+          5,
+          34
+        ]
+      },
+      "attrs_roll_source": {
+        "con": {
+          "kind": "lpc",
+          "line": 64,
+          "path": "adm/daemons/race/stock.lpc"
+        },
+        "dex": {
+          "kind": "lpc",
+          "line": 65,
+          "path": "adm/daemons/race/stock.lpc"
+        },
+        "kar": {
+          "kind": "lpc",
+          "line": 66,
+          "path": "adm/daemons/race/stock.lpc"
+        },
+        "per": {
+          "kind": "lpc",
+          "line": 63,
+          "path": "adm/daemons/race/stock.lpc"
+        },
+        "str": {
+          "kind": "lpc",
+          "line": 61,
+          "path": "adm/daemons/race/stock.lpc"
+        }
+      },
       "class": null,
       "desc": "这是一匹紫骝宝马，日行千里，夜行八百。\n玩家可以骑上它去指定的地方(ride)。",
       "desc_source": "lpc",
@@ -6365,6 +7415,12 @@
       "nickname": null,
       "origin": "external",
       "prepare_skills": [],
+      "race": "走畜",
+      "race_source": {
+        "kind": "lpc",
+        "line": 8,
+        "path": "d/city/npc/ziliuma.lpc"
+      },
       "sect": null,
       "skills": {},
       "source": {
@@ -6426,6 +7482,8 @@
         "dex": 16,
         "str": 24
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "驯马和租马的小贩，给他租金就可以雇到马。",
       "desc_source": "lpc",
@@ -6441,6 +7499,8 @@
       "nickname": null,
       "origin": "external",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 60,
@@ -6508,6 +7568,8 @@
         "int": 20,
         "str": 20
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "他是一位身宽体胖的老者，身穿一件白布长袍。\n他正笑嘻嘻地看着你，好象对你颇有好感。",
       "desc_source": "lpc",
@@ -6537,6 +7599,8 @@
       "prepare_skills": [
         "finger"
       ],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "buddhism": 70,
@@ -6582,6 +7646,8 @@
         "per": 28,
         "str": 21
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "他就是日月神教的光明左使。为人极为豪爽。只见他容貌清癯，颏下疏疏朗朗一丛花白长须，垂在胸前。",
       "desc_source": "lpc",
@@ -6615,6 +7681,8 @@
       "nickname": "天王老子",
       "origin": "external",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dagger": 200,
@@ -6654,6 +7722,8 @@
       ],
       "attitude": "friendly",
       "attrs": {},
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": null,
       "desc_source": null,
@@ -6669,6 +7739,8 @@
       "nickname": null,
       "origin": "external",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {},
       "source": {
@@ -6698,6 +7770,8 @@
         "per": 30,
         "str": 30
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "她生得极为美貌，但冰冷的目光让人不寒而栗。",
       "desc_source": "lpc",
@@ -6728,6 +7802,8 @@
       "nickname": "赤练仙子",
       "origin": "external",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "dodge": 100,
@@ -6768,6 +7844,8 @@
         "int": 11,
         "str": 11
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这是个农家小孩子",
       "desc_source": "lpc",
@@ -6789,6 +7867,8 @@
       "nickname": null,
       "origin": "external",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {},
       "source": {
@@ -6815,6 +7895,8 @@
         "int": 15,
         "str": 14
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这是个农家少女，虽然只有十二、三岁，身材已经开始发育。",
       "desc_source": "lpc",
@@ -6836,6 +7918,8 @@
       "nickname": null,
       "origin": "external",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {},
       "source": {
@@ -6874,6 +7958,8 @@
         "int": 17,
         "str": 17
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "这是个农家少年，大概因从小务农，虽然年纪不大，可已长的很粗壮了。",
       "desc_source": "lpc",
@@ -6895,6 +7981,8 @@
       "nickname": null,
       "origin": "external",
       "prepare_skills": [],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {},
       "source": {
@@ -6935,6 +8023,8 @@
         "int": 29,
         "str": 30
       },
+      "attrs_roll": {},
+      "attrs_roll_source": {},
       "class": null,
       "desc": "他是白驼山庄主，号称“西毒”的欧阳锋。\n由于习练「九阴真经」走火入魔，已变得精\n神错乱，整日披头散发。",
       "desc_source": "lpc",
@@ -6967,6 +8057,8 @@
         "strike",
         "hand"
       ],
+      "race": null,
+      "race_source": null,
       "sect": null,
       "skills": {
         "chanchu-bufa": 300,

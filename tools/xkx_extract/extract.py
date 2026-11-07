@@ -21,6 +21,24 @@ from .skills_actions import extract_skill_tables
 
 AREA_DIRS = ("hangzhou", "jiaxing", "shiliang")
 
+# 原版种族 setup 里的随机属性：race 名 -> 种族 daemon。
+# 只收 setup 中 `if (undefinedp(my["str"])) my["str"] = random(N) + M;` 这类
+# 明确掷骰的键；显式 set("str", ...) 的键不覆盖。
+RACE_ATTR_FILES = {
+    "走兽": "adm/daemons/race/beast.lpc",
+    "野兽": "adm/daemons/race/beast1.lpc",
+    "走畜": "adm/daemons/race/stock.lpc",
+    "飞禽": "adm/daemons/race/bird.lpc",
+    "游鱼": "adm/daemons/race/fish.lpc",
+    "爬蛇": "adm/daemons/race/snake.lpc",
+    "昆虫": "adm/daemons/race/insect.lpc",
+}
+ATTR_KEYS = ("str", "int", "con", "dex", "per", "kar")
+_RACE_ATTR_ROLL_RE = re.compile(
+    r'if\s*\(\s*undefinedp\(\s*my\[\s*"([a-z]+)"\s*\]\s*\)\s*\)'
+    r'\s*my\[\s*"\1"\s*\]\s*=\s*random\(\s*(\d+)\s*\)\s*\+\s*(\d+)\s*;'
+)
+
 ROOM_BASE = "ROOM"
 NPC_BASE = "NPC"
 MASTER_BASE = "F_MASTER"
@@ -146,6 +164,7 @@ class Extractor:
         self.drop_counts: dict[str, int] = {}
         self.equipment_counts: dict[str, int] = {}
         self._text_cache: dict[str, str] = {}
+        self._race_attr_cache: dict[str, dict] = {}
         self._item_refs: set[str] = set()
         self._npc_refs: set[str] = set()
         self._stub_reachable: set[str] = set()
@@ -715,9 +734,20 @@ class Extractor:
             self.diag("W_NPC_NO_NAME", "warning", rel_path, 1, "NPC 没有 set_name")
 
         attrs = {}
-        for key in ("str", "int", "con", "dex", "per", "kar"):
+        for key in ATTR_KEYS:
             if key in values and isinstance(values[key][0], int):
                 attrs[key] = values[key][0]
+        race_value, race_line = values.get("race", (None, None))
+        race = race_value if isinstance(race_value, str) else None
+        attrs_roll = {}
+        attrs_roll_sources = {}
+        if race:
+            for key, meta in self._race_attr_defaults(race).items():
+                # 显式 set 过的键（含无法静态取值的表达式）不覆盖。
+                if key in values:
+                    continue
+                attrs_roll[key] = [meta["min"], meta["max"]]
+                attrs_roll_sources[key] = meta["source"]
         vitals = {}
         for key in ("max_qi", "max_jing", "max_neili", "neili", "jiali", "combat_exp"):
             if key in values and isinstance(values[key][0], int):
@@ -737,7 +767,13 @@ class Extractor:
             "class": values.get("class", (None, None))[0],
             "attitude": attitude,
             "aggressive": attitude == "aggressive",
+            "race": race,
+            "race_source": {
+                "kind": "lpc", "path": rel_path, "line": race_line,
+            } if race else None,
             "attrs": attrs,
+            "attrs_roll": attrs_roll,
+            "attrs_roll_source": attrs_roll_sources,
             "vitals": vitals,
             "skills": skills,
             "map_skills": map_skills,
@@ -751,6 +787,35 @@ class Extractor:
             "source": {"path": rel_path, "line": name_line or 1},
             "_topics": topics,
         }
+
+    def _race_attr_defaults(self, race: str) -> dict[str, dict]:
+        """按种族 setup 抽 `random(N)+M` 掷骰区间；不写死具体值。"""
+        if race in self._race_attr_cache:
+            return self._race_attr_cache[race]
+        rel_path = RACE_ATTR_FILES.get(race)
+        defaults: dict[str, dict] = {}
+        if rel_path:
+            text = self.read(rel_path)
+            if text is not None:
+                for lineno, src_line in enumerate(text.splitlines(), 1):
+                    m = _RACE_ATTR_ROLL_RE.search(src_line)
+                    if not m:
+                        continue
+                    key, raw_n, raw_base = m.group(1), int(m.group(2)), int(m.group(3))
+                    if key not in ATTR_KEYS:
+                        continue
+                    defaults[key] = {
+                        "min": raw_base,
+                        "max": raw_base + raw_n - 1,
+                        "expr": f"random({raw_n}) + {raw_base}",
+                        "source": {
+                            "kind": "lpc",
+                            "path": rel_path,
+                            "line": lineno,
+                        },
+                    }
+        self._race_attr_cache[race] = defaults
+        return defaults
 
     def _make_temp_apply(self, key, value, line, rel_path, emit_diag):
         """把一条 create() 内的 set_temp 转成记录；非整数值保留原式，不折算。"""
@@ -1098,6 +1163,22 @@ class Extractor:
             "items_external": sum(1 for i in self.items.values() if i["origin"] == "external"),
             "npcs_in_slice": sum(1 for n in self.npcs.values() if n["origin"] == "slice"),
             "npcs_external": sum(1 for n in self.npcs.values() if n["origin"] == "external"),
+            "npcs_with_attrs_roll": sum(1 for n in self.npcs.values() if n.get("attrs_roll")),
+            "npcs_with_attrs_roll_in_slice": sum(
+                1 for n in self.npcs.values()
+                if n["origin"] == "slice" and n.get("attrs_roll")
+            ),
+            "npcs_beast_attrs_roll": sum(
+                1 for n in self.npcs.values()
+                if n.get("race") in ("走兽", "野兽") and n.get("attrs_roll")
+            ),
+            "attrs_roll_fields": sum(
+                len(n.get("attrs_roll") or {}) for n in self.npcs.values()
+            ),
+            "attrs_roll_fields_in_slice": sum(
+                len(n.get("attrs_roll") or {}) for n in self.npcs.values()
+                if n["origin"] == "slice"
+            ),
             "dialogue_topics": len(self.dialogue),
             "dialogue_topics_in_slice": sum(1 for t in self.dialogue if t.get("origin") != "external"),
             "shops": len(self.shops),
