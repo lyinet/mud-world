@@ -1,258 +1,369 @@
-# world-sim — P1 无头世界审计器
+# world-sim · 九地点世界
 
-> **安全提示（2026-11-04）**：历史报告 [reports/p3d-report.md](reports/p3d-report.md) 曾以明文出现测试 key（现已替换为 `<REDACTED>`）。该 key 如为真实凭证，必须立即轮换；本仓库不再保存任何明文 key，所有 key 只从环境变量读取。
+一个事件溯源、可确定性回放的文字世界：Python 模拟内核 + 会自主行动的 NPC + 浏览器前端。
+不需要模型 key、GPU 或外部数据库，首次运行会在本地生成种子世界。
 
-独立 Python 项目，位于 `world-sim/` 子目录，**不修改仓库现有文件**。模拟是事件溯源架构：
-SQLite `events` append-only 日志是唯一事实源，内存 `WorldState` 只是可重建的投影。
+| 项目 | 值 |
+|---|---|
+| 分支 | `master`（`df2b37c`） |
+| 世界内容 | 9 个地点 / 31 位 NPC |
+| 测试 | 687 项（669 passed / 18 skipped / 0 failed） |
+| Python | 3.10+；核对环境 3.12.7 |
+| 许可 | 仓库无 LICENSE 文件，见文末 |
 
-内容数据全部来自 `content/`（由另一会话维护，本目录只读）。运行模拟时
-`allow_fixture=False`，内容缺失会直接报错；`fixtures/default/` 只在单元测试里使用。
+> 另有一个 `xkx-parity` 分支在做侠客行复刻，进行中；那是独立内容包和独立端口，不在本 README 范围。
 
-指标口径固定在 [docs/metrics.md](docs/metrics.md)（v1.1.0，2026-11-03 生效，含 CHANGELOG）。
+---
 
-## 对比归因规则（强制）
+## 1. 这是什么
 
-`p2b-baseline` tag 冻结了 P2-B 交付快照（`3b1762e` / 代码 `42f4914`，
-`content_hash=7acace8f2337…`）。**此后任何指标对比必须同时给出两边的 commit 与
-content hash，否则视为不可归因**：
+- **世界状态不是内存里的一份对象，而是一串事件。** `events.sqlite` 只追加，`WorldState` 是可随时重建的投影。
+- **写入是单写者串行。** 玩家动作、NPC 自走、后台任务都进同一个 Writer，按 tick 提交，避免并发写冲突。
+- **随机数是确定的。** 引擎只用 SplitMix64，不用 Python `random`；同一个种子、同一串输入，回放出同一个世界。
+- **NPC 会自己行动。** 修炼、开店、接委托、结婚都由世界自走推进，不依赖玩家在线。
+- **模型只负责台词。** 模型生成的对话写入 `dialogue_aside.jsonl`，不进入事件序列，也不改世界哈希。
 
-- K1 只允许同一快照内比较（同一 `content_hash`、同一目标集、同一 seed、同一天数）；
-  跨内容版本一律标记 `non_comparable`，summary 输出 `k1.comparison_basis`。
-- K3 对比必须注明两边使用的签名 spec 版本（v1.0.0 / v1.1.0），同一 run 同时输出两版。
-- 只给百分比、不给 commit 与 content hash 的数字，不得写进结论。
+一句话：它先是一个可审计、可回放的世界模拟内核，然后才是一个能玩的文字前端。
 
-## 安装
+## 2. 现在能玩什么
+
+下面每行都来自 **2026-11-07 本次实跑**，不是旧报告摘抄。核对环境：
+`./start.sh` 起在 `127.0.0.1:18052`（API）与 `127.0.0.1:18051`（前端），账号 `u_readme_2611`。
+
+| 动作 | 本次命令 | 本次真实输出 | 时间 |
+|---|---|---|---|
+| 注册 | `POST /api/auth/register {"username":"u_readme_2611","password":"readme-pass-2611"}` | `{"account_id":"u_readme_2611","created":true,"ok":true}` | 16:00:47 |
+| 登录 | `POST /api/auth/login {"username":"u_readme_2611","password":"readme-pass-2611"}` | `{"ok":true,"account_id":"u_readme_2611","username":"u_readme_2611"}` | 16:00:47 |
+| 进入 | `POST /api/player/enter {"account_id":"u_readme_2611","display_name":"README游侠2611"}` | `granted=true, money=300, items=[粗布（一匹）×1, 炊饼×3]` | 16:00:47 |
+| 看 | `GET /api/player/state?account_id=u_readme_2611` | 地点`集市`；出口`书院/客栈/药铺/铁匠铺/茶棚`；在场 10 人；钱包 300 文 | 16:00:47 |
+| 交谈 | `POST /api/player/action {"verb":"talk","args":{"target":"liu_sanniang","message":"最近有什么新鲜事"}}` | `街面上传得凶，一版比一版玄；我只看亲眼见的，你别再往外传。阿是这话，你也听得的？` | 16:00:58 |
+| 买 | `POST /api/player/action {"verb":"buy","args":{"item":"flatbread","qty":1}}` | `ok=true, status=executed`；随后 state 复核钱包 `297` 文 | 16:00:47 |
+| 接任务 | `POST /api/player/action {"verb":"quest_accept","args":{"quest":"quest:daily_smithy_bellows:149"}}` | `ok=true, status=executed`；任务`【中】铁匠铺拉风箱`进入已接列表 | 16:00:58 |
+| 走 | `POST /api/player/action {"verb":"move","args":{"to":"smithy"}}` | `ok=true, status=executed`；复核地点变为`铁匠铺` | 16:00:47 |
+
+同一份 `player-api.md` 里还有押镖、门派、婚姻、收徒、产业等动作。它们在当前版本可用，但本次没有逐项演示，因此不在此表列“已完成”。
+
+前端就是这些动作的可视化壳：左栏地图、中栏世界动态、右栏“今天能做什么”。直接调 API 和点页面走的是同一套动作与同一个事件日志。
+
+## 3. 快速开始
+
+### 3.1 本地一条命令
+
+要求：Python 3.10 以上。首次运行脚本会创建 `.venv`、装锁定依赖、生成种子世界。
 
 ```bash
 cd world-sim
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
+./start.sh
 ```
 
-## 运行
+成功后终端会打印世界统计、访问地址和自走状态。关键行类似：
+
+```text
+[start] Python: Python 3.12.7 (<repo>/.venv/bin/python)
+
+种子世界: quickstart-2d · 2 游戏日 · 735 条事件 · NPC 自主行动 637 条
+[start] 启动 API + 玩家前端 + 世界自走（XKX_AMBIENT=1，0 可关闭）...
+[demo] 启动 wsim.api -> http://127.0.0.1:8020
+[demo] 健康检查: API 200 (GET /api/player/state)
+[demo] 启动玩家前端（反代模式）-> http://127.0.0.1:8000 (upstream http://127.0.0.1:8020)
+```
+
+打开 <http://127.0.0.1:8000/>。端口被占用时换一组：
 
 ```bash
-# 10 个游戏日，30 NPC
-.venv/bin/python sim/run_headless.py --days 10 --seed 42 --npc 0 --run-id rev10d
-
-# 72 个游戏日，30 NPC
-.venv/bin/python sim/run_headless.py --days 72 --seed 42 --npc 0 --run-id rev72d
-
-# 同一 seed 双跑复现
-.venv/bin/python sim/run_headless.py --days 10 --seed 42 --npc 0 --run-id rev10d-repro
-diff runs/rev10d/world_hash.txt runs/rev10d-repro/world_hash.txt && echo SAME
-
-# 从事件日志回放重建，验证投影 == 日志
-.venv/bin/python tools/replay.py --run runs/rev10d   # 期望 MATCH
-.venv/bin/python tools/replay.py --run runs/rev72d   # 期望 MATCH
-
-# 测试
-.venv/bin/python -m pytest
+API_PORT=8120 PORT=8010 ./start.sh
 ```
 
-`--npc 0` 表示使用全部 NPC；`--dump-state` 会额外写出 `state_final.json`（大文件，调试用）。
-下表是 **2026-11-03 的历史基线**，对应内容包 hash
-`b639ab91a99918b4297b034617b94cc67da7591255c695f97ec48f13a5edf3d4`；
-它**不是当前版本的数字**。当前 `content_hash = 5267a8a8…`（2026-11-06），
-未在新内容下复跑 10/72 日，因此事件数（2877 / 19322）、K1 等数字已不对应当前代码，
-只作历史对照，不能拿来下当前版本的结论。
+按 `Ctrl-C` 会同时停掉 API、前端和世界自走。日志在 `runs/<RUN_ID>/logs/{api,ui,ambient}.log`。
+不想要 NPC 自走：`XKX_AMBIENT=0 ./start.sh`。
 
-## 历史实跑结果（2026-11-03，seed=42，30 NPC，单区域）
+**首次进入没有默认口令。** 在页面注册，或按 [docs/AUTH-API-W1.md](docs/AUTH-API-W1.md) 调注册/登录接口。
+新账号第一次 `enter` 固定发放：300 文、炊饼×3、粗布×1。
 
-| 指标 | 10 日 `rev10d` | 72 日 `rev72d` |
-|---|---|---|
-| state_final | `b136b459b0807ff15edbd8c3f1b0baf33ebcf679d3289d1025d0ad85362052c4` | `e4254a504ff75bc6467022f368e6b9c4ecc92a9a5a487fcead4a3cbf43fbb606` |
-| state_day10 | 同左 | `b136b459b0807ff15edbd8c3f1b0baf33ebcf679d3289d1025d0ad85362052c4` |
-| event_final | `5d82f297adec9bca73d24fcff034f9d3a6696d80f85bd63500aca82daf870284` | `12d9b93ff9d4e1e06b57635e1ea4dd1b85cfc373a355a74d0a071799b6c821cc` |
-| 事件数 / 拒绝率 | 2877 / 9（0.3128%） | 19322 / 64（0.3312%） |
-| **K6 守恒误差** | **0** | **0** |
-| K6 负账户 / 债务独立审计 | 无 / **PASS** | 无 / **PASS** |
-| **K1 全量口径（分母 90）** | **38/90 = 42.22%（不达标）** | **68/90 = 75.56%（达标）** |
-| K1 已创建口径（仅参考） | 38/42 = 90.48% | 68/71 = 95.77% |
-| K1 剔除一次性目标 | 35.00% | 67.16% |
-| 一次性目标占已推进 | 10/38 = 26.32% | 23/68 = 33.82% |
-| K3 | 诊断，不判定 | 诊断，不判定 |
-| K3 verb 层 Top-10 / 熵 | 0.9982 / 2.3252 bits | 0.9989 / 2.0702 bits |
-| K3 对象层 Top-10 / 熵 | 0.6665 / 4.7919 bits（94 签名） | 0.7211 / 4.4235 bits（99 签名） |
-| K3 对象层 NPC 归一化熵 均值/最小 | 0.8785 / 0.8184 | 0.7833 / 0.6519 |
-| K3 对象层 NPC 两两 JS 均值 | 0.4651 | 0.4098 |
-| K3 折叠 move 后 Top-10 / 熵 | 0.7735 / 3.9020 bits | **0.8349 / 3.4462 bits** |
-| K3 折叠 move 后 NPC 熵 均值/最小 | 0.7895 / 0.6937 | **0.6799 / 0.5432** |
-| K3 折叠 move 后两两 JS | 0.3685 | 0.3036 |
-| NPC 现金变化/日 | -6.29 | +1.39 |
-| NPC 经营净现金流/日 | +6.71 | +5.10 |
-| NPC 净资产变化/日 | +6.71 | +4.86 |
-| 内容包理想值/日 | 5.88 | 5.88 |
-| 工资应发 / 实付 / 欠薪 | 7370 / 7370 / 0 | 53064 / 50469 / 2595 |
-| 货币总量 minted / burned | 47150 / 654 | 47150 / 4852 |
+本次实测启动耗时（已有 `.venv`、种子世界已存在，端口 18032/18031）：
+API 首次 `/api/health` 返回 `ok=true` 用 **0.70s**，前端首页可访问用 **0.92s**。
+首次冷启动还要建 venv 和生成种子，耗时不等于这两个数。
 
-结论：
+### 3.2 Docker Compose
 
-- **K6 通过**：守恒误差 0；债务从事件日志独立重建，9 项检查全部通过。
-- **K1 72 日通过（75.56%），10 日不通过（42.22%）**。10 日只有 42/90 个目标被创建，
-  全量分母下必然低；10 日不是 K1 的评估期。72 日剔除一次性目标后仍有 67.16%。
-- **K3 不判定**。按 P1 口径只输出诊断数值。若强行套用已废止的 v2 阈值，
-  对象层 6/6 通过，但把 move 折叠后 72 日是 3/6 不通过（Top-10 >0.80、熵 <4.0、
-  NPC 熵均值 <0.70）。这说明 v2 的“通过”确实部分来自把 move 按地点拆桶。
-- 同 seed 双跑（`rev10d` / `rev10d-repro`）状态与事件哈希完全一致；10 日、72 日回放均 MATCH。
-
-### 为什么 10 日经营净现金流 6.71 高于理想值 5.88？
-
-10 日是短周期，且本轮内容包补了 `home` 后行为路径变化。现金流里有内容包理想模型之外的
-两类收入：起步库存卖出净额（sell 919 − buy 835 = 84 文）和押镖分成 504 文；同时没有欠薪。
-放到 72 日，经营净现金流回落到 5.10，低于理想值 5.88。两轮 `minted` 都固定为 47150、
-K6 误差为 0，没有日常增发。10 日的 6.71 仍在内容包给出的 1.4–10.4 区间内，但高于其
-中心值 5.88；这是短周期与额外收入，不是铸币。
-
-### 为什么 NPC 现金变化与经营净现金流不同？
-
-开店铺/建门派的支出是资本开支，不是经营亏损：
-
-- 10 日现金 −1887，资本开支 3900（店铺租金），经营净现金流 +2013。
-- 72 日现金 +3008，资本开支 8000（7500 店铺租金 + 500 建派注册费 burn），
-  经营净现金流 +11008；净资产 +10508（店铺账面 7500 计入资产，500 注册费
-  不可资本化，差额即此）。
-
-## K1 全量口径与 22 个未达标目标（72 日）
-
-分母是 `content/npcs.yaml` 的 90 个目标，未创建即记未推进。72 日实测：
-
-- 已创建 71，已推进 68；未创建 19，已创建但未推进 3。
-- **未创建 19 个的阻塞原因**：
-  - 15 个卡在前序 `advance_skill` 未完成（进度 0.275–0.783，72 日内未到目标）；
-  - 4 个卡在 `found_sect`（谢停云 1 个下游、燕守一 2 个下游、白露生 1 个下游；
-    白露生的 `found_sect` 到第 68.65 日才成功，下游目标来不及创建）。
-- **已创建但未推进 3 个**：谢停云 `found_sect`（成员不足）、燕守一 `found_sect`（成员不足）、
-  白露生 `advance_skill`（第 69 日才创建，期末进度 0）。
-- `found_sect` 已按内容包 `min_members: 5` 执行。P1 把“创始成员”定义为
-  创始人 + 在世弟子 + 亲密度 ≥ `min_relation_value`（30）的 friend/family/ally，
-  且不在其他 `sect:`。72 日内只有白露生在第 68.65 日凑齐 11 人并建派；
-  谢停云、燕守一始终不足 5 人，因此这两个目标失败。
-- 一次性目标（一次动作即完成）：23 个，占已推进的 33.82%，按类型为
-  `gain_status` 12、`build_shop` 10、`found_sect` 1。
-  它们把 K1 从 67.16%（剔除一次性）抬到 75.56%，抬升 8.40 个百分点。
-
-**与复核报告 84/90 的差异**：84/90 是基于旧内容包和旧 `found_sect` 逻辑的预期。
-本轮内容包 hash 已变（补 `home` / `goal_targets`），且 `min_members: 5` 开始生效，
-只有 1/3 的建派目标成功，连带 3 个下游目标无法创建；另有 15 个目标卡在 `advance_skill`
-的未完成进度。实测就是 68/90，不是 84/90。
-
-## K3 双层诊断（P1 不做 pass/fail）
-
-完整口径见 [docs/metrics.md](docs/metrics.md)。签名 v1.0.0 =
-`verb + 参数语义 + target 类型`，不含 NPC id、数量、时间、金额；对象 id 来自内容包。
-同时输出 verb 层、对象层、move 折叠视图，避免只报对自己有利的一层。
-
-72 日 verb 层计数：
-
-```
-move 5809  consume 4641  work 2160  cultivate 1460  trade 522  sell 73  buy 50
-escort 28  join_sect 12  open_shop 10  apprentice 9  marry 6  found_sect 1
+```bash
+cd world-sim
+./deploy/gen_selfsigned_cert.sh          # 生成 deploy/certs/xkx.crt / xkx.key
+docker-compose -f deploy/docker-compose.yml up -d --build
+docker-compose -f deploy/docker-compose.yml ps
 ```
 
-- verb 层 Top-10 = 0.9989，熵 = 2.0702 bits，每 NPC 独立 verb 最少 4。
-- 对象层 Top-10 = 0.7211，熵 = 4.4235 bits（有效模式 21.46），
-  每 NPC 归一化熵均值 0.7833 / 最小 0.6519，两两 JS 均值 0.4098，
-  零假设 JS 0.0526，信噪比 7.79×。
-- **把 `move:<地点>` 折叠为 `move:any` 后**：Top-10 = 0.8349，熵 = 3.4462 bits，
-  NPC 熵均值 0.6799 / 最小 0.5432，两两 JS 0.3036，独立 verb 最少 6。
+默认端口：
 
-按已废止的 v2 阈值对照（只作历史参照，不判定）：
+- 世界 API：`127.0.0.1:8020`
+- 玩家前端：`127.0.0.1:8030`
+- nginx：`80` / `443`（TLS 入口）
 
-| 判据 | 不折叠 | 折叠 move | v2 阈值 |
-|---|---|---|---|
-| Top-10 | 0.7211 | **0.8349** | <0.80（折叠后失败） |
-| 签名熵 | 4.4235 | **3.4462** | ≥4.0（失败） |
-| NPC 熵均值 | 0.7833 | **0.6799** | ≥0.70（失败） |
-| NPC 熵最小 | 0.6519 | 0.5432 | ≥0.50（通过） |
-| 两两 JS | 0.4098 | 0.3036 | ≥0.30（通过） |
-| 独立 verb 最小 | 8 | 6 | ≥3（通过） |
+容器服务为 `world` / `admin` / `backup` / `proxy`。停：
 
-所以：不折叠时 v2 六项全过；折叠 move 后 **3/6 不达标**。复核报告写的是 5/6，
-差异来自内容包与运行变化，但方向一致——v2 的通过混入了拆桶红利。因此 v1.0.0 取消
-K3 pass/fail，v2 阈值标记为 `revoked`。
-
-## K6 债务独立审计（不再是恒真式）
-
-旧实现只验证“应收合计 == 应付合计”，而两者由同一个 `amount` 同时加减，永远成立。
-本轮改为 `audit/debt_audit.py` 从事件日志独立重建：
-
-1. 逐事件累加 `transfer` / `mint` / `burn` / `debt_settle` 的实际账户变动；
-2. 每笔 `debt_settle` 校验应收方增加 == 应付方减少 == 债务金额（并检查付款方余额）；
-3. 每笔债务金额与来源独立核对：
-   `initial_debt` ↔ 内容包关系金额；`unpaid_wage` ↔ 同事件应发 − 实付；
-   `living_*` ↔ 生活成本 − 实付；`escort_fee` ↔ 镖单分成 − 实付；
-4. 核对“声明 − 已结算 == 期末状态金额”；
-5. 逐事件复式平衡：正变动 + 销毁 == 负变动 + 发行；
-6. 任何“钱包增加但付款方未减少”直接失败；genesis 之外出现 mint 直接失败。
-
-72 日实测：118 笔债务、声明总额 3835 文（初始 1230 + 工资欠条 2595 + 押镖欠款 10），
-已结算 0，全部 9 项检查通过；重建账户合计 42298 == 状态账户合计 42298。
-逐笔工资明细见 `runs/rev72d/wage_trace.json`。
-
-## 工资链路
-
-| | 10 日 | 72 日 |
-|---|---|---|
-| 应发 gross | 7370 | 53064 |
-| 实付 paid | 7370 | 50469 |
-| 新建欠薪 | 0 | 2595 |
-| 已清偿 | 0 | 0 |
-| 存续 IOU | 0 | 105 笔 2595 文 |
-| 对账 5 项 | 全 true | 全 true |
-
-实付转账 reason=`wage`，未付欠账 note=`unpaid_wage`；恒等式 `gross == paid + unpaid`
-逐笔成立。实付与现金流 `inflow_by_reason.wage` 一致（10 日 7370，72 日 50469）。
-
-## 与内容包的字段对齐
-
-| 字段 | 本轮内容包 | 引擎处理 |
-|---|---|---|
-| `npcs.yaml home` | 30/30 已声明 | 直接读取；缺失时才用工作地点相邻 + id 哈希，并在 `content_audit.defaults_used` 标记 |
-| `economy.yaml goal_targets` | bond/faction/mastery/shop/wealth 全部声明 | 直接读取；缺失 kind 时才用默认 target，并标记 |
-| `verbs.yaml cooldown` | 字段已删除（`cooldown_field_present=false`） | 不读取、不实现、不假装节流 |
-| `relations.long_term` | 当前 0 条 | 引擎支持；补数据后 72 日内不强制清偿但进账本 |
-| `found_sect min_members` | 5 | 已强制执行，3 个建派目标中 1 个成功 |
-| 债务 `amount` | 24 条 creditor/debtor 关系全部带 amount | 双方各一条分录，金额独立核对 |
-
-`content_audit.issues` 本轮为空；`defaults_used.home.defaulted = 0`，
-`defaults_used.goal_targets.defaulted_goals = 0`。
-
-## 未达标 / 尚未解决
-
-1. **K1 10 日 42.22% 不达标**：全量分母 90，但 10 日只创建 42 个目标。P1 的评估期是 72 日；
-   若要求 10 日也 ≥60%，需要内容包把目标链压短，而不是把分母改回已创建目标。
-2. **K1 72 日 75.56%，但依赖一次性目标 8.40 个百分点**：剔除一次性后 67.16%，
-   仍过 60%，但余量只有 7.16 个百分点。`advance_skill` 的 15 个阻塞目标是主要拖累。
-3. **K3 verb 层集中**：move/consume/work 占 88.9%（72 日），verb 熵仅 2.07 bits。
-   这是 P1 日程驱动的预期现象，不是靠改签名能解决的；需要 P3 意图层。
-4. **K3 折叠 move 后 3/6 v2 判据不达标**：Top-10、签名熵、NPC 熵均值。该结果如实保留，
-   不调粒度、不恢复阈值。
-5. **2 个 found_sect 目标失败**：谢停云、燕守一在 72 日内凑不到 `min_members: 5`。
-   这是内容包数值与 P1 无招人动作的结构性缺口，不是把门槛改小能解决的。
-6. **72 日仍有 105 笔 2595 文工资欠条**：NPC 钱包 38658 文，商业体现金仅 520 文；
-   总货币量固定下的流动性问题，IOU 已进账本、可清算，不是增发。
-7. **拒绝 64 笔（0.3312%）**：25 item_not_available、11 not_together、11 债务人余额不足、
-   8 not_adjacent、7 镖局现金不足、2 already_married；低于 1% 阈值。
-8. **found_sect 建派时一次性拉入 11 名成员**：这是按“可召集成员”定义实现的；
-   P2 若要做真正的招人流程，需要独立动作与成员准入，不应继续用建派事件批量拉人。
-
-## 目录结构
-
+```bash
+docker-compose -f deploy/docker-compose.yml down
 ```
+
+本机核对说明：Docker 29.9.2，只有独立版 `docker-compose`（5.6.1），没有 `docker compose` 子命令；
+本次只跑了 `docker-compose config` 校验配置，**没有实际启动容器**。生产环境按
+[docs/OPS-RUNBOOK.md](docs/OPS-RUNBOOK.md) 使用 Compose v2。
+
+### 3.3 服务模式（鉴权开启）
+
+```bash
+cd world-sim
+RUN=service PORT=8020 ./deploy/run_service.sh
+```
+
+输出：
+
+```text
+[run_service] root=<repo> run=service listen=http://127.0.0.1:8020 auth=auto
+```
+
+`deploy/service.yaml` 存在时 `auth=auto` 会开启鉴权，流程仍是注册 → 登录 → 带 Bearer token 进入。
+账号库和存档都在 `runs/service/`。
+
+### 端口一览
+
+| 进程 | 默认地址 |
+|---|---|
+| `./start.sh` 世界 API | `127.0.0.1:8020` |
+| `./start.sh` 玩家前端 | `127.0.0.1:8000` |
+| Docker 世界 API | `127.0.0.1:8020` |
+| Docker 玩家前端 | `127.0.0.1:8030` |
+| Docker nginx | `:80` / `:443` |
+| `deploy/run_service.sh` | `127.0.0.1:8020` |
+| 管理台后端 | `127.0.0.1:8032` |
+| 管理台页面 | `127.0.0.1:8039` |
+
+## 4. 目录结构
+
+```text
 world-sim/
-├── content/                 # 只读：NPC/地点/物品/动词/经济参数（另一会话维护）
-├── config/role_workplace.yaml
-├── docs/metrics.md          # 指标口径 v1.0.0 + CHANGELOG
+├── start.sh                 # 本地一键启动：API + 前端 + 世界自走
 ├── src/wsim/
-│   ├── core/                # canonical JSON/hash、虚拟时钟、PRNG、内容加载、模型
-│   ├── world/               # WorldState、Effect 应用、唯一写者、事件存储、哈希
-│   ├── actions/             # 13 个 NPC 动词 + system_* 系统动作（纯 apply）
-│   ├── sim/                 # genesis 创世、headless 主循环
-│   └── audit/               # K6/K1/K3、现金流、工资链路、债务独立审计、内容对齐
-├── sim/run_headless.py      # CLI
-├── tools/replay.py          # 事件日志回放校验
-├── tests/                   # 守恒、原子性、纯洁性、复现、回放、K3、债务审计、确定性 lint
-├── fixtures/default/        # 仅测试用最小 fixture（运行时不使用）
-└── runs/                    # 实跑输出：rev10d / rev10d-repro / rev72d（另有历史 run）
+│   ├── core/                # 事件、tick、确定性 RNG、哈希
+│   ├── world/               # WorldState、Writer、回放
+│   ├── actions/             # 动作与前置条件
+│   ├── sim/                 # NPC 目标、日程、自走
+│   ├── api/                 # 玩家 API、鉴权
+│   ├── admin/               # 管理台后端
+│   └── agent/               # 模型调用与对话旁路
+├── content/                 # 九地点内容（YAML）
+│   ├── locations.yaml
+│   ├── npcs.yaml
+│   ├── items.yaml
+│   ├── verbs.yaml
+│   └── additions/           # 增量内容（茶棚等）
+├── ui/player/               # 玩家前端
+├── ui/admin/                # 管理台页面
+├── deploy/                  # Docker、nginx、服务启动、证书、备份
+├── docs/                    # 玩家 API、管理台、运维、容量、soak
+├── scripts/                 # demo、selfcheck、内容校验
+├── tests/                   # pytest
+└── runs/                    # 运行时存档与日志（不入库）
 ```
+
+## 5. 核心设计
+
+### 5.1 事件日志是唯一事实源
+
+```text
+玩家动作 / NPC 自走 / 后台任务
+        ↓
+    单 Writer，按 tick 串行
+        ↓
+events.sqlite（append-only）
+        ↓ 回放
+WorldState（内存投影，可随时重建）
+```
+
+`events.sqlite` 只追加，不原地改。要查“为什么现在是这个状态”，回放到对应 seq 即可。
+
+### 5.2 单写者
+
+所有写入走同一个 Writer。玩家请求不是直接改内存，而是生成意图、过前置条件、提交事件。
+这样同一 tick 内的并发请求也有确定顺序。
+
+### 5.3 确定性随机
+
+引擎只用 SplitMix64。同一条事件序列、同一个种子，重复回放得到同一状态。
+这也是测试能对世界哈希做逐字节比较的前提。
+
+### 5.4 三级哈希
+
+- `content_hash`：内容包哈希
+- `event_final`：事件序列哈希
+- `state_final`：回放后的世界状态哈希
+
+本次核对的 2 日种子世界（`runs/quickstart-2d`，seed=42，735 事件）：
+
+```text
+content_hash  5267a8a84f7c2e0200358c92b8e63cebff54db461de8123484732a66aa696da4
+event_final   02d5f812c427833387e592ad9321ebd72a9c5c719825b958f53af83d795078ae
+state_final   009076f0346352e328d8c158a3017a3e26fbc0b2c59ef7ca20c8fc3d1f780ce9
+```
+
+**无玩家时，世界哈希逐字节不变。** 同样的事件序列回放两次，`event_final` 与 `state_final` 相同。
+
+### 5.5 模型台词为什么不改世界哈希
+
+模型输出只做一件事：生成台词。台词写入 `dialogue_aside.jsonl`，与 `events.sqlite` 分离；
+它不进入 `WorldState`，不参与 `content_hash` / `event_final` / `state_final` 计算。
+
+所以换模型、换中转站、改 prompt，只会改变玩家看到的句子，不会改变世界的确定性结果。
+
+## 6. 管理控制台
+
+管理台是独立进程，不跟玩家 API 共用端口。本机实际使用后端 `8032`、页面 `8039`：
+
+```bash
+cd world-sim
+
+export PYTHONPATH=src
+export XKX_ADMIN_TOKEN='<管理登录口令>'
+export XKX_SECRET_KEY="$(python3 -c 'import base64,os;print(base64.b64encode(os.urandom(32)).decode())')"
+export XKX_ADMIN_DB="$PWD/runs/<RUN>/service.sqlite"
+
+# 后端
+.venv/bin/python -m wsim.admin --root . --run <RUN> --host 127.0.0.1 --port 8032
+
+# 页面（同源代理，避免 CORS）
+.venv/bin/python ui/admin/server.py --port 8039 --upstream http://127.0.0.1:8032
+```
+
+打开 <http://127.0.0.1:8039/>，用 `XKX_ADMIN_TOKEN` 登录。
+
+代码里的 `--port` 默认值是 `8031`；本机把玩家 API 放在 8031，所以管理台改用 8032，页面代理到 8039。
+两处都实跑过：后端 `GET /api/admin/*` 需要登录后的 Bearer token，未登录直接 401。
+
+能改什么：
+
+- 世界参数与运行开关
+- 模型 provider / 中转站地址
+- API key（AES-256-GCM 加密后落库，明文不写日志）
+- 按能力位选择模型
+- 预算与调用审计
+
+能力位共 7 个：`dialogue`、`strategy`、`self_goal`、`night_batch`、`quest_gen`、`persona_gen`、`validation`。
+当前代码里真实接上调用点的只有 `dialogue`、`strategy`、`night_batch`；其余 4 个是配置位，不要当成已生效能力。
+
+详见 [docs/ADMIN-CONSOLE.md](docs/ADMIN-CONSOLE.md)。
+
+## 7. 部署与运维
+
+完整步骤在 [docs/OPS-RUNBOOK.md](docs/OPS-RUNBOOK.md)，这里只列入口。
+
+**TLS**：自签证书用 `./deploy/gen_selfsigned_cert.sh`；正式证书走 ACME，替换后
+`docker-compose -f deploy/docker-compose.yml restart proxy`（nginx 启动时读证书，不热加载）。
+
+**备份**：用 sqlite 在线备份 API，不要 `cp`。
+
+```bash
+.venv/bin/python tools/backup_snapshot.py --root . --run service
+sh tools/backup_offsite.sh --backup-dir backups
+```
+
+备份 manifest 带 `sha256`、事件 `seq`、`content_hash`，可直接用于异机恢复核对。
+
+**探活**：
+
+```bash
+curl -s http://127.0.0.1:8020/api/health
+curl -s http://127.0.0.1:8020/healthz
+```
+
+**限流与登录锁定**：登录失败按 900s / 3600s / 86400s 退避，锁定期间返回 429。
+
+**回滚**：按 [docs/RELEASE-ROLLBACK.md](docs/RELEASE-ROLLBACK.md) 回到上一个 `delivery-*` tag，
+再跑一次备份校验。不要直接改 `events.sqlite`。
+
+## 8. 测试与门禁
+
+```bash
+cd world-sim
+PYTHONPATH=src .venv/bin/python -m pytest -q
+bash scripts/selfcheck.sh
+```
+
+本次结果（2026-11-07 15:20 起跑）：
+
+```text
+pytest:  687 tests, 669 passed, 18 skipped, 0 failed, 0 errors, 142.16s
+selfcheck: 4/4 PASS
+```
+
+`selfcheck` 覆盖：种子/回放一致性、API 健康、玩家前端、玩家闭环。
+
+CI 在 `.github/workflows/ci.yml`，2 个 job：
+
+- pytest + 内容校验 + 2 日冒烟
+- selfcheck
+
+触发条件：push 到 `master`、针对 `master` 的 PR。
+
+## 9. 分支与发布状态
+
+| 名称 | 当前值 |
+|---|---|
+| `master` | `df2b37c`（与 `origin/master` 一致） |
+| 复位前保险 tag | `master-before-reset-20261107` → `121fb37` |
+| 复位基线 tag | `pre-xkx-20261107` → `df2b37c` |
+| 发布 tag | `delivery-p3l` |
+
+## 10. 已知限制
+
+**容量**
+
+- 100 席是安全线；150 席时写请求 P95 到 958ms；500 席需要分区，当前单实例不支持。
+- 单区域玩家席位硬上限 200。这是防刷上限，不是性能目标。
+
+**长跑内存：旧结论已纠正**
+
+- 旧报告曾把 RSS 线性增长判为 “Event/AuditRecord 无界泄漏”。该结论已作废。
+- 复核发现多出来的 Event/AuditRecord 由**长跑探针自己持有**：`gc.get_objects()` 返回的列表被探针 frame 的局部变量引用，gen2 不回收。证据见 `reports/soak/ownerprobe-20261107/_probe/owners.json`。
+- 产品侧缓存本来就是有界的：幂等表 2 万条、审计队列 4096 条。
+- 最小修复（幂等表只存 `seq`，命中时按 seq 回读，不再存整个 Event）在 `fix/health-no-inline-integrity` 分支，**尚未合入 `master`**；该分支回归 668 项通过。
+- 20 分钟定向复测仍有两项未过：RSS 5%/h 门槛（实测 88.0%/h，但线性拟合 `r²=0.218`，不支持恒定线性泄漏）、写 P95 漂移 ≤1.30（实测 1.32）。
+- **仍未关闭**：写延迟尖峰 `write.max = 1277ms`。不要把它写成已修复。
+- 复测数据：`reports/soak/hotspot-r2c-20261107/summary.json`；新一轮 `hotspot-r2d-20261107` 结果仍在核对。
+
+**其它**
+
+- 本机没有 Docker Compose v2，本次 Docker 路径只做配置校验，未启动容器。
+- 仓库根目录没有 `LICENSE` 文件。
+
+## 11. 许可与数据须知
+
+- 本仓库没有 `LICENSE` 文件。对外使用前需要补授权，当前按“内部研究与评估”对待。
+- 仓库内不含 xkx 的参照内容。`xkx-parity` 分支的侠客行内容源自 `fluffos/xkx100`，没有授权，仅供内部研究与公式比对，不做商业运营。
+- `reports/` 下的历史报告可能包含已脱敏的测试数据；引用前先核对当前分支。
+
+---
+
+## 附录：数字核对表
+
+核对时间：2026-11-07 15:20–16:01（Asia/Shanghai）。除特别注明外，数字均来自本机现场命令。
+
+| 数字 | 值 | 核对方式 |
+|---|---|---|
+| `master` HEAD | `df2b37c` | `git rev-parse HEAD origin/master` |
+| 地点数 | 9 | `grep -c '^  - id:' content/locations.yaml content/additions/locations.yaml`（8 + 1） |
+| NPC 数 | 31 | `content/npcs.yaml` 30 + `content/additions/npcs.yaml` 1 |
+| 2 日种子事件数 | 735 | `runs/quickstart-2d/summary.json` |
+| `content_hash` | `5267a8a8…` | 同上 |
+| `event_final` | `02d5f812…` | `runs/quickstart-2d/event_hash.txt` |
+| `state_final` | `009076f0…` | `runs/quickstart-2d/world_hash.txt` |
+| pytest | 687 / 669 passed / 18 skipped | `--junitxml`，`time=142.160` |
+| selfcheck | 4/4 PASS | `scripts/selfcheck.sh` 输出 |
+| Python | 3.12.7 | `.venv/bin/python -V` |
+| 包版本 | 0.1.0 | `pyproject.toml` |
+| 启动耗时 | API 0.70s / 前端 0.92s | 已有 venv + 种子，端口 18032/18031 |
+| 本地端口 | 8020 / 8000 | `start.sh` 默认值 |
+| Docker 端口 | 8020 / 8030 / 80 / 443 | `deploy/docker-compose.yml` |
+| 管理台端口 | 8032 / 8039 | `ps -o command` 实进程 |
+| 容量安全线 | 100 席 | `docs/CAPACITY.md` |
+| 150 席写 P95 | 958ms | `docs/CAPACITY.md` |
+| 写延迟尖峰 | `write.max 1277ms` | `hotspot-r2c-20261107/summary.json` |
