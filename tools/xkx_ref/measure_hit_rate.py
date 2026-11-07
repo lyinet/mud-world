@@ -130,6 +130,15 @@ def _md5(path):
     return h.hexdigest()
 
 
+def repo_sha():
+    try:
+        out = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=REPO,
+                             capture_output=True, text=True)
+        return out.stdout.strip() or "unknown"
+    except Exception:  # noqa: BLE001
+        return "unknown"
+
+
 def write_config(port: int) -> None:
     base = os.path.join(SAMPLE, "config.ini")
     cfg = open(base, encoding="utf-8").read()
@@ -464,6 +473,7 @@ def do_run(tier, target_key, run_idx, port, args) -> dict:
             sess.close()
 
     out = {"tier": tier, "target": target_key, "run": run_idx, "port": port,
+           "build_sha": repo_sha(),
            "lives": lives, "failures": failures, "meta": meta0 or {},
            "acc": acc}
     with open(os.path.join(run_dir, "meta.json"), "w", encoding="utf-8") as fh:
@@ -514,6 +524,7 @@ def build_report():
             continue
         runs = sorted(d for d in os.listdir(base) if d.startswith("run"))
         per, metas, lives, snippet = [], [], [], ""
+        shas = []
         for r in runs:
             rd = os.path.join(base, r)
             acc, files, snip = load_acc_from_dir(rd, TARGETS[tkey]["name"])
@@ -524,6 +535,8 @@ def build_report():
                 doc = json.load(open(mp, encoding="utf-8"))
                 metas.append(doc.get("meta") or {})
                 lives += doc.get("lives") or []
+                if doc.get("build_sha"):
+                    shas.append(doc["build_sha"])
         if not per:
             continue
         tot = empty_acc()
@@ -531,7 +544,7 @@ def build_report():
             merge(tot, a)
         blocks.append({"tier": tier, "tkey": tkey, "per": per, "tot": tot,
                        "meta": metas[0] if metas else {}, "lives": lives,
-                       "snippet": snippet})
+                       "shas": shas, "snippet": snippet})
 
     out = []
 
@@ -544,6 +557,10 @@ def build_report():
     A("")
     A("驱动：FluffOS v2019；mudlib：`tools/xkx_ref/run/mudlib`（与 4004 同一棵树，commit c1b87db）；"
       "驱动二进制与 4004 同一份。")
+    A("")
+    shas = sorted({s for b in blocks for s in b.get("shas", [])})
+    A(f"采样构建：`{'/'.join(shas) if shas else repo_sha()}`（本仓库 HEAD；原版侧 mudlib 固定 c1b87db，"
+      "驱动与 4004 同一份）。复刻对照值的构建为 `86a6ca7`（见 §0、§5 脚注与 §9 更正记录）。")
     A("")
     A("采样实例：`run/mudlib-sample` + `config-sample.ini`（端口 4010），每次登陆前重启实例、"
       "把快照写回存档。4004 仅在开头做过一次 ≤3 分钟的连通性确认，未被长时间占用。")
@@ -561,7 +578,7 @@ def build_report():
     A("## 0. 判据句（可直接拿去对复刻）")
     A("")
     mids = [b for b in blocks if b["tier"] == "mid"]
-    replica = {"xiaoer": "1.1%", "liumang": "10.0%", "tiger": "77.2%"}
+    replica = {"xiaoer": "1.1%", "liumang": "16.1%", "tiger": "100.0%"}
     for b in mids:
         n = b["tot"]["npc"]
         r3 = _run3(b["per"], "npc")
@@ -569,11 +586,12 @@ def build_report():
             lo, hi = wilson(n["hits"], n["attacks"])
             A(f"- **原版 MID 打{TARGETS[b['tkey']]['name']}：对方打中我方 {_rng(r3)}**"
               f"（三次取样区间；合计 {n['hits']}/{n['attacks']} = {pct(n['hits'] / n['attacks'])}，"
-              f"Wilson95% [{pct(lo)}, {pct(hi)}]）。复刻对应值：{replica[b['tkey']]}。")
+              f"Wilson95% [{pct(lo)}, {pct(hi)}]）。复刻对应值（当前 HEAD）：{replica[b['tkey']]}。")
         else:
             A(f"- **原版 MID 打{TARGETS[b['tkey']]['name']}：对方 0 次出手**（数据不足）。")
     A("")
-    A("读数提示：复刻值落在上面区间内，则没有证据表明 ap/dp 映射错；明显落在区间外，才值得改映射。")
+    A("读数提示：复刻值落在上面区间内，则没有证据表明 ap/dp 映射错；明显落在区间外，才值得改映射。"
+      "老虎档已确认**对齐**：原版 100.0% 与复刻当前 HEAD 100.0% 一致；旧报告里的 77.2% 作废，见 §9。")
     A("")
 
     # ---------- 角色 ----------
@@ -715,6 +733,13 @@ def build_report():
           f"{pct(n['hits'] / n['attacks'])} | [{pct(lo)}, {pct(hi)}] | {_rng(_run3(b['per'], 'npc'))} | "
           f"{replica[b['tkey']] if b['tier'] == 'mid' else '-'} |")
     A("")
+    A("复刻对照口径：产品默认新号（`unarmed=40 / dodge=10 / parry=10`、`combat_exp=250`、六维默认），"
+      "3 seeds × 60 回合、双方各 180 次出手；构建为当前 `xkx-parity` HEAD（含 `86a6ca7` 接入 NPC "
+      "`set_temp` 临时攻防），见 `specs/xkx-parity/combat-implementation.md` §10.5。")
+    A("")
+    A("> 注意：复刻对照的角色档（技能 40/10/10、exp 250）与本文 MID 构造档（技能 40/40/40、exp 6400）"
+      "**不是同一角色**，只作量级对照；店小二/流氓两档同理。")
+    A("")
 
     # ---------- 线索 ----------
     A("## 6. 与 combatd.lpc 参数相关的线索")
@@ -780,6 +805,23 @@ def build_report():
     A("")
     A("- 原始日志：`reports/xkx-ref/hit-rate/<tier>_<target>/run{1,2,3}/life*.txt` 与 `meta.json`。")
     A("- 采集器每次登录前重启 4010 实例并覆盖存档，跑完自动停实例；4004 不被占用。")
+    A("")
+
+    # ---------- 更正记录 ----------
+    A("## 9. 更正记录（保留旧值，不静默改数）")
+    A("")
+    A("- **2026-11-07 作废：复刻老虎命中 77.2%**。该值来自 `specs/xkx-parity/"
+      "combat-implementation.md` §10.3（139/180），采于**落后于当前 HEAD 的构建**——当时尚未接入 "
+      "`86a6ca7` 的 NPC `set_temp` 临时攻防，老虎的 `apply/defense=30000` / `apply/attack=20000` "
+      "没有生效，dp 只有 `combat_exp/2` 量级。同 seed、3 次独立结算、每人 60 回合的 A/B 实测："
+      "当前 HEAD **180/180 = 100.0%**；摘掉老虎 `apply/*`（等价旧构建）**130/180 = 72.2%**。"
+      "原版 MID 本报告复测 152/152 = 100.0%。结论：**老虎档原版与复刻对齐**，"
+      "旧报告“老虎明显偏离”的判据句撤回。")
+    A("- **2026-11-07 更新：复刻流氓命中 10.0% → 16.1%**。10.0%（18/180）同样是 `set_temp` 接入前的值"
+      "（§10.3）；当前 HEAD 为 29/180 = 16.1%（§10.5）。")
+    A("- **店小二 1.1% 不变**：接入 `set_temp` 前后均 2/180 = 1.1%（HEAD 已复测）。")
+    A("- 旧值仅保留在本记录中，正文与 §5 表格一律使用当前 HEAD 数字；新增采集的 `meta.json` 写入 "
+      "`build_sha`，报告顶部“采样构建”字段据此填写。")
     A("")
 
     os.makedirs(REPORTDIR, exist_ok=True)
