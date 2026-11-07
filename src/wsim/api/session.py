@@ -526,6 +526,8 @@ class WorldSession:
         self.world_config_path = Path(world_config) if world_config else None
         # 世界配置里唯一的游走开关；缺省/缺文件/解析失败一律视为关闭。
         self.npc_wander_enabled = self._load_npc_wander(self.world_config_path)
+        # 开局档位（combat_exp / 初始技能）：世界配置唯一来源，动作层只接收归一后的值。
+        self.player_start = self._load_player_start(self.world_config_path)
         self.run_id = run_id
         self.run_dir = Path(run_dir) if run_dir else self.root / "runs" / run_id
         self.run_dir.mkdir(parents=True, exist_ok=True)
@@ -624,6 +626,7 @@ class WorldSession:
                             pid,
                             display_name if pid == player_id else pid.removeprefix("player:"),
                             spawn,
+                            start=self.player_start,
                         ),
                         tick=0,
                         verb="genesis_player",
@@ -1538,6 +1541,25 @@ class WorldSession:
             return False
         raw = loaded.get("npc_wander") or {}
         return bool(raw.get("enabled")) if isinstance(raw, dict) else bool(raw)
+
+    @staticmethod
+    def _load_player_start(path: Path | None) -> dict | None:
+        """只读世界配置的 `player_start`；缺省/解析失败/非 dict 一律回落 None。
+
+        数值合法性由 `actions.player._start_values` 统一归一，这里只负责取配置。
+        """
+        if path is None:
+            return None
+        try:
+            import yaml
+
+            loaded = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
+        except Exception:
+            return None
+        if not isinstance(loaded, dict):
+            return None
+        raw = loaded.get("player_start")
+        return dict(raw) if isinstance(raw, dict) else None
 
     def _load_content_pack(self, pack_root: Path):
         """按“内容包目录”加载内容，兼容 core.load_content 的 <root>/content 约定。
@@ -2850,6 +2872,7 @@ class WorldSession:
                     "display_name": str(payload.get("display_name") or self.display_name),
                     "archetype": str(payload.get("archetype") or ""),
                     "at": at,
+                    "player_start": self.player_start,
                 }
             )
             return base
