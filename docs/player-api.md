@@ -1859,6 +1859,7 @@ curl -s 'http://127.0.0.1:8848/api/world/feed?limit=5'
 | `1.2` | 2026-11-06 | 新增 §13「门派动作设计」：冻结 `found_sect` / `recruit_disciple` / `expel_disciple` / `pay_disciples` / `sect_deposit` / `sect_withdraw` 的契约、门槛、拒绝码与钱流（当时未接线，已由 `1.3` 取代） | 历史记录：当时动作层已实现但调用仍被拒 |
 | `1.3` | 2026-11-06 | **门派动作接线开放**：六个写动词进白名单/别名/`_args`/`PLAYER_VERBS`，`found_sect` 不再返回 `not_implemented_for_player`；新增私有 `player.sect`（§3.3）与 `details.sect`/`details.settlement`；拒绝码统一为 `no_sect` / `already_in_sect` / `not_sect_leader` / `sect_full` / `insufficient_rep` / `insufficient_funds` / `disciple_not_found` / `favor_too_low` / `trust_too_low` / `arrears_too_high`，全部并入 §7；§13 改为真实契约 | 前端可接入口；匿名状态仍无门派私有字段；NPC/无玩家世界逐字节不变 |
 | `1.4` | 2026-11-06 | **门派面板缺口补齐**：`disciples[]` 增 `affection` / `trust`（与收徒裁决同一 `_bond`）与逐人 `settled_today`；新增只读 `GET /api/player/sects`（§3.4，安全字段 + 匿名可读 + 固定排序） | 只加字段/新 handler，既有视图字段不变；无玩家 2 日 golden 逐字节不变 |
+| `1.5` | 2026-11-07 | **xkx MUD 客户端面板**：`/api/player/state` 的 `player` 只增 `vitals`（气血/内力，缺失为 null + 原因）、`combat_exp`、`attrs` / `attrs_detail` / `attrs_reason`、`weight`（当前负重，上限 null + 原因）、`skills_engine` / `skills_status`、`equipment.actions`、`exploration`（`rooms_total` / `rooms_explored`，区域只读引擎 `region`，缺失为 null + `area_reason`）；地面行增中文 `name`。新增只读 `GET /api/xkx/help`（153 命令 / 32 主题，按 `status` 标注，`shell` 表示本文字壳是否真的接入口） | 纯增量，`profile_version` 保持 `1`；前端不再自行推导属性/负重/区域/技能；不可用项显示原因 |
 
 ---
 

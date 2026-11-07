@@ -159,6 +159,10 @@ def load_xkx_content(pack_root: Path | str) -> Content:
             "unit": str(raw.get("unit") or "件"),
             "description": str(raw.get("desc") or ""),
             "weight": _int_or(raw.get("weight"), 0),
+            # 内容包的装备槽与重量来源只读透传；引擎穿脱未接通时只做展示。
+            "equip_slot": str(raw.get("equip_slot") or ""),
+            "weight_source": str(raw.get("weight_source") or ""),
+            "weight_reason": str(raw.get("weight_reason") or ""),
         }
 
     # 引擎自带的初始行囊（actions 层发放）不在 xkx 内容包里；补几条展示用
@@ -240,6 +244,9 @@ def load_xkx_content(pack_root: Path | str) -> Content:
             "objects": objects_by_room.get(rid) or [],
             "coord": raw.get("coord") or {},
             "flags": raw.get("flags") or {},
+            # 区域信息只读透传：内容包没有时留空，API 层给「暂不可用」原因，不猜。
+            "region": str(raw.get("region") or ""),
+            "region_name": str(raw.get("region_name") or ""),
             "origin": str(raw.get("origin") or "slice"),
         }
 

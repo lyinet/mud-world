@@ -131,6 +131,156 @@ def test_ask_missing_npc_says_who_is_here(session):
     assert "店小二" in text
 
 
+def _state(session):
+    # player_state 要求账号已进入世界；先发一条 look，和真实客户端一致。
+    _cmd(session, "look")
+    return session.player_state(ACCOUNT)
+
+
+def test_player_state_exposes_vitals_attrs_exp_weight(session):
+    state = _state(session)
+    player = state["player"]
+    ent = session.state.entities[f"player:{ACCOUNT}"]
+
+    vitals = player["vitals"]
+    assert set(vitals) >= {"hp", "max_hp", "hp_pct", "neili", "neili_reason"}
+    if ent.max_hp:
+        assert vitals["hp"] == ent.hp
+        assert vitals["max_hp"] == ent.max_hp
+        assert vitals["hp_pct"] is not None
+    else:
+        assert vitals["hp"] is None and vitals["max_hp"] is None
+        assert vitals["hp_reason"]
+    # 引擎没有内力字段：必须 null + 原因，不能编造数值。
+    assert vitals["neili"] is None
+    assert vitals["neili_reason"]
+
+    assert player["combat_exp"] == ent.combat_exp
+    labels = {row["label"] for row in player["attrs_detail"]}
+    assert {"膂力", "根骨", "身法", "悟性", "精神", "耐力"} <= labels
+    assert player["attrs_reason"] == ("" if ent.attrs else player["attrs_reason"])
+
+    weight = player["weight"]
+    assert weight["max"] is None
+    assert weight["reason"]
+    expected = 0
+    for row in player["wallet"]["items"]:
+        meta = session.content.items.get(row["item"])
+        if meta and isinstance(meta.get("weight"), (int, float)):
+            expected += int(meta["weight"]) * int(row["qty"])
+    for slot in player["equipment"]["slots"]:
+        if slot.get("empty"):
+            continue
+        meta = session.content.items.get(slot.get("item"))
+        if meta and isinstance(meta.get("weight"), (int, float)):
+            expected += int(meta["weight"])
+    assert weight["current"] == expected
+
+
+def test_player_state_reports_skills_or_reason(session):
+    player = _state(session)["player"]
+    status = player["skills_status"]
+    assert isinstance(player["skills_engine"], list)
+    assert isinstance(player["skills_detail"], list)
+    if player["skills_engine"] or player["skills_detail"]:
+        assert status["available"] is True
+    else:
+        assert status["available"] is False
+        assert status["reason"]
+
+
+def test_player_state_has_quests_shape(session):
+    state = _state(session)
+    assert isinstance(state.get("active_quests_detail"), list)
+    player = state["player"]
+    assert isinstance(player.get("active_quests"), list)
+
+
+def test_equipment_slots_and_actions_are_explicit(session):
+    player = _state(session)["player"]
+    equipment = player["equipment"]
+    assert isinstance(equipment["slots"], list) and equipment["slots"]
+    actions = equipment["actions"]
+    assert actions["equip"] is False and actions["unequip"] is False
+    assert actions["reason"]
+    # 内容包 equip_slot 只读可见，但明确标注引擎未接，不能显示成可用空槽。
+    assert equipment["xkx_slots"]
+    assert equipment["xkx_slots_available"] is False
+    assert equipment["xkx_slots_reason"]
+
+
+def test_exploration_counts_grow_after_moves(session):
+    before = _state(session)["player"]["exploration"]
+    assert before["rooms_total"] == 195
+    assert before["rooms_explored"] >= 1
+    if before["area"] is not None:
+        assert before["area_total"] > 0
+        assert before["area_explored"] >= 1
+    else:
+        assert before["area_reason"]
+
+    moved = _cmd(session, "go 西")
+    assert moved["ok"] is True
+    after = _state(session)["player"]["exploration"]
+    assert after["rooms_explored"] >= before["rooms_explored"] + 1
+    if after["area"] is not None:
+        assert after["area_explored"] >= before["area_explored"]
+
+
+def test_help_catalog_has_153_commands_and_32_topics(session):
+    catalog = session.xkx_help_catalog()
+    counts = catalog["counts"]
+    assert counts["commands"] == 153
+    assert counts["topics"] == 32
+    assert counts["status"] == {"已实现": 40, "待实现": 51, "不做": 62}
+    assert len(catalog["commands"]) == 153
+    assert len(catalog["topics"]) == 32
+    look = next(row for row in catalog["commands"] if row["name"] == "look")
+    baitan = next(row for row in catalog["commands"] if row["name"] == "baitan")
+    assert look["shell"] is True
+    # baitan 在帮助里是“已实现”，但本文字壳没接入口，绝不能因此说可用。
+    assert baitan["shell"] is False
+
+
+def test_help_command_status_and_topic_body(session):
+    catalog = session.xkx_help_catalog()
+    pending = next(row for row in catalog["commands"] if row["status"] == "待实现")
+    text = "\n".join(_texts(_cmd(session, "help 命令 战斗")))
+    assert "待实现" in text
+    assert "本壳未接" in text
+
+    topic = next(
+        row for row in catalog["topics"] if row["status"] in ("开放", "部分开放")
+    )
+    doc = yaml.safe_load((ROOT / "content" / "xkx_help" / "topics.yaml").read_text(encoding="utf-8"))
+    body = next(
+        str(item.get("body") or "")
+        for item in doc["topics"]
+        if str(item.get("id")) == topic["id"]
+    )
+    topic_text = "\n".join(_texts(_cmd(session, f"help {topic['id']}")))
+    assert topic["title"] in topic_text
+    if body.strip():
+        assert body.strip().splitlines()[0].strip() in topic_text
+
+    admin = next((row for row in catalog["topics"] if row["status"] == "管理"), None)
+    if admin:
+        admin_text = "\n".join(_texts(_cmd(session, f"help {admin['id']}")))
+        assert "不向玩家开放" in admin_text
+
+
+def test_unknown_command_says_dont_understand(session):
+    text = "\n".join(_texts(_cmd(session, "zzz")))
+    assert "你没听懂" in text
+    assert "help" in text
+
+    baitan = "\n".join(_texts(_cmd(session, "baitan")))
+    assert "还没接上" in baitan or "未接入口" in baitan
+    assert "待实现" in baitan or "已实现" in baitan
+    # 不能把未接入口的命令写成可以执行。
+    assert "本文字壳未接入口" in baitan
+
+
 def test_buy_and_sell_roundtrip_changes_wallet(session):
     look = _cmd(session, "look")
     assert look["ok"] is True
@@ -225,7 +375,7 @@ def test_unknown_command_does_not_leak_codes(session):
     result = _cmd(session, "跳舞")
     assert result["ok"] is False
     text = "\n".join(_texts(result))
-    assert "不明白「跳舞」" in text
+    assert "你没听懂「跳舞」" in text
     assert "help" in text
 
 
