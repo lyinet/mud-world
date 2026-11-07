@@ -782,6 +782,7 @@
           }
         ],
         "history_commits": 18,
+        "history_value_changes": 142,
         "in_place_value_changes": [
           {
             "baseline": "GOLDEN",
@@ -904,6 +905,11 @@
             "subject": "refactor(dialogue): 模型台词统一到 dialogue_aside 单一路径"
           }
         ],
+        "ledger_file": "docs/GOLDEN-BASELINE-LOG.md",
+        "ledger_invalid_rows": [],
+        "ledger_present": true,
+        "ledger_rows": 142,
+        "missing_current_values": [],
         "traceability_failures": [
           {
             "baseline": "DIALOGUE_GOLDEN",
@@ -924,13 +930,14 @@
             "subject": "feat(dialogue): 接入 text_guard 与统一 system prompt"
           }
         ],
-        "uncommitted_changes": {}
+        "uncommitted_changes": {},
+        "unregistered_changes": []
       },
       "id": "golden_baseline_untouched",
       "severity": "redline",
-      "status": "FAIL",
-      "summary": "不可追溯/未复现：未提交 0 组、理由缺失 1 条、新鲜 run 漂移 无、dialogue 基线漂移 无",
-      "title": "旧世界 golden 基线未被静默改动"
+      "status": "PASS",
+      "summary": "台账 142 条值变更覆盖 142 条历史变更，当前 20 组基线全部可查；新鲜 run 复现 V6",
+      "title": "旧世界 golden 基线可追溯（台账门禁）"
     },
     {
       "evidence": {
@@ -985,7 +992,7 @@
       "title": "战斗新红线"
     }
   ],
-  "commit": "e3232446859947b47c4ace58c37adb3b5db24629",
+  "commit": "15eeaca759849b936effac934f3774c845cc5a2f",
   "config": {
     "days": 2,
     "npc_limit": 0,
@@ -996,14 +1003,12 @@
   },
   "schema": "xkx-audit/1",
   "summary": {
-    "duration_s": 7.203,
-    "exit_code": 1,
-    "fail": 1,
-    "fail_ids": [
-      "golden_baseline_untouched"
-    ],
+    "duration_s": 7.168,
+    "exit_code": 0,
+    "fail": 0,
+    "fail_ids": [],
     "not_ready": 0,
-    "pass": 6,
+    "pass": 7,
     "skip": 0
   }
 }

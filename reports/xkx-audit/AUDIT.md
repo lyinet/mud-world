@@ -1,9 +1,9 @@
 # xkx 复刻版确定性审计
 
-- commit: `e3232446859947b47c4ace58c37adb3b5db24629`
+- commit: `15eeaca759849b936effac934f3774c845cc5a2f`
 - 配置: days=2 seed=42 npc_limit=0 quick=False
-- 汇总: 通过 6 / 不通过 1 / 未就绪 0 / 跳过 0
-- 退出码: 1
+- 汇总: 通过 7 / 不通过 0 / 未就绪 0 / 跳过 0
+- 退出码: 0
 
 | # | 审计项 | 状态 | 结论 |
 |---|---|---|---|
@@ -12,13 +12,12 @@
 | 3 | 事件全量重放等价 | **PASS** | 791 条事件全量重放后 state hash 与在线终态一致 |
 | 4 | 无隐藏随机 | **PASS** | src/** 投影/效果路径未发现 random/time/uuid/os.urandom（另有 41 条非关键墙钟仅记录） |
 | 5 | 账本无模型文本 | **PASS** | 模型台词只在旁路；事件库与状态均只含确定性模板句 |
-| 6 | 旧世界 golden 基线未被静默改动 | **FAIL** | 不可追溯/未复现：未提交 0 组、理由缺失 1 条、新鲜 run 漂移 无、dialogue 基线漂移 无 |
+| 6 | 旧世界 golden 基线可追溯（台账门禁） | **PASS** | 台账 142 条值变更覆盖 142 条历史变更，当前 20 组基线全部可查；新鲜 run 复现 V6 |
 | 7 | 战斗新红线 | **PASS** | 1 场真实 fight（默认世界内存夹具）自洽：5 回合、事件效果/状态/log 一致、同 seed 重打一致 |
 
 ## 结论
 
-**红线失败（阻断）：**
-- `golden_baseline_untouched`：不可追溯/未复现：未提交 0 组、理由缺失 1 条、新鲜 run 漂移 无、dialogue 基线漂移 无
+**红线失败：** 无。
 
 
 ## 证据
@@ -463,9 +462,9 @@ src/** 投影/效果路径未发现 random/time/uuid/os.urandom（另有 41 条�
 }
 ```
 
-### golden_baseline_untouched · 旧世界 golden 基线未被静默改动 — FAIL
+### golden_baseline_untouched · 旧世界 golden 基线可追溯（台账门禁） — PASS
 
-不可追溯/未复现：未提交 0 组、理由缺失 1 条、新鲜 run 漂移 无、dialogue 基线漂移 无
+台账 142 条值变更覆盖 142 条历史变更，当前 20 组基线全部可查；新鲜 run 复现 V6
 
 ```json
 {
@@ -809,6 +808,7 @@ src/** 投影/效果路径未发现 random/time/uuid/os.urandom（另有 41 条�
     }
   ],
   "history_commits": 18,
+  "history_value_changes": 142,
   "in_place_value_changes": [
     {
       "baseline": "GOLDEN",
@@ -931,6 +931,11 @@ src/** 投影/效果路径未发现 random/time/uuid/os.urandom（另有 41 条�
       "subject": "refactor(dialogue): 模型台词统一到 dialogue_aside 单一路径"
     }
   ],
+  "ledger_file": "docs/GOLDEN-BASELINE-LOG.md",
+  "ledger_invalid_rows": [],
+  "ledger_present": true,
+  "ledger_rows": 142,
+  "missing_current_values": [],
   "traceability_failures": [
     {
       "baseline": "DIALOGUE_GOLDEN",
@@ -951,7 +956,8 @@ src/** 投影/效果路径未发现 random/time/uuid/os.urandom（另有 41 条�
       "subject": "feat(dialogue): 接入 text_guard 与统一 system prompt"
     }
   ],
-  "uncommitted_changes": {}
+  "uncommitted_changes": {},
+  "unregistered_changes": []
 }
 ```
 

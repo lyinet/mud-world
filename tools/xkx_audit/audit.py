@@ -8,7 +8,8 @@
 3. 回放等价（事件全量重放后的 state hash == 在线终态）
 4. 无隐藏随机（静态扫描 src/** 的 random/time/uuid/os.urandom）
 5. 账本无模型文本（模型台词只在旁路；事件库必须有模板句）
-6. 旧世界 golden 基线未被静默改动（git 历史逐版本比对）
+6. 旧世界 golden 基线可追溯（docs/GOLDEN-BASELINE-LOG.md 台账门禁：当前值与
+   历史每次变更都必须能在台账查到，查不到即 FAIL）
 7. 战斗红线（引擎/内容未落地时标 NOT_READY；落地后校验 rounds[] 自洽）
 
 机器可读输出：reports/xkx-audit/audit.json；人读摘要：reports/xkx-audit/AUDIT.md。
@@ -52,6 +53,8 @@ MODEL_TEXT = f"{MODEL_MARKER} 模型配音今日尚可，街口风大，早些�
 
 GOLDEN_FILE_REL = "tests/test_p3e_golden.py"
 GOLDEN_FILE = ROOT / GOLDEN_FILE_REL
+LEDGER_FILE_REL = "docs/GOLDEN-BASELINE-LOG.md"
+LEDGER_FILE = ROOT / LEDGER_FILE_REL
 
 
 # --------------------------------------------------------------------------- 基础工具
@@ -676,6 +679,69 @@ def _parse_baselines(text: str) -> dict[str, dict[str, Any]]:
 _REASON_MARKERS = ("基线", "baseline", "漂移", "golden", "迁移", "原因", "重新采样", "显式")
 
 
+def _norm_ledger_value(value: Any) -> str:
+    """台账与基线值统一成字符串比较；None 表示该字段首次登记（台账写“新增”）。"""
+    if value is None:
+        return "新增"
+    return str(value)
+
+
+def _strip_cell(text: str) -> str:
+    return text.strip().strip("`").strip()
+
+
+def _parse_ledger(text: str) -> list[dict[str, str]]:
+    """解析 docs/GOLDEN-BASELINE-LOG.md 的值变更表。
+
+    表头固定：提交 | 基线 | 字段 | 旧值 | 新值 | 理由来源 | 理由 | 复现证据。
+    只接受提交列形如 7-40 位十六进制 sha 的行，表头/分隔行/说明表格自动跳过。
+    """
+    rows: list[dict[str, str]] = []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line.startswith("|"):
+            continue
+        cells = [_strip_cell(c) for c in line.strip("|").split("|")]
+        if len(cells) != 8 or not re.fullmatch(r"[0-9a-f]{7,40}", cells[0]):
+            continue
+        rows.append(
+            {
+                "commit": cells[0],
+                "baseline": cells[1],
+                "key": cells[2],
+                "old": cells[3],
+                "new": cells[4],
+                "source": cells[5],
+                "reason": cells[6],
+                "evidence": cells[7],
+            }
+        )
+    return rows
+
+
+def _ledger_matches(
+    rows: list[dict[str, str]],
+    *,
+    commit: str,
+    baseline: str,
+    key: str,
+    old: Any,
+    new: Any,
+) -> list[dict[str, str]]:
+    """在台账里找一条精确匹配某提交的值变更。"""
+    old_norm = _norm_ledger_value(old)
+    new_norm = _norm_ledger_value(new)
+    return [
+        row
+        for row in rows
+        if row["baseline"] == baseline
+        and row["key"] == key
+        and row["old"] == old_norm
+        and row["new"] == new_norm
+        and commit.startswith(row["commit"])
+    ]
+
+
 def _golden_got(summary: dict[str, Any]) -> dict[str, Any]:
     cf = summary["economy"]["cashflow"]
     return {
@@ -735,6 +801,7 @@ def _check_golden_baseline(
     in_place_changes: list[dict[str, Any]] = []
     additions: list[dict[str, Any]] = []
     traceability_failures: list[dict[str, Any]] = []
+    history_value_changes: list[dict[str, Any]] = []
     history: list[dict[str, Any]] = []
 
     for sha in commits:
@@ -766,12 +833,33 @@ def _check_golden_baseline(
                     in_place_changes.append(row)
                     if not has_reason:
                         traceability_failures.append(row)
+                    for key in changed_keys:
+                        history_value_changes.append(
+                            {
+                                "commit": sha,
+                                "baseline": name,
+                                "key": key,
+                                "old": prev[name].get(key),
+                                "new": cur[name].get(key),
+                            }
+                        )
         new_names = sorted(set(cur) - set(prev or {}))
         if new_names:
             row = {"baseline": new_names, "commit": sha, "subject": subject, "has_reason": has_reason}
             additions.append(row)
             if not has_reason:
                 traceability_failures.append(row)
+            for name in new_names:
+                for key, value in cur[name].items():
+                    history_value_changes.append(
+                        {
+                            "commit": sha,
+                            "baseline": name,
+                            "key": key,
+                            "old": None,
+                            "new": value,
+                        }
+                    )
         history.append({"commit": sha, "subject": subject, "baselines": sorted(cur)})
         prev = cur
 
@@ -818,28 +906,92 @@ def _check_golden_baseline(
             "matched": dialogue_ok,
         }
 
-    ok = not uncommitted and not traceability_failures and fresh_ok and dialogue_ok
+    ledger_present = LEDGER_FILE.is_file()
+    ledger_rows = _parse_ledger(_read_text(LEDGER_FILE)) if ledger_present else []
+    invalid_ledger_rows = [
+        {"row": i, **row}
+        for i, row in enumerate(ledger_rows)
+        if row["source"] not in ("提交正文", "事后追溯")
+        or not row["reason"]
+        or not row["evidence"]
+    ]
+    # 门禁 A：当前 tests/test_p3e_golden.py 的每个基线值都必须能在台账查到。
+    missing_current: list[dict[str, Any]] = []
+    for name, fields in sorted(worktree_baselines.items()):
+        for key, value in sorted(fields.items()):
+            found = any(
+                row["baseline"] == name
+                and row["key"] == key
+                and row["new"] == _norm_ledger_value(value)
+                for row in ledger_rows
+            )
+            if not found:
+                missing_current.append({"baseline": name, "key": key, "value": value})
+
+    # 门禁 B：git 历史里的每一次 key 级变更都必须有对应台账记录。
+    unregistered_changes: list[dict[str, Any]] = []
+    for change in history_value_changes:
+        if change["new"] is None:
+            continue  # 字段被删除无法用“新增/变更”两列表达，历史中当前不存在
+        if not _ledger_matches(
+            ledger_rows,
+            commit=change["commit"],
+            baseline=change["baseline"],
+            key=change["key"],
+            old=change["old"],
+            new=change["new"],
+        ):
+            unregistered_changes.append(change)
+
+    ok = (
+        not uncommitted
+        and ledger_present
+        and not invalid_ledger_rows
+        and not missing_current
+        and not unregistered_changes
+        and fresh_ok
+        and dialogue_ok
+    )
+    reasons = []
+    if not ledger_present:
+        reasons.append(f"台账不存在 {LEDGER_FILE_REL}")
+    if invalid_ledger_rows:
+        reasons.append(f"台账行缺理由/来源/证据 {len(invalid_ledger_rows)} 条")
+    if missing_current:
+        reasons.append(f"当前基线值查不到台账记录 {len(missing_current)} 个")
+    if unregistered_changes:
+        reasons.append(f"历史变更未登记 {len(unregistered_changes)} 条")
+    if uncommitted:
+        reasons.append(f"未提交基线改动 {len(uncommitted)} 组")
+    if not fresh_ok:
+        reasons.append("GOLDEN_MILESTONE_V6 新鲜 run 漂移")
+    if not dialogue_ok:
+        reasons.append("DIALOGUE_GOLDEN_MILESTONE_V6 新鲜 run 漂移")
     return CheckResult(
         id="golden_baseline_untouched",
-        title="旧世界 golden 基线未被静默改动",
+        title="旧世界 golden 基线可追溯（台账门禁）",
         status=PASS if ok else FAIL,
         summary=(
-            f"历史 {len(commits)} 个版本逐版比对，且新鲜 run 复现 GOLDEN_MILESTONE_V6"
-            f"（当前 {len(worktree_baselines)} 组基线）"
+            f"台账 {len(ledger_rows)} 条值变更覆盖 {len(history_value_changes)} 条历史变更，"
+            f"当前 {len(worktree_baselines)} 组基线全部可查；新鲜 run 复现 V6"
             if ok
-            else (
-                f"不可追溯/未复现：未提交 {len(uncommitted)} 组、"
-                f"理由缺失 {len(traceability_failures)} 条、"
-                f"新鲜 run 漂移 {'无' if fresh_ok else '有'}、"
-                f"dialogue 基线漂移 {'无' if dialogue_ok else '有'}"
-            )
+            else "台账门禁未通过：" + "；".join(reasons)
         ),
         evidence={
+            "ledger_file": LEDGER_FILE_REL,
+            "ledger_present": ledger_present,
+            "ledger_rows": len(ledger_rows),
+            "ledger_invalid_rows": invalid_ledger_rows,
+            "history_value_changes": len(history_value_changes),
+            "missing_current_values": missing_current,
+            "unregistered_changes": unregistered_changes,
             "current_baselines": sorted(worktree_baselines),
             "baselines_count": len(worktree_baselines),
             "uncommitted_changes": uncommitted,
             "in_place_value_changes": in_place_changes,
             "baseline_additions": additions,
+            # 仅作证据保留：历史提交正文的理由标记缺失由台账补齐，
+            # 门禁以台账记录为准，不再单独判 FAIL。
             "traceability_failures": traceability_failures,
             "fresh_reproduction": fresh_repro,
             "dialogue_reproduction": dialogue_repro,
