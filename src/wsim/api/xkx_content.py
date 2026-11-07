@@ -297,11 +297,14 @@ def load_xkx_content(pack_root: Path | str) -> Content:
         if homes:
             placed_npcs[ref] = sorted(homes)[0]
     for idx, raw in enumerate(sorted(npcs_raw, key=lambda n: str(n.get("id") or ""))):
-        if str(raw.get("origin") or "slice") != "slice":
+        nid = str(raw.get("id") or "")
+        # 切片外的 NPC 默认不收；但若它被明确摆在切片房间（如马厩的枣红马/
+        # 黄骠马/紫骝马/马夫），就必须收，否则玩家进房看不到原版在场 NPC。
+        if str(raw.get("origin") or "slice") != "slice" and nid not in placed_npcs:
             continue
         npc = _normalize_npc(raw, idx)
         npc["role"] = str(raw.get("class") or raw.get("role") or "wanderer")
-        npc["home"] = placed_npcs.get(str(raw.get("id") or ""), "")
+        npc["home"] = placed_npcs.get(nid, "")
         npc["personality"] = {
             "traits": [x for x in (raw.get("title"), raw.get("nickname"), raw.get("sect")) if x],
             "speech_style": str(raw.get("title") or ""),
