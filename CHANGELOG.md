@@ -9,6 +9,32 @@
 
 ---
 
+## [测试] 2026-11-07 — 修复 e2e 全红：playwright 环境 + 适配 4 项产品变更后的陈旧断言
+
+- **改了什么**：`tools/e2e_service_check.py` 三处适配（未改任何产品代码）：
+  - `ui_enter`：已登录态 `#accountId` 被 `117e656` 锁只读，`page.fill` 撞只读超时；
+    改为只读时跳过填账号（值已是令牌账号，与预期一致）。
+  - 玩家闭环交付：`f77d142` 后交付前必须真实完成目标动作，否则 `quest_step_incomplete`；
+    移动到药铺后、点交付前补一步 `apiAction('trade', {target:'su_hexiang', offer:[], want:[], money_delta:0})`。
+  - 离线段：`f01ebb9` 移除 `#exits` 容器，出口选择器改为 `[data-exit-id]`；`32201e4`
+    离线动作被拒后 UI 自动 enter 自愈并重试、不展示错误文案，原 errorList「你已离线」
+    断言失效，改为验证 API 发出 `player_offline` 409 且自愈后动作成功。
+- **为什么**：晨报核查 p3m 门禁第 2 条 `tools/e2e_service_check.py`，先撞
+  `ModuleNotFoundError: No module named 'playwright'`（项目 `.venv` 未装 playwright，
+  conda base 环境有）；改用 base python 后又连续撞到上述 3 处测试陈旧——均为 p3k
+  （`5bd8125`，11-06 12:57 曾 25/25 绿）之后的产品有意变更未同步到 e2e。
+- **验证**：
+  - `PYTHONPATH=src /opt/homebrew/Caskroom/miniconda/base/bin/python tools/e2e_service_check.py --root .`：
+    **26/26 PASS，exit 0**（证据 `reports/w4-e2e/e2e-service.json`，head `9f1661c`，11-07 08:45）。
+  - 新增 2 项检查：「闭环 目标动作：药铺 trade 苏合香（交付前置）」「离线自愈：
+    player_offline 后自动 enter 恢复并重试成功（32201e4）」；移除已失效的
+    「原因码 player_offline 走真实 API 到 UI 文案」（自愈成功不展示文案是有意行为）。
+- **遗留**：playwright 未声明进 `requirements.txt` / `requirements.lock`，e2e 依赖
+  conda base 环境；不影响门禁但降低可复现性，后续应补 dev 依赖声明。
+- **commit**：见本条目所在提交。
+
+---
+
 ## [后端] 2026-11-07 — 修复 selfcheck 框架门禁红：equip/unequip/use_item 补登引擎白名单
 
 - **改了什么**：`src/wsim/audit/report.py` 的 `ENGINE_ONLY_ALLOWED` 补入 `equip` / `unequip` / `use_item`。

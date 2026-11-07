@@ -147,7 +147,10 @@ def ui_register(page, username: str, password: str) -> None:
 
 
 def ui_enter(page, username: str, display: str) -> None:
-    page.fill("#accountId", username)
+    # 117e656 起已登录态 #accountId 被 syncEntryAccountLock 锁为只读（值已是令牌账号），
+    # page.fill 撞只读会超时；仅在可编辑时填入，已锁定时沿用自动回填的值。
+    if not page.evaluate("() => document.getElementById('accountId').readOnly"):
+        page.fill("#accountId", username)
     page.fill("#displayName", display)
     page.click("#enterBtn")
     page.wait_for_function("() => document.getElementById('enterBtn').getAttribute('data-open') === '1'",
@@ -310,6 +313,17 @@ def main() -> None:
                 results.add("闭环 移动：market → pharmacy", moved["location"] == "pharmacy",
                              {"location": moved["location"]})
 
+                # f77d142 任务过程化：交付前必须真实完成目标动作，否则 quest_step_incomplete。
+                # tutorial_silk_sample 的目标动作是与药铺 su_hexiang 当面 trade（零金额）。
+                traded = page.evaluate("""async () => {
+                    const r = await window.__XKX.apiAction('trade',
+                      {target: 'su_hexiang', offer: [], want: [], money_delta: 0});
+                    return {status: r.status, ok: !!(r.data && r.data.ok),
+                            reject: r.data ? r.data.reject_reason : null};
+                }""")
+                results.add("闭环 目标动作：药铺 trade 苏合香（交付前置）",
+                             traded["status"] == 200 and traded["ok"], traded)
+
                 click_quest(page, QUEST_ID, "deliver")
                 after = None
                 for _ in range(30):
@@ -371,14 +385,30 @@ def main() -> None:
                                 Authorization: 'Bearer ' + t},
                       body: JSON.stringify({account_id: window.__XKX.authState().username})});
                 }""")
-                page.locator('#exits button[data-exit-id]').first.click()
-                page.wait_for_function(
-                    "() => document.getElementById('errorList').innerText.includes('你已离线')",
-                    timeout=10000)
-                reasons = error_rows(page)
-                results.add("原因码 player_offline 走真实 API 到 UI 文案",
-                             any("离线" in row for row in reasons), reasons)
+                # f01ebb9 地图即操作：方向按钮整块移除，出口渲染为 button[data-exit-id]，
+                # 不再有 #exits 容器；取任一一步可达出口点击以触发 player_offline。
+                page.locator('[data-exit-id]').first.click()
+                # 32201e4 离线自愈：写动作收到 player_offline 后 UI 自动 enter 恢复并重试一次，
+                # 自愈成功时提前返回、不展示错误文案；故不再等 errorList，改为验证 API 确实发出
+                # player_offline 且自愈后动作成功（不卡死）。
+                recovered = False
+                deadline = time.time() + 15
+                off_idx = -1
+                while time.time() < deadline:
+                    for i, e in enumerate(responses):
+                        if (e.get("status") == 409 and isinstance(e.get("body"), dict)
+                                and e["body"].get("reject_reason") == "player_offline"):
+                            off_idx = i
+                    if off_idx >= 0 and any(
+                            e.get("status") == 200 and "/api/player/action" in e.get("url", "")
+                            for e in responses[off_idx + 1:]):
+                        recovered = True
+                        break
+                    page.wait_for_timeout(200)
                 raw = last_reject("player_offline")
+                results.add("离线自愈：player_offline 后自动 enter 恢复并重试成功（32201e4）",
+                             recovered and raw.get("ok") is False,
+                             {"off_idx": off_idx, "recovered": recovered})
                 results.add("契约层 player_offline 原始码（真 /api/player/action 响应体）",
                              raw.get("ok") is False, raw)
                 page.evaluate("() => document.getElementById('errorToggle').click()")

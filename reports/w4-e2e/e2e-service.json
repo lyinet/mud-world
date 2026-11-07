@@ -2,14 +2,14 @@
   "meta": {
     "tag": "delivery-p3k",
     "tag_commit": "b23827a16bba6fa1527f58aaea44f8539a8e9301",
-    "head": "5bd81250bd0c07c2f33e52cec3dbd0f72485a55c",
+    "head": "9f1661c611b18a9f0df9af1e308ee927624f7c91",
     "tree_root": "/Users/lyinet/projects/XKX/world-sim",
-    "service_run": "w4-e2e-1106125754",
-    "legacy_run": "w4-e2e-legacy-1106125754",
-    "account": "w4e2e_1106125754",
-    "started_at": "2026-11-06 12:57:54",
-    "service_api": "http://127.0.0.1:59463",
-    "service_proxy": "http://127.0.0.1:59464"
+    "service_run": "w4-e2e-1107084521",
+    "legacy_run": "w4-e2e-legacy-1107084521",
+    "account": "w4e2e_1107084521",
+    "started_at": "2026-11-07 08:45:21",
+    "service_api": "http://127.0.0.1:52509",
+    "service_proxy": "http://127.0.0.1:52510"
   },
   "checks": [
     {
@@ -18,14 +18,14 @@
       "detail": {
         "tag": "delivery-p3k",
         "tag_commit": "b23827a16bba6fa1527f58aaea44f8539a8e9301",
-        "head": "5bd81250bd0c07c2f33e52cec3dbd0f72485a55c",
+        "head": "9f1661c611b18a9f0df9af1e308ee927624f7c91",
         "tree_root": "/Users/lyinet/projects/XKX/world-sim",
-        "service_run": "w4-e2e-1106125754",
-        "legacy_run": "w4-e2e-legacy-1106125754",
-        "account": "w4e2e_1106125754",
-        "started_at": "2026-11-06 12:57:54",
-        "service_api": "http://127.0.0.1:59463",
-        "service_proxy": "http://127.0.0.1:59464"
+        "service_run": "w4-e2e-1107084521",
+        "legacy_run": "w4-e2e-legacy-1107084521",
+        "account": "w4e2e_1107084521",
+        "started_at": "2026-11-07 08:45:21",
+        "service_api": "http://127.0.0.1:52509",
+        "service_proxy": "http://127.0.0.1:52510"
       }
     },
     {
@@ -40,8 +40,8 @@
       "name": "1. 令牌真落盘 ws_auth_v1",
       "ok": true,
       "detail": {
-        "username": "w4e2e_1106125754",
-        "expires_at": 1794027476000,
+        "username": "w4e2e_1107084521",
+        "expires_at": 1794098724000,
         "has_refresh": null
       }
     },
@@ -66,6 +66,7 @@
           "endowed",
           "endowed_tick",
           "entity_id",
+          "equipment",
           "home",
           "idle_seconds",
           "last_intent_tick",
@@ -80,6 +81,7 @@
           "role",
           "sect",
           "skills",
+          "skills_detail",
           "stamina",
           "wallet"
         ]
@@ -106,6 +108,7 @@
           "endowed",
           "endowed_tick",
           "entity_id",
+          "equipment",
           "home",
           "idle_seconds",
           "last_intent_tick",
@@ -120,6 +123,7 @@
           "role",
           "sect",
           "skills",
+          "skills_detail",
           "stamina",
           "wallet"
         ]
@@ -129,13 +133,14 @@
       "name": "闭环 对话（真 API + 真代理）",
       "ok": true,
       "detail": {
+        "dialogue_source": "template",
         "relation": {
           "affection": 1,
           "kind": "acquaintance",
           "target": "jin_mancang",
           "trust": 40.5
         },
-        "reply": "街面上传得凶，一版比一版玄；我只看亲眼见的，你别再往外传。"
+        "reply": "街面上传得凶，一版比一版玄；我只看亲眼见的，你别再往外传。米是好米，你抓一把闻闻，别拿话来试我。"
       }
     },
     {
@@ -153,16 +158,25 @@
       }
     },
     {
+      "name": "闭环 目标动作：药铺 trade 苏合香（交付前置）",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "ok": true,
+        "reject": ""
+      }
+    },
+    {
       "name": "闭环 交付 → 钱包增长 300→312",
       "ok": true,
       "detail": {
-        "tick": 24,
+        "tick": 30,
         "location": "pharmacy",
         "location_name": "药铺",
         "money": 312,
         "items": 2,
         "skills": 1,
-        "relations": 2,
+        "relations": 4,
         "active": [],
         "keys": [
           "account_id",
@@ -173,6 +187,7 @@
           "endowed",
           "endowed_tick",
           "entity_id",
+          "equipment",
           "home",
           "idle_seconds",
           "last_intent_tick",
@@ -187,6 +202,7 @@
           "role",
           "sect",
           "skills",
+          "skills_detail",
           "stamina",
           "wallet"
         ]
@@ -196,7 +212,7 @@
       "name": "原因码 not_at_giver 走真实 API 到 UI 文案",
       "ok": true,
       "detail": [
-        "接任务「捎账本到客栈」12:57:57你不在委托人所在的地点；先走到委托人那里。"
+        "接任务「捎账本到客栈」08:45:24你不在委托人所在的地点；先走到委托人那里。"
       ]
     },
     {
@@ -204,21 +220,23 @@
       "ok": true,
       "detail": {
         "action": "quest/accept",
-        "client_tick": 30,
+        "client_tick": 36,
         "client_tick_ignored": true,
         "confirm": false,
         "data": {},
         "details": {},
-        "event_seq": 15,
-        "intent_id": "i:0c335b6cfe36a7d1b1f227c18b8a2234b59c18eaa795efb7e506b82858354db8",
-        "next_tick": 36,
+        "duration_hours": 1.0,
+        "duration_ticks": 6,
+        "event_seq": 17,
+        "intent_id": "i:f1501fab1e3d67f2db9b652e3a1108b0073d6ec6049e812ba9f6aa86fc24e15f",
+        "next_tick": 42,
         "ok": false,
-        "player": "player:w4e2e_1106125754",
+        "player": "player:w4e2e_1107084521",
         "profile_version": 1,
         "reason_text": "你不在任务发布人所在的地点。",
         "reject_reason": "not_at_giver",
         "status": "rejected",
-        "tick": 30,
+        "tick": 36,
         "verb": "quest_accept",
         "reason": "not_at_giver",
         "message": "你不在任务发布人所在的地点。"
@@ -228,8 +246,8 @@
       "name": "原因码 not_at_target 走真实 API 到 UI 文案",
       "ok": true,
       "detail": [
-        "交付「捎账本到客栈」12:57:58还没到任务目标地点或委托人处；先移动过去再交付。",
-        "接任务「捎账本到客栈」12:57:57你不在委托人所在的地点；先走到委托人那里。"
+        "交付「捎账本到客栈」08:45:25还没到任务目标地点或委托人处；先移动过去再交付。",
+        "接任务「捎账本到客栈」08:45:24你不在委托人所在的地点；先走到委托人那里。"
       ]
     },
     {
@@ -237,54 +255,55 @@
       "ok": true,
       "detail": {
         "action": "quest/deliver",
-        "client_tick": 54,
+        "client_tick": 60,
         "client_tick_ignored": true,
         "confirm": false,
         "data": {},
         "details": {},
-        "event_seq": 23,
-        "intent_id": "i:313b8601d933c3fd393189b847913027a3115873388bac3d93a8f5d73b1897e8",
-        "next_tick": 60,
+        "duration_hours": 1.0,
+        "duration_ticks": 6,
+        "event_seq": 25,
+        "intent_id": "i:caeab232146c9087df69b954772eef260e92c2659b1894faeb4ee2e444888b54",
+        "next_tick": 66,
         "ok": false,
-        "player": "player:w4e2e_1106125754",
+        "player": "player:w4e2e_1107084521",
         "profile_version": 1,
         "reason_text": "你尚未到达任务目标地点或发布人处。",
         "reject_reason": "not_at_target",
         "status": "rejected",
-        "tick": 54,
+        "tick": 60,
         "verb": "quest_deliver",
         "reason": "not_at_target",
         "message": "你尚未到达任务目标地点或发布人处。"
       }
     },
     {
-      "name": "原因码 player_offline 走真实 API 到 UI 文案",
+      "name": "离线自愈：player_offline 后自动 enter 恢复并重试成功（32201e4）",
       "ok": true,
-      "detail": [
-        "移动 集市12:57:58你已离线；请重新进入世界后再操作。",
-        "交付「捎账本到客栈」12:57:58还没到任务目标地点或委托人处；先移动过去再交付。",
-        "接任务「捎账本到客栈」12:57:57你不在委托人所在的地点；先走到委托人那里。"
-      ]
+      "detail": {
+        "off_idx": 45,
+        "recovered": true
+      }
     },
     {
       "name": "契约层 player_offline 原始码（真 /api/player/action 响应体）",
       "ok": true,
       "detail": {
         "action": "move",
-        "client_tick": 54,
+        "client_tick": 60,
         "client_tick_ignored": true,
         "confirm": false,
         "data": {},
         "details": {},
-        "event_seq": 27,
-        "intent_id": "i:5ad51ca0c59495fbec7bfb9a3c44189408fd09d169c5dfda48816879dcd21d8f",
+        "event_seq": 29,
+        "intent_id": "i:17bdf9505771eae637ef0cb76668bf0ab3771b2ca47f806c305a5c80624a9739",
         "ok": false,
-        "player": "player:w4e2e_1106125754",
+        "player": "player:w4e2e_1107084521",
         "profile_version": 1,
         "reason_text": "你已离线；请重新进入世界后再操作。",
         "reject_reason": "player_offline",
         "status": "rejected",
-        "tick": 66,
+        "tick": 72,
         "verb": "move",
         "reason": "player_offline",
         "message": "你已离线；请重新进入世界后再操作。"
@@ -297,113 +316,200 @@
         "reads": [
           {
             "ok": true,
-            "tick": 72,
+            "tick": 90,
             "location": {
               "description": "",
               "exits": [
                 {
                   "exists": true,
-                  "id": "market",
-                  "name": "集市"
+                  "id": "academy",
+                  "name": "书院"
                 },
                 {
                   "exists": true,
-                  "id": "temple",
-                  "name": "城隍庙"
+                  "id": "inn",
+                  "name": "客栈"
+                },
+                {
+                  "exists": true,
+                  "id": "pharmacy",
+                  "name": "药铺"
+                },
+                {
+                  "exists": true,
+                  "id": "smithy",
+                  "name": "铁匠铺"
+                },
+                {
+                  "exists": true,
+                  "id": "teahouse",
+                  "name": "茶棚"
                 }
               ],
-              "id": "pharmacy",
-              "name": "药铺",
+              "id": "market",
+              "name": "集市",
               "services": [
-                "ginseng",
-                "moxa_roll",
-                "mugwort",
-                "plaster",
-                "service_diagnosis",
-                "wound_powder"
+                "bamboo_basket",
+                "coarse_cloth",
+                "flatbread",
+                "hemp_rope",
+                "millet",
+                "noodle",
+                "pearl_earring",
+                "raw_silk",
+                "rice"
               ],
               "services_detail": [
                 {
                   "available": true,
-                  "business": "biz:pharmacy:ginseng",
-                  "business_name": "药铺·ginseng",
-                  "buy_limit": 2,
-                  "category": "medicine",
-                  "item": "ginseng",
-                  "name": "参片",
-                  "price": 120,
-                  "sell_limit": 0,
-                  "sell_price": 72,
-                  "stock": 2000,
-                  "tax": 3
-                },
-                {
-                  "available": true,
-                  "business": "biz:pharmacy:moxa_roll",
-                  "business_name": "药铺·moxa_roll",
+                  "business": "biz:market:bamboo_basket",
+                  "business_name": "集市·bamboo_basket",
                   "buy_limit": 20,
-                  "category": "medicine",
-                  "item": "moxa_roll",
-                  "name": "艾条（一束）",
+                  "category": "material",
+                  "description": "挑担与装货容器；货郎偏好采购",
+                  "equippable": false,
+                  "item": "bamboo_basket",
+                  "name": "竹篮（一只）",
                   "price": 14,
                   "sell_limit": 0,
                   "sell_price": 8,
+                  "slot": null,
                   "stock": 2000,
                   "tax": 0
                 },
                 {
                   "available": true,
-                  "business": "biz:pharmacy:mugwort",
-                  "business_name": "药铺·mugwort",
-                  "buy_limit": 20,
-                  "category": "medicine",
-                  "item": "mugwort",
-                  "name": "艾草",
-                  "price": 6,
-                  "sell_limit": 0,
-                  "sell_price": 4,
-                  "stock": 2000,
-                  "tax": 0
-                },
-                {
-                  "available": true,
-                  "business": "biz:pharmacy:plaster",
-                  "business_name": "药铺·plaster",
-                  "buy_limit": 20,
-                  "category": "medicine",
-                  "item": "plaster",
-                  "name": "膏药",
-                  "price": 10,
-                  "sell_limit": 0,
-                  "sell_price": 6,
-                  "stock": 2000,
-                  "tax": 0
-                },
-                {
-                  "available": true,
-                  "business": "biz:pharmacy:service_diagnosis",
-                  "business_name": "药铺·service_diagnosis",
-                  "buy_limit": 15,
-                  "category": "service",
-                  "item": "service_diagnosis",
-                  "name": "诊金",
-                  "price": 20,
-                  "sell_limit": 0,
-                  "sell_price": 12,
-                  "stock": 2000,
-                  "tax": 0
-                },
-                {
-                  "available": true,
-                  "business": "biz:pharmacy:wound_powder",
-                  "business_name": "药铺·wound_powder",
+                  "business": "biz:market:coarse_cloth",
+                  "business_name": "集市·coarse_cloth",
                   "buy_limit": 12,
-                  "category": "medicine",
-                  "item": "wound_powder",
-                  "name": "金疮药",
-                  "price": 24,
+                  "category": "material",
+                  "description": "材料，可用于制作或交易。",
+                  "equippable": false,
+                  "item": "coarse_cloth",
+                  "name": "粗布（一匹）",
+                  "price": 25,
+                  "sell_limit": 1,
+                  "sell_price": 15,
+                  "slot": null,
+                  "stock": 2000,
+                  "tax": 0
+                },
+                {
+                  "available": true,
+                  "business": "biz:market:flatbread",
+                  "business_name": "集市·flatbread",
+                  "buy_limit": 20,
+                  "category": "food",
+                  "description": "食物，可食用恢复体力。",
+                  "equippable": false,
+                  "item": "flatbread",
+                  "name": "炊饼",
+                  "price": 3,
+                  "sell_limit": 3,
+                  "sell_price": 2,
+                  "slot": null,
+                  "stock": 2000,
+                  "tax": 0
+                },
+                {
+                  "available": true,
+                  "business": "biz:market:hemp_rope",
+                  "business_name": "集市·hemp_rope",
+                  "buy_limit": 20,
+                  "category": "material",
+                  "description": "捆货与渔网修补；新手采购链 tutorial_03/04 的垫付商品",
+                  "equippable": false,
+                  "item": "hemp_rope",
+                  "name": "麻绳（一捆）",
+                  "price": 8,
                   "sell_limit": 0,
-                  "sell_price": 14,
+                  "sell_price": 5,
+                  "slot": null,
+                  "stock": 2000,
+                  "tax": 0
+                },
+                {
+                  "available": true,
+                  "business": "biz:market:millet",
+                  "business_name": "集市·millet",
+                  "buy_limit": 20,
+                  "category": "food",
+                  "description": "集市主粮；客栈采购委托 daily_inn_millet 的目标物",
+                  "equippable": false,
+                  "item": "millet",
+                  "name": "小米（一斗）",
+                  "price": 11,
+                  "sell_limit": 0,
+                  "sell_price": 7,
+                  "slot": null,
+                  "stock": 2000,
+                  "tax": 0
+                },
+                {
+                  "available": true,
+                  "business": "biz:market:noodle",
+                  "business_name": "集市·noodle",
+                  "buy_limit": 20,
+                  "category": "food",
+                  "description": "食物，可食用恢复体力。",
+                  "equippable": false,
+                  "item": "noodle",
+                  "name": "阳春面",
+                  "price": 5,
+                  "sell_limit": 0,
+                  "sell_price": 3,
+                  "slot": null,
+                  "stock": 2000,
+                  "tax": 0
+                },
+                {
+                  "available": true,
+                  "business": "biz:market:pearl_earring",
+                  "business_name": "集市·pearl_earring",
+                  "buy_limit": 0,
+                  "category": "luxury",
+                  "description": "门面首饰；高净值 NPC 送礼与嫁娶用",
+                  "equippable": true,
+                  "item": "pearl_earring",
+                  "name": "珠坠（一对）",
+                  "price": 313,
+                  "sell_limit": 0,
+                  "sell_price": 188,
+                  "slot": "accessory",
+                  "stock": 2000,
+                  "tax": 9
+                },
+                {
+                  "available": true,
+                  "business": "biz:market:raw_silk",
+                  "business_name": "集市·raw_silk",
+                  "buy_limit": 5,
+                  "category": "material",
+                  "description": "材料，可用于制作或交易。",
+                  "equippable": false,
+                  "item": "raw_silk",
+                  "name": "生丝（一两）",
+                  "price": 60,
+                  "sell_limit": 0,
+                  "sell_price": 36,
+                  "slot": null,
+                  "stock": 2000,
+                  "tax": 1
+                },
+                {
+                  "available": true,
+                  "business": "biz:market:rice",
+                  "business_name": "集市·rice",
+                  "buy_limit": 20,
+                  "category": "food",
+                  "description": "食物，可食用恢复体力。",
+                  "equippable": false,
+                  "item": "rice",
+                  "name": "糙米（一斗）",
+                  "price": 12,
+                  "sell_limit": 0,
+                  "sell_price": 7,
+                  "slot": null,
                   "stock": 2000,
                   "tax": 0
                 }
@@ -413,113 +519,200 @@
           },
           {
             "ok": true,
-            "tick": 72,
+            "tick": 90,
             "location": {
               "description": "",
               "exits": [
                 {
                   "exists": true,
-                  "id": "market",
-                  "name": "集市"
+                  "id": "academy",
+                  "name": "书院"
                 },
                 {
                   "exists": true,
-                  "id": "temple",
-                  "name": "城隍庙"
+                  "id": "inn",
+                  "name": "客栈"
+                },
+                {
+                  "exists": true,
+                  "id": "pharmacy",
+                  "name": "药铺"
+                },
+                {
+                  "exists": true,
+                  "id": "smithy",
+                  "name": "铁匠铺"
+                },
+                {
+                  "exists": true,
+                  "id": "teahouse",
+                  "name": "茶棚"
                 }
               ],
-              "id": "pharmacy",
-              "name": "药铺",
+              "id": "market",
+              "name": "集市",
               "services": [
-                "ginseng",
-                "moxa_roll",
-                "mugwort",
-                "plaster",
-                "service_diagnosis",
-                "wound_powder"
+                "bamboo_basket",
+                "coarse_cloth",
+                "flatbread",
+                "hemp_rope",
+                "millet",
+                "noodle",
+                "pearl_earring",
+                "raw_silk",
+                "rice"
               ],
               "services_detail": [
                 {
                   "available": true,
-                  "business": "biz:pharmacy:ginseng",
-                  "business_name": "药铺·ginseng",
-                  "buy_limit": 2,
-                  "category": "medicine",
-                  "item": "ginseng",
-                  "name": "参片",
-                  "price": 120,
-                  "sell_limit": 0,
-                  "sell_price": 72,
-                  "stock": 2000,
-                  "tax": 3
-                },
-                {
-                  "available": true,
-                  "business": "biz:pharmacy:moxa_roll",
-                  "business_name": "药铺·moxa_roll",
+                  "business": "biz:market:bamboo_basket",
+                  "business_name": "集市·bamboo_basket",
                   "buy_limit": 20,
-                  "category": "medicine",
-                  "item": "moxa_roll",
-                  "name": "艾条（一束）",
+                  "category": "material",
+                  "description": "挑担与装货容器；货郎偏好采购",
+                  "equippable": false,
+                  "item": "bamboo_basket",
+                  "name": "竹篮（一只）",
                   "price": 14,
                   "sell_limit": 0,
                   "sell_price": 8,
+                  "slot": null,
                   "stock": 2000,
                   "tax": 0
                 },
                 {
                   "available": true,
-                  "business": "biz:pharmacy:mugwort",
-                  "business_name": "药铺·mugwort",
-                  "buy_limit": 20,
-                  "category": "medicine",
-                  "item": "mugwort",
-                  "name": "艾草",
-                  "price": 6,
-                  "sell_limit": 0,
-                  "sell_price": 4,
-                  "stock": 2000,
-                  "tax": 0
-                },
-                {
-                  "available": true,
-                  "business": "biz:pharmacy:plaster",
-                  "business_name": "药铺·plaster",
-                  "buy_limit": 20,
-                  "category": "medicine",
-                  "item": "plaster",
-                  "name": "膏药",
-                  "price": 10,
-                  "sell_limit": 0,
-                  "sell_price": 6,
-                  "stock": 2000,
-                  "tax": 0
-                },
-                {
-                  "available": true,
-                  "business": "biz:pharmacy:service_diagnosis",
-                  "business_name": "药铺·service_diagnosis",
-                  "buy_limit": 15,
-                  "category": "service",
-                  "item": "service_diagnosis",
-                  "name": "诊金",
-                  "price": 20,
-                  "sell_limit": 0,
-                  "sell_price": 12,
-                  "stock": 2000,
-                  "tax": 0
-                },
-                {
-                  "available": true,
-                  "business": "biz:pharmacy:wound_powder",
-                  "business_name": "药铺·wound_powder",
+                  "business": "biz:market:coarse_cloth",
+                  "business_name": "集市·coarse_cloth",
                   "buy_limit": 12,
-                  "category": "medicine",
-                  "item": "wound_powder",
-                  "name": "金疮药",
-                  "price": 24,
+                  "category": "material",
+                  "description": "材料，可用于制作或交易。",
+                  "equippable": false,
+                  "item": "coarse_cloth",
+                  "name": "粗布（一匹）",
+                  "price": 25,
+                  "sell_limit": 1,
+                  "sell_price": 15,
+                  "slot": null,
+                  "stock": 2000,
+                  "tax": 0
+                },
+                {
+                  "available": true,
+                  "business": "biz:market:flatbread",
+                  "business_name": "集市·flatbread",
+                  "buy_limit": 20,
+                  "category": "food",
+                  "description": "食物，可食用恢复体力。",
+                  "equippable": false,
+                  "item": "flatbread",
+                  "name": "炊饼",
+                  "price": 3,
+                  "sell_limit": 3,
+                  "sell_price": 2,
+                  "slot": null,
+                  "stock": 2000,
+                  "tax": 0
+                },
+                {
+                  "available": true,
+                  "business": "biz:market:hemp_rope",
+                  "business_name": "集市·hemp_rope",
+                  "buy_limit": 20,
+                  "category": "material",
+                  "description": "捆货与渔网修补；新手采购链 tutorial_03/04 的垫付商品",
+                  "equippable": false,
+                  "item": "hemp_rope",
+                  "name": "麻绳（一捆）",
+                  "price": 8,
                   "sell_limit": 0,
-                  "sell_price": 14,
+                  "sell_price": 5,
+                  "slot": null,
+                  "stock": 2000,
+                  "tax": 0
+                },
+                {
+                  "available": true,
+                  "business": "biz:market:millet",
+                  "business_name": "集市·millet",
+                  "buy_limit": 20,
+                  "category": "food",
+                  "description": "集市主粮；客栈采购委托 daily_inn_millet 的目标物",
+                  "equippable": false,
+                  "item": "millet",
+                  "name": "小米（一斗）",
+                  "price": 11,
+                  "sell_limit": 0,
+                  "sell_price": 7,
+                  "slot": null,
+                  "stock": 2000,
+                  "tax": 0
+                },
+                {
+                  "available": true,
+                  "business": "biz:market:noodle",
+                  "business_name": "集市·noodle",
+                  "buy_limit": 20,
+                  "category": "food",
+                  "description": "食物，可食用恢复体力。",
+                  "equippable": false,
+                  "item": "noodle",
+                  "name": "阳春面",
+                  "price": 5,
+                  "sell_limit": 0,
+                  "sell_price": 3,
+                  "slot": null,
+                  "stock": 2000,
+                  "tax": 0
+                },
+                {
+                  "available": true,
+                  "business": "biz:market:pearl_earring",
+                  "business_name": "集市·pearl_earring",
+                  "buy_limit": 0,
+                  "category": "luxury",
+                  "description": "门面首饰；高净值 NPC 送礼与嫁娶用",
+                  "equippable": true,
+                  "item": "pearl_earring",
+                  "name": "珠坠（一对）",
+                  "price": 313,
+                  "sell_limit": 0,
+                  "sell_price": 188,
+                  "slot": "accessory",
+                  "stock": 2000,
+                  "tax": 9
+                },
+                {
+                  "available": true,
+                  "business": "biz:market:raw_silk",
+                  "business_name": "集市·raw_silk",
+                  "buy_limit": 5,
+                  "category": "material",
+                  "description": "材料，可用于制作或交易。",
+                  "equippable": false,
+                  "item": "raw_silk",
+                  "name": "生丝（一两）",
+                  "price": 60,
+                  "sell_limit": 0,
+                  "sell_price": 36,
+                  "slot": null,
+                  "stock": 2000,
+                  "tax": 1
+                },
+                {
+                  "available": true,
+                  "business": "biz:market:rice",
+                  "business_name": "集市·rice",
+                  "buy_limit": 20,
+                  "category": "food",
+                  "description": "食物，可食用恢复体力。",
+                  "equippable": false,
+                  "item": "rice",
+                  "name": "糙米（一斗）",
+                  "price": 12,
+                  "sell_limit": 0,
+                  "sell_price": 7,
+                  "slot": null,
                   "stock": 2000,
                   "tax": 0
                 }
@@ -547,8 +740,8 @@
         "mode": "auth",
         "hasAccess": true,
         "required": false,
-        "username": "w4e2e_1106125754",
-        "expiresAt": 1794027478000
+        "username": "w4e2e_1107084521",
+        "expiresAt": 1794098725000
       }
     },
     {
@@ -556,13 +749,13 @@
       "ok": true,
       "detail": {
         "before": {
-          "tick": 72,
-          "location": "pharmacy",
-          "location_name": "药铺",
+          "tick": 90,
+          "location": "market",
+          "location_name": "集市",
           "money": 312,
           "items": 2,
           "skills": 1,
-          "relations": 2,
+          "relations": 4,
           "active": [
             "quest:errand_market_ledger:0"
           ],
@@ -575,6 +768,7 @@
             "endowed",
             "endowed_tick",
             "entity_id",
+            "equipment",
             "home",
             "idle_seconds",
             "last_intent_tick",
@@ -589,18 +783,19 @@
             "role",
             "sect",
             "skills",
+            "skills_detail",
             "stamina",
             "wallet"
           ]
         },
         "after": {
-          "tick": 72,
-          "location": "pharmacy",
-          "location_name": "药铺",
+          "tick": 90,
+          "location": "market",
+          "location_name": "集市",
           "money": 312,
           "items": 2,
           "skills": 1,
-          "relations": 2,
+          "relations": 4,
           "active": [
             "quest:errand_market_ledger:0"
           ],
@@ -613,6 +808,7 @@
             "endowed",
             "endowed_tick",
             "entity_id",
+            "equipment",
             "home",
             "idle_seconds",
             "last_intent_tick",
@@ -627,6 +823,7 @@
             "role",
             "sect",
             "skills",
+            "skills_detail",
             "stamina",
             "wallet"
           ]
@@ -650,7 +847,7 @@
           "code": "auth_account_mismatch"
         },
         "ui": {
-          "account": "w4e2e_1106125754",
+          "account": "w4e2e_1107084521",
           "money": 312
         }
       }
@@ -667,18 +864,18 @@
       "ok": true,
       "detail": {
         "money": "312 文",
-        "place": "药铺",
+        "place": "集市",
         "auth": {
           "mode": "auth",
           "hasAccess": false,
           "required": true,
-          "username": "w4e2e_1106125754",
+          "username": "w4e2e_1107084521",
           "expiresAt": 0
         },
         "notice": "需要重新登录登录已失效，写操作需要重新登录；世界状态保持不变。\n登录/注册",
         "noticeVisible": true,
         "errors": [
-          "鉴权12:57:59登录已失效，需要重新登录；世界状态保持不变。"
+          "鉴权08:45:26登录已失效，需要重新登录；世界状态保持不变。"
         ]
       }
     },
@@ -723,349 +920,385 @@
     "requests": [
       {
         "method": "GET",
-        "url": "http://127.0.0.1:59464/?ui_check=1"
+        "url": "http://127.0.0.1:52510/?ui_check=1"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:59464/style.css"
+        "url": "http://127.0.0.1:52510/style.css"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:59464/app.js"
+        "url": "http://127.0.0.1:52510/app.js"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:59464/api/health"
+        "url": "http://127.0.0.1:52510/api/health"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:59464/api/auth/refresh"
+        "url": "http://127.0.0.1:52510/api/auth/refresh"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:59464/api/world/feed?limit=20"
+        "url": "http://127.0.0.1:52510/api/world/feed?limit=20"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:59464/api/auth/register"
+        "url": "http://127.0.0.1:52510/api/auth/register"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:59464/api/auth/login"
+        "url": "http://127.0.0.1:52510/api/auth/login"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:59464/api/player/enter"
+        "url": "http://127.0.0.1:52510/api/player/enter"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:59464/api/world/feed?limit=20"
+        "url": "http://127.0.0.1:52510/api/world/map"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/world/feed?limit=20"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:59464/?ui_check=1"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:59464/style.css"
+        "url": "http://127.0.0.1:52510/?ui_check=1"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:59464/app.js"
+        "url": "http://127.0.0.1:52510/style.css"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:59464/api/health"
+        "url": "http://127.0.0.1:52510/app.js"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/health"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:59464/api/auth/refresh"
+        "url": "http://127.0.0.1:52510/api/auth/refresh"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:59464/api/world/feed?limit=20"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/world/map"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:52510/api/world/feed?limit=20"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:59464/api/player/action"
+        "url": "http://127.0.0.1:52510/api/player/action"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:59464/api/player/action"
+        "url": "http://127.0.0.1:52510/api/player/action"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:59464/api/player/action"
+        "url": "http://127.0.0.1:52510/api/player/action"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:59464/api/player/action"
-      },
-      {
-        "method": "GET",
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
-      },
-      {
-        "method": "GET",
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/action"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:59464/api/player/action"
+        "url": "http://127.0.0.1:52510/api/player/action"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:59464/api/player/action"
-      },
-      {
-        "method": "GET",
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/action"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:59464/api/player/action"
+        "url": "http://127.0.0.1:52510/api/player/action"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
-      },
-      {
-        "method": "GET",
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
-      },
-      {
-        "method": "GET",
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:59464/api/player/action"
+        "url": "http://127.0.0.1:52510/api/player/action"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:59464/api/player/action"
+        "url": "http://127.0.0.1:52510/api/player/action"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:59464/api/player/leave"
+        "url": "http://127.0.0.1:52510/api/player/action"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:59464/api/player/action"
+        "url": "http://127.0.0.1:52510/api/player/leave"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:59464/api/player/enter"
-      },
-      {
-        "method": "GET",
-        "url": "http://127.0.0.1:59464/?ui_check=1"
-      },
-      {
-        "method": "GET",
-        "url": "http://127.0.0.1:59464/style.css"
-      },
-      {
-        "method": "GET",
-        "url": "http://127.0.0.1:59464/app.js"
-      },
-      {
-        "method": "GET",
-        "url": "http://127.0.0.1:59464/api/health"
-      },
-      {
-        "method": "GET",
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
-      },
-      {
-        "method": "GET",
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/action"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:59464/api/auth/refresh"
+        "url": "http://127.0.0.1:52510/api/player/enter"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:59464/api/world/feed?limit=20"
-      },
-      {
-        "method": "GET",
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
-      },
-      {
-        "method": "GET",
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
-      },
-      {
-        "method": "GET",
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:59464/api/auth/refresh"
+        "url": "http://127.0.0.1:52510/api/player/action"
       },
       {
         "method": "GET",
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
-      },
-      {
-        "method": "GET",
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
-      },
-      {
-        "method": "GET",
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
-      },
-      {
-        "method": "GET",
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=u_other"
-      },
-      {
-        "method": "GET",
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
-      },
-      {
-        "method": "GET",
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "method": "POST",
-        "url": "http://127.0.0.1:59464/api/auth/refresh"
+        "url": "http://127.0.0.1:52510/api/player/enter"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:52510/?ui_check=1"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:52510/style.css"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:52510/app.js"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:52510/api/health"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+      },
+      {
+        "method": "POST",
+        "url": "http://127.0.0.1:52510/api/auth/refresh"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:52510/api/world/map"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:52510/api/world/feed?limit=20"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+      },
+      {
+        "method": "POST",
+        "url": "http://127.0.0.1:52510/api/auth/refresh"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=u_other"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+      },
+      {
+        "method": "POST",
+        "url": "http://127.0.0.1:52510/api/auth/refresh"
       }
     ],
     "responses": [
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/?ui_check=1"
+        "url": "http://127.0.0.1:52510/?ui_check=1"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/style.css"
+        "url": "http://127.0.0.1:52510/style.css"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/app.js"
+        "url": "http://127.0.0.1:52510/app.js"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/health"
+        "url": "http://127.0.0.1:52510/api/health"
       },
       {
         "status": 401,
-        "url": "http://127.0.0.1:59464/api/auth/refresh"
+        "url": "http://127.0.0.1:52510/api/auth/refresh"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/world/feed?limit=20"
+        "url": "http://127.0.0.1:52510/api/world/feed?limit=20"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/auth/register"
+        "url": "http://127.0.0.1:52510/api/auth/register"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/auth/login"
+        "url": "http://127.0.0.1:52510/api/auth/login"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/enter"
+        "url": "http://127.0.0.1:52510/api/player/enter"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/world/feed?limit=20"
+        "url": "http://127.0.0.1:52510/api/world/map"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/world/feed?limit=20"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/?ui_check=1"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/style.css"
+        "url": "http://127.0.0.1:52510/?ui_check=1"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/app.js"
+        "url": "http://127.0.0.1:52510/style.css"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/health"
+        "url": "http://127.0.0.1:52510/app.js"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/health"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/auth/refresh"
+        "url": "http://127.0.0.1:52510/api/auth/refresh"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/world/feed?limit=20"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/world/map"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/action",
+        "url": "http://127.0.0.1:52510/api/world/feed?limit=20"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:52510/api/player/action",
         "body": {
           "action": "talk",
           "client_tick": 6,
@@ -1113,7 +1346,7 @@
               }
             },
             "home": "market",
-            "id": "player:w4e2e_1106125754",
+            "id": "player:w4e2e_1107084521",
             "inventory": {
               "coarse_cloth": 1,
               "flatbread": 3
@@ -1279,19 +1512,22 @@
             "wallet": 300
           },
           "details": {
+            "dialogue_source": "template",
             "relation": {
               "affection": 1.0,
               "kind": "acquaintance",
               "target": "jin_mancang",
               "trust": 40.5
             },
-            "reply": "街面上传得凶，一版比一版玄；我只看亲眼见的，你别再往外传。"
+            "reply": "街面上传得凶，一版比一版玄；我只看亲眼见的，你别再往外传。米是好米，你抓一把闻闻，别拿话来试我。"
           },
+          "duration_hours": 1.0,
+          "duration_ticks": 6,
           "event_seq": 7,
-          "intent_id": "i:de43028bc003ecbae3ae9247b041b9622972daec8349f505c9d2fdc90bbd7ece",
+          "intent_id": "i:c8764fc4c6e2b5b8e7df6d16123d19f208d5fb554853e8f9bc757e3bfbd9c1d8",
           "next_tick": 12,
           "ok": true,
-          "player": "player:w4e2e_1106125754",
+          "player": "player:w4e2e_1107084521",
           "profile_version": 1,
           "reason_text": "",
           "reject_reason": "",
@@ -1302,11 +1538,11 @@
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/action",
+        "url": "http://127.0.0.1:52510/api/player/action",
         "body": {
           "action": "quest/accept",
           "client_tick": 6,
@@ -1326,10 +1562,34 @@
                 "giver_name": "柳三娘",
                 "id": "quest:tutorial_silk_sample:0",
                 "name": "【引导2/4】把绣样送到药铺苏掌柜手上",
+                "progress": {
+                  "done": false,
+                  "note": "已接单，等待完成目标动作",
+                  "required": 1,
+                  "tick": 12,
+                  "units": 0,
+                  "verb": "trade"
+                },
+                "required_action": {
+                  "hours": 0,
+                  "params": {
+                    "money_delta": 0,
+                    "offer": [],
+                    "target": "su_hexiang",
+                    "want": []
+                  },
+                  "target_location": "pharmacy",
+                  "target_location_name": "药铺",
+                  "target_npc": "su_hexiang",
+                  "target_npc_name": "苏合香",
+                  "verb": "trade"
+                },
                 "reward_money": 12,
                 "reward_relation": 3.0,
                 "status": "accepted",
                 "target_location": "pharmacy",
+                "target_npc": "su_hexiang",
+                "target_npc_name": "苏合香",
                 "template": "tutorial_silk_sample"
               }
             ],
@@ -1372,7 +1632,7 @@
               }
             },
             "home": "market",
-            "id": "player:w4e2e_1106125754",
+            "id": "player:w4e2e_1107084521",
             "inventory": {
               "coarse_cloth": 1,
               "flatbread": 3
@@ -1538,11 +1798,13 @@
             "wallet": 300
           },
           "details": {},
+          "duration_hours": 1.0,
+          "duration_ticks": 6,
           "event_seq": 9,
-          "intent_id": "i:5d605c800c271996dc5a6db66c673f20a3d2a679f5063706a6be09f155aee366",
+          "intent_id": "i:d37789c1893a1320baf1fa84fc2f2ea65358ef09e8a47ddbb0520bb45a65fe3f",
           "next_tick": 18,
           "ok": true,
-          "player": "player:w4e2e_1106125754",
+          "player": "player:w4e2e_1107084521",
           "profile_version": 1,
           "reason_text": "",
           "reject_reason": "",
@@ -1553,15 +1815,15 @@
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/action",
+        "url": "http://127.0.0.1:52510/api/player/action",
         "body": {
           "action": "move",
           "client_tick": 18,
@@ -1581,10 +1843,34 @@
                 "giver_name": "柳三娘",
                 "id": "quest:tutorial_silk_sample:0",
                 "name": "【引导2/4】把绣样送到药铺苏掌柜手上",
+                "progress": {
+                  "done": false,
+                  "note": "已接单，等待完成目标动作",
+                  "required": 1,
+                  "tick": 12,
+                  "units": 0,
+                  "verb": "trade"
+                },
+                "required_action": {
+                  "hours": 0,
+                  "params": {
+                    "money_delta": 0,
+                    "offer": [],
+                    "target": "su_hexiang",
+                    "want": []
+                  },
+                  "target_location": "pharmacy",
+                  "target_location_name": "药铺",
+                  "target_npc": "su_hexiang",
+                  "target_npc_name": "苏合香",
+                  "verb": "trade"
+                },
                 "reward_money": 12,
                 "reward_relation": 3.0,
                 "status": "accepted",
                 "target_location": "pharmacy",
+                "target_npc": "su_hexiang",
+                "target_npc_name": "苏合香",
                 "template": "tutorial_silk_sample"
               }
             ],
@@ -1627,7 +1913,7 @@
               }
             },
             "home": "market",
-            "id": "player:w4e2e_1106125754",
+            "id": "player:w4e2e_1107084521",
             "inventory": {
               "coarse_cloth": 1,
               "flatbread": 3
@@ -1763,11 +2049,13 @@
             "wallet": 300
           },
           "details": {},
+          "duration_hours": 1.0,
+          "duration_ticks": 6,
           "event_seq": 11,
-          "intent_id": "i:1dd8b11388b412fe8e37981ed1692a6c11b592333a777107085bab945f5338d8",
+          "intent_id": "i:55c9c166d7acea4dcd555c31d448c8b7785cb5c56885491f025349668ba3d48a",
           "next_tick": 24,
           "ok": true,
-          "player": "player:w4e2e_1106125754",
+          "player": "player:w4e2e_1107084521",
           "profile_version": 1,
           "reason_text": "",
           "reject_reason": "",
@@ -1778,39 +2066,77 @@
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
-      },
-      {
-        "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/action",
+        "url": "http://127.0.0.1:52510/api/player/action",
         "body": {
-          "action": "quest/deliver",
+          "action": "trade",
           "client_tick": 24,
           "client_tick_ignored": true,
           "confirm": false,
           "data": {
-            "active_quests": [],
-            "active_quests_detail": [],
+            "active_quests": [
+              "quest:tutorial_silk_sample:0"
+            ],
+            "active_quests_detail": [
+              {
+                "category": "errand",
+                "deadline_day": 3,
+                "deadline_tick": 288,
+                "giver": "liu_sanniang",
+                "giver_location": "market",
+                "giver_name": "柳三娘",
+                "id": "quest:tutorial_silk_sample:0",
+                "name": "【引导2/4】把绣样送到药铺苏掌柜手上",
+                "progress": {
+                  "done": true,
+                  "note": "已与目标人物当面完成交易",
+                  "required": 1,
+                  "tick": 24,
+                  "units": 1,
+                  "verb": "trade"
+                },
+                "required_action": {
+                  "hours": 0,
+                  "params": {
+                    "money_delta": 0,
+                    "offer": [],
+                    "target": "su_hexiang",
+                    "want": []
+                  },
+                  "target_location": "pharmacy",
+                  "target_location_name": "药铺",
+                  "target_npc": "su_hexiang",
+                  "target_npc_name": "苏合香",
+                  "verb": "trade"
+                },
+                "reward_money": 12,
+                "reward_relation": 3.0,
+                "status": "accepted",
+                "target_location": "pharmacy",
+                "target_npc": "su_hexiang",
+                "target_npc_name": "苏合香",
+                "template": "tutorial_silk_sample"
+              }
+            ],
             "archetype": "游侠",
             "growth": {
               "assets": {
                 "at": 0.0,
                 "level": 1,
-                "money": 312,
+                "money": 300,
                 "name": "囊中羞涩",
                 "next_at": 600.0,
                 "next_name": "小有积蓄",
                 "next_unlock": "可开摊（本钱 300 文）",
-                "progress": 0.52,
-                "value": 312.0
+                "progress": 0.5,
+                "value": 300.0
               },
               "reputation": {
                 "at": 3.0,
@@ -1819,8 +2145,8 @@
                 "next_at": 15.0,
                 "next_name": "小有名气",
                 "next_unlock": "行会引荐：可进出门派与商会内堂",
-                "progress": 0.667,
-                "value": 11.0
+                "progress": 0.042,
+                "value": 3.5
               },
               "skill": {
                 "at": 0.0,
@@ -1838,7 +2164,7 @@
               }
             },
             "home": "market",
-            "id": "player:w4e2e_1106125754",
+            "id": "player:w4e2e_1107084521",
             "inventory": {
               "coarse_cloth": 1,
               "flatbread": 3
@@ -1892,11 +2218,18 @@
                 "trust": 40.5
               },
               {
-                "affection": 15.0,
+                "affection": 3.0,
                 "kind": "friend",
-                "name": "柳三娘",
-                "target": "liu_sanniang",
-                "trust": 45.0
+                "name": "苏合香",
+                "target": "su_hexiang",
+                "trust": 40.0
+              },
+              {
+                "affection": 3.0,
+                "kind": "friend",
+                "name": "苏合香",
+                "target": "su_hexiang",
+                "trust": 40.0
               }
             ],
             "role": "镖师",
@@ -1978,64 +2311,41 @@
               ],
               "tick": 30
             },
-            "wallet": 312
+            "wallet": 300
           },
           "details": {
             "relation": {
-              "affection": 15.0,
+              "affection": 3.0,
               "kind": "friend",
-              "target": "liu_sanniang",
-              "trust": 45.0
+              "target": "player:w4e2e_1107084521",
+              "trust": 2.0
             }
           },
+          "duration_hours": 1.0,
+          "duration_ticks": 6,
           "event_seq": 13,
-          "intent_id": "i:0fe799094b5116b7453e5330741e543e20e59b5c0eaaad2802137d0b345a5f27",
+          "intent_id": "i:57fe871dc40e6279623c06c23051664dac3e0d6b3ff788f82f62fd94e44f9f03",
           "next_tick": 30,
           "ok": true,
-          "player": "player:w4e2e_1106125754",
+          "player": "player:w4e2e_1107084521",
           "profile_version": 1,
           "reason_text": "",
           "reject_reason": "",
           "status": "executed",
           "tick": 24,
-          "verb": "quest_deliver"
+          "verb": "trade"
         }
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
-      },
-      {
-        "status": 409,
-        "url": "http://127.0.0.1:59464/api/player/action",
-        "body": {
-          "action": "quest/accept",
-          "client_tick": 30,
-          "client_tick_ignored": true,
-          "confirm": false,
-          "data": {},
-          "details": {},
-          "event_seq": 15,
-          "intent_id": "i:0c335b6cfe36a7d1b1f227c18b8a2234b59c18eaa795efb7e506b82858354db8",
-          "next_tick": 36,
-          "ok": false,
-          "player": "player:w4e2e_1106125754",
-          "profile_version": 1,
-          "reason_text": "你不在任务发布人所在的地点。",
-          "reject_reason": "not_at_giver",
-          "status": "rejected",
-          "tick": 30,
-          "verb": "quest_accept",
-          "reason": "not_at_giver",
-          "message": "你不在任务发布人所在的地点。"
-        }
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/action",
+        "url": "http://127.0.0.1:52510/api/player/action",
         "body": {
-          "action": "move",
-          "client_tick": 30,
+          "action": "quest/deliver",
+          "client_tick": 24,
           "client_tick_ignored": true,
           "confirm": false,
           "data": {
@@ -2061,8 +2371,8 @@
                 "next_at": 15.0,
                 "next_name": "小有名气",
                 "next_unlock": "行会引荐：可进出门派与商会内堂",
-                "progress": 0.667,
-                "value": 11.0
+                "progress": 0.917,
+                "value": 14.0
               },
               "skill": {
                 "at": 0.0,
@@ -2080,7 +2390,267 @@
               }
             },
             "home": "market",
-            "id": "player:w4e2e_1106125754",
+            "id": "player:w4e2e_1107084521",
+            "inventory": {
+              "coarse_cloth": 1,
+              "flatbread": 3
+            },
+            "location": "pharmacy",
+            "marriage": {
+              "daily_note": "",
+              "last_daily_tick": 0,
+              "since_tick": 0,
+              "spouse_id": "",
+              "spouse_name": "",
+              "status": "single"
+            },
+            "max_stamina": 100.0,
+            "name": "交付验客",
+            "nearby": [
+              {
+                "id": "chang_banxia",
+                "name": "常半夏",
+                "presence": "online",
+                "role": "游医"
+              },
+              {
+                "id": "gu_qingya",
+                "name": "顾青崖",
+                "presence": "online",
+                "role": "游医"
+              },
+              {
+                "id": "han_xinglin",
+                "name": "韩杏林",
+                "presence": "online",
+                "role": "药童"
+              },
+              {
+                "id": "su_hexiang",
+                "name": "苏合香",
+                "presence": "online",
+                "role": "掌柜"
+              }
+            ],
+            "ok": true,
+            "online": true,
+            "presence": "online",
+            "relations": [
+              {
+                "affection": 1.0,
+                "kind": "acquaintance",
+                "name": "金满仓",
+                "target": "jin_mancang",
+                "trust": 40.5
+              },
+              {
+                "affection": 15.0,
+                "kind": "friend",
+                "name": "柳三娘",
+                "target": "liu_sanniang",
+                "trust": 45.0
+              },
+              {
+                "affection": 3.0,
+                "kind": "friend",
+                "name": "苏合香",
+                "target": "su_hexiang",
+                "trust": 40.0
+              },
+              {
+                "affection": 3.0,
+                "kind": "friend",
+                "name": "苏合香",
+                "target": "su_hexiang",
+                "trust": 40.0
+              }
+            ],
+            "role": "镖师",
+            "sect": {
+              "in_sect": false,
+              "sect": null
+            },
+            "skills": {
+              "镖师": 0.35
+            },
+            "stamina": 95.0,
+            "tick": 30,
+            "today": {
+              "business": [
+                {
+                  "affordable": true,
+                  "blocked": "",
+                  "cost": 300,
+                  "shop_type": "stall"
+                },
+                {
+                  "affordable": false,
+                  "blocked": "",
+                  "cost": 1200,
+                  "shop_type": "storefront"
+                },
+                {
+                  "affordable": false,
+                  "blocked": "",
+                  "cost": 3000,
+                  "shop_type": "branch"
+                }
+              ],
+              "location": "pharmacy",
+              "location_name": "药铺",
+              "next_action": "先接委托：药铺分药",
+              "npcs": [
+                {
+                  "hint": "可打听委托",
+                  "id": "chang_banxia",
+                  "name": "常半夏",
+                  "role": "游医"
+                },
+                {
+                  "hint": "可打听委托",
+                  "id": "gu_qingya",
+                  "name": "顾青崖",
+                  "role": "游医"
+                },
+                {
+                  "hint": "可打听委托",
+                  "id": "han_xinglin",
+                  "name": "韩杏林",
+                  "role": "药童"
+                }
+              ],
+              "quests": [
+                {
+                  "giver_name": "韩杏林",
+                  "id": "quest:commission_herb_sorting:0",
+                  "name": "药铺分药",
+                  "reward_money": 14
+                },
+                {
+                  "giver_name": "苏合香",
+                  "id": "quest:tutorial_first_buy:0",
+                  "name": "【引导3/4】首单采购：垫付28文买两束艾条",
+                  "reward_money": 14
+                }
+              ],
+              "skills": [
+                {
+                  "current": 0.35,
+                  "hours_to_next": 28,
+                  "next_at": 0.42,
+                  "next_level": 2,
+                  "skill": "镖师"
+                }
+              ],
+              "tick": 36
+            },
+            "wallet": 312
+          },
+          "details": {
+            "relation": {
+              "affection": 15.0,
+              "kind": "friend",
+              "target": "liu_sanniang",
+              "trust": 45.0
+            }
+          },
+          "duration_hours": 1.0,
+          "duration_ticks": 6,
+          "event_seq": 15,
+          "intent_id": "i:8815513d065df691506fc0367bc3c649222465b4af3feb5492953d1fd5386866",
+          "next_tick": 36,
+          "ok": true,
+          "player": "player:w4e2e_1107084521",
+          "profile_version": 1,
+          "reason_text": "",
+          "reject_reason": "",
+          "status": "executed",
+          "tick": 30,
+          "verb": "quest_deliver"
+        }
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+      },
+      {
+        "status": 409,
+        "url": "http://127.0.0.1:52510/api/player/action",
+        "body": {
+          "action": "quest/accept",
+          "client_tick": 36,
+          "client_tick_ignored": true,
+          "confirm": false,
+          "data": {},
+          "details": {},
+          "duration_hours": 1.0,
+          "duration_ticks": 6,
+          "event_seq": 17,
+          "intent_id": "i:f1501fab1e3d67f2db9b652e3a1108b0073d6ec6049e812ba9f6aa86fc24e15f",
+          "next_tick": 42,
+          "ok": false,
+          "player": "player:w4e2e_1107084521",
+          "profile_version": 1,
+          "reason_text": "你不在任务发布人所在的地点。",
+          "reject_reason": "not_at_giver",
+          "status": "rejected",
+          "tick": 36,
+          "verb": "quest_accept",
+          "reason": "not_at_giver",
+          "message": "你不在任务发布人所在的地点。"
+        }
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:52510/api/player/action",
+        "body": {
+          "action": "move",
+          "client_tick": 36,
+          "client_tick_ignored": true,
+          "confirm": false,
+          "data": {
+            "active_quests": [],
+            "active_quests_detail": [],
+            "archetype": "游侠",
+            "growth": {
+              "assets": {
+                "at": 0.0,
+                "level": 1,
+                "money": 312,
+                "name": "囊中羞涩",
+                "next_at": 600.0,
+                "next_name": "小有积蓄",
+                "next_unlock": "可开摊（本钱 300 文）",
+                "progress": 0.52,
+                "value": 312.0
+              },
+              "reputation": {
+                "at": 3.0,
+                "level": 2,
+                "name": "街坊熟人",
+                "next_at": 15.0,
+                "next_name": "小有名气",
+                "next_unlock": "行会引荐：可进出门派与商会内堂",
+                "progress": 0.917,
+                "value": 14.0
+              },
+              "skill": {
+                "at": 0.0,
+                "level": 1,
+                "name": "生手",
+                "next_at": 0.42,
+                "next_name": "手熟",
+                "next_unlock": "可独立开摊（手艺够撑起门面）",
+                "progress": 0.833,
+                "skill": "镖师",
+                "skills": {
+                  "镖师": 0.35
+                },
+                "value": 0.35
+              }
+            },
+            "home": "market",
+            "id": "player:w4e2e_1107084521",
             "inventory": {
               "coarse_cloth": 1,
               "flatbread": 3
@@ -2163,6 +2733,20 @@
                 "name": "柳三娘",
                 "target": "liu_sanniang",
                 "trust": 45.0
+              },
+              {
+                "affection": 3.0,
+                "kind": "friend",
+                "name": "苏合香",
+                "target": "su_hexiang",
+                "trust": 40.0
+              },
+              {
+                "affection": 3.0,
+                "kind": "friend",
+                "name": "苏合香",
+                "target": "su_hexiang",
+                "trust": 40.0
               }
             ],
             "role": "镖师",
@@ -2174,7 +2758,7 @@
               "镖师": 0.35
             },
             "stamina": 90.0,
-            "tick": 36,
+            "tick": 42,
             "today": {
               "business": [
                 {
@@ -2248,38 +2832,40 @@
                   "skill": "镖师"
                 }
               ],
-              "tick": 42
+              "tick": 48
             },
             "wallet": 312
           },
           "details": {},
-          "event_seq": 17,
-          "intent_id": "i:426a8f9c32694a1f870ed7f403e6ef04449c469c9625994e643e1e0f832723ed",
-          "next_tick": 42,
+          "duration_hours": 1.0,
+          "duration_ticks": 6,
+          "event_seq": 19,
+          "intent_id": "i:1fd2f67987506a6ce1becad10d1aa29c28e803ee4089c8264c715aba7f89b44a",
+          "next_tick": 48,
           "ok": true,
-          "player": "player:w4e2e_1106125754",
+          "player": "player:w4e2e_1107084521",
           "profile_version": 1,
           "reason_text": "",
           "reject_reason": "",
           "status": "executed",
-          "tick": 36,
+          "tick": 42,
           "verb": "move"
         }
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/action",
+        "url": "http://127.0.0.1:52510/api/player/action",
         "body": {
           "action": "quest/accept",
-          "client_tick": 42,
+          "client_tick": 48,
           "client_tick_ignored": true,
           "confirm": false,
           "data": {
@@ -2296,10 +2882,34 @@
                 "giver_name": "金满仓",
                 "id": "quest:errand_market_ledger:0",
                 "name": "捎账本到客栈",
+                "progress": {
+                  "done": false,
+                  "note": "已接单，等待完成目标动作",
+                  "required": 1,
+                  "tick": 48,
+                  "units": 0,
+                  "verb": "trade"
+                },
+                "required_action": {
+                  "hours": 0,
+                  "params": {
+                    "money_delta": 0,
+                    "offer": [],
+                    "target": "song_henian",
+                    "want": []
+                  },
+                  "target_location": "inn",
+                  "target_location_name": "客栈",
+                  "target_npc": "song_henian",
+                  "target_npc_name": "宋鹤年",
+                  "verb": "trade"
+                },
                 "reward_money": 10,
                 "reward_relation": 2.0,
                 "status": "accepted",
                 "target_location": "inn",
+                "target_npc": "song_henian",
+                "target_npc_name": "宋鹤年",
                 "template": "errand_market_ledger"
               }
             ],
@@ -2323,8 +2933,8 @@
                 "next_at": 15.0,
                 "next_name": "小有名气",
                 "next_unlock": "行会引荐：可进出门派与商会内堂",
-                "progress": 0.667,
-                "value": 11.0
+                "progress": 0.917,
+                "value": 14.0
               },
               "skill": {
                 "at": 0.0,
@@ -2342,7 +2952,7 @@
               }
             },
             "home": "market",
-            "id": "player:w4e2e_1106125754",
+            "id": "player:w4e2e_1107084521",
             "inventory": {
               "coarse_cloth": 1,
               "flatbread": 3
@@ -2425,6 +3035,20 @@
                 "name": "柳三娘",
                 "target": "liu_sanniang",
                 "trust": 45.0
+              },
+              {
+                "affection": 3.0,
+                "kind": "friend",
+                "name": "苏合香",
+                "target": "su_hexiang",
+                "trust": 40.0
+              },
+              {
+                "affection": 3.0,
+                "kind": "friend",
+                "name": "苏合香",
+                "target": "su_hexiang",
+                "trust": 40.0
               }
             ],
             "role": "镖师",
@@ -2436,7 +3060,7 @@
               "镖师": 0.35
             },
             "stamina": 90.0,
-            "tick": 42,
+            "tick": 48,
             "today": {
               "business": [
                 {
@@ -2510,38 +3134,36 @@
                   "skill": "镖师"
                 }
               ],
-              "tick": 48
+              "tick": 54
             },
             "wallet": 312
           },
           "details": {},
-          "event_seq": 19,
-          "intent_id": "i:b1ed0f37d1e17d3d0280411f5c832c7c4948084526e8806865867995fc761913",
-          "next_tick": 48,
+          "duration_hours": 1.0,
+          "duration_ticks": 6,
+          "event_seq": 21,
+          "intent_id": "i:e2a501514dc7f64597bfe37500f8ab32ac58e4ec69f3f7b6e4c2eb547f763cb3",
+          "next_tick": 54,
           "ok": true,
-          "player": "player:w4e2e_1106125754",
+          "player": "player:w4e2e_1107084521",
           "profile_version": 1,
           "reason_text": "",
           "reject_reason": "",
           "status": "executed",
-          "tick": 42,
+          "tick": 48,
           "verb": "quest_accept"
         }
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
-      },
-      {
-        "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/action",
+        "url": "http://127.0.0.1:52510/api/player/action",
         "body": {
           "action": "move",
-          "client_tick": 48,
+          "client_tick": 54,
           "client_tick_ignored": true,
           "confirm": false,
           "data": {
@@ -2558,10 +3180,34 @@
                 "giver_name": "金满仓",
                 "id": "quest:errand_market_ledger:0",
                 "name": "捎账本到客栈",
+                "progress": {
+                  "done": false,
+                  "note": "已接单，等待完成目标动作",
+                  "required": 1,
+                  "tick": 48,
+                  "units": 0,
+                  "verb": "trade"
+                },
+                "required_action": {
+                  "hours": 0,
+                  "params": {
+                    "money_delta": 0,
+                    "offer": [],
+                    "target": "song_henian",
+                    "want": []
+                  },
+                  "target_location": "inn",
+                  "target_location_name": "客栈",
+                  "target_npc": "song_henian",
+                  "target_npc_name": "宋鹤年",
+                  "verb": "trade"
+                },
                 "reward_money": 10,
                 "reward_relation": 2.0,
                 "status": "accepted",
                 "target_location": "inn",
+                "target_npc": "song_henian",
+                "target_npc_name": "宋鹤年",
                 "template": "errand_market_ledger"
               }
             ],
@@ -2585,8 +3231,8 @@
                 "next_at": 15.0,
                 "next_name": "小有名气",
                 "next_unlock": "行会引荐：可进出门派与商会内堂",
-                "progress": 0.667,
-                "value": 11.0
+                "progress": 0.917,
+                "value": 14.0
               },
               "skill": {
                 "at": 0.0,
@@ -2604,7 +3250,7 @@
               }
             },
             "home": "market",
-            "id": "player:w4e2e_1106125754",
+            "id": "player:w4e2e_1107084521",
             "inventory": {
               "coarse_cloth": 1,
               "flatbread": 3
@@ -2663,6 +3309,20 @@
                 "name": "柳三娘",
                 "target": "liu_sanniang",
                 "trust": 45.0
+              },
+              {
+                "affection": 3.0,
+                "kind": "friend",
+                "name": "苏合香",
+                "target": "su_hexiang",
+                "trust": 40.0
+              },
+              {
+                "affection": 3.0,
+                "kind": "friend",
+                "name": "苏合香",
+                "target": "su_hexiang",
+                "trust": 40.0
               }
             ],
             "role": "镖师",
@@ -2674,7 +3334,7 @@
               "镖师": 0.35
             },
             "stamina": 85.0,
-            "tick": 48,
+            "tick": 54,
             "today": {
               "business": [
                 {
@@ -2742,48 +3402,52 @@
                   "skill": "镖师"
                 }
               ],
-              "tick": 54
+              "tick": 60
             },
             "wallet": 312
           },
           "details": {},
-          "event_seq": 21,
-          "intent_id": "i:49c827deb8d255b4237c9d0bd54fd800fec761029faae1c0a059fe4805037340",
-          "next_tick": 54,
+          "duration_hours": 1.0,
+          "duration_ticks": 6,
+          "event_seq": 23,
+          "intent_id": "i:6197a400c4ed300cb03493589528599509831fded16c9cb5e7ec82d9fb0f7c54",
+          "next_tick": 60,
           "ok": true,
-          "player": "player:w4e2e_1106125754",
+          "player": "player:w4e2e_1107084521",
           "profile_version": 1,
           "reason_text": "",
           "reject_reason": "",
           "status": "executed",
-          "tick": 48,
+          "tick": 54,
           "verb": "move"
         }
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "status": 409,
-        "url": "http://127.0.0.1:59464/api/player/action",
+        "url": "http://127.0.0.1:52510/api/player/action",
         "body": {
           "action": "quest/deliver",
-          "client_tick": 54,
+          "client_tick": 60,
           "client_tick_ignored": true,
           "confirm": false,
           "data": {},
           "details": {},
-          "event_seq": 23,
-          "intent_id": "i:313b8601d933c3fd393189b847913027a3115873388bac3d93a8f5d73b1897e8",
-          "next_tick": 60,
+          "duration_hours": 1.0,
+          "duration_ticks": 6,
+          "event_seq": 25,
+          "intent_id": "i:caeab232146c9087df69b954772eef260e92c2659b1894faeb4ee2e444888b54",
+          "next_tick": 66,
           "ok": false,
-          "player": "player:w4e2e_1106125754",
+          "player": "player:w4e2e_1107084521",
           "profile_version": 1,
           "reason_text": "你尚未到达任务目标地点或发布人处。",
           "reject_reason": "not_at_target",
           "status": "rejected",
-          "tick": 54,
+          "tick": 60,
           "verb": "quest_deliver",
           "reason": "not_at_target",
           "message": "你尚未到达任务目标地点或发布人处。"
@@ -2791,111 +3455,421 @@
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/leave"
+        "url": "http://127.0.0.1:52510/api/player/leave"
       },
       {
         "status": 409,
-        "url": "http://127.0.0.1:59464/api/player/action",
+        "url": "http://127.0.0.1:52510/api/player/action",
         "body": {
           "action": "move",
-          "client_tick": 54,
+          "client_tick": 60,
           "client_tick_ignored": true,
           "confirm": false,
           "data": {},
           "details": {},
-          "event_seq": 27,
-          "intent_id": "i:5ad51ca0c59495fbec7bfb9a3c44189408fd09d169c5dfda48816879dcd21d8f",
+          "event_seq": 29,
+          "intent_id": "i:17bdf9505771eae637ef0cb76668bf0ab3771b2ca47f806c305a5c80624a9739",
           "ok": false,
-          "player": "player:w4e2e_1106125754",
+          "player": "player:w4e2e_1107084521",
           "profile_version": 1,
           "reason_text": "你已离线；请重新进入世界后再操作。",
           "reject_reason": "player_offline",
           "status": "rejected",
-          "tick": 66,
+          "tick": 72,
           "verb": "move",
           "reason": "player_offline",
           "message": "你已离线；请重新进入世界后再操作。"
         }
       },
       {
+        "status": 200,
+        "url": "http://127.0.0.1:52510/api/player/enter"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:52510/api/player/action",
+        "body": {
+          "action": "move",
+          "client_tick": 60,
+          "client_tick_ignored": true,
+          "confirm": false,
+          "data": {
+            "active_quests": [
+              "quest:errand_market_ledger:0"
+            ],
+            "active_quests_detail": [
+              {
+                "category": "errand",
+                "deadline_day": 3,
+                "deadline_tick": 288,
+                "giver": "jin_mancang",
+                "giver_location": "market",
+                "giver_name": "金满仓",
+                "id": "quest:errand_market_ledger:0",
+                "name": "捎账本到客栈",
+                "progress": {
+                  "done": false,
+                  "note": "已接单，等待完成目标动作",
+                  "required": 1,
+                  "tick": 48,
+                  "units": 0,
+                  "verb": "trade"
+                },
+                "required_action": {
+                  "hours": 0,
+                  "params": {
+                    "money_delta": 0,
+                    "offer": [],
+                    "target": "song_henian",
+                    "want": []
+                  },
+                  "target_location": "inn",
+                  "target_location_name": "客栈",
+                  "target_npc": "song_henian",
+                  "target_npc_name": "宋鹤年",
+                  "verb": "trade"
+                },
+                "reward_money": 10,
+                "reward_relation": 2.0,
+                "status": "accepted",
+                "target_location": "inn",
+                "target_npc": "song_henian",
+                "target_npc_name": "宋鹤年",
+                "template": "errand_market_ledger"
+              }
+            ],
+            "archetype": "游侠",
+            "growth": {
+              "assets": {
+                "at": 0.0,
+                "level": 1,
+                "money": 312,
+                "name": "囊中羞涩",
+                "next_at": 600.0,
+                "next_name": "小有积蓄",
+                "next_unlock": "可开摊（本钱 300 文）",
+                "progress": 0.52,
+                "value": 312.0
+              },
+              "reputation": {
+                "at": 3.0,
+                "level": 2,
+                "name": "街坊熟人",
+                "next_at": 15.0,
+                "next_name": "小有名气",
+                "next_unlock": "行会引荐：可进出门派与商会内堂",
+                "progress": 0.917,
+                "value": 14.0
+              },
+              "skill": {
+                "at": 0.0,
+                "level": 1,
+                "name": "生手",
+                "next_at": 0.42,
+                "next_name": "手熟",
+                "next_unlock": "可独立开摊（手艺够撑起门面）",
+                "progress": 0.833,
+                "skill": "镖师",
+                "skills": {
+                  "镖师": 0.35
+                },
+                "value": 0.35
+              }
+            },
+            "home": "market",
+            "id": "player:w4e2e_1107084521",
+            "inventory": {
+              "coarse_cloth": 1,
+              "flatbread": 3
+            },
+            "location": "market",
+            "marriage": {
+              "daily_note": "",
+              "last_daily_tick": 0,
+              "since_tick": 0,
+              "spouse_id": "",
+              "spouse_name": "",
+              "status": "single"
+            },
+            "max_stamina": 100.0,
+            "name": "交付验客",
+            "nearby": [
+              {
+                "id": "duan_wudou",
+                "name": "段五斗",
+                "presence": "online",
+                "role": "屠户"
+              },
+              {
+                "id": "jin_mancang",
+                "name": "金满仓",
+                "presence": "online",
+                "role": "掌柜"
+              },
+              {
+                "id": "liu_sanniang",
+                "name": "柳三娘",
+                "presence": "online",
+                "role": "绣娘"
+              },
+              {
+                "id": "luo_qingxu",
+                "name": "罗轻絮",
+                "presence": "online",
+                "role": "绣娘"
+              },
+              {
+                "id": "meng_jiuniang",
+                "name": "孟九娘",
+                "presence": "online",
+                "role": "媒婆"
+              },
+              {
+                "id": "player:u_demo",
+                "name": "陈捕快",
+                "presence": "offline",
+                "role": "visitor"
+              },
+              {
+                "id": "ruan_qingfu",
+                "name": "阮青蚨",
+                "presence": "online",
+                "role": "货郎"
+              },
+              {
+                "id": "xing_pojun",
+                "name": "邢破军",
+                "presence": "online",
+                "role": "捕快"
+              }
+            ],
+            "ok": true,
+            "online": true,
+            "presence": "online",
+            "relations": [
+              {
+                "affection": 1.0,
+                "kind": "acquaintance",
+                "name": "金满仓",
+                "target": "jin_mancang",
+                "trust": 40.5
+              },
+              {
+                "affection": 15.0,
+                "kind": "friend",
+                "name": "柳三娘",
+                "target": "liu_sanniang",
+                "trust": 45.0
+              },
+              {
+                "affection": 3.0,
+                "kind": "friend",
+                "name": "苏合香",
+                "target": "su_hexiang",
+                "trust": 40.0
+              },
+              {
+                "affection": 3.0,
+                "kind": "friend",
+                "name": "苏合香",
+                "target": "su_hexiang",
+                "trust": 40.0
+              }
+            ],
+            "role": "镖师",
+            "sect": {
+              "in_sect": false,
+              "sect": null
+            },
+            "skills": {
+              "镖师": 0.35
+            },
+            "stamina": 80.0,
+            "tick": 78,
+            "today": {
+              "business": [
+                {
+                  "affordable": true,
+                  "blocked": "",
+                  "cost": 300,
+                  "shop_type": "stall"
+                },
+                {
+                  "affordable": false,
+                  "blocked": "",
+                  "cost": 1200,
+                  "shop_type": "storefront"
+                },
+                {
+                  "affordable": false,
+                  "blocked": "",
+                  "cost": 3000,
+                  "shop_type": "branch"
+                }
+              ],
+              "location": "market",
+              "location_name": "集市",
+              "next_action": "先接委托：【轻】打听客栈酒价",
+              "npcs": [
+                {
+                  "hint": "可打听委托",
+                  "id": "duan_wudou",
+                  "name": "段五斗",
+                  "role": "屠户"
+                },
+                {
+                  "hint": "可打听委托",
+                  "id": "jin_mancang",
+                  "name": "金满仓",
+                  "role": "掌柜"
+                },
+                {
+                  "hint": "可打听委托",
+                  "id": "liu_sanniang",
+                  "name": "柳三娘",
+                  "role": "绣娘"
+                }
+              ],
+              "quests": [
+                {
+                  "giver_name": "阮青蚨",
+                  "id": "quest:daily_market_inquiry:0",
+                  "name": "【轻】打听客栈酒价",
+                  "reward_money": 9
+                },
+                {
+                  "giver_name": "金满仓",
+                  "id": "quest:debt_duan_to_jin:0",
+                  "name": "代金满仓讨债",
+                  "reward_money": 25
+                },
+                {
+                  "giver_name": "孟九娘",
+                  "id": "quest:errand_market_sweet:0",
+                  "name": "捎一包喜糖到书院",
+                  "reward_money": 9
+                }
+              ],
+              "skills": [
+                {
+                  "current": 0.35,
+                  "hours_to_next": 28,
+                  "next_at": 0.42,
+                  "next_level": 2,
+                  "skill": "镖师"
+                }
+              ],
+              "tick": 84
+            },
+            "wallet": 312
+          },
+          "details": {},
+          "duration_hours": 1.0,
+          "duration_ticks": 6,
+          "event_seq": 32,
+          "intent_id": "i:102aaf1410b80d802292b6dd63843b39702f603cdc97ad7cf2be45ab598d430c",
+          "next_tick": 84,
+          "ok": true,
+          "player": "player:w4e2e_1107084521",
+          "profile_version": 1,
+          "reason_text": "",
+          "reject_reason": "",
+          "status": "executed",
+          "tick": 78,
+          "verb": "move"
+        }
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
+      },
+      {
         "status": 409,
-        "url": "http://127.0.0.1:59464/api/player/enter"
+        "url": "http://127.0.0.1:52510/api/player/enter"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/?ui_check=1"
+        "url": "http://127.0.0.1:52510/?ui_check=1"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/style.css"
+        "url": "http://127.0.0.1:52510/style.css"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/app.js"
+        "url": "http://127.0.0.1:52510/app.js"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/health"
+        "url": "http://127.0.0.1:52510/api/health"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/auth/refresh"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/auth/refresh"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/world/feed?limit=20"
+        "url": "http://127.0.0.1:52510/api/world/map"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/world/feed?limit=20"
+      },
+      {
+        "status": 200,
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "status": 401,
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "status": 401,
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/auth/refresh"
+        "url": "http://127.0.0.1:52510/api/auth/refresh"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "status": 403,
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=u_other"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=u_other"
       },
       {
         "status": 200,
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "status": 401,
-        "url": "http://127.0.0.1:59464/api/player/state?account_id=w4e2e_1106125754"
+        "url": "http://127.0.0.1:52510/api/player/state?account_id=w4e2e_1107084521"
       },
       {
         "status": 401,
-        "url": "http://127.0.0.1:59464/api/auth/refresh"
+        "url": "http://127.0.0.1:52510/api/auth/refresh"
       }
     ]
   }
