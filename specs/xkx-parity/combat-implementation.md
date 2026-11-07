@@ -304,3 +304,41 @@ vs `npc.boar`（40hp、attack 10、def 2、str 20、dex 15、unarmed 40），带
   `state_final=91097d90…`、`event_final=412be545…`（旧值保留为漂移记录）。
 - 未变：`tests/test_xkx_determinism_legacy.py`（735 events / `009076f0…` / `02d5f812…`）、
   `tests/test_p3e_golden.py` 全部通过。
+
+## 10. 命中参数映射自查（2026-11-07，不改公式）
+
+### 10.1 逐项结论
+
+| # | 自查项 | 结论 | 证据 |
+| --- | --- | --- | --- |
+| 1 | `skill_power` 的 ap/dp 取哪些技能 | **错在 `attack_skill`：把 `role` 当技能兜底** | 玩家 `skills={"镖师":0.35}` → `skill_map["镖师"]=35`，旧代码返回 `"镖师"`，`unarmed=40` 被遮蔽；ap 3476 而非 5412。NPC 的 `{"wanderer":0.41}` 同样被当成武功：店小二 ap 2540（正确值 50）、流氓 3036（正确值 594）。源码 `combatd.lpc:271-274`：有武器取武器技能，否则 prepare，再否则 `unarmed`。 |
+| 2 | `power_point` 缺省 1000 / `jing≈hp` | **都不是命中率原因** | 缺省 1000=1.0，只乘 1；`dodge_power_point_permille=None` 对应“没有映射轻功”。`jing` 只出现在 `dodge_rewards` / `parry_rewards` 的经验判定（`combatd.lpc:361-373`、`417-423`），`resolve_dodge` 的入参里没有 `jing`。 |
+| 3 | 防御 dp 是否漏乘 dex/身法 | **没有漏乘** | `_defense_power` 传 `attr_effective=query_dex(base, 0, skills)`、`attr_base=base`；`query_dex = base + dodge/10`。玩家 `dex 18 → 22`，穷汉 `dex 18 → 18`（无 dodge）。dp=4920=((40/6)*1600+250)/80*(22+18)。 |
+| 4 | `clamp_power([1,2e8])` 是否压极端 | **没有触发** | 实测 ap/dp 范围 50..15000（见 10.2），离 1 与 2e8 都很远。 |
+| 5 | NPC `attrs` 是否从内容包进实体 | **73/105 带 attrs 且已生效；缺省是 10，不是 20** | 穷汉实体 `attrs={"con":17,"dex":18,"int":13,"str":20}`；老虎/店小二/流氓内容里 `attrs={}`，引擎默认 10。但这两只的相关技能等级为 0，`skill_power` 先走 `combat_exp/2` 分支，dex 根本不参与，所以“老虎 dex 30 没生效”不是本次命中率差异的原因。原版老虎的强度来自 `set_temp("apply/defense",30000)` / `apply/attack 20000` / `apply/armor 1000`，而抽取器只解析 `set`、不解析 `set_temp`（`tools/xkx_extract/extract.py:546`），内容包没有这些字段。 |
+
+### 10.2 修复与实测（3 seeds × 60 回合，双方各 180 次出手）
+
+修复：`combat_rules.attack_skill` 删除 `role` 兜底，无显式技能时固定 `unarmed`。
+未改 `tools/xkx_formula` 任何公式。
+
+产品默认新号（`unarmed/dodge/parry=40`、`exp=250`、游侠六维）：
+
+| 目标 | 修复前 玩家命中 / 对方命中 | 修复后 玩家命中 / 对方命中 |
+| --- | --- | --- |
+| 老虎 `laohu`（exp 30000、dodge 0） | 2.2% / 49.4% | **10.0% / 53.9%** |
+| 店小二 `xiaoer2`（exp 100、unarmed 0） | 98.9% / 11.1% | **98.9% / 0.0%** |
+| 流氓 `liumang`（exp 1000、unarmed 20） | 67.8% / 10.6% | **85.0% / 1.1%** |
+| 穷汉 `poorman`（exp 250、unarmed 0） | 92.8% / 26.1% | **96.7% / 0.0%** |
+
+参考口径（0 经验 / 0 武功 / 天赋 20，对应 `reports/xkx-ref/scenarios/stability.md`
+的 `xkxref`）：修复后玩家对所有目标命中率 0%（ap=exp/2=0 → clamp 1），
+对方命中率 96.7%–100%。这正是“原版新号打不动任何东西”，也是创世默认要上抬的原因。
+
+**待办**：`reports/xkx-ref/hit-rate.md` 尚未产出；数字到了以后用同一口径
+（`xkxref` 角色表、同样目标、50+ 回合）并排比较，偏差 >±15pp 才继续查映射。
+
+店小二“12 回合一次没打中我”在修复后是**预期结果**：玩家 dp=4920（dodge 40），
+店小二 ap=50（unarmed 0 → exp/2），闪避 99% 后还有 unarmed 招架 99%，
+单次命中率约 0.01%。这不是公式或映射错误，而是“40 级闪避/招架 vs 0 级 NPC”
+的必然结果；参考版新号 0 闪避时对方命中率是 96.7%。

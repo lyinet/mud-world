@@ -105,12 +105,16 @@ def attr(ent: Any, name: str) -> int:
 
 
 def attack_skill(ent: Any, explicit: str | None = None) -> str:
+    """`combatd.lpc:268-274`：有武器取武器技能，否则取 prepare，再否则 `unarmed`。
+
+    这里没有建模武器技能与 `prepare_skill`，所以默认固定 `unarmed`。
+    注意：`role`（“镖师”“wanderer”等身份/职业）不是武功，绝不能当技能兜底：
+    旧实现会让玩家的 `unarmed=40` 被 `skills={"镖师":0.35}` 遮蔽，也让 NPC 用
+    职业等级 41 代替 `unarmed`，属于参数映射错误。
+    """
     levels = skill_map(ent)
     if explicit and explicit in levels:
         return str(explicit)
-    role = str(getattr(ent, "role", "") or "")
-    if role and role in levels:
-        return role
     return "unarmed"
 
 
