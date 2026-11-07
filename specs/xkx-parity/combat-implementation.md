@@ -342,3 +342,49 @@ vs `npc.boar`（40hp、attack 10、def 2、str 20、dex 15、unarmed 40），带
 店小二 ap=50（unarmed 0 → exp/2），闪避 99% 后还有 unarmed 招架 99%，
 单次命中率约 0.01%。这不是公式或映射错误，而是“40 级闪避/招架 vs 0 级 NPC”
 的必然结果；参考版新号 0 闪避时对方命中率是 96.7%。
+
+## 11. NPC 死亡：随身装备落地（不建模尸体）
+
+### 11.1 模型
+
+- 新增 `Entity.equipment: list[str]`，创世时把内容包 `equipment[].ref` 原样挂到实体上，
+  **不再进 NPC 背包**（否则会被交易/拾取逻辑当成普通携带物）。空列表不写 `to_dict()`，
+  旧九地点 NPC 没有该字段，创世事件与哈希逐字节不变。
+- 战斗动作在 `entity_status(dead)` 之后、`combat_log` 之前，把 `equipment` 转成
+  `loot_create`（落 `WorldState.ground`）。即使请求显式传了 `loot`，随身装备也会落地；
+  与背包/显式掉落同 id 时取较大数量，避免双计。
+- 内容包 `drops` 仍只放源码 `die()` 的真掉落（内容线补的 3 条），完全不参与这段逻辑，
+  因此不会和装备双计。
+- 物品表没有的装备 ref：创世诊断追加
+  `unknown_equipment_item:<npc_id>:<ref>`，不补造重量/价格；`loot_take` 仍按物品表算，
+  查不到就是 weight 0。当前 xkx 切片有 34 个这类 ref（如 `/clone/misc/cloth`、
+  `/d/shaolin/npc/obj/dao-cloth.lpc`）。
+
+### 11.2 真实世界验证（`content/xkx`，seed=7，纯默认新号）
+
+穷汉创世即 `equipment=["/d/hangzhou/npc/obj/cloth"]`、`inventory={}`。
+12 回合击杀后原始 effects（顺序）：
+
+```json
+[{"op":"hp_add","data":{"delta":-200,"entity":"/d/hangzhou/npc/poorman","reason":"fight"}},
+ {"op":"entity_status","data":{"entity":"/d/hangzhou/npc/poorman","status":"dead","tick":0,"location":"/d/hangzhou/duanqiao"}},
+ {"op":"loot_create","data":{"item":"/d/hangzhou/npc/obj/cloth","location":"/d/hangzhou/duanqiao","qty":1,"reason":"fight"}},
+ {"op":"combat_log","data":{"winner":"attacker","rounds_used":12,"skill":"unarmed","target_skill":"unarmed","hp":{"/d/hangzhou/npc/poorman":0,"player:hero":100},"overkill":{"/d/hangzhou/npc/poorman":1}, "...":"..."}},
+ {"op":"player_presence","data":{"id":"player:hero","presence":"online","tick":0}}]
+```
+
+`loot` 后：
+
+```json
+[{"op":"loot_take","data":{"entity":"player:hero","location":"/d/hangzhou/duanqiao","item":"/d/hangzhou/npc/obj/cloth","qty":1,"weight":3000}},
+ {"op":"player_presence","data":{"id":"player:hero","presence":"online","tick":0}}]
+```
+
+状态：地面清空，玩家背包 `cloth ×1`，穷汉 `status=dead/hp=0`，
+`state_hash=7d5c350536a64df339fa3211e712539c4993a3d4868129eeaabfce496ab0104f`。
+
+### 11.3 旧世界证明
+
+`tests/test_xkx_determinism_legacy.py` 全绿：735 events /
+state `009076f0…` / event `02d5f812…` / business_cash 11442 / blocked 6 / pruned 3。
+`tests/test_p3e_golden.py` 全绿。旧内容 NPC 没有 `equipment`，死亡路径不新增任何 Effect。

@@ -228,20 +228,21 @@ def build_genesis(
                     Effect("item_create", {"owner": nid, "item": item["id"], "qty": item["qty"], "reason": "genesis_carry"})
                 )
         if npc_vitals is not None:
-            # xkx 内容包的装备：进 NPC 背包，死亡时随尸体掉到地面。
-            # 只按内容 `equipment` 原样造物，不补造任何“掉落表”。
-            counts: dict[str, int] = {}
+            # xkx 内容包的装备：作为“随身装备”挂在实体上（不进背包，避免被交易/
+            # 拾取逻辑当成普通携带物），死亡时由战斗动作转成地面物品。
+            # 只按内容 `equipment` 原样记录，不补造任何“掉落表”。
+            equipment: list[str] = []
             for row in npc.get("equipment") or []:
                 ref = str((row or {}).get("ref") or "")
-                if ref:
-                    counts[ref] = counts.get(ref, 0) + 1
-            for ref in sorted(counts):
-                effects.append(
-                    Effect(
-                        "item_create",
-                        {"owner": nid, "item": ref, "qty": counts[ref], "reason": "genesis_equipment"},
-                    )
-                )
+                if not ref:
+                    continue
+                equipment.append(ref)
+                # 物品表缺这条装备时如实记录诊断，不编造重量/价格；落地时
+                # loot_take 仍按物品表计算，查不到就是 0，不在这里补值。
+                if ref not in content.items:
+                    mismatches.append(f"unknown_equipment_item:{nid}:{ref}")
+            if equipment:
+                entity_data["equipment"] = equipment
 
     # 4a2) 房间地面初始物品：只认内容显式给出的整数 count。
     # `count_expr: random(...)` 这类表达式一律跳过，不在创世里引入随机。

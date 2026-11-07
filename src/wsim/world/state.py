@@ -27,6 +27,9 @@ class Entity:
     inventory: dict[str, int] = field(default_factory=dict)
     # 已装备槽位 → 物品 id。空字典不写进 to_dict()，确保无玩家世界哈希不变。
     equipped: dict[str, str] = field(default_factory=dict)
+    # NPC 随身装备（内容包 `equipment` 原样，可重复）。死亡时转成地面物品；
+    # 旧九地点 NPC 没有该字段，空列表不写进 to_dict()，哈希不变。
+    equipment: list[str] = field(default_factory=list)
     skills: dict[str, float] = field(default_factory=dict)
     personality: dict[str, Any] = field(default_factory=dict)
     employed_at: str | None = None
@@ -86,6 +89,8 @@ class Entity:
             data["last_seen_tick"] = self.last_seen_tick
         if self.equipped:
             data["equipped"] = dict(sorted(self.equipped.items()))
+        if self.equipment:
+            data["equipment"] = list(self.equipment)
         # 战斗字段：只在内容包显式提供后出现，旧世界（max_hp=0）不新增任何键。
         if self.max_hp:
             data["hp"] = int(self.hp)
