@@ -22,7 +22,7 @@ from wsim.world.state import Entity  # noqa: E402
 
 
 def _player() -> Entity:
-    """与 player_enter 默认值一致：三项武功 40、exp 250；旧身份技能同时存在。"""
+    """与 player_enter 默认值一致：unarmed 40 / dodge 10 / parry 10、exp 250。"""
     return Entity(
         id="player:hero",
         name="测试新号",
@@ -30,7 +30,7 @@ def _player() -> Entity:
         location="inn",
         attrs={"str": 20, "con": 20, "dex": 18, "int": 15, "spi": 15, "sta": 20},
         skills={"镖师": 0.35},
-        skill_levels={"unarmed": 40, "dodge": 40, "parry": 40},
+        skill_levels={"unarmed": 40, "dodge": 10, "parry": 10},
         combat_exp=250,
         hp=100,
         max_hp=100,
@@ -67,9 +67,9 @@ def test_defense_power_uses_dodge_parry_unarmed_levels():
     actor = cr._Actor(player, set())
     levels = cr.skill_map(player)
     dex_effective = xf.query_dex(18, 0, levels)
-    for skill in ("dodge", "parry", "unarmed"):
+    for skill, level in (("dodge", 10), ("parry", 10), ("unarmed", 40)):
         expected = xf.skill_power(
-            skill_level=40, apply_bonus=0, combat_exp=250,
+            skill_level=level, apply_bonus=0, combat_exp=250,
             attr_effective=dex_effective, attr_base=18,
             usage=xf.SKILL_USAGE_DEFENSE,
             dodge_power_point_permille=None,

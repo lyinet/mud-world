@@ -39,12 +39,12 @@ STARTING_ITEMS: dict[str, int] = {"flatbread": 3, "coarse_cloth": 1}
 #   初始 age=14。所以 100 不是我们编的。
 # - 六维属性是**我们的默认**：xkx 登录时由玩家掷点决定，不可确定复刻；这里按身份
 #   给一组固定值，保证新角色一定有属性、战斗可结算。
-# - 初始武功/经验同样是**我们的默认**（原版要先找师父学艺，0 经验新手打不动任何 NPC）：
-#   三项基础武功各 40 级、combat_exp=250，与验收脚本完全一致；经验压制照旧生效。
+# - 初始武功/经验同样是**我们的默认**（原版要先找师父学艺，0 经验新手打不动任何 NPC）。
+#   unarmed=40 保证能打；dodge/parry 只给 10：原版新号两者为 0，给满 40 会让弱 NPC
+#   对玩家命中率变成 0.0%（店小二/穷汉实测），玩家近乎无敌，不是原版手感。
 PLAYER_MAX_HP = 100
 PLAYER_START_COMBAT_EXP = 250
-PLAYER_START_SKILL_LEVEL = 40
-PLAYER_START_SKILLS = ("unarmed", "dodge", "parry")
+PLAYER_START_SKILL_LEVELS: dict[str, int] = {"unarmed": 40, "dodge": 10, "parry": 10}
 DEFAULT_ARCHETYPE = "游侠"
 ARCHETYPE_ATTRS: dict[str, dict[str, int]] = {
     # 膂力 / 根骨 / 身法 / 悟性 / 精神 / 耐力
@@ -65,7 +65,7 @@ def _player_vitals(archetype: str = "") -> dict:
         "hp": PLAYER_MAX_HP,
         "attrs": dict(attrs),
         "combat_exp": PLAYER_START_COMBAT_EXP,
-        "skill_levels": {skill: PLAYER_START_SKILL_LEVEL for skill in PLAYER_START_SKILLS},
+        "skill_levels": dict(PLAYER_START_SKILL_LEVELS),
     }
 
 

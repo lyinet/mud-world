@@ -78,9 +78,9 @@ def test_player_genesis_has_hp_and_attrs():
     assert create.data["max_hp"] == PLAYER_MAX_HP == 100
     assert create.data["hp"] == 100
     assert set(create.data["attrs"]) == {"str", "con", "dex", "int", "spi", "sta"}
-    # 我们的默认：基础武功 40 级 + 250 经验，保证新号打得动一场。
+    # 我们的默认：unarmed 40 + 250 经验保证打得动；dodge/parry 10 避免玩家无敌。
     assert create.data["combat_exp"] == 250
-    assert create.data["skill_levels"] == {"unarmed": 40, "dodge": 40, "parry": 40}
+    assert create.data["skill_levels"] == {"unarmed": 40, "dodge": 10, "parry": 10}
 
     state = WorldState(locations={"inn": {"id": "inn", "name": "客栈", "exits": [], "services": []}})
     apply_effects(state, effects)
@@ -109,7 +109,7 @@ def test_player_enter_assigns_archetype_vitals_and_backfills_old_entity():
     assert (ent.max_hp, ent.hp) == (100, 100)
     assert ent.attrs == ARCHETYPE_ATTRS["捕快"]
     assert ent.combat_exp == 250
-    assert ent.skill_levels == {"unarmed": 40, "dodge": 40, "parry": 40}
+    assert ent.skill_levels == {"unarmed": 40, "dodge": 10, "parry": 10}
     assert _player_vitals("商人")["attrs"] != _player_vitals("捕快")["attrs"]
 
     # 旧实体（创世早于本次改动）重进时补一次 vitals_set。
