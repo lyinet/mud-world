@@ -9,6 +9,24 @@
 
 ---
 
+## [后端] 2026-11-07 — 修复 selfcheck 框架门禁红：equip/unequip/use_item 补登引擎白名单
+
+- **改了什么**：`src/wsim/audit/report.py` 的 `ENGINE_ONLY_ALLOWED` 补入 `equip` / `unequip` / `use_item`。
+- **为什么**：晨报核查跑 selfcheck，框架验收 [1/6] FAIL：`content_audit` 报
+  `verbs_mismatch:engine_only=equip,unequip,use_item`。根因是 `78876e5`（人物四面板）
+  在引擎注册了这三个玩家 UI 直驱动词，但既没在内容包声明也没加进白名单——推送时
+  门禁未跑导致的红。这些动词不参与 NPC 决策、无需内容 `allowed_roles`，按 `player_*` /
+  `marriage_*` 先例归为引擎侧；改代码不改 `content_hash`，避免触发内容哈希迁移。
+- **验证**：
+  - `pytest tests/test_p3b_intent_model.py`：10/10 通过（mismatch 检测未被破坏）；
+  - `tools/framework_check.py`：6/6 PASS，exit 0；
+  - 顺带当前 K1（10 天 / 31 NPC / seed 42）：**全量 62/91 = 68.13%、剔除一次性 57.35%**；
+    events=3084、rejected=0（0.00%）、burned=1210、守恒重放 MATCH。
+- **遗留**：delivery-p3m 还需 e2e 全项 + 2 小时长跑复跑 + 工作树干净，满足后才打 tag。
+- **commit**：见本条目所在提交。
+
+---
+
 ## [后端] 2026-11-07 — 修复 pytest 红：确定性墙钟收敛 + W1 并发陈旧断言
 
 - **改了什么**：

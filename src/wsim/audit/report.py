@@ -30,6 +30,9 @@ ENGINE_ONLY_ALLOWED = {
     # 玩家婚姻闭环：由会话层/服务端事件链驱动，不在内容包 verbs 中声明。
     "marriage_propose", "marriage_accept", "marriage_reject", "marriage", "marriage_end",
     "spouse_time",
+    # 人物四面板（78876e5）：玩家 UI 直驱的装备/物品动作，不参与 NPC 决策，
+    # 无需内容包声明 allowed_roles；改代码不改 content_hash，避免触发内容哈希迁移。
+    "equip", "unequip", "use_item",
 }
 
 
