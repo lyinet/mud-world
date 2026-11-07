@@ -128,6 +128,7 @@ def build_outputs(pack, diagnostics, counts, coverage, source_info) -> dict[str,
                 "null": "描述缺失，玩家会看到空白；total 覆盖率不达标即 error。",
             },
             "room_region": "region 由房间源码路径 d/<region>/ 推导（kind=derived_path）；region_name 只从 mapd.lpc 全局映射 map_short/logind.lpc hometown 取（kind=lpc），取不到为 null 并记 diagnostics。region 不是 flags.outdoors。",
+            "item_apply": "apply 是原版 armor_prop/*、weapon_prop/* 以及 init_<武器>(damage) 映射后的 apply/<key> 加成；整数字面量直接搬运，表达式放 apply_expr 且值为 null，未识别键保留原样并进 apply_unknown_keys/diagnostics。apply_source 逐键给源码行，兵器伤害另给 base_path/base_line。",
             "skill_action_source": {
                 "lpc": "招式/系数在原版 LPC 中直接写死，原样搬运。",
                 "derived": "原版只给公式或结构，数值由抽取器按源码公式解释得出。",

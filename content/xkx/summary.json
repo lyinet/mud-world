@@ -16,6 +16,7 @@
     "W_ACTION_COEFF_DEFAULT": 11,
     "W_ASYMMETRIC_EXIT": 9,
     "W_BOUNDARY_EXIT": 6,
+    "W_ITEM_APPLY_UNKNOWN_KEY": 3,
     "W_MISSING_SKILL": 1,
     "W_NO_EXIT": 4,
     "W_NO_PRICE": 11,
@@ -40,8 +41,16 @@
     "equipment_items_unresolved": 0,
     "equipment_refs_normalized": 3,
     "exits": 427,
+    "items_apply_expr": 0,
+    "items_apply_from_init": 28,
+    "items_apply_keys": 60,
+    "items_apply_keys_in_slice": 20,
+    "items_apply_unknown_keys": 3,
+    "items_apply_unknown_keys_unique": 1,
     "items_external": 46,
     "items_in_slice": 39,
+    "items_with_apply": 57,
+    "items_with_apply_in_slice": 19,
     "masters": 22,
     "npcs_beast_attrs_roll": 2,
     "npcs_external": 13,
@@ -157,5 +166,5 @@
   },
   "errors": 0,
   "infos": 53,
-  "warnings": 49
+  "warnings": 52
 }

@@ -35,6 +35,22 @@ RACE_ATTR_FILES = {
     "昆虫": "adm/daemons/race/insect.lpc",
 }
 ATTR_KEYS = ("str", "int", "con", "dex", "per", "kar")
+
+# 原版装备加成最终都落到临时 apply/<key>。这里把 armor_prop/weapon_prop
+# 映射成 apply/<key>；不在白名单的键照原样保留并进诊断，不猜语义。
+PROP_PREFIXES = ("armor_prop/", "weapon_prop/")
+KNOWN_APPLY_KEYS = {
+    "apply/attack", "apply/defense", "apply/armor", "apply/armor_vs_force",
+    "apply/damage", "apply/unarmed_damage", "apply/dodge", "apply/parry",
+}
+
+# P4a（6b798ac）：这两只 NPC 的 <昏迷不醒> 来自参考采集快照的战斗临时态，
+# 原版 LPC 没有静态标记。内容包已显式建模 initial_state；生成器必须保留，
+# 否则重跑会静默回退已交付的创世行为。
+REF_NPC_INITIAL_STATE = {
+    "/d/hangzhou/npc/dushe": "unconcious",
+    "/d/hangzhou/npc/wolfdog": "unconcious",
+}
 _RACE_ATTR_ROLL_RE = re.compile(
     r'if\s*\(\s*undefinedp\(\s*my\[\s*"([a-z]+)"\s*\]\s*\)\s*\)'
     r'\s*my\[\s*"\1"\s*\]\s*=\s*random\(\s*(\d+)\s*\)\s*\+\s*(\d+)\s*;'
@@ -213,6 +229,7 @@ class Extractor:
         self._text_cache: dict[str, str] = {}
         self._race_attr_cache: dict[str, dict] = {}
         self._region_name_cache: dict[str, dict] | None = None
+        self._weapon_init_cache: dict[str, tuple[str, int] | None] = {}
         self._item_refs: set[str] = set()
         self._npc_refs: set[str] = set()
         self._stub_reachable: set[str] = set()
@@ -657,6 +674,23 @@ class Extractor:
                 continue
             self.items[rec["id"]] = rec
 
+    def _weapon_init_prop_source(self, init_name: str) -> tuple[str, int] | None:
+        """`init_sword(75)` 实际由 inherit/weapon/sword.lpc 写 weapon_prop/damage。"""
+        if init_name in self._weapon_init_cache:
+            return self._weapon_init_cache[init_name]
+        base_path = f"inherit/weapon/{init_name[5:]}.lpc"
+        text = self.read(base_path)
+        result = None
+        if text:
+            for lineno, line in enumerate(text.splitlines(), 1):
+                if re.search(
+                    r'set\s*\(\s*"weapon_prop/damage"\s*,\s*damage\s*\)', line
+                ):
+                    result = (base_path, lineno)
+                    break
+        self._weapon_init_cache[init_name] = result
+        return result
+
     def _parse_item(self, rel_path, mid, text, bases, origin="slice"):
         emit_diag = origin == "slice"
         ctx = lpc.ParseContext(mid, lpc.mudlib_dir(rel_path), lpc.extract_defines(text))
@@ -666,6 +700,9 @@ class Extractor:
         values: dict[str, object] = {}
         weight = None
         amount = None
+        apply: dict[str, int | None] = {}
+        apply_expr: dict[str, str] = {}
+        apply_source: dict[str, dict] = {}
         for cname, args, line, _method in calls:
             if cname == "set_name" and args and isinstance(args[0], str) and name is None:
                 name = lpc.clean_text(args[0])
@@ -676,7 +713,36 @@ class Extractor:
                 # 原版一件物品自带的数量（如鹅卵石 set_amount(10)）。
                 amount = args[0]
             elif cname == "set" and args and isinstance(args[0], str):
-                values.setdefault(args[0], (args[1] if len(args) > 1 else None, line))
+                key = args[0]
+                raw = args[1] if len(args) > 1 else None
+                values.setdefault(key, (raw, line))
+                if key.startswith(PROP_PREFIXES):
+                    prop = "apply/" + key.split("/", 1)[1]
+                    if isinstance(raw, int) and not isinstance(raw, bool):
+                        apply[prop] = raw
+                        apply_expr.pop(prop, None)
+                    else:
+                        apply[prop] = None
+                        apply_expr[prop] = getattr(raw, "text", str(raw))
+                    apply_source[prop] = {"kind": "lpc", "path": rel_path, "line": line}
+            elif cname.startswith("init_") and args:
+                # 兵器伤害来自 init_sword(75) 这类继承函数；值在调用点已确定。
+                base = self._weapon_init_prop_source(cname)
+                if base:
+                    raw = args[0]
+                    if isinstance(raw, int) and not isinstance(raw, bool):
+                        apply["apply/damage"] = raw
+                        apply_expr.pop("apply/damage", None)
+                    else:
+                        apply["apply/damage"] = None
+                        apply_expr["apply/damage"] = getattr(raw, "text", str(raw))
+                    apply_source["apply/damage"] = {
+                        "kind": "lpc_init",
+                        "path": rel_path,
+                        "line": line,
+                        "base_path": base[0],
+                        "base_line": base[1],
+                    }
 
         category, equip_slot = "misc", None
         for base in ITEM_BASES:
@@ -709,6 +775,23 @@ class Extractor:
         elif price == 0 and emit_diag:
             self.diag("I_PRICE_ZERO", "info", rel_path, price_line, "物品价格为 0")
 
+        unknown_apply = sorted(k for k in apply if k not in KNOWN_APPLY_KEYS)
+        for key in unknown_apply:
+            src = apply_source.get(key, {})
+            self.diag(
+                "W_ITEM_APPLY_UNKNOWN_KEY", "warning", rel_path,
+                src.get("line") or line,
+                f"装备加成键 {key} 不在已知战斗 apply 白名单，原样保留",
+                key=key,
+            )
+        for key in sorted(apply_expr):
+            src = apply_source.get(key, {})
+            self.diag(
+                "I_ITEM_APPLY_EXPR", "info", rel_path, src.get("line") or line,
+                f"装备加成键 {key} 是表达式，标记 value_expr，不折算数值",
+                key=key, value_expr=apply_expr[key],
+            )
+
         return {
             "id": mid,
             "name": name,
@@ -722,6 +805,10 @@ class Extractor:
             "material": values.get("material", (None, None))[0] if isinstance(values.get("material", (None, None))[0], str) else None,
             "weight": weight,
             "amount": amount,
+            "apply": {k: apply[k] for k in sorted(apply)},
+            "apply_expr": {k: apply_expr[k] for k in sorted(apply_expr)},
+            "apply_source": {k: apply_source[k] for k in sorted(apply_source)},
+            "apply_unknown_keys": unknown_apply,
             "food_supply": values.get("food_supply", (None, None))[0] if isinstance(values.get("food_supply", (None, None))[0], int) else None,
             "origin": origin,
             "source": {"path": rel_path, "line": line},
@@ -905,7 +992,7 @@ class Extractor:
                 vitals[key] = values[key][0]
 
         vendor = "vendor_goods" in values
-        return {
+        rec = {
             "id": mid,
             "name": name,
             "aliases": aliases,
@@ -949,6 +1036,9 @@ class Extractor:
             "source": {"path": rel_path, "line": name_line or 1},
             "_topics": topics,
         }
+        if mid in REF_NPC_INITIAL_STATE:
+            rec["initial_state"] = REF_NPC_INITIAL_STATE[mid]
+        return rec
 
     def _region_name_sources(self) -> dict[str, dict]:
         """区域名只从原版区域表/出生地表取，取不到就不编。"""
@@ -1457,6 +1547,33 @@ class Extractor:
             "exits": len(self.exits),
             "items_in_slice": sum(1 for i in self.items.values() if i["origin"] == "slice"),
             "items_external": sum(1 for i in self.items.values() if i["origin"] == "external"),
+            "items_with_apply": sum(1 for i in self.items.values() if i.get("apply")),
+            "items_with_apply_in_slice": sum(
+                1 for i in self.items.values()
+                if i["origin"] == "slice" and i.get("apply")
+            ),
+            "items_apply_keys": sum(len(i.get("apply") or {}) for i in self.items.values()),
+            "items_apply_keys_in_slice": sum(
+                len(i.get("apply") or {}) for i in self.items.values()
+                if i["origin"] == "slice"
+            ),
+            "items_apply_expr": sum(
+                len(i.get("apply_expr") or {}) for i in self.items.values()
+            ),
+            "items_apply_unknown_keys": sum(
+                len(i.get("apply_unknown_keys") or []) for i in self.items.values()
+            ),
+            "items_apply_unknown_keys_unique": len({
+                k for i in self.items.values()
+                for k in (i.get("apply_unknown_keys") or [])
+            }),
+            "items_apply_from_init": sum(
+                1 for i in self.items.values()
+                if any(
+                    s.get("kind") == "lpc_init"
+                    for s in (i.get("apply_source") or {}).values()
+                )
+            ),
             "npcs_in_slice": sum(1 for n in self.npcs.values() if n["origin"] == "slice"),
             "npcs_external": sum(1 for n in self.npcs.values() if n["origin"] == "external"),
             "npcs_with_attrs_roll": sum(1 for n in self.npcs.values() if n.get("attrs_roll")),

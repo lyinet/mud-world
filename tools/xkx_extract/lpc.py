@@ -534,7 +534,7 @@ def scan_calls(text: str, ctx: ParseContext) -> tuple[list[tuple], list[dict]]:
         if (
             not chained
             and tok.kind == "IDENT"
-            and tok.value in RECORDED_CALLS
+            and (tok.value in RECORDED_CALLS or tok.value.startswith("init_"))
             and i + 1 < len(tokens)
             and tokens[i + 1].kind == "PUNCT"
             and tokens[i + 1].value == "("

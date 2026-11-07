@@ -2,6 +2,26 @@
   "items": [
     {
       "amount": null,
+      "apply": {
+        "apply/armor": 10,
+        "apply/personality": 3
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/armor": {
+          "kind": "lpc",
+          "line": 17,
+          "path": "d/hangzhou/honghua/obj/cuiyu.lpc"
+        },
+        "apply/personality": {
+          "kind": "lpc",
+          "line": 18,
+          "path": "d/hangzhou/honghua/obj/cuiyu.lpc"
+        }
+      },
+      "apply_unknown_keys": [
+        "apply/personality"
+      ],
       "category": "armor",
       "desc": "一支翠绿的羽毛。",
       "desc_source": "lpc",
@@ -22,6 +42,18 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/armor": 10
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/armor": {
+          "kind": "lpc",
+          "line": 18,
+          "path": "d/hangzhou/honghua/obj/huangshan.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "armor",
       "desc": "一件鹅黄色的女子长衫。",
       "desc_source": "lpc",
@@ -42,6 +74,20 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/damage": 75
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/damage": {
+          "base_line": 14,
+          "base_path": "inherit/weapon/sword.lpc",
+          "kind": "lpc_init",
+          "line": 21,
+          "path": "d/hangzhou/honghua/obj/shortsword.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "weapon",
       "desc": "这是一柄的短剑，据说剑里藏着一个极大秘密，几\n百年来辗转相传，始终无人参详得出。",
       "desc_source": "lpc",
@@ -62,6 +108,20 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/damage": 40
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/damage": {
+          "base_line": 14,
+          "base_path": "inherit/weapon/whip.lpc",
+          "kind": "lpc_init",
+          "line": 19,
+          "path": "d/hangzhou/honghua/obj/tiebian.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "weapon",
       "desc": "这是一柄粗大的铁鞭，总有三十来斤重。",
       "desc_source": "lpc",
@@ -82,6 +142,20 @@
     },
     {
       "amount": 50,
+      "apply": {
+        "apply/damage": 50
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/damage": {
+          "base_line": 11,
+          "base_path": "inherit/weapon/throwing.lpc",
+          "kind": "lpc_init",
+          "line": 23,
+          "path": "d/hangzhou/honghua/obj/tiedan.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "weapon",
       "desc": "一些溜圆的铁胆，是一种凶猛的暗器。",
       "desc_source": "lpc",
@@ -104,6 +178,20 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/damage": 30
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/damage": {
+          "base_line": 14,
+          "base_path": "inherit/weapon/club.lpc",
+          "kind": "lpc_init",
+          "line": 19,
+          "path": "d/hangzhou/honghua/obj/tiejiang.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "weapon",
       "desc": "这是一根铁桨，举可齐眉，看来很是沉重，可攻击大片敌人。",
       "desc_source": "lpc",
@@ -124,6 +212,10 @@
     },
     {
       "amount": null,
+      "apply": {},
+      "apply_expr": {},
+      "apply_source": {},
+      "apply_unknown_keys": [],
       "category": "misc",
       "desc": "一个煎得油澄澄、香喷喷的百果油包。",
       "desc_source": "lpc",
@@ -144,6 +236,10 @@
     },
     {
       "amount": null,
+      "apply": {},
+      "apply_expr": {},
+      "apply_source": {},
+      "apply_unknown_keys": [],
       "category": "misc",
       "desc": "一只被烤得流油，香味扑鼻的叫化鸡。",
       "desc_source": "lpc",
@@ -164,6 +260,18 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/armor": 1
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/armor": {
+          "kind": "lpc",
+          "line": 17,
+          "path": "d/hangzhou/npc/obj/cloth.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "armor",
       "desc": "一件洗得发白的粗布衣裳，针脚细密，是寻常人家最常穿的衣物。",
       "desc_source": "authored",
@@ -184,6 +292,10 @@
     },
     {
       "amount": null,
+      "apply": {},
+      "apply_expr": {},
+      "apply_source": {},
+      "apply_unknown_keys": [],
       "category": "misc",
       "desc": "一盘清甜可人的西湖醋鱼，用西湖中的金色鲤鱼\n烧制而成，是西湖第一名菜。",
       "desc_source": "lpc",
@@ -204,6 +316,10 @@
     },
     {
       "amount": null,
+      "apply": {},
+      "apply_expr": {},
+      "apply_source": {},
+      "apply_unknown_keys": [],
       "category": "misc",
       "desc": "一碗香气馥郁的桂花鲜栗羹。",
       "desc_source": "lpc",
@@ -224,6 +340,18 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/armor": 1
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/armor": {
+          "kind": "lpc",
+          "line": 18,
+          "path": "d/hangzhou/npc/obj/goupi.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "armor",
       "desc": "一块硝制过的狗皮，皮毛粗糙却厚实，披在身上倒也挡风。",
       "desc_source": "authored",
@@ -244,6 +372,20 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/damage": 100
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/damage": {
+          "base_line": 14,
+          "base_path": "inherit/weapon/sword.lpc",
+          "kind": "lpc_init",
+          "line": 20,
+          "path": "d/hangzhou/npc/obj/green_sword.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "weapon",
       "desc": "这是一把通体晶莹剔透的剑，是武当镇派之宝！",
       "desc_source": "lpc",
@@ -264,6 +406,10 @@
     },
     {
       "amount": null,
+      "apply": {},
+      "apply_expr": {},
+      "apply_source": {},
+      "apply_unknown_keys": [],
       "category": "misc",
       "desc": "一个晶莹碧绿的的大酒瓶，装了熏熏醉人的竹叶青。",
       "desc_source": "lpc",
@@ -284,6 +430,10 @@
     },
     {
       "amount": null,
+      "apply": {},
+      "apply_expr": {},
+      "apply_source": {},
+      "apply_unknown_keys": [],
       "category": "misc",
       "desc": "一本描金的婚约，写着你与结发之人的名字，须得去红娘庄才能解除。",
       "desc_source": "authored",
@@ -304,6 +454,10 @@
     },
     {
       "amount": null,
+      "apply": {},
+      "apply_expr": {},
+      "apply_source": {},
+      "apply_unknown_keys": [],
       "category": "misc",
       "desc": "一碗香喷喷的东坡肉，用文火煨肥猪肉而成，\n苏东坡在牧守杭州时看到民间吃肉而烧制不得法，遗惠此法至千年以下。",
       "desc_source": "lpc",
@@ -324,6 +478,10 @@
     },
     {
       "amount": null,
+      "apply": {},
+      "apply_expr": {},
+      "apply_source": {},
+      "apply_unknown_keys": [],
       "category": "misc",
       "desc": "酽酽浓浓的一盘龙井虾仁。",
       "desc_source": "lpc",
@@ -344,6 +502,20 @@
     },
     {
       "amount": 10,
+      "apply": {
+        "apply/damage": 1
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/damage": {
+          "base_line": 11,
+          "base_path": "inherit/weapon/throwing.lpc",
+          "kind": "lpc_init",
+          "line": 22,
+          "path": "d/hangzhou/obj/eluanshi.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "weapon",
       "desc": "这是一粒平平常常的鹅卵石。",
       "desc_source": "lpc",
@@ -364,6 +536,20 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/damage": 1
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/damage": {
+          "base_line": 14,
+          "base_path": "inherit/weapon/hammer.lpc",
+          "kind": "lpc_init",
+          "line": 21,
+          "path": "d/hangzhou/obj/shitou.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "weapon",
       "desc": "这是一平平常常的大石头。",
       "desc_source": "lpc",
@@ -384,6 +570,20 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/damage": 5
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/damage": {
+          "base_line": 14,
+          "base_path": "inherit/weapon/staff.lpc",
+          "kind": "lpc_init",
+          "line": 21,
+          "path": "d/hangzhou/obj/shuzhi.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "weapon",
       "desc": "这是一根爬山用的树枝。",
       "desc_source": "lpc",
@@ -404,6 +604,18 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/armor": 1
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/armor": {
+          "kind": "lpc",
+          "line": 16,
+          "path": "d/jiaxing/npc/flower_shoe.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "armor",
       "desc": "一双绣着并蒂莲的软底小鞋，针线精巧，鞋面还带着淡淡的脂粉香。",
       "desc_source": "authored",
@@ -424,6 +636,18 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/armor": 1
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/armor": {
+          "kind": "lpc",
+          "line": 17,
+          "path": "d/jiaxing/npc/obj/cloth.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "armor",
       "desc": "一件半旧的粗布短衣，浆洗得干净，是嘉兴一带百姓的常服。",
       "desc_source": "authored",
@@ -444,6 +668,20 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/damage": 50
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/damage": {
+          "base_line": 14,
+          "base_path": "inherit/weapon/whip.lpc",
+          "kind": "lpc_init",
+          "line": 19,
+          "path": "d/jiaxing/npc/obj/fuchen.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "weapon",
       "desc": "这是一柄拂尘，做工精细，是很阴毒的兵器。",
       "desc_source": "lpc",
@@ -464,6 +702,10 @@
     },
     {
       "amount": null,
+      "apply": {},
+      "apply_expr": {},
+      "apply_source": {},
+      "apply_unknown_keys": [],
       "category": "misc",
       "desc": "臭鸭蛋闻着臭，吃着香。",
       "desc_source": "lpc",
@@ -484,6 +726,20 @@
     },
     {
       "amount": 1,
+      "apply": {
+        "apply/damage": 25
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/damage": {
+          "base_line": 11,
+          "base_path": "inherit/weapon/throwing.lpc",
+          "kind": "lpc_init",
+          "line": 29,
+          "path": "d/jiaxing/npc/obj/yinzhen.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "weapon",
       "desc": "这就是武林中人闻之色变的冰魄银针，针身缕刻花纹，打造得极是精细，令人忍不住想把玩(bawan)一番。",
       "desc_source": "lpc",
@@ -504,6 +760,10 @@
     },
     {
       "amount": null,
+      "apply": {},
+      "apply_expr": {},
+      "apply_source": {},
+      "apply_unknown_keys": [],
       "category": "misc",
       "desc": "一个香喷喷的肉粽子，包它的粽子叶泛出一股清香。",
       "desc_source": "lpc",
@@ -524,6 +784,18 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/armor": 1
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/armor": {
+          "kind": "lpc",
+          "line": 17,
+          "path": "d/jiaxing/obj/cloth.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "armor",
       "desc": "一件素色布衣，布料虽粗，却缝补得整整齐齐。",
       "desc_source": "authored",
@@ -544,6 +816,18 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/armor": 1
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/armor": {
+          "kind": "lpc",
+          "line": 16,
+          "path": "d/jiaxing/obj/flower_shoe.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "armor",
       "desc": "一双大红缎面的绣花小鞋，鞋尖缀着绒球，走起路来悄无声息。",
       "desc_source": "authored",
@@ -564,6 +848,20 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/damage": 50
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/damage": {
+          "base_line": 14,
+          "base_path": "inherit/weapon/whip.lpc",
+          "kind": "lpc_init",
+          "line": 19,
+          "path": "d/jiaxing/obj/fuchen.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "weapon",
       "desc": "这是一柄拂尘，做工精细，是很阴毒的兵器。",
       "desc_source": "lpc",
@@ -584,6 +882,10 @@
     },
     {
       "amount": null,
+      "apply": {},
+      "apply_expr": {},
+      "apply_source": {},
+      "apply_unknown_keys": [],
       "category": "misc",
       "desc": "只见画中是一座陡峭突兀的高山，共有五座山峰，中间一峰尤高，\n笔立指天，耸入云表，山侧生着一排松树，松梢积雪，树身尽皆向南弯\n曲，想见北风之烈。峰西独有一棵老松，却是挺然直起，巍巍秀拔，树\n下朱笔画着一个迎风舞剑的将军。这人面目难见，但衣袂飘举，资形脱\n俗。全幅画都是水墨山水，独此人殷红如火，更加显得卓荦不群。画上\n并无书款，只题着一首诗云：“经年尘土满征衣，特特寻芳上翠微，好\n山好水看不足，马蹄催趁月明归。”",
       "desc_source": "lpc",
@@ -604,6 +906,10 @@
     },
     {
       "amount": null,
+      "apply": {},
+      "apply_expr": {},
+      "apply_source": {},
+      "apply_unknown_keys": [],
       "category": "misc",
       "desc": "一面做成八卦形状的铁牌，翻过来看，背面写着一个“曲”字。",
       "desc_source": "lpc",
@@ -624,6 +930,10 @@
     },
     {
       "amount": null,
+      "apply": {},
+      "apply_expr": {},
+      "apply_source": {},
+      "apply_unknown_keys": [],
       "category": "misc",
       "desc": "这是据说已经失传了的范宽真迹，对于爱画之人，算是无价之宝了。",
       "desc_source": "lpc",
@@ -644,6 +954,10 @@
     },
     {
       "amount": null,
+      "apply": {},
+      "apply_expr": {},
+      "apply_source": {},
+      "apply_unknown_keys": [],
       "category": "misc",
       "desc": "臭鸭蛋闻着臭，吃着香。",
       "desc_source": "lpc",
@@ -664,6 +978,10 @@
     },
     {
       "amount": null,
+      "apply": {},
+      "apply_expr": {},
+      "apply_source": {},
+      "apply_unknown_keys": [],
       "category": "misc",
       "desc": "一个香喷喷的肉粽子，包它的粽子叶泛出一股清香。",
       "desc_source": "lpc",
@@ -684,6 +1002,10 @@
     },
     {
       "amount": null,
+      "apply": {},
+      "apply_expr": {},
+      "apply_source": {},
+      "apply_unknown_keys": [],
       "category": "misc",
       "desc": "这就是记载着金蛇郎君一生心血的金蛇剑谱。",
       "desc_source": "lpc",
@@ -704,6 +1026,10 @@
     },
     {
       "amount": null,
+      "apply": {},
+      "apply_expr": {},
+      "apply_source": {},
+      "apply_unknown_keys": [],
       "category": "misc",
       "desc": "这是阿土送给阿凤的情书，你可不要私自打开来看哦。",
       "desc_source": "lpc",
@@ -724,6 +1050,10 @@
     },
     {
       "amount": null,
+      "apply": {},
+      "apply_expr": {},
+      "apply_source": {},
+      "apply_unknown_keys": [],
       "category": "misc",
       "desc": "这是一把用来的打扫卫生的扫把。",
       "desc_source": "lpc",
@@ -744,6 +1074,10 @@
     },
     {
       "amount": null,
+      "apply": {},
+      "apply_expr": {},
+      "apply_source": {},
+      "apply_unknown_keys": [],
       "category": "misc",
       "desc": "这是一张绣花手帕。",
       "desc_source": "lpc",
@@ -764,6 +1098,10 @@
     },
     {
       "amount": null,
+      "apply": {},
+      "apply_expr": {},
+      "apply_source": {},
+      "apply_unknown_keys": [],
       "category": "misc",
       "desc": "一个很小的洞。",
       "desc_source": "lpc",
@@ -784,6 +1122,10 @@
     },
     {
       "amount": null,
+      "apply": {},
+      "apply_expr": {},
+      "apply_source": {},
+      "apply_unknown_keys": [],
       "category": "misc",
       "desc": "这是一朵盛开的白薇，看来可以入药。",
       "desc_source": "lpc",
@@ -804,6 +1146,10 @@
     },
     {
       "amount": null,
+      "apply": {},
+      "apply_expr": {},
+      "apply_source": {},
+      "apply_unknown_keys": [],
       "category": "misc",
       "desc": "这是一朵盛开的白芷，看来可以入药。",
       "desc_source": "lpc",
@@ -824,6 +1170,10 @@
     },
     {
       "amount": null,
+      "apply": {},
+      "apply_expr": {},
+      "apply_source": {},
+      "apply_unknown_keys": [],
       "category": "misc",
       "desc": "这是一片碧绿的荷叶，看来可以入药。",
       "desc_source": "lpc",
@@ -844,6 +1194,10 @@
     },
     {
       "amount": null,
+      "apply": {},
+      "apply_expr": {},
+      "apply_source": {},
+      "apply_unknown_keys": [],
       "category": "misc",
       "desc": "这是一把椅子。",
       "desc_source": "lpc",
@@ -864,6 +1218,20 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/damage": 25
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/damage": {
+          "base_line": 14,
+          "base_path": "inherit/weapon/sword.lpc",
+          "kind": "lpc_init",
+          "line": 19,
+          "path": "d/city/obj/changjian.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "weapon",
       "desc": "这是一柄普通的精钢剑，一般的剑客都配带此剑。",
       "desc_source": "lpc",
@@ -884,6 +1252,20 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/damage": 15
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/damage": {
+          "base_line": 14,
+          "base_path": "inherit/weapon/hammer.lpc",
+          "kind": "lpc_init",
+          "line": 21,
+          "path": "d/city/obj/hammer.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "weapon",
       "desc": "这是一把沈重的铁锤，打造的相当坚实。",
       "desc_source": "lpc",
@@ -904,6 +1286,20 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/damage": 30
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/damage": {
+          "base_line": 14,
+          "base_path": "inherit/weapon/blade.lpc",
+          "kind": "lpc_init",
+          "line": 19,
+          "path": "d/beijing/obj/tudao.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "weapon",
       "desc": "这是一血淋淋的屠刀。",
       "desc_source": "lpc",
@@ -924,6 +1320,20 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/damage": 10
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/damage": {
+          "base_line": 14,
+          "base_path": "inherit/weapon/staff.lpc",
+          "kind": "lpc_init",
+          "line": 22,
+          "path": "d/xingxiu/obj/tiegun.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "weapon",
       "desc": "这是一根浑铁棍，似乎威力不大。",
       "desc_source": "lpc",
@@ -944,6 +1354,20 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/damage": 20
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/damage": {
+          "base_line": 14,
+          "base_path": "inherit/weapon/blade.lpc",
+          "kind": "lpc_init",
+          "line": 19,
+          "path": "d/city/obj/gangdao.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "weapon",
       "desc": "这是一柄亮晃晃的钢刀，普通官兵的常备武器。",
       "desc_source": "lpc",
@@ -964,6 +1388,20 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/damage": 1
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/damage": {
+          "base_line": 14,
+          "base_path": "inherit/weapon/hammer.lpc",
+          "kind": "lpc_init",
+          "line": 25,
+          "path": "clone/food/jitui.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "weapon",
       "desc": "一枝烤得香喷喷的鸡腿。",
       "desc_source": "lpc",
@@ -984,6 +1422,10 @@
     },
     {
       "amount": null,
+      "apply": {},
+      "apply_expr": {},
+      "apply_source": {},
+      "apply_unknown_keys": [],
       "category": "misc",
       "desc": "一个香喷喷的肉包子。",
       "desc_source": "lpc",
@@ -1004,6 +1446,10 @@
     },
     {
       "amount": null,
+      "apply": {},
+      "apply_expr": {},
+      "apply_source": {},
+      "apply_unknown_keys": [],
       "category": "misc",
       "desc": "一个用来装米酒的大酒袋，大概装得八、九升的酒。",
       "desc_source": "lpc",
@@ -1024,6 +1470,10 @@
     },
     {
       "amount": null,
+      "apply": {},
+      "apply_expr": {},
+      "apply_source": {},
+      "apply_unknown_keys": [],
       "category": "misc",
       "desc": "这是一块熬制过的虎骨，看来可以入药。",
       "desc_source": "lpc",
@@ -1044,6 +1494,10 @@
     },
     {
       "amount": null,
+      "apply": {},
+      "apply_expr": {},
+      "apply_source": {},
+      "apply_unknown_keys": [],
       "category": "misc",
       "desc": "这是一颗夜明珠，悠悠的放着柔和的光，看起来是做装饰的好东西。",
       "desc_source": "lpc",
@@ -1064,6 +1518,18 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/armor": 1
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/armor": {
+          "kind": "lpc",
+          "line": 17,
+          "path": "clone/misc/cloth.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "armor",
       "desc": null,
       "desc_source": null,
@@ -1084,6 +1550,18 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/armor": 3
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/armor": {
+          "kind": "lpc",
+          "line": 16,
+          "path": "clone/cloth/jinduan.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "armor",
       "desc": null,
       "desc_source": null,
@@ -1104,6 +1582,18 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/armor": 3
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/armor": {
+          "kind": "lpc",
+          "line": 16,
+          "path": "d/beijing/obj/yaodai.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "armor",
       "desc": null,
       "desc_source": null,
@@ -1124,6 +1614,20 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/damage": 25
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/damage": {
+          "base_line": 14,
+          "base_path": "inherit/weapon/sword.lpc",
+          "kind": "lpc_init",
+          "line": 19,
+          "path": "clone/weapon/changjian.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "weapon",
       "desc": "这是一柄普通的精钢剑，一般的剑客都配带此剑。",
       "desc_source": "lpc",
@@ -1144,6 +1648,18 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/armor": 2
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/armor": {
+          "kind": "lpc",
+          "line": 17,
+          "path": "d/wudang/obj/greyrobe.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "armor",
       "desc": "一件普普通通的灰布道袍。",
       "desc_source": "lpc",
@@ -1164,6 +1680,20 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/damage": 25
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/damage": {
+          "base_line": 14,
+          "base_path": "inherit/weapon/blade.lpc",
+          "kind": "lpc_init",
+          "line": 19,
+          "path": "clone/weapon/gangdao.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "weapon",
       "desc": "这是一柄亮晃晃的钢刀，普通官兵的常备武器。",
       "desc_source": "lpc",
@@ -1184,6 +1714,18 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/armor": 1
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/armor": {
+          "kind": "lpc",
+          "line": 15,
+          "path": "d/wudang/obj/bluecloth.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "armor",
       "desc": null,
       "desc_source": null,
@@ -1204,6 +1746,20 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/damage": 25
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/damage": {
+          "base_line": 14,
+          "base_path": "inherit/weapon/whip.lpc",
+          "kind": "lpc_init",
+          "line": 19,
+          "path": "clone/weapon/changbian.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "weapon",
       "desc": "这是一柄普通的长鞭，由水牛精工编织而成。",
       "desc_source": "lpc",
@@ -1224,6 +1780,20 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/damage": 25
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/damage": {
+          "base_line": 14,
+          "base_path": "inherit/weapon/staff.lpc",
+          "kind": "lpc_init",
+          "line": 20,
+          "path": "clone/weapon/gangzhang.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "weapon",
       "desc": "这是一根粗重的钢杖，是星宿派专用之物。",
       "desc_source": "lpc",
@@ -1244,6 +1814,20 @@
     },
     {
       "amount": 50,
+      "apply": {
+        "apply/damage": 50
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/damage": {
+          "base_line": 11,
+          "base_path": "inherit/weapon/throwing.lpc",
+          "kind": "lpc_init",
+          "line": 23,
+          "path": "clone/weapon/jili.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "weapon",
       "desc": "毒蒺藜是淬毒暗器，寸许大小，发出诡异的光。",
       "desc_source": "lpc",
@@ -1266,6 +1850,18 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/armor": 1
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/armor": {
+          "kind": "lpc",
+          "line": 16,
+          "path": "clone/cloth/cloth.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "armor",
       "desc": null,
       "desc_source": null,
@@ -1286,6 +1882,18 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/armor": 50
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/armor": {
+          "kind": "lpc",
+          "line": 17,
+          "path": "d/city/obj/tiejia.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "armor",
       "desc": null,
       "desc_source": null,
@@ -1306,6 +1914,20 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/damage": 25
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/damage": {
+          "base_line": 14,
+          "base_path": "inherit/weapon/spear.lpc",
+          "kind": "lpc_init",
+          "line": 20,
+          "path": "clone/weapon/changqiang.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "misc",
       "desc": "这是一根白缨长钢枪，长可丈二，枪头隐隐透出寒光。",
       "desc_source": "lpc",
@@ -1326,6 +1948,18 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/armor": 10
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/armor": {
+          "kind": "lpc",
+          "line": 16,
+          "path": "d/city/obj/junfu.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "armor",
       "desc": "这是一件有点旧的官兵服。",
       "desc_source": "lpc",
@@ -1346,6 +1980,26 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/armor": 1,
+        "apply/personality": 3
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/armor": {
+          "kind": "lpc",
+          "line": 17,
+          "path": "d/fuzhou/obj/pink_cloth.lpc"
+        },
+        "apply/personality": {
+          "kind": "lpc",
+          "line": 18,
+          "path": "d/fuzhou/obj/pink_cloth.lpc"
+        }
+      },
+      "apply_unknown_keys": [
+        "apply/personality"
+      ],
       "category": "armor",
       "desc": "这件粉红色的绸衫上面绣着几只黄鹊，闻起来还有一股淡香。",
       "desc_source": "lpc",
@@ -1366,6 +2020,18 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/armor": 6
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/armor": {
+          "kind": "lpc",
+          "line": 16,
+          "path": "d/shaolin/npc/obj/dao-cloth.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "armor",
       "desc": null,
       "desc_source": null,
@@ -1386,6 +2052,20 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/damage": 15
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/damage": {
+          "base_line": 14,
+          "base_path": "inherit/weapon/sword.lpc",
+          "kind": "lpc_init",
+          "line": 19,
+          "path": "d/city/obj/duanjian.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "weapon",
       "desc": "这是一柄剑身短小的精钢剑，一般的剑客都配带此剑。",
       "desc_source": "lpc",
@@ -1406,6 +2086,18 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/armor": 3
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/armor": {
+          "kind": "lpc",
+          "line": 17,
+          "path": "d/wudang/obj/whiterobe.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "armor",
       "desc": "这是件素雅洁净的白色道袍。",
       "desc_source": "lpc",
@@ -1426,6 +2118,20 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/damage": 100
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/damage": {
+          "base_line": 14,
+          "base_path": "inherit/weapon/sword.lpc",
+          "kind": "lpc_init",
+          "line": 21,
+          "path": "clone/weapon/treasure/green_sword.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "weapon",
       "desc": "这是一把通体晶莹剔透的剑，是武当镇派之宝！",
       "desc_source": "lpc",
@@ -1446,6 +2152,20 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/damage": 25
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/damage": {
+          "base_line": 14,
+          "base_path": "inherit/weapon/sword.lpc",
+          "kind": "lpc_init",
+          "line": 19,
+          "path": "d/shaolin/obj/changjian.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "weapon",
       "desc": "这是一柄普通的精钢剑，一般的剑客都配带此剑。",
       "desc_source": "lpc",
@@ -1466,6 +2186,18 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/armor": 1
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/armor": {
+          "kind": "lpc",
+          "line": 17,
+          "path": "d/city/obj/cloth.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "armor",
       "desc": null,
       "desc_source": null,
@@ -1486,6 +2218,18 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/armor": 1
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/armor": {
+          "kind": "lpc",
+          "line": 18,
+          "path": "d/wudang/obj/greenrobe.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "armor",
       "desc": "这是件质地轻软的青色道袍，边上还镂着花呢。",
       "desc_source": "lpc",
@@ -1506,6 +2250,18 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/armor": 6
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/armor": {
+          "kind": "lpc",
+          "line": 16,
+          "path": "d/shaolin/obj/dao-cloth.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "armor",
       "desc": null,
       "desc_source": null,
@@ -1526,6 +2282,20 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/damage": 30
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/damage": {
+          "base_line": 14,
+          "base_path": "inherit/weapon/sword.lpc",
+          "kind": "lpc_init",
+          "line": 19,
+          "path": "d/city/obj/gangjian.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "weapon",
       "desc": "这是一柄精工制成的钢剑，这种剑在将领之间非常流行。",
       "desc_source": "lpc",
@@ -1546,6 +2316,18 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/armor": 1
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/armor": {
+          "kind": "lpc",
+          "line": 16,
+          "path": "d/city/obj/necklace.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "armor",
       "desc": null,
       "desc_source": null,
@@ -1568,6 +2350,26 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/armor": 1,
+        "apply/personality": 3
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/armor": {
+          "kind": "lpc",
+          "line": 17,
+          "path": "d/city/obj/pink_cloth.lpc"
+        },
+        "apply/personality": {
+          "kind": "lpc",
+          "line": 18,
+          "path": "d/city/obj/pink_cloth.lpc"
+        }
+      },
+      "apply_unknown_keys": [
+        "apply/personality"
+      ],
       "category": "armor",
       "desc": "这件粉红色的绸衫上面绣着几只黄鹊，闻起来还有一股淡香。",
       "desc_source": "lpc",
@@ -1588,6 +2390,18 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/armor": 1
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/armor": {
+          "kind": "lpc",
+          "line": 16,
+          "path": "d/city/obj/flower_shoe.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "armor",
       "desc": null,
       "desc_source": null,
@@ -1608,6 +2422,18 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/armor": 1
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/armor": {
+          "kind": "lpc",
+          "line": 16,
+          "path": "d/city/obj/goldring.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "armor",
       "desc": null,
       "desc_source": null,
@@ -1630,6 +2456,18 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/armor": 1
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/armor": {
+          "kind": "lpc",
+          "line": 19,
+          "path": "d/mingjiao/obj/baipao.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "armor",
       "desc": "这是件白布长袍，虽不奢华，却洗得一尘不染，在袍襟上绣了一团血红的火焰，\n颇为鲜艳。",
       "desc_source": "lpc",
@@ -1650,6 +2488,20 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/damage": 50
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/damage": {
+          "base_line": 14,
+          "base_path": "inherit/weapon/whip.lpc",
+          "kind": "lpc_init",
+          "line": 19,
+          "path": "d/quanzhou/obj/fuchen.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "weapon",
       "desc": "这是一柄拂尘，做工精细，是很阴毒的兵器。",
       "desc_source": "lpc",
@@ -1670,6 +2522,18 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/armor": 1
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/armor": {
+          "kind": "lpc",
+          "line": 17,
+          "path": "d/village/npc/obj/cloth.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "armor",
       "desc": null,
       "desc_source": null,
@@ -1690,6 +2554,18 @@
     },
     {
       "amount": null,
+      "apply": {
+        "apply/armor": 7
+      },
+      "apply_expr": {},
+      "apply_source": {
+        "apply/armor": {
+          "kind": "lpc",
+          "line": 15,
+          "path": "kungfu/class/baituo/obj/baipao.lpc"
+        }
+      },
+      "apply_unknown_keys": [],
       "category": "armor",
       "desc": "这是件质量上佳的白色长袍。",
       "desc_source": "lpc",
