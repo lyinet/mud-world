@@ -19,7 +19,7 @@ import os
 import threading
 import time
 import traceback
-from collections import Counter
+from collections import Counter, deque
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Callable
@@ -374,6 +374,9 @@ class AmbientScheduler:
         self._processed_world_tick = self._world_tick
         self._lag_ticks = 0
         self._lag_ticks_max = 0
+        # 调度步实际耗时（滚动窗口，用于区分“锁内自走变慢”与“进程/系统级停顿”）。
+        self._step_ms: deque[float] = deque(maxlen=512)
+        self._step_ms_max = 0.0
         self._skipped_days = 0
         self._dropped_stale = 0
         # lag_steps：累计被 max_catchup_ticks 截断的调度步数（与
@@ -411,6 +414,15 @@ class AmbientScheduler:
         """原子写 ambient_status.json：API/UI 只读它，不碰世界状态。"""
         self._status_written_at = self.clock()
         self._heartbeat_at = self._now_iso()
+        # lag_ticks 是“世界时钟已推进、ambient 尚未结算”的实时差额；峰值必须在
+        # 每次读数时刷新，否则末值会大于 max（旧实现只在截断分支更新 max）。
+        live_lag = (
+            max(0, int(self.writer.state.tick) - int(self._processed_world_tick))
+            if self.shared
+            else 0
+        )
+        if self.shared and live_lag > self._lag_ticks_max:
+            self._lag_ticks_max = live_lag
         payload = {
             "ok": state in ("running", "paused"),
             "run_id": self.cfg.run_id,
@@ -423,11 +435,7 @@ class AmbientScheduler:
             "updated_at": self._now_iso(),
             "ambient_tick": int(self._processed_world_tick) if self.shared else int(self.tick),
             "world_tick": int(self.writer.state.tick) if self.shared else int(self.tick),
-            "lag_ticks": (
-                max(0, int(self.writer.state.tick) - int(self._processed_world_tick))
-                if self.shared
-                else 0
-            ),
+            "lag_ticks": live_lag,
             "lag_ticks_max": int(self._lag_ticks_max) if self.shared else 0,
             # lag_steps 为累计截断步数；旧的“连续截断步数”改名 lag_streak/
             # lag_steps_streak 保留，旧字段含义不静默改变。
@@ -437,6 +445,8 @@ class AmbientScheduler:
             "ambient_catchup_truncated": int(self._lag_steps) if self.shared else 0,
             "world_ticks_per_npc_day": round(self._world_ticks_per_npc_day, 2),
             "npc_tick": int(self.tick),
+            "step_ms_max": round(self._step_ms_max, 2),
+            "step_ms_p95": self._step_ms_p95(),
             "skipped_days": int(self._skipped_days) if self.shared else 0,
             "skipped_wakes": int(self.lod.skipped_wakes),
             "dropped_stale": int(self._dropped_stale),
@@ -1116,6 +1126,19 @@ class AmbientScheduler:
             return 0.0
         return round(self._cpu_total / self._wall_total, 4)
 
+    def _observe_step_ms(self, ms: float) -> None:
+        """记录调度步实际墙钟耗时；滚动窗口 512 步。"""
+        self._step_ms.append(float(ms))
+        if ms > self._step_ms_max:
+            self._step_ms_max = float(ms)
+
+    def _step_ms_p95(self) -> float:
+        if not self._step_ms:
+            return 0.0
+        vals = sorted(self._step_ms)
+        idx = max(0, int(len(vals) * 0.95) - 1)
+        return round(vals[idx], 2)
+
     def run_ticks(self, n: int) -> int:
         """不配速连跑 n 个 tick（测试/验收用），仍受 CPU 护栏约束。"""
         for _ in range(max(0, int(n))):
@@ -1139,7 +1162,9 @@ class AmbientScheduler:
         except Exception as exc:  # 不静默：落盘后继续抛出
             self._write_error("tick", exc)
             raise
-        self._cpu_guard(self.clock() - t0_wall, self.cpu_clock() - t0_cpu)
+        wall = self.clock() - t0_wall
+        self._observe_step_ms(wall * 1000.0)
+        self._cpu_guard(wall, self.cpu_clock() - t0_cpu)
 
     def start(
         self,
@@ -1330,6 +1355,9 @@ class AmbientScheduler:
             "cpu_ratio_limit": float(self.cfg.max_cpu_ratio),
             "cpu_guard_sleeps": self._cpu_guard_sleeps,
             "cpu_guard_slept_s": round(self._cpu_guard_slept_s, 3),
+            "step_ms_max": round(self._step_ms_max, 2),
+            "step_ms_p95": self._step_ms_p95(),
+            "step_ms_samples": len(self._step_ms),
             "cpu_pauses": self._cpu_pauses,
             "cpu_resumes": self._cpu_resumes,
             "parent_pid": self.cfg.parent_pid,

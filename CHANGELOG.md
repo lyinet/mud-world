@@ -9,6 +9,60 @@
 
 ---
 
+## [soak] 2026-11-08 — 15 分钟短验（修正 `lag_ticks_max` 记账 + `step_ms` 探针，未放行 6h）
+
+### 改了什么
+
+- `src/wsim/sim/scheduler.py`：
+  - `lag_ticks_max` 改为**每次写 status 用实时差额刷新**，保证任意时刻 `lag_ticks ≤ lag_ticks_max`
+    （旧实现只在截断分支更新 max，短验出现末值 204 > max 54 的不一致）。
+  - 新增 `step_ms_max` / `step_ms_p95`（滚动 512 步），记录持有写锁的整步墙钟耗时；
+    `_tick_with_guard` 每步采集，status 与 final summary 都输出（含 `step_ms_samples`）。
+- `specs/xkx-parity/ambient-day.spec.md`：§8.2 写明无玩家店铺时工资/出勤必须报 N/A 并给同一日界证据；
+  §10 记账表补 `lag_ticks_max` 刷新语义与 `step_ms_*` 定义。
+
+### 为什么
+
+短验暴露两件事：(1) `lag_ticks` 末值大于 `lag_ticks_max`，属记账口径 bug，不修会让 6h 报告数字对不上；
+(2) 首轮出现 2–3 个 30s 窗口写 p95 >500ms（峰值 1.6s），需要把“锁内自走耗时”与“进程/系统级停顿”
+分开，才能判断是否回归。
+
+### 15 分钟短验原始计数（`reports/soak/verify15m2-20261108/summary.json`，50 玩家，900s）
+
+- `system_living` **62** 次 = 31 NPC × 2（`days {0:31, 1:31}`）→ **2.0 次/NPC**。
+- `system_shop_settle` **0**、`system_savings_tax` **0**、`system_shop_dividend` **0**；
+  工资/出勤 **N/A**：本 run 的 5 次 `open_shop` 都是 NPC planner（`owner` 非 `player:`），
+  无玩家店铺，`has_player_shop(state)=False`，该事件与其 7 日账标签仍走同一 NPC 日界（`args["day"]=npc_day`）。
+- 门派俸禄 `pay_disciples` **0**（玩家主动动作，本 run 未触发；`_day()` 上界读 `npc_tick_of`）。
+- 负余额 **0**（`negative_rows=[]`，`wallet.delta=0`，97 账户，sum 62331）。
+- `lag_steps=1` == `ambient_catchup_truncated=1`；`lag_streak=0`；`lag_ticks_max=1122`，末值 **0**
+  （停机后 processed 追平；采样末 4 点 852 → 102 → 210 → 0，不随时间扩大）。
+- ambient 事件 **1522**，其中 npc 行为事件 **1362**；`ambient_progress.jsonl` **150** 行（150 NPC tick）。
+- `world_tick=132029`、`clock_tick`（NPC tick）**150**；比值 **880.2 world tick / NPC tick**，
+  15 分钟推进 **1.042 NPC 日**（≈1）。
+- `step_ms_max=670.27ms`、`step_ms_p95=185.77ms` → 写锁内没有秒级停顿。
+- 写 p95 首/末窗 **57.95 → 128.03ms**（比值 2.21），读 **30.03 → 70.66ms**；
+  30s 窗口仅 **1** 个 >500ms（t=793s，p95 819ms，max 1221ms）。末窗未破 500ms 中止线。
+- `rss` 真实增长：relations 628→1016、goals 71→110、memories 38→49、`PlayerProfile` 0→205，
+  属 50 玩家活动带来的状态增长；soak 自动检查 `rss_growth_lt_5pct_per_hour` / 两个 `p95_drift` 仍 FAIL。
+
+### 判定
+
+**短验不放行 6h**：功能/日界类硬检查全过（生活费 2/NPC、负余额 0、lag 计数一致、日历 ≈1 NPC 日），
+但 `p95_drift` 与 RSS 自动检查未过，且首轮 `verify15m-20261108` 曾出现 4 个连续 30s 窗口写 p95 >500ms
+（峰值 1653ms、max 4598ms）。按中止条件口径先停下定位，不带着该现象进 6h。
+
+### 验证
+
+- 旧九地点 headless（days=2, seed=42, npc_limit=0）实跑两次：`events_total 735`、
+  `state_final 009076f0346352e328d8c158a3017a3e26fbc0b2c59ef7ca20c8fc3d1f780ce9`、
+  `event_final 02d5f812c427833387e592ad9321ebd72a9c5c719825b958f53af83d795078ae`、
+  cash `11442`、blocked `6`、pruned `3`；两跑 11 个 `*.jsonl` sha256 全部一致。
+- 全量 `PYTHONPATH=src python3 -m pytest -q` 全绿。
+- 公式库零改动；未 force。
+
+---
+
 ## [日界] 2026-11-08 — NPC 日历单一入口：显示、委托截止、工资/出勤/门派派俸全部改 NPC 日
 
 ### 日界语义变更（单列）

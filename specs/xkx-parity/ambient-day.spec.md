@@ -179,6 +179,7 @@ SETTLEMENTS = {
 命令：`PYTHONPATH=src python3 tools/soak_test.py --duration 900 --players 50 --think-time 2 --warmup 0`
 （真实 50 玩家 + ambient）。报告原始计数，必须满足：
 1. 生活费 `system_living` ok 次数 / 30 NPC ≈ **1–2**；工资/出勤结算次数同量级；出现几十上百次即未修干净，停下改。
+   工资/出勤由 `system_shop_settle` 驱动，与 `system_living` 同一个 NPC 日界事件；若本次短验没有玩家店铺（`system_shop_settle=0`），报告须明确写 N/A 并给出该事件与 `system_living` 的同一日界证据，不得当作已验证。
 2. 负余额 **0**。
 3. `lag_steps` 累计与 `ambient_catchup_truncated` 次数一致（同一计数，见 §10）。
 4. `lag_ticks` 末值不随时间扩大（对比末 3 个 5 分钟采样的 `lag_ticks`/`lag_ticks_max`）。
@@ -213,12 +214,13 @@ SETTLEMENTS = {
 | 字段 | 定义 |
 |---|---|
 | `lag_ticks` | `world_tick − processed_world_tick`（当前值） |
-| `lag_ticks_max` | 历史最大值 |
+| `lag_ticks_max` | 历史最大值；每次写 status 时用实时差额刷新，保证任意时刻 `lag_ticks ≤ lag_ticks_max` |
 | `lag_steps` | **累计**触发 `max_catchup_ticks` 的调度步数（= `ambient_catchup_truncated` 次数） |
 | `lag_streak` | 旧 `lag_steps`（连续截断步数）改名保留；同时保留 `lag_steps_streak` 别名，不删 |
 | `ambient_catchup_truncated` | status 计数，与 `lag_steps` 同一变量；日志行数是采样（首次 + 每 60 连续步），报告需分开列 |
 | `skipped_days` | 相邻 processed 世界时间点跨过的整世界日数（只记账，不触发日结） |
 | `skipped_wakes` / `dropped_stale` / `queue_backlog` / `max_queue_backlog` | 同 8b2ae49 |
+| `step_ms_max` / `step_ms_p95` | 调度步（持有写锁的自走整步）墙钟耗时峰值/滚动 512 步 p95；用于区分“锁内变慢”与进程/系统级停顿 |
 | `clock_tick` | NPC 日历 tick（status 与玩家视图同源） |
 | `world_ticks_per_npc_day` | 每 NPC 日推进的世界 tick 数（EMA，≥144） |
 
