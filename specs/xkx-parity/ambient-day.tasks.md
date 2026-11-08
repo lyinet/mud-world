@@ -80,7 +80,7 @@
 ## T15 测量环境前置（spec §16）
 - [x] spec 写死：loadavg ≤4 才启动、跑前 10min/跑中每 10s 采样、连续 5min >4 主动中止 `run_invalid(external_load)`
 - [x] 贴入本轮 loadavg/坏窗口对照表，并写明“不是放宽阈值”
-- [ ] soak 实现 loadavg 采样与 5 分钟中止标记（下一段代码）
+- [x] soak 实现 loadavg 采样与 5 分钟中止标记（`--max-loadavg`/`--pre-idle`、`loadavg*.jsonl`、`run_invalid.json`、`checks.run_valid`）
 
 ## T16 CPU 健康度（spec §17）
 - [x] `process_time` 差算锁内 step CPU p95/p99/max，进 `ambient_steps.jsonl` 与 `attribution.json.cpu_metric`

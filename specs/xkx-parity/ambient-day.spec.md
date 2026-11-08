@@ -321,6 +321,15 @@ SETTLEMENTS = {
 - 合格环境下仍要求**坏窗口 = 0**（任一 30s 窗口写 p95 >500ms 即未过）；
 - 报告必须贴出本次 `loadavg` 曲线摘要（max/median）与坏窗口对照表。
 
+实现（`tools/soak_test.py`）：
+
+- `--max-loadavg`（默认 4.0）、`--pre-idle`（默认 600s；0=跳过，仅限短验/调试，长跑必须保留）；
+- 跑前 10 分钟写 `loadavg_pre.jsonl`；前置不合格（末样本 > 阈值或连续 5 分钟超阈）
+  直接返回 2，**不启服务**，写 `run_invalid.json`；
+- 跑中每 10 秒写 `loadavg.jsonl`，连续 5 分钟 `> max-loadavg` 即置 `stop` 主动中止；
+- `summary.json` 带 `run_valid` / `run_invalid_reason` / `loadavg{pre_idle,in_run}`，
+  `checks.run_valid` 不通过即整跑 FAIL（结论不用于判定代码）。
+
 依据（本轮实测）：
 
 | 跑 | 窗口 | 坏窗口 | 全跑 loadavg max | 坏窗口时 loadavg |
