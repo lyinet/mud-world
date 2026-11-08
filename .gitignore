@@ -54,3 +54,7 @@ reports/**/_probe/
 reports/capacity/*.log
 # WIP 规格草稿，声明暂不提交；定稿后再移除本忽略。
 specs/mud-paradigm/
+# 本 worktree 专用的符号链接（指向主工作区的 .venv 与参考源码树），不入库。
+.venv
+tools/xkx_extract/_src
+tools/xkx_ref/src

@@ -116,6 +116,16 @@ class Writer:
         if action is None:
             return self._record_reject(intent, iid, seq, "rejected:unknown_verb")
 
+        # 原版 `unconcious()` 会 `disable_player`：昏迷实体不能再做任何主动动作
+        # （系统心跳恢复除外）。死亡已有各自的 `actor_dead` 前置。
+        actor_ent = self.state.entities.get(intent.actor)
+        if (
+            actor_ent is not None
+            and actor_ent.status == "unconcious"
+            and not intent.verb.startswith("system_")
+        ):
+            return self._record_reject(intent, iid, seq, "rejected:actor_unconcious")
+
         try:
             reasons = action.preconditions(self.state, intent) or []
             if reasons:

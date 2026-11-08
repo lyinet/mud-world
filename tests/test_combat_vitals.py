@@ -70,6 +70,37 @@ def test_explicit_max_qi_wins_over_beast_formula():
     assert resolve_npc_vitals(npc)["max_hp"] == 123
 
 
+def test_beast_cps_cor_follow_original_source():
+    """走兽的 cps/cor 只来自 NPC 文件级 set，不吃人类 attrs_roll。
+
+    原版 `race/beast.lpc:57-67` 不掷 cps/cor；狼狗 `wolfdog.lpc:13` 显式 cor=30，
+    毒蛇 `dushe.lpc:18` 50、蝎子 `xiezi.lpc:17` 50、游鱼 `fish.lpc:13` 30，
+    老虎不写 → 0。若把人类 `attrs_roll.cor=[10,30]` 套到走兽，出手门
+    （`combatd.lpc:763`）会从 55% 掉到与 cor 值相关的区间，狼狗出手频率随之失真。
+    """
+    expected_cor = {
+        "/d/hangzhou/npc/wolfdog": 30,
+        "/d/hangzhou/npc/dushe": 50,
+        "/d/hangzhou/npc/xiezi": 50,
+        "/d/shiliang/npc/fish": 30,
+    }
+    seen: set[str] = set()
+    for npc in _xkx_npcs():
+        if npc.get("race") == "人类":
+            continue
+        npc_id = str(npc["id"])
+        attrs = npc.get("attrs") or {}
+        roll = npc.get("attrs_roll") or {}
+        assert "cps" not in roll and "cor" not in roll, npc_id
+        assert int(attrs.get("cps") or 0) == 0, npc_id
+        assert int(attrs.get("cor") or 0) == expected_cor.get(npc_id, 0), npc_id
+        seen.add(npc_id)
+    assert set(expected_cor) <= seen
+    # 老虎是 cps=0/cor=0 的对照组：不是“所有走兽都 30”。
+    tiger = next(n for n in _xkx_npcs() if n["id"] == "/d/hangzhou/npc/laohu")
+    assert int((tiger.get("attrs") or {}).get("cor") or 0) == 0
+
+
 def test_every_xkx_npc_has_positive_hp():
     npcs = _xkx_npcs()
     assert len(npcs) == 105  # 92 个 slice + 13 个 external
@@ -98,9 +129,10 @@ def test_player_genesis_has_hp_and_attrs():
     create = next(e for e in effects if e.op == "create_entity")
     assert create.data["max_hp"] == PLAYER_MAX_HP == 100
     assert create.data["hp"] == 100
-    # 六维 + 原版主动攻击判定用的 kar/per（福缘/容貌，确定性定值 20/20）。
+    # 六维 + 主动攻击判定用的 kar/per（福缘/容貌）+ cps/cor（定力/胆识），
+    # 全部确定性定值（原版是登录掷点 `10+random(21)`，不可复刻）。
     assert set(create.data["attrs"]) == {
-        "str", "con", "dex", "int", "spi", "sta", "kar", "per"
+        "str", "con", "dex", "int", "spi", "sta", "kar", "per", "cps", "cor"
     }
     # MID 产品档位：6400 = 原版技能 40 级的最低经验（40^3/10），三项技能同级 40。
     assert create.data["combat_exp"] == 6400

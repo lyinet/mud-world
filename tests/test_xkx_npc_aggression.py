@@ -62,7 +62,8 @@ def _world(
                 "max_hp": 500,
                 "hp": 500,
                 "attack": 60,
-                "defense": 10,
+                # 原版护甲走 `apply/armor`；破防门只认它（combatd.lpc:560）。
+                "temp_apply": {"apply/armor": 10},
                 "attrs": {"str": 20, "dex": 15},
                 "combat_exp": 10,
                 "skill_levels": {"unarmed": 30},
@@ -79,7 +80,7 @@ def _world(
                 "max_hp": 100,
                 "hp": 100,
                 "attack": 15,
-                "defense": 5,
+                "temp_apply": {"apply/armor": 5},
                 "attrs": {"str": 20, "con": 20, "dex": 18, "kar": 20, "per": 20},
                 "combat_exp": 10,
                 "skill_levels": {"unarmed": 40},

@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..core.models import Effect, Intent
+from ..core.rng import PRNG
 from ..sim.aggression import effective_enemies, multi_combat_enabled
 from ..sim.combat_rules import simulate_fight
 from ..sim.spawn import spawn_effects
@@ -122,6 +123,7 @@ def combat_effects(
     extra_log: dict[str, Any] | None = None,
     drop_dead_npc_attacker: bool = False,
     initiative_gate: bool = False,
+    eff_qi: bool = False,
     spar: bool = False,
 ) -> list[Effect]:
     """结算一场（或一回合）战斗并产出 Effect。`FightAction` 与 NPC 主动攻击共用。"""
@@ -144,6 +146,7 @@ def combat_effects(
         trace=trace,
         player_ids=set(state.players),
         initiative_gate=initiative_gate,
+        eff_qi=eff_qi,
         killing=killing,
         spar=effective_spar,
     )
@@ -151,14 +154,25 @@ def combat_effects(
     effects: list[Effect] = []
     hp_a = int(result["hp_raw"][str(attacker.id)])
     hp_b = int(result["hp_raw"][str(defender.id)])
+    # eff_qi 打开时，原版 receive_damage 的下限是 -1；关闭态事件载荷逐字节不变。
+    hp_floor = {"floor": -1} if eff_qi else {}
     if hp_a != attacker.hp:
         effects.append(
-            Effect(op="hp_add", data={"entity": attacker.id, "delta": hp_a - attacker.hp, "reason": reason})
+            Effect(op="hp_add", data={"entity": attacker.id, "delta": hp_a - attacker.hp, "reason": reason, **hp_floor})
         )
     if hp_b != defender.hp:
         effects.append(
-            Effect(op="hp_add", data={"entity": defender.id, "delta": hp_b - defender.hp, "reason": reason})
+            Effect(op="hp_add", data={"entity": defender.id, "delta": hp_b - defender.hp, "reason": reason, **hp_floor})
         )
+    if eff_qi:
+        # 跨场伤势回写：只在值真的变化时发事件。
+        for ent in (attacker, defender):
+            raw_eff = int(result["eff_hp_raw"][str(ent.id)])
+            current = int(ent.eff_hp) if int(ent.eff_hp) >= -1 else int(ent.max_hp)
+            if raw_eff != current:
+                effects.append(
+                    Effect(op="eff_hp_set", data={"entity": ent.id, "value": raw_eff})
+                )
 
     # `combat_contrib`：只记录实际扣掉的气血，供审计；不是仇恨权重、不参与选敌。
     # 双向交手（含反击）时两边都要记：NPC 打玩家、玩家反击打掉 NPC 的气血也归玩家。
@@ -197,6 +211,8 @@ def combat_effects(
                     "status": "dead",
                     "tick": int(intent.tick),
                     "location": str(ent.location),
+                    # 原版 char.lpc:66 `remove_all_enemy()`；只在 eff_qi 开启时双向摘除。
+                    **({"remove_all_enemy": True} if eff_qi else {}),
                 },
             )
         )
@@ -255,6 +271,36 @@ def combat_effects(
                         "skills_lost": lost_skills,
                         "death_count": int(ent.death_count) + 1,
                         "dropped": sorted(drops),
+                    },
+                )
+            )
+
+    # 原版 `unconcious()`：qi=0 + `call_out("revive", random(100-con)+30)`。
+    # 敌人表由 entity_status 侧统一清空（char.lpc:73 remove_all_enemy）。
+    if eff_qi:
+        unconscious_ids = set(result.get("unconscious") or [])
+        for ent in (attacker, defender):
+            if str(ent.id) not in unconscious_ids:
+                continue
+            if int(ent.hp) != 0:
+                effects.append(Effect(op="hp_set", data={"entity": ent.id, "value": 0}))
+            con = int((ent.attrs or {}).get("con", 20))
+            # 苏醒 delay 走独立派生流，不与战斗骰交错（原版是心跳 call_out）。
+            rrng = PRNG(
+                getattr(rng, "seed", 0), getattr(rng, "seq", 0), f"{salt}:revive"
+            )
+            # LPC `random(n)` 取值 0..n-1；PRNG 里对应 randint(0, n-1)。
+            span = max(1, 100 - con)
+            revive_ticks = max(
+                1, int(round((30 + rrng.randint(0, span - 1)) * 0.6083))
+            )
+            effects.append(
+                Effect(
+                    op="entity_status",
+                    data={
+                        "entity": ent.id,
+                        "status": "unconcious",
+                        "revive_tick": int(intent.tick) + revive_ticks,
                     },
                 )
             )
@@ -333,6 +379,9 @@ def combat_effects(
         # 只在切磋/击杀入口暴露，旧 `fight` 事件载荷保持逐字节不变。
         log["lethal"] = bool(killing)
         log["stopped"] = bool(result["stopped"])
+    if eff_qi:
+        log["eff_hp"] = result["eff_hp_raw"]
+        log["unconscious"] = result["unconscious"]
     if extra_log:
         log.update(extra_log)
     effects.append(Effect(op="combat_log", data=log))
@@ -344,9 +393,10 @@ class FightAction(Action):
     reason = "fight"
     salt = "action:fight"
 
-    def __init__(self, initiative_gate: bool = False, spar: bool = False):
+    def __init__(self, initiative_gate: bool = False, spar: bool = False, eff_qi: bool = False):
         self.initiative_gate = bool(initiative_gate)
         self.spar = bool(spar)
+        self.eff_qi = bool(eff_qi)
 
     def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
         target = _combat_target(intent)
@@ -367,6 +417,8 @@ class FightAction(Action):
             return ["target_is_player"]
         if attacker.status == "dead":
             return ["actor_dead"]
+        if attacker.status == "unconcious":
+            return ["actor_unconcious"]
         if defender.status == "dead":
             return ["target_dead"]
         if attacker.location != defender.location:
@@ -389,6 +441,7 @@ class FightAction(Action):
             reason=self.reason,
             loot=_int_dict(intent.args.get("loot")),
             initiative_gate=self.initiative_gate,
+            eff_qi=self.eff_qi,
             spar=self.spar,
         )
         if (
@@ -456,8 +509,8 @@ class KillAction(FightAction):
     reason = "kill"
     salt = "action:kill"
 
-    def __init__(self, initiative_gate: bool = False):
-        super().__init__(initiative_gate=initiative_gate, spar=False)
+    def __init__(self, initiative_gate: bool = False, eff_qi: bool = False):
+        super().__init__(initiative_gate=initiative_gate, spar=False, eff_qi=eff_qi)
 
 
 class SystemSpawnAction(Action):

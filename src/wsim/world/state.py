@@ -59,6 +59,14 @@ class Entity:
     # 战斗读取时回退为 int(skills[skill] * 100)；新内容使用 skill_levels/skill_xp。
     hp: int = 0
     max_hp: int = 0
+    # 原版 `eff_qi`（伤势天花板）：0/-1 都是合法值，用 -2 表示"旧实体未初始化"，
+    # 运行时按 `max_hp` 处理；旧世界/未受伤实体不写进 to_dict()，哈希不变。
+    eff_hp: int = -2
+    # 被动心跳恢复（原版 heal_up）：credit 单位 1/10000 tick，cd 为剩余心跳数。
+    heal_credit: int = 0
+    heal_cd: int = 0
+    # 昏迷苏醒 tick（原版 `call_out("revive", random(100-con)+30)`）。
+    revive_tick: int = 0
     attack: int = 0  # 基础伤害（兵器/拳脚），0 视为 1
     defense: int = 0  # 护甲减伤
     # 原版 `set_temp("apply/...")` 的临时攻防（内容 `temp_apply[]` 中 known=true 的
@@ -156,6 +164,16 @@ class Entity:
         if self.max_hp:
             data["hp"] = int(self.hp)
             data["max_hp"] = int(self.max_hp)
+            # 只有"真受过伤"才写 eff_qi：未初始化(-2)与未受伤(==max)都不写，
+            # 保证旧世界与健康实体零新增字段。
+            if self.eff_hp >= -1 and int(self.eff_hp) != int(self.max_hp):
+                data["eff_hp"] = int(self.eff_hp)
+                if self.heal_credit:
+                    data["heal_credit"] = int(self.heal_credit)
+                if self.heal_cd:
+                    data["heal_cd"] = int(self.heal_cd)
+        if self.revive_tick:
+            data["revive_tick"] = int(self.revive_tick)
         if self.attack:
             data["attack"] = int(self.attack)
         if self.defense:

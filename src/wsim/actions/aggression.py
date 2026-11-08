@@ -175,9 +175,11 @@ class NpcAggressionAction(Action):
         self,
         rules: dict[str, dict[str, Any]] | None = None,
         initiative_gate: bool = False,
+        eff_qi: bool = False,
     ):
         self.rules = rules or {}
         self.initiative_gate = bool(initiative_gate)
+        self.eff_qi = bool(eff_qi)
 
     def _rule(self, entity: Any) -> dict[str, Any] | None:
         return rule_for(entity, self.rules)
@@ -394,6 +396,8 @@ class NpcAggressionAction(Action):
                         "pruned": pruned,
                     },
                     drop_dead_npc_attacker=True,
+                    initiative_gate=self.initiative_gate,
+                    eff_qi=self.eff_qi,
                 )
             )
             dead = {

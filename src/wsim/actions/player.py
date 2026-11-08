@@ -55,12 +55,15 @@ ARCHETYPE_ATTRS: dict[str, dict[str, int]] = {
     # 膂力 / 根骨 / 身法 / 悟性 / 精神 / 耐力
     # kar(福缘) / per(容貌)：原版 logind 用 `10 + random(21)` 各取一次；
     # 复刻改为确定性定值 20/20（大狼狗 `random(kar+per)` 判定的输入）。
-    # cps(定力) / cor(胆识) 不写进创世属性：原版 human.lpc:67-68 是 `10+random(21)`，
-    # 复刻由战斗层按 MID 快照实测 23/24 兜底（见 combat_rules.PLAYER_MID_CPS/COR），
-    # 这样关闭出手门时旧世界的状态哈希逐字节不变。
-    "游侠": {"str": 20, "con": 20, "dex": 18, "int": 15, "spi": 15, "sta": 20, "kar": 20, "per": 20},
-    "商人": {"str": 15, "con": 16, "dex": 15, "int": 20, "spi": 18, "sta": 18, "kar": 20, "per": 20},
-    "捕快": {"str": 18, "con": 18, "dex": 17, "int": 17, "spi": 16, "sta": 19, "kar": 20, "per": 20},
+    # cps(定力) / cor(胆识)：原版 human.lpc:67-68 同样是 `10+random(21)`，登录掷点不可
+    # 复刻；创世按 MID 快照写 23/24（与六维同一做法），使 `query("cps")` 有真值。
+    # 旧存档玩家没有这两个键，战斗层仍按 23/24 兜底（combat_rules.PLAYER_MID_CPS/COR）。
+    "游侠": {"str": 20, "con": 20, "dex": 18, "int": 15, "spi": 15, "sta": 20, "kar": 20, "per": 20,
+             "cps": 23, "cor": 24},
+    "商人": {"str": 15, "con": 16, "dex": 15, "int": 20, "spi": 18, "sta": 18, "kar": 20, "per": 20,
+             "cps": 23, "cor": 24},
+    "捕快": {"str": 18, "con": 18, "dex": 17, "int": 17, "spi": 16, "sta": 19, "kar": 20, "per": 20,
+             "cps": 23, "cor": 24},
 }
 
 
@@ -579,6 +582,12 @@ REST_RATE_TOWN = 0.5
 REST_RATE_WILD = 0.25
 
 
+def healing_ceiling(ent: Any) -> int:
+    """恢复上限：原版 `eff_qi`；旧实体未初始化(-2)时按 `max_qi`。"""
+    eff = int(getattr(ent, "eff_hp", -2))
+    return eff if eff >= -1 else int(ent.max_hp)
+
+
 def rest_rate(state: WorldState, location: str, home: str) -> float:
     loc = state.locations.get(location) or {}
     services = loc.get("services") or []
@@ -648,13 +657,16 @@ class PlayerRestAction(Action):
         tick = int(intent.tick)
         if str(intent.verb) == "sleep":
             stamina_delta = max(0.0, float(ent.max_stamina) - float(ent.stamina))
-            hp_delta = max(0, int(ent.max_hp) - int(ent.hp)) if int(ent.max_hp) > 0 else 0
+            # 原版 sleep.lpc:208-209：醒来 `qi = eff_qi`，绝不回满 max_qi。
+            hp_delta = max(0, healing_ceiling(ent) - int(ent.hp)) if int(ent.max_hp) > 0 else 0
             reason = "sleep"
         else:
             rate = rest_rate(state, str(ent.location), str(ent.home or ""))
             delta = float(int(hours) * TICKS_PER_HOUR) * rate
             stamina_delta = delta
-            hp_delta = int(delta) if int(ent.max_hp) > 0 else 0
+            # rest 同样封顶 eff_qi：伤势只能靠 heal_up 抬的天花板恢复。
+            room = max(0, healing_ceiling(ent) - int(ent.hp)) if int(ent.max_hp) > 0 else 0
+            hp_delta = min(int(delta), room)
             reason = "rest"
         effects: list[Effect] = [
             Effect("stamina", {"entity": pid, "delta": stamina_delta, "reason": reason, "hours": int(hours)}),
