@@ -238,7 +238,7 @@ def test_help_catalog_has_153_commands_and_32_topics(session):
     counts = catalog["counts"]
     assert counts["commands"] == 153
     assert counts["topics"] == 32
-    assert counts["status"] == {"已实现": 41, "待实现": 51, "不做": 61}
+    assert counts["status"] == {"已实现": 43, "待实现": 49, "不做": 61}
     assert len(catalog["commands"]) == 153
     assert len(catalog["topics"]) == 32
     look = next(row for row in catalog["commands"] if row["name"] == "look")
