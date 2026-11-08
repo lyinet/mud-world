@@ -133,3 +133,27 @@ diff: BYTE_IDENTICAL
 - 全量：`1055 passed, 20 skipped`（junit 统计：1055 tests / 0 failures / 0 errors / 20 skipped）。
 - `git diff 1cbbcb3 -- content/xkx room_reset.py src/wsim/respawn.py src/wsim/sim/combat_rules.py tools/xkx_formula`：空。
 - 4004 被动还手 5/5 证据见 `multi-combat.spec.md` §4.3。
+
+## 8. 真机验收
+
+### 8.1 活世界 8041/8011：`world: existing`，不 reset
+
+- 重启命令：`scripts/start_world.sh --world xkx`（无 `--reset`）。
+- 启动 JSON：`"world": "existing"`、`"multi_combat": true`；tick 从 6409 续跑到 6415，未重建。
+- 世界 ID / 事件 seq 连续，无 genesis 重放。
+
+单人冒烟（`player:smoke_v1`，郭庄）：
+
+- `look`：`在场人物：二只大狼狗。地上散落：狗皮×7、粗布、炊饼×3。`
+- `fight 大狼狗`：11 回合，大狼狗气血 50→17，“拱手认输”“点到即止，双方各自收手”。
+- `kill 大狼狗 2`（另一只）：7 回合，气血 32→0，“你赢了，大狼狗倒下了”，`超额伤害：大狼狗 1 点`。
+- `loot 狗皮`：`捡起：狗皮。` 行囊 `狗皮×9`，地面只剩 `粗布、炊饼×3`。
+- 事件行：`player:smoke_v1` 的 `fight`/`kill`/`loot` 事件带 `combat_enemies` / `combat_contrib`；狼狗 `npc_aggression` 继续事件带 `opponent_index` / `opponent_roll` / `targets`（seq 11474–11509）。
+
+### 8.2 8031 独立实例：两名真人角色同屏
+
+- 独立 run `accept8031`（`/tmp/xkx-accept8031.yaml`，api 8031 / ui 8034），不碰 `xkx-world`。
+- 两名角色 `player:s2a`（验收甲）、`player:s2b`（验收乙）同处郭庄；两只狼狗的 `combat_enemies` = `['player:s2a','player:s2b']`（seq 47/48）。
+- 同一只狼狗 `...guozhuang#2` 的 `combat_contrib = {'player:s2a': 40, 'player:s2b': 10}`（seq 324），证明两名玩家对同一 NPC 的实际扣血各自记账。
+- 本世界玩家开局档 40 级，单回合反击即可打掉狼狗 50 血，故实时样本只有 `opponent_index` 0/1/1 三次；连续 400 tick 的 75/25 分布以 §5 定长测试为准。
+- `fight` 在守方已登记攻击者为敌人时按击杀处理（原版 `is_killing`，`combat.py:132`）：s2a 的 fight 变致命（狼狗 `combat_target == player:s2a`），s2b 的 fight 仍为切磋、停在 22 血。
