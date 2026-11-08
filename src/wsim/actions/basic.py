@@ -4,7 +4,7 @@
 """
 from __future__ import annotations
 
-from ..core.clock import day_of
+from ..core.clock import TICKS_PER_DAY, day_of, npc_tick_of
 from ..core.models import Effect, Intent, Reject
 from ..world.state import WorldState
 from .common import (
@@ -207,6 +207,9 @@ class WorkAction(Action):
             # 已签日结契约的雇工：工资由日界 system_shop_settle 统一结算，
             # 此处不再重复支付，也不生成工资债。
             note = f"已签日结契约，工资本日由日结发放{gross}文"
+            if getattr(intent, "clock_tick", None) is not None:
+                # 有 NPC 时钟：把出勤钉在 NPC 日上，日结按同一日判定出勤。
+                note += f"：D{npc_tick_of(intent) // TICKS_PER_DAY}"
         else:
             effects.extend(
                 payment_with_shortfall(

@@ -21,6 +21,9 @@ class Intent:
     schedule_id: str | None = None
     intent_id: str = ""
     reason: str = ""  # 决策动机（一句话），写进事件日志供审计解释
+    # NPC 日历时钟（ambient 步数）；只用于“按天”判定，不进 to_dict()/事件/哈希。
+    # None 表示无自走环境，所有判定回退到 intent.tick（旧语义逐字节不变）。
+    clock_tick: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {

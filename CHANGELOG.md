@@ -9,6 +9,7 @@
 
 ---
 
+<<<<<<< HEAD
 ## [feat] 2026-11-08 — 走兽气血走原版年龄公式 + 出手门逐回合审计（D/C 收尾）
 
 - **改了什么**：
@@ -370,6 +371,68 @@
   若重跑 soak 时 `peak_growth_pct` 门禁仍超限，下一步削减 `state.clone()` churn（改按需浅拷贝，保证隔离语义），记 p3n。
   `PYTHONMALLOC=malloc` 对照探针已证伪（peak 斜率反而略高），本次不采用。
 - **commit**：见本条目所在提交。
+
+## [日界] 2026-11-08 — NPC 日历单一入口：显示、委托截止、工资/出勤/门派派俸全部改 NPC 日
+
+### 日界语义变更（单列）
+
+- **NPC 日 = ambient tick**：144 ambient tick = 1 NPC 日；1x 下 1 tick = 6s，
+  即 **1 NPC 日 ≈ 14.4 分钟真实时间**（2x/4x 为 7.2/3.6 分钟）。
+- **不用世界 tick**：每次玩家写 +6 tick，50 玩家 think-time 2s 时 144 tick < 1s；
+  按世界日结算会让 NPC 在 15 分钟内过上百“天”。NPC 生计挂在后端心跳，与在线玩家数无关。
+- **玩家可见日期与判定同源**：玩家视图 `clock_tick/clock_day`、委托 `deadline_tick`、
+  店铺出勤/工资、门派会费/俸禄/欠饷、生活费、日结事件 `args["day"]` 全部读 NPC 时钟。
+- **headless 不变**：无 ambient 时 `clock_tick=None`，判定回退 `intent.tick/cursor`；
+  旧九地点 headless 三项哈希实测逐字节一致（见验证）。
+- **记账**：`lag_steps` 改为**累计截断步数**（= `ambient_catchup_truncated` 同一计数）；
+  旧“连续截断步数”语义改名 `lag_streak` 并保留 `lag_steps_streak` 别名；新增
+  `lag_ticks_max`、`world_ticks_per_npc_day`。
+
+### 先推的基线提交 `8b2ae49`（六文件逐条）
+
+- `src/wsim/api/server.py`：health 心跳改为真实 `heartbeat_at`，区分 `running_but_idle`；
+  共享模式不再用玩家写频率冒充 ambient 推进。
+- `src/wsim/api/session.py`：会话持有 ambient 调度器引用，供健康/状态读取。
+- `src/wsim/sim/lod.py`：唤醒调度与共享配速解耦，避免玩家活跃把 NPC 唤醒压垮。
+- `src/wsim/sim/scheduler.py`：共享模式按自身配速独立推进；日界改按 ambient tick；
+  增加滞后记账与截断路径。
+- `tests/test_w3_health.py`：断言新心跳语义与 `running_but_idle`。
+- `tools/soak_test.py`：记录 ambient 截断/滞后与阶段探针。
+
+### 本轮逐文件
+
+- `src/wsim/core/models.py`：`Intent.clock_tick`（不进 `to_dict()`，事件/哈希不变）。
+- `src/wsim/core/clock.py`：`npc_tick_of(intent)` 唯一取值入口。
+- `src/wsim/core/settlement_clock.py`（新增）：NPC 侧周期结算时钟登记表。
+- `src/wsim/sim/scheduler.py`：共享 `_submit()` 补 `clock_tick`；`_world_view()` 暴露 NPC 时钟；
+  `lag_steps` 累计 + `lag_streak/lag_ticks_max/world_ticks_per_npc_day`；日界 verb 常量。
+- `src/wsim/sim/intent.py`：委托截止/冷却用 `_now(cursor)`（headless 保持随 cursor 推进）；
+  采购/消费/探配偶的日散列在共享世界读 NPC 日。
+- `src/wsim/api/session.py`：`clock_tick()`/`_intent_clock()` 单一入口；视图暴露
+  `clock_tick/clock_day`；日界触发、任务板/冷却、门派日结标记改 NPC 日；
+  gateway 透传 `clock_tick`（不进事件）。
+- `src/wsim/mcp/gateway.py`：从 intent 载荷读取 `clock_tick`。
+- `src/wsim/actions/quests.py`：`deadline_tick` 用 NPC 时钟；接单/交付/过期/保留期同源。
+- `src/wsim/actions/system.py`：生活费按 `args["day"]`；店铺日结把 `args["day"]` 传入账本与出勤判定。
+- `src/wsim/actions/business.py`：出勤支持 `ATTENDANCE_MARKER:D{day}`；账本行只在有 NPC 日时写 `day`。
+- `src/wsim/actions/basic.py`：日结雇工上工记忆追加 NPC 日标记。
+- `src/wsim/actions/player_sect.py`：门派日结 `_day()` 读 NPC 时钟。
+- `src/wsim/actions/player.py`：休息被委托打断的窗口读 NPC 时钟。
+- `ui/player/app.js`：可见日历改读 `clock_tick`（缺省回退 `tick`）。
+- `tests/test_settlement_clock_registry.py`（新增）：登记表覆盖 + AST 扫描日界动词，漏登记 fail。
+- `tests/test_ambient_clock_visibility.py`（新增）：视图单一入口、回退、委托/出勤同源。
+- `specs/xkx-parity/ambient-day.spec.md` / `.tasks.md`：口径、登记表、验收与记账语义。
+
+### 验证
+
+- 旧九地点 headless（days=2, seed=42, npc_limit=0）：`events_total 735`、
+  `state_final 009076f0346352e328d8c158a3017a3e26fbc0b2c59ef7ca20c8fc3d1f780ce9`、
+  `event_final 02d5f812c427833387e592ad9321ebd72a9c5c719825b958f53af83d795078ae`、
+  cash `11442`、blocked `6`、pruned `3`，与基线逐项一致。
+- 同 seed 双跑全部 `*.jsonl` sha256 字节一致。
+- `/Users/lyinet/projects/XKX/world-sim` 的 `tests/test_xkx_determinism_legacy.py` PASS。
+- 全量 `PYTHONPATH=src python3 -m pytest -q` 全绿（含 V6 确定性基线）。
+- 公式库零改动；未 force。
 
 ---
 

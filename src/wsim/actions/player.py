@@ -12,7 +12,7 @@ from __future__ import annotations
 import re
 
 from ..agent.dialogue import PLAYER_NAME
-from ..core.clock import TICKS_PER_HOUR
+from ..core.clock import TICKS_PER_HOUR, npc_tick_of
 from ..core.models import Effect, Intent, Reject
 from ..world.state import WorldState
 from .common import arg_int, wallet
@@ -635,7 +635,7 @@ class PlayerRestAction(Action):
             return ["bad_arg:hours"]
         if _on_active_escort(state, pid):
             return ["cannot_rest_while_escorting"]
-        if _quest_interrupts_rest(state, pid, hours, int(intent.tick)):
+        if _quest_interrupts_rest(state, pid, hours, npc_tick_of(intent)):
             return ["cannot_rest_now"]
         return []
 

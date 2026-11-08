@@ -42,6 +42,24 @@ from .intent import MockReasoner
 from .lod import LODScheduler, load_lod_config
 from .wander import WanderPolicy
 
+# 日界触发的系统结算：与 core/settlement_clock.SETTLEMENTS 同一事实源，
+# 新增日界动词必须同时登记时钟归属，否则登记表测试失败。
+DAY_START_VERBS: tuple[str, ...] = (
+    "system_recover",
+    "system_quest_post",
+    "system_living",
+)
+DAY_END_VERBS: tuple[str, ...] = (
+    "system_debts",
+    "system_quest_fail",
+    "system_milestone",
+    "system_maintenance",
+    "system_shop_settle",
+    "system_savings_tax",
+    "system_shop_dividend",
+    "system_shop_tax",
+)
+
 # 1x 的虚拟时间速率：30 分钟真实时间 ≈ 300 ticks（10 ticks/分钟）。
 TICKS_PER_SECOND_1X = 10.0 / 60.0
 SPEEDS = (1.0, 2.0, 4.0)
@@ -359,12 +377,7 @@ class AmbientScheduler:
             seed=cfg.seed,
             start_tick=self.tick,
             state_provider=lambda npc: {"id": npc},
-            world_view_provider=lambda tick: {
-                "tick": tick,
-                "day": tick // TICKS_PER_DAY,
-                "state": self.writer.state,
-                "content": self.content,
-            },
+            world_view_provider=self._world_view,
             wander=WanderPolicy(enabled=bool(cfg.npc_wander)),
         )
         # 共享世界的两个时钟：world_tick 是玩家推进的世界时钟；
@@ -372,9 +385,17 @@ class AmbientScheduler:
         self._world_tick = int(self.writer.state.tick) if self.shared else 0
         self._processed_world_tick = self._world_tick
         self._lag_ticks = 0
+        self._lag_ticks_max = 0
         self._skipped_days = 0
         self._dropped_stale = 0
+        # lag_steps：累计被 max_catchup_ticks 截断的调度步数（与
+        # ambient_catchup_truncated 同一计数）；lag_streak：旧 lag_steps 语义，
+        # 连续截断步数，改名保留，避免旧字段静默改义。
+        self._lag_steps = 0
         self._lag_streak = 0
+        # 每 NPC 日推进的世界 tick 数（EMA）；headless 恒为 144。
+        self._world_ticks_per_npc_day = float(TICKS_PER_DAY)
+        self._day_world_tick = self._world_tick
         self._heartbeat_at = self._now_iso()
         self._max_queue_backlog = 0
         self._log_line(
@@ -419,7 +440,15 @@ class AmbientScheduler:
                 if self.shared
                 else 0
             ),
-            "lag_steps": int(self._lag_streak) if self.shared else 0,
+            "lag_ticks_max": int(self._lag_ticks_max) if self.shared else 0,
+            # lag_steps 为累计截断步数；旧的“连续截断步数”改名 lag_streak/
+            # lag_steps_streak 保留，旧字段含义不静默改变。
+            "lag_steps": int(self._lag_steps) if self.shared else 0,
+            "lag_streak": int(self._lag_streak) if self.shared else 0,
+            "lag_steps_streak": int(self._lag_streak) if self.shared else 0,
+            "ambient_catchup_truncated": int(self._lag_steps) if self.shared else 0,
+            "world_ticks_per_npc_day": round(self._world_ticks_per_npc_day, 2),
+            "npc_tick": int(self.tick),
             "skipped_days": int(self._skipped_days) if self.shared else 0,
             "skipped_wakes": int(self.lod.skipped_wakes),
             "dropped_stale": int(self._dropped_stale),
@@ -553,6 +582,11 @@ class AmbientScheduler:
             self._push(max(it.tick, at_tick), prio, "intent", it)
 
     def _submit(self, intent: Intent) -> Event | None:
+        if self.shared and intent.clock_tick is None:
+            # 共享世界：所有提交意图统一带 NPC 日历 tick（ambient 步数）。
+            # 玩家/系统 Intent 由各自来源显式补；这里兜住 LOD/计划产出，
+            # 保证判定层与显示层读同一个时钟。headless 不加，旧哈希不变。
+            intent = replace(intent, clock_tick=int(self.tick))
         reason = intent_block_reason(self.registry, self.writer.state, intent)
         if reason:
             if is_prunable(reason):
@@ -583,6 +617,19 @@ class AmbientScheduler:
         )
 
     # ---------------------------------------------------------------- 日界
+    def _world_view(self, tick: int) -> dict[str, Any]:
+        view: dict[str, Any] = {
+            "tick": tick,
+            "day": tick // TICKS_PER_DAY,
+            "state": self.writer.state,
+            "content": self.content,
+        }
+        if self.shared:
+            # NPC 日历只在共享世界暴露；headless 没有 clock_tick，判定回退到
+            # 旧 tick/cursor 语义，保证历史哈希逐字节不变。
+            view["clock_tick"] = int(self.tick)
+        return view
+
     def _day_start(self, tick: int, day: int | None = None) -> None:
         if day is None:
             day = tick // TICKS_PER_DAY
@@ -670,6 +717,8 @@ class AmbientScheduler:
                 # 保证“世界永久落后于玩家时钟”不会静默发生。
                 target = catchup_target
                 self._lag_ticks = max(0, world - target)
+                self._lag_ticks_max = max(self._lag_ticks_max, self._lag_ticks)
+                self._lag_steps += 1
                 self._lag_streak += 1
                 if self._lag_streak == 1 or self._lag_streak % 60 == 0:
                     self._log_line(
@@ -719,6 +768,15 @@ class AmbientScheduler:
                 self._replan_today = Counter()
         elif day != self._day_marker:
             old = self._day_marker
+            if self.shared:
+                # 记账：一个 NPC 日推进了多少世界 tick（EMA，下限 144）。
+                world_now = int(self.writer.state.tick)
+                delta = max(1, world_now - self._day_world_tick)
+                self._world_ticks_per_npc_day = max(
+                    float(TICKS_PER_DAY),
+                    0.5 * self._world_ticks_per_npc_day + 0.5 * float(delta),
+                )
+                self._day_world_tick = world_now
             # 共享世界里结算点比世界日稀疏得多；用当前世界 tick 作事件时间戳
             # （事件 tick 仍单调），但日编号用 ambient 日，绝不在同一日重复结算。
             if self.shared:

@@ -1683,10 +1683,10 @@
       Math.round(Number(p.max_stamina || 0));
     el('stItems').textContent = itemListText(wallet.items);
     el('stGoals').textContent = '任务 ' + active.length + '/2';
-    el('stClock').textContent = clockOf(st.tick).label;
+    el('stClock').textContent = clockOf(st.clock_tick != null ? st.clock_tick : st.tick).label;
     const online = (st.online_players || []).length;
     el('stOnline').textContent = String(online);
-    document.title = clockOf(st.tick).label + ' · 入世 · 世界门面';
+    document.title = clockOf(st.clock_tick != null ? st.clock_tick : st.tick).label + ' · 入世 · 世界门面';
   }
 
   function renderNotice(st) {
@@ -2428,7 +2428,7 @@
   function renderToday(st) {
     const t = st.today || {};
     el('todayTick').textContent = t.tick != null
-      ? ('tick ' + t.tick + ' · ' + clockOf(t.tick).label)
+      ? ('tick ' + t.tick + ' · ' + clockOf(t.clock_tick != null ? t.clock_tick : t.tick).label)
       : '—';
     el('todayNext').innerHTML = '<span>先做这个</span>' + escapeHtml(t.next_action || '—');
     const list = el('todayList');
