@@ -423,3 +423,10 @@ full_refill_ticks = max_qi / points_per_tick
 - `jing/eff_jing` 不建模（§8）。
 - 无 `receive_curing` 对应命令：本期无疗伤手段（§3.4）。
 - 玩家侧 `combat_enemies` 清空为内存态、不落事件（原版 `remove_all_enemy` 同样不是事件）；活体证据为敌人表与 NPC 侧 `set_field`，玩家侧由单测覆盖。
+
+### 10.9 开启后同步的测试（`config/worlds/xkx.yaml` 翻为 `true` 时）
+
+1. `tests/test_xkx_api.py::test_fight_reports_real_rounds_and_death`：首击伤害字面量 15→19。原因是开启后每场战斗开头两方各抽一次 `heal_cd`（`combat_rules.py:433`），骰流整体前移 2；属开启态预期，不是伤害公式变化。
+2. `tests/test_xkx_growth.py::test_combat_death_and_revive_real_session`：`hp<0 && eff_qi>=0` 只是昏迷，`die()` 只认 `eff_qi<0`；测试先把玩家置成伤势 5 点，一场即跨过 0，继续验证死亡惩罚、尸体与还阳。断言数值未变（6272 / 39 级）。
+3. `tests/test_w1_concurrency.py`：原断言用“两边关系数值不等”证明未串档，但对话增量有每 tick/每日上限，两人同时打满会撞值（全量跑中偶发失败）；改为按事件归因——每条 `relation_upsert` 的 `a` 必须等于发起对话的 actor、`b` 为同一 NPC，且至少 40 条。
+

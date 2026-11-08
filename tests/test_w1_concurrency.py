@@ -133,9 +133,22 @@ def test_two_clients_twenty_interleaved_rounds_are_isolated(tmp_path):
         rel_b = next(r for r in final_b["player"]["relations"] if r["target"] == "duan_wudou")
         assert rel_a["affection"] == session.state.relations[key_a].affection
         assert rel_b["affection"] == session.state.relations[key_b].affection
-        # 两轮交错写入没有把彼此的关系合并/覆盖成同一条。
-        assert key_a != key_b
-        assert (rel_a["affection"], rel_a["trust"]) != (rel_b["affection"], rel_b["trust"])
+        # 两轮交错写入没有把彼此的关系合并/覆盖成同一条：每条 relation_upsert 的
+        # 归属玩家都必须等于发起对话的 actor，且都指向同一个 NPC。
+        # 注：不能拿“两边数值不等”当证据——对话增量有每 tick / 每日上限，两人同时
+        # 打满上限就会撞值，这是合法巧合，与串档无关（该断言曾因此在全量跑中偶发失败）。
+        rel_writes = 0
+        for event in session.store.read_all():
+            if event.verb != "talk" or event.outcome != "ok":
+                continue
+            for eff in event.effects:
+                if eff.get("op") != "relation_upsert":
+                    continue
+                data = eff["data"]
+                assert data["a"] == event.actor
+                assert data["b"] == "duan_wudou"
+                rel_writes += 1
+        assert rel_writes >= 40
 
         # 0 未授权写入：事件日志里没有任何非预期玩家 actor。
         player_actors = {

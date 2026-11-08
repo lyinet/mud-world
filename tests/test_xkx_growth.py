@@ -528,6 +528,10 @@ def test_combat_death_and_revive_real_session(tmp_path):
     )
     try:
         _cmd(session, "look")
+        # `eff_qi` 开启（config 默认）后 `hp<0 && eff_qi>=0` 只是昏迷，`die()` 只认
+        # `eff_qi<0`（`char.lpc:65-78`）。正常玩法要靠多场恶斗把伤势累积到濒死，
+        # 这里直接把玩家置成“伤势 5 点”，一场即跨过 0，避免测试里反复昏迷/苏醒。
+        session.state.entities[f"player:{ACCOUNT}"].eff_hp = 5
         result = _cmd(session, "fight 噬人鱼")
         assert result["ok"] is True, _texts(result)
         assert "鬼门关" in _texts(result)
