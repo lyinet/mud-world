@@ -66,13 +66,13 @@
 ## 提交 3：清理与踢人
 
 ### T8 管理踢人
-- [ ] `src/wsim/api/server.py`：`POST /api/admin/players/kick`
+- [x] `src/wsim/api/server.py`：`POST /api/admin/players/kick`
       （`XKX_ADMIN_TOKEN` Bearer、`X-Operator`、body `{account,reason}`）
-- [ ] `WorldSession.kick_player`：`player_leave` source `admin`，
+- [x] `WorldSession.kick_player`：`player_leave` source `admin`，
       args `reason=operator_kick`/`operator`/`note`；返回 event_seq/event_hash
-- [ ] 审计字段：who=operator、when=tick+seq、target=player:<account>、
+- [x] 审计字段：who=operator、when=tick+seq、target=player:<account>、
       why=reason+note；403/401/400 不写事件
-- [ ] `docs/player-api.md` 接口与 curl 示例
+- [x] `docs/player-api.md` 接口与 curl 示例
 - 验证：403/401/400/404/409/200；事件 `source=admin`；重复踢 409
 
 ### T9 老板档清理（禁止直接改库）

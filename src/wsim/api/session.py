@@ -69,6 +69,7 @@ from ..sim.scheduler import AmbientConfig, AmbientScheduler
 from ..world.state import WorldState
 from ..world.store import EventStore
 from ..world.writer import Writer
+from ..world.hash import event_hash
 from ..actions.escort import resolve_payer, route_meta
 from ..actions.business import daily_shop_tax
 from ..actions.equipment import SLOT_LABELS, equip_cultivate_bonus, slot_for_item
@@ -2838,6 +2839,66 @@ class WorldSession:
                 "profile_version": PROFILE_VERSION,
                 "tick": tick,
                 "server_tick": tick,
+            }
+
+    def kick_player(self, account: str, operator: str, note: str = "") -> dict[str, Any]:
+        """管理强制离线：提交 `player_leave`（source=admin），留可检索审计。
+
+        审计字段落在事件 args/effect：who=`operator`、when=`tick`+`seq`、
+        target=`player:<account>`、why=`operator_kick`+`note`。
+        """
+        account = str(account or "").strip().lower()
+        with self.lock:
+            tick = int(self.state.tick)
+            pid = self._pid(account)
+            prof = self.state.players.get(pid)
+            if prof is None or pid not in self.state.entities:
+                return {
+                    "ok": False,
+                    "reject_reason": "player_not_entered",
+                    "reason_text": _reason_text("player_not_entered"),
+                    "tick": tick,
+                }
+            if not prof.online:
+                return {
+                    "ok": False,
+                    "reject_reason": "already_offline",
+                    "reason_text": _reason_text("already_offline"),
+                    "tick": tick,
+                }
+            event = self._submit(
+                Intent(
+                    actor=pid,
+                    verb="player_leave",
+                    args={
+                        "player_id": pid,
+                        "reason": "operator_kick",
+                        "operator": str(operator),
+                        "note": str(note or ""),
+                    },
+                    tick=tick,
+                    source="admin",
+                )
+            )
+            if event.outcome != "ok":
+                raw = str(event.reason or "")
+                code = raw[len("rejected:") :] if raw.startswith("rejected:") else raw
+                return {
+                    "ok": False,
+                    "reject_reason": code or "kick_failed",
+                    "reason_text": _reason_text(code or "kick_failed"),
+                    "tick": tick,
+                }
+            return {
+                "ok": True,
+                "pid": pid,
+                "presence": "offline",
+                "operator": str(operator),
+                "reason": "operator_kick",
+                "event_seq": int(event.seq),
+                "event_tick": int(event.tick),
+                "event_hash": event_hash([event]),
+                "tick": tick,
             }
 
     def _perform(

@@ -841,6 +841,58 @@ curl -s 'http://127.0.0.1:8848/api/world/feed?limit=5'
 
 ---
 
+## 6.2 `POST /api/admin/players/kick`（运营强制离线）
+
+运营把某个账号强制置为离线（断线/挂机/清场）。与玩家自助 `leave` 的区别：
+`source=admin`、必须带操作人，事件里保留 `operator` 与 `note` 供审计。
+
+- 鉴权（独立于玩家令牌）：
+  - 未配置 `XKX_ADMIN_TOKEN` → `403 admin_disabled`（不写世界）；
+  - `Authorization: Bearer <token>` 缺失/不匹配 → `401 invalid_admin_token`；
+  - `X-Operator` 缺失/为空 → `400 missing_operator`；
+  - 缺 `account` → `400 missing_account`。
+- 语义：`player:<account>` 不存在 → `404 player_not_entered`；
+  已离线 → `409 already_offline`；成功 → `200`。
+- 成功时同时清空该玩家与所有 NPC 上指向他的 `combat_target`/`combat_enemies`，
+  离线角色不会再被结算伤害。
+
+```bash
+curl -sS -X POST http://127.0.0.1:8041/api/admin/players/kick \
+  -H "Authorization: Bearer $XKX_ADMIN_TOKEN" \
+  -H "X-Operator: ops-zhang" \
+  -H "Content-Type: application/json" \
+  -d '{"account":"s4spar","reason":"operator_kick_cleanup"}'
+```
+
+```json
+{
+  "ok": true,
+  "pid": "player:s4spar",
+  "presence": "offline",
+  "operator": "ops-zhang",
+  "reason": "operator_kick",
+  "event_seq": 7712,
+  "event_tick": 812,
+  "event_hash": "…",
+  "tick": 812
+}
+```
+
+审计事件（`events.sqlite` / `GET /api/world/feed` 之外的原始事件行）：
+
+| 字段 | 位置 | 示例 |
+|---|---|---|
+| 谁 | `args.operator` | `ops-zhang` |
+| 何时 | `event.tick` + `event.seq` | `812` / `7712` |
+| 对谁 | `actor` / `effect.player_presence.id` | `player:s4spar` |
+| 原因 | `args.reason` + `args.note` | `operator_kick` / `operator_kick_cleanup` |
+
+`/api/world/feed` 只展示 NPC 公共事件，不含玩家事件；需要逐条审计时读
+`events.sqlite` 或事件流原始行。MCP 的 `admin.request → admin.approve → admin.apply`
+双人令牌流仍是第二入口，两条路径最终都落成同一条 `player_leave` 世界事件。
+
+---
+
 ## 7. 错误码表（拒绝原因枚举）
 
 > 前端必须优先展示 `reason_text`，`reject_reason` 只用于分支判断。
@@ -891,7 +943,7 @@ curl -s 'http://127.0.0.1:8848/api/world/feed?limit=5'
 | `insufficient_stamina` | 体力不足；请先休息或进食。 |
 | `unknown_target` | 目标人物不存在。 |
 | `not_together` | 对方不在你当前所在的地点。 |
-| `target_offline` | 对方不在线，不能进行该操作。 |
+| `target_offline` | 对方已离线，不能进行该操作。 |
 | `player_consent_required` | 该操作需要对方本人同意；本阶段关闭 NPC 对玩家的婚配与招揽。 |
 | `bad_message` | 消息不能为空且不超过 200 字。 |
 | `heartbeat_too_soon` | 心跳过于频繁；请稍后再试。 |

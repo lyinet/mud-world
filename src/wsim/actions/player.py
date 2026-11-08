@@ -274,6 +274,36 @@ def presence_timeout_pids(state: WorldState, tick: int, timeout: int = PRESENCE_
     return due
 
 
+def combat_clear_effects(state: WorldState, pids: list[str]) -> list[Effect]:
+    """把给定玩家从所有实体的交战登记中摘掉，并清其自身战斗字段。
+
+    确定性：玩家 id 按入参顺序（调用方传 sorted），NPC 按 id 排序，不耗随机。
+    离线/离场后 NPC 不得再对这些人结算伤害。
+    """
+    effects: list[Effect] = []
+    for pid in pids:
+        ent = state.entities.get(pid)
+        if ent is None:
+            continue
+        if ent.combat_target:
+            effects.append(Effect("set_field", {"entity": pid, "field": "combat_target", "value": ""}))
+        if ent.combat_enemies:
+            effects.append(Effect("set_field", {"entity": pid, "field": "combat_enemies", "value": []}))
+    for eid in sorted(state.entities):
+        npc = state.entities[eid]
+        if eid.startswith("player:"):
+            continue
+        enemies = list(npc.combat_enemies or [])
+        remaining = [e for e in enemies if e not in pids]
+        if remaining != enemies:
+            effects.append(
+                Effect("set_field", {"entity": eid, "field": "combat_enemies", "value": remaining})
+            )
+        if str(npc.combat_target or "") in pids:
+            effects.append(Effect("set_field", {"entity": eid, "field": "combat_target", "value": ""}))
+    return effects
+
+
 def player_genesis_effects(
     pid: str,
     name: str,
@@ -662,6 +692,7 @@ class PlayerLeaveAction(Action):
         return [
             Effect("player_presence", data),
             Effect("set_field", {"entity": pid, "field": "last_action_tick", "value": tick}),
+            *combat_clear_effects(state, [pid]),
         ]
 
 
@@ -722,31 +753,8 @@ class SystemPlayerPresenceAction(Action):
                     },
                 )
             )
-            ent = state.entities.get(pid)
-            if ent is not None:
-                if ent.combat_target:
-                    effects.append(
-                        Effect("set_field", {"entity": pid, "field": "combat_target", "value": ""})
-                    )
-                if ent.combat_enemies:
-                    effects.append(
-                        Effect("set_field", {"entity": pid, "field": "combat_enemies", "value": []})
-                    )
-        # NPC 侧清空指向这些玩家的交战登记：离线目标不许再被结算伤害。
-        for eid in sorted(state.entities):
-            npc = state.entities[eid]
-            if eid.startswith("player:"):
-                continue
-            enemies = list(npc.combat_enemies or [])
-            remaining = [e for e in enemies if e not in due]
-            if remaining != enemies:
-                effects.append(
-                    Effect("set_field", {"entity": eid, "field": "combat_enemies", "value": remaining})
-                )
-            if str(npc.combat_target or "") in due:
-                effects.append(
-                    Effect("set_field", {"entity": eid, "field": "combat_target", "value": ""})
-                )
+        # 双方战斗字段一次清空：离线目标不许再被结算伤害。
+        effects.extend(combat_clear_effects(state, due))
         return effects
 
 

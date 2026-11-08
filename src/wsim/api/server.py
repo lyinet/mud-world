@@ -55,6 +55,8 @@ _SERVICE_INFO = "/api/service/info"
 _HEALTH = "/api/health"
 _WORLD_FEED = "/api/world/feed"
 _WORLD_MAP = "/api/world/map"
+# 运营管理：强制离线（踢人）。独立于玩家鉴权，只认 XKX_ADMIN_TOKEN + X-Operator。
+_ADMIN_KICK_ROUTE = "/api/admin/players/kick"
 # xkx 帮助目录：153 命令 / 32 主题，公共只读，不含玩家数据。
 _XKX_HELP = "/api/xkx/help"
 _INTENTS_PREFIX = "/api/player/intents/"
@@ -744,6 +746,9 @@ class _Handler(BaseHTTPRequestHandler):
 
     def _do_POST(self) -> None:
         path = self._path()
+        if path == _ADMIN_KICK_ROUTE:
+            self._handle_admin_kick()
+            return
         auth_route = _AUTH_ROUTES.get(path)
         if auth_route is not None:
             self._handle_auth(auth_route)
@@ -825,6 +830,73 @@ class _Handler(BaseHTTPRequestHandler):
                 accounts.disconnect(str(row["id"]), int(session.state.tick))
                 result["session_id"] = str(row["id"])
                 result["session_disconnected"] = True
+        self._send(status, result)
+
+    def _handle_admin_kick(self) -> None:
+        """运营强制离线：`XKX_ADMIN_TOKEN` + `X-Operator` 双要素，不写世界的前置失败返回 4xx。"""
+        session = self._session()
+        tick = int(session.state.tick)
+        expected = str(os.environ.get("XKX_ADMIN_TOKEN", "")).strip()
+        if not expected:
+            self._send(
+                403,
+                {
+                    "ok": False,
+                    "code": "admin_disabled",
+                    "reject_reason": "admin_disabled",
+                    "reason_text": "管理接口未启用（未配置 XKX_ADMIN_TOKEN）。",
+                    "tick": tick,
+                },
+            )
+            return
+        token = self._bearer()
+        if not token or not hmac.compare_digest(token, expected):
+            self._send(
+                401,
+                {
+                    "ok": False,
+                    "code": "invalid_admin_token",
+                    "reject_reason": "invalid_admin_token",
+                    "reason_text": "管理令牌不匹配。",
+                    "tick": tick,
+                },
+            )
+            return
+        operator = str(self.headers.get("X-Operator") or "").strip()
+        if not operator:
+            self._send(
+                400,
+                {
+                    "ok": False,
+                    "code": "missing_operator",
+                    "reject_reason": "missing_operator",
+                    "reason_text": "缺少 X-Operator；审计必须记录操作人。",
+                    "tick": tick,
+                },
+            )
+            return
+        body = self._read_body_or_400()
+        if body is None:
+            return
+        account = str(body.get("account") or body.get("account_id") or "").strip().lower()
+        if not account:
+            self._send(
+                400,
+                {
+                    "ok": False,
+                    "code": "missing_account",
+                    "reject_reason": "missing_account",
+                    "reason_text": "缺少 account。",
+                    "tick": tick,
+                },
+            )
+            return
+        result = session.kick_player(account, operator, str(body.get("reason") or ""))
+        status = 200
+        if not result.get("ok"):
+            code = str(result.get("reject_reason") or "")
+            status = 404 if code == "player_not_entered" else 409 if code == "already_offline" else 400
+            result.setdefault("code", code)
         self._send(status, result)
 
     def _handle_auth(self, route: str) -> None:
