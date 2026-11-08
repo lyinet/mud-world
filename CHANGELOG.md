@@ -40,7 +40,7 @@
   - 全量 pytest：1020 项收集、1002 通过、18 skip、0 failed（exit 0）。
   - 公式库 `tools/xkx_formula/` 零改动；`config/worlds/default.yaml` 未加键；
     `config/worlds/xkx.yaml` 未在本提交打开（待老板判定）。
-- **commit**：__COMMIT__
+- **commit**：`11d45dd`
 
 ---
 
