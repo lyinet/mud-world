@@ -617,7 +617,13 @@ class WorldSession:
         if self.replayed:
             try:
                 verify_content_hash(self.store, self.content.content_hash, self.run_dir)
-                state, player_ticks = replay_into(self.store, locations)
+                state, player_ticks = replay_into(
+                    self.store,
+                    locations,
+                    run_dir=self.run_dir,
+                    seed=self.seed,
+                    content_hash=self.content.content_hash,
+                )
             except Exception:
                 # 拒绝启动时释放 sqlite，避免部署脚本/测试留下锁文件。
                 self.store.close()
