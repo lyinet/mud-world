@@ -22,6 +22,7 @@
 ## 4. 重连与创角
 - [x] 同账号 `enter` 重连：同一 `player:<account>`、原位置、原行囊；不触发 genesis 重放
 - [x] 真实 HTTP 记录：进房 7878 → 断线 7908（36 tick）→ 重连 7908 → 踢人 7914（`/tmp/presence-http-demo.json`）
+- [x] **零玩家仍推进 tick**：最后两个历史账号在 tick 7852（seq 13294）超时；此刻起 `online_players=[]`，世界继续推进到 tick 8137（+285 tick / 423 条事件），说明“最后一个玩家断线”也能被超时。
 
 ## 5. 老板档清理
 - [x] 10 个历史账号全部 presence=offline（8 个 tick 7814 系统超时、2 个 tick 7852 系统超时）
@@ -32,6 +33,7 @@
 
 ## 6. 管理踢人
 - [x] `POST /api/admin/players/kick`：`XKX_ADMIN_TOKEN` + `X-Operator`
+- [x] 未配置 token 默认关闭（403）；token 仅从环境变量读取，不落配置、不打印日志、不回显
 - [x] 403 admin_disabled / 401 invalid_admin_token / 400 missing_operator / 400 missing_account / 404 player_not_entered / 409 already_offline / 200
 - [x] 审计字段 who=operator、when=tick+seq、target=player:<account>、why=reason+note
 - [x] `docs/player-api.md` 有 curl 示例与字段表；`tests/test_admin_kick.py` 覆盖

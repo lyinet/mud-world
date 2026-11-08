@@ -71,6 +71,11 @@ def presence_timeout_pids(state, tick, timeout=PRESENCE_TIMEOUT_TICKS) -> list[s
 
 返回 `sorted(list)`，保证事件 args 确定性。
 
+**零玩家推进**：世界 tick 由独立调度器/`_advance` 推进，与在线人数无关；在线人数为 0
+时 tick 仍按 `tick_step` 前进，因此“最后一个玩家断线”也会在 36 tick 后被扫描到并置
+offline。实测证据：最后两个历史账号在 tick 7852（seq 13294）超时下线后，
+`online_players=[]`，世界仍推进到 tick 8137（+285 tick、423 条事件），期间无任何玩家请求。
+
 `SystemPlayerPresenceAction.apply` 实装（替换 no-op）：
 - 重新计算 `due = presence_timeout_pids(state, tick)`（幂等，防止双路径重复）；
 - 对每个 `pid` 产出：
@@ -134,6 +139,9 @@ def presence_timeout_pids(state, tick, timeout=PRESENCE_TIMEOUT_TICKS) -> list[s
   **绝不再对该离线目标结算一回合伤害**。
 - 不选“保留 N tick 宽限”：宽限期内目标仍是 online，NPC 会继续按 tick 造成伤害，
   等于让掉线玩家白挨打，正好违反“回来就死了”的约束。
+- 一句话规则：**玩家在战斗中超过 18 tick 不下任何命令，就会被脱战**。
+- 为什么不再长：脱战对本方玩家是**保护，不是惩罚**——它切断的是 NPC 的继续伤害，
+  延长阈值只会增加掉线期间的挨打回合。任何“把 18 调大以显得更宽容”的改动都应视为回归。
 - 18 的依据：既有 `player_heartbeat` 冷却为 12 tick，任何正常在线客户端（UI 轮询 /
   keepalive）在 12 tick 内必刷新一次；18 留 6 tick 网络与调度余量，不会误踢在线玩家；
   同时 18 已是 36 的一半，把“掉线到脱战”的挨打回合数压到可接受范围。
@@ -155,9 +163,11 @@ Content-Type: application/json
 {"account": "p5peek", "reason": "operator_kick_cleanup"}
 ```
 
-- 鉴权：`XKX_ADMIN_TOKEN` 未配置 → `403 {"code":"admin_disabled"}`；
+- 鉴权：`XKX_ADMIN_TOKEN` 未配置 → `403 {"code":"admin_disabled"}`（默认关闭）；
   token 不匹配 → `401 {"code":"invalid_admin_token"}`；
   `X-Operator` 缺失/为空 → `400 {"code":"missing_operator"}`。
+- token 只从环境变量 `XKX_ADMIN_TOKEN` 读取：不读配置文件、不写入日志、不出现在
+  任何响应/事件里；未配置时接口保持关闭，不提供兜底口令。
 - 语义：解析 `pid = player:<account>`；profile 不存在 → `404 player_not_entered`；
   已离线 → `409 already_offline`；否则提交 `player_leave` intent：
   - `source="admin"`，`args={"player_id": pid, "reason": "operator_kick",

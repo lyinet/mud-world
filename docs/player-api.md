@@ -847,10 +847,12 @@ curl -s 'http://127.0.0.1:8848/api/world/feed?limit=5'
 `source=admin`、必须带操作人，事件里保留 `operator` 与 `note` 供审计。
 
 - 鉴权（独立于玩家令牌）：
-  - 未配置 `XKX_ADMIN_TOKEN` → `403 admin_disabled`（不写世界）；
+  - 未配置 `XKX_ADMIN_TOKEN` → `403 admin_disabled`（默认关闭，不写世界）；
   - `Authorization: Bearer <token>` 缺失/不匹配 → `401 invalid_admin_token`；
   - `X-Operator` 缺失/为空 → `400 missing_operator`；
   - 缺 `account` → `400 missing_account`。
+- 口令来源：`XKX_ADMIN_TOKEN` **只从环境变量读取**，不读配置文件、不写日志、
+  不出现在响应或事件里；未配置时接口保持关闭，没有兜底/默认口令。
 - 语义：`player:<account>` 不存在 → `404 player_not_entered`；
   已离线 → `409 already_offline`；成功 → `200`。
 - 成功时同时清空该玩家与所有 NPC 上指向他的 `combat_target`/`combat_enemies`，
