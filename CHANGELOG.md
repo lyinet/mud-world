@@ -9,6 +9,47 @@
 
 ---
 
+## [feat] 2026-11-08 — 走兽气血走原版年龄公式 + 出手门逐回合审计（D/C 收尾）
+
+- **改了什么**：
+  - `src/wsim/sim/vitals.py`：新增 `beast_max_qi(age)`，按
+    `adm/daemons/race/beast.lpc:75-79`（`age<=5 → 50`；`age<=20 → 50+(age-5)*25`；
+    `else → 425+(age-20)*5`）。`resolve_npc_vitals` 顺序改为
+    “显式 `vitals.max_qi` → 走兽 age 公式 → `DEFAULT_MAX_HP_TIERS` 兜底”；
+    狼狗 `age=4 → 50`、老虎 `age=20 → 425`，兜底只留给源码未覆盖的
+    `走畜/飞禽/爬蛇/昆虫/游鱼` 与缺 `age` 的 legacy 实体。
+  - `src/wsim/sim/combat_rules.py`：`initiative_gate` 开启时把
+    `gate_cor/gate_cps/gate_n/gate_roll/gate_pass/gate_guard` 带进每个
+    regular/guard 动作行；随机骰序不变，关闭开关时旧事件字节不变。
+  - `config/worlds/xkx.yaml`：恢复 S4 配置提交时误删的 `combat.initiative_gate: true`。
+  - `tools/xkx_help/data/commands.yaml` + `content/xkx_help/*` + 帮助覆盖 spec：
+    `fight`=切磋（半血停战）、`kill`=击杀（走死亡掉落）。
+  - `tests/test_combat_vitals.py`：走兽公式边界（0/4/5/6/20/21/40 →
+    50/50/50/75/425/430/525）、狼狗 50、老虎 425、显式 `max_qi` 优先。
+  - `specs/xkx-parity/vitals-loot.spec.md` §2 同步公式、各档数值与覆盖范围。
+- **为什么改**：D 要求走兽不再写死 200/50，一律按原版年龄公式；C 要求用逐回合
+  证据核对出手门，而不是继续猜口径。
+- **验证方式**（`reports/xkx-ref/d-c-s4-final.md`）：
+  - 狼狗 `kill` 10 场：10/10 击杀、10/10 掉皮，`rounds_used` 均 9.20、
+    `attack_rounds` 均 5.40、每刀 17.46、伤害/回合 7.40，无多段/连击；
+    改前（hp 200）同口径 27.60 / 15.60 / 18.15。血量 200→50 是 4×，观测 3.0×，
+    差额来自补刀/过量伤害（改后打掉 68/50 vs 改前 225/200），已解释。
+  - 老虎 `kill` 10 场：10/10 被原版式反杀，`rounds_used` 均 6.10；
+    店小二 `fight` 20 场：20/20 半血停战，`rounds_used` 均 7.45。
+  - 狼狗 TTK 显著短于原版，归因为“昏迷后补刀直接 `dead`”与
+    `char.lpc:72-77` 的 `eff_qi<0` 才死映射不同，未回调任何数值。
+  - C 逐回合审计：20 场 149 回合；玩家门 149 行（69 守卫 = 46.31%，公式期望
+    46.31%），店小二门 137 行（40 守卫 = 29.20%，期望 28.02%），两侧每回合
+    都真实执行；旧口径 31.15% / 20.49% 是“只数首次守卫 + 反击/补刀进分母”的下界。
+  - S4 活体（8011/8041 真 HTTP）：`fight 店小二` 停战 + `look` 存活 +
+    `buy 龙井虾仁` 成功；`kill 大狼狗` 18 回合致死、`loot 狗皮×2`、行囊 +2；
+    `help fight` / `help kill` 已区分切磋与击杀。
+  - 旧九地点哈希不变：`735 / 009076f0… / 02d5f812…`。
+  - 全量 pytest：1036 项收集、0 failed（exit 0）。
+- **基线变化**：恢复 `initiative_gate` 后 `kill` 随机流前移，`test_xkx_api`
+  首击期望 21→15；帮助状态计数 `已实现 40→41`、`不做 62→61`（`kill` 转已实现）。
+- **commit**：c91174c
+
 ## [feat] 2026-11-08 — fight / kill 分离（S4）
 
 - **改了什么**：
