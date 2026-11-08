@@ -1,16 +1,16 @@
 {
-  "content_hash": "28bd98f03da347786328f3edb33cfa52a2d79ea7ff359539a006181ace734679",
+  "content_hash": "c2e336761ba3fbc6e88dea11bfa4990630758260839ab4ce836ce4645bb6558c",
   "counts": {
     "commands": 153,
     "status": {
-      "不做": 62,
-      "已实现": 40,
+      "不做": 61,
+      "已实现": 41,
       "待实现": 51
     },
     "system": {
       "战斗": {
-        "不做": 5,
-        "已实现": 2,
+        "不做": 4,
+        "已实现": 3,
         "待实现": 13
       },
       "物品": {
@@ -47,8 +47,8 @@
     "topics": 32
   },
   "files": {
-    "commands.yaml": "6250039d3d0dff57c9a1bde9af8c996a2a0a2634a48e4919fdb6d5d5ba34ce88",
-    "help-coverage.md": "091bd6c80fbd7c4c8367d3485e7b2d0b264a59444b75e6e2fa86887c25b0078f",
+    "commands.yaml": "91edb3a70e0eb10581a690333ea82c4402f934494314fb8bb4287fdc6336c83e",
+    "help-coverage.md": "0abc384c8c0033fbed4af45fc6ce7021f7207ba47d8e1485d3becd0bc9044136",
     "topics.yaml": "860dce5b115e2a42d50c0d57917a0b786100f2d07a14c01c86998bb2bf9d33b8"
   },
   "generated_by": "tools/xkx_help/build.py",

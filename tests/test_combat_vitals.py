@@ -1,7 +1,8 @@
 """玩家/NPC 创世气血：来源区分 + 缺省规则 + 0 血防线。
 
 - 玩家：max_hp=100 是原版数值（logind/human/user），六维属性是我们的默认。
-- NPC：优先 vitals.max_qi（原版）；缺失按技能三档（500/300/200，我们的默认）。
+- NPC：优先 vitals.max_qi（原版）；走兽按 beast.lpc:75-79 的年龄公式；
+  其余 race 缺失时按技能三档（500/300/200，我们的默认）。
 - 旧 legacy 内容没有 vitals/attrs/skills 键 → 解析返回 None，事件不变。
 """
 from __future__ import annotations
@@ -24,7 +25,11 @@ from wsim.actions.player import (  # noqa: E402
 from wsim.api.xkx_content import load_xkx_content  # noqa: E402
 from wsim.core.models import Effect, Intent  # noqa: E402
 from wsim.sim.genesis import build_genesis  # noqa: E402
-from wsim.sim.vitals import DEFAULT_MAX_HP_TIERS, resolve_npc_vitals  # noqa: E402
+from wsim.sim.vitals import (  # noqa: E402
+    DEFAULT_MAX_HP_TIERS,
+    beast_max_qi,
+    resolve_npc_vitals,
+)
 from wsim.world.effects import apply_effects  # noqa: E402
 from wsim.world.state import WorldState  # noqa: E402
 from wsim.world.store import EventStore  # noqa: E402
@@ -39,14 +44,30 @@ def _xkx_npcs() -> list[dict]:
 def test_npc_missing_max_qi_uses_documented_tiers():
     by_id = {str(n["id"]): n for n in _xkx_npcs()}
     expected = {
-        "/d/hangzhou/npc/laohu": 200,  # 无技能 → 200
         "/d/shiliang/npc/li": 500,  # 技能 100 → 500
         "/d/shiliang/npc/qingming": 500,  # 技能 100 → 500
         "/d/shiliang/npc/tufei2": 300,  # 技能 25 → 300
+        "/d/hangzhou/npc/camel": 200,  # 走畜：源码公式未覆盖 → 默认兜底
     }
     for npc_id, max_hp in expected.items():
         assert "max_qi" not in (by_id[npc_id].get("vitals") or {})
         assert resolve_npc_vitals(by_id[npc_id])["max_hp"] == max_hp
+
+
+def test_beast_age_formula_matches_source():
+    # adm/daemons/race/beast.lpc:75-79 逐档边界。
+    assert [beast_max_qi(a) for a in (0, 4, 5, 6, 20, 21, 40)] == [
+        50, 50, 50, 75, 425, 430, 525
+    ]
+    by_id = {str(n["id"]): n for n in _xkx_npcs()}
+    # wolfdog.lpc:8 age=4；laohu.lpc:8 age=20。
+    assert resolve_npc_vitals(by_id["/d/hangzhou/npc/wolfdog"])["max_hp"] == 50
+    assert resolve_npc_vitals(by_id["/d/hangzhou/npc/laohu"])["max_hp"] == 425
+
+
+def test_explicit_max_qi_wins_over_beast_formula():
+    npc = {"id": "/x/beast", "race": "走兽", "age": 20, "vitals": {"max_qi": 123}}
+    assert resolve_npc_vitals(npc)["max_hp"] == 123
 
 
 def test_every_xkx_npc_has_positive_hp():
@@ -191,7 +212,7 @@ def test_xkx_genesis_lands_hp_on_every_npc_entity():
     apply_effects(state, result.effects)
     assert len(content.npcs) == 105
     assert all(state.entities[str(n["id"])].max_hp > 0 for n in content.npcs)
-    assert state.entities["/d/hangzhou/npc/laohu"].max_hp == 200
+    assert state.entities["/d/hangzhou/npc/laohu"].max_hp == 425  # 走兽 age=20
     assert state.entities["/d/shiliang/npc/li"].max_hp == 500
     assert state.entities["/d/shiliang/npc/qingming"].max_hp == 500
     assert state.entities["/d/shiliang/npc/tufei2"].max_hp == 300

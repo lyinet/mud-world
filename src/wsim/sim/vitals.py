@@ -2,8 +2,11 @@
 
 来源必须分清：
 - `max_hp` 优先取 **原版** `vitals.max_qi`（xkx 里气血上限就是 max_qi）。
-- 内容包缺 `max_qi` 时用**我们的默认**三档（见 `DEFAULT_MAX_HP_TIERS`），
-  判据只看内容包自带的技能等级，不掷点、不看墙钟。
+- 内容包缺 `max_qi` 且 race 为 **走兽**、带 `age` 时，按原版
+  `adm/daemons/race/beast.lpc:75-79` 的年龄公式推 `max_qi`（见 `beast_max_qi`）。
+- 其余 race（走畜 / 飞禽 / 爬蛇 / 昆虫 / 游鱼等）源码公式未覆盖，落
+  **我们的默认**三档（见 `DEFAULT_MAX_HP_TIERS`），判据只看内容包自带的
+  技能等级，不掷点、不看墙钟。
 - `attrs / combat_exp / skill_levels` 原样带内容包值，不做二次换算。
 
 门控：只有 NPC dict 带 `vitals/attrs/skills` 任一键时才解析。旧 `content/`
@@ -77,6 +80,32 @@ def default_max_hp(npc: dict[str, Any]) -> int:
         if top >= threshold:
             return value
     return DEFAULT_MAX_HP_TIERS[-1][1]
+
+
+def beast_max_qi(age: int) -> int:
+    """原版走兽 `max_qi`（`adm/daemons/race/beast.lpc:75-79`）。
+
+    ```
+    if (age <= 5)       max_qi = 50;
+    else if (age <= 20) max_qi = 50 + (age - 5) * 25;
+    else                max_qi = 425 + (age - 20) * 5;
+    ```
+    对应内容包实例：大狼狗 `age=4 → 50`、杭州老虎 `age=20 → 425`。
+    只用于 `race == "走兽"`；`age` 缺失时不猜原版 `random(40)+5`，落默认三档。
+    """
+    age = max(0, int(age))
+    if age <= 5:
+        return 50
+    if age <= 20:
+        return 50 + (age - 5) * 25
+    return 425 + (age - 20) * 5
+
+
+def _npc_age(npc: dict[str, Any]) -> int | None:
+    raw = npc.get("age")
+    if isinstance(raw, bool) or not isinstance(raw, (int, float)):
+        return None
+    return int(raw)
 
 
 def roll_attrs(
@@ -165,8 +194,16 @@ def resolve_npc_vitals(
     if not any(k in npc for k in ("vitals", "attrs", "skills", "attrs_roll", "attrs_derive")):
         return None
     vitals = dict(npc.get("vitals") or {})
+    race = _infer_race(npc)
     max_qi = _int_or(vitals.get("max_qi"))
-    max_hp = max_qi if max_qi > 0 else default_max_hp(npc)
+    if max_qi > 0:
+        max_hp = max_qi
+    elif race == "走兽" and _npc_age(npc) is not None:
+        # 原版 `beast.lpc:75-79`：走兽的气血上限由年龄推出，不写死默认值。
+        max_hp = beast_max_qi(_npc_age(npc) or 0)
+    else:
+        # 源码公式未覆盖的 race（走畜/飞禽/爬蛇/昆虫/游鱼）或无 age：默认三档兜底。
+        max_hp = default_max_hp(npc)
     # 结构上不可能出现 0 血：缺内容时最差也落到 200。
     max_hp = max(1, max_hp)
     attrs = {
@@ -188,7 +225,6 @@ def resolve_npc_vitals(
         if str(v)
     }
     prepare_skills = [str(x) for x in (npc.get("prepare_skills") or []) if str(x)]
-    race = _infer_race(npc)
     resolved: dict[str, Any] = {
         "max_hp": max_hp,
         "hp": max_hp,

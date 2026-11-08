@@ -444,6 +444,7 @@ def simulate_fight(
             attack_type: str = "regular",
             allow_riposte: bool = False,
             riposte: bool = False,
+            gate: dict[str, Any] | None = None,
         ) -> str:
             nonlocal stopped, stop_winner
             ap = _attack_power(src, src_skill)
@@ -482,6 +483,9 @@ def simulate_fight(
             if initiative_gate:
                 entry["attack_type"] = attack_type
                 entry["riposte"] = bool(riposte)
+                if gate:
+                    # 逐回合出手门审计：门骰原始值、判据两侧取值与结论。
+                    entry.update(gate)
             hp_before = dst.hp
 
             if xf.resolve_dodge(ap=ap, dp=dp, victim_busy=VICTIM_BUSY,
@@ -677,10 +681,24 @@ def simulate_fight(
                     target.dead = True
                     continue
                 # `:763`：主动门。走兽 cps=0 时 random(0) 不取骰。
-                if prng.below(target.cps * 3) > actor.cor:
+                gate_n = max(0, int(target.cps * 3))
+                gate_roll = prng.below(gate_n)
+                gate_pass = gate_roll > actor.cor
+                gate: dict[str, Any] | None = None
+                if initiative_gate:
+                    # 逐回合审计：把门的输入、骰值与结论写进动作行。
+                    gate = {
+                        "gate_cor": actor.cor,
+                        "gate_cps": target.cps,
+                        "gate_n": gate_n,
+                        "gate_roll": gate_roll,
+                        "gate_pass": gate_pass,
+                        "gate_guard": not gate_pass,
+                    }
+                if gate_pass:
                     actor.guarding = False
                     strike(actor, target, actor_skill, attack_type="regular",
-                           allow_riposte=True)
+                           allow_riposte=True, gate=gate)
                     if stopped:
                         break
                     continue
@@ -697,6 +715,7 @@ def simulate_fight(
                         "damage": 0,
                         "hp_before": target.hp,
                         "hp_after": target.hp,
+                        **(gate or {}),
                     })
                 else:
                     actor.guarding = True
@@ -714,6 +733,7 @@ def simulate_fight(
                         "damage": 0,
                         "hp_before": target.hp,
                         "hp_after": target.hp,
+                        **(gate or {}),
                     })
 
         rounds.append({"round": round_no, "actions": actions})

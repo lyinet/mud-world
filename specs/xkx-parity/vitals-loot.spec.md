@@ -66,19 +66,33 @@ resolve_npc_vitals(npc) -> {"max_hp": int, "hp": int, "attrs": dict, "combat_exp
 ```
 
 1. `max_hp = int(vitals.max_qi)`，若 `max_qi > 0`（**原版口径**：气血上限就是 max_qi）。
-2. 缺失时按类别默认（**我们的默认**，可解释）：
+2. 缺失 `max_qi` 且 `race == "走兽"`、内容带 `age` 时，按原版
+   `adm/daemons/race/beast.lpc:75-79` 的年龄公式（D 决策）：
+
+   ```
+   age <= 5        -> max_qi = 50
+   age <= 20       -> max_qi = 50 + (age - 5) * 25
+   else            -> max_qi = 425 + (age - 20) * 5
+   ```
+
+   - 内容实例：郭庄大狼狗 `age=4 → 50`（`wolfdog.lpc:8`）；杭州老虎 `age=20 → 425`（`laohu.lpc`）。
+   - `age` 缺失时不猜原版 `random(40)+5`，落第 3 步兜底。
+   - 覆盖范围：本内容包里 `race == "走兽"` 的只有大狼狗与老虎；`走畜`（骆驼）、
+     `飞禽`（麻雀/乌鸦）、`爬蛇`、`昆虫`、`游鱼` 的原版公式**未纳入本次复刻**，走兜底。
+3. 其余 race（或走兽缺 `age`）按类别默认（**我们的默认**，可解释）：
 
 | 类别判据（按顺序） | 默认 `max_hp` | 依据 |
 | --- | --- | --- |
 | `skills` 中存在等级 ≥ 80 | 500 | 一流好手：李拙道人 / 清明禅师（原版技能 100） |
 | `skills` 非空但最高 < 80 | 300 | 有功夫在身：土匪（25）/ 进香客（20）/ 书生（literate 40） |
-| `skills` 为空 | 200 | 无技能或野兽：老虎 / 挑夫 |
+| `skills` 为空 | 200 | 无技能或源码未覆盖的 race：骆驼（走畜）/ 挑夫 |
 
-3. 兜底：`max_hp = max(1, 结果)`，**结构上不可能出现 0**（另有测试断言 92 个 NPC 全部 > 0）。
-4. `hp = max_hp`（创世满血）。
-5. `attrs = dict(npc.attrs)` 原样；`combat_exp = int(vitals.combat_exp or 0)`。
-6. `skill_levels = {k: int(v) for k, v in npc.skills.items()}`（内容包技能是整数等级）。
-7. **门控**：只有 NPC dict 含 `vitals`/`attrs`/`skills` 任一键时才走本规则；`content/` legacy 的 30 个 NPC 三个键都没有 → `create_entity` 不新增任何键，旧哈希不变。
+`DEFAULT_MAX_HP_TIERS` 只作“源码公式未覆盖”的兜底，不再用于走兽。
+4. 兜底：`max_hp = max(1, 结果)`，**结构上不可能出现 0**（另有测试断言 92 个 NPC 全部 > 0）。
+5. `hp = max_hp`（创世满血）。
+6. `attrs = dict(npc.attrs)` 原样；`combat_exp = int(vitals.combat_exp or 0)`。
+7. `skill_levels = {k: int(v) for k, v in npc.skills.items()}`（内容包技能是整数等级）。
+8. **门控**：只有 NPC dict 含 `vitals`/`attrs`/`skills` 任一键时才走本规则；`content/` legacy 的 30 个 NPC 三个键都没有 → `create_entity` 不新增任何键，旧哈希不变。
 
 ### 2.2 改动点
 
@@ -88,7 +102,7 @@ resolve_npc_vitals(npc) -> {"max_hp": int, "hp": int, "attrs": dict, "combat_exp
 
 ### 2.3 验收
 
-- xkx 92 NPC 全部 `max_hp > 0`；7 个 active 攻击 NPC 可被 `fight` 结算；4 个缺 `max_qi` 的分别为 200/500/500/300。
+- xkx 92 NPC 全部 `max_hp > 0`；7 个 active 攻击 NPC 可被 `fight` 结算；缺 `max_qi` 的实例：老虎 425（走兽 age=20）、李拙/清明 500、土匪 300、骆驼 200（兜底）。
 - legacy 30 NPC 实体序列化**不含** `max_hp/hp/attrs`。
 
 ---

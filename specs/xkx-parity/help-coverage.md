@@ -15,15 +15,15 @@
 
 | 状态 | 数量 | 占比 |
 | --- | ---: | ---: |
-| 已实现 | 40 | 26.1% |
+| 已实现 | 41 | 26.8% |
 | 待实现 | 51 | 33.3% |
-| 不做 | 62 | 40.5% |
+| 不做 | 61 | 39.9% |
 | 合计 | 153 | 100.0% |
 
 | 归属系统 | 已实现 | 待实现 | 不做 | 合计 |
 | --- | ---: | ---: | ---: | ---: |
 | 移动 | 2 | 0 | 0 | 2 |
-| 战斗 | 2 | 13 | 5 | 20 |
+| 战斗 | 3 | 13 | 4 | 20 |
 | 物品 | 10 | 2 | 7 | 19 |
 | 社交 | 4 | 5 | 20 | 29 |
 | 门派 | 6 | 23 | 4 | 33 |
@@ -55,7 +55,7 @@
 | 19 | `emote` | 表情 | <动作词> | 做一个表情动作，让同房间的人看到。 | 社交 | **不做** | 玩家间表情广播未建模；本版只保留 NPC 交谈。 |
 | 20 | `feed` | 喂养 | <饲料> to <动物> | 用饲料喂养自己的动物。 | 系统 | **不做** | 宠物与坐骑实体、驯服度均未建模；本版不开放宠物玩法。 |
 | 21 | `femote` | 找表情 | [-s] <关键字> | 检索符合关键字的感情动作。 | 社交 | **不做** | 玩家表情动作与广播未建模；本版不开放表情检索。 |
-| 22 | `fight` | 切磋、较量 | <人物> | 向目标发起战斗，按回合结算招式、伤害与胜负。 | 战斗 | **已实现** | FightAction（src/wsim/actions/combat.py）已注册，文字壳的 fight/打/战斗/出手 可直接调用；单场最多 20 回合。 |
+| 22 | `fight` | 切磋、较量 | <人物> | 向目标发起切磋（非致命）：按回合结算招式、伤害，受击方气血降到一半即停手，不分生死、不掉落。 | 战斗 | **已实现** | FightAction（src/wsim/actions/combat.py）已注册；开启 combat.lethal_fight 后是切磋（combat_rules 按 combatd.lpc:683-691 半血停战），仍给 combat_exp/技能进度。要取性命用 kill。 |
 | 23 | `follow` | 跟随 | [<生物>\|none] | 跟随某个生物行动，或取消跟随。 | 社交 | **不做** | 玩家/NPC 跟随关系未建模，V1 只支持固定房间移动。 |
 | 24 | `gamble` | 赌博 | <大\|小> <钱> <种类> <数量> | 在赌场押注，按骰子结果结算输赢。 | 经济 | **不做** | 赌博属产品明确排除内容，且会破坏经济模型。 |
 | 25 | `get` | 拿、捡 | <物品> [from <容器>] | 从地面或容器中取走物品。 | 物品 | **待实现** | 战斗掉落只产出 loot_create 效果（src/wsim/world/effects.py:104 定义、:422 处理），src/wsim/actions/combat.py:124 在战斗结算里发出该效果，但没有 LootAction 消费它；地面物品模型也未建模。 |
@@ -71,7 +71,7 @@
 | 35 | `jiasi` | 装死 | — | 在战斗中假装死亡以脱离战斗。 | 战斗 | **不做** | 假死/脱离战斗判定未实现，且属玩家对抗向玩法。 |
 | 36 | `jiebai` | 结拜 | <某人> | 与另一名玩家结为异姓兄弟或姐妹。 | 社交 | **待实现** | 关系模型已有好感/信任，但没有结拜关系与仪式；可在关系系统上扩展。 |
 | 37 | `kantou` | 割头 | <尸体> | 从尸体上割下首级。 | 物品 | **不做** | 尸体与死亡掉落未建模。 |
-| 38 | `kill` | 杀、击杀 | <人物> | 对目标下杀手，进入生死战斗。 | 战斗 | **不做** | kill 动词被列入 src/wsim/api/session.py:216-217 的 FORBIDDEN_VERBS，并在 :2181 逐动词拦截；对 NPC 的战斗请用 fight，本版不开放玩家击杀。 |
+| 38 | `kill` | 杀、击杀 | <人物> | 对目标下杀手（致命）：走死亡结算并掉落；与 fight 的切磋不同，fight 到半血会停手，kill 才会打死目标。 | 战斗 | **已实现** | KillAction（src/wsim/actions/combat.py）在 combat.lethal_fight 打开时注册；文字壳 kill 走 _cmd_attack，目标解析与 fight 相同（_match_fight_target，多命中取第一件）。 |
 | 39 | `list` | 看货、货单 | [<玩家ID>] | 查看当前店铺出售的货物、价格与库存。 | 经济 | **已实现** | 房间 services_detail 与店铺只读视图（src/wsim/api/session.py）已提供货物、价格、库存。 |
 | 40 | `locate` | 找物 | <物品> | 在任务中定位指定任务物品所在的房间。 | 系统 | **待实现** | 任务系统只有委托接取/交付，没有任务物品坐标与定位索引。 |
 | 41 | `location` | 寻人 | <玩家ID> | 查看某个在线玩家当前所在的位置。 | 系统 | **已实现** | src/wsim/api/session.py 的 _online_players_view 提供 location 字段；本版对所有玩家开放，不设门派技能门槛。 |
@@ -190,13 +190,12 @@
 
 ## 四、引擎现在根本做不到的命令（取舍清单）
 
-### 4.1 决定不做（62 条）
+### 4.1 决定不做（61 条）
 
-**PK/偷抢/对抗（7 条）**
+**PK/偷抢/对抗（6 条）**
 
 - `guard`（护卫）：护卫/拦截玩法依赖战斗与实时对抗，本版不开放。
 - `jiasi`（装死）：假死/脱离战斗判定未实现，且属玩家对抗向玩法。
-- `kill`（杀、击杀）：kill 动词被列入 src/wsim/api/session.py:216-217 的 FORBIDDEN_VERBS，并在 :2181 逐动词拦截；对 NPC 的战斗请用 fight，本版不开放玩家击杀。
 - `steal`（偷窃）：PK/偷抢属产品明确排除内容。
 - `trap`（设陷阱）：陷阱与移动触发判定未建模。
 - `persuade`（劝架）：战斗与劝架判定未建模；V1 不开放 PK 向互动。
@@ -358,11 +357,11 @@
 2. **P1 武学与资源**：补技能种类、激发/准备槽、精/气/内力与招式位，覆盖 17 条武学命令。
 3. **P2 师承、社交、任务与战利品**：开放拜师/授课，补打听话题、赠送、结拜、任务定位与拾取，覆盖 10 条。
 4. **P3 玩家档案与文字壳**：补别名、清屏、称号、描述、改密、设置与休息注册，覆盖 11 条。
-5. **不排期**：4.1 的 62 条按产品取舍关闭；若要重启，必须单独立项并先改架构。
+5. **不排期**：4.1 的 61 条按产品取舍关闭；若要重启，必须单独立项并先改架构。
 
 ## 五、已实现命令的引擎落点
 
-共 40 条。逐条落点见上表「依据」列；均为 `src/`、`GET /api/` 或 `content/` 中可核对的动作/视图。
+共 41 条。逐条落点见上表「依据」列；均为 `src/`、`GET /api/` 或 `content/` 中可核对的动作/视图。
 
 - `ask`：TalkAction（src/wsim/actions/social.py）已注册，文字壳已接「问/打听」，可自由交谈；尚无 xkx 话题表。
 - `baitan`：OpenShopAction（src/wsim/actions/business.py）支持摊位型店铺；RestockAction/SetPriceAction 管库存与定价。
@@ -372,9 +371,10 @@
 - `dating`：check 的别名；复用 _present_view/_skills_detail（src/wsim/api/session.py）。
 - `drink`：he 的等价命令；ConsumeAction（src/wsim/actions/basic.py）与 UseItemAction（src/wsim/actions/equipment.py）。
 - `eat`：ConsumeAction（src/wsim/actions/basic.py）；食物耗尽后从背包移除。
-- `fight`：FightAction（src/wsim/actions/combat.py）已注册，文字壳的 fight/打/战斗/出手 可直接调用；单场最多 20 回合。
+- `fight`：FightAction（src/wsim/actions/combat.py）已注册；开启 combat.lethal_fight 后是切磋（combat_rules 按 combatd.lpc:683-691 半血停战），仍给 combat_exp/技能进度。要取性命用 kill。
 - `go`：MoveAction（src/wsim/actions/basic.py）；出口校验见 session._location_view。
 - `he`：drink 的别名；ConsumeAction（src/wsim/actions/basic.py）。
+- `kill`：KillAction（src/wsim/actions/combat.py）在 combat.lethal_fight 打开时注册；文字壳 kill 走 _cmd_attack，目标解析与 fight 相同（_match_fight_target，多命中取第一件）。
 - `list`：房间 services_detail 与店铺只读视图（src/wsim/api/session.py）已提供货物、价格、库存。
 - `location`：src/wsim/api/session.py 的 _online_players_view 提供 location 字段；本版对所有玩家开放，不设门派技能门槛。
 - `look`：session._location_view（src/wsim/api/session.py）返回房间描述、出口、NPC 与店铺。

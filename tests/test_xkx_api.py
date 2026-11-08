@@ -236,7 +236,7 @@ def test_help_catalog_has_153_commands_and_32_topics(session):
     counts = catalog["counts"]
     assert counts["commands"] == 153
     assert counts["topics"] == 32
-    assert counts["status"] == {"已实现": 40, "待实现": 51, "不做": 62}
+    assert counts["status"] == {"已实现": 41, "待实现": 51, "不做": 61}
     assert len(catalog["commands"]) == 153
     assert len(catalog["topics"]) == 32
     look = next(row for row in catalog["commands"] if row["name"] == "look")
@@ -392,8 +392,8 @@ def test_fight_reports_real_rounds_and_death(session):
     assert "第1回合" in text
     # 招式接入后，人类默认招式以 `combat_action` 文案展示，不再固定“击中X，伤害N”。
     assert "挥拳攻击店小二" in text
-    # `kill` 走自己的 `action:kill` 随机流，seed=42 首击伤害为 21。
-    assert "造成21点伤害" in text
+    # `kill` 走自己的 `action:kill` 随机流，seed=42 首击伤害为 15（含出手门骰）。
+    assert "造成15点伤害" in text
     assert "你赢了，店小二倒下了" in text
     # 战报细节来自引擎 details.combat（回合数、超额伤害），不是壳层编的。
     combat = result["engine_details"]["combat"]

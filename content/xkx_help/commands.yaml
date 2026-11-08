@@ -228,10 +228,10 @@ commands:
       - 切磋
       - 较量
     params: <人物>
-    summary: 向目标发起战斗，按回合结算招式、伤害与胜负。
+    summary: 向目标发起切磋（非致命）：按回合结算招式、伤害，受击方气血降到一半即停手，不分生死、不掉落。
     system: 战斗
     status: 已实现
-    evidence: FightAction（src/wsim/actions/combat.py）已注册，文字壳的 fight/打/战斗/出手 可直接调用；单场最多 20 回合。
+    evidence: FightAction（src/wsim/actions/combat.py）已注册；开启 combat.lethal_fight 后是切磋（combat_rules 按 combatd.lpc:683-691 半血停战），仍给 combat_exp/技能进度。要取性命用 kill。
   - name: follow
     layer: std
     aliases:
@@ -392,11 +392,10 @@ commands:
       - 杀
       - 击杀
     params: <人物>
-    summary: 对目标下杀手，进入生死战斗。
+    summary: 对目标下杀手（致命）：走死亡结算并掉落；与 fight 的切磋不同，fight 到半血会停手，kill 才会打死目标。
     system: 战斗
-    status: 不做
-    blocker: PK/偷抢/对抗
-    evidence: kill 动词被列入 src/wsim/api/session.py:216-217 的 FORBIDDEN_VERBS，并在 :2181 逐动词拦截；对 NPC 的战斗请用 fight，本版不开放玩家击杀。
+    status: 已实现
+    evidence: KillAction（src/wsim/actions/combat.py）在 combat.lethal_fight 打开时注册；文字壳 kill 走 _cmd_attack，目标解析与 fight 相同（_match_fight_target，多命中取第一件）。
   - name: list
     layer: std
     aliases:

@@ -10,8 +10,9 @@ ui_port: 8011
 seed: 20261014
 tick_step: 6
 npc_limit: 0
-# S4：fight=切磋（半血停战）、kill=致命。默认关闭；验收通过后在试玩世界打开。
+# 战斗出手门（S1，combatd.lpc:763）；S4：fight=切磋（半血停战）、kill=致命。
 combat:
+  initiative_gate: true
   lethal_fight: true
 spawn: /d/hangzhou/jiulou
 display_name: 游侠儿
