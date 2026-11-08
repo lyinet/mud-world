@@ -1,6 +1,8 @@
 """xkx 文字壳回归：真实内容包、走/看/问/买卖、不可用出口、人话失败原因。"""
 from __future__ import annotations
 
+import re
+from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
@@ -383,26 +385,61 @@ def test_unknown_command_does_not_leak_codes(session):
     assert "help" in text
 
 
-def test_fight_reports_real_rounds_and_death(session):
+def _first_damages(text: str, count: int = 2) -> list[int]:
+    return [int(v) for v in re.findall(r"造成(\d+)点伤害", text)[:count]]
+
+
+@contextmanager
+def _isolated_session(run_dir: Path, world_config: Path):
+    gen = _session(run_dir, world_config=world_config)
+    session = next(gen)
+    try:
+        yield session
+    finally:
+        session.close()
+
+
+def test_fight_reports_real_rounds_and_death(tmp_path):
     # 楼外楼只有店小二。世界开启 `combat.lethal_fight` 后 `fight` 是切磋（半血即止），
     # 要拿“死亡/超额伤害”战报必须用 `kill`；seed=42 下玩家取胜。
-    result = _cmd(session, "kill 店小二")
-    assert result["ok"] is True, result.get("reject_reason")
-    text = "\n".join(_texts(result))
-    assert "第1回合" in text
-    # 招式接入后，人类默认招式以 `combat_action` 文案展示，不再固定“击中X，伤害N”。
-    assert "挥拳攻击店小二" in text
-    # `kill` 走自己的 `action:kill` 随机流，seed=42 首击伤害为 19（含出手门骰）。
-    # `eff_qi` 开启后每场战斗开头两方各抽一次 heal_cd（`combat_rules.py:433`），
-    # 骰流整体前移 2，首击伤害由关闭态的 15 变为 19。
-    assert "造成19点伤害" in text
-    assert "你赢了，店小二倒下了" in text
-    # 战报细节来自引擎 details.combat（回合数、超额伤害），不是壳层编的。
-    combat = result["engine_details"]["combat"]
-    assert combat["winner"] == "attacker"
-    assert int(combat["rounds_used"]) == len(combat["rounds"])
-    assert "超额伤害" in text
-    assert result["view"]["combat_ready"]["fight"] is True
+    #
+    # 两态都要断言：开启 `eff_qi` 后每场战斗开头两方各抽一次 heal_cd
+    # （`combat_rules.py:433`），骰流前移 2，首击由关闭态 15 变 19。
+    # 只断言开启态会变成“实现恒定输出 19 也绿”的假通过；这里用同 seed 的
+    # 开/关两态交叉，任一态的实现回退都会让另一条断言红。
+    cfg = yaml.safe_load(WORLD_CONFIG.read_text(encoding="utf-8")) or {}
+    cfg["combat"]["eff_qi"] = False
+    off_config = tmp_path / "xkx-eff-off.yaml"
+    off_config.write_text(yaml.safe_dump(cfg, allow_unicode=True), encoding="utf-8")
+
+    with _isolated_session(tmp_path / "on", WORLD_CONFIG) as on_session:
+        on_result = _cmd(on_session, "kill 店小二")
+    with _isolated_session(tmp_path / "off", off_config) as off_session:
+        off_result = _cmd(off_session, "kill 店小二")
+
+    assert on_result["ok"] is True, on_result.get("reject_reason")
+    assert off_result["ok"] is True, off_result.get("reject_reason")
+    on_text = "\n".join(_texts(on_result))
+    off_text = "\n".join(_texts(off_result))
+    for text in (on_text, off_text):
+        assert "第1回合" in text
+        # 招式接入后，人类默认招式以 `combat_action` 文案展示，不再固定“击中X，伤害N”。
+        assert "挥拳攻击店小二" in text
+        assert "你赢了，店小二倒下了" in text
+        assert "超额伤害" in text
+    # 必须按“首击/首两击序列”判，不能按全文出现与否：关闭态后续也会掷出
+    # 19（本 seed 第 4 刀），全文判“出现/不出现”两态都会假绿。
+    assert _first_damages(on_text) == [19, 21]
+    assert _first_damages(off_text) == [15, 14]
+    assert _first_damages(on_text)[0] != _first_damages(off_text)[0]
+
+    on_combat = on_result["engine_details"]["combat"]
+    off_combat = off_result["engine_details"]["combat"]
+    assert on_combat["winner"] == "attacker"
+    assert int(on_combat["rounds_used"]) == len(on_combat["rounds"])
+    # 两态确实跑了不同的骰流，不是把同一份结果断言两遍。
+    assert int(on_combat["rounds_used"]) != int(off_combat["rounds_used"])
+    assert on_result["view"]["combat_ready"]["fight"] is True
 
 
 def test_loot_and_get_move_ground_items_into_wallet(session):

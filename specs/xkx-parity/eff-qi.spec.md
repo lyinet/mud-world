@@ -483,7 +483,7 @@ full_refill_ticks = max_qi / points_per_tick
 
 ### 10.9 开启后同步的测试（`config/worlds/xkx.yaml` 翻为 `true` 时）
 
-1. `tests/test_xkx_api.py::test_fight_reports_real_rounds_and_death`：首击伤害字面量 15→19。原因是开启后每场战斗开头两方各抽一次 `heal_cd`（`combat_rules.py:433`），骰流整体前移 2；属开启态预期，不是伤害公式变化。
+1. `tests/test_xkx_api.py::test_fight_reports_real_rounds_and_death`：改为**同 seed 开/关两态交叉断言**。开启后每场战斗开头两方各抽一次 `heal_cd`（`combat_rules.py:433`），骰流前移 2，首两击由关闭态 `[15, 14]` 变为开启态 `[19, 21]`；测试同时断言两态首两击、且两态 `rounds_used` 不等。只断言开启态 19 属假通过（实现恒定输出 19 也绿）；改为“全文出现/不出现”同样假绿——关闭态本 seed 第 4 刀也会掷出 19。已做假回退验证：把关闭态的 `eff_qi` 改回 `true`，测试在 `assert [19, 21] == [15, 14]` 处变红。
 2. `tests/test_xkx_growth.py::test_combat_death_and_revive_real_session`：`hp<0 && eff_qi>=0` 只是昏迷，`die()` 只认 `eff_qi<0`；测试先把玩家置成伤势 5 点，一场即跨过 0，继续验证死亡惩罚、尸体与还阳。断言数值未变（6272 / 39 级）。
 3. `tests/test_w1_concurrency.py`：原断言用“两边关系数值不等”证明未串档，但对话增量有每 tick/每日上限，两人同时打满会撞值（全量跑中偶发失败）；改为按事件归因——每条 `relation_upsert` 的 `a` 必须等于发起对话的 actor、`b` 为同一 NPC，且至少 40 条。
 4. `tests/test_xkx_growth.py::test_player_query_cps_cor_have_real_values`（新增）：锁死玩家 `cps=23 / cor=24` 与 `apply/composure`、`apply/courage` 的叠加。
@@ -553,7 +553,8 @@ full_refill_ticks = max_qi / points_per_tick
 | 6 | `2a15194` feat(xkx): 开启 combat.eff_qi（验收通过，单独提交） | `config/worlds/xkx.yaml` 翻 `true`，即“合并即生效”那一条 |
 | 7 | `6aca6ac` fix(xkx): 玩家创世写入 cps/cor（定力 23 / 胆识 24） | 创世 `attrs` 补两键，旧存档战斗层兜底 |
 | 8 | `b27e7af` docs(xkx-parity): 修正“玩家 cps=0”误记，补节奏归因与逐列归属 | 文档 |
-| 9 | 本次文档提交 | §10.5 原版 50 血证据、§10.12 老虎旁路审计、§10.13 合并清单（改后 `git log -1` 取哈希） |
+| 9 | `01f0654` docs(xkx-parity): 补原版 50 血狼狗实测证据、老虎旁路审计与合并清单 | §10.5/§10.12/§10.13 |
+| 10 | 本次（改后 `git log -1` 取哈希） | §10.14 走兽 `cor` 审计、§10.9 双态断言、`.gitignore` 三个符号链接 |
 
 **`eff_qi` 开关默认值**：保持 `true`（`2a15194` 已单独提交）。验收全部在 `true` 下完成，合并即生效可避免“合并后再翻一次开关”的二次提交；关闭态逐字节一致性由 `2e0f4ed`/`9773182`/`a9cfdc2` 保证，需要对照时随时改回 `false`，不需要新提交。若合并线要求先暗启，则跳过 `2a15194`（或把 `config/worlds/xkx.yaml` 改回 `false`），但随后必须重跑关闭态字节一致与旧世界哈希。
 
@@ -567,4 +568,36 @@ full_refill_ticks = max_qi / points_per_tick
 7. 多目标回归：`targets` 6/6 双人、`opponent_index=0` 占 78.6%。
 8. 真实 HTTP：0 血不死→苏醒；死亡→鬼门关→还阳（惩罚 `6401→6273`、`potential 99→50`）。
 9. `git diff -- tools/xkx_formula`、`git diff -- content/xkx` 均为空。
+
+### 10.14 走兽 `cor` 审计：原版与复刻一致，无人类掷点泄漏
+
+**结论先行**：原版狼狗 `cor=30`、老虎 `cor=0`，复刻内容完全相同；“走兽 `cor` 被错赋人类值”不成立。`attrs_roll` 只覆盖 `beast.lpc` 实际掷的六维，不含 `cps/cor`。
+
+**原版运行期原文**（4004 实例探针，2026-11-08 取样；记录于 `combat-tempo.spec.md` §1.6）：
+
+| 对象（实例） | `cps` 原始 | `cor` 原始 | `query_cps` | `query_cor` | `apply/composure` | `apply/courage` |
+|---|---|---|---|---|---|---|
+| 杭州老虎 `laohu#605` | 0 | 0 | 0 | 0 | 0 | 0 |
+| 郭庄大狼狗 `wolfdog#604` | 0 | **30** | 0 | **30** | 0 | 0 |
+| 郭庄大狼狗 `wolfdog#603` | 0 | **30** | 0 | **30** | 0 | 0 |
+| MID 玩家 `/clone/user/user#236` | 23 | 24 | 23 | 24 | 0 | 0 |
+
+- 4010 目前无监听（`lsof -iTCP:4010` 为空）；上表取样自 4004，狼狗/老虎与 4010 同源内容。
+- 原版源码：`race/beast.lpc:57-67` 只掷六维、不写 cps/cor；狼狗 `d/hangzhou/npc/wolfdog.lpc:13` 显式 `set("cor", 30)`，毒蛇 `dushe.lpc:18` `cor=50`，蝎子 `xiezi.lpc:17` `cor=50`，游鱼 `d/shiliang/npc/fish.lpc:13` `cor=30`，老虎 `tiger.lpc` 不写 → 0。所以“走兽一律 0”是误读，`cor` 是 NPC 文件级覆盖值。
+
+**复刻内容实测**（`content/xkx/npcs.json`，105 NPC；种族分布：人类 92、走畜 5、飞禽 3、走兽 2、爬蛇 1、昆虫 1、游鱼 1）：
+
+- 只有 4 个非人类写了 `cor`：`/d/hangzhou/npc/dushe` 50、`wolfdog` 30、`xiezi` 50、`/d/shiliang/npc/fish` 30；全部 `cps` 缺省 → 0；老虎缺省 → 0。与原版逐个相等。
+- 走兽的 `attrs_roll` 只有 `con/dex/int/kar/per/str`（2 只走兽合计 11 项），**没有任何 `cps`/`cor` 键**；`extract.py` 只把种族 setup 里真实出现的 `random(N)+M` 抽成 `attrs_roll`，`beast.lpc` 不掷这两项，因此不会泄漏人类 `10+random(21)`。
+
+**“原版每回合都出手”是计数口径误读**：
+
+- `combat-tempo.spec.md` §1.5：原版 `attack_rounds = max(我方出手, 对方出手)`。本组玩家出手 8.4 < 狼狗出手 10.1，所以 `attack_rounds` 数值上**恒等于狼狗出手数**（都是 10.1）。它不能证明“每回合出手”。
+- 出手门 `combatd.lpc:763` 对狼狗打玩家是 `random(玩家cps×3=69) > 狼狗cor(30)` → 38/69 = **55.1%**。复刻实测狼狗出手 4.00 / 回合 8.20 = **48.8%**，与 55.1% 同量级（10 场、每场约 8 次伯努利抽样）。
+- 反证：若狼狗 `cor=0`，`random(69) > 0` 为 68/69 = 98.6%，8.20 回合应出现约 8.09 次狼狗出手；复刻实测 4.00，直接否掉 `cor=0`。
+- 原版耗时回合数没有记录（只记了出手数）。按 55.1% 反推约 `10.1/0.551 ≈ 18.4` 个心跳回合；复刻 `rounds_used` 是 8.20 个交换回合。我们不是“狼狗出手频率低”，而是**整场结束得更早**。
+
+**因此本轮不改内容、不重跑**：`content/xkx` 与代码均未改，同 seed 的 10 场是确定性的，§10.5 的逐场行与均值不变。
+
+**剩余差距的下一个候选根因（待逐刀账本验证，不先改）**：原版玩家 8.4 刀 / 累计伤害估算 125 才杀死 50 血狼狗，复刻 4.9 刀 / 75；每刀量级接近（17.9 vs 15.3），差别在“跨过死亡阈值所需的刀数/有效伤害”，不在出手频率。已排除：`cor`、玩家 `cps/cor`、`heal_cd` 前移（关闭态 5.40 同样低于原版 8.4）。也不用“原版昏迷后回血拖长”解释——`unconcious()`（`damage.lpc:105-144`）只把 `qi/jing` 置 0 并 `remove_all_enemy()`，`revive()`（`:146-160`）只恢复行动、不回血。下一步只能按 §1.8 同格式做逐刀账本（同记 `qi`、`eff_qi`、wound 判定、命中/招架、伤害与 armor），才能定位是 wound 概率、伤害取值还是收场判定差异。
 
