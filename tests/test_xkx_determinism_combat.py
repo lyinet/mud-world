@@ -85,7 +85,10 @@ BASELINE = {
     # 的实体不选招、不新增取数，数值投影逐字节等价；event 哈希变化只来自
     # rounds[].actions[] 新增的 action_skill/selection/move/move_text/move_index/
     # force_hit/martial_hit/force_reflected 字段。
-    "event_final": "273b5455003ce199f46d2b7385a560f83ea3ca1281b9cdf8803845ce11cfc929",
+    # 移除 20 回合硬上限后重采（2026-11-07）：state 哈希未变（仍是 91097d90…，
+    # 两场都在 3 回合内结束），event 哈希变化只来自 combat_log 的
+    # `max_rounds` 由 20 变为 null（默认不封顶）。
+    "event_final": "859c990195cbfd59a941de3d42dfcd3aa36dcbac75ac463da8c42aa2f0918b90",
 }
 
 

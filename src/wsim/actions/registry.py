@@ -50,6 +50,7 @@ def build_registry(
     spawns: list[dict] | None = None,
     room_reset=None,
 ) -> ActionRegistry:
+    from .aggression import NpcAggressionAction
     from .basic import ConsumeAction, CultivateAction, MoveAction, WorkAction
     from .combat import FightAction, SystemSpawnAction
     from .business import (
@@ -112,6 +113,7 @@ def build_registry(
         SystemQuestPostAction,
     )
     from .xkx_quests import XkxQuestAcceptAction, XkxQuestDeliverAction
+    from .wimpy import WimpyAction
 
     reg = ActionRegistry()
     reg.register(MoveAction(content))
@@ -175,9 +177,15 @@ def build_registry(
     reg.register(PlayerRestAction())
     reg.register(SystemPlayerPresenceAction())
     reg.register(SystemTickAction())
-    reg.register(FightAction(content))
+    reg.register(FightAction())
+    # NPC 主动攻击：规则只从内容包派生；旧九地点内容没有 aggressive/三个专属 id，
+    # 规则表为空，动作永远拒绝，事件流不变。
+    from ..sim.aggression import aggression_rules
+
+    reg.register(NpcAggressionAction(aggression_rules(content)))
     reg.register(LootAction(content))
     reg.register(DropAction(content))
+    reg.register(WimpyAction())
     reg.register(SystemSpawnAction(spawns))
     if room_reset is not None and getattr(room_reset, "enabled", False):
         from ..sim.room_reset import SystemRoomResetAction

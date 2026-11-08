@@ -122,6 +122,7 @@ VERB_ALIASES: dict[str, str] = {
     "sell": "sell", "卖": "sell", "出售": "sell",
     "fight": "fight", "打": "fight", "战斗": "fight", "出手": "fight",
     "loot": "loot", "捡": "loot", "拾取": "loot",
+    "wimpy": "wimpy",
     "get": "loot", "拿": "loot", "取": "loot",
     "wear": "wear", "穿": "wear", "穿上": "wear", "穿戴": "wear",
     "wield": "wield", "持": "wield", "持起": "wield", "握": "wield",
@@ -162,6 +163,7 @@ _EXTRA_REASON_TEXT = {
     "quest_already_completed": "这条支线已经完成了。",
     "quest_item_missing": "你身上没有这件任务物品。",
     "bad_qty": "数量不对；捡东西至少要 1 件。",
+    "bad_wimpy": "用法：wimpy [<逃跑时「气」的百分比 0-80>]",
     "player_dead": "你已经倒下了，先想办法回魂。",
     "unknown_item": "这里没有这种货。",
     "wrong_location": "你不在这个交易地点。",
@@ -426,6 +428,8 @@ class XKXShell:
                 return self._cmd_fight(account, rest, state, raw, request_id)
             if verb == "loot":
                 return self._cmd_loot(account, rest, state, raw, request_id)
+            if verb == "wimpy":
+                return self._cmd_wimpy(account, rest, state, raw, request_id)
             if verb in ("wear", "wield", "remove", "unwield", "drop"):
                 return self._cmd_item_action(account, verb, rest, state, raw, request_id)
             if verb in ("rest", "sleep"):
@@ -739,6 +743,13 @@ class XKXShell:
             return self._reply(account, "go", True, [("info", f"你来到了{row['name']}。")], state, raw, request_id)
         where = "往" + row["direction_label"] if row["direction"] else "沿路"
         lines: list[tuple[str, str]] = [(("info"), f"你{where}走，来到{row['name']}。")]
+        # 原版 aggressive NPC 的 kill_ob 会立刻提示“看起来XX想杀死你！”；
+        # 复刻此时只登记交战，下一心跳才结算伤害。
+        for row_ag in (resp.get("details") or {}).get("aggression") or []:
+            if row_ag.get("triggered"):
+                lines.append(
+                    ("warn", f"{row_ag.get('name') or row_ag.get('npc')}看起来想杀死你！")
+                )
         lines.extend(self._room_lines(after))
         return self._reply(account, "go", True, lines, after, raw, request_id)
 
@@ -944,7 +955,7 @@ class XKXShell:
                 account, "buy", False,
                 [("error", "这里没有店铺，买不到东西。")], state, raw, request_id,
             )
-        row, remainder = self._match_goods_prefix(goods, rest)
+        row, remainder = self._match_item_rows(goods, rest)
         if row is None:
             label = self._goods_label(rest) or "这件货"
             return self._reply(
@@ -985,7 +996,7 @@ class XKXShell:
                 account, "sell", False,
                 [("error", "你身上没有可卖的东西。")], state, raw, request_id,
             )
-        row, remainder = self._match_goods_prefix(rows, rest)
+        row, remainder = self._match_item_rows(rows, rest)
         if row is None:
             label = self._goods_label(rest) or "这件货"
             return self._reply(
@@ -1519,7 +1530,9 @@ class XKXShell:
         """替换原版 `combat_action` 的 `$N/$n/$l` 等占位符，不把 `$x` 露给玩家。"""
         mapping = {
             "N": who, "n": whom, "p": "对方", "P": "对方",
-            "l": "要害", "w": "", "W": "", "d": "外",
+            # 武器动作文案（weapond.lpc）用 `$w`；引擎没有把兵器实物名传进战报，
+            # 按 spec 统一显示“武器”，不暴露内部 item id。
+            "l": "要害", "w": "武器", "W": "武器", "d": "外",
         }
         rendered = re.sub(
             r"\$[A-Za-z]", lambda m: mapping.get(m.group(0)[1:], ""), str(text or "")
@@ -1546,7 +1559,13 @@ class XKXShell:
             )
         payload: dict[str, Any] = {}
         if want and want not in ("all", "全部", "所有", "都"):
-            match = self._match_ground(rows, want)
+            match, _tail = self._match_item_rows(
+                [
+                    dict(row, name=self._item_name(str(row.get("item") or "")))
+                    for row in rows
+                ],
+                want,
+            )
             if match is None:
                 available = "、".join(self._ground_text(row) for row in rows) if rows else "（地上没有东西）"
                 return self._reply(
@@ -1639,7 +1658,7 @@ class XKXShell:
                     [("error", f"{label}？行囊：{self._bag_hint(items)}。")],
                     state, raw, request_id,
                 )
-            match, tail = self._match_goods_prefix(items, want)
+            match, tail = self._match_item_rows(items, want)
             if match is None:
                 return self._reply(
                     account, verb, False,
@@ -1657,7 +1676,7 @@ class XKXShell:
                     state, raw, request_id,
                 )
             if want:
-                match, _tail = self._match_goods_prefix(slots, want)
+                match, _tail = self._match_item_rows(slots, want)
                 if match is None:
                     match = next(
                         (
@@ -1705,6 +1724,42 @@ class XKXShell:
             lines.append(("info", f"你丢下了{name}×{int(payload.get('qty') or 1)}。"))
         lines.extend(self._equip_summary_lines(after))
         return self._reply(account, verb, True, lines, after, raw, request_id)
+
+    def _cmd_wimpy(
+        self, account: str, rest: str, state: dict[str, Any], raw: str, request_id: str
+    ) -> dict[str, Any]:
+        """原版 `wimpy` 命令：无参显示阈值，参数只接受 0..80。"""
+        ent = self._entity(state)
+        current = int(getattr(ent, "wimpy", 0) or 0) if ent is not None else 0
+        text = str(rest or "").strip()
+        if not text:
+            return self._reply(
+                account, "wimpy", True,
+                [("info", f"你现在的当「气」低于 {current}% 时就会尝试逃跑。")],
+                state, raw, request_id,
+            )
+        try:
+            value = int(text)
+        except ValueError:
+            value = -1
+        if value < 0 or value > 80:
+            return self._reply(
+                account, "wimpy", False,
+                [("error", self._reason("bad_wimpy"))], state, raw, request_id,
+            )
+        resp = self.session.perform(account, "wimpy", {"value": value})
+        if not resp.get("ok"):
+            return self._reply(
+                account, "wimpy", False,
+                [("error", self._reason(str(resp.get("reject_reason") or ""), fallback="现在没法设置自动逃跑阈值。"))],
+                state, raw, request_id,
+            )
+        after = self._state(account) or state
+        return self._reply(
+            account, "wimpy", True,
+            [("info", f"你现在的当「气」低于 {value}% 时就会尝试逃跑。")],
+            after, raw, request_id,
+        )
 
     def _cmd_rest(
         self, account: str, verb: str, rest: str, state: dict[str, Any], raw: str, request_id: str
@@ -1764,18 +1819,6 @@ class XKXShell:
         name = self._item_name(str(row.get("item") or ""))
         qty = int(row.get("qty") or 0)
         return f"{name}×{qty}" if qty > 1 else name
-
-    def _match_ground(self, rows: list[dict[str, Any]], text: str) -> dict[str, Any] | None:
-        want = text.strip()
-        if not want:
-            return None
-        hits: list[dict[str, Any]] = []
-        for row in rows:
-            item_id = str(row.get("item") or "")
-            name = self._item_name(item_id)
-            if want in (item_id, name) or name.startswith(want) or item_id.startswith(want):
-                hits.append(row)
-        return hits[0] if hits else None
 
     def _combat_reason(self, verb: str) -> str:
         """返回“为什么现在不能打/不能捡”的人话；可用时返回空串。"""
@@ -1896,10 +1939,16 @@ class XKXShell:
             ("info", f"所在：{player.get('location_name', '未知')}"),
         ]
         lines.extend(self._score_core_lines(state))
-        sect = state.get("sect") or {}
+        # `session._sect_view` 返回两层：{"in_sect": bool, "sect": {...}}。
+        # 老实现按一层读，永远取不到 name，于是恒显示“尚未拜入门派”。
+        sect_view = state.get("sect") or {}
+        sect = sect_view.get("sect") if isinstance(sect_view.get("sect"), dict) else sect_view
         sect_name = str(sect.get("name") or sect.get("sect_name") or "")
-        if sect_name and sect_name != "无":
-            lines.append(("info", f"门派：{sect_name}（{sect.get('rank') or '门人'}）"))
+        in_sect = bool(sect_view.get("in_sect", bool(sect_name)))
+        if in_sect and sect_name and sect_name != "无":
+            role = str(sect.get("role") or "")
+            label = "门主" if role == "leader" else "弟子" if role else "门人"
+            lines.append(("info", f"门派：{sect_name}（{label}）"))
         else:
             lines.append(("info", "门派：尚未拜入门派。"))
         skills = list(player.get("skills_detail") or [])
@@ -2372,24 +2421,53 @@ class XKXShell:
         return max(1, min(20, int(raw)))
 
     @staticmethod
-    def _match_goods_prefix(
-        rows: Iterable[dict[str, Any]], text: str
+    def _item_keys(row: dict[str, Any]) -> list[str]:
+        """一件物品可用于命令匹配的名字集合。"""
+        keys = [
+            str(row.get("name") or ""),
+            str(row.get("slot_name") or ""),
+            str(row.get("slot") or ""),
+        ]
+        item_id = str(row.get("item") or "")
+        if item_id:
+            keys.append(item_id)
+            keys.append(item_id.rsplit("/", 1)[-1])
+        aliases = row.get("aliases")
+        if isinstance(aliases, str):
+            keys.extend(aliases.split())
+        elif isinstance(aliases, (list, tuple)):
+            keys.extend(str(alias) for alias in aliases)
+        return [key for key in keys if key]
+
+    @classmethod
+    def _match_item_rows(
+        cls, rows: Iterable[dict[str, Any]], text: str
     ) -> tuple[dict[str, Any] | None, str]:
+        """物品名匹配，`wear/wield/remove/unwield/loot/drop/buy/sell` 共用。
+
+        原版这些命令统一走 `present(arg, me)`（`cmds/std/wear.lpc:26`、
+        `cmds/std/drop.lpc` 等），本 mudlib 的 `id()` 是精确
+        `member_array`（`feature/name.lpc:15-35`），`present()` 命中多件时
+        返回第一件、不报歧义（`doc/efuns/present:11`）。这里保留“精确优先”，
+        再把匹配放宽到子串；多件命中同样按行序取第一件。
+        """
         raw = str(text or "").strip()
         if not raw:
             return None, ""
-        best: tuple[int, dict[str, Any] | None, str] = (0, None, "")
+        # 末尾数量（`buy 铁锤 3`、`drop 粗布2`）单独拆出，不参与名称匹配。
+        qty = ""
+        numbered = re.fullmatch(r"(.*?)\s*(\d+)", raw)
+        if numbered and numbered.group(1).strip():
+            raw, qty = numbered.group(1).strip(), numbered.group(2)
+        probe = raw.lower()
+        partial: dict[str, Any] | None = None
         for row in rows:
-            for key in (str(row.get("name") or ""), str(row.get("item") or "")):
-                if key and raw.lower().startswith(key.lower()) and len(key) > best[0]:
-                    best = (len(key), row, raw[len(key):].strip())
-        if best[1] is not None:
-            return best[1], best[2]
-        for row in rows:
-            name = str(row.get("name") or "")
-            if name and name in raw:
-                return row, ""
-        return None, ""
+            keys = [key.lower() for key in cls._item_keys(row)]
+            if probe in keys:
+                return row, qty
+            if partial is None and any(probe in key for key in keys):
+                partial = row
+        return (partial, qty) if partial is not None else (None, "")
 
     @staticmethod
     def _goods_hint(goods: Iterable[dict[str, Any]]) -> str:

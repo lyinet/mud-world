@@ -61,11 +61,12 @@
       "table": "npcs"
     }
   ],
-  "content_hash": "06bdaf46bb8acab8a03ee2d0e26f6f33ade2d77ff7fcd22ddaf075a25fdd87ec",
+  "content_hash": "97ba39e7b6144ea959509d011e51ab3be490c017f1f3bf24c2ea51aa0b336d34",
   "counts": {
     "aggressive_npcs": 7,
-    "attrs_roll_fields": 66,
-    "attrs_roll_fields_in_slice": 51,
+    "attrs_derive_fields": 33,
+    "attrs_roll_fields": 595,
+    "attrs_roll_fields_in_slice": 525,
     "desc_authored_items": 7,
     "desc_authored_npcs": 4,
     "dialogue_fallback_with_reason": 12,
@@ -93,10 +94,12 @@
     "masters": 22,
     "npcs_beast_attrs_roll": 2,
     "npcs_external": 13,
+    "npcs_human_attrs_roll": 92,
     "npcs_in_slice": 92,
     "npcs_no_drops": 102,
-    "npcs_with_attrs_roll": 13,
-    "npcs_with_attrs_roll_in_slice": 10,
+    "npcs_with_attrs_derive": 33,
+    "npcs_with_attrs_roll": 105,
+    "npcs_with_attrs_roll_in_slice": 92,
     "npcs_with_drops": 3,
     "quests_dynamic": 2,
     "quests_dynamic_outside_slice": 69,
@@ -126,20 +129,32 @@
     "skill_stat_default_fields": 48,
     "skill_stat_rows": 48,
     "skills": 48,
-    "temp_apply_entries": 78,
+    "temp_apply_apply_entries": 97,
+    "temp_apply_apply_entries_in_slice": 83,
+    "temp_apply_apply_keys_in_slice": {
+      "apply/armor": 10,
+      "apply/attack": 32,
+      "apply/damage": 10,
+      "apply/defense": 31
+    },
+    "temp_apply_apply_npcs_in_slice": 36,
+    "temp_apply_entries": 102,
+    "temp_apply_from_set": 24,
+    "temp_apply_from_set_in_slice": 24,
     "temp_apply_keys": {
       "apply/armor": 14,
-      "apply/attack": 25,
-      "apply/damage": 11,
-      "apply/defense": 23,
+      "apply/attack": 36,
+      "apply/damage": 13,
+      "apply/defense": 34,
       "armor": 1,
       "is_rided_by": 1,
       "is_riding": 1,
       "qingshu": 1,
       "shoupa": 1
     },
-    "temp_apply_npcs": 34,
-    "temp_apply_npcs_in_slice": 28,
+    "temp_apply_npcs": 45,
+    "temp_apply_npcs_in_slice": 39,
+    "temp_apply_out_of_create": 8,
     "temp_apply_unknown_entries": 5,
     "temp_apply_unknown_keys": [
       "armor",
@@ -217,7 +232,8 @@
     },
     "dialogue_fallback": "kind=fallback 且带 fallback_reason 表示原版函数体含条件/状态/物品/教学，不能压成固定文本；fallback_source 指向函数定义行。loader 只保留主题键，不得伪造台词。",
     "item_apply": "apply 是原版 armor_prop/*、weapon_prop/* 以及 init_<武器>(damage) 映射后的 apply/<key> 加成；整数字面量直接搬运，表达式放 apply_expr 且值为 null，未识别键保留原样并进 apply_unknown_keys/diagnostics。apply_source 逐键给源码行，兵器伤害另给 base_path/base_line。",
-    "npc_attrs_roll": "attrs_roll[attr]=[min,max] 是原版种族 setup 的 random(N)+M 掷骰区间（闭区间）；仅当该属性没有被显式 set 时出现。引擎必须按创世种子生成随机值，不得取 min/max 或中位数写死。attrs_roll_source 为每个区间的源码文件与行号。",
+    "npc_attrs_derive": "attrs_derive[attr] 是原版 setup 的派生属性，不是掷骰：目前只有人类 int = 80 - str - con - dex（human.lpc:63）。引擎在掷点/显式值之后按 difference 规则计算；缺任一被减项时不派生。",
+    "npc_attrs_roll": "attrs_roll[attr]=[min,max] 是原版种族 setup 的 random(N)+M 掷骰区间（闭区间）；仅当该属性没有被显式 set 时出现。人类种族按 human.lpc:60-68 掷 str/con/dex/per/kar/sta/cps/cor。引擎必须按创世种子生成随机值，不得取 min/max 或中位数写死。attrs_roll_source 为每个区间的源码文件与行号。",
     "npc_drops": {
       "chance": "1.0 表示原版必掉；小于 1 由源码 random 条件折算；null 表示无法静态折算，必须读 chance_expr。",
       "chance_expr": "源码概率条件原文；null 表示原版没有概率判定。",
@@ -226,7 +242,7 @@
       "source_landing": "原版实际放置位置（corpse/ground），仅作溯源，不影响引擎落地。"
     },
     "npc_equipment": "equipment[].ref 必须在 items.json 中存在；ref 已补前导 / 并去掉 .lpc；缺 set_weight 时按基类默认 100 并带 weight_source=default。",
-    "npc_temp_apply": "create() 内 set_temp 的静态快照，按创世即带处理；key 为原版键名，known=false 表示不在战斗白名单（原样保留并记诊断）；value 为整数时直接可用，为 null 时读 value_expr，不折算；source_kind=lpc 表示照源码搬运。",
+    "npc_temp_apply": "create() 内 set_temp 与 set(\"apply/…\") 的静态快照，按创世即带处理；key 为原版键名，known=false 表示不在战斗白名单（原样保留并记诊断）；value 为整数时直接可用，为 null 时读 value_expr，不折算；source_kind=lpc 表示 set_temp，lpc_set 表示永久 set(\"apply/…\")。create() 之外的 apply 改写只记 I_NPC_APPLY_OUT_OF_CREATE，不入快照。",
     "room_region": "region 由房间源码路径 d/<region>/ 推导（kind=derived_path）；region_name 只从 mapd.lpc 全局映射 map_short/logind.lpc hometown 取（kind=lpc），取不到为 null 并记 diagnostics。region 不是 flags.outdoors。",
     "skill_action_source": {
       "default": "原版缺键，按 LPC mapping 语义取 0；缺键记入 coefficient_gaps 与 diagnostics.jsonl。",
@@ -239,8 +255,8 @@
   },
   "files": {
     "diagnostics.jsonl": {
-      "bytes": 25246,
-      "sha256": "1f5de9cf81a5b2870c4340a95cd7a97f981ac0c88c1425785f840016e43dd4f9"
+      "bytes": 30194,
+      "sha256": "5fba650305b3b921bbfdf6d3a1799132b907187c385868ef4df844e42c41eb12"
     },
     "dialogue.json": {
       "bytes": 26396,
@@ -255,8 +271,8 @@
       "sha256": "777eb32e56644445bef2d4eb9672cc2667caa0ec6662d85722bb9a299d130490"
     },
     "npcs.json": {
-      "bytes": 208446,
-      "sha256": "fc5fc17cfec17d526dcc7b0ca0094f29088f3622bb191cd82b24b5b349a79f35"
+      "bytes": 331436,
+      "sha256": "e27a53eae3a69007ce32c9d3bfa9a8f4e046c1efd4ffb007f72b960b6cc44c78"
     },
     "quests.json": {
       "bytes": 5569,
@@ -287,8 +303,8 @@
       "sha256": "4f059d1cb3c991a138fd9dc658548de736e0cd2671bc3074155b6f592b44db1e"
     },
     "summary.json": {
-      "bytes": 4189,
-      "sha256": "91632bf4ea66163cec688593085b7ee63f0f578c74f0c1d372f8376cc79b6924"
+      "bytes": 4743,
+      "sha256": "68a6038fc5469c2307982218bee0e7e3d369c87c8fe97729250ae3c3fb49cbd0"
     }
   },
   "generator": "tools/xkx_extract",

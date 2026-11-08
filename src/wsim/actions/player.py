@@ -39,33 +39,64 @@ STARTING_ITEMS: dict[str, int] = {"flatbread": 3, "coarse_cloth": 1}
 #   初始 age=14。所以 100 不是我们编的。
 # - 六维属性是**我们的默认**：xkx 登录时由玩家掷点决定，不可确定复刻；这里按身份
 #   给一组固定值，保证新角色一定有属性、战斗可结算。
-# - 初始武功/经验同样是**我们的默认**（原版要先找师父学艺，0 经验新手打不动任何 NPC）。
-#   unarmed=40 保证能打；dodge/parry 只给 10：原版新号两者为 0，给满 40 会让弱 NPC
-#   对玩家命中率变成 0.0%（店小二/穷汉实测），玩家近乎无敌，不是原版手感。
+# - 初始武功/经验是**产品档位选择**，不是原版新手档：原版新手 combat_exp≈0、技能近 0，
+#   本仓库保留其原始实测（reports/xkx-ref/hit-rate.md 的 NEW 档）作“新手体验”对照。
+#   这里的 MID 档取原版“40 级武艺”的最低合法经验：40^3/10 = 6400
+#   （cmds/skill/learn.lpc:102；practice/study 同门槛）。unarmed/dodge/parry 同级 40，
+#   保证攻防两侧同一档位，不会出现“拳脚 40 级却只有 250 经验”的不自洽状态。
+#   世界配置 `player_start` 可覆盖这三项。
 PLAYER_MAX_HP = 100
-PLAYER_START_COMBAT_EXP = 250
-PLAYER_START_SKILL_LEVELS: dict[str, int] = {"unarmed": 40, "dodge": 10, "parry": 10}
+PLAYER_START_COMBAT_EXP = 6400
+PLAYER_START_SKILL_LEVELS: dict[str, int] = {"unarmed": 40, "dodge": 40, "parry": 40}
 DEFAULT_ARCHETYPE = "游侠"
 ARCHETYPE_ATTRS: dict[str, dict[str, int]] = {
     # 膂力 / 根骨 / 身法 / 悟性 / 精神 / 耐力
-    "游侠": {"str": 20, "con": 20, "dex": 18, "int": 15, "spi": 15, "sta": 20},
-    "商人": {"str": 15, "con": 16, "dex": 15, "int": 20, "spi": 18, "sta": 18},
-    "捕快": {"str": 18, "con": 18, "dex": 17, "int": 17, "spi": 16, "sta": 19},
+    # kar(福缘) / per(容貌)：原版 logind 用 `10 + random(21)` 各取一次；
+    # 复刻改为确定性定值 20/20（大狼狗 `random(kar+per)` 判定的输入）。
+    "游侠": {"str": 20, "con": 20, "dex": 18, "int": 15, "spi": 15, "sta": 20, "kar": 20, "per": 20},
+    "商人": {"str": 15, "con": 16, "dex": 15, "int": 20, "spi": 18, "sta": 18, "kar": 20, "per": 20},
+    "捕快": {"str": 18, "con": 18, "dex": 17, "int": 17, "spi": 16, "sta": 19, "kar": 20, "per": 20},
 }
 
 
-def _player_vitals(archetype: str = "") -> dict:
+def _start_values(start: dict | None) -> tuple[int, dict[str, int]]:
+    """把世界配置的 `player_start` 归一成 (combat_exp, skill_levels)。
+
+    配置是外部输入：只接受非负整数，非法项静默回落默认值，不在这里抛异常。
+    """
+    combat_exp = PLAYER_START_COMBAT_EXP
+    skills = dict(PLAYER_START_SKILL_LEVELS)
+    if not isinstance(start, dict):
+        return combat_exp, skills
+
+    raw_exp = start.get("combat_exp")
+    if isinstance(raw_exp, int) and not isinstance(raw_exp, bool) and raw_exp >= 0:
+        combat_exp = raw_exp
+
+    raw_skills = start.get("skills")
+    if isinstance(raw_skills, dict):
+        for key, value in raw_skills.items():
+            if not isinstance(key, str) or not key:
+                continue
+            if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+                skills[key] = value
+    return combat_exp, skills
+
+
+def _player_vitals(archetype: str = "", start: dict | None = None) -> dict:
     """确定性玩家气血/属性/初始武功；未知身份回落到游侠。
 
     只由玩家创世路径调用；是否启用由内容包门控（见 `content_has_combat_data`）。
+    `start` 来自世界配置 `player_start`，缺省/非法项回落到模块默认（MID 档）。
     """
     attrs = ARCHETYPE_ATTRS.get(archetype or DEFAULT_ARCHETYPE, ARCHETYPE_ATTRS[DEFAULT_ARCHETYPE])
+    combat_exp, skill_levels = _start_values(start)
     return {
         "max_hp": PLAYER_MAX_HP,
         "hp": PLAYER_MAX_HP,
         "attrs": dict(attrs),
-        "combat_exp": PLAYER_START_COMBAT_EXP,
-        "skill_levels": dict(PLAYER_START_SKILL_LEVELS),
+        "combat_exp": combat_exp,
+        "skill_levels": skill_levels,
         # 原版 logind.lpc 新玩家 potential = 99，learned_points 从 0 起。
         "potential": 99,
         "learned_points": 0,
@@ -207,6 +238,7 @@ def player_genesis_effects(
     at: str,
     money: int = STARTING_MONEY,
     items: dict[str, int] | None = None,
+    start: dict | None = None,
 ) -> list[Effect]:
     """创世预置：允许铸币/造物的玩家入口之一（另一条是首次进入发放）。"""
     items = items if items is not None else dict(STARTING_ITEMS)
@@ -220,7 +252,7 @@ def player_genesis_effects(
         "max_stamina": 100.0,
     }
     # 预置账号没有身份参数，按默认身份（游侠）落地气血与属性。
-    entity_data.update(_player_vitals(DEFAULT_ARCHETYPE))
+    entity_data.update(_player_vitals(DEFAULT_ARCHETYPE, start))
     effects: list[Effect] = [
         Effect("create_entity", entity_data),
         Effect("create_account", {"account": wallet(pid), "balance": 0}),
@@ -257,11 +289,11 @@ class PlayerEnterAction(Action):
     def __init__(self, content=None) -> None:
         self.content = content
 
-    def _vitals(self, archetype: str) -> dict:
+    def _vitals(self, archetype: str, start: dict | None = None) -> dict:
         # content=None（单测/旧调用）按开启处理，避免新角色无血。
         if self.content is not None and not content_has_combat_data(self.content):
             return {}
-        return _player_vitals(archetype)
+        return _player_vitals(archetype, start)
 
     def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
         pid = _player_id(intent)
@@ -303,6 +335,9 @@ class PlayerEnterAction(Action):
         tick = int(intent.tick)
         display = str(intent.args.get("display_name") or "").strip()
         archetype = str(intent.args.get("archetype") or "").strip()
+        start = intent.args.get("player_start")
+        if not isinstance(start, dict):
+            start = None
         prof = state.players.get(pid)
         effects: list[Effect] = []
 
@@ -320,7 +355,7 @@ class PlayerEnterAction(Action):
                     "stamina": 100.0,
                     "max_stamina": 100.0,
                 }
-                data.update(self._vitals(archetype))
+                data.update(self._vitals(archetype, start))
                 effects.append(Effect("create_entity", data))
             if wallet(pid) not in state.accounts:
                 effects.append(Effect("create_account", {"account": wallet(pid), "balance": 0}))
@@ -344,12 +379,12 @@ class PlayerEnterAction(Action):
                     "stamina": 100.0,
                     "max_stamina": 100.0,
                 }
-                data.update(self._vitals(archetype or prof.archetype))
+                data.update(self._vitals(archetype or prof.archetype, start))
                 effects.append(Effect("create_entity", data))
             elif int(state.entities[pid].max_hp) <= 0:
                 # 早于本次改动创建的旧玩家实体没有气血：进入时补一次，
                 # 保证 8011 上的既有存档也不会“没有血量”。
-                backfill = self._vitals(archetype or prof.archetype)
+                backfill = self._vitals(archetype or prof.archetype, start)
                 if backfill:
                     effects.append(Effect("vitals_set", {"entity": pid, **backfill}))
             if wallet(pid) not in state.accounts:

@@ -155,6 +155,35 @@ def test_human_and_beast_default_actions():
     assert action["move_text"].startswith("$N")
 
 
+def test_weapon_action_selected_when_weapon_skill_unmapped(monkeypatch):
+    _patched(monkeypatch)
+    hero = _hero(
+        equipped={"weapon": "item/tiegun"}, weapon_type="staff",
+        skill_levels={"unarmed": 60, "parry": 40},
+    )
+    result = simulate_fight(
+        hero, _boar(), ScriptedRandom([1]), action_table={}, hook_table={},
+    )
+    action = result["rounds"][0]["actions"][0]
+    assert action["selection"] == "weapon"
+    assert action["move_text"] == "$N高高举起$w，往$n的$l当头砸下"
+
+
+def test_weapon_skill_level_zero_still_uses_weapon_actions(monkeypatch):
+    _patched(monkeypatch)
+    hero = _hero(
+        equipped={"weapon": "item/tiegun"}, weapon_type="staff",
+        skill_levels={"unarmed": 60, "staff": 0},
+        map_skills={"staff": ""},
+    )
+    result = simulate_fight(
+        hero, _boar(), ScriptedRandom([0]), action_table={}, hook_table={},
+    )
+    action = result["rounds"][0]["actions"][0]
+    assert action["selection"] == "weapon"
+    assert action["move_text"] == "$N挥舞$w，往$n的$l用力一砸"
+
+
 def test_force_hit_positive_increment(monkeypatch):
     monkeypatch.setattr(cr.xf, "resolve_dodge", lambda **kw: False)
     monkeypatch.setattr(cr.xf, "resolve_parry", lambda **kw: False)

@@ -26,6 +26,83 @@ def _ctx(rel: str) -> lpc.ParseContext:
     return lpc.ParseContext(lpc.mudlib_id(rel), lpc.mudlib_dir(rel), {})
 
 
+HUMAN_RACE_LPC = """
+void setup_human(object ob) {
+  mapping my;
+  my = ob->query_entire_dbase();
+  if (undefinedp(my["str"])) my["str"] = 10 + random(21);
+  if (undefinedp(my["con"])) my["con"] = 10 + random(21);
+  if (undefinedp(my["dex"])) my["dex"] = 10 + random(21);
+  if (undefinedp(my["int"])) my["int"] = 80 - my["str"] - my["con"] - my["dex"];
+  if (undefinedp(my["per"])) my["per"] = 10 + random(21);
+  if (undefinedp(my["kar"])) my["kar"] = 10 + random(21);
+  if (undefinedp(my["sta"]) || my["sta"] == 0) my["sta"] = 10 + random(21);
+  if (undefinedp(my["cps"]) || my["cps"] == 0) my["cps"] = 10 + random(21);
+  if (undefinedp(my["cor"]) || my["cor"] == 0) my["cor"] = 10 + random(21);
+}
+"""
+
+
+def _parse_test_npc(tmp_path, create_body: str) -> dict:
+    race_dir = tmp_path / "adm" / "daemons" / "race"
+    race_dir.mkdir(parents=True)
+    (race_dir / "human.lpc").write_text(HUMAN_RACE_LPC, encoding="utf-8")
+    ex = extract.Extractor(str(tmp_path), ["d"])
+    text = "inherit NPC;\nvoid create()\n{\n" + create_body + "\n}\n"
+    return ex._parse_npc("d/npc/test.lpc", "/d/npc/test", text, {extract.NPC_BASE})
+
+
+def test_human_npc_defaults_to_human_race_and_rolls_eight_attrs(tmp_path):
+    rec = _parse_test_npc(
+        tmp_path,
+        '  set_name("测试人", ({"tester"}));\n  set("gender", "男性");',
+    )
+    assert rec["race"] == "人类"
+    assert rec["race_source"] == {"kind": "lpc", "path": "adm/daemons/chard.lpc", "line": 25}
+    expected = {"str", "con", "dex", "per", "kar", "sta", "cps", "cor"}
+    assert set(rec["attrs_roll"]) == expected
+    assert all(span == [10, 30] for span in rec["attrs_roll"].values())
+    assert rec["attrs"] == {}
+    # int 不是掷骰，而是 human.lpc:63 的差集派生
+    assert rec["attrs_roll"].get("int") is None
+    assert rec["attrs_derive"]["int"]["kind"] == "difference"
+    assert rec["attrs_derive"]["int"]["total"] == 80
+    assert rec["attrs_derive"]["int"]["minus"] == ["str", "con", "dex"]
+    assert rec["attrs_derive"]["int"]["source"]["line"] == 63
+
+
+def test_human_npc_explicit_attr_is_not_rolled(tmp_path):
+    rec = _parse_test_npc(
+        tmp_path,
+        '  set_name("测试人", ({"tester"}));\n  set("str", 30);\n  set("cor", 5);',
+    )
+    assert rec["attrs"]["str"] == 30
+    assert rec["attrs"]["cor"] == 5
+    assert "str" not in rec["attrs_roll"]
+    assert "cor" not in rec["attrs_roll"]
+    # str 显式后 int 仍派生（差集里用显式 str）
+    assert "int" in rec["attrs_derive"]
+
+
+def test_human_npc_explicit_int_disables_derive(tmp_path):
+    rec = _parse_test_npc(
+        tmp_path,
+        '  set_name("测试人", ({"tester"}));\n  set("int", 28);',
+    )
+    assert rec["attrs"]["int"] == 28
+    assert rec["attrs_derive"] == {}
+
+
+def test_explicit_race_is_kept_and_uses_its_own_race_file(tmp_path):
+    rec = _parse_test_npc(
+        tmp_path,
+        '  set_name("测试兽", ({"tester"}));\n  set("race", "走兽");',
+    )
+    assert rec["race"] == "走兽"
+    assert rec["race_source"]["path"] == "d/npc/test.lpc"
+    assert rec["attrs_derive"] == {}
+
+
 def test_heredoc_and_macro_expansion():
     text = """
 inherit ROOM;
@@ -169,12 +246,16 @@ def test_slice_pack_counts_and_zero_errors():
             item = next(i for i in pack["items"] if i["id"] == slot["ref"])
             assert item["name"]
             assert item["weight"] is not None and item["weight"] > 0
-    # NPC 临时属性：只取 create()，值/来源可溯源，未知键不丢
-    assert counts["temp_apply_npcs"] == 34
-    assert counts["temp_apply_npcs_in_slice"] == 28
-    assert counts["temp_apply_entries"] == 78
-    assert counts["temp_apply_keys"]["apply/attack"] == 25
-    assert counts["temp_apply_keys"]["apply/defense"] == 23
+    # NPC 临时属性：只取 create()，值/来源可溯源，未知键不丢。
+    # 这些计数随内容包的 apply 抽取口径变化（改内容/抽取规则需同步改这里）：
+    # 45 = 34 个 set_temp(lpc) + 11 个永久 set("apply/…")(lpc_set)；
+    # 102 条 = 78 条 lpc + 24 条 lpc_set；apply/attack 36 = 25 + 11，
+    # apply/defense 34 = 23 + 11（切片内 39 = 28 + 11）。
+    assert counts["temp_apply_npcs"] == 45
+    assert counts["temp_apply_npcs_in_slice"] == 39
+    assert counts["temp_apply_entries"] == 102
+    assert counts["temp_apply_keys"]["apply/attack"] == 36
+    assert counts["temp_apply_keys"]["apply/defense"] == 34
     assert counts["temp_apply_unknown_keys"] == [
         "armor", "is_rided_by", "is_riding", "qingshu", "shoupa",
     ]
@@ -185,7 +266,8 @@ def test_slice_pack_counts_and_zero_errors():
     assert temps["apply/armor"]["value"] == 1000
     for npc in pack["npcs"]:
         for entry in npc["temp_apply"]:
-            assert entry["source_kind"] == "lpc"
+            # lpc = create() 内 set_temp；lpc_set = create() 内永久 set("apply/…")。
+            assert entry["source_kind"] in {"lpc", "lpc_set"}
             assert entry["source"]["path"] and entry["source"]["line"]
             assert entry["value"] is not None or entry["value_expr"] is not None
     # 掉落：空表必须带原因；掉落物必须在 items 表；概率不让引擎猜

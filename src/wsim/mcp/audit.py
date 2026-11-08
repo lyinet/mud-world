@@ -7,6 +7,9 @@
 - 落盘按大小轮转：默认 100MB、保留 5 份，可用 `XKX_AUDIT_MAX_BYTES` /
   `XKX_AUDIT_BACKUPS` 覆盖；轮转由后台线程执行，写入路径只做 append + 计数，
   不等待改名/删除。
+- 活动文件使用长驻 fd（`os.open` + `O_APPEND` + `os.write`），不再每条记录
+  open/close 一次。soak 实测：`close()` 偶发 100–400ms 的系统级停顿，4 次/写请求
+  经 session 写锁放大成 write.max 1277ms；长驻 fd 后请求路径只剩一次 write。
 - 进程内缓存 `records` 有上限（`XKX_AUDIT_MEMORY_MAX`，默认 4096 条），
   只保留最近记录；完整历史仍以文件为准。
 """
@@ -92,6 +95,7 @@ class AuditLog:
         self._rotate_thread: threading.Thread | None = None
         self._rotating = False
         self._written = 0
+        self._fd: int | None = None
         if self.path is not None:
             self.path.parent.mkdir(parents=True, exist_ok=True)
             try:
@@ -104,11 +108,18 @@ class AuditLog:
         self.records.append(record)
         if self.path is None:
             return
-        line = json.dumps(record.to_dict(), ensure_ascii=False, sort_keys=True) + "\n"
-        size = len(line.encode("utf-8"))
+        data = (
+            json.dumps(record.to_dict(), ensure_ascii=False, sort_keys=True) + "\n"
+        ).encode("utf-8")
+        size = len(data)
         with self._lock:
-            with self.path.open("a", encoding="utf-8") as f:
-                f.write(line)
+            fd = self._ensure_fd()
+            view = memoryview(data)
+            while view:
+                written = os.write(fd, view)
+                if written <= 0:
+                    raise OSError("audit write returned 0 bytes")
+                view = view[written:]
             self._written += size
             rotate = (
                 self.max_bytes > 0
@@ -125,6 +136,24 @@ class AuditLog:
                 self._rotate_thread = thread
                 thread.start()
 
+    def _ensure_fd(self) -> int:
+        """活动文件的常驻 fd；调用方必须持有 `_lock`。"""
+        if self._fd is None:
+            assert self.path is not None
+            self._fd = os.open(
+                self.path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644
+            )
+        return self._fd
+
+    def _close_fd(self) -> None:
+        """调用方必须持有 `_lock`；轮转改名前后必须断开旧 inode。"""
+        if self._fd is not None:
+            try:
+                os.close(self._fd)
+            except OSError:
+                pass
+            self._fd = None
+
     def _rotate_worker(self) -> None:
         try:
             self.rotate_now()
@@ -140,18 +169,25 @@ class AuditLog:
         if self.path is None or self.max_bytes <= 0 or self.backups <= 0:
             return 0
         with self._rotate_lock:
+            # 只把"摘掉旧 inode"和重置计数放进写锁；改名/删除都在锁外，
+            # 否则删除 100MB 备份（APFS 释放大量块）会把写请求顶住数百毫秒。
+            with self._lock:
+                self._close_fd()
+            oldest = None
             for idx in range(self.backups, 0, -1):
                 src = self._backup_path(idx)
                 if not src.exists():
                     continue
                 if idx == self.backups:
-                    src.unlink()
+                    oldest = src
                 else:
                     os.replace(src, self._backup_path(idx + 1))
             if self.path.exists():
                 os.replace(self.path, self._backup_path(1))
             with self._lock:
                 self._written = 0
+            if oldest is not None and oldest.exists():
+                oldest.unlink()
             self.rotation_count += 1
             return sum(1 for i in range(1, self.backups + 1) if self._backup_path(i).exists())
 

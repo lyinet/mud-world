@@ -20,8 +20,8 @@
     NPC 货架（`owner` 为空）补回 `business_stock=30`；`return_home` 只拉无 `goal_id` 的空闲 NPC。
   - 新增 `entity_respawn` effect 与 `Entity.last_death_tick/last_death_location`，
     事件 data 保留 `death_tick/death_location`；死亡审计不被重生擦除。
-  - `FightAction(content)` + `content_drops()`：接通内容包 `npcs[].drops`
-    （郭庄大狼狗狗皮、老虎虎骨）；旧内容无 `drops` 时不消费随机流、哈希不变。
+  - 验收复用远端已接通的 `Entity.drops` + `combat._drop_counts(content_drops=...)`
+    （郭庄大狼狗狗皮、老虎虎骨）；旧内容无 `drops` 时事件流不变。
   - 默认关闭；`config/worlds/xkx.yaml` 显式 `room_reset.enabled: true`；
     `WorldSession._load_room_reset()` 与 `RunConfig.room_reset` 双入口接线。
 - **为什么改**：原版驱动每 5 分钟扫描 + `time to reset 900`（随机 450..899 秒）会在 NPC
@@ -35,15 +35,16 @@
     `event_final 02d5f812c427833387e592ad9321ebd72a9c5c719825b958f53af83d795078ae`、
     `business_cash 11442`、`blocked 6`、`pruned 3`，与 P5 前一致。
   - 健康 xkx（seed 20261014/1日）reset 开/关：`events 722`、
-    `state_final 1f86137dabfe1f6c0efc3470f3ccb860d18bb1b42557d232fc7bc3cee5c7c3ac`、
-    `event_final c6e440fbaa6f9421dd74423d4d0da957c5a9cfafe8c925f3bbf74cc49b65cbbc`
+    `state_final 2265c85c1be9596d3f5b31dcc69fbfa57c1eca9f4a5ee4d9b783b6379263fe97`、
+    `event_final d0c4777d605fed0046db5aa5d9a11712e82ef4fbb2cbe37553a05252c224e67d`
     完全一致，零 `system_room_reset`。
   - 闭环（`/tmp/xkx-p5-accept`）：杀狼狗 `seq2` 掉狗皮 → `seq3` 捡走 →
     `seq4` reset 满血重生（`hp=max_hp=200`，`death_tick=0 death_location=/d/hangzhou/guozhuang`）→
     `seq5` 再杀再掉；reset 前后 `ground[goupi]` 均为 0（不复制）。
-  - 老虎：reset 后 `hp=max_hp=200`；`init()` 主动攻击未实现（既有缺口，非 P5 引入）。
-  - `content_hash adc6c47466ef189009029e7a6debbec6b7eab039f343b7b1eb622ab3fb90cdc0`
-    前后一致（P5 未改 `content/xkx/**`，无需 `--reset`）。
+  - 老虎：reset 后 `hp=max_hp=200`；`npc_aggression` 仍触发
+    （`triggered=true`、`combat_target=player:accept`）；触发时机仅限玩家进出房间。
+  - `content_hash 56417288eb1a4620025ef6ad4740fa5924ffd39b9a7f6573fa8585015f9d2576`
+    与 `origin/xkx-parity` 一致；P5 的 diff 不含 `content/xkx/**`，不触发 `--reset`。
 - **commit**：见本条目所在提交。
 
 ---

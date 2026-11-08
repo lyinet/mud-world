@@ -26,7 +26,12 @@ from wsim.world.writer import Writer  # noqa: E402
 LOCATIONS = {"inn": {"id": "inn", "name": "客栈", "exits": []}}
 
 
-def _world(*, equipment: list[str] | None = None, inventory: dict[str, int] | None = None):
+def _world(
+    *,
+    equipment: list[str] | None = None,
+    inventory: dict[str, int] | None = None,
+    drops: dict[str, int] | None = None,
+):
     state = WorldState(locations=LOCATIONS)
     store = EventStore(":memory:")
     registry = ActionRegistry()
@@ -58,6 +63,7 @@ def _world(*, equipment: list[str] | None = None, inventory: dict[str, int] | No
                 "max_hp": 1,
                 "hp": 1,
                 "equipment": list(equipment or []),
+                "drops": dict(drops or {}),
             },
         ),
     ]
@@ -96,6 +102,41 @@ def test_equipment_and_inventory_same_id_do_not_double_count():
     writer = _world(equipment=["item.cloth"], inventory={"item.cloth": 1})
     writer.submit(Intent("player:hero", "fight", {"target": "npc.weak"}, 0, "player"))
     assert writer.state.ground["inn"]["item.cloth"] == 1
+
+
+def test_content_drops_land_after_death_and_loot_picks_them_up():
+    writer = _world(drops={"item.goupi": 1})
+    writer.submit(Intent("player:hero", "fight", {"target": "npc.weak"}, 0, "player"))
+    assert writer.state.ground["inn"]["item.goupi"] == 1
+    take = writer.submit(Intent("player:hero", "loot", {}, 0, "player"))
+    assert take.outcome == "ok"
+    assert writer.state.entities["player:hero"].inventory["item.goupi"] == 1
+    assert "item.goupi" not in (writer.state.ground.get("inn") or {})
+
+
+def test_drops_and_equipment_same_id_take_larger_count():
+    writer = _world(equipment=["item.goupi"], drops={"item.goupi": 2})
+    writer.submit(Intent("player:hero", "fight", {"target": "npc.weak"}, 0, "player"))
+    assert writer.state.ground["inn"]["item.goupi"] == 2
+
+
+def test_drops_field_is_serialized_only_when_present():
+    assert "drops" not in Entity(id="npc.legacy", name="旧村民", role="farmer", location="inn").to_dict()
+    data = Entity(
+        id="npc.dog", name="大狼狗", role="monster", location="inn",
+        drops={"item.goupi": 1},
+    ).to_dict()
+    assert data["drops"] == {"item.goupi": 1}
+
+
+def test_xkx_genesis_reads_wolfdog_drop_table():
+    content = load_xkx_content(ROOT / "content" / "xkx")
+    state = WorldState(locations=content.locations)
+    result = build_genesis(content, content.npcs, root=ROOT, state=state)
+    apply_effects(state, result.effects)
+    wolfdog = state.entities["/d/hangzhou/npc/wolfdog"]
+    assert wolfdog.drops == {"/d/hangzhou/npc/obj/goupi": 1}
+    assert wolfdog.equipment == []
 
 
 def test_equipment_list_is_serialized_only_when_present():

@@ -44,15 +44,27 @@ class Writer:
         # 幂等缓存只保留最近 N 个 intent：旧 key 淘汰后重放会走正常校验，
         # 不改变事件语义；上限防止长时间运行时内存无界增长。
         self.seen_max = _env_int("XKX_WRITER_SEEN_MAX", 20_000) if seen_max is None else max(1, int(seen_max))
-        self._seen: OrderedDict[str, Event] = OrderedDict()
+        # 只存 intent_id -> seq：Event 体积大（args/effects 深字典），
+        # 常驻 2 万条会吃掉数十 MB；重放命中时按 seq 单行回读即可。
+        self._seen: OrderedDict[str, int] = OrderedDict()
         self._player_ticks: dict[str, int] = {}
         self.committed_intents = 0
 
     def _remember(self, iid: str, event: Event) -> None:
-        self._seen[iid] = event
+        self._seen[iid] = int(event.seq)
         self._seen.move_to_end(iid)
         while len(self._seen) > self.seen_max:
             self._seen.popitem(last=False)
+
+    def _recall(self, iid: str) -> Event | None:
+        """幂等命中：按 seq 单行回读，避免 Event 常驻内存。"""
+        seq = self._seen.get(iid)
+        if seq is None:
+            return None
+        event = self.store.event_by_seq(seq)
+        if event is None:
+            self._seen.pop(iid, None)
+        return event
 
     def bootstrap(self, effects: list[Effect], tick: int = 0, verb: str = "genesis") -> Event:
         """系统引导事件（世界从空状态建立）。仍然经过事件日志。"""
@@ -80,15 +92,17 @@ class Writer:
     def reject(self, intent: Intent, reason: str) -> Event:
         """拒绝也是事件：供 API 层在校验阶段记录原因，仍然只由 Writer 追加。"""
         iid = intent.intent_id or intent_id_for(intent.actor, intent.tick, intent.verb, intent.args, intent.reason)
-        if iid in self._seen:
-            return self._seen[iid]
+        existing = self._recall(iid)
+        if existing is not None:
+            return existing
         code = reason if reason.startswith("rejected:") else f"rejected:{reason}"
         return self._record_reject(intent, iid, self.store.count() + 1, code)
 
     def submit(self, intent: Intent) -> Event:
         iid = intent.intent_id or intent_id_for(intent.actor, intent.tick, intent.verb, intent.args, intent.reason)
-        if iid in self._seen:
-            return self._seen[iid]
+        existing = self._recall(iid)
+        if existing is not None:
+            return existing
 
         seq = self.store.count() + 1
         # 玩家写操作必须单调且不能写未来：NPC/系统调度不受影响。

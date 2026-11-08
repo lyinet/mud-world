@@ -238,20 +238,167 @@ vs `npc.boar`（40hp、attack 10、def 2、str 20、dex 15、unarmed 40），带
 | `attrs.int`（悟性） | 15 / 20 / 17 | 同上 |
 | `attrs.spi`（精神） | 15 / 18 / 16 | 同上 |
 | `attrs.sta`（耐力） | 20 / 18 / 19 | 同上 |
-| `combat_exp` | 250 | **我们的默认**：原版新玩家 0 经验、需先找师父学艺；0 经验新手会因经验压制打不动任何 NPC，故创世即给 250 |
-| `skill_levels.unarmed` | 40 | **我们的默认**：原版初始武功由拜师学得，登录掷点非确定；40 级保证能打一场 |
-| `skill_levels.dodge` | 10 | **我们的默认**：原版新号闪避为 0。从 40 下调——40 级闪避 + 40 级招架会让店小二/穷汉对玩家命中率 0.0%，玩家近乎无敌，不是原版手感 |
-| `skill_levels.parry` | 10 | 同上：从 40 下调，避免玩家在弱怪面前无伤 |
+| `combat_exp` | 6400 | **产品档位（不是原版新手档）**：原版技能 40 级的最低经验 `40^3/10 = 6400`（`cmds/skill/learn.lpc:102`；`practice/study` 同门槛） |
+| `skill_levels.unarmed` | 40 | **产品档位**：与 6400 经验自洽的“40 级武艺”状态；原版由拜师学得，登录掷点非确定 |
+| `skill_levels.dodge` | 40 | **产品档位**：与 unarmed/parry 同级，保证攻防两侧同一档位；原版 40 级闪避是合法可达值 |
+| `skill_levels.parry` | 40 | **产品档位**：同上，避免“拳脚 40 级却只有 250 经验”的不自洽组合 |
 
 - 身份键沿用既有 `ARCHETYPES`（游侠 / 商人 / 捕快）；预置账号无身份，用 `DEFAULT_ARCHETYPE="游侠"`。
-- **2026-11-07 调整**：`dodge/parry 40 → 10`；`unarmed=40` / `combat_exp=250` 不变。
-  调整原因是 40/40 下弱 NPC 完全打不中玩家（店小二/穷汉 0.0%），玩家近乎无敌。
-  调整后的同口径实测见 §10.3；结论是弱怪能赢但仍几乎不掉血（对方命中 1.1%），
-  这是 `unarmed=40` 同时参与攻击与空手招架的必然结果，未改任何公式。
-- 经验压制公式（`modify_damage_by_exp`）保持原版逻辑不变，不因“好打”而改公式。
+- **2026-11-07 MID 档调整**：`combat_exp 250 → 6400`，`dodge/parry 10 → 40`。
+  依据是原版技能-经验门槛 `skill^3/10 ≤ combat_exp`（`cmds/skill/learn.lpc:102`），
+  `40^3/10 = 6400`；原版 MID 实测快照（`tools/xkx_ref/measure_hit_rate.py:6`，
+  `reports/xkx-ref/hit-rate.md`）同样是 `exp 6400 / 40·40·40 / 无兵器`。
+
+> **开局档位是产品选择，不是原版新手档。** 原版新手档（技能近 0、`combat_exp≈0`）的实测数据
+> 保留在 `reports/xkx-ref/hit-rate.md` 的 NEW 档，将来可做“新手体验”对照。
+
+- 旧默认行（已废止，2026-11-07 前）：`combat_exp=250`、`unarmed=40`、`dodge=10`、`parry=10`。
+  废止原因是它在原版公式下不对应一个存在的角色：拳脚 40 级却只有 250 经验，导致
+  `ap` 打不动人而 `pp` 又很难被打中。旧值仅作为 §9.1.1 的“改前”对照组保留。
+- 经验压制公式（`modify_damage_by_exp`）保持原版逻辑不变，不因“好打/难打”而改公式。
 - 旧玩家实体（`max_hp<=0`）在 `player_enter` 时补一次 `vitals_set`，8011 的既有存档也不会“没有血量”。
 - **门控**：仅当内容包 NPC 带 `vitals/attrs/skills` 键（xkx 切片）时生效。旧 `content/`（九地点）
   没有这些键，玩家创世事件与旧 golden / 无玩家哈希逐字节不变。
+- 世界配置 `player_start` 是唯一可调入口（`config/worlds/xkx.yaml`）；`WorldSession` 读取后
+  注入 `enter` payload 与 genesis，动作层只接收归一后的值，不散落配置读取。
+
+#### 9.1.1 MID 档复测（2026-11-07，seed 1–40）
+
+口径：真实 `WorldSession.perform(enter/fight)`，每 `(对手, seed)` 独立 `run_dir`；
+`npc_limit=0`、`endow=False`、`world_config=config/worlds/xkx.yaml`。
+“对方命中率” = NPC 的 `hit / (hit+dodge+parry)`；玩家剩余气血取中位数（阵亡记 0）。
+
+| 对手 | seed 数 | MID 胜/负/平 | MID 平均回合 | MID 玩家剩余气血中位数 | MID 对方命中率 |
+| --- | --- | --- | --- | --- | --- |
+| 店小二 | 40 | 40 / 0 / 0 | 12.18 | 100 | 0.00%（0/447） |
+| 流氓 | 40 | 40 / 0 / 0 | 23.45 | 100 | 2.78%（25/898） |
+| 小沙弥 | 40 | 40 / 0 / 0 | 23.88 | 63.5 | 14.10%（129/915） |
+| 刀客 | 40 | 0 / 40 / 0 | 8.93 | 0 | 53.22%（190/357） |
+| 绿营清兵 | 40 | 0 / 40 / 0 | 6.90 | 0 | 58.33%（161/276） |
+| 老虎 | 10 | 0 / 10 / 0 | 7.50 | 0 | 100.00%（75/75） |
+
+改前对照（`combat_exp=250`、`dodge/parry=10`，同一测量脚本、去掉回合封顶）：
+
+| 对手 | 胜/负/平 | 平均回合 | 玩家剩余气血中位数 | 对方命中率 |
+| --- | --- | --- | --- | --- |
+| 店小二 | 40 / 0 / 0 | 12.10 | 100 | 0.45%（2/444） |
+| 流氓 | 32 / 8 / 0 | 40.92 | 19.5 | 22.85%（374/1637） |
+| 小沙弥 | 0 / 40 / 0 | 13.95 | 0 | 47.49%（265/558） |
+| 刀客 | 0 / 40 / 0 | 4.62 | 0 | 98.92%（183/185） |
+| 绿营清兵 | 0 / 40 / 0 | 4.03 | 0 | 98.76%（159/161） |
+| 老虎 | 0 / 10 / 0 | 7.20 | 0 | 100.00%（72/72） |
+
+结论与边界：
+
+- 改前“全败”只适用于 **小沙弥 / 刀客 / 绿营清兵**（0/40）；店小二与流氓在 250 经验下本来就能赢。
+- MID 档没有出现“打谁都稳赢”：刀客、绿营清兵、老虎仍然稳定击败玩家；小沙弥从 0/40 胜
+  变为 40/40 胜，是本次档位调整的主要变化。
+- 店小二对方命中率 0.00% 与原版 MID 实测一致（`reports/xkx-ref/hit-rate.md`：0/164），
+  属于原版档位本身的行为，不是本次新增的难度问题；流氓 2.78% 也未降到 0。
+- 同 seed 双跑一致（SQLite 文件 sha256 + 战报 `hash_obj(combat)` 完全相同）：
+  - 店小二 seed=1：`file_sha256=76c4a597…6aedf`、`combat_hash=36db2e02…b7203`
+  - 流氓 seed=2：`file_sha256=ad34c607…09a07`、`combat_hash=5b5b1120…f9e192`
+
+### 9.1.2 出生点附近 NPC 主动攻击审计（2026-11-08）
+
+**原版机制**：NPC 的主动攻击不在各 NPC 的 `create()` 里，而在继承的
+`feature/attack.lpc:245 init()`：
+
+- `:262` `userp(ob) && is_killing(ob->query("id"))` → `auto_fight`
+- `:265` `vendetta_mark` 且玩家带对应 `vendetta` → `auto_fight`
+- `:269` `userp(ob) && query("attitude") == "aggressive"` → `auto_fight`
+
+`heroism` / `peaceful` / `friendly` 都不在这个分支里；有条件的主动攻击由 NPC 自己的
+`init()` 调 `kill_ob`。绿营清兵 `/d/hangzhou/npc/qingbing.lpc`：`:13 combat_exp 20000`、
+`:15 attitude "heroism"`、`:17-18 apply/attack|defense 30`、
+`:20-23 club 60 / unarmed 50 / parry 50 / dodge 50`；**全文没有 `init()`、没有 `kill_ob`**。
+所以原版它不是见人就打，只有玩家先动手（或已有 kill/vendetta 关系）才还手。
+
+我们的对应实现：内容包保留 `vitals.combat_exp=20000`、四门技能、`changqiang` + `junfu`；
+`aggressive:false`（`tools/xkx_extract/extract.py:1010` 按 `attitude=="aggressive"` 写入）。
+但 `aggressive` **没有任何运行时消费者**（`grep -R aggressive src/wsim` 只命中抽取器）；
+`FightAction` 只在玩家输入 `fight` 时触发（`src/wsim/actions/combat.py:43,70`）。
+因此我们不是“见人就打”，而是**完全没有 NPC 主动攻击**。§9.1.1 里清兵 7 回合杀玩家
+是测量脚本主动 `fight` 的结果，不是 NPC 先动手。
+
+| NPC | 原版是否主动 | 触发条件（源码） | 我们是否一致 |
+| --- | --- | --- | --- |
+| 绿营清兵 `qingbing` | 否 | `qingbing.lpc:15` heroism；无 `init()`/`kill_ob` | 一致（都不主动） |
+| 刀客 `dao-ke` | 否 | `dao-ke.lpc:30 init()` 只问候/传送，无 `kill_ob` | 一致（都不主动） |
+| 老虎 `laohu` | **是（无条件）** | `laohu.lpc:20` attitude aggressive；`attack.lpc:269` | **不一致：我们更弱**（内容 `aggressive:true`，但运行时不消费，不主动） |
+| 毒蛇 `dushe` | **是（条件）** | `dushe.lpc:27-33`：玩家身上没有 `xionghuang` → `call_out("kill_ob",1)` | **不一致：我们更弱**（无 `kill_ob` 实现） |
+| 大狼狗 `wolfdog` | **是（概率条件）** | `wolfdog.lpc:29-35`：`random(kar+per) < 30` → `call_out("kill_ob",1)` | **不一致：我们更弱**（无 `kill_ob` 实现） |
+| 流氓 `liumang` | 否 | `liumang.lpc:14` peaceful；无 `init()`/`kill_ob` | 一致（都不主动） |
+| 店小二 `xiaoer2` | 否 | `xiaoer2.lpc:29 init()` 只问候；attitude friendly | 一致（都不主动） |
+
+从 `/d/hangzhou/jiulou` 按 `content/xkx/exits.json` BFS 1–3 跳（`traversable` 出口）：
+
+| 跳数 | 房间 | NPC | 原版主动? | 玩家主动攻击的实测后果（MID 档） |
+| --- | --- | --- | --- | --- |
+| 0 | 楼外楼 `/d/hangzhou/jiulou` | 店小二 ×1 | 否 | 玩家胜（12 回合，满血） |
+| 1 | 相约轩 / 青石大道 | — | — | — |
+| 2 | 红娘庄 `/d/hangzhou/marryroom` | 红娘 ×1 | 否（friendly） | 玩家 3/3 败（9–13 回合） |
+| 3 | 断桥 `/d/hangzhou/duanqiao` | 穷汉 ×1 | 否（friendly） | 玩家胜（13–14 回合，满血） |
+| 3 | 青石大道 `/d/hangzhou/road12` | 李可秀 ×1 | 否（heroism） | 玩家 3/3 败（4 回合） |
+| 3 | 青石大道 `/d/hangzhou/road12` | 绿营清兵 ×4 | 否（heroism） | 玩家 0/40 胜（平均 6.90 回合） |
+| 3 | 铁匠铺 `/d/hangzhou/tiejiangpu` | 铁匠 ×1 | 否（friendly） | 玩家胜（13 回合，满血） |
+
+**原版会主动攻击且玩家必死的 NPC：1–3 跳内 0 个。** 玩家不输入 `fight` 时，出生点附近
+没有任何 NPC 会先动手。若玩家主动攻击，“会死”的是红娘（2 跳）、李可秀与绿营清兵
+（3 跳，均在 `road12`）；店小二、穷汉、铁匠可胜。这是产品层是否加“此地危险”提示的依据，
+不是代码缺陷。
+
+**流氓命中率 2.78% vs 原版 7.82% 归因（只归因，未修）**：
+
+- `apply` 已接上：内容 `temp_apply` 有 `apply/attack 10`、`apply/defense 10`，实体
+  `_Actor.apply_attack=10`；不是“有 apply 没接上”。
+- 不是“持械按空手算”：原版 `liumang.lpc` 本身空手（`unarmed 20`，只穿 `cloth`），无武器。
+- 主因是 **NPC 六维缺失**：原版 human race 的 str/con/dex 是 `10 + random(21)`
+  （`adm/daemons/race/human.lpc:60-62`），原版 MID 快照里的 liumang 实例 str/dex=20；
+  我们的内容 `attrs={}`，引擎 fallback 10。`skill_power` 的乘数是 `(str_eff + base_str)`，
+  我们是 10+10=20，原版是 20+20=40，ap 直接差一倍。按当前公式反推：只把 liumang
+  str/dex 补到 20，预测对方命中率 2.1% → 6.4%（实测当前 2.78%），与原版 7.82% 同一量级。
+- 次因是 `query_skill` 语义：原版非 raw 返回 `skills[skill]/2 + skills[skill_map]`
+  （`reports/xkx-ref/hit-rate.md:30`），MID 显示 40、战斗有效 20；我们直接用 40/20。
+  因为 liumang 还有 `apply/attack 10`，双方同倍缩放后 apply 占比变小，玩家防御相对更高，
+  命中率被进一步压低；两者都修正后反推约 5.3%。
+- 结论：**不是 apply 缺失、不是持械/空手错配；是 NPC str/dex 取了下限 10（原版实例 20）
+  + `query_skill` 未半档**。两条已按原版语义修复，见 §9.1.3 与 §14。
+
+### 9.1.3 NPC 六维：按原版种族 setup 掷点（2026-11-08）
+
+原版没有 `set("race")` 的对象走人类初始化（`adm/daemons/chard.lpc:25-30`），
+再由 `adm/daemons/race/human.lpc:60-68` 掷点：
+
+| 属性 | 原版写法 | 说明 |
+| --- | --- | --- |
+| str/con/dex/per/kar | `10 + random(21)` | 闭区间 10..30 |
+| sta/cps/cor | `10 + random(21)`，条件含 `|| my[x] == 0` | 同上 |
+| int | `80 - str - con - dex` | **派生值，不掷骰** |
+
+修复内容：
+
+- 抽取器 `tools/xkx_extract/extract.py`：
+  - `RACE_ATTR_FILES` 增加 `人类 -> adm/daemons/race/human.lpc`；
+  - 无显式 `set("race")` 时按 `chard.lpc:25` 落 `race="人类"`，`race_source` 指向该行；
+  - `ATTR_KEYS` 补齐 `sta/cps/cor/spi`（`spi` 只收显式值；人类 setup 不掷它）；
+  - `_RACE_ATTR_ROLL_RE` 同时接受 `random(N) + M`（兽）与 `M + random(N)`（人），
+    并接受 `undefinedp(...) || my[...] == 0` 条件；
+  - 人类 `int` 未被显式 set 时输出 `attrs_derive.int`（`difference`, total 80,
+    minus `[str, con, dex]`, source `human.lpc:63`）。
+- 引擎 `src/wsim/sim/vitals.py`：
+  - `roll_attrs` 原有盐 `xkx-attrs:<seed>:<npc_id>:<attr>` 不变，同 seed 双跑一致；
+  - 新增 `_apply_attrs_derive`：在显式值 + 掷点之后按 `attrs_derive` 计算；
+    显式/掷点值优先不覆盖；缺任一被减项时不派生并记
+    `incomplete_attrs_derive:<npc>:<attr>` 诊断。
+- 例外：显式 `set("str", …)` 等（含无法静态取值的表达式）不掷、不覆盖；
+  显式 `set("int", …)` 时不输出 `attrs_derive`。
+
+旧世界隔离：只有 `content/xkx` 重新生成；`resolve_npc_vitals` 仍只对带
+`vitals/attrs/skills/attrs_roll/attrs_derive` 任一键的 NPC 生效，旧 `content/`
+30 个 legacy NPC 一个键都没有，事件与哈希逐字节不变。xkx 世界 `content_hash`
+按预期变化（`06bdaf46…` → `99a23a90…`），旧 run 启动即 `content_hash_mismatch`，
+需 `--reset`，已登记 `docs/GOLDEN-BASELINE-LOG.md`。
 
 ### 9.2 NPC 创世 `max_hp`
 
@@ -673,7 +820,70 @@ B→C 仍为 0。
   （`verb="rest"`，`aliases=("sleep",)`）注册，写动作按声明小时推进世界钟。
 - NPC 掷点：`roll_attrs` 用
   `sha256("xkx-attrs:<seed>:<npc_id>:<attr>")[:8]` 取大端整数对区间取模；
-  seed 来自世界配置/创世，legacy NPC 无 `vitals/attrs/skills/attrs_roll` 时不落战斗字段。
+  seed 来自世界配置/创世，legacy NPC 无 `vitals/attrs/skills/attrs_roll/attrs_derive`
+  时不落战斗字段。
 - `region/region_name` 由 `xkx_content` 从 `rooms.json` 只读透出到
   `content.locations`；视角输出缺失时为 `null`，不编造区域。
+
+## 14. `query_skill` 半档语义（2026-11-08）
+
+原版实现（`feature/skill.lpc:87-100`）：
+
+```
+87 varargs int query_skill(string skill, int raw) {
+88   if (!raw) {
+91     s = query_temp("apply/" + skill);
+93     s += skills[skill] / 2;
+95     if (mapp(skill_map)) s += skills[skill_map[skill]];
+96     return s;
+97   }
+98   if (mapp(skills) && !undefinedp(skills[skill])) return skills[skill];
+99   return 0;
+100 }
+```
+
+引擎在**参数映射层**实现：`_Actor.level()` = raw，`_Actor.effective()` =
+`apply/<skill> + raw/2 + mapped`。公式库 `tools/xkx_formula/**` 零改动。
+
+### 14.1 调用点清单与 raw/半档依据
+
+| 调用点 | 原版依据 | 口径 | 引擎落点 |
+| --- | --- | --- | --- |
+| 攻击 ap | `combatd.lpc:204` `query_skill(skill)`；`:207` 再加 `apply/attack` | **半档** | `_attack_power` → `effective(skill)` |
+| 防御 dp/pp | `combatd.lpc:204/210`（dodge/parry/unarmed） | **半档** | `_defense_power` → `effective(skill)` |
+| 内功发力 | `inherit/skill/force.lpc:13,28` `query_skill("force")` | **半档** | `_force_hit` → `effective("force")` |
+| 先手近似 | 原版无显式先手（MudOS heartbeat） | 引擎自选，取 **半档** 与 ap/dp 同口径 | `speed_a/b` → `effective("dodge")` |
+| 技能成长 | `feature/skill.lpc:178` 直接用 `skills[skill]` | **raw** | `_Actor.learn` → `level(skill)` |
+| 闪避/招架/伤害奖励阈值 | `combatd.lpc:365/421/583` 均传 `query_skill(..., 1)` | **raw** | `dodge_rewards` / `parry_rewards` / `damage_rewards` 的 `*_skill_level` → `level()` |
+| 招式选择 | `mantian-xing.lpc:186`、`yunlong-zhua.lpc:123-134` 等 `query_skill(..., 1)` | **raw** | `skill_action` / `_martial_hit` → `level()` |
+
+### 14.2 改造前后实测（6 对手，seed 1–40；老虎 1–10）
+
+每格：胜/负 · 平均回合 · 玩家剩余气血中位数 · 对方命中率。
+
+| NPC | 改前（HEAD） | 只修属性 | 属性 + 半档 | 原版实测 |
+| --- | --- | --- | --- | --- |
+| 店小二 | 40/0 · 12.18 · 100 · 0.00% | 40/0 · 12.18 · 100 · 0.00% | 40/0 · 12.40 · 100 · 0.00% | 0.00% |
+| 流氓 | 40/0 · 23.45 · 100 · 2.78% | 39/1 · 29.50 · 86.5 · 7.10% | 40/0 · 28.23 · 86.5 · 5.60% | 7.82% |
+| 小沙弥 | 40/0 · 23.88 · 63.5 · 14.10% | 40/0 · 23.88 · 63.5 · 14.10% | 39/1 · 25.00 · 59.0 · 15.50% | — |
+| 刀客 | 0/40 · 8.93 · 0 · 53.22% | 0/40 · 5.72 · 0 · 63.76% | 0/40 · 5.47 · 0 · 68.04% | — |
+| 绿营清兵 | 0/40 · 6.90 · 0 · 58.33% | 0/40 · 4.80 · 0 · 66.67% | 0/40 · 4.53 · 0 · 70.17% | — |
+| 老虎 | 0/10 · 7.50 · 0 · 100% | 0/10 · 7.50 · 0 · 100% | 0/10 · 7.40 · 0 · 100% | 100% |
+
+偏差：店小二 0（一致）、老虎 100%（一致）、流氓 5.60% vs 7.82%（低 2.22pp）。
+流氓残余偏差来自原版实例固定 str/dex=20，而我们在 seed 1–40 上掷 10..30（均值 20），
+以及原版战报的快攻/连击分支未建模；不再人为调参。
+
+结论：这两项是**战斗输入校正**，不是难度调整。修完后玩家对刀客/清兵反而更差
+（对方属性从下限 10 恢复成原版掷点），这是原版行为，按用户要求不改。
+
+### 14.3 确定性与红线
+
+- 旧九地点三项哈希不变：735 /
+  `009076f0346352e328d8c158a3017a3e26fbc0b2c59ef7ca20c8fc3d1f780ce9` /
+  `02d5f812c427833387e592ad9321ebd72a9c5c719825b958f53af83d795078ae`。
+- `tools/xkx_formula/**` `git diff --stat` 为空。
+- 同 seed 双跑一致（seed=1 店小二、seed=2 流氓，两条独立会话）：
+  `file_sha256` 与 `combat_hash` 均相同（见本轮交付报告）。
+- xkx `content_hash` 仅因属性内容变化：`06bdaf46…` → `99a23a90…`，旧 run 需 `--reset`。
 

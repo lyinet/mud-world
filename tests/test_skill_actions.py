@@ -102,6 +102,32 @@ def test_hook_code_skills_and_unmodeled_three():
         assert not any(sa.has_code_hook(v, name) for v in hooks.values())
 
 
+def test_weapon_action_uses_weapon_type_verbs_and_one_roll():
+    prng = FakePRNG([1])
+    action = sa.select_weapon_action("staff", prng)
+    assert prng.calls == [3]  # staff: bash/crush/slam
+    assert action["text"] == "$N高高举起$w，往$n的$l当头砸下"
+    assert action["coeff"]["damage"] == 0
+
+    sword = FakePRNG([2])
+    picked = sa.select_weapon_action("sword", sword)
+    assert sword.calls == [3]
+    assert picked["text"].startswith("$N用$w往$n的$l")
+
+
+def test_weapon_action_empty_type_consumes_nothing():
+    prng = FakePRNG()
+    assert sa.select_weapon_action("", prng) is None
+    assert prng.calls == []
+
+
+def test_unknown_weapon_type_falls_back_to_base_weapon_verbs():
+    prng = FakePRNG([1])
+    action = sa.select_weapon_action("exotic", prng)
+    assert prng.calls == [4]  # weapon.lpc 基类：chop/slash/slice/hack
+    assert action["text"].startswith("$N挥动$w")
+
+
 def test_mapped_skill_reads_entity_mapping():
     class Ent:
         map_skills = {"unarmed": "jingang-quan"}

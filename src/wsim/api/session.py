@@ -64,6 +64,7 @@ from ..core.models import Intent
 from ..agent import dialogue_runtime
 from ..agent.dialogue_aside import DialogueAside
 from ..mcp.gateway import MCPGateway, GatewayError
+from ..sim.aggression import aggression_rules, rule_for
 from ..sim.genesis import build_genesis
 from ..sim.room_reset import RoomResetPolicy
 from ..sim.scheduler import AmbientConfig, AmbientScheduler
@@ -194,7 +195,8 @@ WRITE_ACTIONS: dict[str, str] = {
     # xkx 文字壳：战斗动词由 actions 层提供，API 只在动作已注册时放行。
     "fight": "fight",
     "loot": "loot",
-    "flee": "flee",
+    # 原版 `wimpy`：自动逃跑阈值（0 关闭），不是新增的 flee 动词。
+    "wimpy": "wimpy",
     # 成长线与生死：拜师 / 学习 / 练习 / 攀爬 / 跳跃 / 还阳。
     "bai": "bai",
     "learn": "learn",
@@ -267,7 +269,7 @@ ACTION_ALIASES: dict[str, str] = {
     "sleep": "sleep",
     "fight": "fight",
     "loot": "loot",
-    "flee": "flee",
+    "wimpy": "wimpy",
     "bai": "bai",
     "learn": "learn",
     "practice": "practice",
@@ -286,7 +288,7 @@ FORBIDDEN_VERBS = frozenset(
 # xkx 文字壳可用的战斗动词：仅在 actions/ 层真正注册了同名动作时放行，
 # 避免 API 层提前把未实现的动词暴露给玩家。
 XKX_EXTRA_PLAYER_VERBS = frozenset(
-    {"fight", "loot", "flee", "bai", "learn", "practice", "climb", "jump", "revive"}
+    {"fight", "loot", "wimpy", "bai", "learn", "practice", "climb", "jump", "revive"}
 )
 
 # `/api/world/feed` 的固定上限与“重要事件”动词白名单（公共信息，不含玩家私有数据）。
@@ -527,6 +529,8 @@ class WorldSession:
         self.world_config_path = Path(world_config) if world_config else None
         # 世界配置里唯一的游走开关；缺省/缺文件/解析失败一律视为关闭。
         self.npc_wander_enabled = self._load_npc_wander(self.world_config_path)
+        # 开局档位（combat_exp / 初始技能）：世界配置唯一来源，动作层只接收归一后的值。
+        self.player_start = self._load_player_start(self.world_config_path)
         self.run_id = run_id
         self.run_dir = Path(run_dir) if run_dir else self.root / "runs" / run_id
         self.run_dir.mkdir(parents=True, exist_ok=True)
@@ -558,6 +562,9 @@ class WorldSession:
             if self.room_reset_enabled
             else None
         )
+        # NPC 主动攻击规则只从内容包派生：旧九地点内容没有 aggressive 字段，
+        # 也没有老虎/毒蛇/狼狗三个专属 id，规则表为空，入场不产生任何事件。
+        self.aggression_rules = aggression_rules(self.content)
         # 世界自走与玩家共用 content：feed 只认这批 NPC，玩家 ID 永不进入公共事件流。
         self.npc_limit = int(npc_limit or 0)
         self._npc_ids = frozenset(
@@ -632,6 +639,7 @@ class WorldSession:
                             pid,
                             display_name if pid == player_id else pid.removeprefix("player:"),
                             spawn,
+                            start=self.player_start,
                         ),
                         tick=0,
                         verb="genesis_player",
@@ -1021,7 +1029,7 @@ class WorldSession:
             minted = int(self.state.minted_total)
             burned = int(self.state.burned_total)
             accounts_sum = sum(int(v) for v in self.state.accounts.values())
-            return {
+            result = {
                 "ok": True,
                 "profile_version": PROFILE_VERSION,
                 "account_id": account,
@@ -1066,6 +1074,10 @@ class WorldSession:
                 "growth": view["growth"],
                 "today": view["today"],
             }
+            # 只在真正交战时出现：旧世界/未交战的响应结构完全不变。
+            if view.get("combat"):
+                result["combat"] = view["combat"]
+            return result
 
     # ------------------------------------------------ 服务模式匿名读（公共摘要）
     def public_state(self, account: str) -> dict[str, Any]:
@@ -1563,6 +1575,25 @@ class WorldSession:
         raw = loaded.get("room_reset") or {}
         return bool(raw.get("enabled")) if isinstance(raw, dict) else bool(raw)
 
+    @staticmethod
+    def _load_player_start(path: Path | None) -> dict | None:
+        """只读世界配置的 `player_start`；缺省/解析失败/非 dict 一律回落 None。
+
+        数值合法性由 `actions.player._start_values` 统一归一，这里只负责取配置。
+        """
+        if path is None:
+            return None
+        try:
+            import yaml
+
+            loaded = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
+        except Exception:
+            return None
+        if not isinstance(loaded, dict):
+            return None
+        raw = loaded.get("player_start")
+        return dict(raw) if isinstance(raw, dict) else None
+
     def _load_content_pack(self, pack_root: Path):
         """按“内容包目录”加载内容，兼容 core.load_content 的 <root>/content 约定。
 
@@ -1594,6 +1625,74 @@ class WorldSession:
     def _xkx_extra_verb_allowed(self, verb: str) -> bool:
         """战斗类动词只在 actions/ 层已注册时对玩家放行。"""
         return str(verb) in XKX_EXTRA_PLAYER_VERBS and self.registry.get(str(verb)) is not None
+
+    def _trigger_npc_aggression(self, pid: str, tick: int) -> list[dict[str, Any]]:
+        """玩家进入房间时，对每个“尚未交战且有规则”的 NPC 判定一次。
+
+        与旧世界隔离的关键：规则表由内容派生，旧 YAML 没有 aggressive 字段，
+        也没有老虎/毒蛇/狼狗，`self.aggression_rules` 为空 -> 这里直接返回，
+        不写任何事件。同一 NPC 在同一房间只会提交一条 trigger。
+        """
+        rules = self.aggression_rules
+        if not rules:
+            return []
+        ent = self.state.entities.get(pid)
+        if ent is None:
+            return []
+        rows: list[dict[str, Any]] = []
+        for npc_id in sorted(self.state.entities):
+            npc = self.state.entities[npc_id]
+            if npc.location != ent.location:
+                continue
+            if npc.status != "alive" or npc.combat_target:
+                continue
+            if rule_for(npc, rules) is None:
+                continue
+            event = self._submit(
+                Intent(
+                    actor=npc_id,
+                    verb="npc_aggression",
+                    args={"mode": "trigger", "target": pid},
+                    tick=int(tick),
+                    source="npc",
+                    reason=f"{npc_id} 见到 {pid} 进入房间（init 触发）",
+                )
+            )
+            for eff in event.effects or []:
+                if eff.get("op") != "aggression_log":
+                    continue
+                data = dict(eff.get("data") or {})
+                rows.append(
+                    {
+                        "npc": npc_id,
+                        "name": npc.name,
+                        "triggered": bool(data.get("triggered")),
+                        "result": str(data.get("result") or ""),
+                        "roll": data.get("roll"),
+                        "total": data.get("total"),
+                        "threshold": data.get("threshold"),
+                        "tick": int(event.tick),
+                        "outcome": str(event.outcome),
+                        "reason": str(event.reason),
+                    }
+                )
+        return rows
+
+    def _combat_view(self, pid: str) -> dict[str, Any]:
+        """只读交战快照：哪个 NPC 正在打这名玩家、已结算到第几回合。"""
+        for npc_id in sorted(self.state.entities):
+            npc = self.state.entities[npc_id]
+            if npc.combat_target != pid or npc.status != "alive":
+                continue
+            return {
+                "active": True,
+                "opponent": npc_id,
+                "opponent_name": npc.name,
+                "round": int(npc.combat_round),
+                "started_tick": int(npc.combat_tick),
+                "location": npc.location,
+            }
+        return {}
 
     def _status_view(self, pid: str) -> dict[str, Any]:
         view = player_status(self.state, pid)
@@ -1628,6 +1727,9 @@ class WorldSession:
         view["today"] = today
         view["marriage"] = self._marriage_view(pid)
         view["sect"] = self._sect_view(pid)
+        combat = self._combat_view(pid)
+        if combat:
+            view["combat"] = combat
         view["tick"] = self.state.tick
         view["ok"] = True
         return view
@@ -2669,6 +2771,8 @@ class WorldSession:
         reason = self._precheck_player_action(action, pid, args, tick)
         if reason:
             return self._reject_early(account, action, reason, tick)
+        ent_before = self.state.entities.get(pid)
+        loc_before = ent_before.location if ent_before is not None else ""
         intent = Intent(actor=pid, verb=verb, args=args, tick=tick, source="player")
         created = prof is None
         event = self._submit(intent)
@@ -2742,6 +2846,16 @@ class WorldSession:
                         source="player",
                     )
                 )
+        # 原版 `feature/attack.lpc` 的 aggressive `init()`：对象移入环境时触发，
+        # 这里只在“进入新房间”的写动作成功后判定一次；真正的出手由 ambient
+        # 每 tick 的 continue 结算，给玩家留出和原版一样的下一个心跳窗口。
+        aggression: list[dict[str, Any]] = []
+        if event.outcome == "ok" and action in ("enter", "move", "climb", "jump", "revive"):
+            ent_after = self.state.entities.get(pid)
+            if ent_after is not None and ent_after.status == "alive" and (
+                action == "enter" or ent_after.location != loc_before
+            ):
+                aggression = self._trigger_npc_aggression(pid, int(event.tick))
         if advance:
             # 上工/修炼按声明小时真实推进世界钟（1 小时 = TICKS_PER_HOUR tick），
             # 不能只推 1 小时却让界面假装 N 小时；其余动作仍按 tick_step。
@@ -2767,6 +2881,8 @@ class WorldSession:
             )
             if data:
                 response["details"]["marriage"] = dict(data.get("marriage") or {})
+        if aggression:
+            response["details"]["aggression"] = aggression
         if action == "enter" and event.outcome == "ok":
             response["details"]["created"] = created
             response["details"]["resumed"] = not created
@@ -2874,6 +2990,7 @@ class WorldSession:
                     "display_name": str(payload.get("display_name") or self.display_name),
                     "archetype": str(payload.get("archetype") or ""),
                     "at": at,
+                    "player_start": self.player_start,
                 }
             )
             return base
@@ -3390,6 +3507,9 @@ class WorldSession:
             elif eff.get("op") == "combat_log":
                 # 战斗战报：原样透传引擎的 rounds[]/overkill，不做任何截断或重排。
                 details["combat"] = dict(eff.get("data") or {})
+            elif eff.get("op") == "wimpy_log":
+                # wimpy 命令/自动逃跑的只读明细，供壳层与验收直接读。
+                details["wimpy"] = dict(eff.get("data") or {})
             elif eff.get("op") == "growth_log":
                 # 成长线明细：拜师/学习/练习/攀爬/跳跃/还阳，逐字段原样透传。
                 details["growth"] = dict(eff.get("data") or {})

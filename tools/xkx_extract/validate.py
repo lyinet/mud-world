@@ -154,11 +154,11 @@ def _check_npc_temp_apply(diags: list[dict], pack: dict) -> None:
                     "message": f"NPC {npc['id']} 的 set_temp {entry.get('key')} 既无整数值也无原式",
                     "id": npc["id"], "key": entry.get("key"),
                 })
-            if entry.get("source_kind") != "lpc":
+            if entry.get("source_kind") not in ("lpc", "lpc_set"):
                 diags.append({
                     "rule": "E_TEMP_SOURCE_KIND", "severity": "error",
                     "path": npc["source"]["path"], "line": npc["source"]["line"],
-                    "message": f"NPC {npc['id']} 的 set_temp 来源标记不是 lpc",
+                    "message": f"NPC {npc['id']} 的 set_temp/apply 来源标记不是 lpc/lpc_set",
                     "id": npc["id"], "key": entry.get("key"),
                 })
 

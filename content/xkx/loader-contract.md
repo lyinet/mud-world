@@ -191,7 +191,7 @@
 | `drops` | array | 死亡掉落，见 5.1；**没有掉落也写空表** |
 | `drops_source` | `"lpc"` \| `"none"` | `lpc` = `die()` 中有真实掉物；`none` = 源码无掉落 |
 | `drops_note` | string \| null | `drops_source="none"` 时必填，写明为什么没有 |
-| `temp_apply` | array | `create()` 内 `set_temp` 的静态快照，见 5.2 |
+| `temp_apply` | array | `create()` 内 `set_temp` / `set("apply/…")` 的静态快照，见 5.2 |
 | `origin` | `"slice"` \| `"external"` | |
 
 `skills` 的键是技能 id，中文名在 `skills.json` 查。`map_skills` 表示“用哪个技能顶替基础技能”，不是等级。
@@ -239,7 +239,7 @@
 - 名称/价格/描述一律照原版；原版没有 `set("long")` 的，`desc=null`、`desc_source=null`，不补写；
 - 原版没有 `set("value")` 的，`price=null`，不按 0 假装有价。
 
-### 5.2 `temp_apply[]` — 临时属性（`set_temp`）
+### 5.2 `temp_apply[]` — 创世静态 apply 快照（`set_temp` / `set("apply/…")`）
 
 ```json
 { "key": "apply/defense",
@@ -250,20 +250,33 @@
   "source": { "path": "d/hangzhou/npc/laohu.lpc", "line": 29 } }
 ```
 
+```json
+{ "key": "apply/attack",
+  "value": 30,
+  "value_expr": null,
+  "known": true,
+  "source_kind": "lpc_set",
+  "source": { "path": "d/hangzhou/npc/qingbing.lpc", "line": 17 } }
+```
+
 | 字段 | 含义 |
 | --- | --- |
-| `key` | 原版 `set_temp` 的键名，原样保留 |
+| `key` | 原版键名（`set_temp` 或 `set` 的第一个参数），原样保留 |
 | `value` | 整数字面量；非整数时为 `null` |
 | `value_expr` | `value=null` 时的源码原式（如 `ma`、`"huo qingtong"`）；不折算 |
 | `known` | 是否在战斗白名单内；`false` 表示抽取器不认识，原样保留并记 `W_TEMP_KEY_UNKNOWN` |
-| `source_kind` | 固定 `lpc`，表示照源码静态搬运 |
+| `source_kind` | `lpc` = `set_temp`；`lpc_set` = `set("apply/…")` 永久属性 |
 | `source` | 源码文件与行号 |
 
 战斗白名单：`apply/attack`、`apply/defense`、`apply/armor`、`apply/dodge`、`apply/parry`、`apply/damage`。白名单外的键（如 `armor`、`qingshu`、`shoupa`、`is_riding`、`is_rided_by`）不丢弃、不猜测，`known=false` 供引擎侧确认。
 
-**只取 `create()` 作用域**：原版同名对象在运行期（`init()`、任务函数等）也会 `set_temp` 改状态，那些不是创世属性，抽取器按函数体行号排除。
+**两种原版写法**：多数 NPC 用 `set_temp("apply/…", N)`；清兵、各派弟子等 11 个切片模板直接 `set("apply/…", N)`（永久属性）。两者都收进快照，`source_kind` 区分来源，数值原样搬运。
 
-**与原版的差异（重要）**：原版 `set_temp` 是运行期临时加成，`reset()` 或对象重建后会按 `create()` 重新设置；本项目按**创世即带**处理——加载器在创建 NPC 时一次性应用这些加成，不做运行期重算。对静态战斗数值（`apply/attack`、`apply/defense` 等）两者等价；若将来引入“加成被临时修改”的机制，需要单独建模，不能假设这里会随 `reset` 刷新。
+**只取 `create()` 作用域**：运行期改写（任务函数、`ob->set_temp("apply/short", …)` 等）不是创世属性。抽取器仍按函数体行号排除，但会把每一处未入快照的写入留痕为 `I_NPC_APPLY_OUT_OF_CREATE`（其中 `delete_temp` 记 `I_NPC_APPLY_RUNTIME_DELETE`），带 `key`/`method`/`source_line`，不静默丢。当前这类只有 `d/jiaxing/npc/tang*.lpc` 的 `apply/short` 显示覆盖：8 处 `set_temp` + 8 处成对 `delete_temp`，不属于战斗加成。
+
+**与原版的差异（重要）**：原版 `set_temp` 是运行期临时加成，`reset()` 或对象重建后会按 `create()` 重新设置；本项目按**创世即带**处理，加载器在创建 NPC 时一次性应用，不做运行期重算。对静态战斗数值（`apply/attack`、`apply/defense` 等）两者等价。另：原版 `combatd` 只读 `query_temp("apply/…")`，`set("apply/…")` 写的是永久属性，未证实会进入战斗；本内容包为保真保留并标 `lpc_set`，引擎若只信任已证实来源，应按 `source_kind` 过滤，不要默认把它当等价加成。
+
+**抽取统计（切片内 92 个模板；加区外 13 条共 105 条记录）**：补前 25 个模板 / 59 条 apply 记录；补后 36 个模板 / 83 条，其中 24 条来自 `lpc_set`。键分布：`apply/attack` 32、`apply/defense` 31、`apply/armor` 10、`apply/damage` 10。切片 NPC 自身没有 `init_<type>()` 调用，继承的 `NPC`/`F_*` 基类与 race daemon 也没有创建期静态 apply 写入，因此没有额外的间接来源。
 
 ### 5.3 `attrs_roll` — 种族随机属性区间
 

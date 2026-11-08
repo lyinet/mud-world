@@ -35,6 +35,10 @@ class Entity:
     # NPC 随身装备（内容包 `equipment` 原样，可重复）。死亡时转成地面物品；
     # 旧九地点 NPC 没有该字段，空列表不写进 to_dict()，哈希不变。
     equipment: list[str] = field(default_factory=list)
+    # 原版 `die()` 里 `new(__DIR__ "obj/...")` 的固定掉落（内容包 `drops[]`，
+    # 只收 chance=1 / item_resolved / landing=ground）。旧内容没有该字段，
+    # 空字典不写进 to_dict()，旧世界哈希不变。
+    drops: dict[str, int] = field(default_factory=dict)
     skills: dict[str, float] = field(default_factory=dict)
     personality: dict[str, Any] = field(default_factory=dict)
     employed_at: str | None = None
@@ -96,6 +100,14 @@ class Entity:
     # 规范实例留空/0，to_dict() 不输出，旧世界哈希逐字节不变。
     template: str = ""
     instance: int = 0
+    # NPC 主动攻击交战状态（原版 `enemy` / `killer` + 心跳）。
+    # 只在 xkx 主动攻击真正发生时写入；空值不输出，旧九地点哈希逐字节不变。
+    combat_target: str = ""
+    combat_tick: int = 0
+    combat_round: int = 0
+    # 原版 `env/wimpy`：当「气」百分比低于该值时自动尝试逃跑（0 为关闭）。
+    # 只在玩家显式设置后写入；0 不输出，旧世界哈希逐字节不变。
+    wimpy: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         data = {
@@ -133,6 +145,8 @@ class Entity:
             data["weapon_type"] = self.weapon_type
         if self.equipment:
             data["equipment"] = list(self.equipment)
+        if self.drops:
+            data["drops"] = dict(sorted(self.drops.items()))
         # 战斗字段：只在内容包显式提供后出现，旧世界（max_hp=0）不新增任何键。
         if self.max_hp:
             data["hp"] = int(self.hp)
@@ -180,6 +194,12 @@ class Entity:
         if self.template:
             data["template"] = self.template
             data["instance"] = int(self.instance)
+        if self.combat_target:
+            data["combat_target"] = self.combat_target
+            data["combat_tick"] = int(self.combat_tick)
+            data["combat_round"] = int(self.combat_round)
+        if self.wimpy:
+            data["wimpy"] = int(self.wimpy)
         return data
 
 

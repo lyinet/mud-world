@@ -194,6 +194,106 @@ def select_default_action(race: str, prng: Any) -> dict[str, Any] | None:
     return actions[prng.below(len(actions))]
 
 
+# `inherit/weapon/*.lpc` 的 `set("verbs", ...)`：武器类型 → 可选动词。
+# 键与内容包 `equip_slot` 一致；`weapon.lpc` 是基类，未知类型回落到它的动词表。
+_WEAPON_VERBS: dict[str, tuple[str, ...]] = {
+    "axe": ("chop", "slash", "slice", "hack"),
+    "blade": ("slash", "slice", "hack"),
+    "club": ("bash", "crush", "slam"),
+    "dagger": ("slice", "pierce", "thrust"),
+    "fork": ("impale", "pierce", "thrust"),
+    "hammer": ("bash", "crush", "slam"),
+    "hook": ("chop", "hack"),
+    "mace": ("chop", "bash", "crush", "slam"),
+    "rake": ("chop", "slash", "bash", "hack"),
+    "spear": ("bash", "thrust", "pierce", "impale", "crush"),
+    "staff": ("bash", "crush", "slam"),
+    "stick": ("bash", "crush", "slam"),
+    "sword": ("slash", "slice", "thrust"),
+    "throwing": ("throw",),
+    "whip": ("whip",),
+}
+_WEAPON_FALLBACK_VERBS: tuple[str, ...] = ("chop", "slash", "slice", "hack")
+
+# `adm/daemons/weapond.lpc:7-100` 的 `weapon_actions` 原文与系数。
+# 只保留引擎会读到的 dodge/parry/damage；`post_action`（兵器破坏等）未建模。
+_WEAPON_ACTIONS: dict[str, dict[str, Any]] = {
+    "slash": {
+        "text": "$N挥动$w，斩向$n的$l", "damage_type": "割伤",
+        "coeff": {"dodge": 0, "parry": 20, "force": 0, "damage": 0},
+    },
+    "slice": {
+        "text": "$N用$w往$n的$l砍去", "damage_type": "劈伤",
+        "coeff": {"dodge": 20, "parry": 0, "force": 0, "damage": 0},
+    },
+    "chop": {
+        "text": "$N的$w朝著$n的$l劈将过去", "damage_type": "劈伤",
+        "coeff": {"dodge": 0, "parry": -20, "force": 0, "damage": 0},
+    },
+    "hack": {
+        "text": "$N挥舞$w，对准$n的$l一阵乱砍", "damage_type": "劈伤",
+        "coeff": {"dodge": 30, "parry": 0, "force": 0, "damage": 30},
+    },
+    "thrust": {
+        "text": "$N用$w往$n的$l刺去", "damage_type": "刺伤",
+        "coeff": {"dodge": 15, "parry": -15, "force": 0, "damage": 0},
+    },
+    "pierce": {
+        "text": "$N的$w往$n的$l狠狠地一捅", "damage_type": "刺伤",
+        "coeff": {"dodge": -30, "parry": -30, "force": 0, "damage": 0},
+    },
+    "whip": {
+        "text": "$N将$w一扬，往$n的$l抽去", "damage_type": "鞭伤",
+        "coeff": {"dodge": -20, "parry": 30, "force": 0, "damage": 0},
+    },
+    "impale": {
+        "text": "$N用$w往$n的$l直戳过去", "damage_type": "刺伤",
+        "coeff": {"dodge": -10, "parry": -10, "force": 0, "damage": 0},
+    },
+    "strike": {
+        "text": "$N一个大舒臂抡起$w，对着$n的$l往下一砸", "damage_type": "筑伤",
+        "coeff": {"dodge": -10, "parry": -10, "force": 0, "damage": 0},
+    },
+    "bash": {
+        "text": "$N挥舞$w，往$n的$l用力一砸", "damage_type": "挫伤",
+        "coeff": {"dodge": 0, "parry": 0, "force": 0, "damage": 0},
+    },
+    "crush": {
+        "text": "$N高高举起$w，往$n的$l当头砸下", "damage_type": "挫伤",
+        "coeff": {"dodge": 0, "parry": 0, "force": 0, "damage": 0},
+    },
+    "slam": {
+        "text": "$N手握$w，眼露凶光，猛地对准$n的$l挥了过去", "damage_type": "挫伤",
+        "coeff": {"dodge": 0, "parry": 0, "force": 0, "damage": 0},
+    },
+    "throw": {
+        "text": "$N将$w对准$n的$l射了过去", "damage_type": "刺伤",
+        "coeff": {"dodge": 0, "parry": 0, "force": 0, "damage": 0},
+    },
+}
+
+
+def select_weapon_action(weapon_type: str, prng: Any) -> dict[str, Any] | None:
+    """原版 `weapond.lpc:92-100 query_action()`：按武器 verbs 随机一条。
+
+    仅在 `query_skill_mapped(type)` 为空时由 `feature/attack.lpc:214-224`
+    回落到武器对象；`weapon_type` 为空（没有武器类型）时返回 None 且不掷点。
+    """
+    kind = str(weapon_type or "")
+    if not kind:
+        return None
+    verbs = _WEAPON_VERBS.get(kind, _WEAPON_FALLBACK_VERBS)
+    verb = verbs[prng.below(len(verbs))]
+    row = _WEAPON_ACTIONS[verb]
+    return {
+        "index": verbs.index(verb),
+        "name": "",
+        "text": str(row["text"]),
+        "level": 0,
+        "coeff": dict(row["coeff"]),
+    }
+
+
 def has_code_hook(hooks: dict[str, Any] | None, name: str) -> bool:
     """钩子是否是“源码存在函数体”的 code 类型（静态无常量值）。"""
     row = (hooks or {}).get(str(name)) if isinstance(hooks, dict) else None

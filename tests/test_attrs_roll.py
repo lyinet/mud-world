@@ -53,3 +53,74 @@ def test_resolve_npc_vitals_rolls_over_static_attrs():
     rolled = roll_attrs("npc.a", {"str": [5, 44]}, seed=42)
     assert resolved["attrs"]["str"] == rolled["str"]
     assert resolved["attrs"]["con"] == 2
+
+
+HUMAN_DERIVE = {
+    "int": {
+        "kind": "difference",
+        "total": 80,
+        "minus": ["str", "con", "dex"],
+    }
+}
+
+
+def test_resolve_npc_vitals_derives_human_int_from_rolled_attrs():
+    npc = {
+        "id": "npc.human",
+        "attrs_roll": {"str": [10, 30], "con": [10, 30], "dex": [10, 30]},
+        "attrs_derive": HUMAN_DERIVE,
+    }
+    resolved = resolve_npc_vitals(npc, seed=7)
+    assert resolved is not None
+    attrs = resolved["attrs"]
+    assert attrs["int"] == 80 - attrs["str"] - attrs["con"] - attrs["dex"]
+    again = resolve_npc_vitals(npc, seed=7)
+    assert again["attrs"] == attrs
+    other = resolve_npc_vitals(npc, seed=8)
+    assert other["attrs"] != attrs
+
+
+def test_resolve_npc_vitals_keeps_explicit_int_over_derive():
+    npc = {
+        "id": "npc.human",
+        "attrs": {"str": 20, "con": 20, "dex": 20, "int": 28},
+        "attrs_derive": HUMAN_DERIVE,
+    }
+    resolved = resolve_npc_vitals(npc, seed=7)
+    assert resolved["attrs"]["int"] == 28
+
+
+def test_resolve_npc_vitals_skips_derive_when_minus_key_missing():
+    errors: list[str] = []
+    npc = {
+        "id": "npc.human",
+        "attrs": {"str": 20, "int": 28},
+        "attrs_roll": {"con": [10, 30]},
+        "attrs_derive": HUMAN_DERIVE,
+    }
+    resolved = resolve_npc_vitals(npc, seed=7, errors=errors)
+    assert resolved["attrs"]["int"] == 28
+    # 显式 int 优先；缺 dex 的诊断在不覆盖显式值时不会触发
+    assert errors == []
+
+    npc2 = {
+        "id": "npc.human2",
+        "attrs": {"str": 20},
+        "attrs_derive": HUMAN_DERIVE,
+    }
+    errors2: list[str] = []
+    resolved2 = resolve_npc_vitals(npc2, seed=7, errors=errors2)
+    assert "int" not in resolved2["attrs"]
+    assert errors2 == ["incomplete_attrs_derive:npc.human2:int"]
+
+
+def test_resolve_npc_vitals_rejects_bad_derive_rule():
+    errors: list[str] = []
+    npc = {
+        "id": "npc.human",
+        "attrs": {"str": 20, "con": 20, "dex": 20},
+        "attrs_derive": {"int": {"kind": "expr", "minus": ["str"]}},
+    }
+    resolved = resolve_npc_vitals(npc, seed=7, errors=errors)
+    assert "int" not in resolved["attrs"]
+    assert errors == ["bad_attrs_derive:npc.human:int"]

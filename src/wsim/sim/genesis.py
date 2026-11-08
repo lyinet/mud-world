@@ -281,6 +281,25 @@ def build_genesis(
                     entity_data["equipped_apply"] = dict(sorted(equipped_apply.items()))
                 if weapon_type:
                     entity_data["weapon_type"] = weapon_type
+            # 原版 `die()` 的固定掉落：内容包 `drops[]` 里只消费“必掉 + 物品已解析 +
+            # 落地地面”的条目；概率掉落/未解析条目保持原样，不在这里猜。
+            drops: dict[str, int] = {}
+            for row in npc.get("drops") or []:
+                if not isinstance(row, dict):
+                    continue
+                if row.get("chance") != 1.0 or row.get("item_resolved") is not True:
+                    continue
+                if str(row.get("landing") or "") != "ground":
+                    continue
+                ref = str(row.get("item") or "")
+                if not ref:
+                    continue
+                qty = row.get("qty")
+                if isinstance(qty, bool) or not isinstance(qty, int) or qty <= 0:
+                    qty = 1
+                drops[ref] = drops.get(ref, 0) + int(qty)
+            if drops:
+                entity_data["drops"] = dict(sorted(drops.items()))
             # xkx 的 `set_temp("apply/...")`：只取 known=true 且 value 为整数的项，
             # 作为临时攻防落地。known=false（armor/is_riding/...）与无法求值的
             # 表达式一律不进数值，写诊断，不静默丢、不猜值。
@@ -296,6 +315,10 @@ def build_genesis(
                     mismatches.append(
                         f"unknown_temp_apply:{nid}:{key}:{src.get('path', '')}:{src.get('line', '')}"
                     )
+                    continue
+                if row.get("source_kind") == "lpc_set":
+                    # 原版 combatd 只读 query_temp("apply/…")；set("apply/…") 写的是
+                    # 永久属性，未证实进入战斗。内容包保留原值供对账，但不落地为加成。
                     continue
                 value = row.get("value")
                 if isinstance(value, bool) or not isinstance(value, int):
