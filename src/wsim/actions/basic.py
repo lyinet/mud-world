@@ -209,7 +209,12 @@ class WorkAction(Action):
             note = f"已签日结契约，工资本日由日结发放{gross}文"
             if getattr(intent, "clock_tick", None) is not None:
                 # 有 NPC 时钟：把出勤钉在 NPC 日上，日结按同一日判定出勤。
-                note += f"：D{npc_tick_of(intent) // TICKS_PER_DAY}"
+                # 标记格式必须与 business.ATTENDANCE_MARKER 的判定串一致
+                # （`工资本日由日结发放:D{day}`），金额放在标记之后。
+                note = (
+                    f"已签日结契约，工资本日由日结发放:D{npc_tick_of(intent) // TICKS_PER_DAY}"
+                    f"，应得{gross}文"
+                )
         else:
             effects.extend(
                 payment_with_shortfall(
