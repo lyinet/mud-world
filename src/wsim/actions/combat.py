@@ -93,15 +93,20 @@ def _drop_effects(
     location: str,
     reason: str,
     consume_owner: str | None = None,
+    *,
+    source: str = "",
+    source_entity: str = "",
+    source_tick: int = 0,
 ) -> list[Effect]:
     effects: list[Effect] = []
     for item in sorted(drops):
-        effects.append(
-            Effect(
-                op="loot_create",
-                data={"location": location, "item": item, "qty": int(drops[item]), "reason": reason},
-            )
-        )
+        data = {"location": location, "item": item, "qty": int(drops[item]), "reason": reason}
+        # 击杀来源：`loot` 只认这一桶；旧路径（玩家死亡等）不传 source，仍是非 loot 目标。
+        if source:
+            data["source"] = source
+            data["source_entity"] = source_entity
+            data["source_tick"] = int(source_tick)
+        effects.append(Effect(op="loot_create", data=data))
         if consume_owner is not None:
             effects.append(
                 Effect(op="item_consume", data={"owner": consume_owner, "item": item, "qty": int(drops[item])})
@@ -319,6 +324,9 @@ def combat_effects(
                 ),
                 str(defender.location),
                 reason,
+                source="kill",
+                source_entity=str(defender.id),
+                source_tick=int(intent.tick),
             )
         )
     if (
@@ -334,6 +342,9 @@ def combat_effects(
                 ),
                 str(attacker.location),
                 "death",
+                source="kill",
+                source_entity=str(attacker.id),
+                source_tick=int(intent.tick),
             )
         )
 

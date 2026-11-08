@@ -182,7 +182,7 @@ def test_remove_requires_worn_item_and_refuses_weapon():
     assert action.preconditions(state, _intent("remove", item="sword")) == ["not_worn_use_unwield"]
 
 
-def test_drop_then_loot_round_trip_uses_ground():
+def test_drop_then_get_round_trip_uses_ground():
     state, ent = _state({"bread": 3})
     content = _Content()
 
@@ -193,10 +193,10 @@ def test_drop_then_loot_round_trip_uses_ground():
     assert state.ground["inn"]["bread"] == 2
     assert ent.inventory["bread"] == 1
 
-    loot = LootAction(content)
-    intent = _intent("loot", item="bread", qty=2)
-    assert loot.preconditions(state, intent) == []
-    apply_effects(state, loot.apply(state, intent, None))
+    get = LootAction(content)
+    intent = _intent("get", scope="all", item="bread", qty=2)
+    assert get.preconditions(state, intent) == []
+    apply_effects(state, get.apply(state, intent, None))
     assert ent.inventory["bread"] == 3
     assert "inn" not in state.ground
 

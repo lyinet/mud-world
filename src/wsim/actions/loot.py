@@ -1,10 +1,12 @@
-"""取物动作：`loot` / `get` 从当前房间地面拿东西。
+"""取物动作：`loot` 搜刮最近击杀掉落，`get` 从房间地面拿东西。
 
 契约：
 - 输入只有 Intent，输出只有 Effect（`loot_take`），不直接改 state；
-- 地面数据由 `loot_create` 写入 `WorldState.ground`，按房间聚合；
-- 未指定物品时按 item id 排序全部取走，同 seed 的事件顺序确定；
-- 地面没有东西、或指定物品不在本房间，preconditions 给 `loot_not_found`。
+- 地面聚合由 `loot_create` 写入 `WorldState.ground`；
+- 击杀来源由 `loot_create` 的 `source="kill"` 写入 `WorldState.ground_sources`，
+  `loot` 只取当前房间**最近一次击杀**的条目，不碰其他地面物品；
+- `get all` 清空当前房间地面；`get <item> [qty]` 精确取；
+- 没有击杀来源时 `loot` 给 `loot_no_corpse`，不静默成功、不清地面。
 """
 from __future__ import annotations
 
@@ -31,6 +33,26 @@ def _ground_location(intent: Intent, state: WorldState, pid: str) -> str:
         return at
     ent = state.entities.get(pid)
     return ent.location if ent is not None else ""
+
+
+def _scope(intent: Intent) -> str:
+    """显式 scope 优先；裸 `loot` 只搜刮击杀掉落，`get` 走地面全量/精确取。"""
+    scope = str(intent.args.get("scope") or "").strip().lower()
+    if scope in ("kill", "all"):
+        return scope
+    return "all" if str(intent.verb or "").strip().lower() == "get" else "kill"
+
+
+def _latest_kill(state: WorldState, loc: str) -> dict[str, Any] | None:
+    """当前房间最近一次击杀的来源条目；同 tick 取列表中靠后的一条。"""
+    picks = [
+        (idx, entry)
+        for idx, entry in enumerate(state.ground_sources.get(loc) or [])
+        if str(entry.get("source") or "") == "kill" and entry.get("items")
+    ]
+    if not picks:
+        return None
+    return max(picks, key=lambda pair: (int(pair[1].get("tick") or 0), pair[0]))[1]
 
 
 class LootAction(Action):
@@ -62,19 +84,40 @@ class LootAction(Action):
         raw_qty = intent.args.get("qty")
         if raw_qty is not None and (isinstance(raw_qty, bool) or not isinstance(raw_qty, int) or raw_qty <= 0):
             return ["bad_qty"]
-        bucket = state.ground.get(loc) or {}
-        if not bucket:
-            return ["loot_not_found"]
         item = str(intent.args.get("item") or "").strip()
-        if item:
-            available = int(bucket.get(item, 0))
-            if available <= 0:
-                return ["loot_not_found"]
-            if isinstance(raw_qty, int) and raw_qty > available:
-                return ["loot_not_found"]
-            targets = [(item, int(raw_qty or available))]
+        if _scope(intent) == "kill":
+            entry = _latest_kill(state, loc)
+            if entry is None:
+                return ["loot_no_corpse"]
+            source_items = {
+                str(name): int(qty)
+                for name, qty in (entry.get("items") or {}).items()
+                if int(qty) > 0
+            }
+            if not source_items:
+                return ["loot_no_corpse"]
+            if item:
+                available = int(source_items.get(item, 0))
+                if available <= 0:
+                    return ["loot_not_found"]
+                if isinstance(raw_qty, int) and raw_qty > available:
+                    return ["loot_not_found"]
+                targets = [(item, int(raw_qty or available))]
+            else:
+                targets = [(name, int(source_items[name])) for name in sorted(source_items)]
         else:
-            targets = [(name, int(bucket[name])) for name in sorted(bucket)]
+            bucket = state.ground.get(loc) or {}
+            if not bucket:
+                return ["loot_not_found"]
+            if item:
+                available = int(bucket.get(item, 0))
+                if available <= 0:
+                    return ["loot_not_found"]
+                if isinstance(raw_qty, int) and raw_qty > available:
+                    return ["loot_not_found"]
+                targets = [(item, int(raw_qty or available))]
+            else:
+                targets = [(name, int(bucket[name])) for name in sorted(bucket)]
         added = sum(item_weight(self.content, name) * qty for name, qty in targets)
         reason = overweight_reason(self.content, ent, added)
         if reason:
@@ -84,31 +127,47 @@ class LootAction(Action):
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
         pid = _player_id(intent)
         loc = _ground_location(intent, state, pid)
-        bucket = dict(state.ground.get(loc) or {})
         item = str(intent.args.get("item") or "").strip()
-        if item:
-            qty = int(intent.args.get("qty") or bucket.get(item, 0))
-            targets = [(item, qty)]
+        scope = _scope(intent)
+        source_key = ""
+        if scope == "kill":
+            entry = _latest_kill(state, loc)
+            if entry is None:
+                return []
+            source_key = str(entry.get("key") or "")
+            source_items = {
+                str(name): int(qty)
+                for name, qty in (entry.get("items") or {}).items()
+                if int(qty) > 0
+            }
+            if item:
+                qty = int(intent.args.get("qty") or source_items.get(item, 0))
+                targets = [(item, qty)]
+            else:
+                targets = [(name, int(source_items[name])) for name in sorted(source_items)]
         else:
-            targets = [(name, int(bucket[name])) for name in sorted(bucket)]
+            bucket = dict(state.ground.get(loc) or {})
+            if item:
+                qty = int(intent.args.get("qty") or bucket.get(item, 0))
+                targets = [(item, qty)]
+            else:
+                targets = [(name, int(bucket[name])) for name in sorted(bucket)]
 
         effects: list[Effect] = []
         for name, qty in targets:
             if qty <= 0:
                 continue
             weight = item_weight(self.content, name)
-            effects.append(
-                Effect(
-                    "loot_take",
-                    {
-                        "entity": pid,
-                        "location": loc,
-                        "item": name,
-                        "qty": int(qty),
-                        "weight": weight * int(qty),
-                    },
-                )
-            )
+            data: dict[str, Any] = {
+                "entity": pid,
+                "location": loc,
+                "item": name,
+                "qty": int(qty),
+                "weight": weight * int(qty),
+            }
+            if source_key:
+                data["source"] = source_key
+            effects.append(Effect("loot_take", data))
         return effects
 
 
