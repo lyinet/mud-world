@@ -1626,12 +1626,22 @@ class WorldSession:
         """战斗类动词只在 actions/ 层已注册时对玩家放行。"""
         return str(verb) in XKX_EXTRA_PLAYER_VERBS and self.registry.get(str(verb)) is not None
 
-    def _trigger_npc_aggression(self, pid: str, tick: int) -> list[dict[str, Any]]:
+    def _trigger_npc_aggression(
+        self,
+        pid: str,
+        tick: int,
+        *,
+        only: set[str] | None = None,
+        reason: str = "",
+    ) -> list[dict[str, Any]]:
         """玩家进入房间时，对每个“尚未交战且有规则”的 NPC 判定一次。
 
         与旧世界隔离的关键：规则表由内容派生，旧 YAML 没有 aggressive 字段，
         也没有老虎/毒蛇/狼狗，`self.aggression_rules` 为空 -> 这里直接返回，
         不写任何事件。同一 NPC 在同一房间只会提交一条 trigger。
+
+        `only` 用于房间 reset 重生：原版补 clone 也是一次 move 进房，`init()` 会对
+        房内玩家触发；这里复用同一函数/意图/`decide()`，不另写判定。
         """
         rules = self.aggression_rules
         if not rules:
@@ -1641,6 +1651,8 @@ class WorldSession:
             return []
         rows: list[dict[str, Any]] = []
         for npc_id in sorted(self.state.entities):
+            if only is not None and npc_id not in only:
+                continue
             npc = self.state.entities[npc_id]
             if npc.location != ent.location:
                 continue
@@ -1655,7 +1667,7 @@ class WorldSession:
                     args={"mode": "trigger", "target": pid},
                     tick=int(tick),
                     source="npc",
-                    reason=f"{npc_id} 见到 {pid} 进入房间（init 触发）",
+                    reason=reason or f"{npc_id} 见到 {pid} 进入房间（init 触发）",
                 )
             )
             for eff in event.effects or []:
@@ -1677,6 +1689,38 @@ class WorldSession:
                     }
                 )
         return rows
+
+    def _trigger_respawn_aggression(self, reset, tick: int) -> None:
+        """reset 补 clone 等价于一次 move 进房：对重生 NPC 跑同一 `init()` 判定。
+
+        只挑本次 `entity_respawn` 的 NPC，避免把房内其他已判定过的 NPC 重新掷骰；
+        每个（NPC, 在场存活玩家）走 `_trigger_npc_aggression(only=...)` 同一路径。
+        """
+        if not self.aggression_rules:
+            return
+        respawned: set[str] = set()
+        for eff in reset.effects or []:
+            if eff.get("op") != "entity_respawn":
+                continue
+            npc_id = str((eff.get("data") or {}).get("entity") or "")
+            if npc_id:
+                respawned.add(npc_id)
+        for npc_id in sorted(respawned):
+            npc = self.state.entities.get(npc_id)
+            if npc is None or npc.status != "alive":
+                continue
+            for pid in sorted(self.state.entities):
+                if not pid.startswith("player:"):
+                    continue
+                player = self.state.entities[pid]
+                if player.status != "alive" or player.location != npc.location:
+                    continue
+                self._trigger_npc_aggression(
+                    pid,
+                    tick,
+                    only={npc_id},
+                    reason=f"{npc_id} reset 重生（init 触发）",
+                )
 
     def _combat_view(self, pid: str) -> dict[str, Any]:
         """只读交战快照：哪个 NPC 正在打这名玩家、已结算到第几回合。"""
@@ -3423,6 +3467,9 @@ class WorldSession:
                 )
             )
             self.tail.observe(reset)
+            # 原版 reset 补 clone 本身就是一次 move 进房，会跑 `init()`；重生 NPC
+            # 必须在同 tick 对房内玩家做一次与“进房”完全相同的 aggression 判定。
+            self._trigger_respawn_aggression(reset, tick)
         # 玩家押镖闭环：仅当有玩家镖单到期时才补一条到达结算，不改变无镖单世界的 seq。
         if self._player_escort_due(tick):
             settle = self.writer.submit(

@@ -526,6 +526,11 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         ent.death_tick = 0
         ent.death_location = ""
         ent.status = "alive"
+        # 原版 `destruct()` + 重新 `new()`：新 clone 没有 enemy。清掉上一轮的交战
+        # 状态，否则 stale 的 combat_target 会挡住重生瞬间的 init() 判定。
+        ent.combat_target = ""
+        ent.combat_tick = 0
+        ent.combat_round = 0
         if "location" in d:
             loc = str(d["location"])
             if loc not in state.locations:

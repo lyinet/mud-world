@@ -110,7 +110,7 @@ ob->move(this_player());
 环境：`seed=20261014`，真实 `content/xkx`，`EventStore` 落盘于 `/tmp/xkx-p5-accept/`，
 验收角色 `player:accept` 为引擎级合成角色（不是客户端会话）。
 
-### 5.1 郭庄大狼狗完整闭环
+### 5.1 郭庄大狼狗完整闭环（历史合成场景，已被 6.1.2 真实 HTTP 验收取代）
 
 | 步骤 | 事件（seq / tick / verb / outcome） | 关键 effects |
 |------|------------------------------------|--------------|
@@ -155,9 +155,13 @@ ob->move(this_player());
   从内容包派生规则；老虎为 `always`、毒蛇/狼狗为概率触发），失败态 `destruct()` 与
   P5 的 `status=dead` 各自独立。重生后同一 `npc_aggression` 动作仍能触发
   （`triggered=true`、`combat_target=player:accept`）。
-- **触发时机差异**：原版 `init()` 在新 clone 进入环境时对房内玩家触发；复刻的
-  `WorldSession` 只在玩家 `enter/move/climb/jump/revive` 成功后触发。因此“老虎在玩家
-  原地不动时重生”这一瞬间不会自动开打，玩家再进出一次就会触发。记录为可感知偏差。
+- **触发时机差异（已修，见 6.1.1）**：原版 `init()` 在新 clone 进入环境时对房内玩家触发；
+  复刻现在在 `system_room_reset` 同一个 tick 内、对本次 `entity_respawn` 的 NPC 跑
+  `_trigger_npc_aggression(only=...)`。真实 HTTP 验收（`/tmp/xkx-p5-http/tiger-root`）：
+  `seq86 system_room_reset`（`entity_respawn hp=max_hp=200`）→
+  `seq87 npc_aggression`（`triggered=true`、`combat_target=player:p5tiger`、
+  `combat_tick=104`），玩家全程留在 `shanlu6` 未移动。
+  上文的 `seq2/3/4` 是修复前的合成场景，仅作历史对照。
 
 ## 6. 确定性、哈希与回归
 
@@ -178,16 +182,86 @@ ob->move(this_player());
   变更，不是 P5），因此 P5 不触发 `--reset`。
 - 全量 `python3 -m pytest -q` 通过。
 
+## 6.1 P5 修复（本轮，实现前决策）
+
+上一轮报告把三件事写成“已知偏差”，评审否决：其中两件是缺陷，必须修；闭环证据也不够真实。
+本轮按下列决策改，改完重贴全部哈希与原始行。
+
+### 6.1.1 重生瞬间的主动攻击（缺陷，照原版修）
+
+原版 `feature/attack.lpc::init()` 在对象被 move 进环境时执行；房间 reset 补 clone 本身就是
+一次 move 进房，因此**重置完成的同一瞬间**，房内玩家会被 `auto_fight` 登记为敌人。
+
+实现（不另写判定）：
+
+- `world/effects.py::entity_respawn`：重生时清空 `combat_target/combat_tick/combat_round`。
+  原版是 `destruct()` 后 `new()`，新对象没有任何 `enemy`；不清空会让 stale 敌人挡住 trigger。
+- `api/session.py::_trigger_npc_aggression` 增加可选参数 `only: set[str] | None`：
+  现有“玩家进房”路径与“reset 重生”路径调用**同一个函数**、同一个
+  `npc_aggression` / `mode=trigger` 意图、同一个 `decide()`（`sim/aggression.py`），
+  因此 `always` / `unless_item` / `chance_kar_per` 的规则与 PRNG 取数顺序完全一致。
+- `_advance()` 提交 `system_room_reset` 后，从该事件 effects 收集 `entity_respawn`
+  的实体 id；对每个重生 NPC × 同房间、`status=alive` 的玩家，用 `only={npc_id}` 调用上述函数。
+  事件顺序固定为 `system_tick` → `system_room_reset` → `npc_aggression(trigger)`。
+- headless 没有玩家实体，此路径自然不产生事件，健康世界哈希不受影响。
+
+### 6.1.2 真实内容闭环（替换合成验收）
+
+验收必须走真实 HTTP 会话（`/api/player/action` 的 `fight`/`loot`），不得注入事件。
+步骤：进入 → 走到郭庄 → 对 `/d/hangzhou/npc/wolfdog` 连续 `fight`（真实多回合 `hp_add`）→
+狗死掉皮 → `loot` 捡走 → 继续动作推进到 reset → 狗重生 → 再 `fight` → 再掉一张。
+证据：两次 `loot_create` 原始行、中间 `entity_respawn` 原始行、每次 `fight` 的
+`combat_log.rounds`/多次 `hp_add`、背包件数与地面件数。
+狼狗闭环用**默认档玩家**（`combat_exp=6400`、技能 40）完成；老虎在默认档下必死，
+因此 6.1.1 的老虎验收使用**临时 `player_start`（仅调经验/技能）** 建号，
+战斗仍是真实客户端回合，不是注入事件；该临时配置不进入仓库。
+
+### 6.1.3 `return_home` 节流（补“离家的 NPC 会回家”）
+
+保留“不打断有目标 NPC”的偏离，但给 idle 归位加明确节流：
+
+- 新常量 `RETURN_HOME_IDLE_TICKS = 2`。
+- 拉回条件：`status=alive`、`location != room`、`goal_id` 为空、且
+  `tick - ent.last_action_tick >= RETURN_HOME_IDLE_TICKS`。
+  `last_action_tick` 由 move/工作/交易等动作写入（已有字段，不新增状态），
+  因此“正在走路/干活”的 NPC 不会被拉，目标结束后最多再等 2 tick + 房间周期（≤3 tick）
+  就会被拉回原房间，不会永久失踪。
+- 验收：目标驱动离开原房间的 NPC，其 `move` 序列之后必须出现
+  `system_room_reset` 里的 `set_location` 回 home；同日世界 `move` 事件数不得再塌到个位数。
+
+### 6.1.4 保留的偏差（不修）
+
+1. 周期粒度 10 分钟（见第 3 节）。
+2. 商店货架 30 件上限与买空窗口（见第 2 节）。
+3. 不建模房间 unload / `clean_up`。
+4. 战利品统一落地为地面物品（`landing=ground`）；尸体对象未建模。
+5. `business_stock` 是引擎近似，不是原版无限货架。
+
+### 6.1.5 验收清单（已完成）
+
+- [x] 老虎：真实战斗打死 → 玩家留在 `shanlu6` → reset（`seq86`）→ 紧邻
+      `npc_aggression/trigger`（`seq87`），`triggered=true`、
+      `combat_target=player:p5tiger`。
+- [x] 郭庄大狼狗（默认档）：真实 HTTP 多回合掉血（`seq25` 13 回合）→ 两次
+      `loot_create`（`seq25`/`seq31`）与中间 `entity_respawn`（`seq27`）；
+      最终背包 2 张、地面 0 张。
+- [x] 离家 NPC：`/d/city/npc/xiaoer` tick1 `move→road13`，tick4 `set_location→kedian`；
+      健康 xkx 1 日 `npc_wander=true` 时 reset 开/关 `move` 均为 80。
+- [x] 旧九地点 `735 / 009076f0… / 02d5f812…`（cash 11442 / blocked 6 / pruned 3）；
+      健康 xkx `722 / 2265c85c… / d0c4777d…`，reset 开/关一致。
+- [x] `content_hash 56417288eb1a4620025ef6ad4740fa5924ffd39b9a7f6573fa8585015f9d2576`
+      不变（不含 `content/xkx/**` 改动）。
+- [x] 全量 pytest 绿（exit 0）；显式 `git add`；不 force；不合主分支、不跑 6h。
+
 ## 7. 已知偏差（明确不做/近似）
 
-1. `return_home` 只对无进行中目标的空闲 NPC 生效。原版会拉所有非战斗 living NPC；
-   复刻的 NPC 是 tick 级多步寻路，若每 1–2 tick 无条件拉回，NPC 永远到不了目的地，
-   整张世界的移动/交易/工作会停摆（实测 `move 335→6`）。因此保留“空闲游走者归位”，
-   放弃“打断任务中的 NPC”。这是刻意的可玩性/可复现性取舍，写进本 spec。
+1. `return_home` 只对“无目标且连续 2 tick 无动作”的空闲 NPC 生效（6.1.3）。原版会拉所有
+   非战斗 living NPC；复刻的 NPC 是 tick 级多步寻路，无条件拉回会让 NPC 永远到不了目的地
+   （实测 `move 335→6`、交易/工作归零）。节流后保留“空闲游走者归位”，仍放弃
+   “打断任务中的 NPC”。
 2. 周期粒度 10 分钟（见第 3 节）。
 3. 商店货架 30 件上限（见第 2 节）。
-4. 主动攻击已由远端实现，但只在玩家 `enter/move/climb/jump/revive` 后触发；
-   “玩家原地不动时 NPC 重生”不会自动开打（原版 `init()` 会）。见 5.2。
+4. 重生瞬间的主动攻击已按原版 `init()` 修复（6.1.1），不再是偏差。
 5. 不建模房间 unload / `clean_up`；`no_clean_up` 语义不影响事件流，故省略。
 6. 战利品统一落地为地面物品（`landing=ground`）；原版老虎的虎骨先放尸体再随尸体落地，
    尸体对象未建模。

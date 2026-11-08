@@ -21,7 +21,11 @@ from wsim.core.content import Content
 from wsim.core.models import Effect, Intent
 from wsim.sim.genesis import build_genesis
 from wsim.sim.headless import RunConfig, run_headless
-from wsim.sim.room_reset import RESET_PERIOD_TICKS, RoomResetPolicy
+from wsim.sim.room_reset import (
+    RESET_PERIOD_TICKS,
+    RETURN_HOME_IDLE_TICKS,
+    RoomResetPolicy,
+)
 from wsim.world.effects import apply_effects
 from wsim.world.state import Business, Entity, WorldState
 from wsim.world.store import EventStore
@@ -195,6 +199,43 @@ def test_reset_is_noop_when_everything_is_in_place():
     state.businesses[f"biz:room:{BREAD}"].stock = {BREAD: 30}
     policy = RoomResetPolicy(content=content, seed=7, enabled=True)
     assert policy.effects(state, _due_tick(policy, "room")) == []
+
+
+def test_respawn_clears_stale_combat_state():
+    """原版 destruct+new：重生对象没有 enemy；不清会让 trigger 被 stale 目标挡住。"""
+    content = _content()
+    state = _world(content, dead=True)
+    dog = state.entities[DOG]
+    dog.combat_target = "player:old"
+    dog.combat_tick = 3
+    dog.combat_round = 4
+    policy = RoomResetPolicy(content=content, seed=7, enabled=True)
+    apply_effects(state, policy.effects(state, _due_tick(policy, "room")))
+    assert dog.combat_target == ""
+    assert dog.combat_tick == 0
+    assert dog.combat_round == 0
+
+
+def test_return_home_waits_for_idle_ticks_and_then_returns():
+    """离家 NPC：连续 RETURN_HOME_IDLE_TICKS 无动作才拉回；有目标不拉。"""
+    content = _content()
+    content.locations["away"] = {"id": "away", "name": "乙", "exits": ["room"]}
+    content.locations["room"]["exits"] = ["away"]
+    state = _world(content)
+    dog = state.entities[DOG]
+    dog.location = "away"
+    policy = RoomResetPolicy(content=content, seed=7, enabled=True)
+    tick = _due_tick(policy, "room")
+
+    dog.last_action_tick = tick - 1
+    assert [e for e in policy.effects(state, tick) if e.op == "set_location"] == []
+
+    dog.last_action_tick = tick - RETURN_HOME_IDLE_TICKS
+    back = [e for e in policy.effects(state, tick) if e.op == "set_location"]
+    assert [(e.data["entity"], e.data["to"]) for e in back] == [(DOG, "room")]
+
+    dog.goal_id = "goal:dog"
+    assert [e for e in policy.effects(state, tick) if e.op == "set_location"] == []
 
 
 # ---- 真实内容包闭环 -----------------------------------------------------

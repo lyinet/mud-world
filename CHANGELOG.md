@@ -9,6 +9,50 @@
 
 ---
 
+## [fix] 2026-11-08 — P5 修复：重生瞬时攻击、真实闭环、return_home 节流
+
+- **改了什么**：
+  - `world/effects.py::entity_respawn` 重生时清空 `combat_target/combat_tick/combat_round`：
+    原版是 `destruct()` 后重新 `new()`，新 clone 没有 enemy；不清空会让上一轮 stale
+    目标挡住重生瞬间的 `init()` 判定。
+  - `api/session.py`：`_trigger_npc_aggression` 增加 `only` 过滤；新增
+    `_trigger_respawn_aggression`，在 `system_room_reset` 之后对本次 `entity_respawn`
+    的 NPC × 同房间存活玩家复用**同一个** `npc_aggression` trigger 路径（同 `decide()`、
+    同 PRNG 取数顺序、同 aggressive 规则）。事件顺序固定为
+    `system_tick` → `system_room_reset` → `npc_aggression(trigger)`。
+  - `sim/room_reset.py`：`return_home` 增加 `RETURN_HOME_IDLE_TICKS=2` 节流——
+    `goal_id` 为空且 `tick - last_action_tick >= 2` 才拉回，正在赶路/干活的 NPC
+    不再被从半路拽回；目标结束后有限 tick 内归位。
+- **为什么改**：上一轮把“重生瞬间不咬人”当成已知偏差，但原版 `feature/attack.lpc::init()`
+  在 reset 补 clone（一次 move 进房）时就会对房内玩家触发，复刻玩家站在山里等重生会明显
+  感到“这只假的”；`return_home` 只对空闲 NPC 生效又没有任何节流，目标结束/游走离家的
+  NPC 可能长期失踪；闭环证据此前是注入 `hp_add` 的合成场景。
+- **验证方式**（真实 HTTP 会话，非注入事件）：
+  - 老虎（默认内容 + 临时高 `player_start`）：真实 `fight` 分 14 次、每次最多 10 回合
+    把老虎打死（`seq82` `rounds_used=6`，`hp_add` 真实掉血）；玩家留在 `shanlu6`，
+    `seq86 system_room_reset`（`entity_respawn hp=max_hp=200`）→ `seq87 npc_aggression`
+    `triggered=true`、`combat_target=player:p5tiger`。
+  - 郭庄大狼狗（默认档玩家）：`seq25 fight` 13 回合多人回合 `hp_add` 击杀 →
+    `loot_create goupi qty=1`；`seq27 entity_respawn` 重生 → `seq28` 重生 aggression
+    触发；`seq31` 再杀再掉；两次 `loot_take` 后背包 2 张、地面 0 张。
+  - `return_home`：健康 xkx 1 日（`npc_wander=true`）reset 开/关 `move` 均为 80
+    （不再塌到 6）；样例 `/d/city/npc/xiaoer` tick1 `move→/d/hangzhou/road13`，
+    tick4 reset `set_location→/d/hangzhou/kedian`（home）。
+  - 旧九地点（seed42/2日/npc_limit=0）：`735` /
+    `009076f0346352e328d8c158a3017a3e26fbc0b2c59ef7ca20c8fc3d1f780ce9` /
+    `02d5f812c427833387e592ad9321ebd72a9c5c719825b958f53af83d795078ae`、
+    `cash 11442`、`blocked 6`、`pruned 3` 不变。
+  - 健康 xkx（seed 20261014/1日，wander 关）reset 开/关：`722` /
+    `2265c85c1be9596d3f5b31dcc69fbfa57c1eca9f4a5ee4d9b783b6379263fe97` /
+    `d0c4777d605fed0046db5aa5d9a11712e82ef4fbb2cbe37553a05252c224e67d` 完全一致，
+    零 `system_room_reset`。
+  - `content_hash 56417288eb1a4620025ef6ad4740fa5924ffd39b9a7f6573fa8585015f9d2576`
+    不变（diff 不含 `content/xkx/**`，不触发 `--reset`）。
+  - `python3 -m pytest -q` 全量通过（exit 0）。
+- **commit**：见本条目所在提交。
+
+---
+
 ## [feat] 2026-11-08 — xkx 房间 reset / NPC 重生与 NPC 货架补货
 
 - **改了什么**：

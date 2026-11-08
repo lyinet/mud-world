@@ -49,6 +49,13 @@ from .vitals import resolve_npc_vitals
 # 近似 1.5 tick（15 分钟）。
 RESET_PERIOD_TICKS = 3
 
+# return_home 节流：同一 NPC 连续这么多 tick 没有动作（走路/工作/交易等）才允许
+# 拉回。原版 `npc.lpc::return_home()` 不看空闲时长；复刻的 NPC 是 tick 级多步寻路，
+# 无条件拉回会把人从半路拽回（实测当日 move 335→6、交易/工作归零）。用已有的
+# `last_action_tick` 做无状态节流：正在动的 NPC 每 tick 都会刷新它，不会被拉；
+# 目标结束、真正闲下来后，最多再等 2 tick + 房间周期（≤3 tick）就能归位。
+RETURN_HOME_IDLE_TICKS = 2
+
 
 @dataclass(frozen=True)
 class RoomResetPolicy:
@@ -200,8 +207,11 @@ class RoomResetPolicy:
                             # 跨房移动是 tick 级多步寻路（goal_id 非空），而 reset
                             # 每 1–2 tick 一次；无条件拉回会让所有 NPC 永远走不到
                             # 目的地（实测当日 move 335→6、交易/工作归零）。因此
-                            # 只对没有进行中目标的空闲 NPC 做 return_home。
+                            # 只对空闲 NPC 做 return_home，并且要求连续
+                            # RETURN_HOME_IDLE_TICKS tick 没有动作，避免把正在赶路/
+                            # 干活的 NPC 从半路拽回；目标结束后仍会在有限 tick 内归位。
                             and not ent.goal_id
+                            and tick - int(ent.last_action_tick) >= RETURN_HOME_IDLE_TICKS
                         ):
                             out.append(Effect("set_location", {"entity": ent.id, "to": room}))
                     continue
