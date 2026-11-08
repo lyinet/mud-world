@@ -11,11 +11,16 @@ from __future__ import annotations
 from typing import Any
 
 from ..core.models import Effect, Intent
+from ..sim.aggression import effective_enemies, multi_combat_enabled
 from ..sim.combat_rules import simulate_fight
 from ..sim.spawn import spawn_effects
 from ..world.state import WorldState
 from .growth import DEATH_GATE
 from .registry import Action
+
+# 4004 实测：`kill xiao er` 5/5 场店小二还手并打死玩家（spec §4.3）。
+# 多敌开启时，玩家先打 NPC 会把攻击者登记进 NPC 的敌人表，NPC 心跳随即还手。
+PASSIVE_RETALIATION = True
 
 
 def _combat_target(intent: Intent) -> str:
@@ -144,6 +149,30 @@ def combat_effects(
         effects.append(
             Effect(op="hp_add", data={"entity": defender.id, "delta": hp_b - defender.hp, "reason": reason})
         )
+
+    # `combat_contrib`：只记录实际扣掉的气血，供审计；不是仇恨权重、不参与选敌。
+    # 双向交手（含反击）时两边都要记：NPC 打玩家、玩家反击打掉 NPC 的气血也归玩家。
+    if multi_combat_enabled():
+        for victim, dealer, before, after in (
+            (attacker, defender, attacker.hp, hp_a),
+            (defender, attacker, defender.hp, hp_b),
+        ):
+            if str(victim.id).startswith("player:"):
+                continue
+            lost = max(0, int(before) - max(0, int(after)))
+            if lost <= 0:
+                continue
+            contrib = {
+                str(k): int(v)
+                for k, v in (getattr(victim, "combat_contrib", None) or {}).items()
+            }
+            contrib[str(dealer.id)] = contrib.get(str(dealer.id), 0) + lost
+            effects.append(
+                Effect(
+                    op="set_field",
+                    data={"entity": victim.id, "field": "combat_contrib", "value": contrib},
+                )
+            )
 
     dead_ids = set(result["dead"])
     for ent in (attacker, defender):
@@ -325,7 +354,7 @@ class FightAction(Action):
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
         attacker = state.entities[intent.actor]
         defender = state.entities[_combat_target(intent)]
-        return combat_effects(
+        effects = combat_effects(
             state,
             attacker,
             defender,
@@ -336,6 +365,62 @@ class FightAction(Action):
             reason="fight",
             loot=_int_dict(intent.args.get("loot")),
         )
+        if (
+            multi_combat_enabled()
+            and PASSIVE_RETALIATION
+            and not str(defender.id).startswith("player:")
+            and defender.status == "alive"
+        ):
+            enemies = effective_enemies(defender)
+            registered = [*enemies]
+            if str(attacker.id) not in enemies:
+                registered = [*enemies, str(attacker.id)]
+                effects.insert(
+                    0,
+                    Effect(
+                        op="set_field",
+                        data={
+                            "entity": defender.id,
+                            "field": "combat_enemies",
+                            "value": [*enemies, str(attacker.id)],
+                        },
+                    ),
+                )
+                if not defender.combat_target:
+                    effects.insert(
+                        1,
+                        Effect(
+                            op="set_field",
+                            data={"entity": defender.id, "field": "combat_target", "value": str(attacker.id)},
+                        ),
+                    )
+                    effects.insert(
+                        2,
+                        Effect(
+                            op="set_field",
+                            data={"entity": defender.id, "field": "combat_tick", "value": int(intent.tick)},
+                        ),
+                    )
+                    effects.insert(
+                        3,
+                        Effect(
+                            op="set_field",
+                            data={"entity": defender.id, "field": "combat_round", "value": 0},
+                        ),
+                    )
+            dead_ids = {
+                str(eff.data.get("entity"))
+                for eff in effects
+                if eff.op == "entity_status" and eff.data.get("status") == "dead"
+            }
+            if str(defender.id) in dead_ids and registered:
+                effects.append(
+                    Effect(
+                        op="set_field",
+                        data={"entity": defender.id, "field": "combat_enemies", "value": []},
+                    )
+                )
+        return effects
 
 
 class SystemSpawnAction(Action):

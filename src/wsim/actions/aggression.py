@@ -9,7 +9,14 @@ from __future__ import annotations
 from typing import Any
 
 from ..core.models import Effect, Intent
-from ..sim.aggression import decide, rule_for
+from ..sim.aggression import (
+    MAX_OPPONENT,
+    decide,
+    effective_enemies,
+    multi_combat_enabled,
+    rule_for,
+    select_index,
+)
 from ..world.state import WorldState
 from .combat import combat_effects
 from .registry import Action
@@ -84,9 +91,11 @@ def _wimpy_escape(state: WorldState, npc: Any, target: Any, rng: Any, intent: In
         Effect(op="set_location", data={"entity": target.id, "to": dest}),
     ]
     # 等价 `remove_all_enemy()`：清空所有正在打玩家的 NPC，而不是只清当前这只。
+    # multi 开时只把“这个逃跑的玩家”从每个 NPC 的表里摘掉，别人的战斗不受影响。
     for other in sorted(state.entities.values(), key=lambda e: e.id):
-        if str(getattr(other, "combat_target", "")) == str(target.id):
-            effects.extend(_reset(other))
+        if str(target.id) not in effective_enemies(other):
+            continue
+        effects.extend(_remove_enemy(other, str(target.id)))
     base.update(
         result="success",
         from_location=str(target.location),
@@ -97,11 +106,53 @@ def _wimpy_escape(state: WorldState, npc: Any, target: Any, rng: Any, intent: In
 
 
 def _reset(npc: Any) -> list[Effect]:
-    return [
+    effects = [
         Effect(op="set_field", data={"entity": npc.id, "field": "combat_target", "value": ""}),
         Effect(op="set_field", data={"entity": npc.id, "field": "combat_tick", "value": 0}),
         Effect(op="set_field", data={"entity": npc.id, "field": "combat_round", "value": 0}),
     ]
+    # 关态且旧实体没有新字段时，不新增任何事件（旧世界逐字节不变）。
+    if (
+        multi_combat_enabled()
+        or getattr(npc, "combat_enemies", None)
+        or getattr(npc, "combat_contrib", None)
+    ):
+        effects.extend(
+            [
+                Effect(
+                    op="set_field",
+                    data={"entity": npc.id, "field": "combat_enemies", "value": []},
+                ),
+                Effect(
+                    op="set_field",
+                    data={"entity": npc.id, "field": "combat_contrib", "value": {}},
+                ),
+            ]
+        )
+    return effects
+
+
+def _remove_enemy(npc: Any, target_id: str) -> list[Effect]:
+    """从 NPC 敌人表中摘掉一个目标；表空才整只收兵（multi 语义）。"""
+    if not multi_combat_enabled():
+        return _reset(npc) if str(getattr(npc, "combat_target", "")) == target_id else []
+    remaining = [eid for eid in effective_enemies(npc) if eid != target_id]
+    if not remaining:
+        return _reset(npc)
+    effects = [
+        Effect(
+            op="set_field",
+            data={"entity": npc.id, "field": "combat_enemies", "value": remaining},
+        )
+    ]
+    if str(getattr(npc, "combat_target", "")) == target_id:
+        effects.append(
+            Effect(
+                op="set_field",
+                data={"entity": npc.id, "field": "combat_target", "value": remaining[0]},
+            )
+        )
+    return effects
 
 
 def _log(npc: Any, target: Any, mode: str, **extra: Any) -> Effect:
@@ -133,11 +184,13 @@ class NpcAggressionAction(Action):
         # 当“是不是 NPC”；真正的门槛是它是否在主动攻击规则表里。
         if str(intent.actor).startswith("player:"):
             return ["actor_is_player"]
-        if self._rule(npc) is None:
+        mode = str(intent.args.get("mode") or "")
+        # 规则表只决定“主动开战”。multi 开时，被玩家先打的普通 NPC 也能继续心跳还手
+        # （4004 实测：店小二 5/5 还手），所以 continue 不要求它在规则表里。
+        if self._rule(npc) is None and not (mode == "continue" and multi_combat_enabled()):
             return ["not_aggressive"]
         if npc.status != "alive":
             return ["actor_not_alive"]
-        mode = str(intent.args.get("mode") or "")
         if mode == "trigger":
             target_id = str(intent.args.get("target") or "")
             target = state.entities.get(target_id)
@@ -149,12 +202,19 @@ class NpcAggressionAction(Action):
                 return ["target_not_alive"]
             if target.location != npc.location:
                 return ["not_together"]
-            if npc.combat_target:
+            if multi_combat_enabled():
+                # 只拒绝“这个玩家已经在敌人表里”，不再因为已有主目标就拒绝第二人。
+                if target_id in effective_enemies(npc):
+                    return ["already_fighting"]
+            elif npc.combat_target:
                 return ["already_fighting"]
             if int(npc.max_hp) <= 0 or int(target.max_hp) <= 0:
                 return ["no_combat_stats"]
             return []
         if mode == "continue":
+            if multi_combat_enabled():
+                # 目标有效性由 apply 里 prune；这里不锁单一 combat_target。
+                return []
             if str(npc.combat_target) != str(intent.args.get("target") or ""):
                 return ["not_fighting_target"]
             return []
@@ -176,36 +236,182 @@ class NpcAggressionAction(Action):
                 return _reset(npc)
             triggered, info = decide(rule, npc, target, rng)
             effects: list[Effect] = []
+            enemies = effective_enemies(npc)
             if triggered:
-                effects.extend(
-                    [
-                        Effect(
-                            op="set_field",
-                            data={"entity": npc.id, "field": "combat_target", "value": str(target.id)},
-                        ),
-                        Effect(
-                            op="set_field",
-                            data={"entity": npc.id, "field": "combat_tick", "value": int(intent.tick)},
-                        ),
-                        Effect(
-                            op="set_field",
-                            data={"entity": npc.id, "field": "combat_round", "value": 0},
-                        ),
-                    ]
+                if multi_combat_enabled():
+                    # 原版 `enemy += ({ob})`：登记全部合法玩家，不去重覆盖已有目标。
+                    if str(target.id) not in enemies:
+                        effects.append(
+                            Effect(
+                                op="set_field",
+                                data={
+                                    "entity": npc.id,
+                                    "field": "combat_enemies",
+                                    "value": [*enemies, str(target.id)],
+                                },
+                            )
+                        )
+                        enemies = [*enemies, str(target.id)]
+                    # `combat_target` 只在空表时初始化；已有主目标不因第二人进场而改。
+                    if not npc.combat_target:
+                        effects.extend(
+                            [
+                                Effect(
+                                    op="set_field",
+                                    data={"entity": npc.id, "field": "combat_target", "value": str(target.id)},
+                                ),
+                                Effect(
+                                    op="set_field",
+                                    data={"entity": npc.id, "field": "combat_tick", "value": int(intent.tick)},
+                                ),
+                                Effect(
+                                    op="set_field",
+                                    data={"entity": npc.id, "field": "combat_round", "value": 0},
+                                ),
+                            ]
+                        )
+                else:
+                    effects.extend(
+                        [
+                            Effect(
+                                op="set_field",
+                                data={"entity": npc.id, "field": "combat_target", "value": str(target.id)},
+                            ),
+                            Effect(
+                                op="set_field",
+                                data={"entity": npc.id, "field": "combat_tick", "value": int(intent.tick)},
+                            ),
+                            Effect(
+                                op="set_field",
+                                data={"entity": npc.id, "field": "combat_round", "value": 0},
+                            ),
+                        ]
+                    )
+            log_kwargs: dict[str, Any] = {
+                "triggered": triggered,
+                "tick": int(intent.tick),
+                **info,
+            }
+            if multi_combat_enabled():
+                log_kwargs["targets"] = enemies
+            effects.append(_log(npc, target, "trigger", **log_kwargs))
+            return effects
+
+        # continue：一个心跳回合。原版 char.lpc 先判 wimpy 自动逃跑，再攻击。
+        multi = multi_combat_enabled()
+        if multi:
+            candidates = effective_enemies(npc)
+            valid: list[str] = []
+            for eid in candidates:
+                ent = state.entities.get(eid)
+                prof = state.players.get(eid)
+                if ent is None or ent.status != "alive" or ent.location != npc.location:
+                    continue
+                if prof is not None and not bool(getattr(prof, "online", True)):
+                    continue
+                valid.append(eid)
+            pruned = [eid for eid in candidates if eid not in valid]
+            if not valid:
+                return [
+                    *_reset(npc),
+                    _log(npc, target, "reset", result="target_gone", pruned=pruned),
+                ]
+            effects: list[Effect] = []
+            if pruned:
+                effects.append(
+                    Effect(
+                        op="set_field",
+                        data={"entity": npc.id, "field": "combat_enemies", "value": valid},
+                    )
                 )
+            # 原版 `attack.lpc:139-140`：先 `random(4)`，越界回退第 0 个。
+            opp_index, opp_roll = select_index(len(valid), rng)
+            target = state.entities[valid[opp_index]]
+            if str(npc.combat_target) != str(target.id):
+                effects.append(
+                    Effect(
+                        op="set_field",
+                        data={"entity": npc.id, "field": "combat_target", "value": str(target.id)},
+                    )
+                )
+            round_no = int(npc.combat_round) + 1
+            wimpy_effects, escaped = _wimpy_escape(state, npc, target, rng, intent)
+            if escaped:
+                effects.extend(wimpy_effects)
+                effects.append(
+                    _log(
+                        npc,
+                        target,
+                        "continue",
+                        triggered=False,
+                        result="escaped",
+                        round=round_no,
+                        reason="wimpy",
+                        targets=valid,
+                        opponent_index=opp_index,
+                        opponent_roll=opp_roll,
+                        pruned=pruned,
+                    )
+                )
+                return effects
+            effects.extend(
+                [
+                    *wimpy_effects,
+                    Effect(
+                        op="set_field",
+                        data={"entity": npc.id, "field": "combat_round", "value": round_no},
+                    ),
+                ]
+            )
+            effects.extend(
+                combat_effects(
+                    state,
+                    npc,
+                    target,
+                    rng,
+                    intent=intent,
+                    salt="action:npc_aggression",
+                    max_rounds=1,
+                    reason="npc_aggression",
+                    extra_log={
+                        "aggression_round": round_no,
+                        "aggressor": str(npc.id),
+                        "defender": str(target.id),
+                        "targets": valid,
+                        "opponent_index": opp_index,
+                        "opponent_roll": opp_roll,
+                        "pruned": pruned,
+                    },
+                    drop_dead_npc_attacker=True,
+                )
+            )
+            dead = {
+                str(eff.data.get("entity"))
+                for eff in effects
+                if eff.op == "entity_status" and eff.data.get("status") == "dead"
+            }
+            npc_dead = str(npc.id) in dead
+            if npc_dead:
+                effects.extend(_reset(npc))
+            elif str(target.id) in dead:
+                # 只摘这一个；其余玩家继续围攻。
+                effects.extend(_remove_enemy(npc, str(target.id)))
             effects.append(
                 _log(
                     npc,
                     target,
-                    "trigger",
-                    triggered=triggered,
-                    tick=int(intent.tick),
-                    **info,
+                    "continue",
+                    triggered=True,
+                    result="ended" if npc_dead else "round",
+                    round=round_no,
+                    targets=valid,
+                    opponent_index=opp_index,
+                    opponent_roll=opp_roll,
+                    pruned=pruned,
                 )
             )
             return effects
 
-        # continue：一个心跳回合。原版 char.lpc 先判 wimpy 自动逃跑，再攻击。
         if target is None or target.status != "alive" or target.location != npc.location:
             return [*_reset(npc), _log(npc, target, "reset", result="target_gone")]
 

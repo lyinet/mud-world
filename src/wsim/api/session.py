@@ -64,7 +64,7 @@ from ..core.models import Intent
 from ..agent import dialogue_runtime
 from ..agent.dialogue_aside import DialogueAside
 from ..mcp.gateway import MCPGateway, GatewayError
-from ..sim.aggression import aggression_rules, rule_for
+from ..sim.aggression import aggression_rules, effective_enemies, multi_combat_enabled, rule_for
 from ..sim.genesis import build_genesis
 from ..sim.room_reset import RoomResetPolicy
 from ..sim.scheduler import AmbientConfig, AmbientScheduler
@@ -1656,7 +1656,13 @@ class WorldSession:
             npc = self.state.entities[npc_id]
             if npc.location != ent.location:
                 continue
-            if npc.status != "alive" or npc.combat_target:
+            if npc.status != "alive":
+                continue
+            if multi_combat_enabled():
+                # 只跳过“这个玩家已经在这只 NPC 的敌人表里”；第二、第三个玩家仍会判定。
+                if pid in effective_enemies(npc):
+                    continue
+            elif npc.combat_target:
                 continue
             if rule_for(npc, rules) is None:
                 continue

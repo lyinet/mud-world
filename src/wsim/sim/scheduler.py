@@ -34,6 +34,7 @@ from ..world.hash import event_hash, state_hash
 from ..world.state import WorldState
 from ..world.store import EventStore
 from ..world.writer import Writer
+from .aggression import effective_enemies, multi_combat_enabled
 from .genesis import build_genesis
 from .headless import intent_block_reason, is_prunable
 from .intent import MockReasoner
@@ -705,6 +706,8 @@ class AmbientScheduler:
 
     def _actor_in_combat(self, actor: str) -> bool:
         ent = self.writer.state.entities.get(str(actor)) if self.writer is not None else None
+        if multi_combat_enabled():
+            return bool(effective_enemies(ent)) if ent is not None else False
         return bool(getattr(ent, "combat_target", ""))
 
     def _process_npc_aggression(self, tick: int) -> None:
@@ -723,26 +726,54 @@ class AmbientScheduler:
             if self._aggression_ticks.get(npc_id) == tick:
                 continue
             npc = state.entities[npc_id]
-            target_id = str(npc.combat_target or "")
-            if not target_id or npc_id.startswith("player:"):
+            if npc_id.startswith("player:"):
                 continue
-            target = state.entities.get(target_id)
-            prof = state.players.get(target_id)
-            engaged = (
-                npc.status == "alive"
-                and target is not None
-                and target.status == "alive"
-                and target.location == npc.location
-                and prof is not None
-                and bool(prof.online)
-            )
-            mode = "continue" if engaged else "reset"
+            if multi_combat_enabled():
+                # 多敌：把整张表交给动作层，由它 prune + `random(4)` 选一个。
+                engaged_ids: list[str] = []
+                for eid in effective_enemies(npc):
+                    ent = state.entities.get(eid)
+                    prof = state.players.get(eid)
+                    if (
+                        ent is not None
+                        and ent.status == "alive"
+                        and ent.location == npc.location
+                        and prof is not None
+                        and bool(prof.online)
+                    ):
+                        engaged_ids.append(eid)
+                if not engaged_ids:
+                    if not effective_enemies(npc):
+                        continue
+                    mode = "reset"
+                    target_id = str(npc.combat_target or "")
+                    args = {"mode": mode, "target": target_id}
+                else:
+                    mode = "continue"
+                    target_id = engaged_ids[0]
+                    args = {"mode": mode, "target": target_id, "targets": engaged_ids}
+            else:
+                target_id = str(npc.combat_target or "")
+                if not target_id:
+                    continue
+                target = state.entities.get(target_id)
+                prof = state.players.get(target_id)
+                engaged = (
+                    npc.status == "alive"
+                    and target is not None
+                    and target.status == "alive"
+                    and target.location == npc.location
+                    and prof is not None
+                    and bool(prof.online)
+                )
+                mode = "continue" if engaged else "reset"
+                args = {"mode": mode, "target": target_id}
             self._aggression_ticks[npc_id] = tick
             self._submit(
                 Intent(
                     actor=npc_id,
                     verb="npc_aggression",
-                    args={"mode": mode, "target": target_id},
+                    args=args,
                     tick=int(tick),
                     source="npc",
                     reason=f"{npc_id} 心跳 {tick}",

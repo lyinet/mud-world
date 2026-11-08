@@ -105,6 +105,11 @@ class Entity:
     combat_target: str = ""
     combat_tick: int = 0
     combat_round: int = 0
+    # 多敌敌人表（原版 `enemy` 数组）：登记顺序、按 id 去重，最多参与 `random(4)` 窗口。
+    # `combat_target` 是最近一次选中的主目标；空表不输出，旧世界哈希不变。
+    combat_enemies: list[str] = field(default_factory=list)
+    # 该实体实际被扣气血按攻击者累计（审计用，不是仇恨权重，不参与选敌）。
+    combat_contrib: dict[str, int] = field(default_factory=dict)
     # 原版 `env/wimpy`：当「气」百分比低于该值时自动尝试逃跑（0 为关闭）。
     # 只在玩家显式设置后写入；0 不输出，旧世界哈希逐字节不变。
     wimpy: int = 0
@@ -198,6 +203,10 @@ class Entity:
             data["combat_target"] = self.combat_target
             data["combat_tick"] = int(self.combat_tick)
             data["combat_round"] = int(self.combat_round)
+        if self.combat_enemies:
+            data["combat_enemies"] = list(self.combat_enemies)
+        if self.combat_contrib:
+            data["combat_contrib"] = dict(sorted(self.combat_contrib.items()))
         if self.wimpy:
             data["wimpy"] = int(self.wimpy)
         return data

@@ -14,7 +14,47 @@
 """
 from __future__ import annotations
 
+import os
 from typing import Any
+
+# 原版 `feature/attack.lpc:10`：选敌窗口大小（不是敌人表上限）。
+MAX_OPPONENT = 4
+
+# 进程启动读一次；运行中改环境变量不生效（评审要求“读一次”）。
+_MULTI_COMBAT_ENABLED = str(os.environ.get("XKX_MULTI_COMBAT", "")).strip().lower() in {
+    "1", "true", "on", "yes"
+}
+
+
+def multi_combat_enabled() -> bool:
+    """多敌敌人表开关（默认关闭，关闭态零字段/零事件/零额外骰）。"""
+    return _MULTI_COMBAT_ENABLED
+
+
+def effective_enemies(entity: Any) -> list[str]:
+    """当前敌人表；旧存档只有 `combat_target` 时回退成单元素表。"""
+    raw = getattr(entity, "combat_enemies", None) or []
+    ids: list[str] = []
+    for item in raw:
+        sid = str(item)
+        if sid and sid not in ids:
+            ids.append(sid)
+    if ids:
+        return ids
+    target = str(getattr(entity, "combat_target", "") or "")
+    return [target] if target else []
+
+
+def select_index(count: int, rng: Any) -> tuple[int, int]:
+    """原版 `attack.lpc:139-140`：`random(4)`，越界回退 0。
+
+    返回 `(选中下标, 原始骰值)`；`count<=0` 时不耗骰。
+    """
+    if count <= 0:
+        return 0, -1
+    roll = int(rng.randint(0, MAX_OPPONENT - 1))
+    return (roll if roll < count else 0), roll
+
 
 # 只列需要特殊语义的 NPC；其余 `aggressive=true` 的 NPC 一律按 always 处理。
 AGGRESSION_SPECS: dict[str, dict[str, Any]] = {
