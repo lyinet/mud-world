@@ -451,7 +451,7 @@ def test_loot_and_get_move_ground_items_into_wallet(session):
     look = _cmd(session, "look")
     assert "地上散落：" in "\n".join(_texts(look))
 
-    first = _cmd(session, "loot 大石头")
+    first = _cmd(session, "get 大石头")
     assert first["ok"] is True
     text = "\n".join(_texts(first))
     assert "捡起：大石头" in text
@@ -470,8 +470,21 @@ def test_loot_and_get_move_ground_items_into_wallet(session):
     assert qty_after["/d/hangzhou/obj/eluanshi"] >= 1
     assert qty_after["/d/hangzhou/obj/shitou"] >= 1
 
+    # 没有击杀来源时，loot 必须明确提示，而不是静默成功。
     empty = _cmd(session, "loot")
-    assert "地上没有可捡的东西" in "\n".join(_texts(empty))
+    assert empty["ok"] is False
+    assert "这里没有刚死的东西可搜刮" in "\n".join(_texts(empty))
+
+
+def test_get_all_reports_total_count(session):
+    for direction in ("西", "北", "西", "北上"):
+        assert _cmd(session, "go " + direction)["ok"] is True
+    taken = _cmd(session, "get all")
+    assert taken["ok"] is True, taken.get("reject_reason")
+    text = "\n".join(_texts(taken))
+    assert "捡起 2 件" in text
+    assert "大石头" in text and "鹅卵石" in text
+    assert "地上已经空了" in text
 
 
 def test_loot_named_item_missing_lists_what_is_here(session):
@@ -480,8 +493,8 @@ def test_loot_named_item_missing_lists_what_is_here(session):
     result = _cmd(session, "loot 金锁")
     assert result["ok"] is False
     text = "\n".join(_texts(result))
-    assert "地上没有「金锁」" in text
-    assert "大石头" in text and "鹅卵石" in text
+    # 没有击杀来源时按 loot 语义提示，不会误碰地面物品。
+    assert "这里没有刚死的东西可搜刮" in text
 
 
 def test_item_name_matching_is_substring(session):
@@ -489,13 +502,13 @@ def test_item_name_matching_is_substring(session):
     for direction in ("西", "北", "西", "北上"):
         _cmd(session, "go " + direction)
     # 「石头」不是「大石头」的前缀，只能靠子串命中。
-    hit = _cmd(session, "loot 石头")
+    hit = _cmd(session, "get 石头")
     assert hit["ok"] is True, hit.get("reject_reason")
     assert "捡起：大石头" in "\n".join(_texts(hit))
 
     # 多件同时命中时按行序取第一件（原版 present() 语义），不报歧义：
     # 此时地上只剩鹅卵石，「石」在 鹅卵石/大石头 里都命中过。
-    ambiguous = _cmd(session, "loot 石")
+    ambiguous = _cmd(session, "get 石")
     assert ambiguous["ok"] is True, ambiguous.get("reject_reason")
     assert "捡起：鹅卵石" in "\n".join(_texts(ambiguous))
 

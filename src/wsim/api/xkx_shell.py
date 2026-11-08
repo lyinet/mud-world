@@ -167,6 +167,8 @@ _EXTRA_REASON_TEXT = {
     "player_not_entered": "你还没进入世界。",
     "no_combat_stats": "这具身体还没有气血/攻防；当前内容包没有战斗属性。",
     "loot_not_found": "地上没有这件东西（或者已经被人捡走了）。",
+    "loot_no_corpse": "这里没有刚死的东西可搜刮。",
+    "loot_already_looted": "刚死的东西已经被搜刮过了。",
     "target_required": "没指定要把东西交给谁。",
     "target_not_found": "这里没有这个人。",
     "quest_item_required": "没指定要交出的物品。",
@@ -1577,15 +1579,24 @@ class XKXShell:
             )
         rows = self._ground_rows(state)
         want = rest.strip()
-        if not rows:
+        # `loot` 只搜刮最近击杀掉落；`get` 取地面（get all 清空、get <物品> [数量] 精确取）。
+        first_word = raw.strip().split(maxsplit=1)[0].lower() if raw.strip() else ""
+        is_get = first_word in {"get", "拿", "取"}
+        if is_get and not want:
+            return self._reply(
+                account, "loot", True,
+                [("info", "用法：get all 捡起地面全部物品；get <物品> [数量] 捡起指定物品。")],
+                state, raw, request_id,
+            )
+        if is_get and not rows:
             return self._reply(
                 account, "loot", True,
                 [("info", "地上没有可捡的东西。")],
                 state, raw, request_id,
             )
-        payload: dict[str, Any] = {}
+        payload: dict[str, Any] = {"scope": "all" if is_get else "kill"}
         if want and want not in ("all", "全部", "所有", "都"):
-            match, _tail = self._match_item_rows(
+            match, tail = self._match_item_rows(
                 [
                     dict(row, name=self._item_name(str(row.get("item") or "")))
                     for row in rows
@@ -1593,25 +1604,49 @@ class XKXShell:
                 want,
             )
             if match is None:
-                available = "、".join(self._ground_text(row) for row in rows) if rows else "（地上没有东西）"
-                return self._reply(
-                    account, "loot", False,
-                    [("error", f"地上没有「{want}」。地上现有：{available}。")],
-                    state, raw, request_id,
-                )
-            payload = {"item": match["item"]}
+                if is_get:
+                    available = "、".join(self._ground_text(row) for row in rows) if rows else "（地上没有东西）"
+                    return self._reply(
+                        account, "loot", False,
+                        [("error", f"地上没有「{want}」。地上现有：{available}。")],
+                        state, raw, request_id,
+                    )
+                # loot 找不到同名地面物品时仍交给引擎判定（可能整间都没有击杀掉落）。
+                payload["item"] = want
+            else:
+                payload["item"] = match["item"]
+                if tail:
+                    payload["qty"] = int(tail)
         resp = self.session.perform(account, "loot", payload)
         if not resp.get("ok"):
+            reject = str(resp.get("reject_reason") or "")
+            if reject == "loot_no_corpse":
+                return self._reply(
+                    account, "loot", False,
+                    [("info", "这里没有刚死的东西可搜刮。")],
+                    state, raw, request_id,
+                )
+            message = (
+                f"刚死的东西身上没有「{want or '这件东西'}」。"
+                if (not is_get and reject == "loot_not_found" and want)
+                else self._reason(reject, fallback="没有捡到东西。")
+            )
             return self._reply(
                 account, "loot", False,
-                [("error", self._reason(str(resp.get("reject_reason") or ""), fallback="没有捡到东西。"))],
+                [("error", message)],
                 state, raw, request_id,
             )
         after = self._state(account) or state
         taken = (resp.get("details") or {}).get("loot")
         lines: list[tuple[str, str]] = []
         if isinstance(taken, list) and taken:
-            lines.append(("info", "捡起：" + "、".join(self._take_text(row) for row in taken) + "。"))
+            total = sum(int(row.get("qty") or 0) for row in taken)
+            if is_get and total > 1:
+                lines.append(
+                    ("info", f"捡起 {total} 件：" + "、".join(self._take_text(row) for row in taken) + "。")
+                )
+            else:
+                lines.append(("info", "捡起：" + "、".join(self._take_text(row) for row in taken) + "。"))
         else:
             lines.append(("info", "地上没有可捡的东西。"))
         remaining = self._ground_rows(after)
@@ -2347,7 +2382,8 @@ class XKXShell:
             ("info", "buy <货> [数量]   在当前店铺买货。"),
             ("info", "sell <货> [数量]  把身上的货卖给当前店铺。"),
             ("info", f"fight <人>        动手。{fight_text}。"),
-            ("info", f"loot [物品]       捡起地上物品；不带名字则按引擎顺序全捡（也可用 get）。{loot_text}。"),
+            ("info", f"loot [物品]       搜刮最近击杀的掉落；没有刚死的东西会明确提示。{loot_text}。"),
+            ("info", "get all           捡起地上全部物品；get <物品> [数量] 精确捡起。"),
             ("info", "wear <护具>       穿上护具（按物品 equip_slot 进对应槽位）。"),
             ("info", "wield <兵器>      持起兵器（兵器统一进 weapon 槽，决定战斗技能类型）。"),
             ("info", "remove [护具]     脱下护具；不带名字则脱第一件非兵器装备。"),
