@@ -41,6 +41,9 @@ _ENTITY_FIELDS = {
     "combat_target",
     "combat_tick",
     "combat_round",
+    # 多敌敌人表/伤害贡献（只在 `XKX_MULTI_COMBAT` 开启时写入）。
+    "combat_enemies",
+    "combat_contrib",
     # 原版 `env/wimpy` 阈值（玩家命令 wimpy 写入，0..80）。
     "wimpy",
     # NPC 原版 `die()` 固定掉落（内容包 drops，死亡时转地面物品）。
@@ -535,6 +538,8 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         ent.combat_target = ""
         ent.combat_tick = 0
         ent.combat_round = 0
+        ent.combat_enemies = []
+        ent.combat_contrib = {}
         if "location" in d:
             loc = str(d["location"])
             if loc not in state.locations:
@@ -809,7 +814,21 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             raise EffectError(f"字段不可写: {fld}")
         if fld in ("location", "home") and d["value"] not in state.locations:
             raise EffectError(f"地点不存在: {d['value']}")
-        setattr(ent, fld, d["value"])
+        value = d["value"]
+        if fld == "combat_enemies":
+            if not isinstance(value, list):
+                raise EffectError("combat_enemies 必须是 id 列表")
+            seen: list[str] = []
+            for item in value:
+                sid = str(item)
+                if sid and sid not in seen:
+                    seen.append(sid)
+            value = seen
+        elif fld == "combat_contrib":
+            if not isinstance(value, dict):
+                raise EffectError("combat_contrib 必须是 {攻击者: 伤害} 映射")
+            value = {str(k): int(v) for k, v in value.items() if int(v) > 0}
+        setattr(ent, fld, value)
         return
 
     if op == "set_employment":
