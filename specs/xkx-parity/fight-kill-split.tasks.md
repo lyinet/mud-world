@@ -39,4 +39,4 @@
 
 - [x] `config/worlds/xkx.yaml` 开启 `combat.lethal_fight: true`，**单独提交**。
 - [x] 更新 `reports/xkx-ref/fight-kill-split.md`。
-- [ ] CHANGELOG、全量 pytest 全绿、`tools/xkx_formula` 零改动、显式 `git add`、提交推送。
+- [x] CHANGELOG、全量 pytest 全绿、`tools/xkx_formula` 零改动、显式 `git add`、提交推送。
