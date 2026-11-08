@@ -28,6 +28,46 @@ def _int_dict(raw: Any) -> dict[str, int]:
     return {str(k): int(v) for k, v in raw.items() if int(v) > 0}
 
 
+def content_drops(content: Any, ref: str, rng: Any) -> list[tuple[str, int]]:
+    """内容包 NPC 的 `drops`（原版 `die()` 里 new() 的战利品）。
+
+    只认 `landing == "ground"`、物品存在于内容 `items`、`qty` 为整数。
+    `chance` 是 0..1 概率：>=1 直接掉，<=0 不掉，中间值用注入 PRNG 掷一次；
+    旧内容没有 `drops` 键，函数返回空列表，不消费随机流。
+    """
+    if content is None or not ref:
+        return []
+    record = None
+    for npc in getattr(content, "npcs", []) or []:
+        if str(npc.get("id")) == ref:
+            record = npc
+            break
+    if record is None:
+        return []
+    items = getattr(content, "items", {}) or {}
+    out: list[tuple[str, int]] = []
+    for row in record.get("drops") or []:
+        if not isinstance(row, dict):
+            continue
+        item = str(row.get("item") or "")
+        qty = row.get("qty")
+        chance = row.get("chance")
+        if not item or item not in items:
+            continue
+        if isinstance(qty, bool) or not isinstance(qty, int) or qty <= 0:
+            continue
+        if str(row.get("landing") or "ground") != "ground":
+            continue
+        if isinstance(chance, bool) or not isinstance(chance, (int, float)):
+            continue
+        if float(chance) <= 0:
+            continue
+        if float(chance) < 1.0 and rng.random() >= float(chance):
+            continue
+        out.append((item, int(qty)))
+    return out
+
+
 def _round_cap(intent: Intent) -> int:
     """硬上限 20 回合；参数只能调小，不能调大。"""
     raw = intent.args.get("max_rounds")
@@ -38,6 +78,11 @@ def _round_cap(intent: Intent) -> int:
 
 class FightAction(Action):
     verb = "fight"
+
+    def __init__(self, content: Any = None) -> None:
+        # content 只用于读 NPC 的 `drops`（原版 die() 里 new() 出来的战利品）。
+        # 旧测试/旧内容不传 content 时行为与之前完全一致。
+        self.content = content
 
     def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
         target = _combat_target(intent)
@@ -198,6 +243,12 @@ class FightAction(Action):
                     equip_counts[item] = equip_counts.get(item, 0) + 1
             for item, qty in sorted(equip_counts.items()):
                 drops[item] = max(drops.get(item, 0), qty)
+            # 原版 `die()` 里直接 new() 出来的战利品（如大狼狗掉狗皮）。
+            # 内容包按 NPC 模板记录 `drops`；clone 实例用 template 找回模板。
+            for item, qty in content_drops(
+                self.content, str(defender.template or defender.id), rng
+            ):
+                drops[item] = drops.get(item, 0) + qty
             for item in sorted(drops):
                 effects.append(
                     Effect(

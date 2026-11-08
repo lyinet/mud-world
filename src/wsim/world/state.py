@@ -88,6 +88,10 @@ class Entity:
     death_tick: int = 0
     death_location: str = ""
     death_count: int = 0
+    # 房间 reset 重生时保留的上一次死亡审计线索（原版 destruct + new()
+    # 会丢失对象级历史，我们额外留痕）。非 0 才写进 to_dict()。
+    last_death_tick: int = 0
+    last_death_location: str = ""
     # 同模板多实例：额外实例指向规范模板 id 与本房间槽位（从 1 起）。
     # 规范实例留空/0，to_dict() 不输出，旧世界哈希逐字节不变。
     template: str = ""
@@ -166,6 +170,9 @@ class Entity:
         if self.death_tick or self.death_location:
             data["death_tick"] = int(self.death_tick)
             data["death_location"] = self.death_location
+        if self.last_death_tick or self.last_death_location:
+            data["last_death_tick"] = int(self.last_death_tick)
+            data["last_death_location"] = self.last_death_location
         if self.learned_points:
             data["learned_points"] = int(self.learned_points)
         if self.death_count:

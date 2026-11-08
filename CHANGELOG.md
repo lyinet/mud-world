@@ -9,6 +9,45 @@
 
 ---
 
+## [feat] 2026-11-08 — xkx 房间 reset / NPC 重生与 NPC 货架补货
+
+- **改了什么**：
+  - 新增 `src/wsim/sim/room_reset.py`（`RoomResetPolicy` + `system_room_reset`）：
+    每房间按 `PRNG(seed,0,"room_reset_phase:<room>")` 定相位，`(tick-phase)%3!=2`
+    即 10/20 分钟交替（均值 15 分钟，对齐原版 `time to reset 900` + 5 分钟扫描）。
+  - 死亡 NPC 按创世基线重生（`hp/max_hp/attrs/skill_levels/inventory/equipment/temp_apply/race`），
+    复用原实体 id，不新增实体；房间声明物品只在“全服已不存在”时 `loot_create`；
+    NPC 货架（`owner` 为空）补回 `business_stock=30`；`return_home` 只拉无 `goal_id` 的空闲 NPC。
+  - 新增 `entity_respawn` effect 与 `Entity.last_death_tick/last_death_location`，
+    事件 data 保留 `death_tick/death_location`；死亡审计不被重生擦除。
+  - `FightAction(content)` + `content_drops()`：接通内容包 `npcs[].drops`
+    （郭庄大狼狗狗皮、老虎虎骨）；旧内容无 `drops` 时不消费随机流、哈希不变。
+  - 默认关闭；`config/worlds/xkx.yaml` 显式 `room_reset.enabled: true`；
+    `WorldSession._load_room_reset()` 与 `RunConfig.room_reset` 双入口接线。
+- **为什么改**：原版驱动每 5 分钟扫描 + `time to reset 900`（随机 450..899 秒）会在 NPC
+  死亡 `destruct()` 后重新 `clone()`，复刻此前被杀 NPC 永久消失；同时 NPC 货架用
+  `business_stock=30` 近似，必须补货，否则会把原版 `do_buy()` 的“无限现做”误实现成
+  “30 件卖完永久缺货”。
+- **验证方式**：
+  - `python3 -m pytest -q` 全量通过（exit 0）。
+  - 旧九地点（seed42/2日/npc_limit=0）：`events 735`、
+    `state_final 009076f0346352e328d8c158a3017a3e26fbc0b2c59ef7ca20c8fc3d1f780ce9`、
+    `event_final 02d5f812c427833387e592ad9321ebd72a9c5c719825b958f53af83d795078ae`、
+    `business_cash 11442`、`blocked 6`、`pruned 3`，与 P5 前一致。
+  - 健康 xkx（seed 20261014/1日）reset 开/关：`events 722`、
+    `state_final 1f86137dabfe1f6c0efc3470f3ccb860d18bb1b42557d232fc7bc3cee5c7c3ac`、
+    `event_final c6e440fbaa6f9421dd74423d4d0da957c5a9cfafe8c925f3bbf74cc49b65cbbc`
+    完全一致，零 `system_room_reset`。
+  - 闭环（`/tmp/xkx-p5-accept`）：杀狼狗 `seq2` 掉狗皮 → `seq3` 捡走 →
+    `seq4` reset 满血重生（`hp=max_hp=200`，`death_tick=0 death_location=/d/hangzhou/guozhuang`）→
+    `seq5` 再杀再掉；reset 前后 `ground[goupi]` 均为 0（不复制）。
+  - 老虎：reset 后 `hp=max_hp=200`；`init()` 主动攻击未实现（既有缺口，非 P5 引入）。
+  - `content_hash adc6c47466ef189009029e7a6debbec6b7eab039f343b7b1eb622ab3fb90cdc0`
+    前后一致（P5 未改 `content/xkx/**`，无需 `--reset`）。
+- **commit**：见本条目所在提交。
+
+---
+
 ## [发布] 2026-11-07 — master 退回 pre-xkx 快照（df2b37c）
 
 - **改了什么**：`master` 从 `121fb37` 重置为 `df2b37c`（`pre-xkx-20261107`）；

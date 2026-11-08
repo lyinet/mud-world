@@ -492,6 +492,51 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         ent.death_location = ""
         return
 
+    if op == "entity_respawn":
+        # 房间 reset：把死亡槽位恢复到创世基线（原版是 destruct 后重新 new 一个
+        # clone；我们用同一实体 id 重新初始化，保持槽位/关系/任务引用稳定）。
+        ent = _entity(state, str(d["entity"]))
+        if ent.id.startswith("player:"):
+            raise EffectError(f"玩家实体不能由 reset 重生: {ent.id}")
+        if ent.status != "dead":
+            raise EffectError(f"实体未死亡，不能 reset 重生: {ent.id}")
+        # 审计留痕：把这次死亡的时间/地点移入 last_death_*，再清 death_*。
+        ent.last_death_tick = _as_int(d.get("death_tick", ent.death_tick), "death_tick")
+        ent.last_death_location = str(d.get("death_location", ent.death_location))
+        ent.death_tick = 0
+        ent.death_location = ""
+        ent.status = "alive"
+        if "location" in d:
+            loc = str(d["location"])
+            if loc not in state.locations:
+                raise EffectError(f"地点不存在: {loc}")
+            ent.location = loc
+        for key in ("max_hp", "hp", "attack", "defense", "combat_exp", "max_stamina", "stamina",
+                    "neili", "max_neili", "jiali"):
+            if key in d:
+                setattr(ent, key, _as_int(d[key], key) if key != "stamina" and key != "max_stamina"
+                        else _as_num(d[key], key))
+        for key in ("attrs", "skill_levels", "skill_xp", "temp_apply", "inventory"):
+            if key in d:
+                setattr(ent, key, {str(k): int(v) for k, v in dict(d[key]).items()})
+        if "map_skills" in d:
+            ent.map_skills = {str(k): str(v) for k, v in dict(d["map_skills"]).items()}
+        if "prepare_skills" in d:
+            ent.prepare_skills = [str(x) for x in (d["prepare_skills"] or [])]
+        if "skills" in d:
+            ent.skills = {str(k): float(v) for k, v in dict(d["skills"]).items()}
+        if "equipment" in d:
+            ent.equipment = [str(x) for x in (d["equipment"] or [])]
+        if "equipped" in d:
+            ent.equipped = dict(sorted((str(k), str(v)) for k, v in dict(d["equipped"]).items()))
+        if "equipped_apply" in d:
+            ent.equipped_apply = dict(sorted((str(k), int(v)) for k, v in dict(d["equipped_apply"]).items()))
+        if "weapon_type" in d:
+            ent.weapon_type = str(d["weapon_type"])
+        if "race" in d:
+            ent.race = str(d["race"])
+        return
+
     if op == "loot_create":
         # 掉落到**房间地面**，不直接进背包。`location` 优先；缺省用实体所在地，
         # 兼容旧事件里只写 entity 的写法。

@@ -18,6 +18,7 @@ from ..actions.registry import ActionRegistry, build_registry
 from ..actions.business import has_player_shop
 from ..actions.common import treasury_balance, treasury_guard_threshold
 from ..actions.social import PLAYER_SOURCES
+from .room_reset import RoomResetPolicy
 from ..agent.budget import BudgetGuard, BudgetLimits
 from ..agent.cost import CostTelemetry, load_cost_rates
 from ..agent.intent_model import load_intent_catalog
@@ -117,6 +118,8 @@ class RunConfig:
     spawns: list[dict[str, Any]] | None = None
     # NPC 游走（默认关闭）：世界配置显式打开时才在 LOD 唤醒点生成 move intent。
     npc_wander: bool = False
+    # 房间 reset / NPC 重生（默认关闭）：世界配置显式打开才调度。
+    room_reset: bool = False
 
 
 def _npc_money(state: WorldState) -> int:
@@ -177,7 +180,8 @@ def run_headless(
     state = WorldState(locations=content.locations)
     store = EventStore(out_dir / "events.sqlite")
     spawns = normalize_spawns(cfg.spawns) if cfg.spawns is not None else load_spawns(root)
-    registry = build_registry(content, cfg.seed, spawns=spawns)
+    reset_policy = RoomResetPolicy(content=content, seed=cfg.seed, enabled=bool(cfg.room_reset))
+    registry = build_registry(content, cfg.seed, spawns=spawns, room_reset=reset_policy)
     writer = Writer(state, store, registry, cfg.seed)
 
     genesis = build_genesis(content, npcs, root=root, seed=cfg.seed)
@@ -661,6 +665,19 @@ def run_headless(
             if budget is not None and budget.aborted:
                 log.append(f"[{stamp(tick)}] aborted_at_tick={tick} reason=budget_hard_limit")
                 break
+            # 房间 reset：只在有实体/货架真的需要恢复时写事件；关闭时零影响。
+            if reset_policy.enabled and reset_policy.has_work(writer.state, tick):
+                ev = emit(
+                    Intent(
+                        actor="system",
+                        verb="system_room_reset",
+                        args={"tick": tick},
+                        tick=tick,
+                        source="system",
+                    )
+                )
+                if ev is not None:
+                    day_events.append(ev)
             # LOD：只弹出到期唤醒，复杂度 O(到期事件数)
             if hasattr(reasoner, "decide_batch"):
                 wakes = scheduler.advance_to_batched(tick, batch_size=run_concurrency)

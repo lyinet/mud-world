@@ -44,7 +44,11 @@ class ActionRegistry:
 
 
 def build_registry(
-    content, seed: int, plugin_dir: Path | None = None, spawns: list[dict] | None = None
+    content,
+    seed: int,
+    plugin_dir: Path | None = None,
+    spawns: list[dict] | None = None,
+    room_reset=None,
 ) -> ActionRegistry:
     from .basic import ConsumeAction, CultivateAction, MoveAction, WorkAction
     from .combat import FightAction, SystemSpawnAction
@@ -171,10 +175,14 @@ def build_registry(
     reg.register(PlayerRestAction())
     reg.register(SystemPlayerPresenceAction())
     reg.register(SystemTickAction())
-    reg.register(FightAction())
+    reg.register(FightAction(content))
     reg.register(LootAction(content))
     reg.register(DropAction(content))
     reg.register(SystemSpawnAction(spawns))
+    if room_reset is not None and getattr(room_reset, "enabled", False):
+        from ..sim.room_reset import SystemRoomResetAction
+
+        reg.register(SystemRoomResetAction(room_reset))
 
     root = Path(__file__).resolve().parents[3]
     # 对话队列不进注册表自动挂载：由会话层（WorldSession）按实际 run 目录注入，

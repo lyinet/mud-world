@@ -65,6 +65,7 @@ from ..agent import dialogue_runtime
 from ..agent.dialogue_aside import DialogueAside
 from ..mcp.gateway import MCPGateway, GatewayError
 from ..sim.genesis import build_genesis
+from ..sim.room_reset import RoomResetPolicy
 from ..sim.scheduler import AmbientConfig, AmbientScheduler
 from ..world.state import WorldState
 from ..world.store import EventStore
@@ -550,6 +551,13 @@ class WorldSession:
         self._read_local = threading.local()
 
         self.content = self._load_content_pack(self.content_root)
+        # 房间 reset / NPC 重生：世界配置显式打开才挂动作；默认关闭零影响。
+        self.room_reset_enabled = self._load_room_reset(self.world_config_path)
+        self.room_reset_policy = (
+            RoomResetPolicy(content=self.content, seed=seed, enabled=True)
+            if self.room_reset_enabled
+            else None
+        )
         # 世界自走与玩家共用 content：feed 只认这批 NPC，玩家 ID 永不进入公共事件流。
         self.npc_limit = int(npc_limit or 0)
         self._npc_ids = frozenset(
@@ -562,7 +570,7 @@ class WorldSession:
         if npc_limit:
             npcs = npcs[:npc_limit]
         self.store = EventStore(self.run_dir / "events.sqlite", check_same_thread=False)
-        self.registry = build_registry(self.content, seed)
+        self.registry = build_registry(self.content, seed, room_reset=self.room_reset_policy)
         # 对话模型只挂 TalkAction；不构造 decision provider，不改 llm_enabled。
         # 旁路不属于世界状态：删掉只影响台词，不影响事件/状态/哈希。
         self.dialogue_aside = DialogueAside(self.run_dir)
@@ -1537,6 +1545,22 @@ class WorldSession:
         if not isinstance(loaded, dict):
             return False
         raw = loaded.get("npc_wander") or {}
+        return bool(raw.get("enabled")) if isinstance(raw, dict) else bool(raw)
+
+    @staticmethod
+    def _load_room_reset(path: Path | None) -> bool:
+        """只读世界配置的 `room_reset.enabled`；默认 False，旧世界配置无需加键。"""
+        if path is None:
+            return False
+        try:
+            import yaml
+
+            loaded = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
+        except Exception:
+            return False
+        if not isinstance(loaded, dict):
+            return False
+        raw = loaded.get("room_reset") or {}
         return bool(raw.get("enabled")) if isinstance(raw, dict) else bool(raw)
 
     def _load_content_pack(self, pack_root: Path):
@@ -3270,6 +3294,18 @@ class WorldSession:
             Intent(actor="system", verb="system_tick", args=args, tick=tick, source="system")
         )
         self.tail.observe(event)
+        # 房间 reset：推进到到期 tick 且确有实体/货架需要恢复时才写一条。
+        if self.room_reset_policy is not None and self.room_reset_policy.has_work(self.state, tick):
+            reset = self.writer.submit(
+                Intent(
+                    actor="system",
+                    verb="system_room_reset",
+                    args={"tick": tick},
+                    tick=tick,
+                    source="system",
+                )
+            )
+            self.tail.observe(reset)
         # 玩家押镖闭环：仅当有玩家镖单到期时才补一条到达结算，不改变无镖单世界的 seq。
         if self._player_escort_due(tick):
             settle = self.writer.submit(

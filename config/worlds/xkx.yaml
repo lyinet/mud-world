@@ -19,6 +19,10 @@ ambient: 0
 # 复用 LOD 唤醒点与现有 move action，每个唤醒最多走一间相邻房间。
 npc_wander:
   enabled: true
+# 房间 reset / NPC 重生：默认关闭；只有本世界配置显式打开。
+# 对应原版驱动每 5 分钟扫描 + `time to reset : 900`（随机 450..899 秒）。
+room_reset:
+  enabled: true
 ui_kind: xkx
 
 # 内容优先用另一路交付的 xkx JSON 内容包（rooms/exits/npcs/items/shops/sects）。
