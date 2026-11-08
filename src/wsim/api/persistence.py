@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 from ..core.models import Effect
@@ -54,8 +55,35 @@ def verify_content_hash(store: EventStore, current: str, run_dir: str | Path) ->
         raise ContentHashMismatch(stored, current, run_dir)
 
 
-def replay_into(store: EventStore, locations: dict) -> tuple[WorldState, dict[str, int]]:
-    """把事件日志重放到新状态，并重建 Writer 的 player tick 兜底表。"""
+def replay_into(
+    store: EventStore,
+    locations: dict,
+    *,
+    run_dir: str | Path | None = None,
+    seed: int | None = None,
+    content_hash: str | None = None,
+) -> tuple[WorldState, dict[str, int]]:
+    """把事件日志重放到新状态，并重建 Writer 的 player tick 兜底表。
+
+    默认（关闭保留机制、未裁剪）走原全量回放路径，行为逐字节不变。
+    一旦在线表被裁剪或开启了保留机制且存在快照，则改走
+    `快照 -> 归档 -> 尾段` 的重建路径；快照损坏会自动退回归档段。
+    """
+    if run_dir is not None and _needs_artifact_rebuild(store, run_dir):
+        from ..world.retention import rebuild_from_artifacts
+
+        try:
+            state, player_ticks, _source = rebuild_from_artifacts(
+                store,
+                Path(run_dir),
+                locations,
+                seed=42 if seed is None else int(seed),
+                content_hash=content_hash,
+            )
+            return state, player_ticks
+        except Exception as exc:  # noqa: BLE001 - 明确报错，绝不静默半重建
+            raise RuntimeError(f"event_rebuild_failed:{exc}") from exc
+
     state = WorldState(locations=locations)
     player_ticks: dict[str, int] = {}
     for event in store.read_all():
@@ -67,3 +95,17 @@ def replay_into(store: EventStore, locations: dict) -> tuple[WorldState, dict[st
         if actor.startswith("player:") and str(event.source) not in _SYSTEM_SOURCES:
             player_ticks[actor] = max(player_ticks.get(actor, int(event.tick)), int(event.tick))
     return state, player_ticks
+
+
+def _needs_artifact_rebuild(store: EventStore, run_dir: str | Path) -> bool:
+    """是否必须/允许读归档与快照。
+
+    - 已裁剪（min_seq>1）：必须读，否则会丢前缀；
+    - 未裁剪但显式开启保留机制且存在快照：允许加速回放；
+    - 其余情况保持今天的全量回放。
+    """
+    if store.min_seq() > 1:
+        return True
+    if os.environ.get("XKX_EVENT_RETENTION") != "1":
+        return False
+    return (Path(run_dir) / "snapshots" / "snapshot.json").exists()
