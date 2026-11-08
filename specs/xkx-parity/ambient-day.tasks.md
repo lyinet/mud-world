@@ -98,7 +98,8 @@
 - [x] 说明：cap 是单步上限，越界只截断单步结算并顺延残差（11–143），不丢 npc_tick/NPC 日结；持续 >1200/步才致 `dropped_stale`/`skipped_wakes` 增长
 
 ## T19 6h 固定 commit 运行（spec §18）
-- [ ] 固定 commit 的独立 worktree + `git rev-parse HEAD` 写死
-- [ ] 磁盘 ≥5GB 原始输出；6h 内不加清理逻辑
-- [ ] 参数 `--duration 21600 --players 50 --think-time 2 --warmup 600 --player-shop 1`
+- [x] 独立 worktree `/private/tmp/wsim-soak6h-41ed559` @ `41ed559`（detached，主干继续开发不影响）；目标测试 35 passed
+- [x] 磁盘 ≥5GB：`/dev/disk5s2 1.8Ti 709Gi used 1.1Ti avail`
+- [x] 6h 内不加清理逻辑（仅启动前 `df` 检查）
+- [ ] 参数 `--duration 21600 --players 50 --think-time 2 --warmup 600 --player-shop 1`；2026-11-08 23:5x 实测 loadavg 5.1–5.7 >4，未启动，已布置 load1≤4 窗口自动启动
 - [ ] 交付原始值：negative_rows、seq 连续、integrity_check、重启一致、九地点哈希、同 commit 全量 pytest
