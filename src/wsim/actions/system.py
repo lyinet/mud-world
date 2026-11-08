@@ -553,7 +553,7 @@ class SystemHealAction(Action):
                 continue
             con = int((getattr(ent, "attrs", None) or {}).get("con", 20))
             credit = int(ent.heal_credit) + HEAL_CREDIT_PER_TICK
-            cd = int(ent.heal_cd) or (HEAL_CD_MIN + rng.below(HEAL_CD_SPAN))
+            cd = int(ent.heal_cd) or rng.randint(HEAL_CD_MIN, HEAL_CD_MIN + HEAL_CD_SPAN - 1)
             while credit >= cd * 10000:
                 credit -= cd * 10000
                 hp = min(hp + con // 3, eff)
@@ -561,7 +561,7 @@ class SystemHealAction(Action):
                     hp = eff
                     if eff < max_hp:
                         eff += 1
-                cd = HEAL_CD_MIN + rng.below(HEAL_CD_SPAN)
+                cd = rng.randint(HEAL_CD_MIN, HEAL_CD_MIN + HEAL_CD_SPAN - 1)
             # 即使本 tick 没触发，也要把累积信用写回，否则永远凑不满一次 heal_up。
             effects.append(
                 Effect(

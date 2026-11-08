@@ -216,6 +216,8 @@ class _Actor:
         self.race = str(getattr(ent, "race", "") or "")
         self.neili = max(0, int(getattr(ent, "neili", 0)))
         self.max_neili = max(0, int(getattr(ent, "max_neili", 0)))
+        # `damage.lpc:323-374` heal_up：`qi += query_con()/3 + max_neili/10`。
+        self.con = max(0, int(attr(ent, "con")))
         self.jiali = max(0, int(getattr(ent, "jiali", 0)))
         # `feature/attribute.lpc:92-99`：query_cps/query_cor 都是“原始值 + apply 临时加成”。
         # 内容没写 cps/cor 的走兽必须按 0 处理（`race/beast.lpc` 不掷这两项）。
@@ -425,6 +427,10 @@ def simulate_fight(
     skill_a = attack_skill(attacker, skill)
     skill_b = attack_skill(defender, defender_skill)
     prng = TraceRandom(rng, trace)
+    # `char.lpc:106-109`：每心跳 `--tick`，到 0 时 heal_up 并把 tick 重置为
+    # `5 + random(10)`。本引擎一回合≈一次心跳，故战斗内也按回合触发。
+    # 两方各自计时，只在本场战斗内有效（跨 tick 的世界恢复由 SystemHealAction 负责）。
+    heal_cd = {"a": 6 + prng.below(10), "b": 6 + prng.below(10)} if eff_qi else {}
 
     # 原版没有显式先手比较，靠 MudOS heartbeat 顺序；这里用 dex + query_skill("dodge")
     # 作为引擎自选的近似（无原版行号可引），与 skill_power 同用非 raw 有效值。
@@ -515,7 +521,10 @@ def simulate_fight(
                 # `combatd.lpc:691-718`：dodge 的 damage 是 RESULT_DODGE(<1)，
                 # 同样满足反击条件；不是只对“命中但 0 伤”触发。
                 if allow_riposte and attack_type == "regular" and dst.guarding:
-                    _riposte(src, dst, skill_b if dst is victim else skill_a)
+                    outcome = _riposte(src, dst, skill_b if dst is victim else skill_a)
+                    # 关闭态沿用旧行为（忽略反击结果），保证逐字节一致。
+                    if eff_qi and outcome != "alive":
+                        return outcome
                 return "alive"
 
             pp = xf.select_parry_power(
@@ -542,7 +551,9 @@ def simulate_fight(
                               "hp_before": hp_before, "hp_after": dst.hp})
                 actions.append(entry)
                 if allow_riposte and attack_type == "regular" and dst.guarding:
-                    _riposte(src, dst, skill_b if dst is victim else skill_a)
+                    outcome = _riposte(src, dst, skill_b if dst is victim else skill_a)
+                    if eff_qi and outcome != "alive":
+                        return outcome
                 return "alive"
 
             # 钩子先算整数增量（force/martial 的随机在此消费），再交给库。
@@ -647,17 +658,25 @@ def simulate_fight(
             # `combatd.lpc:691-718`：命中但 damage<1（被护甲吃光等）同样触发反击。
             if (allow_riposte and attack_type == "regular"
                     and breakdown.final_damage < 1 and dst.guarding):
-                _riposte(src, dst, skill_b if dst is victim else skill_a)
+                outcome = _riposte(src, dst, skill_b if dst is victim else skill_a)
+                if eff_qi and outcome != "alive":
+                    return outcome
             if stop_hit:
                 return "stop"
             return "down" if down else "alive"
 
-        def _riposte(src: _Actor, dst: _Actor, dst_skill: str) -> None:
-            """`combatd.lpc:692-718`：守方无条件反击，两分支只切换类型。"""
+        def _riposte(src: _Actor, dst: _Actor, dst_skill: str) -> str:
+            """`combatd.lpc:692-718`：守方无条件反击，两分支只切换类型。
+
+            返回反击结果：守方把攻击方打晕/打死时返回 `down`，由调用方一路
+            传回主循环并立刻结束本场（原版 `remove_all_enemy()`；不能再让
+            攻击方在同一回合内补刀）。
+            """
             dst.guarding = False  # :694
             roll = prng.below(src.cps)  # :695；cps=0 时不取骰
             rtype = "quick" if roll < 5 else "riposte"
-            strike(dst, src, dst_skill, attack_type=rtype, allow_riposte=False, riposte=True)
+            return strike(dst, src, dst_skill, attack_type=rtype,
+                          allow_riposte=False, riposte=True)
 
         if not initiative_gate:
             # 旧口径：双方每轮各挥击一次；开关关闭时骰序与行为保持原样。
@@ -680,17 +699,20 @@ def simulate_fight(
                 if actor.dead or actor.unconscious or target.dead:
                     continue
                 if target.unconscious:
-                    # `:742-760`：目标已昏迷，攻击方获得一次 `TYPE_QUICK` 补刀；
-                    # 目标在下一次自身心跳 `die()`（`char.lpc:72-77`）。
-                    # 只有**命中且 qi 重新 <0** 才转死；未命中/被招架则继续昏迷。
-                    # 切磋时，面对已昏迷的对手直接收手，不补刀判死。
+                    # `:742-760`：进场时目标已昏迷（本次是补刀指令），攻击方获得一次
+                    # `TYPE_QUICK` 快攻，绕过出手门。
+                    # NPC 被补刀 qi<0 后在下一次自身心跳 `die()`（`char.lpc:72-77`）；
+                    # 玩家 `living()` 仍为真，`qi<0` 只会再次 `unconcious()` 早退，
+                    # 只有 `eff_qi<0` 才走 `die()`（`char.lpc:65-78`）。
                     if spar:
                         stopped = True
                         stop_winner = "attacker" if actor is me else "defender"
                         break
                     actor.guarding = False
-                    strike(actor, target, actor_skill, attack_type="quick")
-                    if target.hp < 0:
+                    out = strike(actor, target, actor_skill, attack_type="quick")
+                    # 关闭态沿用旧口径（补刀命中即判死）；开启 `eff_qi` 后 NPC 走
+                    # `char.lpc:72-77` 的 `!living → die()`，玩家只有 `eff_qi<0` 才死。
+                    if target.hp < 0 and (not eff_qi or not target.is_player):
                         target.dead = True
                     continue
                 # `:763`：主动门。走兽 cps=0 时 random(0) 不取骰。
@@ -710,9 +732,11 @@ def simulate_fight(
                     }
                 if gate_pass:
                     actor.guarding = False
-                    strike(actor, target, actor_skill, attack_type="regular",
-                           allow_riposte=True, gate=gate)
-                    if stopped:
+                    out = strike(actor, target, actor_skill, attack_type="regular",
+                                 allow_riposte=True, gate=gate)
+                    if eff_qi and out == "down":
+                        # 原版 `unconcious()`/`die()` 都会 `remove_all_enemy()`：
+                        # 目标一旦昏迷/死亡，本场立刻结束，攻击方**不再**同回合补刀。
                         break
                     continue
                 # `:783-800`：守卫分支。首次守卫消耗两次 guard_msg 取数；
@@ -750,6 +774,19 @@ def simulate_fight(
                     })
 
         rounds.append({"round": round_no, "actions": actions})
+        if eff_qi:
+            # `damage.lpc:323-374 heal_up`：战斗中照样恢复（原版 `is_fighting()` 门
+            # 被注释掉了）。玩家受 food/water 门控——本引擎不建模饥渴，略过。
+            for key, actor in (("a", me), ("b", victim)):
+                if actor.dead or actor.unconscious or actor.hp < 0:
+                    continue
+                heal_cd[key] -= 1
+                if heal_cd[key] <= 0:
+                    gain = actor.con // 3 + actor.max_neili // 10
+                    actor.hp = min(actor.eff_hp, actor.hp + gain)
+                    if actor.eff_hp < actor.max_hp:
+                        actor.eff_hp += 1
+                    heal_cd[key] = 6 + prng.below(10)
         if spar:
             # 切磋永不判死；命中半血即止时立即结束。
             if stopped:
@@ -757,11 +794,11 @@ def simulate_fight(
             continue
         for actor in (me, victim):
             if eff_qi or initiative_gate:
-                # 只认 `die()`（eff<0）与显式补刀；`qi<0` 是昏迷，不是死亡。
+                # 旧闸口径：只认显式 `dead` 与 `eff_qi<0`。
                 if actor.dead or actor.eff_hp < 0:
                     dead.add(actor.id)
             else:
-                # 旧口径：气血/有效气血任一为负即视为倒下。
+                # 更旧口径：气血/有效气血任一为负即视为倒下。
                 if actor.hp < 0 or actor.eff_hp < 0:
                     dead.add(actor.id)
         if (eff_qi or initiative_gate) and me.unconscious and victim.unconscious:
@@ -769,12 +806,22 @@ def simulate_fight(
             dead.update((me.id, victim.id))
         if dead:
             break
+        if eff_qi and (me.unconscious or victim.unconscious):
+            # 原版 `unconcious()` 的 `remove_all_enemy()`：昏迷即退场，本场结束；
+            # 苏醒后需重新登记仇恨（不自动恢复）。补刀要另起一次指令。
+            break
 
     winner = stop_winner if stopped else ""
-    if not stopped and victim.id in dead and me.id not in dead:
-        winner = "attacker"
-    elif not stopped and me.id in dead and victim.id not in dead:
-        winner = "defender"
+    if not stopped:
+        if victim.id in dead and me.id not in dead:
+            winner = "attacker"
+        elif me.id in dead and victim.id not in dead:
+            winner = "defender"
+        elif eff_qi and victim.unconscious and not me.unconscious:
+            # 原版 `unconcious()`（damage.lpc:115-116）当场给击败者发奖励。
+            winner = "attacker"
+        elif eff_qi and me.unconscious and not victim.unconscious:
+            winner = "defender"
 
     skill_updates: list[dict[str, Any]] = []
     for actor in (me, victim):

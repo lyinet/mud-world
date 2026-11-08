@@ -101,13 +101,34 @@ def test_zero_hp_stays_alive_and_negative_qi_is_unconcious():
     assert mon.status in ("alive", "unconcious", "dead")
 
 
-def test_eff_qi_below_zero_is_death():
+def test_eff_qi_below_zero_is_death(monkeypatch):
     state = _state(monster=_monster(max_hp=30, hp=30, attrs={"str": 1, "dex": 1, "con": 1}))
-    result = _fight(state, max_rounds=300)
+    apply_effects(
+        state,
+        [
+            Effect("hp_set", {"entity": MON, "value": 0}),
+            Effect("entity_status", {"entity": MON, "status": "unconcious", "revive_tick": 9}),
+        ],
+    )
+    # 破防通道成立时，补刀把 eff_qi 打到 <0 才 die()；qi 仍 >= -1。
+    monkeypatch.setattr(cr.xf, "roll_wound", lambda **kw: True)
+    result = _fight(state, max_rounds=1)
     assert result["eff_hp_raw"][MON] < 0
     assert MON in result["dead"]
-    # 死亡门槛只看 eff_hp：hp 仍可能 >= -1。
     assert result["hp_raw"][MON] <= 0
+
+
+def test_knockout_ends_fight_without_death(monkeypatch):
+    """原版 `unconcious()` 会 `remove_all_enemy()`：本场立即结束，不再同回合补刀。"""
+    monkeypatch.setattr(cr.xf, "roll_wound", lambda **kw: False)  # 只看 qi<0 的昏迷
+    state = _state(monster=_monster(max_hp=60, hp=60))
+    result = _fight(state, max_rounds=300)
+    assert MON in result["unconscious"]
+    assert MON not in result["dead"]
+    # 昏迷即退场，不存在"同一场里继续快攻到死"。
+    assert result["winner"] == "attacker"
+    last = result["rounds"][-1]["actions"][-1]
+    assert last["state"] != "alive"
 
 
 def test_unconcious_entity_can_be_revived_by_tick():

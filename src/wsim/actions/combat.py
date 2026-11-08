@@ -287,8 +287,10 @@ def combat_effects(
             rrng = PRNG(
                 getattr(rng, "seed", 0), getattr(rng, "seq", 0), f"{salt}:revive"
             )
+            # LPC `random(n)` 取值 0..n-1；PRNG 里对应 randint(0, n-1)。
+            span = max(1, 100 - con)
             revive_ticks = max(
-                1, int(round((30 + rrng.below(max(1, 100 - con))) * 0.6083))
+                1, int(round((30 + rrng.randint(0, span - 1)) * 0.6083))
             )
             effects.append(
                 Effect(

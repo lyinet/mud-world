@@ -524,9 +524,18 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             ent.death_tick = _as_int(d.get("tick", 0), "tick")
             ent.death_location = str(d.get("location", ent.location))
             ent.revive_tick = 0
-            # 原版 char.lpc:66 `remove_all_enemy()`：死亡清空敌人表。
+            # 原版 char.lpc:66 `remove_all_enemy()`：双向摘除，死亡后不再被围殴。
             ent.combat_enemies = []
             ent.combat_target = ""
+            for other in state.entities.values():
+                if other.id == ent.id:
+                    continue
+                if ent.id in (other.combat_enemies or []):
+                    other.combat_enemies = [
+                        e for e in other.combat_enemies if e != ent.id
+                    ]
+                if other.combat_target == ent.id:
+                    other.combat_target = ""
         elif status == "unconcious":
             if ent.hp > 0:
                 raise EffectError("昏迷前 hp 必须 <= 0")
@@ -534,9 +543,18 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             ent.revive_tick = _as_int(d.get("revive_tick", 0), "revive_tick")
             ent.death_tick = 0
             ent.death_location = ""
-            # 原版 char.lpc:73 同样 remove_all_enemy()；苏醒后不自动恢复仇恨。
+            # 原版 char.lpc:73 同样 remove_all_enemy()；双向摘除，苏醒后不自动恢复仇恨。
             ent.combat_enemies = []
             ent.combat_target = ""
+            for other in state.entities.values():
+                if other.id == ent.id:
+                    continue
+                if ent.id in (other.combat_enemies or []):
+                    other.combat_enemies = [
+                        e for e in other.combat_enemies if e != ent.id
+                    ]
+                if other.combat_target == ent.id:
+                    other.combat_target = ""
         else:
             ent.status = status
             ent.death_tick = 0
