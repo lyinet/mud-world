@@ -77,7 +77,7 @@ BASELINE = {
     # 旧值 dc0aa76e… / 7968aebf… 属于引擎自维护公式，已废弃。
     # 再次重采（2026-11-07，掉落改落地面）：loot_create 不再直塞攻击者背包，
     # 状态里出现 ground（item.boar_hide / item.tusk），旧值 3eae4e85… 仅作漂移记录。
-    "state_final": "91097d90bca6fd9097ff9190f1b4158a4d76f51f3b5e3940cd8b3b34617b995e",
+    "state_final": "92dd560641e3301218671b6da19462fd4b63fd1e1a203c323d8fffda872d2ed3",
     # event 哈希在 hp_add 增量钳制修复后重采样：状态未变（仍是 3eae4e85…），
     # 只有事件里的 delta 从“超额值”改成实际变化（如 -41 → -40）。
     # 掉落改地面后，loot_create 的 data 新增 location 并去掉 entity，事件哈希同步重采。
@@ -88,7 +88,10 @@ BASELINE = {
     # 移除 20 回合硬上限后重采（2026-11-07）：state 哈希未变（仍是 91097d90…，
     # 两场都在 3 回合内结束），event 哈希变化只来自 combat_log 的
     # `max_rounds` 由 20 变为 null（默认不封顶）。
-    "event_final": "859c990195cbfd59a941de3d42dfcd3aa36dcbac75ac463da8c42aa2f0918b90",
+    # 击杀来源分桶后重采（2026-11-09）：state 新增 ground_sources（击杀来源条目），
+    # 事件里的 loot_create 新增 source/source_entity/source_tick；旧世界哈希不受影响
+    # （见 test_xkx_determinism_legacy）。
+    "event_final": "97d261031d95e40dce14f76f2a70e84ce677bc833bee48987017dca531937d3e",
 }
 
 

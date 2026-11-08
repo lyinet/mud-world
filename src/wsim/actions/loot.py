@@ -44,11 +44,14 @@ def _scope(intent: Intent) -> str:
 
 
 def _latest_kill(state: WorldState, loc: str) -> dict[str, Any] | None:
-    """当前房间最近一次击杀的来源条目；同 tick 取列表中靠后的一条。"""
+    """当前房间最近一次击杀的来源条目；同 tick 取列表中靠后的一条。
+
+    已搜刮空的条目会作为墓碑保留，因此「最近一次击杀」不会退回到上一具尸体。
+    """
     picks = [
         (idx, entry)
         for idx, entry in enumerate(state.ground_sources.get(loc) or [])
-        if str(entry.get("source") or "") == "kill" and entry.get("items")
+        if str(entry.get("source") or "") == "kill"
     ]
     if not picks:
         return None
@@ -95,7 +98,7 @@ class LootAction(Action):
                 if int(qty) > 0
             }
             if not source_items:
-                return ["loot_no_corpse"]
+                return ["loot_already_looted"]
             if item:
                 available = int(source_items.get(item, 0))
                 if available <= 0:

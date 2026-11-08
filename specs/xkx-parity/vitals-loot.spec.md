@@ -228,6 +228,8 @@ resolve_npc_vitals(npc) -> {"max_hp": int, "hp": int, "attrs": dict, "combat_exp
 
 - 当前房间没有击杀来源桶时，`loot` 必须以 `loot_no_corpse` 拒绝，文字壳提示
   「这里没有刚死的东西可搜刮。」；不得静默成功，不得清空地面。
+- 最近一次击杀已被搜空时，`loot` 以 `loot_already_looted` 拒绝，文字壳提示
+  「刚死的东西已经被搜刮过了。」；**不得回退去搜上一具尸体**。
 - 击杀来源桶存在但指定物品不在其中：`loot_not_found`，文字壳提示
   「刚死的东西身上没有「X」，只有：…」。
 - 方案**不改模拟语义**：所有变更仍只经 `loot_create` / `loot_take` 两个 Effect；
@@ -242,6 +244,8 @@ resolve_npc_vitals(npc) -> {"max_hp": int, "hp": int, "attrs": dict, "combat_exp
   - 仅 `source="kill"` 写入；`key = f"kill:{tick}:{entity}"`，同 key 合并进同一条目
     （一次击杀的多件掉落不会分裂成多条）。
   - 列表顺序即事件顺序，「最近一次击杀」取 `tick` 最大者，同 tick 取列表末位。
+  - 最近一次击杀被搜空后保留**墓碑条目**（`items={}`），确保再次 `loot` 提示
+    `loot_already_looted` 而不是回溯上一具尸体；更早的空条目会被清理。
   - 为空时不写进 `to_dict()`，旧世界哈希不变。
 - 归因不变量：对任意 `loc/item`，`sum(source.items[item]) <= ground[loc][item]`。
 
@@ -284,7 +288,8 @@ resolve_npc_vitals(npc) -> {"max_hp": int, "hp": int, "attrs": dict, "combat_exp
 
 - `tests/test_combat_loot.py`（重写取物断言）：
   - 地面有创世物品 + 一次击杀掉落 → `loot` 只取击杀掉落，地面其余物品原样保留；
-  - 连续两次击杀 → `loot` 只取最近一次，第一次击杀的掉落仍在；
+  - 连续两次击杀 → `loot` 只取最近一次；再次 `loot` 报 `loot_already_looted`，
+    第一次击杀的掉落仍留在地面（不回退搜刮）；
   - `get all` 清空地面；
   - `get <id> <n>` 精确取 n，剩余数量正确；
   - 无击杀掉落 → `loot_no_corpse`；旧式 `loot_create`（无 source）不被 `loot` 视为目标；

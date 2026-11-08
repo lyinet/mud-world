@@ -224,7 +224,9 @@ def test_loot_take_with_source_only_consumes_that_bucket():
         ],
     )
     assert state.ground["inn"]["item.hide"] == 5
-    assert "inn" not in state.ground_sources
+    # 最近一次击杀被搜空后保留墓碑，避免再次 loot 退回去搜上一具尸体。
+    entries = state.ground_sources["inn"]
+    assert len(entries) == 1 and entries[0]["items"] == {}
     assert state.entities["npc.hero"].inventory["item.hide"] == 1
 
 

@@ -213,12 +213,19 @@ def _ground_tracked(state: WorldState, loc: str, item: str) -> int:
     return total
 
 
-def _trim_ground_source(state: WorldState, loc: str, entry: dict[str, Any]) -> None:
-    """来源条目取空后从列表中移除；房间列表空了就删键。"""
-    if entry.get("items"):
-        return
+def _prune_ground_sources(state: WorldState, loc: str) -> None:
+    """只保留有物品的来源条目；最近一次击杀即使已被搜刮空也留作墓碑。
+
+    墓碑保证「再 loot 一次」不会退回去搜刮上一具尸体，而是明确提示已经搜过。
+    """
     entries = state.ground_sources.get(loc) or []
-    kept = [e for e in entries if e is not entry]
+    if not entries:
+        state.ground_sources.pop(loc, None)
+        return
+    latest = max(
+        range(len(entries)), key=lambda i: (int(entries[i].get("tick") or 0), i)
+    )
+    kept = [entry for i, entry in enumerate(entries) if entry.get("items") or i == latest]
     if kept:
         state.ground_sources[loc] = kept
     else:
@@ -249,7 +256,7 @@ def _take_from_ground_sources(
             items[item] = left
         else:
             items.pop(item, None)
-        _trim_ground_source(state, loc, entry)
+        _prune_ground_sources(state, loc)
         return
     # 未指定来源：聚合数量里可能有创世/丢弃等未归因物品，先扣这部分，
     # 避免 `get` 把击杀掉落记成“已被捡走”而后面的 `loot` 空手。
@@ -269,7 +276,7 @@ def _take_from_ground_sources(
         else:
             items.pop(item, None)
         remaining -= take
-        _trim_ground_source(state, loc, entry)
+        _prune_ground_sources(state, loc)
         if remaining <= 0:
             return
     if remaining > 0:
@@ -781,6 +788,7 @@ def _apply_one(state: WorldState, e: Effect) -> None:
                 entries.append(entry)
             items = entry.setdefault("items", {})
             items[item] = int(items.get(item, 0)) + qty
+            _prune_ground_sources(state, loc)
         return
 
     if op == "loot_take":

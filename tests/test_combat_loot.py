@@ -58,15 +58,29 @@ def _writer(ground: dict[str, int] | None = None, kills: list | None = None, see
     return writer, store
 
 
-def _loot(writer, **args):
+def _loot(writer, intent_id: str = "", **args):
     return writer.submit(
-        Intent("player:hero", "loot", {"player_id": "player:hero", **args}, 0, "player")
+        Intent(
+            "player:hero",
+            "loot",
+            {"player_id": "player:hero", **args},
+            0,
+            "player",
+            intent_id=intent_id,
+        )
     )
 
 
-def _get(writer, **args):
+def _get(writer, intent_id: str = "", **args):
     return writer.submit(
-        Intent("player:hero", "get", {"player_id": "player:hero", **args}, 0, "player")
+        Intent(
+            "player:hero",
+            "get",
+            {"player_id": "player:hero", **args},
+            0,
+            "player",
+            intent_id=intent_id,
+        )
     )
 
 
@@ -91,7 +105,8 @@ def test_get_all_clears_ground():
     event = _get(writer, scope="all")
     assert event.outcome == "ok"
     assert writer.state.ground == {}
-    assert writer.state.ground_sources == {}
+    # 击杀条目只留墓碑（最近一次击杀），不再有可捡物品。
+    assert all(not entry["items"] for entry in writer.state.ground_sources["inn"])
     assert writer.state.entities["player:hero"].inventory == {"item.hide": 7, "item.tusk": 2}
 
 
@@ -127,6 +142,24 @@ def test_legacy_ground_without_source_is_not_loot_target():
     assert event.outcome == "rejected"
     assert event.reason == "rejected:loot_no_corpse"
     assert writer.state.ground_sources == {}
+
+
+def test_second_loot_does_not_fall_back_to_older_corpse():
+    writer, _ = _writer(
+        {},
+        kills=[
+            (5, "npc.dog", {"item.hide": 1}),
+            (9, "npc.wolf", {"item.tusk": 2}),
+        ],
+    )
+    assert _loot(writer).outcome == "ok"
+    assert writer.state.entities["player:hero"].inventory == {"item.tusk": 2}
+    again = _loot(writer, intent_id="loot:second")
+    assert again.outcome == "rejected"
+    assert again.reason == "rejected:loot_already_looted"
+    # 上一具尸体的掉落仍留在地面，但不会被 loot 自动拿走。
+    assert writer.state.ground["inn"] == {"item.hide": 1}
+    assert writer.state.entities["player:hero"].inventory == {"item.tusk": 2}
 
 
 def test_loot_specific_item_only_from_latest_kill():

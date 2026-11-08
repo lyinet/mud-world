@@ -639,10 +639,9 @@ class WorldState:
                         "items": dict(sorted((entry.get("items") or {}).items())),
                     }
                     for entry in entries
-                    if entry.get("items")
                 ]
                 for loc, entries in sorted(self.ground_sources.items())
-                if any(entry.get("items") for entry in entries)
+                if entries
             }
         if self.xkx_quests:
             data["xkx_quests"] = {
