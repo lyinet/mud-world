@@ -221,7 +221,7 @@ class _Actor:
         self.jiali = max(0, int(getattr(ent, "jiali", 0)))
         # `feature/attribute.lpc:92-99`：query_cps/query_cor 都是“原始值 + apply 临时加成”。
         # 内容没写 cps/cor 的走兽必须按 0 处理（`race/beast.lpc` 不掷这两项）。
-        # 玩家创世不写这两个键；按 MID 快照 23/24 兜底（见模块顶部常量）。
+        # 新角色创世即写入 23/24（`actions/player.py`）；这里只对旧存档玩家兜底。
         attrs = getattr(ent, "attrs", None) or {}
         raw_cps = _raw_attr(ent, "cps")
         raw_cor = _raw_attr(ent, "cor")

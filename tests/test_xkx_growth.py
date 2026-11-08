@@ -24,6 +24,7 @@ from wsim.api import WorldSession
 from wsim.api.xkx_content import load_xkx_content
 from wsim.core.models import Effect, Intent, Reject
 from wsim.core.rng import PRNG
+from wsim.sim.combat_rules import _Actor
 from wsim.world.effects import apply_effects
 from wsim.world.state import Entity, WorldState
 
@@ -59,6 +60,23 @@ def session(tmp_path):
 
 def _cmd(session, command: str):
     return session.xkx_command(ACCOUNT, {"account_id": ACCOUNT, "command": command})
+
+
+def test_player_query_cps_cor_have_real_values(session):
+    """原版 `race/human.lpc:60-68` 的 cps/cor 在玩家侧必须有真值。
+
+    原版登录是 `10+random(21)` 掷点，复刻按 MID 快照写死 23/24（与六维同一做法）；
+    `query_cps()/query_cor()` = 原始值 + `apply/composure` / `apply/courage`。
+    这条锁住“玩家侧不是 0、也不是只靠战斗层兜底”。
+    """
+    _cmd(session, "look")
+    ent = session.state.entities[f"player:{ACCOUNT}"]
+    assert ent.attrs["cps"] == 23
+    assert ent.attrs["cor"] == 24
+    actor = _Actor(ent, {f"player:{ACCOUNT}"}, eff_qi=True)
+    apply = getattr(ent, "temp_apply", None) or {}
+    assert actor.cps == 23 + int(apply.get("apply/composure", 0))
+    assert actor.cor == 24 + int(apply.get("apply/courage", 0))
 
 
 def _texts(result):
