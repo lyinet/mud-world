@@ -358,6 +358,12 @@ GC 窗口内无 >15ms 停顿、checkpoint busy=0 → 锁内被 OS 抢占，非�
 ## 18. 6h 运行前置与交付（裁定 6）
 
 - 从**固定 commit 的独立 worktree** 运行，报告写死 `git rev-parse HEAD`；跑期间主干开发不影响该 worktree。
+- **运行期互斥 LOCK（路径固定）**：6h 启动即写 `/tmp/wsim-soak6h/LOCK`，内容含
+  `commit=<sha>` 与 `start=<ISO 时间>`；跑完或中止后删除。其他线在重负载测试前检查该文件，
+  避免在测延迟期间起批量压测污染本次结果。
+- **版本差**：报告同时给出运行 commit（worktree HEAD）与跑完时主干 HEAD，并列出
+  `运行commit..主干HEAD` 中触及 `src/ content/ config/` 的提交；若期间有影响 sim 语义的
+  合并进主干，明确写“6h 结论是否仍适用于主干”。
 - 启动前确认磁盘余量 ≥5GB（`df -h` 原始输出进报告）；**6h 内不加任何清理逻辑**（DB 保留期/归档另线处理）。
 - 参数：`--duration 21600 --players 50 --think-time 2 --warmup 600 --player-shop 1`，其余按 v2 口径。
 - 玩家店铺基线（`shop-preflight7-20261108`，6h 对照）：
