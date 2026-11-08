@@ -59,12 +59,14 @@
 - [x] `attribution.json` 逐 30s 窗口对齐 `step_ms` 与墙钟写 p95（锁内/锁外/CPU 拆分）
 - [x] 坏窗口 cause 域 + GC 代际/停顿时长 + checkpoint 计数 + 同机 top-N 负载
 - [x] 对照组 `--players 10 --no-ambient --duration 900`（0 坏窗口 → 非机器噪声）
-- [ ] 严格短验 `--duration 900 --players 50` 逐窗口复核，坏窗口 0 才算过
+- [x] 严格短验 `--duration 900 --players 50` 逐窗口复核，坏窗口 0 才算过
+  （`strict15m-20261108` 30 窗全 ≤500ms；`shop-preflight6-20261108` 40 窗 0 坏）
 
 ## T12 内存中间跑（spec §12.4）
 - [x] `--duration 2700 --players 50` 每 10 分钟 RSS/relations/goals/PlayerProfile 表
 - [x] 结论：relations/goals 增量递减、PlayerProfile 定值 51；RSS 锯齿轮 0.645MB/min，6h 峰值 ≈300MB
-- [ ] DB 体积 6h 投影（≈15MB/10min）与治理方案（需用户裁定是否加 checkpoint/裁剪）
+- [x] DB 体积 6h 投影：按 15MB/10min 线性 → 6h ≈570MB（业务表事件量线性，非内存泄漏）
+- [ ] 治理方案裁定（events 保留期/归档 VACUUM）需用户确认后再进 6h
 
 ## T13 玩家店铺注入（spec §13）
 - [ ] 跑 `--duration 1200 --players 50 --player-shop 1`，确认 `player_shop.jsonl` 出现 `done`
