@@ -637,11 +637,12 @@ def _complete_journal(
                 opts.store.set_meta("event_archive_last_day", str(manifest["last_day"]))
             if opts.vacuum:
                 opts.store.vacuum_offline()
-            journal["phase"] = "done"
             journal["deleted"] = int(deleted)
-            write_journal(opts.run_dir, journal)
             if fail_after == "prune":
+                write_journal(opts.run_dir, journal)
                 raise MaintenanceError("injected_failure:prune")
+            journal["phase"] = "done"
+            write_journal(opts.run_dir, journal)
             continue
         raise MaintenanceError(f"journal_phase_unknown:{phase}")
 
