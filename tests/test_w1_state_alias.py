@@ -61,11 +61,9 @@ def _login(base: str, username: str = "u_demo", password: str = "secret123") -> 
 
 @pytest.fixture()
 def service(tmp_path):
-    # 冻结 presence 时钟，保证两次读取的 idle_seconds/activity 不随时间漂移，
-    # 才能做逐字节比较。
+    # activity/idle 全由世界 tick 推导；两次读取之间没有 tick 推进，结果逐字节一致。
     session = WorldSession(
         ROOT, run_id="alias", run_dir=tmp_path / "run", seed=42,
-        presence_clock=lambda: 1_000.0,
     )
     accounts = AccountStore(tmp_path / "service.sqlite", iterations=1_000, token_ttl=3_600)
     server = create_server(session, "127.0.0.1", 0, accounts=accounts, auth_required=True)
@@ -117,7 +115,6 @@ def test_alias_matches_main_for_all_token_states(service):
 def test_alias_matches_main_in_legacy_mode(tmp_path):
     session = WorldSession(
         ROOT, run_id="alias-legacy", run_dir=tmp_path / "run", seed=42,
-        presence_clock=lambda: 1_000.0,
     )
     server = create_server(session, "127.0.0.1", 0, accounts=None, auth_required=False)
     thread = threading.Thread(target=server.serve_forever, daemon=True)

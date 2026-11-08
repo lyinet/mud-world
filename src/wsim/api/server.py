@@ -806,7 +806,8 @@ class _Handler(BaseHTTPRequestHandler):
             # 文字壳：读命令不写事件；走/问/买等写命令仍走 session.perform。
             result = session.xkx_command(account, body, request_id)
         elif route == "heartbeat" and bool(body.get("keepalive")):
-            # 页面停留保活：只刷新活跃时钟，不写事件；离线仍返回 player_offline 供客户端自愈。
+            # 页面停留保活：按世界 tick 刷新活跃时间（≥12 tick 才补心跳事件）；离线仍
+            # 返回 player_offline 供客户端自愈。
             result = session.keepalive(account)
         else:
             result = session.perform(account, route, body, request_id)

@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from ..actions.business import has_player_shop
+from ..actions.player import presence_timeout_pids
 from ..actions.registry import build_registry
 from ..core.canonical import hash_obj
 from ..core.clock import TICKS_PER_DAY, TICKS_PER_HOUR, day_of, stamp
@@ -692,6 +693,18 @@ class AmbientScheduler:
         # 原版 NPC 的 `kill_ob` 只是开战并登记心跳，真正的出手在下一个心跳；
         # 这里每个 tick 对“已交战”的 NPC 结算一回合（目标不在同房/不在线/已死则收兵）。
         self._process_npc_aggression(t)
+        # 断线玩家按世界 tick 置 offline；due 为空时不写事件，旧世界事件序不变。
+        due = presence_timeout_pids(self.writer.state, t)
+        if due:
+            self._emit_system(
+                Intent(
+                    "system",
+                    "system_player_presence",
+                    {"tick": t, "pids": due},
+                    t,
+                    "system",
+                )
+            )
         if not self.shared and t % TICKS_PER_DAY == (TICKS_PER_DAY - 1):
             # 日末结算：t=143 对应第 0 日结束，与 headless 的 base+143 对齐。
             # 共享模式改由“日界变更”分支结算，避免玩家跳 tick 时漏结算或重复结算。

@@ -614,7 +614,8 @@ def test_three_consecutive_escorts_keep_treasury_net_inflow(session: WorldSessio
         assert session.state.account_balance(wallet(payer)) == payer0 - 169
         assert session.state.account_balance(treasury) == treasury0
         for _ in range(24):
-            session._advance()
+            # 玩家是这段行程的驱动者（真实客户端会轮询）；别让“测试时钟”把他判离线。
+            session._advance(keep_pid=pid)
         order = session.state.escorts[sorted(session.state.escorts)[-1]]
         assert order.status == "done"
         flows = [

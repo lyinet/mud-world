@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from wsim.core.canonical import hash_obj
+from wsim.core.models import Intent
 from wsim.sim.intent import MockReasoner
 from wsim.sim.scheduler import (
     AmbientConfig,
@@ -87,7 +88,21 @@ def test_player_enter_keeps_progress_and_chain(tmp_path):
     assert enter["outcome"] == "ok"
     assert enter["tick"] == rows[-1]["tick"]
     assert enter["seq"] > rows[-1]["seq"]
-    s.run_ticks(60)
+    s.run_ticks(30)
+    # 新语义：36 tick 无真实请求算断线。模拟客户端每 30 tick 一次心跳，
+    # 让“玩家在线跨一小时”的断言仍然成立（心跳本身不改世界进度链）。
+    with s._guard():
+        s.writer.submit(
+            Intent(
+                actor="player:visitor",
+                verb="player_heartbeat",
+                args={"player_id": "player:visitor"},
+                tick=int(s.writer.state.tick),
+                source="player",
+                reason="test_keepalive",
+            )
+        )
+    s.run_ticks(30)
     leave = s.leave_player()
     assert leave["outcome"] == "ok"
     after = progress_path.read_text()

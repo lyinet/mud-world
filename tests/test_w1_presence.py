@@ -1,8 +1,7 @@
-"""在线三态与并发离线误判的回归测试。
+"""Presence 断线超时的回归测试（全部按世界 tick，不读墙钟）。
 
-旧实现按全局 tick 差值判离线：50 人并发时一个世界日 ≈1 秒，
-日界会把仍在线的玩家批量标成 offline（W5 压测 4,727 次 player_offline）。
-修复后只看玩家自己的 wall-clock 活跃时间。
+旧实现按玩家自己的 wall-clock 静置时间判离线，且只在本人发请求时才懒判定，
+历史账号永远 online。新实现由系统动作在每个 tick 扫描 `profile.last_intent_tick`。
 """
 from __future__ import annotations
 
@@ -29,8 +28,12 @@ def _make(tmp_path: Path, **kwargs) -> WorldSession:
 
 
 def _enter(session: WorldSession, account: str, name: str) -> dict:
+    # 测试里不让“进房”推进世界钟，便于精确控制 35/36 tick 边界。
     return session.perform(
-        account, "enter", {"account_id": account, "display_name": name, "archetype": "游侠"}
+        account,
+        "enter",
+        {"account_id": account, "display_name": name, "archetype": "游侠"},
+        advance=False,
     )
 
 
@@ -44,7 +47,11 @@ def _npc_at(session: WorldSession, location: str) -> str:
 
 
 def test_fifty_concurrent_players_get_zero_false_player_offline(tmp_path: Path) -> None:
-    """50 个并发玩家连续动作：0 次 player_offline 误判，全部仍在线。"""
+    """50 个并发玩家只发请求、不推进世界钟：0 次 player_offline 误判。
+
+    世界钟推进（advance=True）时，36 tick 是真实经过的 6 游戏小时；
+    本用例把“时间流逝”交给显式 `_advance`，避免并发动作把世界日压缩成几秒。
+    """
     session = _make(tmp_path)
     accounts = [f"u_load{i:03d}" for i in range(50)]
     for i, account in enumerate(accounts):
@@ -57,7 +64,10 @@ def test_fifty_concurrent_players_get_zero_false_player_offline(tmp_path: Path) 
     def play(account: str) -> None:
         for _ in range(6):
             response = session.perform(
-                account, "talk", {"account_id": account, "target": npc, "message": "今日可好"}
+                account,
+                "talk",
+                {"account_id": account, "target": npc, "message": "今日可好"},
+                advance=False,
             )
             if not response["ok"] and response.get("reject_reason"):
                 offline_codes.append(str(response["reject_reason"]))
@@ -67,58 +77,67 @@ def test_fifty_concurrent_players_get_zero_false_player_offline(tmp_path: Path) 
 
     assert offline_codes.count("player_offline") == 0, offline_codes[:10]
     assert offline_codes == [], offline_codes[:10]
+
+    session._advance(35)  # 35 tick 未超时
     for account in accounts:
         assert session.state.players[f"player:{account}"].online is True
+    session._advance(1)  # 第 36 tick：全部离线
+    for account in accounts:
+        assert session.state.players[f"player:{account}"].online is False
     session.close()
 
 
 def test_day_boundaries_do_not_batch_demote_online_players(tmp_path: Path) -> None:
-    """全局 tick 推进多个世界日，也不能把在线玩家标离线（日界 presence 结算已停用）。"""
+    """跨多个世界日，只要玩家持续有请求，就不会被日界/扫描批量标离线。"""
     session = _make(tmp_path)
     assert _enter(session, "u_one", "测试甲")["ok"]
+    npc = _npc_at(session, "market")
     before = session.store.count()
-    session._advance()  # 每个动作推进 6 tick；跨 3 个世界日
-    for _ in range((TICKS_PER_DAY * 3) // 6):
-        session._advance()
+    for _ in range((TICKS_PER_DAY * 3) // 30):
+        session._advance(30)
+        talk = session.perform(
+            "u_one",
+            "talk",
+            {"account_id": "u_one", "target": npc, "message": "今日可好"},
+            advance=False,
+        )
+        assert talk["ok"], talk
     appended = session.store.read_all()[before:]
     assert appended
     assert all(event.verb != "system_player_presence" for event in appended)
     profile = session.state.players["player:u_one"]
     assert profile.online is True
-    assert session._activity_of("player:u_one") == "active"
+    assert session._activity_of("player:u_one")[0] == "active"
     session.close()
 
 
-def test_three_states_and_offline_only_after_grace(tmp_path: Path) -> None:
-    """active -> idle（仍可写）-> 超过宽限期才 offline；周 tick 不参与判定。"""
-    clock = [1000.0]
-    session = _make(
-        tmp_path,
-        presence_clock=lambda: clock[0],
-        presence_active_seconds=5.0,
-        presence_offline_seconds=10.0,
-    )
+def test_three_states_and_offline_only_after_tick_timeout(tmp_path: Path) -> None:
+    """active -> idle（仍可写）-> 36 tick 才 offline；重连回原角色原位置。"""
+    session = _make(tmp_path)
     assert _enter(session, "u_idle", "测试乙")["ok"]
-    state = session.player_state("u_idle")
-    assert state["player"]["activity"] == "active"
+    assert session._activity_of("player:u_idle")[0] == "active"
 
-    clock[0] = 1006.0  # 静置 6 秒：idle，但仍在线
-    state = session.player_state("u_idle")
-    assert state["player"]["activity"] == "idle"
-    assert state["player"]["online"] is True
-    moved = session.perform("u_idle", "move", {"account_id": "u_idle", "to": "academy"})
+    session._advance(12)  # 12 tick = idle，但仍在线
+    assert session._activity_of("player:u_idle")[0] == "idle"
+    assert session.player_state("u_idle")["player"]["online"] is True
+
+    session._advance(23)  # 距上次动作 35 tick，仍在宽限内
+    assert session.state.players["player:u_idle"].online is True
+    moved = session.perform(
+        "u_idle", "move", {"account_id": "u_idle", "to": "academy"}, advance=False
+    )
     assert moved["ok"], moved
-    assert session.player_state("u_idle")["player"]["activity"] == "active"
+    assert session._activity_of("player:u_idle")[0] == "active"
 
-    clock[0] = 1017.0  # 距最后一次动作 11 秒 > 10 秒宽限：真正离线
-    rejected = session.perform("u_idle", "move", {"account_id": "u_idle", "to": "market"})
-    assert not rejected["ok"]
-    assert rejected["reject_reason"] == "player_offline"
+    session._advance(36)  # 第 36 tick：系统动作置 offline
     state = session.player_state("u_idle")
     assert state["player"]["activity"] == "offline"
     assert state["player"]["online"] is False
+    rejected = session.perform("u_idle", "move", {"account_id": "u_idle", "to": "market"})
+    assert not rejected["ok"]
+    assert rejected["reject_reason"] == "player_offline"
 
-    # 离线只是世界状态；重连 resume 会重新上线，存档与位置保留。
+    # 离线只是世界状态；重连接回同一角色，位置/行囊不变。
     resumed = session.resume("u_idle", reconnect_grace=60)
     assert resumed["ok"], resumed
     assert session.state.players["player:u_idle"].online is True
@@ -126,10 +145,11 @@ def test_three_states_and_offline_only_after_grace(tmp_path: Path) -> None:
     session.close()
 
 
-def test_activity_stage_thresholds() -> None:
-    from wsim.actions.player import activity_stage
+def test_presence_timeout_thresholds() -> None:
+    from wsim.actions.player import (
+        COMBAT_PRESENCE_TIMEOUT_TICKS,
+        PRESENCE_TIMEOUT_TICKS,
+    )
 
-    assert activity_stage(0) == "active"
-    assert activity_stage(5, active_seconds=5, offline_seconds=10) == "active"
-    assert activity_stage(6, active_seconds=5, offline_seconds=10) == "idle"
-    assert activity_stage(11, active_seconds=5, offline_seconds=10) == "offline"
+    assert PRESENCE_TIMEOUT_TICKS == 36
+    assert COMBAT_PRESENCE_TIMEOUT_TICKS == 18

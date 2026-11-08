@@ -22,11 +22,13 @@ ACCOUNT_RE = re.compile(r"^[a-z0-9_-]{3,32}$")
 ARCHETYPES: dict[str, str] = {"游侠": "镖师", "商人": "掌柜", "捕快": "捕快"}
 PRESENCE_STATES = ("online", "offline", "custody", "dormant")
 
-# 在线三态只看玩家自己的 wall-clock 活跃时间：全局 tick 每动作 +6，50 人并发时
-# 一个“世界日”约 1 秒，拿 tick 差值判离线会把在线玩家批量误判。
-# active（活跃）/ idle（在线静置）/ offline（真正离线，超过 W1 的 60 秒宽限）。
-PRESENCE_ACTIVE_SECONDS = 30.0
-PRESENCE_OFFLINE_SECONDS = 60.0
+# 在线/离线只按世界 tick 判定：1 tick = 10 游戏分钟，144 tick = 1 游戏日。
+# 36 tick = 6 游戏小时 = 1/4 日；活世界 tick_step=6 秒时约 216 秒（3.6 分钟）
+# 无任何请求即视为断线。禁止墙钟，保证同 seed 可复现。
+PRESENCE_TIMEOUT_TICKS = 36
+# 战斗中的玩家按 tick 结算回合，等 36 tick 足够把人打死；18 tick = 3 游戏小时
+# （活世界约 108 秒）仍大于心跳冷却 12 tick，正常客户端不会被误踢。
+COMBAT_PRESENCE_TIMEOUT_TICKS = 18
 
 # 初始资产的唯一事实来源：genesis 预置与首次进入发放共用。
 STARTING_MONEY = 300
@@ -217,22 +219,59 @@ def _valid_name(state: WorldState, name: str, pid: str = "") -> bool:
     return all(ent.name != name for eid, ent in state.entities.items() if eid != pid)
 
 
-def activity_stage(
-    idle_seconds: float,
-    *,
-    active_seconds: float = PRESENCE_ACTIVE_SECONDS,
-    offline_seconds: float = PRESENCE_OFFLINE_SECONDS,
-) -> str:
-    """按玩家自己的真实活跃时间（wall-clock 秒）判定在线三态。
+def _in_live_combat(state: WorldState, pid: str) -> bool:
+    """玩家是否正在与同房间、存活的 NPC 交战（多敌表或主目标任一命中）。
 
-    不得用全局 tick / 世界日：并发越高 tick 推进越快，会把仍在线的玩家误判为离线。
+    只看世界状态，不耗 RNG、不读墙钟；用于战斗态的短超时阈值。
     """
-    idle = max(0.0, float(idle_seconds))
-    if idle <= float(active_seconds):
-        return "active"
-    if idle <= float(offline_seconds):
-        return "idle"
-    return "offline"
+    ent = state.entities.get(pid)
+    if ent is None:
+        return False
+    for eid, other in state.entities.items():
+        if eid.startswith("player:") or other.status != "alive":
+            continue
+        if other.location != ent.location:
+            continue
+        if str(other.combat_target or "") == pid or pid in (other.combat_enemies or []):
+            return True
+    target = str(ent.combat_target or "")
+    opponent = state.entities.get(target) if target and not target.startswith("player:") else None
+    if opponent is not None and opponent.status == "alive" and opponent.location == ent.location:
+        return True
+    return False
+
+
+def _in_transit(state: WorldState, pid: str) -> bool:
+    """是否有一单正在履约的押镖：在途玩家由世界钟推进路程，不算断线。
+
+    卸货/失败后订单不再是 active，下一 tick 恢复 36 tick 判定。
+    """
+    for order in state.escorts.values():
+        if order.status == "active" and order.carrier == pid:
+            return True
+    return False
+
+
+def presence_timeout_pids(state: WorldState, tick: int, timeout: int = PRESENCE_TIMEOUT_TICKS) -> list[str]:
+    """返回本 tick 应置为 offline 的玩家 id（确定性、按 id 排序）。
+
+    判定只读 `profile.last_intent_tick`（由每次成功意图/心跳刷新）；
+    `Entity.last_seen_tick` 只是投影，离线 effect 会把它写成当前 tick，不能用来判定。
+    战斗中的玩家使用更短的阈值，到点立即脱战（见 SystemPlayerPresenceAction）。
+    """
+    due: list[str] = []
+    now = int(tick)
+    for pid in sorted(state.players):
+        prof = state.players[pid]
+        if not prof.online or pid not in state.entities:
+            continue
+        if _in_transit(state, pid):
+            continue
+        limit = COMBAT_PRESENCE_TIMEOUT_TICKS if _in_live_combat(state, pid) else int(timeout)
+        if now - int(prof.last_intent_tick) < limit:
+            continue
+        due.append(pid)
+    return due
 
 
 def player_genesis_effects(
@@ -615,8 +654,13 @@ class PlayerLeaveAction(Action):
         if not pid:
             raise Reject("missing_player_id")
         tick = int(intent.tick)
+        data: dict = {"id": pid, "presence": "offline", "tick": tick}
+        for key in ("reason", "operator", "note"):
+            value = intent.args.get(key)
+            if value:
+                data[key] = str(value)
         return [
-            Effect("player_presence", {"id": pid, "presence": "offline", "tick": tick}),
+            Effect("player_presence", data),
             Effect("set_field", {"entity": pid, "field": "last_action_tick", "value": tick}),
         ]
 
@@ -651,16 +695,59 @@ class PlayerPresenceAction(Action):
 
 
 class SystemPlayerPresenceAction(Action):
-    """日界在线状态结算：保留 verb 以兼容旧事件/插件，但不再批量改玩家状态。
+    """tick 超时结算：把超过阈值无请求的玩家置 offline，并立即脱战。
 
-    API 会话的在线三态改由 `WorldSession` 按玩家自己的 wall-clock 活跃时间判定
-    （见 `activity_stage`），日界不再按全局 tick 把在线玩家降级。
+    判定只读 `profile.last_intent_tick` 与世界 tick，不读墙钟；同 seed 可复现。
+    同一 tick 重复调用时 due 为空，天然幂等（调度与 API 推进会双路径触发）。
     """
 
     verb = "system_player_presence"
 
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
-        return []
+        tick = int(intent.tick)
+        due = presence_timeout_pids(state, tick)
+        if not due:
+            return []
+        effects: list[Effect] = []
+        for pid in due:
+            effects.append(
+                Effect(
+                    "player_presence",
+                    {
+                        "id": pid,
+                        "presence": "offline",
+                        "tick": tick,
+                        "reason": "presence_idle_timeout",
+                        "source": "system",
+                    },
+                )
+            )
+            ent = state.entities.get(pid)
+            if ent is not None:
+                if ent.combat_target:
+                    effects.append(
+                        Effect("set_field", {"entity": pid, "field": "combat_target", "value": ""})
+                    )
+                if ent.combat_enemies:
+                    effects.append(
+                        Effect("set_field", {"entity": pid, "field": "combat_enemies", "value": []})
+                    )
+        # NPC 侧清空指向这些玩家的交战登记：离线目标不许再被结算伤害。
+        for eid in sorted(state.entities):
+            npc = state.entities[eid]
+            if eid.startswith("player:"):
+                continue
+            enemies = list(npc.combat_enemies or [])
+            remaining = [e for e in enemies if e not in due]
+            if remaining != enemies:
+                effects.append(
+                    Effect("set_field", {"entity": eid, "field": "combat_enemies", "value": remaining})
+                )
+            if str(npc.combat_target or "") in due:
+                effects.append(
+                    Effect("set_field", {"entity": eid, "field": "combat_target", "value": ""})
+                )
+        return effects
 
 
 class SystemTickAction(Action):

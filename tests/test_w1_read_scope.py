@@ -69,7 +69,6 @@ def _enter(base, token, name="测试甲", archetype="游侠"):
 def service(tmp_path):
     session = WorldSession(
         ROOT, run_id="read-scope", run_dir=tmp_path / "run", seed=42,
-        presence_clock=lambda: 1_000.0,
     )
     accounts = AccountStore(tmp_path / "service.sqlite", iterations=1_000, token_ttl=3_600)
     server = create_server(session, "127.0.0.1", 0, accounts=accounts, auth_required=True)

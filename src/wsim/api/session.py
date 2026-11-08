@@ -32,17 +32,15 @@ from ..actions.player import (
     ENDOWMENT_SOURCE,
     ENDOWMENT_TOTAL_CAP,
     PLAYER_VERBS,
-    PRESENCE_ACTIVE_SECONDS,
-    PRESENCE_OFFLINE_SECONDS,
     RUNTIME_CARRY_SOURCE,
     RUNTIME_ENDOWMENT_SOURCE,
     STARTING_ITEMS,
     STARTING_MONEY,
     PlayerRestAction,
     SystemTickAction,
-    activity_stage,
     player_genesis_effects,
     player_status,
+    presence_timeout_pids,
 )
 from ..actions.player_sect import (
     ARREARS_EXPEL,
@@ -520,9 +518,6 @@ class WorldSession:
         tick_step: int = 6,
         seed_accounts: list[str] | None = None,
         run_dir: Path | str | None = None,
-        presence_clock: Callable[[], float] | None = None,
-        presence_active_seconds: float = PRESENCE_ACTIVE_SECONDS,
-        presence_offline_seconds: float = PRESENCE_OFFLINE_SECONDS,
         content_root: Path | str | None = None,
         world_config: Path | str | None = None,
     ):
@@ -547,11 +542,7 @@ class WorldSession:
         self._recent_max = max(1, int(os.environ.get("XKX_RECENT_INTENTS_MAX") or 4096))
         self.requests: OrderedDict[str, dict[str, Any]] = OrderedDict()
         self.intents: OrderedDict[str, dict[str, Any]] = OrderedDict()
-        # 在线状态只看玩家自己的 wall-clock 活跃时间，绝不看全局 tick（并发下世界日会被压缩）。
-        self._presence_clock = presence_clock or time.monotonic
-        self._presence_active = max(0.0, float(presence_active_seconds))
-        self._presence_offline = max(self._presence_active, float(presence_offline_seconds))
-        self._last_active: dict[str, float] = {}
+        # 在线/离线只按世界 tick 判定（见 actions/player.presence_timeout_pids），不存墙钟。
         # 读快照：Writer 只替换 `state` 引用、从不原地改已提交状态，因此读路径
         # 捕获一次引用后可在锁外计算；每请求的缓存放线程本地，避免并发读互相污染。
         self._read_local = threading.local()
@@ -662,11 +653,8 @@ class WorldSession:
                 )
         # 写路径尾部缓存：启动时从 sqlite 重建，之后由每次事务成功后 observe 同步。
         self.tail = EventTail(self.store)
-        # 回放/创世完成后，仍在线的档案从“服务启动时刻”开始计活跃；崩溃恢复不依赖内存历史。
-        now = self._presence_clock()
-        for pid, prof in self.state.players.items():
-            if prof.online:
-                self._last_active[pid] = now
+        # 在线状态只由世界 tick 的 last_intent_tick 决定；启动回放不重置任何人的活跃时钟，
+        # 历史账号在第一个 tick 就会按“欠账”被系统动作置 offline。
         identities = {
             player_id: "propose_intent",
             "ops:request": "admin_apply",
@@ -748,6 +736,7 @@ class WorldSession:
 
     # ------------------------------------------------------------------ read
     def status(self, account: str) -> dict[str, Any]:
+        self._touch_tick(account)
         pid = self._pid(account)
         with self._read_snapshot():
             return self._status_view(pid)
@@ -930,6 +919,7 @@ class WorldSession:
     def player_state(self, account: str) -> dict[str, Any]:
         """`GET /api/player/state`：冻结结构的只读快照。"""
         account = str(account or "").strip().lower()
+        self._touch_tick(account)
         with self._read_snapshot() as snapshot:
             if not ACCOUNT_RE.match(account):
                 return {
@@ -947,7 +937,6 @@ class WorldSession:
                 return view
             prof = self.state.players[pid]
             ent = self.state.entities[pid]
-            now = self._presence_clock()
             # 一次快照内按物品缓存成交价：内容层的供需乘数会扫全城库存，
             # 同一物品在 wallet/location/shop 三处重复取价会让并发读成倍变慢。
             prices: dict[str, tuple[int, int]] = {}
@@ -972,6 +961,7 @@ class WorldSession:
             skills_detail = self._skills_detail(ent)
             equipment_view = self._equipment_view(ent)
             equipment_view["actions"] = self._equipment_actions()
+            activity, idle_seconds, idle_ticks = self._activity_of(pid, tick)
             player = {
                 "entity_id": pid,
                 "account_id": account,
@@ -988,8 +978,10 @@ class WorldSession:
                 "presence": ent.presence,
                 "online": bool(prof.online),
                 # 三种在线状态：active（活跃）/ idle（在线静置）/ offline（真正离线）。
-                "activity": self._activity_of(pid, now),
-                "idle_seconds": round(max(0.0, now - self._last_active.get(pid, now)), 1),
+                # 全部按世界 tick 推导，不再有墙钟字段。
+                "activity": activity,
+                "idle_seconds": idle_seconds,
+                "idle_ticks": idle_ticks,
                 "created_tick": int(prof.created_tick),
                 "last_intent_tick": int(prof.last_intent_tick),
                 "endowed": bool(prof.endowed),
@@ -1099,6 +1091,7 @@ class WorldSession:
         加入钱包/背包类字段后自动泄漏。
         """
         account = str(account or "").strip().lower()
+        self._touch_tick(account)
         with self._read_snapshot() as snapshot:
             if not ACCOUNT_RE.match(account):
                 return {
@@ -1117,13 +1110,15 @@ class WorldSession:
                     "reason_text": _reason_text("player_not_entered"),
                     "server_tick": int(snapshot.tick),
                 }
-            now = self._presence_clock()
+            tick = int(snapshot.tick)
+            activity, idle_seconds, idle_ticks = self._activity_of(pid, tick)
             row = {
                 "ok": True,
                 "name": ent.name,
                 "place": self._loc_name(ent.location),
-                "activity": self._activity_of(pid, now),
-                "idle_seconds": round(max(0.0, now - self._last_active.get(pid, now)), 1),
+                "activity": activity,
+                "idle_seconds": idle_seconds,
+                "idle_ticks": idle_ticks,
                 "online": bool(prof.online),
                 "sect_name": self._faction_name(ent),
                 "shop_name": self._business_name(ent),
@@ -2713,6 +2708,7 @@ class WorldSession:
         request_id: str = "",
     ) -> dict[str, Any]:
         """xkx 文字壳入口：把一行自然语言命令翻译成引擎动作。"""
+        self._touch_tick(account)
         shell = self._xkx_shell_instance()
         return shell.execute(str(account or ""), dict(payload or {}), request_id=str(request_id or ""))
 
@@ -2755,8 +2751,6 @@ class WorldSession:
                     "reason_text": _reason_text("bad_account"),
                 }
             pid = self._pid(account)
-            # 重连即视为活跃：宽限期内的静置不应在恢复后被判离线。
-            self._last_active[pid] = self._presence_clock()
             prof = self.state.players.get(pid)
             if prof is None or not prof.online:
                 # advance=False：重连不额外推进 tick；enter 自身仍写入事件日志。
@@ -2787,13 +2781,14 @@ class WorldSession:
             return payload
 
     def keepalive(self, account: str) -> dict[str, Any]:
-        """轻量保活：只刷新本机会话的活跃时钟，不写事件、不推进 tick。
+        """轻量保活：刷新世界 tick 的活跃时间，不推进 tick。
 
-        与 `player_heartbeat` 写事件不同，这里是页面停留期间的“我还在这里”，
-        避免 60 秒静置被误判离线；真正离线时如实返回 `player_offline`，
-        由客户端走 enter 恢复。
+        距上次活跃 ≥12 tick 时补一条 `player_heartbeat`（与 `_touch_tick` 同规则），
+        避免 36 tick 断线阈值把停留页面误判离线；真正离线时如实返回
+        `player_offline`，由客户端走 enter/resume 恢复。
         """
         account = str(account or "").strip().lower()
+        self._touch_tick(account)
         with self._read_snapshot() as snapshot:
             tick = int(snapshot.tick)
             if not ACCOUNT_RE.match(account):
@@ -2828,12 +2823,14 @@ class WorldSession:
                     "tick": tick,
                     "server_tick": tick,
                 }
-            self._last_active[pid] = self._presence_clock()
+            self._touch_tick(pid)
+            activity, idle_seconds, idle_ticks = self._activity_of(pid, tick)
             return {
                 "ok": True,
                 "online": True,
-                "activity": "active",
-                "idle_seconds": 0.0,
+                "activity": activity,
+                "idle_seconds": idle_seconds,
+                "idle_ticks": idle_ticks,
                 "profile_version": PROFILE_VERSION,
                 "tick": tick,
                 "server_tick": tick,
@@ -2858,18 +2855,11 @@ class WorldSession:
             return self._reject_early(account, action, "forbidden_verb", tick)
 
         prof = self.state.players.get(pid)
-        now = self._presence_clock()
         if action != "enter":
             if prof is None:
                 return self._reject_early(account, action, "player_not_entered", tick)
             if not prof.online:
                 return self._reject_early(account, action, "player_offline", tick)
-            idle = now - self._last_active.get(pid, now)
-            if idle > self._presence_offline:
-                # 只有玩家自己的 wall-clock 静置超过宽限期才判离线；全局 tick 不参与判定。
-                self._mark_offline(pid, tick)
-                return self._reject_early(account, action, "player_offline", tick)
-        self._last_active[pid] = now
         if verb not in ("move", "talk", "trade", "quest_accept", "quest_deliver"):
             allowed = self.content.allowed_roles(verb)
             if allowed is not None and "*" not in allowed and prof is not None and prof.role not in allowed:
@@ -2975,8 +2965,11 @@ class WorldSession:
                 if isinstance(hours, int) and not isinstance(hours, bool):
                     step = hours * TICKS_PER_HOUR
             before = int(self.state.tick)
-            self._advance(step)
+            self._advance(step, keep_pid=pid if event.outcome == "ok" else None)
             advanced = int(self.state.tick) - before
+            if event.outcome == "ok":
+                # 长动作跨过 36 tick 时，命令结束时用一条心跳把活跃时间落在新 tick。
+                self._touch_tick(account)
         else:
             advanced = 0
         data = self._status_view(pid) if event.outcome == "ok" else {}
@@ -3500,7 +3493,7 @@ class WorldSession:
             raise RuntimeError(f"event_missing_after_apply:{seq}")
         return event
 
-    def _advance(self, step: int | None = None) -> None:
+    def _advance(self, step: int | None = None, keep_pid: str | None = None) -> None:
         step = int(step or self.tick_step)
         if step <= 0:
             return
@@ -3542,6 +3535,21 @@ class WorldSession:
                 Intent(actor="system", verb="system_escort_arrive", args={}, tick=tick, source="system")
             )
             self.tail.observe(settle)
+        # 断线超时：与调度器同一系统动作；apply 会重算 due，双路径不会重复写事件。
+        # keep_pid 是刚刚发起本动作的玩家：长动作（上工 8 小时）会一次推进 48 tick，
+        # 不能让“命令执行期间的世界钟”把他自己判成断线。
+        due = [p for p in presence_timeout_pids(self.state, tick) if p != keep_pid]
+        if due:
+            presence = self.writer.submit(
+                Intent(
+                    actor="system",
+                    verb="system_player_presence",
+                    args={"tick": tick, "pids": due},
+                    tick=tick,
+                    source="system",
+                )
+            )
+            self.tail.observe(presence)
 
     def _player_escort_due(self, tick: int) -> bool:
         return any(
@@ -3551,32 +3559,48 @@ class WorldSession:
             for order in self.state.escorts.values()
         )
 
-    def _mark_offline(self, pid: str, tick: int) -> None:
-        """把静置超宽限期的玩家落成离线事件（可回放），供下次重连走 resume/enter。"""
-        prof = self.state.players.get(pid)
-        if prof is None or not prof.online:
-            return
-        event = self.writer.submit(
-            Intent(
-                actor=pid,
-                verb="player_leave",
-                args={"player_id": pid, "reason": "presence_idle_timeout"},
-                tick=int(tick),
-                source="system",
-            )
-        )
-        self.tail.observe(event)
+    def _touch_tick(self, account: str) -> None:
+        """真实请求入口刷新活跃时间：距上次意图 ≥12 tick 时补一条心跳事件。
 
-    def _activity_of(self, pid: str, now: float | None = None) -> str:
-        """active（活跃）/ idle（在线但静置）/ offline（真正离线）。"""
+        `player_heartbeat` 自带 12 tick 冷却；这里先判再提交，避免每读一次都产生拒绝事件。
+        只读请求（state/status/public_state/feed/keepalive）因此也能保持在线。
+        """
+        account = str(account or "").strip().lower()
+        if account.startswith("player:"):
+            account = account[len("player:") :]
+        if not ACCOUNT_RE.match(account):
+            return
+        with self.lock:
+            pid = self._pid(account)
+            prof = self.state.players.get(pid)
+            if prof is None or not prof.online or pid not in self.state.entities:
+                return
+            tick = int(self.state.tick)
+            if tick - int(prof.last_intent_tick) < 12:
+                return
+            event = self._submit(
+                Intent(
+                    actor=pid,
+                    verb="player_heartbeat",
+                    args={"player_id": pid},
+                    tick=tick,
+                    source="player",
+                )
+            )
+            self.tail.observe(event)
+
+    def _activity_of(self, pid: str, tick: int | None = None) -> tuple[str, float, int]:
+        """active（活跃）/ idle（在线静置）/ offline（真正离线），全按世界 tick 推导。
+
+        `idle_seconds` 只是按 `tick_step` 折算的展示值，不参与任何判定。
+        """
         prof = self.state.players.get(pid)
         if prof is None or not prof.online:
-            return "offline"
-        now_f = self._presence_clock() if now is None else float(now)
-        idle = max(0.0, now_f - self._last_active.get(pid, now_f))
-        return activity_stage(
-            idle, active_seconds=self._presence_active, offline_seconds=self._presence_offline
-        )
+            return "offline", 0.0, 0
+        now = int(self.state.tick) if tick is None else int(tick)
+        idle_ticks = max(0, now - int(prof.last_intent_tick))
+        activity = "idle" if idle_ticks >= 12 else "active"
+        return activity, round(idle_ticks * float(self.tick_step), 1), idle_ticks
 
     def _reject_early(self, account: str, action: str, code: str, tick: int) -> dict[str, Any]:
         pid = f"player:{account}" if account else "api:anonymous"
