@@ -361,6 +361,52 @@ def _health(base: str) -> dict[str, Any]:
     return {}
 
 
+def _ambient_status(run_dir: Path) -> dict[str, Any]:
+    """读 ambient_status.json 的归因字段（每步原子重写，采样时取一次即可）。"""
+    path = run_dir / "ambient" / "ambient_status.json"
+    out: dict[str, Any] = {}
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return out
+    for key in ("step_ms_p95", "step_ms_max", "lock_wait_ms_p95", "lock_wait_ms_max",
+                "in_lock_ms_p95", "in_lock_ms_max", "step_parts", "store_ck",
+                "step_ms_samples", "lag_ticks", "lag_ticks_max", "lag_steps",
+                "ambient_tick", "world_tick", "npc_tick", "queue_backlog"):
+        if key in raw:
+            out[key] = raw[key]
+    return out
+
+
+def _machine_load() -> dict[str, Any]:
+    """同机其他进程负载：loadavg + 前 5 个吃 CPU 的进程（不含本进程）。"""
+    out: dict[str, Any] = {}
+    try:
+        load = os.getloadavg()
+        out["loadavg"] = [round(v, 2) for v in load]
+    except Exception:
+        pass
+    try:
+        proc = subprocess.run(
+            ["ps", "-Ao", "pid,pcpu,comm", "-r"],
+            capture_output=True, text=True, timeout=5,
+        )
+        rows = []
+        for line in proc.stdout.splitlines()[1:6]:
+            parts = line.split(None, 2)
+            if len(parts) < 3:
+                continue
+            try:
+                rows.append({"pid": int(parts[0]), "cpu": float(parts[1]),
+                             "comm": os.path.basename(parts[2].strip())})
+            except ValueError:
+                continue
+        out["top_cpu"] = rows
+    except Exception:
+        pass
+    return out
+
+
 # --------------------------------------------------------------------------- probe (server-side)
 _SITE_CUSTOMIZE = '''"""soak 探针：由 tools/soak_test.py 生成，只做事后诊断，不改任何业务代码。
 
@@ -1041,14 +1087,20 @@ class SoakSampler(threading.Thread):
             self._prev_cpu = (now, proc[1])
         health = _health(self.server.base)
         db = _db_snapshot(self.run_dir)
+        amb = _ambient_status(self.run_dir)
+        machine = _machine_load()
         win = self.recorder.window(label=f"{self.phase}@{round(elapsed)}s")
+        epoch_end = time.time()
         row = {
             "ts": _iso(),
+            "epoch": round(epoch_end, 3),
             "phase": self.phase,
             "elapsed_s": round(elapsed, 2),
             "rss_mb": round(proc[0], 2) if proc is not None else None,
             "cpu_pct": cpu_pct,
             "cpu_seconds": round(proc[1], 2) if proc is not None else None,
+            "machine": machine,
+            "ambient_probe": amb,
             "events_total": db.get("events_total"),
             "seq_last": db.get("seq_last"),
             "db_bytes": db.get("db_bytes"),
@@ -1075,10 +1127,14 @@ class SoakSampler(threading.Thread):
             self.windows.append({
                 "t_start_s": round(max(0.0, elapsed - win["window_s"]), 2),
                 "t_end_s": round(elapsed, 2),
+                "epoch_start": round(epoch_end - float(win["window_s"]), 3),
+                "epoch_end": round(epoch_end, 3),
                 "read": win["_raw_read"],
                 "write": win["_raw_write"],
                 "requests": win["counts"]["requests"],
                 "errors": win["counts"]["errors"],
+                "ambient_probe": amb,
+                "machine": machine,
             })
         with self.samples_path.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(row, ensure_ascii=False) + "\n")
@@ -1265,6 +1321,192 @@ def _extrapolation(summary: dict[str, Any]) -> dict[str, Any]:
     }, "horizons": rows}
 
 
+# --------------------------------------------------------------------------- attribution
+def _epoch_of_iso(text: str) -> float | None:
+    try:
+        return datetime.strptime(text, "%Y-%m-%dT%H:%M:%SZ").replace(
+            tzinfo=timezone.utc
+        ).timestamp()
+    except Exception:
+        return None
+
+
+def _read_jsonl(path: Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    if not path.exists():
+        return rows
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(row, dict):
+            rows.append(row)
+    return rows
+
+
+def _build_attribution(
+    *,
+    report_dir: Path,
+    run_dir: Path,
+    windows: list[dict[str, Any]],
+    warmup: float,
+) -> dict[str, Any]:
+    """把写延迟的 30s 窗口与 ambient 每步耗时、GC、checkpoint、同机负载逐窗口对齐。
+
+    判定口径（严格）：任一窗口 write.p95 > 500ms 即未过；这里只为坏窗口给出
+    “锁内/锁外”归因，不改变判定。
+    """
+    steps = _read_jsonl(run_dir / "ambient" / "ambient_steps.jsonl")
+    gc_rows = _read_jsonl(report_dir / "_probe" / "gc_pauses.jsonl")
+    gc_events: list[tuple[float, int, float]] = []
+    for row in gc_rows:
+        ts = _epoch_of_iso(str(row.get("ts") or ""))
+        if ts is None:
+            continue
+        try:
+            gc_events.append((ts, int(row.get("gen") or -1), float(row.get("ms") or 0.0)))
+        except (TypeError, ValueError):
+            continue
+
+    def _steps_in(lo: float, hi: float) -> list[dict[str, Any]]:
+        return [s for s in steps if lo <= float(s.get("epoch") or 0) <= hi]
+
+    table: list[dict[str, Any]] = []
+    prev_ck: dict[str, Any] | None = None
+    for win in windows:
+        if float(win.get("t_end_s") or 0) < warmup and steps:
+            # 预热窗口保留在 samples.jsonl，但归因表只看正式段，避免把启动抖动
+            # 混进来；控制组（无 steps）不裁剪。
+            continue
+        lo, hi = float(win.get("epoch_start") or 0.0), float(win.get("epoch_end") or 0.0)
+        read_p = lt.percentiles(win.get("read") or [])
+        write_p = lt.percentiles(win.get("write") or [])
+        seg = _steps_in(lo, hi)
+        lock_waits = [float(s.get("lock_wait_ms") or 0.0) for s in seg]
+        in_locks = [float(s.get("in_lock_ms") or 0.0) for s in seg]
+        step_vals = [float(s.get("step_ms") or 0.0) for s in seg]
+        parts: dict[str, float] = {}
+        for s in seg:
+            for key, val in (s.get("parts") or {}).items():
+                try:
+                    parts[key] = max(parts.get(key, 0.0), float(val))
+                except (TypeError, ValueError):
+                    continue
+        gc_seg = [g for g in gc_events if lo <= g[0] <= hi]
+        machine = win.get("machine") or {}
+        machine_cpu = round(sum(float(p.get("cpu") or 0.0)
+                                for p in (machine.get("top_cpu") or [])), 2)
+        amb = win.get("ambient_probe") or {}
+        ck = amb.get("store_ck") or {}
+        ck_delta: dict[str, Any] = {}
+        if prev_ck is not None and ck:
+            ck_delta = {
+                "runs": int(ck.get("runs", 0)) - int(prev_ck.get("runs", 0)),
+                "ms": round(float(ck.get("ms_total", 0.0)) - float(prev_ck.get("ms_total", 0.0)), 3),
+                "busy_runs": int(ck.get("busy_runs", 0)) - int(prev_ck.get("busy_runs", 0)),
+            }
+        if ck:
+            prev_ck = ck
+        row = {
+            "t_start_s": win.get("t_start_s"),
+            "t_end_s": win.get("t_end_s"),
+            "requests": win.get("requests"),
+            "errors": win.get("errors"),
+            "read_p95": read_p.get("p95"),
+            "write_p95": write_p.get("p95"),
+            "write_p99": write_p.get("p99"),
+            "write_max": write_p.get("max"),
+            "ambient_steps": len(seg),
+            "step_ms_p95": lt.percentiles(step_vals).get("p95") if step_vals else None,
+            "step_ms_max": round(max(step_vals), 2) if step_vals else None,
+            "lock_wait_ms_p95": lt.percentiles(lock_waits).get("p95") if lock_waits else None,
+            "lock_wait_ms_max": round(max(lock_waits), 2) if lock_waits else None,
+            "in_lock_ms_p95": lt.percentiles(in_locks).get("p95") if in_locks else None,
+            "in_lock_ms_max": round(max(in_locks), 2) if in_locks else None,
+            "in_lock_parts_max_ms": {k: round(v, 2) for k, v in sorted(parts.items())},
+            "ambient_status": {
+                k: amb.get(k) for k in ("step_ms_p95", "lock_wait_ms_p95", "in_lock_ms_p95",
+                                        "lag_ticks", "lag_steps", "queue_backlog")
+                if k in amb
+            },
+            "gc_pauses": {
+                "count": len(gc_seg),
+                "max_ms": round(max((g[2] for g in gc_seg), default=0.0), 2),
+                "by_gen": {str(g): sum(1 for e in gc_seg if e[1] == g) for g in
+                           sorted({e[1] for e in gc_seg})},
+            },
+            "checkpoint_delta": ck_delta,
+            "machine": {
+                "loadavg": machine.get("loadavg"),
+                "top_cpu": machine.get("top_cpu"),
+                "cpu_sum_pct": machine_cpu,
+            },
+        }
+        bad = bool(write_p.get("p95") and float(write_p["p95"]) > 500.0)
+        row["bad"] = bad
+        if bad:
+            row["attribution"] = _classify_window(row)
+        table.append(row)
+
+    bad_rows = [r for r in table if r.get("bad")]
+    counts: dict[str, int] = {}
+    for r in bad_rows:
+        key = str((r.get("attribution") or {}).get("cause") or "unknown")
+        counts[key] = counts.get(key, 0) + 1
+    return {
+        "schema": "soak-attribution/v1",
+        "warmup_s": warmup,
+        "windows_total": len(table),
+        "bad_windows": len(bad_rows),
+        "bad_window_range_s": [
+            bad_rows[0]["t_start_s"], bad_rows[-1]["t_end_s"]
+        ] if bad_rows else None,
+        "cause_counts": counts,
+        "gc_pauses_total": len(gc_events),
+        "gc_pauses_max_ms": round(max((g[2] for g in gc_events), default=0.0), 2),
+        "windows": table,
+    }
+
+
+def _classify_window(row: dict[str, Any]) -> dict[str, Any]:
+    """给坏窗口落到具体一项：GC / checkpoint / JSONL flush / 锁内自走 / 同机 CPU。"""
+    write_p95 = float(row.get("write_p95") or 0.0)
+    in_lock = float(row.get("in_lock_ms_max") or 0.0)
+    gc_max = float((row.get("gc_pauses") or {}).get("max_ms") or 0.0)
+    ck = row.get("checkpoint_delta") or {}
+    ck_ms = float(ck.get("ms") or 0.0)
+    ck_runs = int(ck.get("runs") or 0)
+    parts = row.get("in_lock_parts_max_ms") or {}
+    flush = float(parts.get("progress_flush_ms") or 0.0)
+    status_file = float(parts.get("status_file_ms") or 0.0)
+    state_hash = float(parts.get("progress_hash_ms") or 0.0)
+    machine_cpu = float((row.get("machine_cpu_sum") or 0.0))
+    candidates = {
+        "gc": gc_max,
+        "checkpoint": ck_ms,
+        "progress_flush": flush,
+        "status_file": status_file,
+        "state_hash": state_hash,
+        "in_lock_total": in_lock,
+        "machine_cpu": machine_cpu,
+    }
+    top = max(candidates.items(), key=lambda kv: kv[1])
+    return {
+        "cause": top[0] if top[1] > 0 else "unknown",
+        "evidence_ms": round(top[1], 2),
+        "write_p95_ms": round(write_p95, 2),
+        "in_lock_ms_max": round(in_lock, 2),
+        "gc_max_ms": round(gc_max, 2),
+        "gc_count": (row.get("gc_pauses") or {}).get("count"),
+        "checkpoint": ck,
+        "flush_ms": round(flush, 2),
+        "status_file_ms": round(status_file, 2),
+        "state_hash_ms": round(state_hash, 2),
+        "machine_cpu_sum_pct": round(machine_cpu, 2),
+    }
+
+
 # --------------------------------------------------------------------------- report
 def _build_summary(
     *,
@@ -1279,6 +1521,7 @@ def _build_summary(
     invariants: dict[str, Any],
     restart: dict[str, Any],
     report_dir: Path,
+    run_dir: Path,
     started_at: str,
     memory_profile: dict[str, Any] | None,
 ) -> dict[str, Any]:
@@ -1437,9 +1680,13 @@ def _build_summary(
         "memory_profile": memory_profile,
         "checks": {},
     }
+    attribution = _build_attribution(report_dir=report_dir, run_dir=run_dir, windows=windows, warmup=warmup)
+    summary["attribution"] = attribution
+    _json_dump(report_dir / "attribution.json", attribution)
     summary["extrapolation"] = _extrapolation(summary)
     slow_ratio = summary["latency"]["window_10m"]["p95_ratio"]
     checks = {
+        "strict_no_30s_window_write_p95_over_500": bool(attribution.get("bad_windows") == 0),
         "rss_growth_lt_5pct_per_hour": bool(
             growth_pct_h < 5.0 and (peak_growth_pct is None or peak_growth_pct < 5.0)
         ),
@@ -1477,7 +1724,8 @@ def _run_soak(args: argparse.Namespace) -> int:
 
     server = ManagedServer(
         run_id=run_id, port=port, log_path=report_dir / "server.log",
-        probe_dir=probe_dir, phase="soak", ambient=True, ambient_cpu=args.ambient_cpu,
+        probe_dir=probe_dir, phase="soak", ambient=not args.no_ambient,
+        ambient_cpu=args.ambient_cpu,
         extra_args=["--seed", str(args.seed)] + (["--tick-step", str(args.tick_step)] if args.tick_step else []),
     )
     server.start()
@@ -1562,7 +1810,8 @@ def _run_soak(args: argparse.Namespace) -> int:
     summary = _build_summary(
         args=args, run_id=run_id, server=server, recorder=recorder, sampler=sampler,
         players=players, duration_actual=duration_actual, stop_info=stop_info,
-        invariants=invariants, restart=restart, report_dir=report_dir, started_at=started_at,
+        invariants=invariants, restart=restart, report_dir=report_dir, run_dir=run_dir,
+        started_at=started_at,
         memory_profile=memory_profile,
     )
     _json_dump(report_dir / "summary.json", summary)
@@ -1791,6 +2040,8 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--tag", default="", help="账号标签（默认随机 4 位）")
     parser.add_argument("--tick-step", type=int, default=0, help="传给服务端的 --tick-step；0=用服务默认")
     parser.add_argument("--ambient-cpu", type=float, default=70.0, help="XKX_AMBIENT_CPU")
+    parser.add_argument("--no-ambient", action="store_true",
+                        help="关掉 ambient（同机对照组：判断 >500ms 是代码还是机器噪声）")
     parser.add_argument("--strict", action="store_true", help="任一验收项 FAIL 时返回码 1")
     parser.add_argument("--heap-minutes", type=float, default=20.0)
     parser.add_argument("--heap-interval", type=float, default=300.0)
