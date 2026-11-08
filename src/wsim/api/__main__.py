@@ -14,6 +14,7 @@ from .server import create_server, resolve_auth_required
 from .session import WorldSession
 from .persistence import ContentHashMismatch
 from .world_guard import check_startup, write_world_id
+from ..sim.aggression import configure_multi_combat, multi_combat_enabled
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -65,6 +66,11 @@ def main(argv: list[str] | None = None) -> int:
         help="已有账号但事件库缺失时，显式允许开新世界（默认拒绝启动，退出码 4）。",
     )
     args = parser.parse_args(argv)
+
+    # 多敌开关：世界配置 `combat.multi_combat` 在进程启动时读一次（环境变量优先）。
+    configure_multi_combat(
+        WorldSession._load_multi_combat(Path(args.world_config).resolve() if args.world_config else None)
+    )
 
     root = Path(args.root).resolve()
     run_dir = root / "runs" / args.run
@@ -133,6 +139,7 @@ def main(argv: list[str] | None = None) -> int:
                 "world": world_state,
                 "content_root": str(session.content_root),
                 "world_config": str(session.world_config_path or ""),
+                "multi_combat": multi_combat_enabled(),
                 "allow_new_world": bool(args.allow_new_world),
                 "ambient": (ambient_info or {}).get("ambient", "stopped"),
                 "docs": "docs/player-api.md",

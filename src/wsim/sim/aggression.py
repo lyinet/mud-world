@@ -21,14 +21,24 @@ from typing import Any
 MAX_OPPONENT = 4
 
 # 进程启动读一次；运行中改环境变量不生效（评审要求“读一次”）。
-_MULTI_COMBAT_ENABLED = str(os.environ.get("XKX_MULTI_COMBAT", "")).strip().lower() in {
+_ENV_MULTI_COMBAT = str(os.environ.get("XKX_MULTI_COMBAT", "")).strip().lower() in {
     "1", "true", "on", "yes"
 }
+_MULTI_COMBAT_ENABLED = _ENV_MULTI_COMBAT
 
 
 def multi_combat_enabled() -> bool:
     """多敌敌人表开关（默认关闭，关闭态零字段/零事件/零额外骰）。"""
     return _MULTI_COMBAT_ENABLED
+
+
+def configure_multi_combat(enabled: bool) -> None:
+    """API 入口读世界配置 `combat.multi_combat` 点亮开关；环境变量优先。
+
+    只在进程启动时调用一次（与 `_ENV_MULTI_COMBAT` 同语义）；运行中不重读。
+    """
+    global _MULTI_COMBAT_ENABLED
+    _MULTI_COMBAT_ENABLED = bool(enabled) or _ENV_MULTI_COMBAT
 
 
 def effective_enemies(entity: Any) -> list[str]:

@@ -54,6 +54,33 @@ def multi_off(monkeypatch):
     yield
 
 
+def test_world_config_multi_combat_key(tmp_path):
+    from wsim.api.session import WorldSession
+
+    cfg = tmp_path / "world.yaml"
+    cfg.write_text("combat:\n  multi_combat: true\n", encoding="utf-8")
+    assert WorldSession._load_multi_combat(cfg) is True
+    cfg.write_text("combat:\n  lethal_fight: true\n", encoding="utf-8")
+    assert WorldSession._load_multi_combat(cfg) is False
+    assert WorldSession._load_multi_combat(tmp_path / "missing.yaml") is False
+
+
+def test_configure_multi_combat_sets_process_flag(monkeypatch):
+    monkeypatch.setattr(aggression_mod, "_ENV_MULTI_COMBAT", False)
+    monkeypatch.setattr(aggression_mod, "_MULTI_COMBAT_ENABLED", False)
+    aggression_mod.configure_multi_combat(True)
+    assert aggression_mod.multi_combat_enabled() is True
+    aggression_mod.configure_multi_combat(False)
+    assert aggression_mod.multi_combat_enabled() is False
+
+
+def test_configure_multi_combat_env_override(monkeypatch):
+    monkeypatch.setattr(aggression_mod, "_ENV_MULTI_COMBAT", True)
+    monkeypatch.setattr(aggression_mod, "_MULTI_COMBAT_ENABLED", False)
+    aggression_mod.configure_multi_combat(False)
+    assert aggression_mod.multi_combat_enabled() is True
+
+
 def _entity(eid: str, role: str, *, hp: int = 100, attack: int = 15, defense: int = 5):
     return Effect(
         "create_entity",

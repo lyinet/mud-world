@@ -1620,6 +1620,22 @@ class WorldSession:
         return bool(raw.get("lethal_fight")) if isinstance(raw, dict) else False
 
     @staticmethod
+    def _load_multi_combat(path: Path | None) -> bool:
+        """只读 `combat.multi_combat`；缺省/解析失败/非 dict 一律 False。"""
+        if path is None:
+            return False
+        try:
+            import yaml
+
+            loaded = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
+        except Exception:
+            return False
+        if not isinstance(loaded, dict):
+            return False
+        raw = loaded.get("combat") or {}
+        return bool(raw.get("multi_combat")) if isinstance(raw, dict) else False
+
+    @staticmethod
     def _load_player_start(path: Path | None) -> dict | None:
         """只读世界配置的 `player_start`；缺省/解析失败/非 dict 一律回落 None。
 

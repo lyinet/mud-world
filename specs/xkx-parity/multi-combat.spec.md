@@ -184,10 +184,10 @@
 
 ### 3.6 开关、迁移、回滚、API 待办
 
-- 开关：环境变量 `XKX_MULTI_COMBAT`（`1/true/on/yes` 开），**进程启动读一次**；运行中改环境无效。**不在 `config/worlds/default.yaml` 增键**。
+- 开关：世界配置 `combat.multi_combat`（`true` 开）在 API 入口 **进程启动读一次**；环境变量 `XKX_MULTI_COMBAT`（`1/true/on/yes`）优先，供测试/无头/临时实例使用。运行中改配置或环境无效。**不在 `config/worlds/default.yaml` 增键**；启动 JSON 的 `multi_combat` 字段可用于确认生效。
 - 关：不写 `combat_enemies/combat_contrib`，不追加登记，不额外取骰，`_reset` 三字段行为不变；旧九地点事件数与三项哈希逐字节不变。
 - 开：按本 spec 生效。单敌也消耗一次 `random(4)`（复刻原版）；只新增 multi-on 基线，不改旧基线。
-- 回滚：取消环境变量重启；`combat_target` 始终是主目标，旧逻辑可直接接管；残留字段不参与关闭态。
+- 回滚：撤掉 `combat.multi_combat`（回退该配置提交）重启；`combat_target` 始终是主目标，旧逻辑可直接接管；残留字段不参与关闭态。
 - **API 待办（本期不改，必须记录）**：
   1. `_combat_view(pid)` 仍只返回 `combat_target` 对应的 `opponent`；**玩家可见后果：被两人围殴的 NPC，每个客户端只看到“当前主目标”，看不到还有谁在打**。
   2. 后续里程碑新增 `opponents`/`engaged_count`，并在 spec 的验收里补 UI 证据。
@@ -282,3 +282,4 @@ python -m pytest tests/test_xkx_determinism_legacy.py -q
 4. **无 courage 门/守势/反击状态**：引擎 `combat_rules` 是双边 duel，不实现 `combatd.lpc:763-800` 的门与 `guarding`；多敌下只需保证单一 `chosen`，不伪造这些状态。
 5. **`combat_contrib` 不是仇恨**：不得用于选敌，只做伤害审计。
 6. **API 只显示主目标**：客户端看不到其余围攻者，待后续里程碑。
+7. **5 个及以上敌人时，第 5 个永远轮不到出手（原版语义）**：`random(4)` 只有 0..3 四个面，选敌窗口只覆盖前 4 个；玩家可感知后果是“它站在那儿但不打我”。这不是 bug，不改窗口大小。
