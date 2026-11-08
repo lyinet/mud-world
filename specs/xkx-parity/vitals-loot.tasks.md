@@ -44,3 +44,28 @@
 ## T8 文档与提交
 - 更新 `specs/xkx-parity/combat-implementation.md`：数值表（原版 vs 默认）、NPC 默认规则、地面掉落与 `get` 语义、重采记录
 - 显式路径 `git add`；中文 commit；`git fetch` 后快进 push，冲突即停
+
+## T9 地面来源分桶（世界层）
+- 文件：`src/wsim/world/state.py`、`src/wsim/world/effects.py`
+- 改动：`WorldState.ground_sources`（非空才序列化）；`loot_create` 读 `source/source_entity/source_tick`
+  并合并同 key 条目；`loot_take` 支持定向 `source` 扣减，未指定时先扣未归因部分
+- 验收：`ground_sources` 为空时 `to_dict()` 无该键；归因总量不超过聚合；旧事件回放不产生来源桶
+
+## T10 动作语义分离
+- 文件：`src/wsim/actions/loot.py`、`src/wsim/actions/combat.py`
+- 改动：`LootAction` 按 `scope`（`kill`/`all`）取物；`kill` 只取最近击杀条目，无来源报 `loot_no_corpse`；
+  `_drop_effects` 两处 NPC 死亡传 `source="kill"`；不动 `combat_rules.py`
+- 验收：击杀掉落可 `loot`；地面既有物品不被 `loot` 带走；`get all` 仍清地面
+
+## T11 文字壳命令口径
+- 文件：`src/wsim/api/xkx_shell.py`
+- 改动：按首词区分 `loot`/`get`；`get all` 清地面；`get <物品> [数量]` 透传 qty；裸 `get` 给用法；
+  `loot_no_corpse` 提示「这里没有刚死的东西可搜刮。」；帮助文本同步
+- 验收：`loot` 无击杀不静默；`get` 不再误触全捡
+
+## T12 测试与副本验证
+- 文件：`tests/test_combat_loot.py`、`tests/test_combat_effects.py`、`tests/test_combat_death_equipment.py`、
+  `tests/test_equipment_actions.py`、`tests/test_xkx_api.py`
+- 验收：T9–T11 全项覆盖；单测通过；在 `/tmp/xkx-loot-verify/` 的 events.sqlite 副本上起 8051/8052
+  验证，不读写 `runs/xkx-world`；三段提交并 push `fix/xkx-loot-semantics`
+

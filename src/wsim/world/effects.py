@@ -205,6 +205,77 @@ def party_account(state: WorldState, party: str) -> str:
     raise EffectError(f"债务方无法映射账户: {party}")
 
 
+def _ground_tracked(state: WorldState, loc: str, item: str) -> int:
+    """该房间某物品已归因到击杀来源的总量（<= 地面聚合数量）。"""
+    total = 0
+    for entry in state.ground_sources.get(loc) or []:
+        total += int((entry.get("items") or {}).get(item, 0))
+    return total
+
+
+def _trim_ground_source(state: WorldState, loc: str, entry: dict[str, Any]) -> None:
+    """来源条目取空后从列表中移除；房间列表空了就删键。"""
+    if entry.get("items"):
+        return
+    entries = state.ground_sources.get(loc) or []
+    kept = [e for e in entries if e is not entry]
+    if kept:
+        state.ground_sources[loc] = kept
+    else:
+        state.ground_sources.pop(loc, None)
+
+
+def _take_from_ground_sources(
+    state: WorldState, loc: str, item: str, qty: int, aggregate: int, source_key: str
+) -> None:
+    """扣减来源分桶。指定 source 时只扣该桶；否则先扣未归因部分，再按顺序扣桶。"""
+    if source_key:
+        entry = next(
+            (
+                e
+                for e in reversed(state.ground_sources.get(loc) or [])
+                if str(e.get("key") or "") == source_key
+            ),
+            None,
+        )
+        if entry is None:
+            raise EffectError(f"地面来源不存在: {loc} {source_key}")
+        items = entry.get("items") or {}
+        have = int(items.get(item, 0))
+        if have < qty:
+            raise EffectError(f"来源掉落不足: {loc} {item}")
+        left = have - qty
+        if left > 0:
+            items[item] = left
+        else:
+            items.pop(item, None)
+        _trim_ground_source(state, loc, entry)
+        return
+    # 未指定来源：聚合数量里可能有创世/丢弃等未归因物品，先扣这部分，
+    # 避免 `get` 把击杀掉落记成“已被捡走”而后面的 `loot` 空手。
+    untracked = max(0, aggregate - _ground_tracked(state, loc, item))
+    remaining = qty - min(qty, untracked)
+    if remaining <= 0:
+        return
+    for entry in list(state.ground_sources.get(loc) or []):
+        items = entry.get("items") or {}
+        have = int(items.get(item, 0))
+        if have <= 0:
+            continue
+        take = min(have, remaining)
+        left = have - take
+        if left > 0:
+            items[item] = left
+        else:
+            items.pop(item, None)
+        remaining -= take
+        _trim_ground_source(state, loc, entry)
+        if remaining <= 0:
+            return
+    if remaining > 0:
+        raise EffectError(f"地面来源不足: {loc} {item}")
+
+
 def _apply_one(state: WorldState, e: Effect) -> None:
     op = e.op
     # 事件日志里的 effect data 会经 normalize 落盘（float round(6)）。
@@ -685,6 +756,31 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         bucket = state.ground.setdefault(loc, {})
         bucket[item] = int(bucket.get(item, 0)) + qty
         state.items_created[item] = state.items_created.get(item, 0) + qty
+        # 击杀来源分桶：旧事件没有 source 字段 → 不写，`loot` 自然不把它当目标。
+        source = str(d.get("source") or "")
+        if source:
+            if source != "kill":
+                raise EffectError(f"未知掉落来源: {source}")
+            entity = str(d.get("source_entity") or "")
+            if not entity:
+                raise EffectError("击杀来源缺少 source_entity")
+            source_tick = _as_int(d.get("source_tick", 0), "source_tick")
+            key = f"kill:{source_tick}:{entity}"
+            entries = state.ground_sources.setdefault(loc, [])
+            entry = next(
+                (e for e in reversed(entries) if str(e.get("key") or "") == key), None
+            )
+            if entry is None:
+                entry = {
+                    "key": key,
+                    "source": "kill",
+                    "entity": entity,
+                    "tick": source_tick,
+                    "items": {},
+                }
+                entries.append(entry)
+            items = entry.setdefault("items", {})
+            items[item] = int(items.get(item, 0)) + qty
         return
 
     if op == "loot_take":
@@ -696,9 +792,12 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         if qty <= 0:
             raise EffectError("取物数量必须为正")
         bucket = state.ground.get(loc) or {}
-        if int(bucket.get(item, 0)) < qty:
+        available = int(bucket.get(item, 0))
+        if available < qty:
             raise EffectError(f"地面物品不足: {loc} {item}")
-        left = int(bucket[item]) - qty
+        # 先按来源扣减归因桶（定向或未归因优先），再动聚合视图。
+        _take_from_ground_sources(state, loc, item, qty, available, str(d.get("source") or ""))
+        left = available - qty
         if left > 0:
             bucket[item] = left
         else:

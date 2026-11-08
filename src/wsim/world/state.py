@@ -571,6 +571,11 @@ class WorldState:
     # 地面掉落：location -> {item_id: qty}。所有写入只经 loot_create / loot_take
     # 两个 Effect；为空时不写进 to_dict()，旧世界哈希逐字节不变。
     ground: dict[str, dict[str, int]] = field(default_factory=dict)
+    # 地面物品的击杀来源分桶：location -> [{key, source, entity, tick, items}]。
+    # 只由 loot_create 的 source="kill" 写入；`loot` 只取最近一次击杀条目，
+    # 旧事件没有来源字段 → 这里为空 → `loot` 视为无击杀掉落。为空时不写进
+    # to_dict()，旧世界哈希逐字节不变。
+    ground_sources: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
     # xkx 任务进度：键为 "actor|quest_id"。原版支线只用 NPC `set_temp` 一次性
     # 开关、没有持久完成标记；这里把进度写进世界状态，保证可回放。为空时
     # 不写进 to_dict()，旧九地点世界哈希逐字节不变。
@@ -622,6 +627,22 @@ class WorldState:
         if self.ground:
             data["ground"] = {
                 k: dict(sorted(v.items())) for k, v in sorted(self.ground.items()) if v
+            }
+        if self.ground_sources:
+            data["ground_sources"] = {
+                loc: [
+                    {
+                        "key": str(entry.get("key") or ""),
+                        "source": str(entry.get("source") or ""),
+                        "entity": str(entry.get("entity") or ""),
+                        "tick": int(entry.get("tick") or 0),
+                        "items": dict(sorted((entry.get("items") or {}).items())),
+                    }
+                    for entry in entries
+                    if entry.get("items")
+                ]
+                for loc, entries in sorted(self.ground_sources.items())
+                if any(entry.get("items") for entry in entries)
             }
         if self.xkx_quests:
             data["xkx_quests"] = {

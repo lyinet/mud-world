@@ -171,3 +171,106 @@ def test_hp_add_on_zero_hp_records_zero_delta():
     apply_effects(state, [again])
     assert again.data["delta"] == 0
     assert state.entities["npc.hero"].hp == 0
+
+
+# ---- 地面来源分桶（loot 只搜刮击杀掉落）----
+
+
+def _kill_drop(item: str, qty: int, entity: str = "npc.dog", tick: int = 7):
+    return Effect(
+        "loot_create",
+        {
+            "location": "inn",
+            "item": item,
+            "qty": qty,
+            "reason": "death",
+            "source": "kill",
+            "source_entity": entity,
+            "source_tick": tick,
+        },
+    )
+
+
+def test_loot_create_with_kill_source_buckets_and_merges_same_kill():
+    state = _state()
+    apply_effects(state, [Effect("create_entity", _hero())])
+    apply_effects(state, [_kill_drop("item.hide", 1), _kill_drop("item.tusk", 2)])
+    assert state.ground["inn"] == {"item.hide": 1, "item.tusk": 2}
+    entries = state.ground_sources["inn"]
+    assert len(entries) == 1
+    assert entries[0]["key"] == "kill:7:npc.dog"
+    assert entries[0]["items"] == {"item.hide": 1, "item.tusk": 2}
+
+
+def test_loot_take_with_source_only_consumes_that_bucket():
+    state = _state()
+    apply_effects(state, [Effect("create_entity", _hero())])
+    # 地面既有 5 张皮（无来源），击杀再掉 1 张（有来源）。
+    apply_effects(state, [Effect("loot_create", {"location": "inn", "item": "item.hide", "qty": 5})])
+    apply_effects(state, [_kill_drop("item.hide", 1)])
+    apply_effects(
+        state,
+        [
+            Effect(
+                "loot_take",
+                {
+                    "entity": "npc.hero",
+                    "location": "inn",
+                    "item": "item.hide",
+                    "qty": 1,
+                    "source": "kill:7:npc.dog",
+                },
+            )
+        ],
+    )
+    assert state.ground["inn"]["item.hide"] == 5
+    assert "inn" not in state.ground_sources
+    assert state.entities["npc.hero"].inventory["item.hide"] == 1
+
+
+def test_loot_take_without_source_consumes_untracked_first():
+    state = _state()
+    apply_effects(state, [Effect("create_entity", _hero())])
+    apply_effects(state, [Effect("loot_create", {"location": "inn", "item": "item.hide", "qty": 5})])
+    apply_effects(state, [_kill_drop("item.hide", 2)])
+    apply_effects(
+        state,
+        [Effect("loot_take", {"entity": "npc.hero", "location": "inn", "item": "item.hide", "qty": 3})],
+    )
+    # 3 件先吃未归因的 5 件，击杀桶原样保留 2 件。
+    assert state.ground["inn"]["item.hide"] == 4
+    assert state.ground_sources["inn"][0]["items"] == {"item.hide": 2}
+
+
+def test_legacy_loot_create_has_no_sources_and_keeps_old_hash_shape():
+    state = _state()
+    apply_effects(state, [Effect("create_entity", _hero())])
+    apply_effects(state, [Effect("loot_create", {"location": "inn", "item": "item.hide", "qty": 2})])
+    assert state.ground_sources == {}
+    assert "ground_sources" not in state.to_dict()
+    assert state.to_dict()["ground"] == {"inn": {"item.hide": 2}}
+
+
+def test_loot_take_with_unknown_source_rolls_back():
+    state = _state()
+    apply_effects(state, [Effect("create_entity", _hero())])
+    apply_effects(state, [_kill_drop("item.hide", 1)])
+    with pytest.raises(EffectError):
+        apply_effects(
+            state,
+            [
+                Effect(
+                    "loot_take",
+                    {
+                        "entity": "npc.hero",
+                        "location": "inn",
+                        "item": "item.hide",
+                        "qty": 1,
+                        "source": "kill:999:npc.none",
+                    },
+                )
+            ],
+        )
+    assert state.ground["inn"]["item.hide"] == 1
+    assert "item.hide" not in state.entities["npc.hero"].inventory
+
