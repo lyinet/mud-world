@@ -361,3 +361,65 @@ full_refill_ticks = max_qi / points_per_tick
 2. §3 的实现面（字段/事件/开关/`system_heal`）。
 3. §3.4“本期无疗伤手段”与 §8“`jing` 不建模”的明示。
 4. §6 的验收项与“config 开启单独提交”。
+
+---
+
+## 10. 实现与验收记录（2026-11-08）
+
+### 10.1 提交
+
+- `2e0f4ed` feat(xkx-parity): eff_qi 有效气血/伤势天花板（开关默认关）
+- `9773182` fix(xkx-parity): eff_qi 关闭态恢复旧口径 + 昏迷即结束本场 + 双向清敌人表
+- `a9cfdc2` fix(xkx-parity): remove_all_enemy 改为事件旗标门控，关闭态零副作用
+- 本节记录 + `eff-qi.tasks.md` 勾选：单独提交
+- `config/worlds/xkx.yaml` 的 `combat.eff_qi: true`：验收通过后单独提交
+
+### 10.2 与设计的细化（不影响验收语义）
+
+1. `Entity.eff_hp` 默认 `-2`（spec §3.1 写 0）：`-2` = 引擎未初始化/旧世界实体，`-1` = 伤势到濒死，`>=0` = 有效气血。`_Actor` 把 `<= -2` 视作 `max_hp`（等价 §3.5“旧实体视为未受伤”），`-1` 仍按真实值参与 `eff<0` 判定。
+2. `to_dict()` 只在 `eff_hp >= -1 and eff_hp != max_hp` 时输出 eff 系列；旧实体零新键。`revive_tick` 只在非 0 时输出（spec 写“status==unconcious 才输出”，语义等价且不残留苏醒后的键）。
+
+### 10.3 关闭态逐字节一致
+
+同种子、同指令两场景（酒楼 `kill 店小二`；郭庄 `kill 大狼狗`）：`events_total`、`event_hash`、`state_hash`、全部回复行均 `cur == base`。旧世界哈希 `735 / 009076f0… / 02d5f812…` 不变。
+
+### 10.4 迁移
+
+活世界快照 12899 events / 161 entities，两树 `replay_into` 后全实体 `to_dict()` **BYTE-IDENTICAL**，`eff_keys_in_dict = 0`；`_Actor` 对 `eff_hp=-2` 取 `max_hp`。
+
+### 10.5 验收数值（`eff_qi: true`，脚本 `/tmp/eq_accept2.py`）
+
+狼狗 `kill` 10 场：
+
+- `rounds_used` 4–13，均值 8.20；`attack_rounds` 3–8，均值 4.90；玩家出手 `[6,5,6,4,8,3,4,5,4,4]`
+- 每刀 14.83–21.00；每回合 6.25–18.00；有效血量 1.26–1.78×50
+- 昏迷合计 18 次（9 场 2 次、1 场 0 次）；补刀指令 `[2,1,3,1,1,0,1,1,1,1]`，命中 0–1
+
+老虎 `kill` 10 场：4–9 回合被打昏 10/10；`qi` 0；`eff_qi` 8–88；玩家 0 伤害（`cps=0` 既有偏差）。
+
+店小二 `fight` 20/20 半血停手：`qi` 80–100，`eff_qi` 163–189（max=200）；未受伤者 `eff_hp=-2`（不输出）。
+
+基线变化：`attack_rounds` 低于原版 7–24。按 §6.2 归因为“伤害/防御映射偏差（`cps=0`）”，不回调数值。
+
+### 10.6 多目标回归（8031 独立实例 `xkx-eff-live`，`eff_qi: true`）
+
+- `targets` 6/6 次均为 `[player:effqa, player:effqb]`；`opponent_index` 14 次采样中 11 次为 0（78.6%，≈75/25）
+- 敌人表 `["player:effqb","player:effqa"]`（含两人）
+- 昏迷落库 `seq136 tick140 /d/hangzhou/npc/wolfdog revive_tick=177`；昏迷期间补刀 1 次命中
+- 昏迷事件清除 NPC 侧 `combat_target`（`set_field` 置空）
+- 死亡事件 `entity_status` 携带 `remove_all_enemy: true`；双向清空由单测覆盖玩家侧（活体事件流只记录 NPC 侧 `set_field`）
+
+### 10.7 0 血不死 / 死亡与还阳（真实 HTTP）
+
+- B：`effqc` 于 `seq166 tick213` 被打到 `hp=-1`、`eff_qi=57`，`status=unconcious`、`revive_tick=253`；昏迷期间无死亡事件；`tick253` 自动回到 `alive`；苏醒后连续移动 10 步到郭庄（看到二只大狼狗），可继续活动。
+- C：`effqd` 累计伤势至 `eff_qi=9`，`seq20300` 老虎打到 `hp=1`；`seq20301` 李拙道人 sword riposte 43 伤害 `wounded=true` → `eff_hp_set -1`、`entity_status status=dead`、`remove_all_enemy=true`、`location=/d/death/gate`、`player_presence=custody`、`player_death`、`unequip`、掉落 `shuzhi/coarse_cloth/flatbread`。
+- 死亡惩罚 `death_log`：`combat_exp 6401→6273`（loss 128 = 6401/50）、`potential 99→50`（loss 49）、`skills_lost ["dodge","parry","unarmed"]`。
+- `revive` HTTP 成功：“你从鬼门关还阳，回到楼外楼。（累计死亡 1 次）”，位置 `/d/hangzhou/jiulou`，`hp -1→100`（`eff_qi` 不变，按常规恢复）。
+- 附注：死亡态下文字壳的 `look` 会被进入检查拒绝为“你已经在线，无需重复进入”，`revive` 不受影响；属 presence/文字壳既有问题，不在本期修改。
+
+### 10.8 已知偏差
+
+- `cps=0`：玩家 combat power 恒为 0，高防目标（老虎）对玩家 0 伤害，验收回合数偏短（见 10.5）。
+- `jing/eff_jing` 不建模（§8）。
+- 无 `receive_curing` 对应命令：本期无疗伤手段（§3.4）。
+- 玩家侧 `combat_enemies` 清空为内存态、不落事件（原版 `remove_all_enemy` 同样不是事件）；活体证据为敌人表与 NPC 侧 `set_field`，玩家侧由单测覆盖。
