@@ -102,4 +102,6 @@
 - [x] 磁盘 ≥5GB：`/dev/disk5s2 1.8Ti 709Gi used 1.1Ti avail`
 - [x] 6h 内不加清理逻辑（仅启动前 `df` 检查）
 - [ ] 参数 `--duration 21600 --players 50 --think-time 2 --warmup 600 --player-shop 1`；2026-11-08 23:5x 实测 loadavg 5.1–5.7 >4，未启动，已布置 load1≤4 窗口自动启动
+- [ ] LOCK：`/tmp/wsim-soak6h/LOCK`（commit+start），跑完/中止删除；其他线压测前检查
+- [ ] 版本差：报告给运行 commit 与跑完时主干 HEAD，列 `src/content/config` 期间提交并判定是否适用于主干
 - [ ] 交付原始值：negative_rows、seq 连续、integrity_check、重启一致、九地点哈希、同 commit 全量 pytest
