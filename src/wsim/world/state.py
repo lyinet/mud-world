@@ -183,9 +183,11 @@ class Faction:
     treasury_account: str
     members: list[str] = field(default_factory=list)
     leader: str | None = None
+    # 门派日结的持久凭证（NPC 日）：记忆会被 80 条上限淘汰，不能作为幂等依据。
+    settle_day: int = -1
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        data = {
             "id": self.id,
             "name": self.name,
             "location": self.location,
@@ -194,6 +196,9 @@ class Faction:
             "members": self.members,
             "leader": self.leader,
         }
+        if self.settle_day >= 0:
+            data["settle_day"] = int(self.settle_day)
+        return data
 
 
 @dataclass

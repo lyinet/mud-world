@@ -474,6 +474,20 @@ def test_pay_disciples_is_idempotent_per_day():
     assert _pre(action, state, intent) == ["already_settled_today"]
 
 
+def test_pay_disciples_idempotent_after_memory_eviction():
+    """幂等不能依赖 80 条上限的易失记忆：当日标记被挤掉也不能重复发俸。"""
+    state = seed()
+    _found(state)
+    _recruit(state, "n1")
+    _pay(state, tick=1)
+    fac = next(iter(state.factions.values()))
+    assert int(fac.settle_day) == 0
+    state.memories.pop(PLAYER, None)
+    action = PlayerPayDisciplesAction(None)
+    intent = _intent(PLAYER, action, {"sect_id": SID}, tick=2)
+    assert _pre(action, state, intent) == ["already_settled_today"]
+
+
 def test_pay_disciples_refusals():
     state = seed()
     action = PlayerPayDisciplesAction(None)

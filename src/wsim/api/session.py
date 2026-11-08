@@ -1219,12 +1219,18 @@ class WorldSession:
     def _settled_today(self, pid: str, fac) -> bool:
         from ..actions.player_sect import SETTLE_MARKER
 
-        marker = f"{SETTLE_MARKER}:{fac.id}:D{self.clock_tick() // TICKS_PER_DAY}"
+        day = self.clock_tick() // TICKS_PER_DAY
+        if int(getattr(fac, "settle_day", -1)) == day:
+            return True
+        marker = f"{SETTLE_MARKER}:{fac.id}:D{day}"
         return any(marker in str(m.get("text", "")) for m in self.state.memories.get(pid, ()))
 
     def _disciple_settled_today(self, did: str) -> bool:
-        """逐人日结状态：日结成功时每名在册弟子都会写下「…日结：第 N 日…」记忆。"""
+        """逐人日结状态：优先门派持久字段，记忆只作旧事件回退。"""
         day = self.clock_tick() // TICKS_PER_DAY
+        for fac in self.state.factions.values():
+            if did in fac.members and int(getattr(fac, "settle_day", -1)) == day:
+                return True
         needle = f"日结：第{day}日"
         return any(needle in str(m.get("text", "")) for m in self.state.memories.get(did, ()))
 

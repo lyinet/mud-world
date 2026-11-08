@@ -864,6 +864,14 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         biz.attendance_day = _as_int(d["day"], "day")
         return
 
+    if op == "faction_settle":
+        # 门派日结幂等的持久凭证：记忆会淘汰，不能靠它防重复发俸。
+        fac = state.factions.get(str(d["faction"]))
+        if fac is None:
+            raise EffectError(f"faction_settle 未知门派: {d['faction']}")
+        fac.settle_day = _as_int(d["day"], "day")
+        return
+
     if op == "memory_add":
         npc = str(d["npc"])
         _entity(state, npc)
