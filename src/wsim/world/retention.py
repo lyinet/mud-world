@@ -16,6 +16,7 @@ import hashlib
 import json
 import os
 import pickle
+import shutil
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -43,6 +44,10 @@ JOURNAL_FILE = "retention_journal.json"
 DEFAULT_RETENTION_DAYS = 14
 DEFAULT_SEGMENT_EVENTS = 20_000
 GZIP_LEVEL = 6
+
+DEFAULT_ARCHIVE_MAX_BYTES = 50 * 1024**3  # 归档目录总量上限 50GB
+DEFAULT_ARCHIVE_MIN_WINDOW_DAYS = 7       # 至少保留最近 7 个有归档的游戏日
+DEFAULT_MIN_FREE_BYTES = 5 * 1024**3      # 磁盘剩余低于 5GB 就拒绝继续归档
 
 
 # ---------------------------------------------------------------- 基础 IO
@@ -92,6 +97,32 @@ def file_size(path: Path) -> int:
         return 0
 
 
+def disk_headroom(path: Path, *, min_free_bytes: int, required_bytes: int = 0) -> dict[str, Any]:
+    """只读的磁盘水位信息（dry-run 也用它展示会不会被拒绝归档）。"""
+    usage = shutil.disk_usage(str(path))
+    free = int(usage.free)
+    need = max(0, int(min_free_bytes)) + max(0, int(required_bytes))
+    return {
+        "disk_total_bytes": int(usage.total),
+        "disk_free_bytes": free,
+        "disk_required_bytes": need,
+        "disk_ok": bool(int(min_free_bytes) <= 0 or free >= need),
+    }
+
+
+def check_disk_headroom(
+    path: Path, *, min_free_bytes: int, required_bytes: int = 0
+) -> dict[str, Any]:
+    """磁盘水位预检：剩余空间不足以覆盖“保留水位 + 本次预计写入”时拒绝继续归档。"""
+    info = disk_headroom(path, min_free_bytes=min_free_bytes, required_bytes=required_bytes)
+    if not info["disk_ok"]:
+        raise MaintenanceError(
+            f"disk_low_free:free={info['disk_free_bytes']},required={info['disk_required_bytes']},"
+            f"min_free={max(0, int(min_free_bytes))},archive_estimate={max(0, int(required_bytes))}"
+        )
+    return info
+
+
 # ---------------------------------------------------------------- 策略计算
 def cutoff_tick_for(last_tick: int, retention_days: int) -> int:
     """保留最近 N 个游戏日（含当前未结束日）后允许裁剪的 tick 下界。
@@ -128,6 +159,9 @@ def default_manifest() -> dict[str, Any]:
         "version": ARCHIVE_VERSION,
         "last_pruned_seq": 0,
         "last_day": -1,
+        "min_available_seq": 1,
+        "evicted_through_seq": 0,
+        "evicted_bytes_total": 0,
         "segments": [],
     }
 
@@ -142,6 +176,9 @@ def load_manifest(run_dir: Path) -> dict[str, Any]:
     data.setdefault("segments", [])
     data.setdefault("last_pruned_seq", 0)
     data.setdefault("last_day", -1)
+    data.setdefault("min_available_seq", 1)
+    data.setdefault("evicted_through_seq", 0)
+    data.setdefault("evicted_bytes_total", 0)
     return data
 
 
@@ -254,11 +291,11 @@ def archive_events(
 
 
 def verify_archive(run_dir: Path, manifest: dict[str, Any] | None = None) -> list[str]:
-    """逐段校验存在性与 sha256；返回问题列表（空表示全部通过）。"""
+    """逐段校验存在性与 sha256，并检查从 `min_available_seq` 起连续；返回问题列表。"""
     run_dir = Path(run_dir)
     manifest = manifest if manifest is not None else load_manifest(run_dir)
     problems: list[str] = []
-    expected_start = 1
+    expected_start = max(1, int(manifest.get("min_available_seq") or 1))
     for row in manifest.get("segments", []):
         name = str(row.get("file") or "")
         if not name:
@@ -291,6 +328,203 @@ def iter_archive(run_dir: Path, manifest: dict[str, Any] | None = None) -> Itera
                 if not line:
                     continue
                 yield Event(**json.loads(line))
+
+
+# ---------------------------------------------------------------- 本地轮转
+def archive_total_bytes(run_dir: Path, manifest: dict[str, Any] | None = None) -> int:
+    run_dir = Path(run_dir)
+    manifest = manifest if manifest is not None else load_manifest(run_dir)
+    total = 0
+    for row in manifest.get("segments", []):
+        total += file_size(run_dir / ARCHIVE_DIR / str(row.get("file") or ""))
+    return total
+
+
+def estimate_archive_bytes(
+    manifest: dict[str, Any], start_seq: int, end_seq: int, *, default_bytes_per_event: int = 512
+) -> int:
+    """估算归档 `(start_seq, end_seq]` 还需写多少字节（用于磁盘水位预检）。
+
+    优先用既有段的“已压缩字节/事件”比例；没有历史段时保守按每事件 512 字节。
+    """
+    if int(end_seq) <= int(start_seq):
+        return 0
+    events = sum(int(r.get("events") or 0) for r in manifest.get("segments", []))
+    total = sum(int(r.get("bytes") or 0) for r in manifest.get("segments", []))
+    per_event = max(1, int(default_bytes_per_event))
+    if events > 0 and total > 0:
+        per_event = max(64, (total + events - 1) // events)
+    return (int(end_seq) - int(start_seq)) * per_event
+
+
+def plan_archive_rotation(
+    manifest: dict[str, Any],
+    snapshot: dict[str, Any] | None,
+    *,
+    archive_max_bytes: int,
+    min_window_days: int,
+    total_bytes: int,
+) -> dict[str, Any]:
+    """计算“最老段优先”的淘汰计划；只删连续最老前缀。
+
+    保护条件：
+    - 段必须被快照覆盖（`end_seq <= snapshot.last_seq`）；
+    - 最近 `min_window_days` 个有归档的游戏日不淘汰；
+    - 只从最老段开始删，遇到第一个不可淘汰段即停止，绝不制造内部洞。
+    """
+    segments = list(manifest.get("segments", []))
+    cap = int(archive_max_bytes)
+    keep_days = max(0, int(min_window_days))
+    max_day = max((int(r.get("day_end", -1)) for r in segments), default=-1)
+    keep_threshold = max_day - keep_days + 1  # day_end >= 该值的段必须保留
+    eligible: list[dict[str, Any]] = []
+    freed = 0
+    remaining = int(total_bytes)
+    stop_reason = ""
+    if cap > 0 and remaining > cap and segments:
+        if snapshot is None:
+            stop_reason = "no_valid_snapshot"
+        else:
+            snap_seq = int(snapshot.get("last_seq", -1))
+            if snap_seq < int(manifest.get("last_pruned_seq") or 0):
+                # 快照没有覆盖全部已裁剪事件：删任何更老的段都会破坏重建路径。
+                stop_reason = "snapshot_behind_pruned"
+            else:
+                for row in segments:
+                    end_seq = int(row.get("end_seq") or 0)
+                    day_end = int(row.get("day_end", -1))
+                    if end_seq > snap_seq:
+                        stop_reason = "segment_not_covered_by_snapshot"
+                        break
+                    if keep_days > 0 and day_end >= keep_threshold:
+                        stop_reason = "min_window"
+                        break
+                    size = int(row.get("bytes") or 0)
+                    eligible.append(row)
+                    freed += size
+                    remaining -= size
+                    if remaining <= cap:
+                        stop_reason = ""
+                        break
+    # 一段都删不了时才叫 blocked；删了一部分仍超限时给 still_over_cap_reason。
+    blocked_reason = "" if eligible else stop_reason
+    still_over_cap_reason = stop_reason if eligible and remaining > cap else ""
+    return {
+        "archive_bytes_before": int(total_bytes),
+        "archive_bytes_after": int(remaining),
+        "cap_bytes": cap,
+        "min_window_days": keep_days,
+        "eligible_segments": eligible,
+        "evicted_files": [str(r.get("file")) for r in eligible],
+        "evicted_bytes": int(freed),
+        "over_cap_before": bool(cap > 0 and total_bytes > cap),
+        "over_cap_after": bool(cap > 0 and remaining > cap),
+        "blocked_reason": blocked_reason,
+        "still_over_cap_reason": still_over_cap_reason,
+    }
+
+
+def rotate_archives(
+    run_dir: Path,
+    *,
+    archive_max_bytes: int = DEFAULT_ARCHIVE_MAX_BYTES,
+    min_window_days: int = DEFAULT_ARCHIVE_MIN_WINDOW_DAYS,
+    snapshot: dict[str, Any] | None = None,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """按总量上限淘汰最老归档段；失败/前置条件不满足时绝不删除。"""
+    run_dir = Path(run_dir)
+    manifest = load_manifest(run_dir)
+    total = archive_total_bytes(run_dir, manifest)
+    plan = plan_archive_rotation(
+        manifest,
+        snapshot,
+        archive_max_bytes=archive_max_bytes,
+        min_window_days=min_window_days,
+        total_bytes=total,
+    )
+    plan["dry_run"] = bool(dry_run)
+    plan["ok"] = not plan["blocked_reason"]
+    plan["removed_orphans"] = 0
+    # 前置条件：不允许在未完成 journal 时淘汰（还在重建路径上），dry-run 也如实标注。
+    if plan["over_cap_before"] and load_journal(run_dir) is not None:
+        # 一段都不删：把计划里的淘汰项清掉，避免调用方误以为已删除。
+        plan.update(
+            ok=False,
+            blocked_reason="journal_pending",
+            eligible_segments=[],
+            evicted_files=[],
+            evicted_bytes=0,
+            archive_bytes_after=int(plan["archive_bytes_before"]),
+            over_cap_after=bool(plan["over_cap_before"]),
+            still_over_cap_reason="",
+        )
+        return plan
+    if dry_run or plan["blocked_reason"] or not plan["eligible_segments"]:
+        return plan
+
+    # 先写 manifest（去掉被淘汰段），再删文件：即使中途崩溃也只会留下无害孤儿，
+    # 不会出现“manifest 仍引用已删段”的不可恢复状态。
+    evicted = plan["eligible_segments"]
+    evicted_ids = {str(r.get("file")) for r in evicted}
+    manifest["segments"] = [
+        r for r in manifest.get("segments", []) if str(r.get("file")) not in evicted_ids
+    ]
+    if manifest["segments"]:
+        first = manifest["segments"][0]
+        manifest["min_available_seq"] = int(first.get("start_seq") or 1)
+    else:
+        manifest["min_available_seq"] = int(manifest.get("last_pruned_seq") or 0) + 1
+    manifest["evicted_through_seq"] = max(
+        int(manifest.get("evicted_through_seq") or 0),
+        max((int(r.get("end_seq") or 0) for r in evicted), default=0),
+    )
+    manifest["evicted_bytes_total"] = int(manifest.get("evicted_bytes_total") or 0) + int(
+        plan["evicted_bytes"]
+    )
+    _atomic_write_json(run_dir / ARCHIVE_DIR / MANIFEST_FILE, manifest)
+
+    # manifest 已提交后再物理删除；失败的孤儿由下一次轮转清理。
+    for row in evicted:
+        path = run_dir / ARCHIVE_DIR / str(row.get("file"))
+        try:
+            path.unlink()
+        except FileNotFoundError:
+            pass
+
+    # 清理“manifest 不引用”的历史孤儿段（崩溃残留），避免它们继续占盘。
+    referenced = {str(r.get("file")) for r in manifest.get("segments", [])}
+    removed_orphans = 0
+    for path in (run_dir / ARCHIVE_DIR).glob("events-s*.jsonl.gz"):
+        if path.name in referenced:
+            continue
+        try:
+            path.unlink()
+            removed_orphans += 1
+        except OSError:
+            pass
+    plan["removed_orphans"] = removed_orphans
+    plan["archive_bytes_after"] = archive_total_bytes(run_dir, manifest)
+    plan["over_cap_after"] = bool(
+        int(archive_max_bytes) > 0 and plan["archive_bytes_after"] > int(archive_max_bytes)
+    )
+    return plan
+
+
+def _rotation_fields(rotation: dict[str, Any]) -> dict[str, Any]:
+    """把轮转计划并入维护结果 JSON（字段名保持稳定，便于 cron 解析）。"""
+    return {
+        "archive_bytes_before_rotation": int(rotation["archive_bytes_before"]),
+        "archive_bytes_after_rotation": int(rotation["archive_bytes_after"]),
+        "archive_cap_bytes": int(rotation["cap_bytes"]),
+        "archive_over_cap": bool(rotation["over_cap_after"]),
+        "evicted_segments": list(rotation["evicted_files"]),
+        "evicted_bytes": int(rotation["evicted_bytes"]),
+        "removed_orphan_segments": int(rotation["removed_orphans"]),
+        "rotation_blocked_reason": str(rotation["blocked_reason"]),
+        "rotation_still_over_cap_reason": str(rotation.get("still_over_cap_reason") or ""),
+        "rotation_dry_run": bool(rotation["dry_run"]),
+    }
 
 
 # ---------------------------------------------------------------- 快照
@@ -486,6 +720,11 @@ def state_at_seq(
         source = "snapshot"
     elif run_dir is not None and store.min_seq() > 1:
         manifest = load_manifest(run_dir)
+        min_available = max(1, int(manifest.get("min_available_seq") or 1))
+        if min_available > 1:
+            raise MaintenanceError(
+                f"archive_prefix_evicted:min_available={min_available}（需有效快照才能重建）"
+            )
         problems = verify_archive(run_dir, manifest)
         if problems:
             raise MaintenanceError("archive_unusable:" + ",".join(problems[:3]))
@@ -565,6 +804,8 @@ class _Options:
     content_hash: str | None
     segment_events: int
     vacuum: bool
+    min_free_bytes: int = 0
+    disk: dict[str, int] | None = None
 
 
 def _complete_journal(
@@ -581,6 +822,12 @@ def _complete_journal(
             manifest = load_manifest(opts.run_dir)
             start = int(manifest.get("last_pruned_seq") or 0)
             if start < target:
+                # 先做磁盘水位预检：剩余空间不够就拒绝继续归档，保留 journal 待人工处理。
+                opts.disk = check_disk_headroom(
+                    opts.run_dir,
+                    min_free_bytes=opts.min_free_bytes,
+                    required_bytes=estimate_archive_bytes(manifest, start, target),
+                )
                 manifest, _written, _bytes = archive_events(
                     opts.store,
                     opts.run_dir,
@@ -685,6 +932,9 @@ def run_maintenance(
     dry_run: bool = False,
     verify: bool = False,
     fail_after: str | None = None,
+    archive_max_bytes: int = DEFAULT_ARCHIVE_MAX_BYTES,
+    archive_min_window_days: int = DEFAULT_ARCHIVE_MIN_WINDOW_DAYS,
+    min_free_bytes: int = DEFAULT_MIN_FREE_BYTES,
     store: EventStore | None = None,
     locations: dict[str, dict[str, Any]] | None = None,
     seed: int = 42,
@@ -711,6 +961,7 @@ def run_maintenance(
         content_hash=content_hash,
         segment_events=max(1, int(segment_events)),
         vacuum=bool(vacuum),
+        min_free_bytes=max(0, int(min_free_bytes)),
     )
     try:
         db_path = run_dir / "events.sqlite"
@@ -754,6 +1005,18 @@ def run_maintenance(
                 verified = _verify_rebuilds(
                     store, run_dir, locations, seed=seed, content_hash=content_hash
                 )
+            rotation = rotate_archives(
+                run_dir,
+                archive_max_bytes=archive_max_bytes,
+                min_window_days=archive_min_window_days,
+                snapshot=load_snapshot(run_dir, content_hash=content_hash, seed=seed),
+                dry_run=bool(dry_run),
+            )
+            disk = disk_headroom(
+                run_dir,
+                min_free_bytes=min_free_bytes,
+                required_bytes=estimate_archive_bytes(manifest, start_seq, target),
+            )
             return {
                 "ok": True,
                 "dry_run": bool(dry_run),
@@ -772,6 +1035,11 @@ def run_maintenance(
                 + file_size(db_path.with_name(db_path.name + "-wal")),
                 "vacuumed": False,
                 "verified": verified,
+                "disk_total_bytes": disk["disk_total_bytes"],
+                "disk_free_bytes": disk["disk_free_bytes"],
+                "disk_required_bytes": disk["disk_required_bytes"],
+                "disk_ok": disk["disk_ok"],
+                **_rotation_fields(rotation),
             }
 
         # 3) 正常一轮：journal -> archive -> snapshot -> prune。
@@ -787,11 +1055,22 @@ def run_maintenance(
         _complete_journal(journal, opts, fail_after)
 
         # 4) 可选校验：快照+尾段 与 归档+尾段 必须得到同一状态。
+        #    必须在轮转淘汰之前做，否则全史对照会因前缀被删而失效。
         verified = False
         if verify:
             verified = _verify_rebuilds(
                 store, run_dir, locations, seed=seed, content_hash=content_hash
             )
+
+        # 5) 归档生命周期：超总量上限时按最老段优先淘汰（受快照覆盖/最小窗口保护）。
+        rotation = rotate_archives(
+            run_dir,
+            archive_max_bytes=archive_max_bytes,
+            min_window_days=archive_min_window_days,
+            snapshot=load_snapshot(run_dir, content_hash=content_hash, seed=seed),
+            dry_run=False,
+        )
+        disk = opts.disk or disk_headroom(run_dir, min_free_bytes=min_free_bytes)
 
         after_bytes = file_size(db_path) + file_size(db_path.with_name(db_path.name + "-wal"))
         segments_after = len(load_manifest(run_dir).get("segments", []))
@@ -812,6 +1091,11 @@ def run_maintenance(
             "db_bytes_after": after_bytes,
             "vacuumed": bool(vacuum),
             "verified": verified,
+            "disk_total_bytes": disk["disk_total_bytes"],
+            "disk_free_bytes": disk["disk_free_bytes"],
+            "disk_required_bytes": disk["disk_required_bytes"],
+            "disk_ok": disk["disk_ok"],
+            **_rotation_fields(rotation),
         }
     finally:
         if own_store:
@@ -826,7 +1110,23 @@ def _verify_rebuilds(
     seed: int,
     content_hash: str | None,
 ) -> bool:
-    """校验两条重建路径结果一致（state hash + player_ticks）。"""
+    """校验两条重建路径结果一致（state hash + player_ticks）。
+
+    若归档前缀已被本地轮转淘汰，则只能校验“快照+尾段 + 剩余段完整性”；
+    全史 archive-only 对照不再成立（这正是本地轮转的取舍，spec 已写明）。
+    """
+    manifest = load_manifest(run_dir)
+    min_available = max(1, int(manifest.get("min_available_seq") or 1))
+    if min_available > 1:
+        problems = verify_archive(run_dir, manifest)
+        if problems:
+            raise MaintenanceError("archive_unusable:" + ",".join(problems[:3]))
+        if load_snapshot(run_dir, content_hash=content_hash, seed=seed) is None:
+            raise MaintenanceError("verify_requires_valid_snapshot_after_eviction")
+        state_at_seq(
+            store, run_dir, store.max_seq(), locations, seed=seed, content_hash=content_hash
+        )
+        return True
     tail_state, tail_ticks, tail_src = state_at_seq(
         store, run_dir, store.max_seq(), locations, seed=seed, content_hash=content_hash
     )
@@ -854,6 +1154,11 @@ def _rebuild_from_archive_only(
 ) -> tuple[WorldState, dict[str, int], str]:
     """强制走“归档 + 尾段”，用于 verify 对照。"""
     manifest = load_manifest(run_dir)
+    min_available = max(1, int(manifest.get("min_available_seq") or 1))
+    if min_available > 1:
+        raise MaintenanceError(
+            f"archive_prefix_evicted:min_available={min_available}（无法从 seq 1 全史重建）"
+        )
     problems = verify_archive(run_dir, manifest)
     if problems:
         raise MaintenanceError("archive_unusable:" + ",".join(problems[:3]))
@@ -889,6 +1194,27 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--verify", action="store_true")
     parser.add_argument("--vacuum", action="store_true")
+    # 归档生命周期（本地轮转）：总量上限 / 最小保留窗口 / 磁盘水位。
+    parser.add_argument(
+        "--archive-max-bytes",
+        type=int,
+        default=int(os.environ.get("XKX_ARCHIVE_MAX_BYTES", DEFAULT_ARCHIVE_MAX_BYTES)),
+        help=f"归档目录总量上限（字节，默认 {DEFAULT_ARCHIVE_MAX_BYTES}）；0 表示不设上限",
+    )
+    parser.add_argument(
+        "--archive-min-window-days",
+        type=int,
+        default=int(
+            os.environ.get("XKX_ARCHIVE_MIN_WINDOW_DAYS", DEFAULT_ARCHIVE_MIN_WINDOW_DAYS)
+        ),
+        help=f"至少保留最近 N 个有归档的游戏日（默认 {DEFAULT_ARCHIVE_MIN_WINDOW_DAYS}）",
+    )
+    parser.add_argument(
+        "--min-free-bytes",
+        type=int,
+        default=int(os.environ.get("XKX_MIN_FREE_BYTES", DEFAULT_MIN_FREE_BYTES)),
+        help=f"磁盘剩余低于该值时拒绝继续归档（默认 {DEFAULT_MIN_FREE_BYTES}）；0 表示关闭",
+    )
     parser.add_argument("--fail-after", default=None, help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
 
@@ -916,6 +1242,9 @@ def main(argv: list[str] | None = None) -> int:
             dry_run=args.dry_run,
             verify=args.verify,
             fail_after=args.fail_after,
+            archive_max_bytes=args.archive_max_bytes,
+            archive_min_window_days=args.archive_min_window_days,
+            min_free_bytes=args.min_free_bytes,
             store=store,
             seed=seed,
             content_hash=content_hash,

@@ -12,6 +12,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
@@ -24,15 +26,20 @@ from wsim.sim.headless import RunConfig, run_headless  # noqa: E402
 from wsim.world.retention import (  # noqa: E402
     MaintenanceError,
     _rebuild_from_archive_only,
+    archive_total_bytes,
+    clear_journal,
     cutoff_tick_for,
     iter_archive,
     load_journal,
     load_manifest,
     load_snapshot,
+    plan_archive_rotation,
     prefix_watermark,
+    rotate_archives,
     run_maintenance,
     state_at_seq,
     verify_archive,
+    write_journal,
 )
 from wsim.world.store import EventStore  # noqa: E402
 
@@ -296,5 +303,180 @@ def test_stale_tick_events_do_not_create_seq_gap(tmp_path):
         # 被裁前缀必须连续覆盖 1..target；尾段首条允许是旧 tick 的拒绝事件。
         seqs = [e.seq for e in store.iter_range(1, store.max_seq() + 1)]
         assert seqs == list(range(store.min_seq(), store.max_seq() + 1))
+    finally:
+        store.close()
+
+
+# ---------------------------------------------------------------- 5. 本地轮转
+def _run_with_archives(tmp_path: Path) -> tuple[EventStore, Path, int]:
+    """5 个游戏日、按日分段归档并裁剪；返回 (store, run_dir, target_seq)。"""
+    run = tmp_path / "run"
+    store = EventStore(run / "events.sqlite")
+    for day in range(5):
+        for t in range(TICKS_PER_DAY):
+            seq = day * TICKS_PER_DAY + t + 1
+            store.append(_make_event(seq, day * TICKS_PER_DAY + t))
+    first = _maintain(store, run, retention_days=1, segment_events=TICKS_PER_DAY)
+    assert first["ok"] is True
+    assert len(load_manifest(run)["segments"]) == 4
+    return store, run, int(first["target_seq"])
+
+
+def test_rotation_evicts_oldest_segments_and_keeps_rebuild(tmp_path):
+    store, run, _target = _run_with_archives(tmp_path)
+    try:
+        expected_state, expected_ticks = replay_into(store, {})
+        manifest = load_manifest(run)
+        total = archive_total_bytes(run, manifest)
+        oldest = manifest["segments"][0]
+
+        # dry-run 展示计划但不删文件。
+        dry = _maintain(
+            store, run, dry_run=True, retention_days=1,
+            archive_max_bytes=total - 1, archive_min_window_days=0,
+        )
+        assert dry["evicted_segments"] == [oldest["file"]]
+        assert dry["rotation_dry_run"] is True
+        assert int(dry["evicted_bytes"]) > 0
+        assert (run / "archive" / oldest["file"]).exists()
+
+        result = _maintain(
+            store, run, retention_days=1,
+            archive_max_bytes=total - 1, archive_min_window_days=0,
+        )
+        assert result["noop"] == "already_pruned"
+        assert result["evicted_segments"] == [oldest["file"]]
+        assert not (run / "archive" / oldest["file"]).exists()
+        assert int(result["archive_bytes_after_rotation"]) == total - int(oldest["bytes"])
+        assert result["archive_over_cap"] is False
+
+        after = load_manifest(run)
+        assert int(after["min_available_seq"]) == int(oldest["end_seq"]) + 1
+        assert verify_archive(run, after) == []
+
+        # 淘汰后仍有快照：重建结果与全量回放一致。
+        state, ticks = replay_into(
+            store, {}, run_dir=run, seed=42, content_hash="test-content-hash"
+        )
+        assert state.hash() == expected_state.hash()
+        assert ticks == expected_ticks
+
+        # 删除快照后，剩余归档不足以重建全史，必须明确报错而不是半重建。
+        snap_dir = run / "snapshots"
+        for path in snap_dir.glob("*"):
+            path.unlink()
+        snap_dir.rmdir()
+        with pytest.raises(MaintenanceError) as ei:
+            state_at_seq(store, run, store.max_seq(), {})
+        assert "archive_prefix_evicted" in str(ei.value)
+        with pytest.raises(RuntimeError) as ei2:
+            replay_into(store, {}, run_dir=run, seed=42, content_hash="test-content-hash")
+        assert "event_rebuild_failed" in str(ei2.value)
+    finally:
+        store.close()
+
+
+def test_rotation_respects_min_window(tmp_path):
+    store, run, _target = _run_with_archives(tmp_path)
+    try:
+        result = _maintain(
+            store, run, retention_days=1,
+            archive_max_bytes=1, archive_min_window_days=2,
+        )
+        manifest = load_manifest(run)
+        # 最大 day_end=3，窗口 2 天 -> 只允许淘汰 day 0/1 两段。
+        assert len(result["evicted_segments"]) == 2
+        assert result["archive_over_cap"] is True
+        assert result["rotation_still_over_cap_reason"] == "min_window"
+        assert int(manifest["min_available_seq"]) == 2 * TICKS_PER_DAY + 1
+        assert verify_archive(run, manifest) == []
+        for row in manifest["segments"]:
+            assert (run / "archive" / str(row["file"])).exists()
+    finally:
+        store.close()
+
+
+def test_plan_rotation_requires_covering_snapshot():
+    manifest = {
+        "last_pruned_seq": 300,
+        "segments": [
+            {"file": "a", "start_seq": 1, "end_seq": 100, "day_end": 0, "bytes": 10},
+            {"file": "b", "start_seq": 101, "end_seq": 200, "day_end": 1, "bytes": 10},
+            {"file": "c", "start_seq": 201, "end_seq": 300, "day_end": 2, "bytes": 10},
+        ],
+    }
+
+    # 没有有效快照：一段都不能删。
+    plan = plan_archive_rotation(
+        manifest, None, archive_max_bytes=20, min_window_days=0, total_bytes=30
+    )
+    assert plan["blocked_reason"] == "no_valid_snapshot"
+    assert plan["evicted_files"] == []
+
+    # 快照落后于已裁剪水位：整段历史都不可淘汰，整体拒绝。
+    plan = plan_archive_rotation(
+        manifest, {"last_seq": 250}, archive_max_bytes=1, min_window_days=0, total_bytes=30
+    )
+    assert plan["blocked_reason"] == "snapshot_behind_pruned"
+    assert plan["evicted_files"] == []
+
+    # 快照覆盖全部已裁剪事件：只淘汰最老的一段即可回到上限内。
+    plan = plan_archive_rotation(
+        manifest, {"last_seq": 300}, archive_max_bytes=20, min_window_days=0, total_bytes=30
+    )
+    assert plan["evicted_files"] == ["a"]
+    assert plan["blocked_reason"] == ""
+    assert plan["archive_bytes_after"] == 20
+    assert plan["over_cap_after"] is False
+
+
+def test_rotation_refuses_with_pending_journal_and_cleans_orphans(tmp_path):
+    store, run, _target = _run_with_archives(tmp_path)
+    try:
+        snapshot = load_snapshot(run, content_hash="test-content-hash", seed=42)
+        assert snapshot is not None
+        write_journal(run, {"version": 1, "phase": "archive", "target_seq": 1})
+
+        plan = rotate_archives(
+            run, archive_max_bytes=1, min_window_days=0, snapshot=snapshot
+        )
+        assert plan["blocked_reason"] == "journal_pending"
+        assert plan["evicted_files"] == []
+        assert len(load_manifest(run)["segments"]) == 4
+
+        clear_journal(run)
+        orphan = run / "archive" / "events-s000000000999-s000000001000.jsonl.gz"
+        orphan.write_bytes(b"orphan")
+        plan = rotate_archives(
+            run, archive_max_bytes=1, min_window_days=0, snapshot=snapshot
+        )
+        # 窗口 0 天、上限 1 字节：全部段都被快照覆盖，允许删空，重建只靠快照 + 尾段。
+        assert len(plan["evicted_files"]) == 4
+        assert plan["removed_orphans"] == 1
+        assert not orphan.exists()
+        assert load_manifest(run)["segments"] == []
+        assert int(load_manifest(run)["min_available_seq"]) == _target + 1
+    finally:
+        store.close()
+
+
+def test_disk_headroom_refuses_archiving(tmp_path):
+    run = tmp_path / "run"
+    store = EventStore(run / "events.sqlite")
+    try:
+        _fill_store(store, 600)
+
+        dry = _maintain(store, run, dry_run=True, retention_days=1, min_free_bytes=1 << 50)
+        assert dry["disk_ok"] is False
+        assert int(dry["disk_free_bytes"]) > 0
+
+        with pytest.raises(MaintenanceError) as ei:
+            _maintain(store, run, retention_days=1, min_free_bytes=1 << 50)
+        assert "disk_low_free" in str(ei.value)
+        assert store.min_seq() == 1
+        assert not (run / "archive").exists()
+        # journal 保留在 archive 阶段，磁盘恢复后可继续，不会丢事件。
+        journal = load_journal(run)
+        assert journal is not None and journal["phase"] == "archive"
     finally:
         store.close()

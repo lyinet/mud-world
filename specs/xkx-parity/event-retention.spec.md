@@ -102,7 +102,10 @@
     -> 从 snapshot 恢复 state/player_ticks，再回放 seq > snapshot.last_seq 的尾段事件
 
 snapshot 缺失/损坏
-    -> 若 store 已有裁剪水位：读取全部归档段（seq 1..S）回放，再回放 seq > S 的尾段
+    -> 若在线表已裁剪且归档前缀未被轮转淘汰（min_available_seq == 1）：
+       读取全部归档段（seq 1..S）回放，再回放 seq > S 的尾段
+    -> 若归档前缀已被轮转淘汰（min_available_seq > 1）：明确报错 archive_prefix_evicted，
+       绝不半重建
     -> 若 store 未裁剪：维持今天的全量 read_all() 回放（逐字节一致）
 ```
 
@@ -145,6 +148,9 @@ snapshot 缺失/损坏
   "version": 1,
   "last_pruned_seq": 41120,
   "last_day": 3,
+  "min_available_seq": 1,
+  "evicted_through_seq": 0,
+  "evicted_bytes_total": 0,
   "segments": [
     {"file": "events-s000001-s020000.jsonl.gz", "start_seq": 1, "end_seq": 20000,
      "events": 20000, "day_start": 0, "day_end": 1,
@@ -156,6 +162,9 @@ snapshot 缺失/损坏
 - `manifest.json` 与段文件都用“临时文件 + fsync + `os.replace`”原子落盘。
 - 段已存在且 sha256 匹配时跳过写入（幂等重跑）。
 - 删除事件前，manifest 必须已经覆盖 `[1..S]` 且逐段校验通过。
+- `min_available_seq`：仍保留在盘上的最早 seq；本地轮转淘汰最老段后前移（§13）。
+- `evicted_through_seq` / `evicted_bytes_total`：已被轮转淘汰的水位与累计字节（只记水位，
+  不保留内容）；用于说明“为什么重建必须依赖快照”。
 
 ## 7. 裁剪边界（唯一合法口径）
 
@@ -266,14 +275,19 @@ S = first_retained_seq - 1
 | `--retention-days` / `XKX_EVENT_RETENTION_DAYS` | `14` | 保留游戏日数（含当前日） |
 | `XKX_EVENT_SEGMENT_EVENTS` | `20000` | 单归档段事件上限 |
 | `--vacuum` | 关 | 服务停止后回收磁盘 |
-| `--dry-run` | 关 | 只计算边界与预估，不写盘、不删除 |
+| `--dry-run` | 关 | 只计算边界/预估与轮转计划，不写盘、不删除 |
 | `--verify` | 关 | 维护后从快照+尾段重建并比对哈希 |
+| `--archive-max-bytes` / `XKX_ARCHIVE_MAX_BYTES` | `50GB` | 归档目录总量上限；`0` = 不设上限 |
+| `--archive-min-window-days` / `XKX_ARCHIVE_MIN_WINDOW_DAYS` | `7` | 轮转时至少保留最近 N 个有归档的游戏日 |
+| `--min-free-bytes` / `XKX_MIN_FREE_BYTES` | `5GB` | 剩余空间低于该值时拒绝继续归档；`0` = 关闭 |
 
 CLI：
 
 ```
 PYTHONPATH=src python -m wsim.world.retention \
-  --run-dir runs/service --enable --retention-days 14 [--vacuum] [--dry-run] [--verify]
+  --run-dir runs/service --enable --retention-days 14 \
+  [--vacuum] [--dry-run] [--verify] \
+  [--archive-max-bytes 53687091200] [--archive-min-window-days 7] [--min-free-bytes 5368709120]
 ```
 
 默认关闭的体现：不执行 CLI/不设开关时，API 与 headless 行为与今天一致，不产生任何
@@ -285,10 +299,68 @@ PYTHONPATH=src python -m wsim.world.retention \
 `segments_written`, `archive_bytes`, `snapshot_state_hash`, `db_bytes_before/after`,
 `vacuumed`, `elapsed_s`（仅运维展示，不进入世界哈希）。
 
+本地轮转追加字段（§13）：`archive_bytes_before_rotation`, `archive_bytes_after_rotation`,
+`archive_cap_bytes`, `archive_over_cap`, `evicted_segments`, `evicted_bytes`,
+`removed_orphan_segments`, `rotation_blocked_reason`, `rotation_still_over_cap_reason`,
+`rotation_dry_run`, `disk_free_bytes`, `disk_required_bytes`, `disk_ok`。
+
+告警语义：
+- `disk_ok=false` 且非 dry-run：维护会以 `disk_low_free` 失败退出（退出码 1），
+  不写段、不裁剪；cron 只看退出码即可告警。
+- `archive_over_cap=true`：轮转后仍超过上限（通常被最小窗口或快照覆盖挡住），
+  用 `rotation_still_over_cap_reason` 区分原因，需要人工扩盘或调整配置。
+
 `meta` 三个键供健康检查/运维查询；`GET /api/health` 现有 `events` 连续性检查基于尾部两跳，
 裁剪后仍成立（`MAX(seq)` 与 `EventTail.last_seq` 一致）。
 
-## 13. 风险与取舍（明确写入验收）
+## 13. 归档生命周期（本地轮转）
+
+在线库已被保留期封顶，但归档目录本身仍会无界增长（500 席约 11GB/天）。本节定义
+**单机本地轮转**：在离线维护 CLI 内按总量上限淘汰最老的归档段；不引入对象存储、
+不上云、不新增后台常驻进程，仍是 cron 挂离线 CLI。
+
+### 13.1 规则
+
+- 总量上限：`--archive-max-bytes`（默认 50GB，`XKX_ARCHIVE_MAX_BYTES` 可配；`0` = 不设上限）。
+- 淘汰顺序：只从 **最老段** 开始，删到总量回到上限内即停；绝不删中间段、绝不制造段间洞。
+- 前置条件（不满足即拒绝删除，并输出 `rotation_blocked_reason`）：
+  1. 段必须已被快照覆盖：`segment.end_seq <= snapshot.last_seq`，且
+     `snapshot.last_seq >= manifest.last_pruned_seq`（否则 `snapshot_behind_pruned`）；
+  2. 不存在未完成的 `retention_journal.json`（否则 `journal_pending`）；
+  3. 段位于最小保留窗口之外：最近 `--archive-min-window-days`（默认 7）个有归档的游戏日
+     不淘汰；被窗口挡住且仍超限时输出 `rotation_still_over_cap_reason=min_window`。
+- 落盘顺序：先原子更新 manifest（移除被淘汰段、推进 `min_available_seq`、
+  `evicted_through_seq`、`evicted_bytes_total`），再删除段文件。中途崩溃只会留下
+  “manifest 未引用的孤儿段”，下次轮转自动清理；不会出现 manifest 指向已删文件的
+  不可恢复状态。
+- 磁盘水位：写归档前检查 `free >= min_free_bytes + 本次归档估算`，不满足则抛
+  `disk_low_free` 并保留 journal，不继续写盘。`--min-free-bytes` 默认 5GB（`0` = 关闭）。
+  估算优先用既有段的“压缩字节/事件”比例，无历史段时按 512 字节/事件保守估计。
+- `--dry-run`：输出 `archive_bytes_before_rotation/after_rotation`、`evicted_segments`、
+  `evicted_bytes`、`rotation_blocked_reason` 等字段，但不删任何文件。
+- 轮转不清理快照文件：`snapshot.json` 指向的快照是重建基线；历史快照仍按维护次数累积
+  （单次几 MB 量级）。快照清理不属于本次范围，作为已知残留风险记录。
+
+### 13.2 能解决什么
+
+- 单机归档目录有硬上限：磁盘占用从“无界线性增长”变成“上限 + 最小保留窗口”；
+- 超限时自动回收最老归档，且只回收已被快照覆盖、不在重建关键路径上的段；
+- 配置写错（例如上限误设为 1GB）时，最小保留窗口兜底，不会一次清空历史；
+- 磁盘将写满前先拒绝归档并明确报错（`disk_low_free`），避免把机器写死；
+- 全部动作在离线 CLI 内完成，可挂 cron / systemd timer，无新增常驻进程与网络依赖。
+
+### 13.3 解决不了什么
+
+- **不是异地冷备**：轮转只在本机磁盘内腾挪，宿主/磁盘损坏仍会丢历史；异地容灾需要
+  外部备份通道，本方案不提供。
+- **不是合规审计留存**：被淘汰段不可恢复（manifest 只留 `evicted_through_seq` 水位，
+  不保留内容）。需要长期审计/取证时，必须在淘汰前转储到外部存储（对象存储、磁带、
+  归档库），本方案不提供该通道。
+- **不能全史随时可查**：淘汰后只能从快照 + 剩余段重建“当前状态”，无法再逐条回放
+  被淘汰区间。快照因此从“加速缓存”升级为“重建必需基线”。
+- 不做容量预测、分级存储、多副本：只按字节上限 FIFO 淘汰，不区分冷热。
+
+## 14. 风险与取舍（明确写入验收）
 
 - 裁剪后，`store.read_all()` 只覆盖保留窗口；依赖全史扫描的只读接口（`intent` 历史查询、
   `messages` 的 `since_tick`、`visited_locations` 惰性重建）只能看到窗口内事件。
@@ -296,16 +368,17 @@ PYTHONPATH=src python -m wsim.world.retention \
 - 快照是代码版本相关的缓存；升级后若 pickle 不可读，自动退回归档+尾段重建（可能更慢，
   但结果一致）。
 - 归档段压缩后不可原地更新；任何修正仍以“追加事件 + 后续快照”表达，不改历史段。
-- **归档磁盘仍会持续增长**：本方案把在线库压到保留窗口（默认 14 游戏日），但归档是
-  长期事实源，按 500 席外推原始写入 23GB/天、压缩后约 11GB/天。上线时归档目录必须
-  有独立生命周期（对象存储/冷备/按审计要求定期转储），本次不实现归档删除策略。
+- **归档磁盘由本地轮转封顶（§13）**：总量上限 + 最老段优先 + 最小窗口；但轮转只是单机
+  腾挪，不是异地冷备或合规审计留存，长期历史必须在淘汰前外部转储。
+- **前缀淘汰后重建依赖快照**：`min_available_seq > 1` 时 `snapshot + 尾段` 是唯一重建
+  路径；快照缺失/损坏会明确报错 `archive_prefix_evicted`，不会静默半重建。
 - 保留期以游戏日计：`tick_step=6s` 时 14 游戏日 ≈ 3.4 小时真实时间，运维需按实际
   `tick_step` 换算保留窗口与维护频率。
 - 关闭态红线由 `test_xkx_determinism_legacy` 与实际两次跑测保证；开启态不要求与关闭态
   事件哈希相同（删了前缀，`event_hash(read_all())` 必然变化），只要求重建后的
   **state_hash** 与全量一致。
 
-## 14. 验收清单
+## 15. 验收清单
 
 1. 关闭态：2 天无玩家世界三项哈希不变；`events.jsonl` 两次运行逐字节一致；无新增目录/文件。
 2. 归档：段文件 sha256 与 manifest 一致；重复运行不重复写段；归档段事件数之和 = S。
@@ -316,6 +389,11 @@ PYTHONPATH=src python -m wsim.world.retention \
    失败点之前/之后都没有“已删未归档”。
 7. 边界：`retention_days=1` 时只保留当前日；`S<=0` 或裁剪后为空时不裁剪。
 8. 关闭态字节一致、重建一致、中断恢复、边界四类单测全部通过；全量 `pytest` 不回归。
+9. 轮转：超上限只淘汰最老段且不产生段间洞；最小窗口内的段不删；快照未覆盖的段不删；
+   有未完成 journal 时一段都不删。
+10. 水位：`min_free_bytes` 触发时以 `disk_low_free` 失败退出，不写段、不裁剪，journal 保留。
+11. dry-run：列出将淘汰段与释放字节数，文件仍在；轮转后重建仍能通过快照+尾段得到同一
+    `state.hash()`，去掉快照时明确报 `archive_prefix_evicted`。
 
 ## 16. 实测记录（2026-11-08，本机）
 
@@ -345,11 +423,22 @@ PYTHONPATH=src python -m wsim.world.retention \
 `tests/test_xkx_determinism_legacy.py` 改动后连续跑两次均通过：
 `events=735`、`state=009076f0…780ce9`、`event=02d5f812…078ae`。
 
+### 16.4 本地轮转冒烟（6 游戏日 / 无玩家，2026-11-09）
+
+- headless `days=6, seed=42, npc_limit=0`：2209 事件；维护 `retention_days=1` 归档 1967 条，
+  5 段 / **193,890 字节**；`verify=true`。
+- `--archive-max-bytes 120000 --archive-min-window-days 3 --dry-run`：列出最老 2 段
+  （76,981 字节）将被淘汰，文件仍在；实跑结果一致，剩余 3 段 116,909 字节，`verify=true`
+  （前缀淘汰后仍由快照 + 尾段重建成功）。
+- `--archive-max-bytes 60000` 且窗口 3 天：`archive_over_cap=true`、
+  `rotation_blocked_reason=min_window`，一段未删（窗口兜底生效）。
+
 ## 17. 交付物
 
 - 本文档 + `event-retention.tasks.md`
-- `src/wsim/world/retention.py`（归档/快照/裁剪/恢复/CLI）
+- `src/wsim/world/retention.py`（归档/快照/裁剪/恢复/本地轮转/磁盘水位/CLI）
 - `src/wsim/world/store.py`（`MAX(seq)`、范围读、前缀删除、checkpoint 的最小增量）
 - `src/wsim/api/persistence.py`（快照/归档感知的 `replay_into`）
-- `tests/test_event_retention.py`
-- 实测报告（合成数据量级、耗时、体积、两次确定性跑测结果）
+- `tests/test_event_retention.py`（关闭态一致、重建一致、中断恢复、裁剪边界、本地轮转、
+  最小窗口、journal 保护、磁盘水位）
+- 实测报告（合成数据量级、耗时、体积、两次确定性跑测结果、轮转冒烟结果）

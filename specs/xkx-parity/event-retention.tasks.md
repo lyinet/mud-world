@@ -59,6 +59,22 @@
       记录 db 体积、归档体积、裁剪耗时、`--verify` 结果
 - [x] 最终收尾报告：设计取舍、实测数字、未完成项
 
+## T6 归档生命周期（本地轮转，收尾追加）
+
+- [x] `plan_archive_rotation`：总量上限、最老段优先、只删连续前缀、不制造段间洞
+- [x] 淘汰前置条件：段被快照覆盖（含 `snapshot_behind_pruned`）、无未完成 journal、
+      最小保留窗口（默认 7 个有归档的游戏日）
+- [x] `rotate_archives`：先原子更新 manifest（`min_available_seq` / `evicted_through_seq` /
+      `evicted_bytes_total`）再删文件；清理 manifest 不引用的孤儿段
+- [x] 磁盘水位：`disk_low_free`（默认剩余 < 5GB，含本次归档估算），拒绝写盘并保留 journal
+- [x] CLI：`--archive-max-bytes` / `--archive-min-window-days` / `--min-free-bytes`（env 可配）
+- [x] `--dry-run`：展示 `evicted_segments` / `evicted_bytes` / 前后字节数，不删文件
+- [x] 前缀淘汰后的重建语义：`min_available_seq > 1` 时仅快照+尾段可用，否则
+      `archive_prefix_evicted`（不半重建）
+- [x] spec 增补 §13“能解决什么 / 解决不了什么（异地冷备、审计留存、全史可查）”
+- [x] 单测：最老优先、最小窗口、快照覆盖、journal 保护、dry-run、磁盘水位、孤儿清理
+- [x] 6 游戏日 CLI 冒烟：dry-run 计划与实跑一致，淘汰后 `--verify` 通过
+
 ## 明确不做（本次）
 
 - 在线自动触发（cron/低峰窗口执行 CLI；不挂进 tick 循环）
