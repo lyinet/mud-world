@@ -526,6 +526,10 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         ent.death_tick = 0
         ent.death_location = ""
         ent.status = "alive"
+        # 创世默认值（genesis 不往 payload 里写这两项，由 create_entity 兜底）：
+        # 重生同样回到创建默认，保证字段集与创世载荷一一对应。
+        ent.max_stamina = 100.0
+        ent.skill_xp = {}
         # 原版 `destruct()` + 重新 `new()`：新 clone 没有 enemy。清掉上一轮的交战
         # 状态，否则 stale 的 combat_target 会挡住重生瞬间的 init() 判定。
         ent.combat_target = ""
@@ -560,6 +564,31 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             ent.weapon_type = str(d["weapon_type"])
         if "race" in d:
             ent.race = str(d["race"])
+        if "name" in d:
+            ent.name = str(d["name"])
+        if "role" in d:
+            ent.role = str(d["role"])
+        if "home" in d:
+            ent.home = str(d["home"])
+        if "personality" in d:
+            ent.personality = dict(d["personality"] or {})
+        if "drops" in d:
+            ent.drops = {str(k): int(v) for k, v in dict(d["drops"]).items() if int(v) > 0}
+        if "status" in d:
+            status = str(d["status"])
+            if status not in ("alive", "unconcious"):
+                raise EffectError(f"非法重生状态: {status}")
+            ent.status = status
+        if "template" in d:
+            template = str(d["template"])
+            if ent.template and ent.template != template:
+                raise EffectError(f"重生模板不一致: {ent.id} {ent.template} != {template}")
+            ent.template = template
+        if "instance" in d:
+            instance = _as_int(d["instance"], "instance")
+            if ent.instance and int(ent.instance) != instance:
+                raise EffectError(f"重生实例号不一致: {ent.id} {ent.instance} != {instance}")
+            ent.instance = instance
         return
 
     if op == "loot_create":

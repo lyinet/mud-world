@@ -80,14 +80,17 @@ def default_max_hp(npc: dict[str, Any]) -> int:
 
 
 def roll_attrs(
-    npc_id: str,
+    roll_key: str,
     attrs_roll: Any,
     seed: int = 0,
     errors: list[str] | None = None,
 ) -> dict[str, int]:
     """按世界种子掷出 NPC 六维；SHA-256 保证跨进程/跨机器可复现。
 
-    公式：`lo + int(sha256("xkx-attrs:<seed>:<npc_id>:<attr>")[:8], "big") % span`。
+    公式：`lo + int(sha256("xkx-attrs:<seed>:<roll_key>:<attr>")[:8], "big") % span`。
+    `roll_key` 是**实体身份**而不是模板 id：规范实体用 npc id，clone 用实例 id，
+    重生用 `"<entity>#<death_tick>"`。原版每个 clone 在 `new()` 时现掷
+    （`race/human.lpc:60-68`），键里带实例身份才能复现“每个实例独立”。
     不读墙钟、不用全局 random、不依赖 NPC 遍历顺序。
     """
     if not isinstance(attrs_roll, dict):
@@ -107,10 +110,10 @@ def roll_attrs(
             or span[0] > span[1]
         ):
             if errors is not None:
-                errors.append(f"bad_attrs_roll:{npc_id}:{key}")
+                errors.append(f"bad_attrs_roll:{roll_key}:{key}")
             continue
         lo, hi = int(span[0]), int(span[1])
-        digest = hashlib.sha256(f"xkx-attrs:{int(seed)}:{npc_id}:{key}".encode("utf-8")).digest()
+        digest = hashlib.sha256(f"xkx-attrs:{int(seed)}:{roll_key}:{key}".encode("utf-8")).digest()
         rolled[key] = lo + int.from_bytes(digest[:8], "big") % (hi - lo + 1)
     return rolled
 
@@ -153,8 +156,12 @@ def resolve_npc_vitals(
     *,
     seed: int = 0,
     errors: list[str] | None = None,
+    roll_key: str | None = None,
 ) -> dict[str, Any] | None:
-    """返回可直接并入 `create_entity` 的字段；legacy NPC 返回 None。"""
+    """返回可直接并入 `create_entity` 的字段；legacy NPC 返回 None。
+
+    `roll_key` 省略时回退为 npc id（规范实体/旧调用方行为不变）。
+    """
     if not any(k in npc for k in ("vitals", "attrs", "skills", "attrs_roll", "attrs_derive")):
         return None
     vitals = dict(npc.get("vitals") or {})
@@ -167,7 +174,8 @@ def resolve_npc_vitals(
         for k, v in (npc.get("attrs") or {}).items()
         if not isinstance(v, bool) and isinstance(v, (int, float))
     }
-    rolled = roll_attrs(str(npc.get("id") or ""), npc.get("attrs_roll"), seed, errors)
+    key = str(roll_key) if roll_key is not None else str(npc.get("id") or "")
+    rolled = roll_attrs(key, npc.get("attrs_roll"), seed, errors)
     attrs.update(rolled)
     _apply_attrs_derive(str(npc.get("id") or ""), npc.get("attrs_derive"), attrs, errors)
     skills = {

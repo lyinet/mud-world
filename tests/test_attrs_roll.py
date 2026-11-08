@@ -1,6 +1,10 @@
 """NPC 六维掷点：SHA-256 确定性、非法区间诊断与 legacy 兼容。"""
 from __future__ import annotations
 
+from conftest import ROOT
+
+from wsim.api.xkx_content import load_xkx_content
+from wsim.sim.genesis import build_genesis
 from wsim.sim.vitals import resolve_npc_vitals, roll_attrs
 
 ROLL = {"str": [5, 44], "con": [10, 30], "dex": [8, 24]}
@@ -124,3 +128,46 @@ def test_resolve_npc_vitals_rejects_bad_derive_rule():
     resolved = resolve_npc_vitals(npc, seed=7, errors=errors)
     assert "int" not in resolved["attrs"]
     assert errors == ["bad_attrs_derive:npc.human:int"]
+
+
+def test_roll_key_makes_each_instance_roll_independently():
+    """原版每个 clone 在 new() 现掷：同一模板的两个实例不能共享一套六维。"""
+    npc = {"id": "npc.tpl", "attrs_roll": {"str": [10, 30], "con": [10, 30]}}
+    first = resolve_npc_vitals(npc, seed=20261014, roll_key="npc.tpl@room#1")
+    second = resolve_npc_vitals(npc, seed=20261014, roll_key="npc.tpl@room#2")
+    assert first["attrs"] != second["attrs"]
+    # 同一身份重复解析逐字节可复现。
+    assert resolve_npc_vitals(npc, seed=20261014, roll_key="npc.tpl@room#1")["attrs"] == first["attrs"]
+
+
+def _clone_attrs(seed: int = 20261014) -> dict[str, dict[str, int]]:
+    content = load_xkx_content(ROOT / "content" / "xkx")
+    genesis = build_genesis(content, content.npcs, root=ROOT, seed=seed)
+    return {
+        e.data["id"]: e.data["attrs"]
+        for e in genesis.effects
+        if e.op == "create_entity" and e.data.get("template") and "attrs" in e.data
+    }
+
+
+def test_genesis_clones_do_not_share_template_attrs():
+    attrs = _clone_attrs()
+    assert attrs, "真实内容包应包含 clone"
+    cor = {row["cor"] for row in attrs.values() if "cor" in row}
+    assert len(cor) > 1, "clone 仍共享模板六维（模板键化未修掉）"
+    # 同一 seed 双跑完全一致。
+    assert _clone_attrs() == attrs
+
+
+def test_xkx_human_cor_distribution_matches_original_range():
+    content = load_xkx_content(ROOT / "content" / "xkx")
+    values: list[int] = []
+    for npc in content.npcs:
+        span = (npc.get("attrs_roll") or {}).get("cor")
+        if not span:
+            continue
+        resolved = resolve_npc_vitals(npc, seed=20261014)
+        values.append(resolved["attrs"]["cor"])
+    assert values
+    assert min(values) >= 10 and max(values) <= 30
+    assert 19.0 <= sum(values) / len(values) <= 21.0

@@ -43,6 +43,7 @@ from ..actions.registry import Action
 from ..core.models import Effect, Intent
 from ..core.rng import PRNG
 from ..world.state import Entity, WorldState
+from .genesis import content_role_skill, npc_relation_maps, npc_spawn_skill
 from .vitals import resolve_npc_vitals
 
 # 原版 `randomized resets` 默认 1：450..899 秒；tick=10 分钟，用 10/20 交替
@@ -78,23 +79,42 @@ class RoomResetPolicy:
         return {}
 
     def _baseline(self, ent: Entity, ref: str) -> dict[str, Any]:
-        """按内容重算创世基线；与 genesis 使用同一批解析函数。"""
+        """按内容重算创世基线；字段集与 `genesis.build_genesis` 的 create_entity 一致。
+
+        重生等价于原版 `destruct()` + 重新 `new()`：新 clone 的字段集必须和创世
+        时同一实体完全相同。缺失字段（尤其 `drops`）会让重生后的 NPC 掉皮消失、
+        性格/技能漂移，因此这里逐字段镜像 genesis.py:213-329。
+        `max_stamina` / `skill_xp` 不在 env payload 里：它们由 `entity_respawn`
+        按 create_entity 的默认值复位（100.0 / {}）。
+        """
         npc = self._npc(ref)
         errors: list[str] = []
-        vitals = resolve_npc_vitals(npc, seed=int(self.seed), errors=errors) or {}
+        # 原版每次 new() 现掷：重生用死亡 tick 作为确定性 spawn 序号，既重掷又
+        # 可回放（death_tick 已在事件日志里）。
+        roll_key = f"{ent.id}#{int(ent.death_tick)}" if int(ent.death_tick) > 0 else ent.id
+        vitals = resolve_npc_vitals(npc, seed=int(self.seed), errors=errors, roll_key=roll_key) or {}
+        master_of, disciples = npc_relation_maps(getattr(self.content, "npcs", []) or [])
+        role = str(npc.get("role") or ent.role)
         payload: dict[str, Any] = {
             "entity": ent.id,
+            "name": str(npc.get("name") or ent.name),
+            "role": role,
             "location": ent.home or ent.location,
+            "home": ent.home,
+            "stamina": 100.0,
+            "skills": {content_role_skill(self.content, role): npc_spawn_skill(npc, master_of, disciples)},
+            "personality": dict(npc.get("personality") or {}),
             "death_tick": int(ent.death_tick),
             "death_location": ent.death_location,
-            "stamina": 100.0,
-            "max_stamina": 100.0,
-            "skill_xp": {},
         }
         for key in ("max_hp", "hp", "attrs", "combat_exp", "skill_levels", "neili",
                     "max_neili", "jiali", "race", "map_skills", "prepare_skills"):
             if key in vitals:
                 payload[key] = vitals[key]
+        # P4a：内容显式标注的初始状态（xkx 当前没有该键，保持逐字节不变）。
+        initial_state = str(npc.get("initial_state") or "")
+        if initial_state and initial_state != "alive":
+            payload["status"] = initial_state
         inventory: dict[str, int] = {}
         for row in (npc.get("assets") or {}).get("items") or []:
             ref_item = str((row or {}).get("id") or "")
@@ -106,36 +126,69 @@ class RoomResetPolicy:
         equipped: dict[str, str] = {}
         weapon_type = ""
         for row in npc.get("equipment") or []:
-            item = str((row or {}).get("ref") or "")
-            if not item:
+            ref_item = str((row or {}).get("ref") or "")
+            if not ref_item:
                 continue
-            equipment.append(item)
-            data = self.content.items.get(item) or {}
+            equipment.append(ref_item)
+            if ref_item not in self.content.items:
+                continue
+            data = self.content.items.get(ref_item) or {}
             category = str(data.get("category") or "")
             if str((row or {}).get("slot") or "") == "wield" or category == "weapon":
-                equipped["weapon"] = item
+                equipped["weapon"] = ref_item
                 weapon_type = str(data.get("equip_slot") or "")
             else:
-                slot = slot_for_item(item, category, str(data.get("equip_slot") or ""))
+                slot = slot_for_item(ref_item, category, str(data.get("equip_slot") or ""))
                 if slot:
-                    equipped[slot] = item
-        payload["equipment"] = equipment
-        payload["equipped"] = dict(sorted(equipped.items()))
-        apply: dict[str, int] = {}
-        for item in equipped.values():
-            for key, value in item_apply(self.content, item).items():
-                apply[key] = apply.get(key, 0) + int(value)
-        payload["equipped_apply"] = dict(sorted(apply.items()))
-        payload["weapon_type"] = weapon_type
+                    equipped[slot] = ref_item
+        if equipment:
+            payload["equipment"] = equipment
+        if equipped:
+            payload["equipped"] = dict(sorted(equipped.items()))
+            apply: dict[str, int] = {}
+            for item in equipped.values():
+                for key, value in item_apply(self.content, item).items():
+                    apply[key] = apply.get(key, 0) + int(value)
+            if apply:
+                payload["equipped_apply"] = dict(sorted(apply.items()))
+            if weapon_type:
+                payload["weapon_type"] = weapon_type
+        # 原版 die() 固定掉落：与 genesis.py:284-302 同一过滤条件。
+        drops: dict[str, int] = {}
+        for row in npc.get("drops") or []:
+            if not isinstance(row, dict):
+                continue
+            if row.get("chance") != 1.0 or row.get("item_resolved") is not True:
+                continue
+            if str(row.get("landing") or "") != "ground":
+                continue
+            ref_item = str(row.get("item") or "")
+            if not ref_item:
+                continue
+            qty = row.get("qty")
+            if isinstance(qty, bool) or not isinstance(qty, int) or qty <= 0:
+                qty = 1
+            drops[ref_item] = drops.get(ref_item, 0) + int(qty)
+        if drops:
+            payload["drops"] = dict(sorted(drops.items()))
         temp_apply: dict[str, int] = {}
         for row in npc.get("temp_apply") or []:
-            if not isinstance(row, dict) or row.get("known") is not True:
+            if not isinstance(row, dict):
                 continue
             key = str(row.get("key") or "")
+            if not key or row.get("known") is not True:
+                continue
+            if row.get("source_kind") == "lpc_set":
+                continue
             value = row.get("value")
-            if key and not isinstance(value, bool) and isinstance(value, int):
-                temp_apply[key] = int(value)
-        payload["temp_apply"] = dict(sorted(temp_apply.items()))
+            if isinstance(value, bool) or not isinstance(value, int):
+                continue
+            temp_apply[key] = int(value)
+        if temp_apply:
+            payload["temp_apply"] = dict(sorted(temp_apply.items()))
+        if ent.template:
+            payload["template"] = ent.template
+            payload["instance"] = int(ent.instance)
         return payload
 
     # ---- 扫描 -------------------------------------------------------------

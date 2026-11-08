@@ -34,6 +34,35 @@ def _stable_index(key: str, n: int) -> int:
     return sum(ord(c) for c in key) % n if n else 0
 
 
+def npc_relation_maps(npcs: list[dict[str, Any]]) -> tuple[dict[str, str], dict[str, list[str]]]:
+    """师父/徒弟关系映射；genesis 与 room_reset 共用，避免技能默认值两套公式。"""
+    ids = {str(n["id"]) for n in npcs}
+    master_of: dict[str, str] = {}
+    disciples: dict[str, list[str]] = defaultdict(list)
+    for npc in npcs:
+        for rel in npc.get("relations") or []:
+            target = str(rel.get("target") or "")
+            if target not in ids:
+                continue
+            if rel.get("type") == "master":
+                master_of[target] = str(npc["id"])
+                disciples[str(npc["id"])].append(target)
+            elif rel.get("type") == "disciple":
+                master_of[str(npc["id"])] = target
+                disciples[target].append(str(npc["id"]))
+    return master_of, disciples
+
+
+def npc_spawn_skill(npc: dict[str, Any], master_of: dict[str, str], disciples: dict[str, list[str]]) -> float:
+    """创世/重生共用的角色技能默认值（genesis.py 原表达式，行为不变）。"""
+    nid = str(npc["id"])
+    if nid in master_of:
+        return 0.30
+    if disciples.get(nid):
+        return 0.65
+    return 0.40 + _stable_index(str(npc["role"]), 15) / 100.0
+
+
 def _load_role_workplace(root: Path | None) -> dict[str, str]:
     if root is None:
         return {}
@@ -174,19 +203,7 @@ def build_genesis(
         )
 
     # 3) 师徒关系（内容包口径 master = owner 是 target 的师父）
-    master_of: dict[str, str] = {}
-    disciples: dict[str, list[str]] = defaultdict(list)
-    for npc in npcs:
-        for rel in npc.get("relations") or []:
-            target = rel["target"]
-            if target not in npc_by_id:
-                continue
-            if rel["type"] == "master":
-                master_of[target] = npc["id"]
-                disciples[npc["id"]].append(target)
-            elif rel["type"] == "disciple":
-                master_of[npc["id"]] = target
-                disciples[target].append(npc["id"])
+    master_of, disciples = npc_relation_maps(npcs)
 
     # 4a) NPC 实体/账户/资产（必须全部先创建，师徒 effect 才能引用）
     npc_money_total = 0
@@ -206,7 +223,7 @@ def build_genesis(
         home = npc.get("home") if npc.get("home") in content.locations else _assign_home(work_loc, content, nid)
         npc_home[nid] = home
         npc_work[nid] = work_loc
-        skill = 0.30 if nid in master_of else (0.65 if disciples.get(nid) else 0.40 + _stable_index(npc["role"], 15) / 100.0)
+        skill = npc_spawn_skill(npc, master_of, disciples)
         money = int(npc["assets"].get("money", 0))
         npc_money_total += money
 
@@ -349,6 +366,12 @@ def build_genesis(
         data["home"] = room
         data["template"] = ref
         data["instance"] = int(inst.get("instance") or 0)
+        # 原版每个 clone 在 `new()` 时独立掷点（`race/human.lpc:60-68`）。
+        # 键用实例 id 而不是模板 id：同模板的各槽位互不相同；仍是
+        # (seed, 实例身份) 的纯函数，回放/双跑逐字节可复现。
+        inst_vitals = resolve_npc_vitals(npc_by_id[ref], seed=seed, errors=mismatches, roll_key=iid)
+        if inst_vitals is not None:
+            data.update(inst_vitals)
         acc = f"wallet:{iid}"
         effects.append(Effect("create_account", {"account": acc}))
         effects.append(Effect("create_entity", data))
