@@ -1,10 +1,11 @@
 {
- "build_sha": "e164708",
+ "build_sha": "22ae271",
  "build_shas": {
   "c514f4c": 62,
   "fce2519": 1,
   "efdbd5a": 29,
-  "e164708": 18
+  "e164708": 18,
+  "22ae271": 10
  },
  "snapshot_md5": "69fd5711e7b288bfc5fdaa11f8e8f513",
  "reference_mudlib": "c1b87db",
@@ -80,6 +81,18 @@
    "hp_max": 0,
    "npc_attacks": 93,
    "npc_hits": 93
+  },
+  "tiger_hz": {
+   "win": 0,
+   "loss": 10,
+   "fled": 0,
+   "timeout": 0,
+   "rounds": 5.5,
+   "hp_min": 0,
+   "hp_med": 0,
+   "hp_max": 0,
+   "npc_attacks": 55,
+   "npc_hits": 55
   }
  }
 }

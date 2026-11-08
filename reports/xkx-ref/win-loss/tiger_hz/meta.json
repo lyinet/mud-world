@@ -1,0 +1,168 @@
+{
+ "target": "tiger-hz",
+ "name": "老虎(杭州山路)",
+ "start_room": "/d/hangzhou/shanlu6",
+ "snapshot_md5": "69fd5711e7b288bfc5fdaa11f8e8f513",
+ "fights": [
+  {
+   "idx": 1,
+   "build_sha": "22ae271",
+   "start_room": "/d/hangzhou/shanlu6",
+   "player_attacks": 0,
+   "player_hits": 0,
+   "npc_attacks": 5,
+   "npc_hits": 5,
+   "rounds": 5,
+   "ended": "player_death",
+   "outcome": "loss",
+   "hp_after": [
+    0,
+    0
+   ]
+  },
+  {
+   "idx": 2,
+   "build_sha": "22ae271",
+   "start_room": "/d/hangzhou/shanlu6",
+   "player_attacks": 0,
+   "player_hits": 0,
+   "npc_attacks": 4,
+   "npc_hits": 4,
+   "rounds": 4,
+   "ended": "player_death",
+   "outcome": "loss",
+   "hp_after": [
+    0,
+    0
+   ]
+  },
+  {
+   "idx": 3,
+   "build_sha": "22ae271",
+   "start_room": "/d/hangzhou/shanlu6",
+   "player_attacks": 0,
+   "player_hits": 0,
+   "npc_attacks": 2,
+   "npc_hits": 2,
+   "rounds": 2,
+   "ended": "player_death",
+   "outcome": "loss",
+   "hp_after": [
+    0,
+    0
+   ]
+  },
+  {
+   "idx": 4,
+   "build_sha": "22ae271",
+   "start_room": "/d/hangzhou/shanlu6",
+   "player_attacks": 0,
+   "player_hits": 0,
+   "npc_attacks": 4,
+   "npc_hits": 4,
+   "rounds": 4,
+   "ended": "player_death",
+   "outcome": "loss",
+   "hp_after": [
+    0,
+    0
+   ]
+  },
+  {
+   "idx": 5,
+   "build_sha": "22ae271",
+   "start_room": "/d/hangzhou/shanlu6",
+   "player_attacks": 0,
+   "player_hits": 0,
+   "npc_attacks": 4,
+   "npc_hits": 4,
+   "rounds": 4,
+   "ended": "player_death",
+   "outcome": "loss",
+   "hp_after": [
+    0,
+    0
+   ]
+  },
+  {
+   "idx": 6,
+   "build_sha": "22ae271",
+   "start_room": "/d/hangzhou/shanlu6",
+   "player_attacks": 0,
+   "player_hits": 0,
+   "npc_attacks": 19,
+   "npc_hits": 19,
+   "rounds": 19,
+   "ended": "player_death",
+   "outcome": "loss",
+   "hp_after": [
+    0,
+    0
+   ]
+  },
+  {
+   "idx": 7,
+   "build_sha": "22ae271",
+   "start_room": "/d/hangzhou/shanlu6",
+   "player_attacks": 0,
+   "player_hits": 0,
+   "npc_attacks": 4,
+   "npc_hits": 4,
+   "rounds": 4,
+   "ended": "player_death",
+   "outcome": "loss",
+   "hp_after": [
+    0,
+    0
+   ]
+  },
+  {
+   "idx": 8,
+   "build_sha": "22ae271",
+   "start_room": "/d/hangzhou/shanlu6",
+   "player_attacks": 0,
+   "player_hits": 0,
+   "npc_attacks": 2,
+   "npc_hits": 2,
+   "rounds": 2,
+   "ended": "player_death",
+   "outcome": "loss",
+   "hp_after": [
+    0,
+    0
+   ]
+  },
+  {
+   "idx": 9,
+   "build_sha": "22ae271",
+   "start_room": "/d/hangzhou/shanlu6",
+   "player_attacks": 0,
+   "player_hits": 0,
+   "npc_attacks": 7,
+   "npc_hits": 7,
+   "rounds": 7,
+   "ended": "player_death",
+   "outcome": "loss",
+   "hp_after": [
+    0,
+    0
+   ]
+  },
+  {
+   "idx": 10,
+   "build_sha": "22ae271",
+   "start_room": "/d/hangzhou/shanlu6",
+   "player_attacks": 0,
+   "player_hits": 0,
+   "npc_attacks": 4,
+   "npc_hits": 4,
+   "rounds": 4,
+   "ended": "player_death",
+   "outcome": "loss",
+   "hp_after": [
+    0,
+    0
+   ]
+  }
+ ]
+}

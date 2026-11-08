@@ -1,6 +1,6 @@
 # 胜负对拍：原版 MID 档 vs 复刻同口径
 
-- 采样构建：`c514f4c`×62、`efdbd5a`×29、`e164708`×18、`fce2519`×1（采样期间另一条线在 `src/wsim` 上连续提交，仓库 HEAD 前进了几次；**原版侧只依赖 `run/mudlib` + 驱动，二者未变**，故不影响原版数字。每场的具体 sha 记录在各 `meta.json`）
+- 采样构建：`c514f4c`×62、`efdbd5a`×29、`e164708`×18、`22ae271`×10、`fce2519`×1（采样期间另一条线在 `src/wsim` 上连续提交，仓库 HEAD 前进了几次；**原版侧只依赖 `run/mudlib` + 驱动，二者未变**，故不影响原版数字。每场的具体 sha 记录在各 `meta.json`）
 - MID 快照：`run/snapshots/xkxmid.o` md5 `69fd5711e7b288bfc5fdaa11f8e8f513`（exp 6400、unarmed/dodge/parry 40/40/40、无兵器；**用存档数据模拟 40 级，不是正常成长路径；LPC 一行未改**）
 - 复刻对照：`xkx-parity` 上 `b928322` 之后，`WorldSession` 真实动作（`enter` → `fight`），seed 1–40（老虎 1–10），见 `specs/xkx-parity/player-mid-tier.spec.md` §4。
 
@@ -22,6 +22,7 @@
 | 刀客 | 0/20/0/0 | 6.20 | 0（全负，取不到临终值） | 77/120 = 64.17% [55.27%, 72.18%] | 0/40 | 5.47 | 0 | 68.04% |
 | 绿营清兵 | 0/20/0/0 | 4.45 | 0（全负，取不到临终值） | 70/89 = 78.65% [69.05%, 85.89%] | 0/40 | 4.53 | 0 | 70.17% |
 | 老虎 | 0/10/0/0 | 9.30 | 0（全负，取不到临终值） | 93/93 = 100.00% [96.03%, 100.00%] | 0/10 | 7.40 | 0 | 100.00% |
+| 老虎(杭州山路) | 0/10/0/0 | 5.50 | 0（全负，取不到临终值） | 55/55 = 100.00% [93.47%, 100.00%] | 0/10 | 7.40 | 0 | 100.00% |
 
 ## 3. 判据
 
@@ -33,8 +34,11 @@
 - **刀客**：两侧都打不过（原版 0 胜/20 负，复刻 0 胜/40 负）——**忠实**。
 - **绿营清兵**：两侧都打不过（原版 0 胜/20 负，复刻 0 胜/40 负）——**忠实**。
 - **老虎**：两侧都打不过（原版 0 胜/10 负，复刻 0 胜/10 负）——**忠实**。
+- **老虎(杭州山路)**：两侧都打不过（原版 0 胜/10 负，复刻 0 胜/10 负）——**忠实**。
 
 **结论：没有出现“原版能赢、复刻全负”的对手**，因此胜负这一维度上复刻是忠实的，不需要靠补快攻/连招/兵器/内力去救胜率。
+
+- **杭州山路老虎专项**：`d/hangzhou/npc/laohu.lpc` 与武当虎头岩老虎同源同数值（exp 30000、`apply/attack` 20000、`apply/defense` 30000、`apply/armor` 1000）；原版 MID 新采 10 场 0 胜 10 负、平均 5.50 回合、老虎 55/55 次出手全部命中，玩家 0 次出手。**原版同样打不动 → 忠实，不调伤害/护甲数值**。
 
 ## 4. 共同败因（两侧同向，不等于已对齐）
 
@@ -42,12 +46,13 @@
 
 - 源码可观察：`d/hangzhou/npc/dao-ke.c` 经验 15000、`blade` 45 / `parry` 40 / `dodge` 40，持钢刀；`d/hangzhou/npc/qingbing.c` 经验 20000、`club` 60 / `parry` 50 / `dodge` 50，持长枪，另有 `set("apply/attack", 30)` / `set("apply/defense", 30)`。
 - 源码可观察：MID 玩家经验 6400、空手 40 / 闪避 40 / 招架 40、无兵器；对比之下对手的经验与兵器技能都高出 2–3 倍。
+- 源码可观察：`d/hangzhou/npc/laohu.lpc` 与虎头岩老虎同源：经验 30000、`apply/attack` 20000、`apply/defense` 30000、`apply/armor` 1000、`jiali` 100；MID 档的 40 级空手/闪避/招架在数值上无法破防。
 - 推断（未逐项验证）：玩家打不动对手、又被高伤反击，是“经验+兵器技能差”造成的；原版 4.45–6.20 回合即结束，说明这不是我们的伤害换算偏慢，而是角色档位本身压制。
 - 节奏差异（同阶、非胜负向）：小沙弥原版 36.45 回合 vs 复刻 25.00；流氓原版 22.25 vs 复刻 28.23。若下一步要逼近，优先调节奏，而不是胜率。
 
 ## 5. 局限
 
-- 原版样本量：店小二/流氓/小沙弥/刀客/绿营清兵各 20 场，老虎 10 场（复刻为 40/40/40/40/40/10）。0 胜的 20 场样本 95% 置信上界约 14%（Clopper-Pearson），不能排除低概率胜。
+- 原版样本量：店小二/流氓/小沙弥/刀客/绿营清兵各 20 场，老虎（虎头岩/杭州山路）各 10 场（复刻为 40/40/40/40/40/10；杭州山路沿用同数值老虎的复刻 0/10 口径）。0 胜的 20 场样本 95% 置信上界约 14%（Clopper-Pearson），不能排除低概率胜。
 - 回合数口径不完全等价（见 §1）；两侧平均回合只作量级对照。
 - 负场的临终气血**取不到**（角色已在鬼门关重生），表中记 0 是按约定，不是实测。
 - 原版采样期间仓库 HEAD 在 `src/wsim` 上前进，但原版侧只依赖 `run/mudlib` + 驱动，未受影响。
@@ -194,6 +199,21 @@
 | 9 | loss | 5 | 0/0 | 5/5 | 0/0 | `reports/xkx-ref/win-loss/tiger/fight009.txt` |
 | 10 | loss | 17 | 0/0 | 17/17 | 0/0 | `reports/xkx-ref/win-loss/tiger/fight010.txt` |
 
+### 老虎(杭州山路)（10 场，0 胜 10 负 0 逃 0 超时）
+
+| # | 结果 | 回合 | 我方出手/命中 | 对方出手/命中 | 战后气血 | 原始日志 |
+|---|---|---|---|---|---|---|
+| 1 | loss | 5 | 0/0 | 5/5 | 0/0 | `reports/xkx-ref/win-loss/tiger_hz/fight001.txt` |
+| 2 | loss | 4 | 0/0 | 4/4 | 0/0 | `reports/xkx-ref/win-loss/tiger_hz/fight002.txt` |
+| 3 | loss | 2 | 0/0 | 2/2 | 0/0 | `reports/xkx-ref/win-loss/tiger_hz/fight003.txt` |
+| 4 | loss | 4 | 0/0 | 4/4 | 0/0 | `reports/xkx-ref/win-loss/tiger_hz/fight004.txt` |
+| 5 | loss | 4 | 0/0 | 4/4 | 0/0 | `reports/xkx-ref/win-loss/tiger_hz/fight005.txt` |
+| 6 | loss | 19 | 0/0 | 19/19 | 0/0 | `reports/xkx-ref/win-loss/tiger_hz/fight006.txt` |
+| 7 | loss | 4 | 0/0 | 4/4 | 0/0 | `reports/xkx-ref/win-loss/tiger_hz/fight007.txt` |
+| 8 | loss | 2 | 0/0 | 2/2 | 0/0 | `reports/xkx-ref/win-loss/tiger_hz/fight008.txt` |
+| 9 | loss | 7 | 0/0 | 7/7 | 0/0 | `reports/xkx-ref/win-loss/tiger_hz/fight009.txt` |
+| 10 | loss | 4 | 0/0 | 4/4 | 0/0 | `reports/xkx-ref/win-loss/tiger_hz/fight010.txt` |
+
 ## 5. 复现命令
 
 ```bash
@@ -204,6 +224,7 @@ python3 tools/xkx_ref/measure_win_loss.py --target shami --n 20 --port 4010
 python3 tools/xkx_ref/measure_win_loss.py --target daoke --n 20 --port 4010
 python3 tools/xkx_ref/measure_win_loss.py --target qingbing --n 20 --port 4010
 python3 tools/xkx_ref/measure_win_loss.py --target tiger --n 10 --port 4010
+python3 tools/xkx_ref/measure_win_loss.py --target tiger_hz --n 10 --port 4010
 
 # 只从已落盘原文重算本报告
 python3 tools/xkx_ref/measure_win_loss.py --report-only

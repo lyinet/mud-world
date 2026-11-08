@@ -204,6 +204,9 @@ ob->move(this_player());
   的实体 id；对每个重生 NPC × 同房间、`status=alive` 的玩家，用 `only={npc_id}` 调用上述函数。
   事件顺序固定为 `system_tick` → `system_room_reset` → `npc_aggression(trigger)`。
 - headless 没有玩家实体，此路径自然不产生事件，健康世界哈希不受影响。
+- 依据：原版 `feature/attack.lpc::init()` 在对象被 **move 进环境**时执行，而 reset 补 clone
+  本身就是一次 move-in，因此“重生时有玩家在场”必须在同一瞬间判定攻击；这不是新增机制，
+  是把复刻漏掉的 move-in 语义补回。
 
 ### 6.1.2 真实内容闭环（替换合成验收）
 
@@ -228,6 +231,9 @@ ob->move(this_player());
   就会被拉回原房间，不会永久失踪。
 - 验收：目标驱动离开原房间的 NPC，其 `move` 序列之后必须出现
   `system_room_reset` 里的 `set_location` 回 home；同日世界 `move` 事件数不得再塌到个位数。
+- `RETURN_HOME_IDLE_TICKS=2` 的取值理由：复刻的跨房移动是 tick 级多步寻路，1 tick 的间隔
+  仍可能落在两步之间；2 tick 足以区分“正在赶路/干活”和“真的闲下来了”。可感知后果是
+  离家 NPC 最多再晚 2 tick（20 分钟）回家，而不是永远失踪；有目标的 NPC 仍不打断。
 
 ### 6.1.4 保留的偏差（不修）
 

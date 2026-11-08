@@ -9,6 +9,29 @@
 
 ---
 
+## [docs] 2026-11-08 — 试玩世界部署 `22ae271` + 杭州老虎胜负对拍
+
+- **改了什么**：
+  - `/tmp/xkx-play` 更新到 `22ae271`，确认 `config/worlds/xkx.yaml` 的
+    `room_reset.enabled: true`，重启 8011/8041，**未带 `--reset`**。
+  - `reports/xkx-ref/win-loss.md` 新增“老虎(杭州山路)”目标：原版 MID 10 场
+    `0 胜 10 负`、平均 5.50 回合、老虎 55/55 次出手全中、玩家 0 次出手。
+  - `specs/xkx-parity/room-reset.spec.md` 补充 `init()` move-in 依据与
+    `RETURN_HOME_IDLE_TICKS=2` 的取值理由/可感知后果。
+- **为什么改**：老板要看旧档里郭庄两只早前被打死的狼狗在 reset 后回来；
+  “老虎打不死”需要拿原版对照，确认是忠实还是数值偏差。
+- **验证方式**：
+  - 老板档 `runs/xkx-world`（未重置）重启后 `world new_world: false`、`content_hash`
+    一致；老板角色最后动作仍是 tick 650 的死亡（早于本次重启），未回滚。
+  - 先后推进一步触发 reset：`seq3971 tick2930 system_room_reset` 同时重生两只
+    `wolfdog`，`death_tick` 分别为 315/327（正是老板当年的击杀）；`look` 原文
+    `在场人物：二只大狼狗。`
+  - 杭州老虎原版对拍：LPC 与虎头岩同源（exp 30000 / attack 20000 / defense 30000 /
+    armor 1000），原版 MID 同样 0 胜 → **忠实记录，不改伤害/护甲数值**。
+- **commit**：未记录（本条为部署与对照文档提交，哈希见 git log）。
+
+---
+
 ## [fix] 2026-11-08 — P5 修复：重生瞬时攻击、真实闭环、return_home 节流
 
 - **改了什么**：
@@ -49,7 +72,7 @@
   - `content_hash 56417288eb1a4620025ef6ad4740fa5924ffd39b9a7f6573fa8585015f9d2576`
     不变（diff 不含 `content/xkx/**`，不触发 `--reset`）。
   - `python3 -m pytest -q` 全量通过（exit 0）。
-- **commit**：见本条目所在提交。
+- **commit**：`22ae271`。
 
 ---
 

@@ -45,6 +45,9 @@ TARGETS = {
     "daoke": {"name": "刀客", "id": "dao ke", "room": "/d/hangzhou/road19", "short": "青石大道"},
     "qingbing": {"name": "绿营清兵", "id": "qing bing", "room": "/d/hangzhou/road12", "short": "青石大道"},
     "tiger": {"name": "老虎", "id": "laohu", "room": "/d/wudang/hutouyan", "short": "虎头岩"},
+    # 杭州山路老虎：LPC 数值与武当虎头岩同源（exp 30000 / apply attack 20000 /
+    # defense 30000 / armor 1000），用于回答“默认档打不死杭州老虎是否忠实”。
+    "tiger_hz": {"name": "老虎(杭州山路)", "id": "laohu", "room": "/d/hangzhou/shanlu6", "short": "山路"},
 }
 
 # 复刻侧（xkx-parity b928322 之后）同口径数字，直接并列
@@ -55,6 +58,9 @@ REPLICA = {
     "daoke": {"wl": "0/40", "loss": 40, "draw": 0, "rounds": 5.47, "hp": 0, "hit": 68.04},
     "qingbing": {"wl": "0/40", "loss": 40, "draw": 0, "rounds": 4.53, "hp": 0, "hit": 70.17},
     "tiger": {"wl": "0/10", "loss": 10, "draw": 0, "rounds": 7.40, "hp": 0, "hit": 100.0},
+    # 杭州老虎与虎头岩同源同数值；复刻 MID 档在两侧都是 0/10、玩家命中 0，
+    # 因此复用 tiger 的复刻口径，不另调数值。
+    "tiger_hz": {"wl": "0/10", "loss": 10, "draw": 0, "rounds": 7.40, "hp": 0, "hit": 100.0},
 }
 
 DEATH_RE = "你倒在地上，挣扎了几下就死了"
@@ -258,6 +264,11 @@ def build_report() -> None:
     A("**结论：没有出现“原版能赢、复刻全负”的对手**，因此胜负这一维度上复刻是忠实的，"
       "不需要靠补快攻/连招/兵器/内力去救胜率。")
     A("")
+    A("- **杭州山路老虎专项**：`d/hangzhou/npc/laohu.lpc` 与武当虎头岩老虎同源同数值"
+      "（exp 30000、`apply/attack` 20000、`apply/defense` 30000、`apply/armor` 1000）；"
+      "原版 MID 新采 10 场 0 胜 10 负、平均 5.50 回合、老虎 55/55 次出手全部命中，"
+      "玩家 0 次出手。**原版同样打不动 → 忠实，不调伤害/护甲数值**。")
+    A("")
     A("## 4. 共同败因（两侧同向，不等于已对齐）")
     A("")
     A("下面区分**源码可观察**与**推断**：")
@@ -267,6 +278,9 @@ def build_report() -> None:
       "持长枪，另有 `set(\"apply/attack\", 30)` / `set(\"apply/defense\", 30)`。")
     A("- 源码可观察：MID 玩家经验 6400、空手 40 / 闪避 40 / 招架 40、无兵器；对比之下对手的经验与"
       "兵器技能都高出 2–3 倍。")
+    A("- 源码可观察：`d/hangzhou/npc/laohu.lpc` 与虎头岩老虎同源：经验 30000、"
+      "`apply/attack` 20000、`apply/defense` 30000、`apply/armor` 1000、`jiali` 100；"
+      "MID 档的 40 级空手/闪避/招架在数值上无法破防。")
     A("- 推断（未逐项验证）：玩家打不动对手、又被高伤反击，是“经验+兵器技能差”造成的；"
       "原版 4.45–6.20 回合即结束，说明这不是我们的伤害换算偏慢，而是角色档位本身压制。")
     A("- 节奏差异（同阶、非胜负向）：小沙弥原版 36.45 回合 vs 复刻 25.00；流氓原版 22.25 vs 复刻 28.23。"
@@ -274,7 +288,8 @@ def build_report() -> None:
     A("")
     A("## 5. 局限")
     A("")
-    A("- 原版样本量：店小二/流氓/小沙弥/刀客/绿营清兵各 20 场，老虎 10 场（复刻为 40/40/40/40/40/10）。"
+    A("- 原版样本量：店小二/流氓/小沙弥/刀客/绿营清兵各 20 场，老虎（虎头岩/杭州山路）各 10 场"
+      "（复刻为 40/40/40/40/40/10；杭州山路沿用同数值老虎的复刻 0/10 口径）。"
       "0 胜的 20 场样本 95% 置信上界约 14%（Clopper-Pearson），不能排除低概率胜。")
     A("- 回合数口径不完全等价（见 §1）；两侧平均回合只作量级对照。")
     A("- 负场的临终气血**取不到**（角色已在鬼门关重生），表中记 0 是按约定，不是实测。")
@@ -301,7 +316,7 @@ def build_report() -> None:
     A("```bash")
     A("# 全量重采（会启停 4010 实例；每场独立重启并覆盖快照）")
     for tkey in TARGETS:
-        n = 10 if tkey == "tiger" else 20
+        n = 10 if tkey in ("tiger", "tiger_hz") else 20
         A(f"python3 tools/xkx_ref/measure_win_loss.py --target {tkey} --n {n} --port 4010")
     A("")
     A("# 只从已落盘原文重算本报告")
