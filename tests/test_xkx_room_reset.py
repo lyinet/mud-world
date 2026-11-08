@@ -15,12 +15,10 @@ import yaml
 
 from conftest import ROOT
 
-from wsim.actions.combat import content_drops
 from wsim.actions.registry import build_registry
 from wsim.api.xkx_content import load_xkx_content
 from wsim.core.content import Content
 from wsim.core.models import Effect, Intent
-from wsim.core.rng import PRNG
 from wsim.sim.genesis import build_genesis
 from wsim.sim.headless import RunConfig, run_headless
 from wsim.sim.room_reset import RESET_PERIOD_TICKS, RoomResetPolicy
@@ -237,6 +235,7 @@ def test_wolfdog_kill_drop_loot_reset_kill_again(tmp_path):
     goupi = "/d/hangzhou/npc/obj/goupi"
     room = "/d/hangzhou/guozhuang"
 
+    assert writer.state.entities[dog].drops == {goupi: 1}
     first = writer.submit(Intent(actor="player:accept", verb="fight", args={"target": dog}, tick=0, source="player"))
     assert first.outcome == "ok"
     assert writer.state.ground[room][goupi] == 1
@@ -267,15 +266,6 @@ def test_wolfdog_kill_drop_loot_reset_kill_again(tmp_path):
     assert writer.state.ground[room][goupi] == 1
     assert writer.state.entities["player:accept"].inventory[goupi] == 1
     store.close()
-
-
-def test_content_drops_are_scoped_to_ground_items():
-    content = load_xkx_content(ROOT / "content" / "xkx")
-    rows = content_drops(content, "/d/hangzhou/npc/wolfdog", PRNG(1, 1, "test"))
-    assert rows == [("/d/hangzhou/npc/obj/goupi", 1)]
-    # 旧内容/未知模板不消费随机流，也不产出。
-    assert content_drops(None, "/d/hangzhou/npc/wolfdog", PRNG(1, 1, "test")) == []
-    assert content_drops(content, "/npc/unknown", PRNG(1, 1, "test")) == []
 
 
 def test_enabled_reset_is_reproducible_and_noop_on_healthy_world(tmp_path):
