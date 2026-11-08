@@ -93,9 +93,9 @@
 - [x] 清单落 spec：memories 80 / day_history 7 / audit 4096 / probe 512 / debts/accounts 合格
 - [x] 回归：清空记忆后出勤仍认、门派仍不重复发俸；legacy 哈希不变
 
-## T18 lag 峰值定位（spec §19 待补）
-- [ ] 定位 `lag_ticks_max=1176` 出现的 tick 与触发场景
-- [ ] 说明 1200 上限触发 `ambient_catchup_truncated` 的丢步后果
+## T18 lag 峰值定位（spec §19）
+- [x] 定位峰值：strict15m npc_tick=28/world=25137（步间 gap 1289，采样 1176）；全量最高 shop-preflight4 npc_tick=164/world=148376（gap 1301，采样 1194）；本轮 verify15m2 采样 1122、截断 1 次
+- [x] 说明：cap 是单步上限，越界只截断单步结算并顺延残差（11–143），不丢 npc_tick/NPC 日结；持续 >1200/步才致 `dropped_stale`/`skipped_wakes` 增长
 
 ## T19 6h 固定 commit 运行（spec §18）
 - [ ] 固定 commit 的独立 worktree + `git rev-parse HEAD` 写死

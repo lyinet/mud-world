@@ -369,3 +369,48 @@ GC 窗口内无 >15ms 停顿、checkpoint busy=0 → 锁内被 OS 抢占，非�
   - day1：`wage=0`（雇员未到店）→ **出勤按事实判定，不自动发钱**。
 - 跑完必交原始值：`negative_rows`、seq 连续性、`integrity_check`、重启后状态一致、
   旧九地点三项哈希、同 commit 上全量 pytest。
+
+## 19. lag_ticks 硬边界定位（裁定 7）
+
+**量纲**：`lag_ticks` / `lag_ticks_max` / `max_catchup_ticks=1200` 都是**世界 tick**
+（`state.tick` 轴），不是步数；`npc_tick` 是 ambient 步计数，144 个 ambient 步 = 1 个 NPC 日。
+
+**定义**：`lag_ticks = state.tick - _processed_world_tick`，由 1s 心跳在**锁外**采样，
+`_write_status` 刷新 `lag_ticks_max`；它表示“世界已推进、ambient 尚未结算”的实时差额，
+不是截断后剩下的残差。
+
+**触发**：`_process_tick` 开头若 `world > processed + 1200`，进入 `ambient_catchup_truncated`：
+本步只结算 1200 个世界 tick，残留 `world - processed - 1200` 记入 lag 并顺延下一步；
+`lag_steps`（累计截断步）/`lag_streak`（连续截断步）分别计数。
+
+峰值定位（`ambient_steps.jsonl` 重放 + `ambient_status.json` 采样）：
+
+| 跑 | 采样 `lag_ticks_max` | 步间 gap | npc_tick | world_tick | 截断后残差 | 截断次数 |
+|---|---|---|---|---|---|---|
+| strict15m | 1176 | 1289 | 28 | 25137 | 89 | 4（28/56/85/113） |
+| verify15m2（本轮） | 1122 | 无 steps 文件 | — | 132029 | — | 1 |
+| shop-preflight4 | 1194（全量最高） | 1301 | 164 | 148376 | 101 | 6 |
+| shop-preflight6 | 1188 | 1343 | 32 | 30799 | 143 | 5 |
+
+场景：50 玩家写路径在相邻两个 ambient 步之间推进世界 **1289–1343 tick**（名义 ≈896），
+心跳采样到 1176–1194；同一两步之间跨过 1200 即触发截断。截断多发生在开局爬坡及周期性
+突发（约每 28 个 npc tick 一次），不是持续落后。
+
+**再高一点会不会丢步**：
+
+- 会**触发截断**，但不会丢 ambient 步、也不会丢 NPC 日结算：`npc_tick` 照常 +1，
+  日界按 `self.tick // 144` 判定，NPC 日结仍每天一次。
+- 被限的是“单步结算的世界 tick 数”，残差顺延下一步；观测残差仅 11–143（0.9%–12%），
+  1–2 步内追平。
+- 真正的丢事件来自预算与过期清理，不是这个 cap：`skipped_wakes`（每步最多唤醒 8）、
+  `max_intents_per_step=16`、`dropped_stale`（队列中超过 1 个 NPC 日的意图，≤512/步）。
+  只有“世界推进速率持续 >1200/ambient 步”才会让这些持续增长。
+- `skipped_days` 是共享模式下“跨越了多少世界日边界”的记账（strict15m=778），
+  **不是 NPC 日**；shared 模式日结按 ambient 日，不能拿它当漏结算证据。
+- 结论：1200 是**单步上限**（防写入尖峰），不是“丢步阈值”；硬边界是
+  “世界推进速率持续超过 1200/ambient 步”。本轮 1176/1194 只是步间 gap 的采样峰值，
+  尚未持续越界。
+
+**量纲备注**：`ambient_status.json.world_ticks_per_npc_day` 是 EMA（只在 NPC 日切换时更新）。
+短跑只跨 1–3 个 NPC 日，读数未收敛（strict15m 64857，而瞬时比率 = 896×144 ≈ 129024）；
+6h 跨约 25 个 NPC 日后才可作为比率引用，报告必须写清“瞬时/EMA”区别。
