@@ -76,25 +76,26 @@
 - 验证：403/401/400/404/409/200；事件 `source=admin`；重复踢 409
 
 ### T9 老板档清理（禁止直接改库）
-- [ ] 同步代码/内容到 `/private/tmp/xkx-play`，`world: existing` 不 reset
-- [ ] 重启 8011/8041（需管理接口时带 `XKX_ADMIN_TOKEN`）
-- [ ] 记录清理前 `look`：郭庄、沿湖大道、大道、客栈/酒楼
-- [ ] 用正常机制（presence 超时或 admin kick）把 `p5peek`/`evidence`/`probe1`/
+- [x] 同步代码/内容到 `/private/tmp/xkx-play`，`world: existing` 不 reset
+- [x] 重启 8011/8041（需管理接口时带 `XKX_ADMIN_TOKEN`）
+- [x] 记录清理前 `look`：郭庄、沿湖大道、大道、客栈/酒楼
+- [x] 用正常机制（presence 超时或 admin kick）把 `p5peek`/`evidence`/`probe1`/
       `probe2`/`shots`/`verify2`/`s1hunter`/`s4spar`/`s4accept`/`smoke_v1` 置 offline
-- [ ] 逐账号审计：谁/何时/对谁/原因（system 超时或 operator kick）
-- [ ] 记录清理后同名房间 `look` 对比；郭庄只剩“二只大狼狗”
-- [ ] 验证 `look`/`/api/world/feed` 均看不到历史账号
-- [ ] 真实账号实验：进房 → 停请求 → 超时 → 另一账号 look 看不到且 fight 被拒 →
+      （8 个 tick 7814、2 个 tick 7852 由系统超时完成；演示账号走 admin kick）
+- [x] 逐账号审计：谁/何时/对谁/原因（system 超时或 operator kick）
+- [x] 记录清理后同名房间 `look` 对比；郭庄只剩“二只大狼狗”
+- [x] 验证 `look`/`/api/world/feed` 均看不到历史账号
+- [x] 真实账号实验：进房 → 停请求 → 超时 → 另一账号 look 看不到且 fight 被拒 →
       同账号重连回原角色/原位置/原行囊（贴 HTTP 请求/响应）
 
 ### T10 文档与证据
-- [ ] 根 `spec.md:62` 与 §6.2、`docs/player-system.md` §6.2：36/18 tick 口径
-- [ ] `specs/xkx-parity/multi-combat-evidence.md`：100 seed 口径
+- [x] 根 `spec.md:62` 与 §6.2、`docs/player-system.md` §6.2：36/18 tick 口径
+- [x] `specs/xkx-parity/multi-combat-evidence.md`：100 seed 口径
       （25.10/24.73/25.19/24.98，χ²=1.86，p=0.6025，40,000 次）
-- [ ] `overkill` 处置对复核（显示已删、审计保留、`eff_qi -1` 落地后作废）
+- [x] `overkill` 处置对复核（显示已删、审计保留、`eff_qi -1` 落地后作废）
 
 ### T11 红线与交付
-- [ ] `git diff -- tools/xkx_formula content/xkx` 为空
-- [ ] 显式 `git add`（只加本次源码/测试/文档）
-- [ ] 普通 `git push`（不 force）；三段各自推送并汇报
-- [ ] 全量 pytest 全绿；旧世界 735 事件/两哈希不变；同 seed 双跑一致
+- [x] `git diff -- tools/xkx_formula content/xkx` 为空
+- [x] 显式 `git add`（只加本次源码/测试/文档）
+- [x] 普通 `git push`（不 force）；三段各自推送并汇报
+- [x] 全量 pytest 全绿；旧世界 735 事件/两哈希不变；同 seed 双跑一致

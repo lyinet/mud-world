@@ -59,7 +59,7 @@ class PlayerProfile:
   - apply：无实体则 `create_entity`（role=映射值、home=at、stamina 100）+ `create_account(wallet,0)` + `skill(role,+0.35)` + `player_upsert`；有实体则复用，不改 role；最后 `player_presence online` + `last_action_tick`。**绝不 mint/item_create**。
 - `PlayerHeartbeatAction`（verb `player_heartbeat`）：profile 与实体必须存在且 online；距 `last_intent_tick < 12` → `heartbeat_too_soon`；apply 更新 `last_intent_tick`/`last_seen_tick`。
 - `PlayerLeaveAction`（verb `player_leave`）：置 offline、`offline_since_tick`、实体 presence=offline；未知玩家 `player_not_entered`。
-- `SystemPlayerPresenceAction`（verb `system_player_presence`）：`days = (tick-last_intent_tick)//144`；`>=1` offline，`>=3` custody，`>=7` dormant；只降不升；在线且未超时不动。NPC 动作不得主动影响离线玩家（见 1.4）。
+- `SystemPlayerPresenceAction`（verb `system_player_presence`）：按**世界 tick** 判定，不用墙钟。`gap = tick - last_intent_tick`；非战斗 `gap >= 36`（6 游戏小时）→ offline；交战中 `gap >= 18`（3 游戏小时）→ 立即 offline 并清双方 `combat_target`/`combat_enemies`。只降不升；在线且未超时不动；押镖在途与正在执行长动作的玩家豁免。NPC 动作不得主动影响离线玩家（见 1.4），且 NPC 不得对离线目标结算伤害。
 - `SystemTickAction`（verb `system_tick`）：返回空 Effect，仅用于 API 会话推进世界钟；source=system，不进入 K3。
 - `player_genesis_effects(pid, name, at, money=300, items={"flatbread":3,"coarse_cloth":1})`：给 `sim`/`tools` 在**创世 bootstrap**里使用；产出 `create_entity(role="visitor")`、`create_account`、`mint(genesis_player_endowment)`、`item_create`、`player_upsert(archetype="", role="visitor")`、`player_endow`、`player_presence offline`。
 - `player_endowment`（运行中新账号首次 enter）：独立事件，显式 `mint(source="player_endowment", reason="first_entry")` + `item_create(source="player_endowment_carry")` + `player_endow`；`PlayerProfile.endowed` 幂等，计入 `endowment_total`，K6 守恒仍为 0。

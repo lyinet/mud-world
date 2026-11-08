@@ -342,14 +342,16 @@ ratio = 0.50（affection >= 60）
 | 阶段 | 触发 | 状态 | 行为 |
 |---|---|---|---|
 | 在线 | 有 `player_enter/resume/heartbeat` 或最近有玩家意图 | `online=true` | 正常游戏；NPC 附近聚光 |
-| 离线 | 连续 144 tick（1 游戏日）无玩家意图 | `online=false`，`offline_since_tick` | 实体保留；不聚光；NPC 不主动互动 |
+| 离线 | 连续 36 tick（6 游戏小时）无玩家意图；交战中 18 tick（3 游戏小时） | `online=false`，`offline_since_tick` | 实体保留、位置保留；不聚光；不进 `look` 在场人物；不可被 `fight`/`kill`/`loot`；不被 `npc_aggression` 选为目标；不登记 `combat_enemies`；不占房间人数 |
+| 战斗中断线 | 交战中 18 tick 无意图 | 立即脱战 | 清玩家与 NPC 双方 `combat_target`/`combat_enemies`；无宽限，避免“回来就死了” |
 | 托管 | 连续 432 tick（3 游戏日） | `trustee=true`，写 `player_trusteeship` | 每日边界：回 `home`；体力 < 30 且现金 >= 15 时买最便宜食物一次；不工作、不社交、不交易、不接任务、不开店 |
 | 休眠 | 连续 1008 tick（7 游戏日） | `dormant=true` | 停止托管行为；实体保留、位置保留；不再聚光；上线即恢复在线 |
-| 恢复 | `player_resume` | online=true, trustee/dormant=false | 不补发离线收益；显示离线期间的事件与账单 |
+| 恢复 | `player_resume` / 同账号重连 | online=true, trustee/dormant=false | 接回同一 entity、原位置、原行囊；不补发离线收益；不重放 genesis |
 
 实现要求：
 
-- 离线/托管判定放在每日边界的 `system_player_presence` 动作中，按 `last_intent_tick` 计算；不依赖 `time.time()`。
+- 离线/托管判定放在每个世界 tick 的 `system_player_presence` 动作中，按 `last_intent_tick` 计算；不依赖 `time.time()`，同 seed 可复现。非战斗 36 tick、交战 18 tick。
+- 活跃来源：玩家真实请求（动作、状态、心跳、look 等）刷新 `last_intent_tick`；只读请求按 12 tick 冷却合并成 `player_heartbeat`，避免刷屏。
 - 托管动作 `source=system`，不进入 K3；预算上限：每日最多 1 次食物，金额不超过 15 文；现金不足则什么都不做。
 - 托管不会代替玩家接受任何 consent、不会结婚、不会立派、不会开店。
 - 玩家上线不追溯补做托管错过的动作；只从当前 tick 继续。
