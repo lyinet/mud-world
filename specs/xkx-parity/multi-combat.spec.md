@@ -17,7 +17,7 @@
 | 4 | `trigger` 在多敌下登记**全部**合法玩家，不挑一个。测试：两人同房触发 → 表长 2 → 多 tick 目标分布 75/25。 | §3.2、§3.4、§4.1-B |
 | 5 | 合杀经验归属已查清：**只看最后一击**（`last_damage_from`），不是分摊、不是首个 `kill_ob`。大狼狗自定义 `die()` 跳过 `killer_reward`，杀它**两人都无经验**。 | §1.7 |
 | 6 | 追杀名单 `killer`：**本期不做**。明确记录偏差：逃跑即彻底脱战；原版追、我们不追。 | §1.8 |
-| 7 | 每回合只用一个 `select_opponent` 选出的 `victim`。引擎没有独立的门/守势/反击状态，唯一需要锁死的是“选敌骰最先、随后 simulate_fight 原有骰序、无交错”。`guarding` 原版是**角色级**临时标记，不是对手级。 | §3.4、§4.1-C |
+| 7 | 每回合只用一个 `select_opponent` 选出的 `victim`。选敌骰走**独立派生流**（`PRNG(seed, seq, "action:npc_aggression:opponent")`），随后 `simulate_fight` 原有骰序不变、无交错。`guarding` 原版是**角色级**临时标记，不是对手级。 | §3.4、§4.1-C |
 
 ---
 
@@ -164,7 +164,7 @@
 | 顺序 | 动作/骰 | 说明 |
 | --- | --- | --- |
 | 1 | prune 失效目标（不耗骰） | 等价 `attack.lpc:231 clean_up_enemy` |
-| 2 | `opp_index = rng.randint(0, MAX_OPPONENT-1)` | 复刻 `attack.lpc:139 random(4)` |
+| 2 | `opp_index = opponent_rng.randint(0, MAX_OPPONENT-1)`，`opponent_rng = PRNG(seed, seq, "action:npc_aggression:opponent")` | 复刻 `attack.lpc:139 random(4)`，但**刻意隔离**（见已知偏差） |
 | 3 | `chosen = targets[opp_index] if opp_index < len(targets) else targets[0]` | 复刻 `:140` 越界回退 |
 | 4 | wimpy：`exit_index` → `roll_target` → `roll_npc` | 沿用现有 `_wimpy_escape`，只对 `chosen` |
 | 5 | 逃跑成功则不跑战斗骰，直接返回 | 与原版“先逃跑再攻击”一致 |
@@ -186,7 +186,7 @@
 
 - 开关：世界配置 `combat.multi_combat`（`true` 开）在 API 入口 **进程启动读一次**；环境变量 `XKX_MULTI_COMBAT`（`1/true/on/yes`）优先，供测试/无头/临时实例使用。运行中改配置或环境无效。**不在 `config/worlds/default.yaml` 增键**；启动 JSON 的 `multi_combat` 字段可用于确认生效。
 - 关：不写 `combat_enemies/combat_contrib`，不追加登记，不额外取骰，`_reset` 三字段行为不变；旧九地点事件数与三项哈希逐字节不变。
-- 开：按本 spec 生效。单敌也消耗一次 `random(4)`（复刻原版）；只新增 multi-on 基线，不改旧基线。
+- 开：按本 spec 生效。单敌也消耗一次 `random(4)`，但**只在独立选敌流上消耗**，不进入本回合战斗骰；只新增 multi-on 基线，不改旧基线。
 - 回滚：撤掉 `combat.multi_combat`（回退该配置提交）重启；`combat_target` 始终是主目标，旧逻辑可直接接管；残留字段不参与关闭态。
 - **API 待办（本期不改，必须记录）**：
   1. `_combat_view(pid)` 仍只返回 `combat_target` 对应的 `opponent`；**玩家可见后果：被两人围殴的 NPC，每个客户端只看到“当前主目标”，看不到还有谁在打**。
@@ -218,7 +218,7 @@
   - **≥200 tick**（实现取 400 tick）采样，输出实际计数：`targets[0]` 期望 75%（300/400）、`targets[1]` 期望 25%（100/400），容差 ±7 个百分点（即 272-328 / 72-128）；
   - **三人以上**再跑一组：4 人时 `random(4)` 命中 0/1/2/3 各 25%；5 人时 `random(4)` 只有 0..3 四个面、不会越界，因此**只有前 4 个进入选敌窗口、index 4 永不被选中**，前 4 各 25%（不是“第 5 个回退到 index 0”）；真正发生回退的是敌人少于 4 个时（roll >= count → `targets[0]`）；
   - 每组都记录实际计数与断言，不只跑一回合。
-- **C. 骰序锁死（`RecordingPRNG`）**：一 tick 的 draw 序列 = `select(0..3)` → `simulate_fight` 原有序列；对照关闭态，开启态只在最前多一笔 `random(4)`，其余逐笔一致；无其他新增骰。
+- **C. 骰序锁死（`RecordingPRNG`）**：选敌骰只走独立盐 `action:npc_aggression:opponent`，不进入本 tick 战斗流；本 tick 战斗流从 wimpy/`simulate_fight` 原序列开始，与关闭态逐笔**形状和取值**一致（断言 `on_rng.calls == off_rng.calls`）；无其他新增骰。
 - **D. 单 victim**：构造两目标，断言本 tick 的 `combat_log` 只有 `chosen` 的 target，且 `combat_contrib` 只累加 `chosen` 相关伤害；另一目标 hp 不变。
 - **E. prune / wimpy**：A 换房只摘 A、B 仍在；A wimpy 成功只移除 A，B 与 NPC 战斗继续。
 - **F. `combat_contrib`**：多轮后按攻击者求和正确，overkill 不计，且**不影响**选敌分布。
@@ -283,3 +283,4 @@ python -m pytest tests/test_xkx_determinism_legacy.py -q
 5. **`combat_contrib` 不是仇恨**：不得用于选敌，只做伤害审计。
 6. **API 只显示主目标**：客户端看不到其余围攻者，待后续里程碑。
 7. **5 个及以上敌人时，第 5 个永远轮不到出手（原版语义）**：`random(4)` 只有 0..3 四个面，选敌窗口只覆盖前 4 个；玩家可感知后果是“它站在那儿但不打我”。这不是 bug，不改窗口大小。
+8. **选敌骰刻意与战斗骰隔离（唯一主动偏离原版随机流的地方）**：原版 `select_opponent` 的 `random(4)` 与同一回合的战斗骰共用全局随机流；我们把选敌骰放到独立派生流 `PRNG(seed, seq, "action:npc_aggression:opponent")`。理由：可回滚性与开/关对拍有效性——单人关闭/开启必须逐项等价，不能让一次选敌骰改写整场战斗结果。玩家不可感知：2 人仍 75/25、4 人仍各 25%，只是选敌骰与其他骰去相关。

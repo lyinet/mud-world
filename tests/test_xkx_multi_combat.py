@@ -5,7 +5,7 @@
 4. trigger 全量登记 + ≥200 tick 选敌分布（2 人 75/25、4 人各 25%）；
 5. 击杀无额外经验（无 kill_reward 事件）；
 6. 逃跑只摘自己，不整只收兵；
-7. 单 victim + RecordingPRNG 骰序（select 骰最先，随后 simulate 原序列）。
+7. 单 victim + RecordingPRNG 骰序（select 骰独立流，其余骰序不变）。
 """
 from __future__ import annotations
 
@@ -176,19 +176,19 @@ def test_two_target_distribution_400_ticks(multi_on):
     assert sum(counts.values()) == 400
 
 
-def test_four_target_distribution_200_ticks(multi_on):
+def test_four_target_distribution_400_ticks(multi_on):
     writer, _ = _world(players=(P1, P2, P3, P4), npc_hp=1_000_000_000)
     for i, pid in enumerate((P1, P2, P3, P4)):
         _trigger(writer, pid, i)
     assert writer.state.entities[NPC_ID].combat_enemies == [P1, P2, P3, P4]
     counts = {0: 0, 1: 0, 2: 0, 3: 0}
-    for tick in range(200):
+    for tick in range(400):
         event = _continue(writer, tick + 5, [P1, P2, P3, P4])
         assert event.outcome == "ok", event.reason
         counts[int(_log(event)["opponent_index"])] += 1
     for idx, n in counts.items():
-        assert 36 <= n <= 64, counts  # 25% ±7 个百分点
-    assert sum(counts.values()) == 200
+        assert 72 <= n <= 128, counts  # 25% ±7 个百分点
+    assert sum(counts.values()) == 400
 
 
 def test_five_target_window_never_selects_fifth(multi_on):
@@ -198,14 +198,15 @@ def test_five_target_window_never_selects_fifth(multi_on):
         _trigger(writer, pid, i)
     assert writer.state.entities[NPC_ID].combat_enemies == [P1, P2, P3, P4, P5]
     counts = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0}
-    for tick in range(200):
+    for tick in range(400):
         event = _continue(writer, tick + 6, [P1, P2, P3, P4, P5])
         assert event.outcome == "ok", event.reason
         counts[int(_log(event)["opponent_index"])] += 1
     # 原版 `random(4)` 只有 0..3 四个面；第 5 个敌人永远进不了窗口。
     assert counts[4] == 0, counts
     for idx in range(4):
-        assert 36 <= counts[idx] <= 64, counts
+        assert 72 <= counts[idx] <= 128, counts
+    assert sum(counts.values()) == 400
 
 
 def test_select_index_matches_attack_lpc_fallback():
@@ -235,6 +236,14 @@ class RecordingPRNG:
         self.inner = inner
         self.calls: list[tuple] = []
 
+    @property
+    def seed(self) -> int:
+        return self.inner.seed
+
+    @property
+    def seq(self) -> int:
+        return self.inner.seq
+
     def randint(self, a: int, b: int) -> int:
         self.calls.append(("randint", a, b))
         return self.inner.randint(a, b)
@@ -248,29 +257,14 @@ class RecordingPRNG:
         return self.inner.chance(p)
 
 
-class SelectZeroRecording(RecordingPRNG):
-    """第一笔 select 骰固定回 0（不消耗底层随机），之后完全透传。"""
-
-    def __init__(self, inner):
-        super().__init__(inner)
-        self._selected = False
-
-    def randint(self, a: int, b: int) -> int:
-        if not self._selected and (a, b) == (0, MAX_OPPONENT - 1):
-            self._selected = True
-            self.calls.append(("randint", a, b))
-            return 0
-        return super().randint(a, b)
-
-
-def test_draw_order_select_first_then_original_sequence(multi_on, monkeypatch):
-    # 开态：select 骰必须是这一 tick 的第一笔，之后与关态逐笔形状一致。
+def test_draw_order_select_on_separate_stream(multi_on, monkeypatch):
+    # 选敌骰走独立盐 `action:npc_aggression:opponent`，不进入本 tick 战斗流。
     writer_on, _ = _world(players=(P1, P2))
     _trigger(writer_on, P1, 0)
     _trigger(writer_on, P2, 1)
     action = NpcAggressionAction(RULES)
-    on_rng = SelectZeroRecording(PRNG(42, 7, "action:npc_aggression"))
-    action.apply(
+    on_rng = RecordingPRNG(PRNG(42, 7, "action:npc_aggression"))
+    effects = action.apply(
         writer_on.state,
         Intent(
             NPC_ID,
@@ -281,9 +275,12 @@ def test_draw_order_select_first_then_original_sequence(multi_on, monkeypatch):
         ),
         on_rng,
     )
-    assert on_rng.calls[0] == ("randint", 0, MAX_OPPONENT - 1)
+    log = next(dict(e.data or {}) for e in effects if e.op == "aggression_log")
+    expected = PRNG(42, 7, "action:npc_aggression:opponent").randint(0, MAX_OPPONENT - 1)
+    assert log["opponent_roll"] == expected
+    assert log["opponent_index"] == (expected if expected < 2 else 0)
 
-    # 同一状态、只翻开关：排除“两个世界状态差异”带来的参数差异。
+    # 同一状态、只翻开关：战斗流逐笔形状与取值完全一致，没有插队。
     monkeypatch.setattr(aggression_mod, "_MULTI_COMBAT_ENABLED", False)
     off_rng = RecordingPRNG(PRNG(42, 7, "action:npc_aggression"))
     action.apply(
@@ -291,9 +288,7 @@ def test_draw_order_select_first_then_original_sequence(multi_on, monkeypatch):
         Intent(NPC_ID, "npc_aggression", {"mode": "continue", "target": P1}, 7, "npc"),
         off_rng,
     )
-    # 开态 = 一笔 select 骰 + 关态完全相同的调用形状，没有别的插队。
-    assert on_rng.calls[1:] == off_rng.calls
-    assert len(on_rng.calls) == len(off_rng.calls) + 1
+    assert on_rng.calls == off_rng.calls
 
 
 # ---------------------------------------------------------------- 单 victim

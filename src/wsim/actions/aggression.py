@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..core.models import Effect, Intent
+from ..core.rng import PRNG
 from ..sim.aggression import (
     MAX_OPPONENT,
     decide,
@@ -330,7 +331,9 @@ class NpcAggressionAction(Action):
                     )
                 )
             # 原版 `attack.lpc:139-140`：先 `random(4)`，越界回退第 0 个。
-            opp_index, opp_roll = select_index(len(valid), rng)
+            # 刻意偏差：选敌骰走独立盐，不消耗本回合战斗流（见 spec 已知偏差）。
+            opp_rng = PRNG(rng.seed, rng.seq, "action:npc_aggression:opponent")
+            opp_index, opp_roll = select_index(len(valid), opp_rng)
             target = state.entities[valid[opp_index]]
             if str(npc.combat_target) != str(target.id):
                 effects.append(

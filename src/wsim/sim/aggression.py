@@ -59,6 +59,8 @@ def select_index(count: int, rng: Any) -> tuple[int, int]:
     """原版 `attack.lpc:139-140`：`random(4)`，越界回退 0。
 
     返回 `(选中下标, 原始骰值)`；`count<=0` 时不耗骰。
+    调用方须传入独立盐的 PRNG（`action:npc_aggression:opponent`），
+    不得与本回合战斗骰同流（见 spec 已知偏差）。
     """
     if count <= 0:
         return 0, -1
