@@ -194,6 +194,8 @@ WRITE_ACTIONS: dict[str, str] = {
     # xkx 文字壳：战斗动词由 actions 层提供，API 只在动作已注册时放行。
     "fight": "fight",
     "kill": "kill",
+    "touxi": "touxi",
+    "ansuan": "ansuan",
     "loot": "loot",
     # 原版 `wimpy`：自动逃跑阈值（0 关闭），不是新增的 flee 动词。
     "wimpy": "wimpy",
@@ -269,6 +271,8 @@ ACTION_ALIASES: dict[str, str] = {
     "sleep": "sleep",
     "fight": "fight",
     "kill": "kill",
+    "touxi": "touxi",
+    "ansuan": "ansuan",
     "loot": "loot",
     "wimpy": "wimpy",
     "bai": "bai",
@@ -289,7 +293,10 @@ FORBIDDEN_VERBS = frozenset(
 # xkx 文字壳可用的战斗动词：仅在 actions/ 层真正注册了同名动作时放行，
 # 避免 API 层提前把未实现的动词暴露给玩家。
 XKX_EXTRA_PLAYER_VERBS = frozenset(
-    {"fight", "kill", "loot", "wimpy", "bai", "learn", "practice", "climb", "jump", "revive"}
+    {
+        "fight", "kill", "touxi", "ansuan", "loot", "wimpy", "bai",
+        "learn", "practice", "climb", "jump", "revive",
+    }
 )
 
 # `/api/world/feed` 的固定上限与“重要事件”动词白名单（公共信息，不含玩家私有数据）。

@@ -539,29 +539,44 @@ def test_revive_requires_death_and_ghost_gate(xkx_content):
     assert ent.death_count == 1
 
 
-def test_combat_death_and_revive_real_session(tmp_path):
-    session = WorldSession(
-        ROOT, run_id="xkx-death", seed=42, npc_limit=0, run_dir=tmp_path / "run",
-        content_root=XKX_CONTENT, world_config=WORLD_CONFIG, spawn="/d/shiliang/huli",
+def _death_session(run_dir: Path, world_config: Path = WORLD_CONFIG) -> WorldSession:
+    return WorldSession(
+        ROOT, run_id="xkx-death", seed=42, npc_limit=0, run_dir=run_dir / "run",
+        content_root=XKX_CONTENT, world_config=world_config, spawn="/d/shiliang/huli",
     )
+
+
+def _status_events(session: WorldSession, status: str) -> list[str]:
+    found: list[str] = []
+    for event in session.store.read_all():
+        for eff in event.effects:
+            if eff.get("op") == "entity_status" and eff["data"].get("status") == status:
+                found.append(str(eff["data"]["entity"]))
+    return found
+
+
+def test_combat_death_and_revive_real_session(tmp_path):
+    off_config = tmp_path / "xkx-eff-off.yaml"
+    cfg = yaml.safe_load(WORLD_CONFIG.read_text(encoding="utf-8")) or {}
+    cfg["combat"]["eff_qi"] = False
+    off_config.write_text(yaml.safe_dump(cfg, allow_unicode=True), encoding="utf-8")
+
+    # 关闭态：没有伤势天花板，hp 打到负就直接死亡还阳，不得出现 unconcious。
+    session = _death_session(tmp_path / "off", off_config)
     try:
         _cmd(session, "look")
-        # `eff_qi` 开启（config 默认）后 `hp<0 && eff_qi>=0` 只是昏迷，`die()` 只认
-        # `eff_qi<0`（`char.lpc:65-78`）。正常玩法要靠多场恶斗把伤势累积到濒死，
-        # 这里直接把玩家置成“伤势 5 点”，一场即跨过 0，避免测试里反复昏迷/苏醒。
-        session.state.entities[f"player:{ACCOUNT}"].eff_hp = 5
+        session.state.entities[f"player:{ACCOUNT}"].hp = 5
         result = _cmd(session, "fight 噬人鱼")
         assert result["ok"] is True, _texts(result)
         assert "鬼门关" in _texts(result)
-        assert "死亡计数：1" in _texts(result)
+        assert _status_events(session, "unconcious") == []
+        assert _status_events(session, "dead") == [f"player:{ACCOUNT}"]
         player = session.state.entities[f"player:{ACCOUNT}"]
         assert player.status == "dead"
         assert player.location == DEATH_GATE
         assert player.death_count == 1
         # 死亡惩罚：exp_loss = combat_exp // 50（actions/combat.py），本场另有 2 点实战收益，
-        # 6400 → 6274；三门初始技能各掉 1 级。数值随开局档位配置变化，不是新伤害来源。
-        # NPC 主动攻击接入后，房内两条 噬人鱼（canonical + #2）在入场 init 时各写
-        # 一条 trigger 事件，fight 的 PRNG seq 顺延 2，战斗结果随之下游平移 2 点。
+        # 6400 → 6272；三门初始技能各掉 1 级。
         assert player.combat_exp == 6272
         assert player.skill_levels == {"dodge": 39, "parry": 39, "unarmed": 39}
 
@@ -579,5 +594,31 @@ def test_combat_death_and_revive_real_session(tmp_path):
         result = _cmd(session, "还阳")
         assert result["ok"] is False
         assert "还活着" in _texts(result)
+    finally:
+        session.close()
+
+    # 开启态：`qi` 打负但 `eff_qi` 仍为正 → 只昏迷（char.lpc:65/72），
+    # 不死亡、不落鬼门关、不产生死亡惩罚。
+    session = _death_session(tmp_path / "on")
+    try:
+        _cmd(session, "look")
+        player = session.state.entities[f"player:{ACCOUNT}"]
+        player.hp = 5
+        player.eff_hp = player.max_hp
+        result = _cmd(session, "fight 噬人鱼")
+        assert result["ok"] is True, _texts(result)
+        assert "鬼门关" not in _texts(result)
+        assert "死亡计数" not in _texts(result)
+        assert _status_events(session, "unconcious") == [f"player:{ACCOUNT}"]
+        assert _status_events(session, "dead") == []
+        player = session.state.entities[f"player:{ACCOUNT}"]
+        assert player.status == "unconcious"
+        assert player.hp == 0
+        assert player.eff_hp > 0
+        assert player.death_count == 0
+        assert player.location == "/d/shiliang/huli"
+        # 昏迷不是死亡，不能走还阳。
+        result = _cmd(session, "还阳")
+        assert result["ok"] is False
     finally:
         session.close()

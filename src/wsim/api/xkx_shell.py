@@ -9,7 +9,7 @@ import difflib
 import json
 import re
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 import yaml
 
@@ -132,6 +132,8 @@ VERB_ALIASES: dict[str, str] = {
     "sell": "sell", "卖": "sell", "出售": "sell",
     "fight": "fight", "打": "fight", "战斗": "fight", "出手": "fight",
     "kill": "kill", "杀": "kill", "杀死": "kill",
+    "touxi": "touxi", "偷袭": "touxi",
+    "ansuan": "ansuan", "暗算": "ansuan",
     "loot": "loot", "捡": "loot", "拾取": "loot",
     "wimpy": "wimpy",
     "get": "loot", "拿": "loot", "取": "loot",
@@ -193,6 +195,8 @@ _EXTRA_REASON_TEXT = {
     "not_together": "对方不在你当前所在的地点。",
     "bad_message": "要说的话不能为空，也不能超过 200 字。",
     "not_adjacent": "那条路走不过去；只能沿相邻出口逐段走。",
+    "already_fighting": "对方已经在和你交手了。",
+    "too_many_people": "那边人太多，不好下手。",
     "unknown_location": "没有这个地点。",
     "unknown_verb": "这个动作还没有接上。",
     "forbidden_verb": "这个动作当前不开放。",
@@ -442,6 +446,10 @@ class XKXShell:
                 return self._cmd_fight(account, rest, state, raw, request_id)
             if verb == "kill":
                 return self._cmd_kill(account, rest, state, raw, request_id)
+            if verb == "touxi":
+                return self._cmd_touxi(account, rest, state, raw, request_id)
+            if verb == "ansuan":
+                return self._cmd_ansuan(account, rest, state, raw, request_id)
             if verb == "loot":
                 return self._cmd_loot(account, rest, state, raw, request_id)
             if verb == "wimpy":
@@ -1166,6 +1174,86 @@ class XKXShell:
     ) -> dict[str, Any]:
         return self._cmd_attack(account, "kill", rest, state, raw, request_id)
 
+    def _cmd_touxi(
+        self, account: str, rest: str, state: dict[str, Any], raw: str, request_id: str
+    ) -> dict[str, Any]:
+        reason = self._combat_reason("touxi")
+        if reason:
+            return self._reply(
+                account, "touxi", False,
+                [("warn", f"暂不可用：{reason}")],
+                state, raw, request_id,
+            )
+        npcs = list(state.get("present_npcs") or [])
+        target, picked_index = self._match_fight_target(npcs, rest)
+        if target is None and not rest.strip() and len(npcs) == 1:
+            target = npcs[0]
+            picked_index = 1
+        if target is None:
+            hint = "、".join(self._npc_present_text(npcs)) if npcs else "（这里没有别人）"
+            return self._reply(
+                account, "touxi", False,
+                [("error", f"这里没有可偷袭的「{self._first_word(rest) or '人'}」。在场：{hint}。")],
+                state, raw, request_id,
+            )
+        return self._combat_request_reply(
+            account, "touxi", target, picked_index, state, raw, request_id,
+            lead=f"你趁{target['name']}不备，欺身直进。",
+        )
+
+    def _cmd_ansuan(
+        self, account: str, rest: str, state: dict[str, Any], raw: str, request_id: str
+    ) -> dict[str, Any]:
+        reason = self._combat_reason("ansuan")
+        if reason:
+            return self._reply(
+                account, "ansuan", False,
+                [("warn", f"暂不可用：{reason}")],
+                state, raw, request_id,
+            )
+        parsed = re.match(r"^(.+?)\s+at\s+(\S+)\s*$", rest.strip(), re.IGNORECASE)
+        if not parsed:
+            return self._reply(
+                account, "ansuan", False,
+                [("info", "用法：ansuan <人物> at <方向>（例如 ansuan 狼狗 at 北）。")],
+                state, raw, request_id,
+            )
+        who, direction = parsed.group(1).strip(), parsed.group(2).strip()
+        row, err = self._resolve_exit(state, direction)
+        if err or row is None:
+            return self._reply(account, "ansuan", False, [("error", err)], state, raw, request_id)
+        if not row["available"]:
+            where = f"往{row['direction_label']}的" if row["direction"] else ""
+            return self._reply(
+                account, "ansuan", False,
+                [("error", f"{where}{row['name']}走不过去：{row['reason']}")],
+                state, raw, request_id,
+            )
+        to = str(row["id"])
+        pid = self.session._pid(account)
+        nearby = list(self.session._present_view(pid, to) or [])
+        target, picked_index = self._match_fight_target(nearby, who)
+        if target is None:
+            hint = "、".join(self._npc_present_text(nearby)) if nearby else "（那边没有别人）"
+            return self._reply(
+                account, "ansuan", False,
+                [("error", f"{row['name']}那边没有可暗算的「{who}」。在场：{hint}。")],
+                state, raw, request_id,
+            )
+
+        def _ansuan_note(combat: dict[str, Any]) -> list[tuple[str, str]]:
+            opening = combat.get("opening") or {}
+            if opening.get("detected"):
+                return [("warn", f"不好，被{target['name']}发觉了！")]
+            return [("info", f"{target['name']}似乎没有察觉，你悄然退回原处。")]
+
+        return self._combat_request_reply(
+            account, "ansuan", target, picked_index, state, raw, request_id,
+            lead=f"你屏息摸向{row['name']}的{target['name']}。",
+            payload_extra={"to": to},
+            extra_lines=_ansuan_note,
+        )
+
     def _cmd_attack(
         self, account: str, verb: str, rest: str, state: dict[str, Any], raw: str, request_id: str
     ) -> dict[str, Any]:
@@ -1202,11 +1290,32 @@ class XKXShell:
                 [("error", f"这里没有可打的「{label or '人'}」。在场：{hint}。")],
                 state, raw, request_id,
             )
-        resp = self.session.perform(
-            account,
-            verb,
-            {"target": target["id"], "opponent": target["id"], "npc": target["id"]},
+        return self._combat_request_reply(
+            account, verb, target, picked_index, state, raw, request_id,
+            lead=f"你向{target['name']}出手。",
         )
+
+    def _combat_request_reply(
+        self,
+        account: str,
+        verb: str,
+        target: dict[str, Any],
+        picked_index: int,
+        state: dict[str, Any],
+        raw: str,
+        request_id: str,
+        *,
+        lead: str,
+        payload_extra: dict[str, Any] | None = None,
+        extra_lines: Callable[[dict[str, Any]], list[tuple[str, str]]] | None = None,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "target": target["id"],
+            "opponent": target["id"],
+            "npc": target["id"],
+        }
+        payload.update(payload_extra or {})
+        resp = self.session.perform(account, verb, payload)
         if not resp.get("ok"):
             return self._reply(
                 account, verb, False,
@@ -1214,10 +1323,12 @@ class XKXShell:
                 state, raw, request_id,
             )
         after = self._state(account) or state
-        lines = [("combat", f"你向{target['name']}出手。")]
+        lines = [("combat", lead)]
         combat = (resp.get("details") or {}).get("combat")
         if isinstance(combat, dict) and combat:
             lines.extend(self._combat_report_lines(combat, target))
+            if extra_lines is not None:
+                lines.extend(extra_lines(combat))
             if combat.get("stopped") and combat.get("lethal") is False:
                 lines.append(("info", "点到即止，双方各自收手。"))
         else:
@@ -1888,10 +1999,10 @@ class XKXShell:
         except Exception:
             registered = False
         if not registered:
-            if verb in ("fight", "kill"):
+            if verb in ("fight", "kill", "touxi", "ansuan"):
                 return f"战斗动作还没接上（actions 层尚未注册 {verb}）。现在可以走、看、问、买卖。"
             return "捡拾动作还没接上（actions 层尚未注册 loot）。"
-        if verb in ("fight", "kill"):
+        if verb in ("fight", "kill", "touxi", "ansuan"):
             # 动作注册不等于能打：玩家还没有气血/攻防时，点了也不会结算。
             try:
                 for ent in self.session.state.entities.values():

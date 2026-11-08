@@ -484,7 +484,7 @@ full_refill_ticks = max_qi / points_per_tick
 ### 10.9 开启后同步的测试（`config/worlds/xkx.yaml` 翻为 `true` 时）
 
 1. `tests/test_xkx_api.py::test_fight_reports_real_rounds_and_death`：改为**同 seed 开/关两态交叉断言**。开启后每场战斗开头两方各抽一次 `heal_cd`（`combat_rules.py:433`），骰流前移 2，首两击由关闭态 `[15, 14]` 变为开启态 `[19, 21]`；测试同时断言两态首两击、且两态 `rounds_used` 不等。只断言开启态 19 属假通过（实现恒定输出 19 也绿）；改为“全文出现/不出现”同样假绿——关闭态本 seed 第 4 刀也会掷出 19。已做假回退验证：把关闭态的 `eff_qi` 改回 `true`，测试在 `assert [19, 21] == [15, 14]` 处变红。
-2. `tests/test_xkx_growth.py::test_combat_death_and_revive_real_session`：`hp<0 && eff_qi>=0` 只是昏迷，`die()` 只认 `eff_qi<0`；测试先把玩家置成伤势 5 点，一场即跨过 0，继续验证死亡惩罚、尸体与还阳。断言数值未变（6272 / 39 级）。
+2. `tests/test_xkx_growth.py::test_combat_death_and_revive_real_session`：改为**同 seed 开/关两态交叉**。关闭态 `hp=5` → 直接死亡还阳，断言出现 `dead`、**不出现** `unconcious`；开启态 `hp=5` 且 `eff_hp=max_hp` → `qi` 打负但伤势仍为正，只昏迷，断言出现 `unconcious`、**不出现** `dead`/鬼门关/死亡计数，且 `还阳` 被拒。两态都断言死亡惩罚与状态归属。已做假回退验证：把开启态换成关闭配置，测试在 `assert "鬼门关" not in ...` 处变红。原“`eff_hp=5` 一场跨 0”的写法在开/关两态都会死亡，属假通过，已删除。
 3. `tests/test_w1_concurrency.py`：原断言用“两边关系数值不等”证明未串档，但对话增量有每 tick/每日上限，两人同时打满会撞值（全量跑中偶发失败）；改为按事件归因——每条 `relation_upsert` 的 `a` 必须等于发起对话的 actor、`b` 为同一 NPC，且至少 40 条。
 4. `tests/test_xkx_growth.py::test_player_query_cps_cor_have_real_values`（新增）：锁死玩家 `cps=23 / cor=24` 与 `apply/composure`、`apply/courage` 的叠加。
 
@@ -601,3 +601,99 @@ full_refill_ticks = max_qi / points_per_tick
 
 **剩余差距的下一个候选根因（待逐刀账本验证，不先改）**：原版玩家 8.4 刀 / 累计伤害估算 125 才杀死 50 血狼狗，复刻 4.9 刀 / 75；每刀量级接近（17.9 vs 15.3），差别在“跨过死亡阈值所需的刀数/有效伤害”，不在出手频率。已排除：`cor`、玩家 `cps/cor`、`heal_cd` 前移（关闭态 5.40 同样低于原版 8.4）。也不用“原版昏迷后回血拖长”解释——`unconcious()`（`damage.lpc:105-144`）只把 `qi/jing` 置 0 并 `remove_all_enemy()`，`revive()`（`:146-160`）只恢复行动、不回血。下一步只能按 §1.8 同格式做逐刀账本（同记 `qi`、`eff_qi`、wound 判定、命中/招架、伤害与 armor），才能定位是 wound 概率、伤害取值还是收场判定差异。
 
+### 10.15 开关审计补漏：`initiative_gate` 读配置在此前无任何测试覆盖
+
+合并线把 `eff_qi` / `multi_combat` / `initiative_gate` 三个开关关掉后跑全量，156 项全绿。`multi_combat` 单人开/关本就应一致；`eff_qi` 的两条假通过已改成开/关双态交叉（`test_xkx_api` 首两击 `[19,21]` vs `[15,14]`、`test_xkx_growth` 昏迷 vs 死亡还阳）。`initiative_gate` 是另一类漏锁：`_load_initiative_gate`（`src/wsim/api/session.py:1610`）没有任何测试调用，`test_xkx_initiative_gate.py` 全是公式级、显式传参不读仓库配置——改配置不会有任何反应。
+
+补的集成级断言 `test_initiative_gate_flag_is_read_from_world_config`：
+
+- 走真实 `WorldSession` + 仓库 `config/worlds/xkx.yaml`，同 seed 42 各跑一场 `kill 店小二`；
+- 开启态：每一刀带 `attack_type`，普通攻击带 `gate_roll/gate_pass`，存在 `gate_pass=False`（被门挡下）与 `riposte=True`；
+- 关闭态：同一 seed 全部动作为旧口径，无 `attack_type`/`gate_roll`，无反击；
+- 出手统计是配置的函数：店小二开启态 10 刀 < 关闭态 11 刀，总出手 22 ≠ 23，回合 11 ≠ 12。
+
+假回退验证两种都做了，都会变红：
+
+1. 仓库配置翻 `initiative_gate: false` → 在 `assert ... is True` 处红；
+2. 把 `_load_initiative_gate` 改成恒 `return False`（模拟真漏锁）→ 在 `assert all("attack_type" in a for a in on_acts)` 处红。
+
+### 10.16 逐刀账本：回合数实测，"8.4 刀"基线不成立
+
+**方法**：原版 4004 重启 + 临时探针，测量完已完整还原（`combatd.c` 回滚、删 `adm/daemons/xkxledger.c`、`adm/etc/wizlist` 去 `xkxref`、`data/user/x/xkxref.o` 回滚，`launchctl kickstart -k` 后 4004 正常）。
+- `combatd.c` 在 `fight()` 每心跳写 `TICK`（玩家真实心跳回合），在 `do_attack()` 每个命中/招架/闪避写 `ATK`；命中行额外记 `req/dealt/armor/q/eff/wound/killing/armor_ok`。
+- `adm/daemons/xkxledger.c` 驱动 10 场：`/d/hangzhou/guozhuang` clone 一只 `wolfdog`，重置玩家 `qi/eff_qi` 到上限，双方 `kill_ob`，`watch()` 在任一方 `!living` 或 `eff_qi<0` 时收场。玩家档为 MID（exp 6400、max_qi/jing=100、raw unarmed/dodge/parry=40、cps 23 / cor 24）。
+- 原始日志：`/tmp/xkxledger_1dog_final.log`（最终 10 场，含 armor_ok）、`/tmp/xkxledger_2dog.log`（双狗归档）。
+
+**活体 `cps/cor`（`new()` 后实测，非源码行）**：
+
+| npc | cps | cor | apply/courage | apply/composure | apply/armor | max_qi | race |
+|---|---|---|---|---|---|---|---|
+| wolfdog | 0 | 30 | 0 | 0 | 2 | 50 | 走兽 |
+| laohu | 0 | 0 | - | - | 1000 | 425 | 走兽 |
+| dushe | 0 | 50 | - | - | 10 | 80 | 爬蛇 |
+| xiezi | 0 | 50 | - | - | 10 | 80 | 昆虫 |
+| fish | 0 | 30 | - | - | 0 | 1000 | 游鱼 |
+
+**原版 1v1 10 场逐场原始行（`/tmp/xkxledger_1dog_final.log`）**：
+
+```
+对局 | 心跳回合(玩家/狼狗) | 玩家出手 命中 被招架 被闪避 | 狼狗出手 命中 被招架 被闪避 | 玩家每刀 | 累计 | 狼狗每刀
+ 1 | 11/10  |  4  4  0  0 |  5  1  0  4 | [12, 13, 22, 23] | 70 | [6]
+ 2 | 12/11  |  5  4  1  0 |  6  1  1  4 | [15, 14, 15, 20] | 64 | [19]
+ 3 | 12/11  |  4  4  0  0 |  4  0  0  4 | [13, 20, 17, 16] | 66 | []
+ 4 |  8/7   |  4  4  0  0 |  4  0  0  4 | [12, 18, 17, 22] | 69 | []
+ 5 | 15/14  |  6  4  0  2 |  7  1  0  6 | [13, 22, 23, 18] | 76 | [16]
+ 6 |  7/6   |  4  3  0  1 |  4  0  1  3 | [13, 19, 22] | 54 | []
+ 7 |  7/6   |  3  3  0  0 |  3  0  1  2 | [17, 22, 12] | 51 | []
+ 8 |  8/7   |  6  3  2  1 |  6  0  1  5 | [14, 20, 20] | 54 | []
+ 9 | 14/13  |  6  5  0  1 |  6  0  0  6 | [14, 16, 12, 18, 13] | 73 | []
+10 | 21/20  |  6  4  1  1 |  7  1  0  6 | [13, 12, 22, 23] | 70 | [11]
+
+均值: rounds=11.50 玩家出手=4.80 玩家命中=3.80 玩家被招架=0.40 玩家被闪避=0.60
+      狼狗出手=5.20 狼狗命中=0.40 狼狗被招架=0.40 狼狗被闪避=4.40
+      玩家累计伤害=64.70 狼狗累计伤害=5.20；每刀 n=38 mean=17.03 (12..23)
+```
+
+三次独立 10 场复测（同一协议、同一 MID 档）：玩家出手 `5.30 / 4.90 / 4.80`，心跳回合 `11.10 / 9.30 / 11.50`，每刀均值 `18.51 / — / 17.03`。**"8.4 刀"在任何一次实测里都没出现**；它是此前按 55.1% 文本占比反推、且混入双狗环境的产物，不能当基线。双狗归档 10 场为 玩家出手 6.30 / 命中 5.30 / 回合 7.50（两目标分摊攻击，回合数反而更短）。
+
+**复刻侧同 seed 逐刀账本（`/tmp/ledger_replica.py`，`/d/hangzhou/guozhuang` + `kill 大狼狗`，seed 1..10 / 1..40）**：
+
+```
+seed | rounds | 玩家出手/命中/被招架/被闪避 | 目标出手/命中/被招架/被闪避 | 击杀
+   1 |     12 | 6/5/1/0 | 4/0/0/4 | 是
+   2 |      7 | 5/4/0/1 | 5/1/0/4 | 是
+   3 |     13 | 6/4/0/2 | 3/0/1/2 | 是
+   4 |      4 | 4/4/0/0 | 3/0/2/1 | 是
+   5 |     10 | 8/6/1/1 | 7/0/1/6 | 是
+   6 |      6 | 3/3/0/0 | 3/0/0/3 | 是
+   7 |      8 | 4/4/0/0 | 3/0/2/1 | 是
+   8 |     10 | 5/4/1/0 | 5/1/2/2 | 是
+   9 |      5 | 4/4/0/0 | 3/0/0/3 | 是
+  10 |      7 | 4/4/0/0 | 4/1/0/3 | 是
+均值: rounds=8.20 玩家出手=4.90 玩家命中=4.20 玩家被招架=0.30 玩家被闪避=0.40
+      玩家伤害=75.20 目标出手=4.00 目标命中=0.30 目标被招架=0.80 目标被闪避=2.90
+40 seed: rolls=179 玩家出手=5.28 玩家命中=4.20 回合=8.38
+```
+
+seed 1 逐刀（`qi`/`eff_qi` 为实扣后值，`wound_req` = `damage - apply/armor`）：
+
+```
+rd actor  -> target  type   result dmg_req dmg_act qi        eff       wound_req/act armor_abs gate
+ 4 dog    -> player  regular dodge   -       -   100->100  100->100    -/-           -         pass
+ 4 player -> dog     quick   hit     13      13  50->37    50->39     11/11         1         -
+ 7 dog    -> player  regular dodge   -       -   100->100  100->100    -/-           -         pass
+ 7 player -> dog     quick   hit     15      15  37->22    39->26     13/13         1         -
+ 9 dog    -> player  regular dodge   -       -   100->100  100->100    -/-           -         pass
+ 9 player -> dog     quick   hit     16      16  22->6     26->12     14/14         1         -
+10 dog    -> player  regular dodge   -       -   100->100  100->100    -/-           -         pass
+10 player -> dog     quick   hit     12      7   6->-1     12->2      10/10         1         -
+```
+
+**四项怀疑逐一核对**：
+
+1. **玩家命中率没有偏高。** 原版 3.80/4.80 = **79.2%**；复刻 4.20/5.28 = **79.5%**。公式口径（`combatd.c:355` dodge 10.7% + `:410` parry 10.7%）预测被挡 ≈21%，两边实测各自 ≈20.8% / 20.5%。此前"85.7% vs 73.5%"是小样本（n≈50）噪声。
+2. **`apply/armor` 一致。** 狼狗活体 `apply/armor=2`，两边相同；`combatd.lpc:458-461` 的 `(2+random(2))/2 = 1` 与复刻 `roll_armor(2)` 同为 1。破防门 `random(damage) > 2` 在 38 次命中里通过 33 次（86.8%），与 `damage∈[12,23]` 的期望一致。
+3. **玩家 dodge/parry 同档。** 两边有效等级均为 20（raw 40 → `/2` + mapped 0）；`skill_power` 逐项实测对齐：`ap_player=4180`、`dp_dodge_dog=500`、`pp_unarmed_dog=500`、`dp_dodge_player=3800` 两边完全相同。狼狗 5.20 次出手只有 0.40 次命中（复刻 4.00 → 0.30），即≈92-93% 被玩家闪避，与 80.2% 的公式值同量级。
+4. **wound 不是每刀都扣。** 原版 38 次玩家命中里只有 **9 次**触发 `receive_wound`（23.7%）；限定破防门通过的 33 次，伤门触发率 **27.3%**，与源码 `1/4 + 3/4·1/7 = 35.7%` 在 n=33 的噪声内。复刻 179 次 roll 触发 55 次（30.7%），与公式一致。两边都只在破防+掷中时扣 `eff_qi`，代码路径（`roll_wound`）逐行对齐。
+
+**结论**：`4.9 刀打穿 vs 原版 8.4 刀` 这个对照**不成立**——原版实测 4.80 次出手 / 3.80 次命中即打穿 50 血狼狗，复刻 4.90-5.28 次出手 / 4.20 次命中，差异在 ±0.4 刀、约 1 个样本标准误内。每刀伤害（17.03 vs 17.90）、护甲（2 vs 2）、命中/闪避/招架率、wound 触发率均对齐。剩余差异只有心跳回合数（原版 11.50 / 复刻 8.38），属 tempo（`is_busy`/守势空转）而非伤害链路，另在 `combat-tempo.spec.md` 跟踪。

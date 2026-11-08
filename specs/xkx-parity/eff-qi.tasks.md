@@ -82,8 +82,8 @@
 
 ## T10 待办（开关锁定缺口，合并验收时确认）
 
-- [ ] `combat.initiative_gate` 无任何测试调用 `WorldSession._load_initiative_gate`；`test_xkx_initiative_gate`
-  是公式级测试、显式传参，不读世界配置。因此把 `xkx.yaml` 的 `initiative_gate` 关掉，测试**不响应**
-  仍全绿 —— 属真缺口（不是“设计使然”），需补一条会话级断言：关闭后先手门不再消耗骰/结果改变即红。
-- [ ] `combat.eff_qi` 的 `test_xkx_growth::test_combat_death_and_revive_real_session` 在 `dbf1bdf`
-  仍是旧单态版（关闭态也绿）；修复提交 `1935024` 尚未推送，待第二次合并带入。
+- [x] `combat.initiative_gate` 的会话级缺口已补：`da301d8` 新增
+  `tests/test_xkx_initiative_gate.py::test_initiative_gate_flag_is_read_from_world_config`，走真实
+  `WorldSession` + 仓库 `config/worlds/xkx.yaml`，关掉配置即红（假回退已验证）。
+- [x] `combat.eff_qi` 的 `test_xkx_growth::test_combat_death_and_revive_real_session` 已由 `1935024`
+  改为开/关两态交叉断言（昏迷 vs 死亡还阳），随本次合并带入。
