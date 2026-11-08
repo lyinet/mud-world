@@ -1756,7 +1756,7 @@ def _inject_player_shop(
     不写事件日志、不碰世界状态；每次尝试都落 player_shop.jsonl。
     """
     result: dict[str, Any] = {"ok": False, "owner": "", "shop": "", "hired": "",
-                              "attempts": {"open": 0, "talk": 0, "hire": 0},
+                              "attempts": {"open": 0, "work": 0, "talk": 0, "hire": 0},
                               "reasons": {}}
     if not players:
         return result
@@ -1791,17 +1791,30 @@ def _inject_player_shop(
             present = [p for p in (state.get("present_npcs") or [])
                        if not str(p.get("id") or "").startswith("player:")]
             if not shop:
+                money = int((player.get("wallet") or {}).get("money") or 0)
                 res = owner._write("/api/player/action", {
                     "verb": "open_shop",
                     "args": {"at": loc, "shop_type": "stall", "name": "长跑摊"},
                 })
                 result["attempts"]["open"] += 1
                 code = _reason(res)
+                if code == "insufficient_money":
+                    # 玩家初始 300 文 < 摊子 300 + 进货 45：先用公开 work 赚本钱（同地点店铺按市价发薪）。
+                    work = owner._write("/api/player/action", {
+                        "verb": "work", "args": {"hours": 8},
+                    })
+                    result["attempts"]["work"] += 1
+                    wcode = _reason(work)
+                    _log(step="work", at=loc, money=money, ok=bool(work.get("ok")), reason=wcode)
+                    if wcode == "no_employer":
+                        owner._move(loc, "market")
+                    time.sleep(1.0)
                 result["reasons"][code or "ok"] = result["reasons"].get(code or "ok", 0) + 1
-                _log(step="open_shop", at=loc, ok=bool(res.get("ok")), reason=code)
+                _log(step="open_shop", at=loc, money=money, ok=bool(res.get("ok")), reason=code)
                 if res.get("ok"):
-                    shop = f"shop:{player.get('id') or ''}"
-                    result["owner"] = str(player.get("id") or "")
+                    pid = str(player.get("entity_id") or "")
+                    shop = f"shop:{pid}"
+                    result["owner"] = pid
                     result["shop"] = shop
                 elif code == "already_owns_shop":
                     shop = "shop:*"
@@ -1887,6 +1900,7 @@ def _run_soak(args: argparse.Namespace) -> int:
     tag = args.tag or f"{random.randint(0, 9999):04d}"
     players: list[lt.VirtualPlayer] = []
     threads: list[threading.Thread] = []
+    shop_owner: list[lt.VirtualPlayer] = []
     for idx in range(args.players):
         p = player_cls(
             server.base, idx, tag, recorder, locations,
@@ -1899,13 +1913,24 @@ def _run_soak(args: argparse.Namespace) -> int:
         th.start()
         if args.ramp_up > 0 and args.players > 1:
             time.sleep(args.ramp_up / args.players)
+    if args.player_shop > 0:
+        # 专用店主：不跑压测循环（否则会被自己的走街/接单带走），只由注入线程驱动；
+        # 开摊后原地守着摊位，保证 NPC 日界能结算出勤与工资。
+        for extra in range(args.player_shop):
+            shop_owner.append(player_cls(
+                server.base, args.players + extra, tag, recorder, locations,
+                think_time=0, timeout=args.timeout, stop=stop,
+                deadline=deadline, account_prefix="shopo", display_prefix="摊",
+            ))
+        print(f"[soak] player_shop owners={len(shop_owner)} (dedicated, no load loop)", flush=True)
 
     t_start = _mono()
     shop_result: dict[str, Any] = {}
     if args.player_shop > 0:
+        owners = (shop_owner or players)[: args.player_shop]
         def _shop_job() -> None:
             shop_result.update(_inject_player_shop(
-                server, players[: args.player_shop], report_dir / "player_shop.jsonl",
+                server, owners, report_dir / "player_shop.jsonl",
                 stop, budget_s=min(float(args.duration), 6 * 3600.0),
             ))
         threading.Thread(target=_shop_job, daemon=True, name="player-shop").start()

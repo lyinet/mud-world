@@ -69,6 +69,52 @@ def test_shop_attendance_judges_npc_day_not_world_window():
     assert _worked_on_day(state, "npc:a", 2, clock_marker=False) is False
 
 
+def test_work_writes_attendance_marker_in_npc_day(content):
+    """WorkAction 产出的日结契约记忆必须能被 _worked_on_day(clock_marker=True) 认出来。
+
+    回归点：标记串曾写成 `工资本日由日结发放30文：D0`，与判定串
+    `工资本日由日结发放:D0` 不匹配，导致共享世界雇工永远“未到店”。
+    """
+    from wsim.actions.basic import WorkAction
+    from wsim.core.models import Effect, Intent
+    from wsim.world.effects import apply_effects
+    from wsim.world.state import WorldState
+
+    state = WorldState(locations=content.locations)
+    shop = "shop:player:own"
+    apply_effects(state, [
+        Effect("create_entity", {
+            "id": "player:own", "name": "掌柜", "role": "worker",
+            "location": "a", "stamina": 100.0, "max_stamina": 100.0,
+        }),
+        Effect("create_account", {"account": "wallet:player:own"}),
+        Effect("create_account", {"account": f"cash:{shop}"}),
+        Effect("create_business", {
+            "id": shop, "name": "测试摊", "location": "a", "kind": "food",
+            "owner": "player:own", "cash_account": f"cash:{shop}",
+        }),
+        Effect("set_field", {"entity": "player:own", "field": "business", "value": shop}),
+        Effect("create_entity", {
+            "id": "npc:emp", "name": "雇工", "role": "worker",
+            "location": "a", "stamina": 100.0, "max_stamina": 100.0,
+            "skills": {"work": 0.4},
+        }),
+        Effect("create_account", {"account": "wallet:npc:emp"}),
+        Effect("shop_hire", {
+            "business": shop, "entity": "npc:emp", "position": "worker", "wage": 20,
+        }),
+        Effect("mint", {"account": f"cash:{shop}", "amount": 40, "reason": "test_float"}),
+    ])
+    action = WorkAction(content)
+    intent = Intent(actor="npc:emp", verb="work", args={"hours": 8},
+                    tick=9999, clock_tick=288, source="test")
+    assert action.preconditions(state, intent) == []
+    apply_effects(state, action.apply(state, intent, None))
+    # clock_tick=288 → NPC 日 2；世界 tick 9999 是第 69 日，旧口径不该算出勤。
+    assert _worked_on_day(state, "npc:emp", 2, clock_marker=True) is True
+    assert _worked_on_day(state, "npc:emp", 2, clock_marker=False) is False
+
+
 def test_quest_deadline_is_created_in_npc_ticks():
     from wsim.actions.quests import SystemQuestPostAction
 
