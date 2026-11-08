@@ -484,7 +484,7 @@ full_refill_ticks = max_qi / points_per_tick
 ### 10.9 开启后同步的测试（`config/worlds/xkx.yaml` 翻为 `true` 时）
 
 1. `tests/test_xkx_api.py::test_fight_reports_real_rounds_and_death`：改为**同 seed 开/关两态交叉断言**。开启后每场战斗开头两方各抽一次 `heal_cd`（`combat_rules.py:433`），骰流前移 2，首两击由关闭态 `[15, 14]` 变为开启态 `[19, 21]`；测试同时断言两态首两击、且两态 `rounds_used` 不等。只断言开启态 19 属假通过（实现恒定输出 19 也绿）；改为“全文出现/不出现”同样假绿——关闭态本 seed 第 4 刀也会掷出 19。已做假回退验证：把关闭态的 `eff_qi` 改回 `true`，测试在 `assert [19, 21] == [15, 14]` 处变红。
-2. `tests/test_xkx_growth.py::test_combat_death_and_revive_real_session`：`hp<0 && eff_qi>=0` 只是昏迷，`die()` 只认 `eff_qi<0`；测试先把玩家置成伤势 5 点，一场即跨过 0，继续验证死亡惩罚、尸体与还阳。断言数值未变（6272 / 39 级）。
+2. `tests/test_xkx_growth.py::test_combat_death_and_revive_real_session`：改为**同 seed 开/关两态交叉**。关闭态 `hp=5` → 直接死亡还阳，断言出现 `dead`、**不出现** `unconcious`；开启态 `hp=5` 且 `eff_hp=max_hp` → `qi` 打负但伤势仍为正，只昏迷，断言出现 `unconcious`、**不出现** `dead`/鬼门关/死亡计数，且 `还阳` 被拒。两态都断言死亡惩罚与状态归属。已做假回退验证：把开启态换成关闭配置，测试在 `assert "鬼门关" not in ...` 处变红。原“`eff_hp=5` 一场跨 0”的写法在开/关两态都会死亡，属假通过，已删除。
 3. `tests/test_w1_concurrency.py`：原断言用“两边关系数值不等”证明未串档，但对话增量有每 tick/每日上限，两人同时打满会撞值（全量跑中偶发失败）；改为按事件归因——每条 `relation_upsert` 的 `a` 必须等于发起对话的 actor、`b` 为同一 NPC，且至少 40 条。
 4. `tests/test_xkx_growth.py::test_player_query_cps_cor_have_real_values`（新增）：锁死玩家 `cps=23 / cor=24` 与 `apply/composure`、`apply/courage` 的叠加。
 
