@@ -54,3 +54,22 @@
 
 ## T10 6h（短验确认后）
 - [ ] 报“开始了”，报告含 spec §8.3 五项；三项中止条件任一出现立即停
+
+## T11 严格口径归因（spec §12）
+- [x] `attribution.json` 逐 30s 窗口对齐 `step_ms` 与墙钟写 p95（锁内/锁外/CPU 拆分）
+- [x] 坏窗口 cause 域 + GC 代际/停顿时长 + checkpoint 计数 + 同机 top-N 负载
+- [x] 对照组 `--players 10 --no-ambient --duration 900`（0 坏窗口 → 非机器噪声）
+- [ ] 严格短验 `--duration 900 --players 50` 逐窗口复核，坏窗口 0 才算过
+
+## T12 内存中间跑（spec §12.4）
+- [x] `--duration 2700 --players 50` 每 10 分钟 RSS/relations/goals/PlayerProfile 表
+- [x] 结论：relations/goals 增量递减、PlayerProfile 定值 51；RSS 锯齿轮 0.645MB/min，6h 峰值 ≈300MB
+- [ ] DB 体积 6h 投影（≈15MB/10min）与治理方案（需用户裁定是否加 checkpoint/裁剪）
+
+## T13 玩家店铺注入（spec §13）
+- [ ] 跑 `--duration 1200 --players 50 --player-shop 1`，确认 `player_shop.jsonl` 出现 `done`
+- [ ] `settlement_counts` 出现 `system_shop_settle` 且非零（原始计数）
+- [ ] 未跑出则写 N/A，不进 6h
+
+## T14 6h 配置
+- [ ] 6h 命令追加 `--player-shop 1`，报告单列 `system_shop_settle` 原始计数

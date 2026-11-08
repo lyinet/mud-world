@@ -195,11 +195,12 @@ SETTLEMENTS = {
 2. ambient 时钟与玩家世界时钟绝对值 + 比值；`lag_ticks` 最大/末值；`lag_steps` 累计；
    `ambient_catchup_truncated` 次数（= `lag_steps`，另附日志行数）；
 3. 负余额条数（必须 0）与按 NPC 日生活费次数（≈6h/14.4min ≈ **25 次/NPC**，上百次即回归）；
-4. 写 p95 用 2400s warmup v2 口径 + 2h2 基线（`9.8 / 32ms`）；内存按峰值；
+4. 写 p95 用 **严格 30 秒窗口口径**（见 §12.1，2026-11-08 裁定取代“末 10 分钟平均”口径）；
+   末 10 分钟 p95 与 2h2 基线（`9.8 / 32ms`）只作趋势参考，不作为通过依据；内存按峰值；
 5. 一句明确结论：“负载结构是否与设计一致”。
 
 **中止条件（任一出现立即停）**：lag 持续扩大不收敛（连续 3 个 5 分钟 `lag_ticks_max` 创新高或
-`lag_ticks` 持续 >1200）；负余额回归；写 p95 >500ms。
+`lag_ticks` 持续 >1200）；负余额回归；**任一 30 秒窗口写 p95 >500ms**（严格口径，见 §12.1）。
 
 ## 9. 测试清单
 
@@ -235,3 +236,54 @@ SETTLEMENTS = {
 3. `CHANGELOG.md`：`8b2ae49` 六文件逐条；单列“日界语义变更”（NPC 日=ambient tick、判定与显示同源、
    `lag_steps` 改累计 + `lag_steps_streak` 保留旧义）。
 4. 不 force。
+
+## 12. 严格延迟口径与归因（2026-11-08 裁定）
+
+### 12.1 通过口径
+
+- 采样周期固定 30 秒；逐窗口原始读写延迟算 p95。
+- **任一 30 秒窗口写 p95 > 500ms 即判未过**；末 10 分钟平均口径作废，不得用于洗掉坏窗口。
+- 对照组不能用于放宽阈值：只用于判定“是机器噪声还是代码”。
+
+### 12.2 逐窗口归因（必交）
+
+- 每个 30 秒窗口把 `ambient_steps.jsonl` 的 `step_ms` 分位与墙钟写 p95 对齐；
+  坏窗口必须给出“锁内多少 / 锁外多少”：
+  `in_lock_ms_p95/max`、`in_lock_cpu_ms_max`、`lock_wait_ms_p95/max`。
+- 锁外停顿必须落到具体一项并附证据：GC（代际 + 单次停顿时长）、SQLite checkpoint/WAL
+  （`ck_stats`: runs/ms_max/busy）、JSONL flush（`progress_flush_ms`）、CPU 争抢
+  （`os.getloadavg` + `ps` 同机 top-N 进程，排除服务/压测进程自身）。
+- 归因落盘 `reports/soak/<run>/attribution.json`（schema `soak-attribution/v1`），
+  坏窗口 `cause` 取值域：`gc / checkpoint / progress_flush / status_file / state_hash /
+  offcpu_stall / in_lock_total / machine_cpu`。
+
+### 12.3 同机对照组
+
+- 命令：`--duration 900 --players 10 --no-ambient`，与服务同一时段、同一台机器。
+- 对照组也出现 >500ms 窗口 → 结论是阈值在测机器噪声：换安静环境重跑**同一负载**，
+  仍按绝对阈值判定（这是排除干扰，不是放宽阈值）。
+- 对照组干净 → 写 p95 高归因于本工程代码，必须修；不接受“环境问题”解释。
+
+### 12.4 内存（不许 15 分钟线性外推）
+
+- 跑一次 45–60 分钟中间跑，输出每 10 分钟的 `RSS / relations / goals / PlayerProfile` 增量表。
+- 以 `state.relations` 普查为权威计数（`types_top` 只列 top-N，不可用于趋势）。
+- 仍线性增长 → 直接给 6h 投影峰值 + 治理方案（relations / goals / PlayerProfile 裁剪或封顶），
+  不接受“6h 再看”。
+
+## 13. 6h 配置的前置条件：玩家店铺注入
+
+- 6h 与短验配置必须带 `--player-shop 1`：脚本用公开 API 开摊（`open_shop`，stall，本钱 300 + 进货），
+  对话把 `bond` 攒到 `SHOP_HIRE_MIN_AFFECTION=6`，再 `recruit` 一名掌柜（`position` 默认 NPC role，
+  工资取 `wages_daily` 市价）。
+- 目的：让 NPC 日界结算 `system_shop_settle` 真跑出来（开张 + 出勤 + 工资），报告给原始计数；
+  未跑出时 `system_shop_settle=0` 必须写 N/A，不得计为通过。
+- 注入过程逐次落 `reports/soak/<run>/player_shop.jsonl`（`open_shop / hire / done / error` + 拒绝码）。
+- 注入前置校验：先跑一次 `--duration 1200 --players 50 --player-shop 1`，确认出现
+  `system_shop_settle` 且 `settlement_counts` 非零，再启 6h。
+
+## 14. 单位确认（回答报告混用风险）
+
+- `lag_ticks_max=1122` 的 1122 是**世界 tick 数**，与 1200 上限同量纲（不是步数）。
+- `world_tick 132029 / clock_tick 150` 中的 `clock_tick=150` 是 **NPC tick 计数**，
+  不是“NPC 日界触发次数”；144 tick = 1 NPC 日，故 150 ≈ 1.042 NPC 日，日界只触发 1 次。
