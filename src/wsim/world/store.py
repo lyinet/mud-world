@@ -133,7 +133,6 @@ class EventStore:
             except sqlite3.Error:
                 pass
             self._ck_conn = None
->>>>>>> origin/feat/xkx-event-retention
 
     def close(self) -> None:
         self._ck_stop.set()
