@@ -242,6 +242,35 @@ def test_unconcious_clears_enemy_tables_but_not_contrib():
     assert ent.to_dict()["revive_tick"] == 9
 
 
+def test_dead_remove_all_enemy_flag_drives_bidirectional_clear():
+    """原版 `char.lpc:66` 的 `remove_all_enemy()` 只在 eff_qi 战斗事件里显式带旗标：
+    关闭态（无旗标）保持旧口径零副作用，保证逐字节一致。"""
+    def _setup(flag: bool):
+        state = _state()
+        effects = [
+            Effect("set_field", {"entity": MON, "field": "combat_enemies", "value": [HERO]}),
+            Effect("set_field", {"entity": MON, "field": "combat_target", "value": HERO}),
+            Effect("set_field", {"entity": HERO, "field": "combat_enemies", "value": [MON]}),
+            Effect("hp_set", {"entity": MON, "value": 0}),
+        ]
+        data = {"entity": MON, "status": "dead", "tick": 0}
+        if flag:
+            data["remove_all_enemy"] = True
+        effects.append(Effect("entity_status", data))
+        apply_effects(state, effects)
+        return state
+
+    off = _setup(False)
+    assert off.entities[MON].status == "dead"
+    assert off.entities[MON].combat_target == HERO
+    assert off.entities[HERO].combat_enemies == [MON]
+
+    on = _setup(True)
+    assert on.entities[MON].combat_target == ""
+    assert on.entities[MON].combat_enemies == []
+    assert on.entities[HERO].combat_enemies == []
+
+
 # ---------------------------------------------------------------- 停战 / 睡眠
 def test_spar_stop_reads_qi_not_eff_qi():
     state = _state()

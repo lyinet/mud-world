@@ -211,6 +211,8 @@ def combat_effects(
                     "status": "dead",
                     "tick": int(intent.tick),
                     "location": str(ent.location),
+                    # 原版 char.lpc:66 `remove_all_enemy()`；只在 eff_qi 开启时双向摘除。
+                    **({"remove_all_enemy": True} if eff_qi else {}),
                 },
             )
         )
