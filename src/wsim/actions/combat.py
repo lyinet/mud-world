@@ -125,6 +125,7 @@ def combat_effects(
     initiative_gate: bool = False,
     eff_qi: bool = False,
     spar: bool = False,
+    opening: dict[str, Any] | None = None,
 ) -> list[Effect]:
     """结算一场（或一回合）战斗并产出 Effect。`FightAction` 与 NPC 主动攻击共用。"""
     skill = intent.args.get("skill")
@@ -149,6 +150,7 @@ def combat_effects(
         eff_qi=eff_qi,
         killing=killing,
         spar=effective_spar,
+        opening=opening,
     )
 
     effects: list[Effect] = []
@@ -200,6 +202,18 @@ def combat_effects(
 
     # 非致命（切磋）不产生死亡/尸体/掉落/玩家死亡结算。
     dead_ids = set(result["dead"]) if killing else set()
+
+    opening_info = result.get("opening") or {}
+    ansuan_detected = (
+        opening_info.get("mode") == "ansuan" and bool(opening_info.get("detected"))
+    )
+
+    def _death_location(ent: Any) -> str:
+        # `ansuan.lpc`：被发现时玩家已经落在目标房间，死亡/掉落在那边结算。
+        if ansuan_detected and str(ent.id) == str(attacker.id):
+            return str(defender.location)
+        return str(ent.death_location or ent.location)
+
     for ent in (attacker, defender):
         if str(ent.id) not in dead_ids or ent.status == "dead":
             continue
@@ -210,7 +224,7 @@ def combat_effects(
                     "entity": ent.id,
                     "status": "dead",
                     "tick": int(intent.tick),
-                    "location": str(ent.location),
+                    "location": _death_location(ent),
                     # 原版 char.lpc:66 `remove_all_enemy()`；只在 eff_qi 开启时双向摘除。
                     **({"remove_all_enemy": True} if eff_qi else {}),
                 },
@@ -252,7 +266,7 @@ def combat_effects(
             effects.extend(
                 _drop_effects(
                     drops,
-                    str(ent.death_location or ent.location),
+                    _death_location(ent),
                     "death",
                     consume_owner=str(ent.id),
                 )
@@ -262,7 +276,7 @@ def combat_effects(
                     op="death_log",
                     data={
                         "entity": ent.id,
-                        "death_location": str(ent.death_location or ent.location),
+                        "death_location": _death_location(ent),
                         "exp_loss": exp_loss,
                         "combat_exp_before": int(ent.combat_exp),
                         "combat_exp_after": max(0, int(ent.combat_exp) - exp_loss),
@@ -375,17 +389,92 @@ def combat_effects(
         "rounds": result["rounds"],
         "draws": int(result["draws"]),
     }
-    if spar or reason == "kill":
+    if spar or reason in ("kill", "touxi", "ansuan"):
         # 只在切磋/击杀入口暴露，旧 `fight` 事件载荷保持逐字节不变。
         log["lethal"] = bool(killing)
         log["stopped"] = bool(result["stopped"])
     if eff_qi:
         log["eff_hp"] = result["eff_hp_raw"]
         log["unconscious"] = result["unconscious"]
+    if opening_info:
+        log["opening"] = opening_info
     if extra_log:
         log.update(extra_log)
     effects.append(Effect(op="combat_log", data=log))
     return effects
+
+
+def _combat_log(effects: list[Effect]) -> dict[str, Any]:
+    for eff in effects:
+        if eff.op == "combat_log":
+            return dict(eff.data)
+    return {}
+
+
+def _retaliation_registration(defender: Any, attacker: Any, tick: int) -> list[Effect]:
+    """把攻击者登记进 NPC 敌人表（`multi_combat` 门控），供其后心跳还手。
+
+    `fight` / `kill` / `touxi` / `ansuan` 共用；已经登记时不重复写事件。
+    """
+    if not (multi_combat_enabled() and PASSIVE_RETALIATION):
+        return []
+    if str(defender.id).startswith("player:") or defender.status != "alive":
+        return []
+    enemies = effective_enemies(defender)
+    if str(attacker.id) in enemies:
+        return []
+    out = [
+        Effect(
+            op="set_field",
+            data={
+                "entity": defender.id,
+                "field": "combat_enemies",
+                "value": [*enemies, str(attacker.id)],
+            },
+        )
+    ]
+    if not defender.combat_target:
+        out.extend([
+            Effect(
+                op="set_field",
+                data={"entity": defender.id, "field": "combat_target", "value": str(attacker.id)},
+            ),
+            Effect(
+                op="set_field",
+                data={"entity": defender.id, "field": "combat_tick", "value": int(tick)},
+            ),
+            Effect(
+                op="set_field",
+                data={"entity": defender.id, "field": "combat_round", "value": 0},
+            ),
+        ])
+    return out
+
+
+def _clear_enemies_when_dead(
+    effects: list[Effect], defender: Any, *, registered: bool = False
+) -> None:
+    """原版 `char.lpc:66 remove_all_enemy()`：尸体不再保留敌人表。"""
+    dead_ids = {
+        str(eff.data.get("entity"))
+        for eff in effects
+        if eff.op == "entity_status" and eff.data.get("status") == "dead"
+    }
+    if str(defender.id) in dead_ids and (registered or effective_enemies(defender)):
+        effects.append(
+            Effect(
+                op="set_field",
+                data={"entity": defender.id, "field": "combat_enemies", "value": []},
+            )
+        )
+
+
+def _already_killing(src: Any, dst: Any) -> bool:
+    """`src->is_killing(dst)` 的引擎近似：击杀目标或已在敌人表里。"""
+    return (
+        str(getattr(src, "combat_target", "") or "") == str(dst.id)
+        or str(dst.id) in effective_enemies(src)
+    )
 
 
 class FightAction(Action):
@@ -441,61 +530,11 @@ class FightAction(Action):
             eff_qi=self.eff_qi,
             spar=self.spar,
         )
-        if (
-            multi_combat_enabled()
-            and PASSIVE_RETALIATION
-            and not str(defender.id).startswith("player:")
-            and defender.status == "alive"
-        ):
-            enemies = effective_enemies(defender)
-            registered = [*enemies]
-            if str(attacker.id) not in enemies:
-                registered = [*enemies, str(attacker.id)]
-                effects.insert(
-                    0,
-                    Effect(
-                        op="set_field",
-                        data={
-                            "entity": defender.id,
-                            "field": "combat_enemies",
-                            "value": [*enemies, str(attacker.id)],
-                        },
-                    ),
-                )
-                if not defender.combat_target:
-                    effects.insert(
-                        1,
-                        Effect(
-                            op="set_field",
-                            data={"entity": defender.id, "field": "combat_target", "value": str(attacker.id)},
-                        ),
-                    )
-                    effects.insert(
-                        2,
-                        Effect(
-                            op="set_field",
-                            data={"entity": defender.id, "field": "combat_tick", "value": int(intent.tick)},
-                        ),
-                    )
-                    effects.insert(
-                        3,
-                        Effect(
-                            op="set_field",
-                            data={"entity": defender.id, "field": "combat_round", "value": 0},
-                        ),
-                    )
-            dead_ids = {
-                str(eff.data.get("entity"))
-                for eff in effects
-                if eff.op == "entity_status" and eff.data.get("status") == "dead"
-            }
-            if str(defender.id) in dead_ids and registered:
-                effects.append(
-                    Effect(
-                        op="set_field",
-                        data={"entity": defender.id, "field": "combat_enemies", "value": []},
-                    )
-                )
+        if multi_combat_enabled() and PASSIVE_RETALIATION:
+            reg = _retaliation_registration(defender, attacker, int(intent.tick))
+            if reg:
+                effects[0:0] = reg
+            _clear_enemies_when_dead(effects, defender, registered=bool(reg))
         return effects
 
 
@@ -508,6 +547,161 @@ class KillAction(FightAction):
 
     def __init__(self, initiative_gate: bool = False, eff_qi: bool = False):
         super().__init__(initiative_gate=initiative_gate, spar=False, eff_qi=eff_qi)
+
+
+def _can_speak(ent: Any) -> bool:
+    """`query("can_speak")` 的内容侧近似：本内容包只有人类种族会说话。"""
+    return str(getattr(ent, "race", "") or "") == "人类"
+
+
+class TouxiAction(FightAction):
+    """原版 `touxi`：同房间内直接 `do_attack()`，不经过心跳出手门。"""
+
+    verb = "touxi"
+    reason = "touxi"
+    salt = "action:touxi"
+
+    def __init__(self, initiative_gate: bool = False, eff_qi: bool = False):
+        super().__init__(initiative_gate=initiative_gate, spar=False, eff_qi=eff_qi)
+
+    def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
+        reasons = super().preconditions(state, intent)
+        if reasons:
+            return reasons
+        attacker = state.entities[intent.actor]
+        defender = state.entities[_combat_target(intent)]
+        if (
+            str(defender.combat_target or "") == str(attacker.id)
+            or str(attacker.id) in effective_enemies(defender)
+        ):
+            # `touxi.lpc:25`：目标已经在和你打，不能再偷袭。
+            return ["already_fighting"]
+        return []
+
+    def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
+        attacker = state.entities[intent.actor]
+        defender = state.entities[_combat_target(intent)]
+        effects = combat_effects(
+            state,
+            attacker,
+            defender,
+            rng,
+            intent=intent,
+            salt=self.salt,
+            max_rounds=None,
+            reason=self.reason,
+            initiative_gate=self.initiative_gate,
+            eff_qi=self.eff_qi,
+            spar=False,
+            opening={
+                "mode": "touxi",
+                "attacker_killing": _already_killing(attacker, defender),
+            },
+        )
+        # `touxi.lpc:58`：出手之后无论是否被发现都 `obj->kill_ob(me)`。
+        if multi_combat_enabled() and PASSIVE_RETALIATION:
+            reg = _retaliation_registration(defender, attacker, int(intent.tick))
+            if reg:
+                effects[0:0] = reg
+            _clear_enemies_when_dead(effects, defender, registered=bool(reg))
+        return effects
+
+
+class AnsuanAction(FightAction):
+    """原版 `ansuan`：隔房偷袭，未被发现就退回原房间。"""
+
+    verb = "ansuan"
+    reason = "ansuan"
+    salt = "action:ansuan"
+
+    def __init__(self, initiative_gate: bool = False, eff_qi: bool = False):
+        super().__init__(initiative_gate=initiative_gate, spar=False, eff_qi=eff_qi)
+
+    def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
+        target = _combat_target(intent)
+        if not target:
+            return ["target_missing"]
+        if target == intent.actor:
+            return ["self_target"]
+        attacker = state.entities.get(intent.actor)
+        if attacker is None:
+            return ["actor_missing"]
+        defender = state.entities.get(target)
+        if defender is None:
+            return ["target_missing"]
+        if target.startswith("player:"):
+            return ["target_is_player"]
+        if attacker.status == "dead":
+            return ["actor_dead"]
+        if attacker.status == "unconcious":
+            return ["actor_unconcious"]
+        if defender.status != "alive":
+            return ["target_dead"]
+        if int(attacker.max_hp) <= 0 or int(defender.max_hp) <= 0:
+            return ["no_combat_stats"]
+        if str(attacker.combat_target or "") or effective_enemies(attacker):
+            # `ansuan.lpc:134`：你已经在战斗中了。
+            return ["already_fighting"]
+        to = str(intent.args.get("to") or "")
+        if not to or to != str(defender.location) or str(attacker.location) == to:
+            return ["not_adjacent"]
+        living = sum(
+            1
+            for ent in state.entities.values()
+            if str(ent.location) == to
+            and str(ent.id) != str(attacker.id)
+            and ent.status != "dead"
+        )
+        if living > 2:
+            # `ansuan.lpc:143`：目标房间活人超过 2 个就不能暗算。
+            return ["too_many_people"]
+        return []
+
+    def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
+        attacker = state.entities[intent.actor]
+        defender = state.entities[_combat_target(intent)]
+        can_speak = _can_speak(defender)
+        effects = combat_effects(
+            state,
+            attacker,
+            defender,
+            rng,
+            intent=intent,
+            salt=self.salt,
+            max_rounds=None,
+            reason=self.reason,
+            initiative_gate=self.initiative_gate,
+            eff_qi=self.eff_qi,
+            spar=False,
+            opening={
+                "mode": "ansuan",
+                "attacker_killing": _already_killing(attacker, defender),
+                # `npc.c accept_ansuan()`：不会说话的目标先 `kill_ob(who)`。
+                "target_killing": (not can_speak) or _already_killing(defender, attacker),
+            },
+        )
+        log = _combat_log(effects)
+        opening = log.get("opening") or {}
+        detected = bool(opening.get("detected"))
+        if multi_combat_enabled() and PASSIVE_RETALIATION and (detected or not can_speak):
+            reg = _retaliation_registration(defender, attacker, int(intent.tick))
+            if reg:
+                effects[0:0] = reg
+            _clear_enemies_when_dead(effects, defender, registered=bool(reg))
+        dead = {str(eid) for eid in (log.get("dead") or [])}
+        if detected and str(attacker.id) not in dead:
+            # `ansuan.lpc:176-210`：被发现时停在目标房间，只有没被发现才退回去。
+            effects.append(
+                Effect(
+                    op="set_field",
+                    data={
+                        "entity": attacker.id,
+                        "field": "location",
+                        "value": str(defender.location),
+                    },
+                )
+            )
+        return effects
 
 
 class SystemSpawnAction(Action):

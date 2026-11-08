@@ -408,6 +408,7 @@ def simulate_fight(
     eff_qi: bool = False,
     killing: bool = True,
     spar: bool = False,
+    opening: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """原子结算战斗；`max_rounds=None` 表示不封顶（原版语义）。
 
@@ -430,7 +431,12 @@ def simulate_fight(
     # `char.lpc:106-109`：每心跳 `--tick`，到 0 时 heal_up 并把 tick 重置为
     # `5 + random(10)`。本引擎一回合≈一次心跳，故战斗内也按回合触发。
     # 两方各自计时，只在本场战斗内有效（跨 tick 的世界恢复由 SystemHealAction 负责）。
-    heal_cd = {"a": 6 + prng.below(10), "b": 6 + prng.below(10)} if eff_qi else {}
+    # `偷袭`/`暗算` 是命令内直接 `do_attack()`，不经过心跳，不取这两个恢复骰。
+    heal_cd = (
+        {"a": 6 + prng.below(10), "b": 6 + prng.below(10)}
+        if eff_qi and opening is None
+        else {}
+    )
 
     # 原版没有显式先手比较，靠 MudOS heartbeat 顺序；这里用 dex + query_skill("dodge")
     # 作为引擎自选的近似（无原版行号可引），与 skill_power 同用非 raw 有效值。
@@ -442,9 +448,11 @@ def simulate_fight(
     dead: set[str] = set()
     stopped = False
     stop_winner = ""
+    opening_info: dict[str, Any] | None = None
     limit = SAFETY_ROUNDS if max_rounds is None else max(1, min(int(max_rounds), SAFETY_ROUNDS))
     for round_no in range(1, limit + 1):
         actions: list[dict[str, Any]] = []
+        opening_done = False
 
         def strike(
             src: _Actor,
@@ -455,6 +463,7 @@ def simulate_fight(
             allow_riposte: bool = False,
             riposte: bool = False,
             gate: dict[str, Any] | None = None,
+            kill_mode: bool | None = None,
         ) -> str:
             nonlocal stopped, stop_winner
             ap = _attack_power(src, src_skill)
@@ -589,7 +598,10 @@ def simulate_fight(
             wounded = xf.roll_wound(
                 damage=breakdown.final_damage,
                 armor=wound_armor,
-                killing=killing,
+                # `combatd.c:560` 的 `me->is_killing(victim)` 在偷袭/暗算里尚未成立：
+                # 原版 `kill_ob()` 在 `do_attack()` 之后（touxi.lpc:58 / ansuan.lpc:191），
+                # 所以这几刀只走“非击杀”那一档破防概率。
+                killing=bool(killing) if kill_mode is None else bool(kill_mode),
                 has_weapon=src.weapon,
                 prng=prng,
             )
@@ -678,7 +690,42 @@ def simulate_fight(
             return strike(dst, src, dst_skill, attack_type=rtype,
                           allow_riposte=False, riposte=True)
 
-        if not initiative_gate:
+        if opening is not None and round_no == 1:
+            # `cmds/std/touxi.lpc` / `cmds/std/ansuan.lpc`：命令内直接调
+            # `do_attack()`，不经过 `fight()` 的心跳出手门（`combatd.c:735`），
+            # 也不做先手比较。顺序、骰子与分支严格照抄原版命令。
+            mode = str(opening.get("mode") or "")
+            if mode not in ("touxi", "ansuan"):
+                raise ValueError(f"未知的 opening 模式: {mode!r}")
+            # 原版 `me->is_killing(victim)` 在 `kill_ob()` 之前都是 false。
+            attacker_killing = bool(opening.get("attacker_killing", False))
+            target_killing = bool(opening.get("target_killing", False))
+            if mode == "touxi":
+                # `touxi.lpc:47-55`：经验低的一刀，否则连出三刀。
+                if prng.below(max(0, me.exp)) < victim.exp // 2:
+                    branch = "single"
+                    strike(me, victim, skill_a, kill_mode=attacker_killing)
+                else:
+                    branch = "triple"
+                    for _ in range(3):
+                        strike(me, victim, skill_a, kill_mode=attacker_killing)
+                opening_info = {"mode": mode, "branch": branch, "detected": None}
+            else:
+                # `ansuan.lpc:178-191`：先一刀；经验高再补一刀，否则对方反击一刀。
+                strike(me, victim, skill_a, kill_mode=attacker_killing)
+                if prng.below(max(0, me.exp)) > victim.exp // 2:
+                    branch = "double"
+                    strike(me, victim, skill_a, kill_mode=attacker_killing)
+                else:
+                    branch = "counter"
+                    # `npc.c accept_ansuan()` 对不会说话的 NPC 先 `kill_ob(who)`，
+                    # 因此它的反击在破防门上已经算“击杀”。
+                    strike(victim, me, skill_b, kill_mode=target_killing)
+                # `ansuan.lpc:191`：`random(combat_exp) < exp/5` 即被发现。
+                detected = prng.below(max(0, me.exp)) < victim.exp // 5
+                opening_info = {"mode": mode, "branch": branch, "detected": bool(detected)}
+            opening_done = True
+        elif not initiative_gate:
             # 旧口径：双方每轮各挥击一次；开关关闭时骰序与行为保持原样。
             if first == "a":
                 outcome = strike(me, victim, skill_a)
@@ -774,7 +821,7 @@ def simulate_fight(
                     })
 
         rounds.append({"round": round_no, "actions": actions})
-        if eff_qi:
+        if eff_qi and not opening_done:
             # `damage.lpc:323-374 heal_up`：战斗中照样恢复（原版 `is_fighting()` 门
             # 被注释掉了）。玩家受 food/water 门控——本引擎不建模饥渴，略过。
             for key, actor in (("a", me), ("b", victim)):
@@ -806,6 +853,9 @@ def simulate_fight(
             dead.update((me.id, victim.id))
         if dead:
             break
+        if opening_done:
+            # 偷袭/暗算只结算命令里那几刀，不进入后续心跳对攻。
+            break
         if eff_qi and (me.unconscious or victim.unconscious):
             # 原版 `unconcious()` 的 `remove_all_enemy()`：昏迷即退场，本场结束；
             # 苏醒后需重新登记仇恨（不自动恢复）。补刀要另起一次指令。
@@ -836,7 +886,7 @@ def simulate_fight(
                     "level": new, "learned": new_learned,
                 })
 
-    return {
+    result = {
         "skill": skill_a,
         "target_skill": skill_b,
         "rounds": rounds,
@@ -858,3 +908,6 @@ def simulate_fight(
         "killing": bool(killing),
         "stopped": bool(stopped),
     }
+    if opening_info is not None:
+        result["opening"] = opening_info
+    return result
