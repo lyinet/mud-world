@@ -56,6 +56,15 @@ Effect 里做一次，并把钳制后的**实际**增量回写进 `Effect.data["
 `test_hp_add_on_zero_hp_records_zero_delta`（0 血再受击）、以及 `fight` 事件级
 “`sum(hp_add.delta) == 状态变化`”断言。
 
+**`overkill` 的出处（原版没有“超额伤害”文案）**：原版 `feature/damage.lpc:30-33`
+把 `qi` 钳到 **-1**（`val>=0 ? set(type,val) : set(type,-1)`）；
+`adm/daemons/combatd.lpc:552` 的 `receive_damage` 原样返回请求伤害，战报只用
+`damage_msg(damage, type)`（`combatd.lpc:569`），不显示溢出。我们的
+`combat_log.overkill = -min(0, hp_raw)` 是“模拟层未钳制 hp”与“state 层钳 0”之差，
+**只作对拍审计**：不参与任何状态计算、不消耗随机流、不进玩家文案（`xkx_shell`
+里那行“超额伤害：N 点”已删除）。它与“有效气血 -1 下限”不是同一机制；那条线落地后
+以它为准，本字段随之作废，禁止拿它当死亡阈值或二次扣血。
+
 ## 3. `fight`：原子回合模型 + 公式库接入
 
 - 实现：动作 `src/wsim/actions/combat.py::FightAction`；数值层

@@ -192,7 +192,7 @@ commands:
     layer: std
     aliases: ["切磋", "较量"]
     params: "<人物>"
-    summary: "向目标发起切磋（非致命）：按回合结算招式、伤害，受击方气血降到一半即停手，不分生死、不掉落。"
+    summary: "向目标发起切磋（非致命）：按回合结算招式、伤害，受击方气血降到一半即停手，不分生死、不掉落；对方正在杀你时，切磋会被视为击杀。"
     system: 战斗
     status: 已实现
     evidence: "FightAction（src/wsim/actions/combat.py）已注册；开启 combat.lethal_fight 后是切磋（combat_rules 按 combatd.lpc:683-691 半血停战），仍给 combat_exp/技能进度。要取性命用 kill。"

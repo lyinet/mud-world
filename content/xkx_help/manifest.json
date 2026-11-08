@@ -1,5 +1,5 @@
 {
-  "content_hash": "c2e336761ba3fbc6e88dea11bfa4990630758260839ab4ce836ce4645bb6558c",
+  "content_hash": "1d274b20eab0c2d1436fdc992f7f8497db63f9f10c7526d1d05e2a05c2c50f49",
   "counts": {
     "commands": 153,
     "status": {
@@ -47,8 +47,8 @@
     "topics": 32
   },
   "files": {
-    "commands.yaml": "91edb3a70e0eb10581a690333ea82c4402f934494314fb8bb4287fdc6336c83e",
-    "help-coverage.md": "0abc384c8c0033fbed4af45fc6ce7021f7207ba47d8e1485d3becd0bc9044136",
+    "commands.yaml": "0e4d53f3f9f23e521f7c7fedda8e3de35e6fb00fff88f7c82bfa1a0847e8b785",
+    "help-coverage.md": "3b7983f63da61f7b2c60b1b101d59af40a1ac4af3e805c79e5301f80ea1224e8",
     "topics.yaml": "860dce5b115e2a42d50c0d57917a0b786100f2d07a14c01c86998bb2bf9d33b8"
   },
   "generated_by": "tools/xkx_help/build.py",

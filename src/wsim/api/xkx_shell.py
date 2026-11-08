@@ -1268,7 +1268,7 @@ class XKXShell:
         return lines
 
     def _combat_report_lines(self, combat: dict[str, Any], target: dict[str, Any]) -> list[tuple[str, str]]:
-        """按引擎返回的 rounds[] 原样转述：回合号、每击结果、伤害与气血变化、胜负与超额伤害。"""
+        """按引擎返回的 rounds[] 原样转述：回合号、每击结果、伤害与气血变化、胜负。"""
         lines: list[tuple[str, str]] = []
         rounds = list(combat.get("rounds") or [])
         for row in rounds:
@@ -1340,19 +1340,6 @@ class XKXShell:
                         target["name"],
                         target_hp if target_hp is not None else "?",
                     ),
-                )
-            )
-        overkill = combat.get("overkill") or {}
-        if overkill:
-            lines.append(
-                (
-                    "info",
-                    "超额伤害："
-                    + "、".join(
-                        f"{self._combat_name(eid, target)} {int(raw or 0)} 点"
-                        for eid, raw in sorted(overkill.items())
-                    )
-                    + "。",
                 )
             )
         return lines
