@@ -9,11 +9,10 @@ commands:
     layer: std
     aliases: ["暗算"]
     params: "<人物> at <方向>"
-    summary: "对指定方向上的目标暗中下手，命中后造成额外伤害。"
+    summary: "对相邻房间里的目标暗中下手，没被发现就退回原处。"
     system: 战斗
-    status: 待实现
-    blocker: "战斗系统"
-    evidence: "基础回合战斗已由 FightAction（src/wsim/actions/combat.py）提供；暗算还缺潜行/先手判定。"
+    status: 已实现
+    evidence: "AnsuanAction（src/wsim/actions/combat.py）按 cmds/std/ansuan.c 复刻：先一刀，经验高再补一刀，否则对方反击；random(combat_exp)<exp/5 被发现则留在目标房间，否则退回；不会说话的目标按 npc.c accept_ansuan() 提前 kill_ob。走 actions 层直接 do_attack()，不经过心跳出手门。"
   - name: ask
     layer: std
     aliases: ["问", "打听"]
@@ -597,11 +596,10 @@ commands:
     layer: std
     aliases: ["偷袭"]
     params: "<人物>"
-    summary: "在战斗开始前偷袭目标，取得先手。"
+    summary: "在战斗开始前偷袭同房间的目标：经验低一刀，否则连出三刀。"
     system: 战斗
-    status: 待实现
-    blocker: "战斗系统"
-    evidence: "FightAction（src/wsim/actions/combat.py）已有回合战斗；偷袭需要先手/潜行判定，尚未实现。"
+    status: 已实现
+    evidence: "TouxiAction（src/wsim/actions/combat.py）按 cmds/std/touxi.c 复刻：random(combat_exp)<exp/2 时一刀、否则三刀，之后 kill_ob；走 actions 层直接 do_attack()，不经过心跳出手门，破防门按 is_killing=false 计算。"
   - name: train
     layer: std
     aliases: ["驯兽"]

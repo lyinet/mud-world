@@ -136,7 +136,7 @@ def test_output_is_byte_identical_across_two_runs():
         manifest = json.loads((out_a / "manifest.json").read_text(encoding="utf-8"))
         assert manifest["counts"]["commands"] == 153
         assert manifest["counts"]["topics"] == 32
-        assert manifest["counts"]["status"] == {"已实现": 41, "待实现": 51, "不做": 61}
+        assert manifest["counts"]["status"] == {"已实现": 43, "待实现": 49, "不做": 61}
 
 
 def test_committed_outputs_are_up_to_date():

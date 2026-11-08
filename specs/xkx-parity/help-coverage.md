@@ -15,15 +15,15 @@
 
 | 状态 | 数量 | 占比 |
 | --- | ---: | ---: |
-| 已实现 | 41 | 26.8% |
-| 待实现 | 51 | 33.3% |
+| 已实现 | 43 | 28.1% |
+| 待实现 | 49 | 32.0% |
 | 不做 | 61 | 39.9% |
 | 合计 | 153 | 100.0% |
 
 | 归属系统 | 已实现 | 待实现 | 不做 | 合计 |
 | --- | ---: | ---: | ---: | ---: |
 | 移动 | 2 | 0 | 0 | 2 |
-| 战斗 | 3 | 13 | 4 | 20 |
+| 战斗 | 5 | 11 | 4 | 20 |
 | 物品 | 10 | 2 | 7 | 19 |
 | 社交 | 4 | 5 | 20 | 29 |
 | 门派 | 6 | 23 | 4 | 33 |
@@ -34,7 +34,7 @@
 
 | # | 命令 | 中文别名 | 参数 | 一句话说明 | 归属系统 | 状态 | 依据 |
 | ---: | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `ansuan` | 暗算 | <人物> at <方向> | 对指定方向上的目标暗中下手，命中后造成额外伤害。 | 战斗 | **待实现** | 基础回合战斗已由 FightAction（src/wsim/actions/combat.py）提供；暗算还缺潜行/先手判定。 |
+| 1 | `ansuan` | 暗算 | <人物> at <方向> | 对相邻房间里的目标暗中下手，没被发现就退回原处。 | 战斗 | **已实现** | AnsuanAction（src/wsim/actions/combat.py）按 cmds/std/ansuan.c 复刻：先一刀，经验高再补一刀，否则对方反击；random(combat_exp)<exp/5 被发现则留在目标房间，否则退回；不会说话的目标按 npc.c accept_ansuan() 提前 kill_ob。走 actions 层直接 do_attack()，不经过心跳出手门。 |
 | 2 | `ask` | 问、打听 | <某人> about <话题> | 向 NPC 打听或自由提问，按人物设定给出回应。 | 社交 | **已实现** | TalkAction（src/wsim/actions/social.py）已注册，文字壳已接「问/打听」，可自由交谈；尚无 xkx 话题表。 |
 | 3 | `attack` | 唆使 | <动物> | 命令已驯服的动物攻击指定目标。 | 战斗 | **不做** | 宠物与坐骑实体、驯服度均未建模；本版不开放驯兽与宠物参战。 |
 | 4 | `baitan` | 摆摊、出摊 | — | 在所在位置摆摊，向路过的玩家出售货物。 | 经济 | **已实现** | OpenShopAction（src/wsim/actions/business.py）支持摊位型店铺；RestockAction/SetPriceAction 管库存与定价。 |
@@ -101,7 +101,7 @@
 | 65 | `task` | 任务榜、委托榜 | [-u] | 查看当前可接的委托榜。 | 系统 | **已实现** | session._quest_board_view 与 GET /api/player/quests；QuestAcceptAction/QuestDeliverAction（src/wsim/actions/quests.py）。 |
 | 66 | `team` | 组队 | with <某人> \| … | 与其他玩家组成队伍共同行动。 | 社交 | **不做** | 组队与队伍战斗未建模；V1 为单人江湖。 |
 | 67 | `tell` | 传话、私聊 | <某人> <讯息> | 向指定玩家发送私聊讯息。 | 社交 | **不做** | 玩家间私聊频道未建模。 |
-| 68 | `touxi` | 偷袭 | <人物> | 在战斗开始前偷袭目标，取得先手。 | 战斗 | **待实现** | FightAction（src/wsim/actions/combat.py）已有回合战斗；偷袭需要先手/潜行判定，尚未实现。 |
+| 68 | `touxi` | 偷袭 | <人物> | 在战斗开始前偷袭同房间的目标：经验低一刀，否则连出三刀。 | 战斗 | **已实现** | TouxiAction（src/wsim/actions/combat.py）按 cmds/std/touxi.c 复刻：random(combat_exp)<exp/2 时一刀、否则三刀，之后 kill_ob；走 actions 层直接 do_attack()，不经过心跳出手门，破防门按 is_killing=false 计算。 |
 | 69 | `train` | 驯兽 | <动物> | 训练动物，使其听从指令。 | 系统 | **不做** | 宠物与坐骑实体、驯服度均未建模；本版不开放宠物玩法。 |
 | 70 | `trap` | 设陷阱 | [<方向>] | 在某个方向布下陷阱。 | 战斗 | **不做** | 陷阱与移动触发判定未建模。 |
 | 71 | `tune` | 频道 | [<频道>\|on\|off] | 开关或切换聊天频道。 | 社交 | **不做** | 玩家聊天频道与订阅关系未建模；本版不开放频道切换。 |
@@ -274,7 +274,7 @@
 - `qixing`（布阵、北斗阵）：多人阵法与全真门派专属玩法未建模，V1 不开放。
 - `shexin`（慑心）：精神控制类门派技能未建模，且属 PK 向玩法。
 
-### 4.2 现在做不到、但可立项（51 条）
+### 4.2 现在做不到、但可立项（49 条）
 
 **任务系统（1 条）**
 
@@ -293,12 +293,10 @@
 
 - `get`（拿、捡）：战斗掉落只产出 loot_create 效果（src/wsim/world/effects.py:104 定义、:422 处理），src/wsim/actions/combat.py:124 在战斗结算里发出该效果，但没有 LootAction 消费它；地面物品模型也未建模。
 
-**战斗系统（13 条）**
+**战斗系统（11 条）**
 
-- `ansuan`（暗算）：基础回合战斗已由 FightAction（src/wsim/actions/combat.py）提供；暗算还缺潜行/先手判定。
 - `hit`（出手、进招）：FightAction（src/wsim/actions/combat.py）已有完整回合战斗；hit 需要单次攻击接口，文字壳尚未挂动词。
 - `surrender`（投降）：FightAction（src/wsim/actions/combat.py）已有胜负结算；主动认输/脱离战斗尚未实现。
-- `touxi`（偷袭）：FightAction（src/wsim/actions/combat.py）已有回合战斗；偷袭需要先手/潜行判定，尚未实现。
 - `wimpy`（逃命线）：战斗已有回合与体力；自动逃跑阈值与 flee 动作尚未实现。
 - `burning`（发怒、燃烧）：战斗已有攻防结算；怒气资源与增益效果尚未建模。
 - `enforce`（加力）：战斗已有攻防结算；内力资源与加力加成尚未建模。
@@ -353,7 +351,7 @@
 
 ### 4.3 排期建议
 
-1. **P0 战斗系统**：补 kill/hit/偷袭等动词与战斗内资源，覆盖 13 条命令。
+1. **P0 战斗系统**：补 kill/hit/偷袭等动词与战斗内资源，覆盖 11 条命令。
 2. **P1 武学与资源**：补技能种类、激发/准备槽、精/气/内力与招式位，覆盖 17 条武学命令。
 3. **P2 师承、社交、任务与战利品**：开放拜师/授课，补打听话题、赠送、结拜、任务定位与拾取，覆盖 10 条。
 4. **P3 玩家档案与文字壳**：补别名、清屏、称号、描述、改密、设置与休息注册，覆盖 11 条。
@@ -361,8 +359,9 @@
 
 ## 五、已实现命令的引擎落点
 
-共 41 条。逐条落点见上表「依据」列；均为 `src/`、`GET /api/` 或 `content/` 中可核对的动作/视图。
+共 43 条。逐条落点见上表「依据」列；均为 `src/`、`GET /api/` 或 `content/` 中可核对的动作/视图。
 
+- `ansuan`：AnsuanAction（src/wsim/actions/combat.py）按 cmds/std/ansuan.c 复刻：先一刀，经验高再补一刀，否则对方反击；random(combat_exp)<exp/5 被发现则留在目标房间，否则退回；不会说话的目标按 npc.c accept_ansuan() 提前 kill_ob。走 actions 层直接 do_attack()，不经过心跳出手门。
 - `ask`：TalkAction（src/wsim/actions/social.py）已注册，文字壳已接「问/打听」，可自由交谈；尚无 xkx 话题表。
 - `baitan`：OpenShopAction（src/wsim/actions/business.py）支持摊位型店铺；RestockAction/SetPriceAction 管库存与定价。
 - `buy`：BuyAction（src/wsim/actions/commerce.py）；价格与库存由店铺状态校验。
@@ -381,6 +380,7 @@
 - `remove`：UnequipAction（src/wsim/actions/equipment.py）；`remove all` 可一次卸下全部防具。
 - `shoplist`：房间 services_detail 与店铺只读视图（src/wsim/api/session.py）提供价格/库存。
 - `task`：session._quest_board_view 与 GET /api/player/quests；QuestAcceptAction/QuestDeliverAction（src/wsim/actions/quests.py）。
+- `touxi`：TouxiAction（src/wsim/actions/combat.py）按 cmds/std/touxi.c 复刻：random(combat_exp)<exp/2 时一刀、否则三刀，之后 kill_ob；走 actions 层直接 do_attack()，不经过心跳出手门，破防门按 is_killing=false 计算。
 - `unwield`：UnequipAction（src/wsim/actions/equipment.py）；与 remove 共用装备槽。
 - `wear`：EquipAction（src/wsim/actions/equipment.py）；按装备槽校验。
 - `wield`：EquipAction（src/wsim/actions/equipment.py）；equip 的武器槽。
