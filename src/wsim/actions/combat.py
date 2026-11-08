@@ -116,6 +116,7 @@ def combat_effects(
     loot: dict[str, int] | None = None,
     extra_log: dict[str, Any] | None = None,
     drop_dead_npc_attacker: bool = False,
+    initiative_gate: bool = False,
 ) -> list[Effect]:
     """结算一场（或一回合）战斗并产出 Effect。`FightAction` 与 NPC 主动攻击共用。"""
     skill = intent.args.get("skill")
@@ -131,6 +132,7 @@ def combat_effects(
         max_rounds=max_rounds,
         trace=trace,
         player_ids=set(state.players),
+        initiative_gate=initiative_gate,
     )
 
     effects: list[Effect] = []
@@ -298,6 +300,9 @@ def combat_effects(
 class FightAction(Action):
     verb = "fight"
 
+    def __init__(self, initiative_gate: bool = False):
+        self.initiative_gate = bool(initiative_gate)
+
     def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
         target = _combat_target(intent)
         if not target:
@@ -335,6 +340,7 @@ class FightAction(Action):
             max_rounds=_round_cap(intent),
             reason="fight",
             loot=_int_dict(intent.args.get("loot")),
+            initiative_gate=self.initiative_gate,
         )
 
 

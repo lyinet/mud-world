@@ -38,6 +38,11 @@ from .skill_actions import (  # noqa: E402  (与库同级的内部模块)
 SAFETY_ROUNDS = 10000
 SKILL_MAX = 800
 _ATTR_DEFAULTS = {"str": 10, "int": 10, "con": 10, "dex": 10, "sta": 10, "spi": 10}
+# 原版玩家 cps/cor 由 `logind` 掷点（`race/human.lpc:67-68` 的 `10+random(21)`），
+# 不可确定性复刻。复刻玩家创世**不写**这两个键（保持旧世界状态哈希不变），
+# 战斗层按原版 MID 快照实测值兜底；仅 `initiative_gate` 打开时会被读取。
+PLAYER_MID_CPS = 23
+PLAYER_MID_COR = 24
 
 # ---- 库第 4 节“调用方必须自己算好的东西”：引擎侧当前取值 ----
 # 这些参数在 xkx 里依赖技能虚函数、对象临时状态与行动队列；引擎尚无对应建模，
@@ -72,7 +77,9 @@ class TraceRandom:
         n = int(n)
         self.count += 1
         if n <= 0:
-            # 库对 non-positive 上界直接返回 0，不消费引擎随机流；这里如实记录。
+            # 与 LPC 驱动 `random(0)` 一致：返回 0 且**不调用引擎 randint**。
+            # 计数仍记一次（`draws` 是既有事件字段，关开关时必须逐字节不变）；
+            # 是否真的消耗随机流由底层 `rng.calls` 观测。
             if self.trace is not None:
                 self.trace.append((0, 0))
             return 0
@@ -84,6 +91,11 @@ class TraceRandom:
 
 def _base(ent: Any, name: str) -> int:
     return int((getattr(ent, "attrs", None) or {}).get(name, _ATTR_DEFAULTS.get(name, 10)))
+
+
+def _raw_attr(ent: Any, name: str) -> int:
+    """`query("cps")` / `query("cor")` 的原始值：内容没写就是 0，不用属性缺省 10。"""
+    return int((getattr(ent, "attrs", None) or {}).get(name, 0) or 0)
 
 
 def skill_level(ent: Any, skill: str) -> int:
@@ -203,6 +215,23 @@ class _Actor:
         self.neili = max(0, int(getattr(ent, "neili", 0)))
         self.max_neili = max(0, int(getattr(ent, "max_neili", 0)))
         self.jiali = max(0, int(getattr(ent, "jiali", 0)))
+        # `feature/attribute.lpc:92-99`：query_cps/query_cor 都是“原始值 + apply 临时加成”。
+        # 内容没写 cps/cor 的走兽必须按 0 处理（`race/beast.lpc` 不掷这两项）。
+        # 玩家创世不写这两个键；按 MID 快照 23/24 兜底（见模块顶部常量）。
+        attrs = getattr(ent, "attrs", None) or {}
+        raw_cps = _raw_attr(ent, "cps")
+        raw_cor = _raw_attr(ent, "cor")
+        if self.is_player and "cps" not in attrs:
+            raw_cps = PLAYER_MID_CPS
+        if self.is_player and "cor" not in attrs:
+            raw_cor = PLAYER_MID_COR
+        self.cps = raw_cps + int(self.temp_apply.get("apply/composure", 0))
+        self.cor = raw_cor + int(self.temp_apply.get("apply/courage", 0))
+        # `set_temp("guarding", ...)` 的生命周期见 combatd.lpc:694/744/764/784。
+        self.guarding = False
+        # 原版 `!living(victim)`（qi<0 昏迷）与 `eff_qi<0`（die）是两种状态。
+        self.unconscious = False
+        self.dead = False
 
     def level(self, skill: str) -> int:
         """原版 `query_skill(skill, 1)` 的 raw 等级（`feature/skill.lpc:98`）。
@@ -370,6 +399,7 @@ def simulate_fight(
     player_ids: set[str] | None = None,
     action_table: dict[str, list[dict[str, Any]]] | None = None,
     hook_table: dict[str, dict[str, Any]] | None = None,
+    initiative_gate: bool = False,
 ) -> dict[str, Any]:
     """原子结算战斗；`max_rounds=None` 表示不封顶（原版语义）。
 
@@ -402,7 +432,15 @@ def simulate_fight(
     for round_no in range(1, limit + 1):
         actions: list[dict[str, Any]] = []
 
-        def strike(src: _Actor, dst: _Actor, src_skill: str) -> str:
+        def strike(
+            src: _Actor,
+            dst: _Actor,
+            src_skill: str,
+            *,
+            attack_type: str = "regular",
+            allow_riposte: bool = False,
+            riposte: bool = False,
+        ) -> str:
             ap = _attack_power(src, src_skill)
             dp = _defense_power(dst, "dodge")
             mapped = src.mapped(src_skill)
@@ -433,6 +471,12 @@ def simulate_fight(
                 "move_text": str(move["text"]) if move else "",
                 "move_index": int(move["index"]) if move else -1,
             }
+            # 仅在出手门开启时登记攻击类型；关闭时事件字段与旧基线逐字节一致。
+            # `riposte` 标记反击通道：原版 TYPE_QUICK 同时用于反击与昏迷补刀，
+            # 单看 `attack_type` 无法把两者分开，验收需要这个显式字段。
+            if initiative_gate:
+                entry["attack_type"] = attack_type
+                entry["riposte"] = bool(riposte)
             hp_before = dst.hp
 
             if xf.resolve_dodge(ap=ap, dp=dp, victim_busy=VICTIM_BUSY,
@@ -455,6 +499,10 @@ def simulate_fight(
                 entry.update({"result": "dodge", "damage": 0,
                               "hp_before": hp_before, "hp_after": dst.hp})
                 actions.append(entry)
+                # `combatd.lpc:691-718`：dodge 的 damage 是 RESULT_DODGE(<1)，
+                # 同样满足反击条件；不是只对“命中但 0 伤”触发。
+                if allow_riposte and attack_type == "regular" and dst.guarding:
+                    _riposte(src, dst, skill_b if dst is victim else skill_a)
                 return "alive"
 
             pp = xf.select_parry_power(
@@ -480,10 +528,16 @@ def simulate_fight(
                 entry.update({"result": "parry", "damage": 0,
                               "hp_before": hp_before, "hp_after": dst.hp})
                 actions.append(entry)
+                if allow_riposte and attack_type == "regular" and dst.guarding:
+                    _riposte(src, dst, skill_b if dst is victim else skill_a)
                 return "alive"
 
             # 钩子先算整数增量（force/martial 的随机在此消费），再交给库。
             hooks, force_reflected = _skill_hooks(src, dst, mapped, prng, hooks_by_skill)
+            if src.hp < 0:
+                src.unconscious = True
+            if src.eff_hp < 0:
+                src.dead = True
             breakdown = xf.resolve_damage(
                 # `combatd.lpc:436-440`：持兵器取 apply/damage，空手取
                 # apply/unarmed_damage；`Entity.attack` 是旧内容的等价基础伤害入口。
@@ -533,11 +587,15 @@ def simulate_fight(
 
             dst.hp = new_hp
             dst.eff_hp = new_eff
-            # xkx 的心跳判定按理只把 qi<0 判为昏迷；本引擎的 `fight` 是击杀模式，
-            # 没有昏迷计时/苏醒流程，所以 `unconcious` 在动作层视同战斗失败（倒下）。
             state = xf.death_state(
                 qi=new_hp, jing=new_hp, eff_qi=new_eff, eff_jing=new_eff, living=True
             )
+            # 原版 `char.lpc:65-78`：`eff_qi<0` → die()；`qi<0` → unconcious()，
+            # 昏迷者在下一次自身心跳死亡，中间攻击方至多获得一次快攻。
+            if state == xf.STATE_DEAD:
+                dst.dead = True
+            elif state == xf.STATE_UNCONCIOUS:
+                dst.unconscious = True
             down = state != xf.STATE_ALIVE
             entry.update({
                 "result": "hit",
@@ -554,22 +612,97 @@ def simulate_fight(
                 "state": state,
             })
             actions.append(entry)
+            # `combatd.lpc:691-718`：命中但 damage<1（被护甲吃光等）同样触发反击。
+            if (allow_riposte and attack_type == "regular"
+                    and breakdown.final_damage < 1 and dst.guarding):
+                _riposte(src, dst, skill_b if dst is victim else skill_a)
             return "down" if down else "alive"
 
-        if first == "a":
-            outcome = strike(me, victim, skill_a)
-            if outcome == "alive":
-                outcome = strike(victim, me, skill_b)
-        else:
-            outcome = strike(victim, me, skill_b)
-            if outcome == "alive":
+        def _riposte(src: _Actor, dst: _Actor, dst_skill: str) -> None:
+            """`combatd.lpc:692-718`：守方无条件反击，两分支只切换类型。"""
+            dst.guarding = False  # :694
+            roll = prng.below(src.cps)  # :695；cps=0 时不取骰
+            rtype = "quick" if roll < 5 else "riposte"
+            strike(dst, src, dst_skill, attack_type=rtype, allow_riposte=False, riposte=True)
+
+        if not initiative_gate:
+            # 旧口径：双方每轮各挥击一次；开关关闭时骰序与行为保持原样。
+            if first == "a":
                 outcome = strike(me, victim, skill_a)
+                if outcome == "alive":
+                    outcome = strike(victim, me, skill_b)
+            else:
+                outcome = strike(victim, me, skill_b)
+                if outcome == "alive":
+                    outcome = strike(me, victim, skill_a)
+        else:
+            # `combatd.lpc:735-800`：每个心跳每个 living 各跑一次三分支决策。
+            order = (
+                ((me, victim, skill_a), (victim, me, skill_b))
+                if first == "a"
+                else ((victim, me, skill_b), (me, victim, skill_a))
+            )
+            for actor, target, actor_skill in order:
+                if actor.dead or actor.unconscious or target.dead:
+                    continue
+                if target.unconscious:
+                    # `:742-760`：目标已昏迷，攻击方获得一次 `TYPE_QUICK` 补刀；
+                    # 目标在下一次自身心跳 `die()`（`char.lpc:72-77`），因此最多 +1。
+                    actor.guarding = False
+                    strike(actor, target, actor_skill, attack_type="quick")
+                    target.dead = True
+                    continue
+                # `:763`：主动门。走兽 cps=0 时 random(0) 不取骰。
+                if prng.below(target.cps * 3) > actor.cor:
+                    actor.guarding = False
+                    strike(actor, target, actor_skill, attack_type="regular",
+                           allow_riposte=True)
+                    continue
+                # `:783-800`：守卫分支。首次守卫消耗两次 guard_msg 取数；
+                # 已守卫则静默 return，不取骰。
+                if actor.guarding:
+                    actions.append({
+                        "round": round_no,
+                        "actor": actor.id,
+                        "target": target.id,
+                        "attack_type": "guard",
+                        "result": "guard",
+                        "guard_silent": True,
+                        "damage": 0,
+                        "hp_before": target.hp,
+                        "hp_after": target.hp,
+                    })
+                else:
+                    actor.guarding = True
+                    guard_message = prng.below(5)   # :785 sizeof(guard_msg)=5
+                    guard_redirect = prng.below(5)  # :788 转播文案，照取对齐骰流
+                    actions.append({
+                        "round": round_no,
+                        "actor": actor.id,
+                        "target": target.id,
+                        "attack_type": "guard",
+                        "result": "guard",
+                        "guard_silent": False,
+                        "guard_message": guard_message,
+                        "guard_redirect": guard_redirect,
+                        "damage": 0,
+                        "hp_before": target.hp,
+                        "hp_after": target.hp,
+                    })
 
         rounds.append({"round": round_no, "actions": actions})
         for actor in (me, victim):
-            # 气血/有效气血任一为负即视为倒下（库的 death_state 已把 eff<0 判死）。
-            if actor.hp < 0 or actor.eff_hp < 0:
-                dead.add(actor.id)
+            if initiative_gate:
+                # 只认 `die()`（eff<0）与显式补刀；`qi<0` 是昏迷，不是死亡。
+                if actor.dead or actor.eff_hp < 0:
+                    dead.add(actor.id)
+            else:
+                # 旧口径：气血/有效气血任一为负即视为倒下。
+                if actor.hp < 0 or actor.eff_hp < 0:
+                    dead.add(actor.id)
+        if initiative_gate and me.unconscious and victim.unconscious:
+            # 双方同时昏迷：各自下个心跳都会 die()，本引擎直接判同归于尽。
+            dead.update((me.id, victim.id))
         if dead:
             break
 

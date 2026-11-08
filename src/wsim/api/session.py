@@ -557,6 +557,8 @@ class WorldSession:
         self.content = self._load_content_pack(self.content_root)
         # 房间 reset / NPC 重生：世界配置显式打开才挂动作；默认关闭零影响。
         self.room_reset_enabled = self._load_room_reset(self.world_config_path)
+        # 战斗出手门/反击/昏迷快攻：默认关闭，只有世界配置显式打开才生效。
+        self.initiative_gate = self._load_initiative_gate(self.world_config_path)
         self.room_reset_policy = (
             RoomResetPolicy(content=self.content, seed=seed, enabled=True)
             if self.room_reset_enabled
@@ -577,7 +579,12 @@ class WorldSession:
         if npc_limit:
             npcs = npcs[:npc_limit]
         self.store = EventStore(self.run_dir / "events.sqlite", check_same_thread=False)
-        self.registry = build_registry(self.content, seed, room_reset=self.room_reset_policy)
+        self.registry = build_registry(
+            self.content,
+            seed,
+            room_reset=self.room_reset_policy,
+            initiative_gate=self.initiative_gate,
+        )
         # 对话模型只挂 TalkAction；不构造 decision provider，不改 llm_enabled。
         # 旁路不属于世界状态：删掉只影响台词，不影响事件/状态/哈希。
         self.dialogue_aside = DialogueAside(self.run_dir)
@@ -1574,6 +1581,22 @@ class WorldSession:
             return False
         raw = loaded.get("room_reset") or {}
         return bool(raw.get("enabled")) if isinstance(raw, dict) else bool(raw)
+
+    @staticmethod
+    def _load_initiative_gate(path: Path | None) -> bool:
+        """只读 `combat.initiative_gate`；缺省/解析失败/非 dict 一律 False。"""
+        if path is None:
+            return False
+        try:
+            import yaml
+
+            loaded = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
+        except Exception:
+            return False
+        if not isinstance(loaded, dict):
+            return False
+        raw = loaded.get("combat") or {}
+        return bool(raw.get("initiative_gate")) if isinstance(raw, dict) else False
 
     @staticmethod
     def _load_player_start(path: Path | None) -> dict | None:

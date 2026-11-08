@@ -9,6 +9,41 @@
 
 ---
 
+## [feat] 2026-11-08 — S1 出手门 + 守卫 + 反击 + 昏迷补刀（三件套）
+
+- **改了什么**：
+  - `src/wsim/sim/combat_rules.py`：新增 `initiative_gate` 三分支行动决策——
+    `:763` 出手门 `random(victim.cps*3) > me.cor`、`:783-800` 守卫（首次两次
+    `random(5)` 选文案、已守卫静默 0 取骰）、`:691-718` 无条件反击、
+    `:742` 昏迷补刀；`TraceRandom.below(n<=0)` 返回 0 且**不消耗**引擎随机流；
+    玩家 `cps/cor` 由战斗层兜底 23/24，不写入创世属性。
+  - `actions/combat.py`、`actions/aggression.py`、`actions/registry.py`、
+    `api/session.py`、`api/xkx_shell.py`（五条原版守卫文案）、`sim/headless.py`
+    逐层透传开关；`tests/test_xkx_initiative_gate.py` 新增 7 个测试锁死骰序。
+  - `specs/xkx-parity/combat-tempo.spec.md`：S1 改为“已批准/实现中”，补
+    `guarding` 生命周期、骰序核对表、`attack_type`/`riposte` 可观测字段、S4 源码结论。
+  - `reports/xkx-ref/s1-initiative-gate.md`：实现清单 + 验收原始行 + 基线归因。
+- **为什么改**：只补出手门会把走兽打得无法击杀；门、守卫、反击、补刀必须一起上，
+  才能同时满足“玩家对走兽主动 0 出手”和“打猎闭环成立”。
+- **验证方式**：
+  - 狼狗 `kill` 10 场：10/10 击杀、10/10 掉狗皮；玩家 `regular=0`，
+    逐场出手 = riposte + 1 次补刀；`attack_rounds` 14–21（原版 7–24）。
+  - 店小二 20 场：20/20 胜；玩家守卫下界 30.57%（原版 31%），
+    店小二 15.26%（原版 24%，差 -8.74pp，因复刻 `cor` 固定 10、原版每实例重掷）。
+  - 老虎 10 场：0/10 胜、玩家主动 0 出手、`attack_rounds` 3–10（均值 6.00，原版 5.50）。
+  - 基线：健康 1 日世界开/关逐事件一致，`state_final 2265c85c…` /
+    `event_final d0c4777d…` / 722 事件不变，**无需迁移**；合成战斗世界只有
+    `fight` 事件新增 `attack_type` / `riposte` 与 guard/quick 动作流。
+  - 活世界 8011/8041 未 `--reset` 重启（`world: existing`），真实 HTTP 狼狗 18 回合击杀、
+    守卫文案正常；**掉落未通过**，根因是活世界创世早于掉落补丁 + `room_reset._baseline`
+    不含 `drops`，非 S1 回归，未在本提交修复。
+  - 全量 pytest：1020 项收集、1002 通过、18 skip、0 failed（exit 0）。
+  - 公式库 `tools/xkx_formula/` 零改动；`config/worlds/default.yaml` 未加键；
+    `config/worlds/xkx.yaml` 未在本提交打开（待老板判定）。
+- **commit**：__COMMIT__
+
+---
+
 ## [docs] 2026-11-08 — 战斗节奏取证四件套 + S0 报告分列（S1 未实现）
 
 - **改了什么**：

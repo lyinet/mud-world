@@ -120,6 +120,8 @@ class RunConfig:
     npc_wander: bool = False
     # 房间 reset / NPC 重生（默认关闭）：世界配置显式打开才调度。
     room_reset: bool = False
+    # 战斗出手门（默认关闭）：与原版 `combatd.lpc:763` 对齐；仅验收/对拍时打开。
+    initiative_gate: bool = False
 
 
 def _npc_money(state: WorldState) -> int:
@@ -181,7 +183,10 @@ def run_headless(
     store = EventStore(out_dir / "events.sqlite")
     spawns = normalize_spawns(cfg.spawns) if cfg.spawns is not None else load_spawns(root)
     reset_policy = RoomResetPolicy(content=content, seed=cfg.seed, enabled=bool(cfg.room_reset))
-    registry = build_registry(content, cfg.seed, spawns=spawns, room_reset=reset_policy)
+    registry = build_registry(
+        content, cfg.seed, spawns=spawns, room_reset=reset_policy,
+        initiative_gate=cfg.initiative_gate,
+    )
     writer = Writer(state, store, registry, cfg.seed)
 
     genesis = build_genesis(content, npcs, root=root, seed=cfg.seed)

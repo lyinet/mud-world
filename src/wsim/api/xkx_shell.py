@@ -113,6 +113,16 @@ def _humanize(text: str) -> str:
         result = re.sub(rf"(?<![A-Za-z]){re.escape(code)}(?![A-Za-z])", label, result)
     return result
 
+# 原版 `combatd.lpc:25-31` 的 guard_msg：首次进入守卫分支才显示，连续守卫静默。
+GUARD_MESSAGES: tuple[str, ...] = (
+    "$N注视着$n的行动，企图寻找机会出手。",
+    "$N正盯着$n的一举一动，随时准备发动攻势。",
+    "$N缓缓地移动脚步，想要找出$n的破绽。",
+    "$N目不转睛地盯着$n的动作，寻找进攻的最佳时机。",
+    "$N慢慢地移动着脚步，伺机出手。",
+)
+
+
 # 命令别名：英文为主，中文只做输入便利，不发明新玩法。
 VERB_ALIASES: dict[str, str] = {
     "look": "look", "l": "look", "看": "look", "环顾": "look", "查看": "look",
@@ -1266,6 +1276,16 @@ class XKXShell:
                 else:
                     prefix = ""
                     desc = self._render_action_text(move_text, who, whom) if move_text else ""
+                if result == "guard":
+                    # `combatd.lpc:799-800`：已守卫时不显示任何文案；首次守卫按
+                    # `guard_msg[guard_message]` 显示一条，不能渲染成“击中伤害0”。
+                    if act.get("guard_silent"):
+                        continue
+                    index = int(act.get("guard_message") or 0) % len(GUARD_MESSAGES)
+                    lines.append(
+                        ("combat", "  " + self._render_action_text(GUARD_MESSAGES[index], who, whom))
+                    )
+                    continue
                 if result == "dodge":
                     line = f"  {desc}，但{whom}闪开了。" if desc else f"  {who}{prefix}{whom}闪开了。"
                     lines.append(("combat", line))

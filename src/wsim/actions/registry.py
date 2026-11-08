@@ -49,6 +49,7 @@ def build_registry(
     plugin_dir: Path | None = None,
     spawns: list[dict] | None = None,
     room_reset=None,
+    initiative_gate: bool = False,
 ) -> ActionRegistry:
     from .aggression import NpcAggressionAction
     from .basic import ConsumeAction, CultivateAction, MoveAction, WorkAction
@@ -177,12 +178,12 @@ def build_registry(
     reg.register(PlayerRestAction())
     reg.register(SystemPlayerPresenceAction())
     reg.register(SystemTickAction())
-    reg.register(FightAction())
+    reg.register(FightAction(initiative_gate=initiative_gate))
     # NPC 主动攻击：规则只从内容包派生；旧九地点内容没有 aggressive/三个专属 id，
     # 规则表为空，动作永远拒绝，事件流不变。
     from ..sim.aggression import aggression_rules
 
-    reg.register(NpcAggressionAction(aggression_rules(content)))
+    reg.register(NpcAggressionAction(aggression_rules(content), initiative_gate=initiative_gate))
     reg.register(LootAction(content))
     reg.register(DropAction(content))
     reg.register(WimpyAction())

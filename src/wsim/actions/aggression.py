@@ -119,8 +119,13 @@ def _log(npc: Any, target: Any, mode: str, **extra: Any) -> Effect:
 class NpcAggressionAction(Action):
     verb = "npc_aggression"
 
-    def __init__(self, rules: dict[str, dict[str, Any]] | None = None):
+    def __init__(
+        self,
+        rules: dict[str, dict[str, Any]] | None = None,
+        initiative_gate: bool = False,
+    ):
         self.rules = rules or {}
+        self.initiative_gate = bool(initiative_gate)
 
     def _rule(self, entity: Any) -> dict[str, Any] | None:
         return rule_for(entity, self.rules)
@@ -249,6 +254,7 @@ class NpcAggressionAction(Action):
                     "defender": str(target.id),
                 },
                 drop_dead_npc_attacker=True,
+                initiative_gate=self.initiative_gate,
             )
         )
 

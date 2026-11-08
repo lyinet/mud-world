@@ -53,6 +53,9 @@ ARCHETYPE_ATTRS: dict[str, dict[str, int]] = {
     # 膂力 / 根骨 / 身法 / 悟性 / 精神 / 耐力
     # kar(福缘) / per(容貌)：原版 logind 用 `10 + random(21)` 各取一次；
     # 复刻改为确定性定值 20/20（大狼狗 `random(kar+per)` 判定的输入）。
+    # cps(定力) / cor(胆识) 不写进创世属性：原版 human.lpc:67-68 是 `10+random(21)`，
+    # 复刻由战斗层按 MID 快照实测 23/24 兜底（见 combat_rules.PLAYER_MID_CPS/COR），
+    # 这样关闭出手门时旧世界的状态哈希逐字节不变。
     "游侠": {"str": 20, "con": 20, "dex": 18, "int": 15, "spi": 15, "sta": 20, "kar": 20, "per": 20},
     "商人": {"str": 15, "con": 16, "dex": 15, "int": 20, "spi": 18, "sta": 18, "kar": 20, "per": 20},
     "捕快": {"str": 18, "con": 18, "dex": 17, "int": 17, "spi": 16, "sta": 19, "kar": 20, "per": 20},

@@ -256,69 +256,103 @@ void fight(object me, object victim) {
 - `tools/xkx_ref/measure_win_loss.py` 的结果表分列：原版 `attack_rounds`、复刻 `rounds_used`；逐场表头改为 `attack_rounds`；表下注明“单位不同、禁止相减”。
 - 已重生成 `reports/xkx-ref/win-loss.md`；旧文与 `corrections` 保留。
 
-### S1（未批准，以下仅为设计）
+### S1（已批准；实现中）
 
-**目标**：把 `combat_rules.duel()` 从“双方每轮各出手一次”改为原版的三分支行动决策，并补上反击与昏迷快攻。**只开门不补反击，会让狼狗/走兽不可击杀，打猎闭环立刻死。**
+**目标**：把 `simulate_fight()` 从“双方每轮各出手一次”改为原版的三分支行动决策，并补上反击与昏迷补刀。**三件套必须一起上线**：`:763` 出手门 + `:783` guard 置位与 `:799` 返回 + `:692-718` 反击 + `:742` 昏迷快攻。只开门不补反击，会让狼狗/走兽不可击杀，打猎闭环立刻死。
 
 #### S1a：cps/cor 数据（逐 race 取自源码，不自造默认表）
 
-| race | cps | cor | 源码 |
+| race | cps | cor | 源码 / 复刻取值 |
 |---|---|---|---|
-| 人类 | `10 + random(21)` | `10 + random(21)`（仅当未定义或 0） | `adm/daemons/race/human.lpc:67-68` |
+| 人类 | `10 + random(21)` | `10 + random(21)`（仅当未定义或 0） | `adm/daemons/race/human.lpc:67-68`；复刻 NPC 由内容 `attrs_roll` 的 `cps/cor: [10,30]` 落成 `attrs`，等价于 `10+random(21)` |
 | beast1 | `random(21) + 5` | `random(41) + 5` | `adm/daemons/race/beast1.lpc:102-103` |
 | beast2 | `random(21) + 5` | `random(41) + 5` | `adm/daemons/race/beast2.lpc:84-85` |
 | 走兽（beast） | **源码未设 → 0** | **源码未设 → 0** | `adm/daemons/race/beast.lpc:57-67` |
-| 走兽特例：郭庄大狼狗 | 源码未设 → 运行期实测 0 | `set("cor", 30)` | `d/hangzhou/npc/wolfdog.lpc:13` |
-| 杭州老虎 | 源码未设 → 运行期实测 0 | 源码未设 → 运行期实测 0 | `d/hangzhou/npc/laohu.lpc:20-30`（只设 exp/apply/armor/jiali） |
+| 走兽特例：郭庄大狼狗 | 源码未设 → 0 | `set("cor", 30)` | `d/hangzhou/npc/wolfdog.lpc:13`；运行期实测 `cps=0 / cor=30` |
+| 杭州老虎 | 源码未设 → 0 | 源码未设 → 0 | `d/hangzhou/npc/laohu.lpc:20-30`（只设 exp/apply/armor/jiali）；运行期实测 `0 / 0` |
+| 复刻玩家 | 23（战斗层兜底） | 24（战斗层兜底） | 原版 `logind` 掷点不可确定性复刻；**不写入创世属性**（保证开关关闭时旧世界状态哈希不变），战斗层 `combat_rules.PLAYER_MID_CPS/COR` 按原版 MID 快照实测 `23/24` 兜底；仅 `initiative_gate` 打开时读取 |
 
-- `apply/composure` / `apply/courage` 必须计入（`attribute.lpc:92-99`）；复刻若没有这两个临时字段，建为 0，不省略。
-- 任何源码确实不掷的值都写 0，并在注释里注明“源码未设，运行期实测值 = X”。禁止按“走兽都 0”一类归纳自造表。
+- 复刻读取口径必须与 `feature/attribute.lpc:92-99` 一致：
+  `cps = attrs["cps"] + temp_apply["apply/composure"]`，
+  `cor = attrs["cor"] + temp_apply["apply/courage"]`；两个临时键缺省即 0，不省略。
+- **禁止**用 `_ATTR_DEFAULTS` 的 10 兜底 cps/cor：走兽内容没有这两个键，必须 raw get 默认 **0**。
+- 任何源码确实不掷的值都写 0，并在注释里注明“源码未设，运行期实测值 = X”。
 
-#### S1b：每心跳三分支
+#### S1b：每心跳三分支（`combatd.lpc:735-800`）
 
-按 `combatd.lpc:735-800` 的顺序实现：
+1. **快攻分支**（`:742-760`）：目标 `busy` 或 `!living`（昏迷/非活）→ 攻击方 `guarding=0`，`do_attack(TYPE_QUICK)`。
+2. **主动分支**（`:763-780`）：否则掷门 `random(victim.cps*3) > me.cor`；为真 → `guarding=0`，`do_attack(TYPE_REGULAR)`。
+3. **守卫分支**（`:783-800`）：门为假 → 若尚未 `guarding`，置 1、消耗两次 `random(sizeof(guard_msg))`（5 条文案，`:785`/`:788`）、`return`；若已 `guarding`，静默 `return`，**不取骰**。
+- 原版没有 `continue`：每个 heart beat 每个 living 各跑一次 `fight()`，`return` 只结束本次心跳。复刻里“每个交换轮双方各跑一次决策”，因此一方守卫时该轮它就没有动作。
+- 双击（`:748-760` / `:768-780`）在本复刻不成立：实体没有 `query("double_attack")`，也没有 `prepare` 多于一式；条件恒假，**不取骰**。不新增双击建模。
 
-1. 若 `victim.busy` 或 `victim.unconscious`：`attacker.guarding=0`；确保双方在战斗；`do_attack(TYPE_QUICK)`；满足双击条件时再 `do_attack(TYPE_QUICK)`。
-2. 否则掷门：`random(victim.cps * 3) > me.cor`：
-   - 真 → `attacker.guarding=0`；`do_attack(TYPE_REGULAR)`；满足双击条件时再 `do_attack(TYPE_REGULAR)`。
-   - 假 → 若 `!attacker.guarding`：置 1，消耗两次 `random(sizeof(guard_msg))`（第二次仅为对齐随机序列）；返回。已守卫则静默返回。
-3. 没有 `continue` 语义：每个交换轮两侧各跑一次上述决策。
+#### S1c：反击（`combatd.lpc:691-718`）
 
-#### S1c：反击
+- 触发条件：`attack_type == TYPE_REGULAR && damage < 1 && victim.query_temp("guarding")`。
+- 关键：`damage < 1` 包含**闪避**（`RESULT_DODGE`）和**招架**（`RESULT_PARRY`），不只是“命中但伤害 0”；因此反击必须在 dodge/parry 的提前返回之前判定。
+- 动作：`victim.guarding = 0` → `random(me.cps)`（`me` = 未命中的攻击方）→ **无条件** `do_attack(victim, me, ..., ...)`：
+  - `< 5` → `TYPE_QUICK`；`>= 5` → `TYPE_RIPOSTE`；两支都真的反击，只切换提示语/类型。
+- 反击自身的 `do_attack` 不再递归触发反击（其 `attack_type != TYPE_REGULAR`）。
+- `:719` 的 `double_attack` 是技能映射钩子，本复刻没有映射技能，不调用、不取骰。
+- **可观测字段**（只在开关打开时写入，关闭时事件字段与旧基线逐字节一致）：
+  - `combat_log.rounds[].actions[].attack_type`：`regular` / `quick` / `riposte` / `guard`。
+  - `combat_log.rounds[].actions[].riposte`：布尔值，仅反击通道为 `true`。原版 `TYPE_QUICK` 同时用于反击（`random(me.cps)<5`）与昏迷补刀（`:742`），单看类型无法验收“玩家出手 = 反击数（`kill` 时 +1 补刀）”，所以显式登记来源。
+- **战报渲染**：守卫动作不能按“击中伤害 0”显示。首次守卫显示 `guard_msg[guard_message]`（`combatd.lpc:25-31`，5 条），连续守卫静默（`:799-800`）；这两条文案都来自原版，不是新造提示。
 
-在一次 `TYPE_REGULAR` 的 `do_attack` 结算后：
+#### S1d：随机取数顺序（先回源码核对，再锁测试）
 
-- 若 `damage < 1` 且 `victim.guarding`：
-  - `victim.guarding = 0`；
-  - 消耗一次 `random(me.cps)`（`me` = 攻击方）；
-  - **无条件**执行 `do_attack(victim, me, ..., TYPE_QUICK 或 TYPE_RIPOSTE)`；
-  - `< 5` 与 `>= 5` 只切换提示语/类型，不切换是否反击。
-- `random(0)` 必须按实测返回 0；用测试锁死，不依赖驱动实现细节。
+**逐次核对结论**（源码行号为证）：
 
-#### S1d：随机取数顺序与 `RecordingPRNG`
+| # | 取数 | 何时发生 | 次数 | 源码 |
+|---|---|---|---|---|
+| 1 | `random(victim.cps*3)` | 每次主动分支判定 | `cps*3>0` 时 1 次；`cps=0` 时 **0 次** | `:763` |
+| 2 | `random(sizeof(guard_msg))` | 首次进入守卫分支 | **2 次**（`:785` 显示文案 + `:788` 转播文案，即使不在擂台也照取） | `:785`、`:788` |
+| 3 | 守卫分支但已 `guarding` | 静默 `return` | **0 次** | `:800` |
+| 4 | 招式选择（`reset_action`/`query_action`） | 每次 `do_attack` 开头 | 按现有公式库/招式表 | `combatd.lpc:280-300`；复刻沿用既有 `select_*` |
+| 5 | `random(ap+dp)` | 闪避判定 | 1 次 | `:354` |
+| 6 | `random(ap+pp)` | 招架判定（未闪避时） | 1 次 | `:406` |
+| 7 | 伤害 / 护甲 / 膂力 / 经验压制 / 伤势 / 奖励 | 命中后 | 按公式库既有顺序 | `:436-567`；`tools/xkx_formula/combat.py` |
+| 8 | `random(me.cps)` | 触发反击时（`me` = 未命中方） | `cps>0` 时 1 次；`cps=0` 时 **0 次** | `:695` |
+| 9 | 反击方的整套 `do_attack` 取数 | 反击结算 | 同 #4–#7 | `:705` / `:716` |
+| 10 | 双击 | 条件恒假 | 0 次 | `:748`/`:768` |
 
-原版每心跳/每次攻击的消耗顺序（复刻必须逐项复现，测试锁死）：
+**一次攻击心跳的完整顺序**：
 
-1. 若走守卫分支且是首次守卫：`random(sizeof(guard_msg))` ×2。
-2. 若走攻击分支：命中判定（`do_attack` 内的 ap/dp 随机）→ 闪避/招架随机 → 伤害随机（`(x+random(x))/2` 等）→ 可能的 exp 修正随机。
-3. 若触发反击：先 `random(attacker.cps)`，再执行反击方的整套命中/闪避/招架/伤害随机。
-4. 双击：在第一次 `do_attack` 之后、反击判定之前（`:719` 的 `double_attack` 在 riposte 之后？按源码，`:719` 位于 riposte 块之后；S1b/S1c 的顺序必须与 `:692-720` 一致：先 riposte，再 `double_attack`）。
+```
+gate (random(victim.cps*3))
+  ├─ 守卫: 首次 → guardmsg×2, 结束
+  │        再次 → 0 次, 结束
+  └─ 出手: action selection → dodge → parry → damage/wound/rewards
+              └─ 若 TYPE_REGULAR 且 damage<1 且对方 guarding:
+                   riposte_roll = random(attacker.cps)
+                   → 反击方整套 do_attack（快捷或反击类型）
+```
 
-测试方式：照 `test_xkx_growth.py` 的 `RecordingPRNG`，给每次抽取打标签（`gate`/`guardmsg`/`hit`/`dodge`/`parry`/`damage`/`riposte_roll`/`double`），对固定 seed 的完整序列做快照断言；先在关闭开关时保持现有序列不变。
+- **昏迷补刀**：目标 `qi<0 && eff>=0` 时进入 `unconcious()`；它在**下一次自身心跳**必 `die()`（`char.lpc:72-77`）。两者之间攻击方至多获得**一次**快攻（`fight():742`），因此击杀样本的“玩家出手 = 反击 + 1”，且最多 +1。复刻照此实现：目标昏迷后，攻击方下一轮打一次 `TYPE_QUICK`，随后目标死亡。
+- 未建模且不取骰的原版随机：`limbs[random(sizeof(limbs))]`（`:306`）、`reset_action` 内部的具体招式随机（复刻用既有招式表近似）。这两项必须在实现注释里登记为“已知偏差”，不得声称逐骰一致。
+- **`random(0)` 语义**：LPC 驱动实测 `random(0)=0` 且不消耗随机流。复刻 `TraceRandom.below(n<=0)` 返回 0 **且不调用 `rng.randint`**；`draws` 计数只统计真实取骰。
+- 测试（照 `test_xkx_growth.py` 的 `RecordingPRNG`）：
+  1. `random(0)` 不取骰：同 seed 下 `victim.cps=0` 与 `victim.cps=15` 两条路径，底层随机流长度差 = 门判断的真实取数次数（0 vs 1/回合）。
+  2. 守卫首次消耗 `guardmsg×2`，连续守卫 `0` 次。
+  3. 固定 seed 的完整骰序快照：`gate → action → dodge → parry → damage → wound → reward → riposte_roll → 反击`。
+  4. 反击在 dodge/parry 后也触发（不是只对“伤害 0 的命中”触发）。
+- 开关关闭时不得改变既有骰序；现有 `test_prng_draw_order_is_locked` 必须保持原快照。
 
 #### S1e：开关与回滚
 
-- 配置键：`combat.initiative_gate`，**默认 false**。
-- `config/worlds/default.yaml` **不加键**；`config/worlds/xkx.yaml` 只在用户批准后打开。
-- 一个开关开启**整套三分支行动决策**（门 + 反击 + 昏迷快攻），因为只开门会破坏打猎；文档需写明这一点，避免被误解为“只开 cps/cor 门”。
-- 回滚：关闭开关即回到现有 `duel()` 行为；`combat_rules.py` 与公式库不动。
+- 配置键：`combat.initiative_gate`，**默认 false**（缺省/缺文件/解析失败都视为关闭）。
+- `config/worlds/default.yaml` **不加键**；`config/worlds/xkx.yaml` 在验收通过后单独提交打开。
+- 一个开关开启**整套三分支行动决策**（门 + guard + 反击 + 昏迷快攻），避免被误解为“只开 cps/cor 门”。
+- 关闭开关即回到现有行为；`combat_rules.py` 的系数与 `tools/xkx_formula` 零改动。
+- 复刻玩家 cps/cor 定值属于 `actions/player.py` 的创世属性，随开关无关；需要在实现说明里单独列出。
 
-#### 预期影响（批准前必须说清）
+#### S1f：验收（真跑，贴原始行）
 
-- **杭州老虎**：与现状一致——玩家主动 0 次、0 胜，`attack_rounds` 仍在 5–6 量级；伤害不变。
-- **郭庄大狼狗**：玩家主动出手变为 0；但反击通道保留，仍可击杀（目标 10/10、狗皮可拿）；回合数可能变长，需重测。
-- **人对人（店小二/流氓/小沙弥等）**：双方从“必出手”变为“按 cps/cor 偶发守卫”，胜率与回合数都会变；必须重测并重定基线，不能沿用旧结论。
-- **闭环演练**：狼狗重生即刻攻击仍成立；玩家若只站着不动，会被咬；还手仍走反击。
+- 野兽：MID 打郭庄大狼狗 `kill` 10 场，10/10 击杀、10/10 狗皮；逐场给玩家出手/命中、其中 riposte、狼狗出手/命中、回合数；回合落在原版 7–24 区间。
+- 走兽不可主动：同批样本玩家主动 `TYPE_REGULAR` 出手 = 0（补刀 `TYPE_QUICK` 除外），事件里能看到 `attack_type`。
+- 人对人：MID 打店小二 20 场，守卫首回合/出手下界与原版 31%/24% 对照，差 > ±8pp 必须解释。
+- 老虎：MID 打杭州老虎 10 场，仍 0 胜、回合接近原版 5.5。
+- 活世界：8011 重启后（不 `--reset`）真实 HTTP 打一场狼狗，贴 `look`/战报/掉落。
 
 ### S2（搁置）
 
@@ -327,14 +361,31 @@ void fight(object me, object victim) {
 ### S3：回归与基线重定（批准后执行）
 
 - 回归：6 个既有目标 + 老虎 + 狼狗各 10 场；判据：老虎玩家主动 0 次/0 胜；狼狗可击杀且狗皮可拿；人对人双方都有出手与守卫；公式库 diff 为空。
-- 基线：`xkx` 健康世界（seed `20261014` / 1 日）的 `state_final` 旧值 `2265c85c…` **必然变化**。不得悄悄改基线：给出新旧值 + 归因（逐事件 diff 或 `initiative_gate` 开关对比），旧基线留档，**等用户批准后再更新基线文件**。
+- 基线：`xkx` 健康世界（seed `20261014` / 1 日）的 `state_final` 旧值 `2265c85c…`。**实测更正（本轮）**：该世界 `fight` 与 `npc_aggression` 均为 0 条，开关开/关逐事件完全一致，`state_final 2265c85c…` / `event_final d0c4777d…` / 722 事件**不变**，因此**不需要迁移基线**。归因见 `reports/xkx-ref/s1-initiative-gate.md`：合成战斗世界里只有 `fight` 事件变化，`genesis` / `system_spawn` 逐字节一致，新增差异全部是 `attack_type` / `riposte` 字段与 guard/quick 动作流。若将来基线世界加入真实战斗，再按“新旧值 + 逐事件 diff”流程处理，仍不得悄悄改值。
+
+### S4：`fight` vs `kill`（只给源码结论，不实现）
+
+**结论：两者不是同一件事，我们现在的 `fight` 直接判死 + 掉皮是产品可见偏差。**
+
+| 维度 | `fight`（切磋） | `kill`（致命） |
+|---|---|---|
+| 入口 | `cmds/std/fight.lpc:52-53`：双方 `fight_ob`；对动物 `:57` 只 `me->fight_ob(obj); obj->kill_ob(me)` | `cmds/std/kill.lpc:82-100`：主动方 `kill_ob`，NPC 回应 `kill_ob` |
+| 是否真受伤 | `do_attack` 仍扣 `qi`，但 `combatd.lpc:665-685`：双方都未 `is_killing` 且目标 `qi*2<=max_qi` 时，双方 `remove_enemy` 并 `return 1`，切磋在“半血”结束 | `is_killing` 为真，不触发半血停战；继续扣 `qi`/`eff_qi` |
+| 死亡入口 | 半血停战 → 不会走到 `char.lpc:65-78` 的 `die()`；目标保持 `living` | `char.lpc:65-78`：`eff_qi<0` → `die()`；`qi<0` → `unconcious()`，下一次自身心跳 `die()` |
+| 掉落 | `die()` 才掉落；切磋不 `die()`，所以**无掉落** | 狼狗 `wolfdog.lpc:38-41` 的 `die()` 直接 `new obj/goupi` |
+| 成长 | `damage_rewards` / `dodge_rewards` / `parry_rewards` 照常给 `combat_exp` 与 `improve_skill`，没有“切磋减半”分支 | 同左 |
+| 对我们的要求 | 需新增“非致命/半血停战”模式，且 `fight` 不得掉落 | 现有 `KILLING=True` 行为才对应 `kill` |
+
+- 复刻现状：`FightAction` 只有 `fight` 一个动词，`KILLING=True` 恒定，倒下即判死并由既有掉落逻辑掉皮 → 玩家切磋会把店主/狼狗打死。
+- **本轮不实现**：S4 会改动 `fight` 的停战/死亡/掉落三处语义，等 S1 验收后再单独立项。验收 S1 时一律用 `kill` 口径，避免把 S4 的偏差算到 S1 头上。
 
 ## 4. 不做的事
 
 - 不改 `combat_rules.py` 的任何系数，不改公式库。
 - 不调伤害/护甲/技能数值来“让老虎可打”。
 - 不自造种族默认表；不把 `p5-tiger` 的临时 `player_start` 样本当默认档。
-- 不在 S1 批准前实现三分支；不悄悄更新基线。
+- 不在 S1 验收通过前打开 `config/worlds/xkx.yaml` 的开关；不悄悄更新基线。
+- 不实现 S4（`fight` 非致命/半血停战/不掉落）。
 
 ## 5. 证据留存
 
