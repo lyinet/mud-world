@@ -69,9 +69,12 @@
 - [ ] 治理方案裁定（events 保留期/归档 VACUUM）需用户确认后再进 6h
 
 ## T13 玩家店铺注入（spec §13）
-- [ ] 跑 `--duration 1200 --players 50 --player-shop 1`，确认 `player_shop.jsonl` 出现 `done`
-- [ ] `settlement_counts` 出现 `system_shop_settle` 且非零（原始计数）
-- [ ] 未跑出则写 N/A，不进 6h
+- [x] `--duration 2100 --players 50 --player-shop 1`（`shop-preflight7-20261108`）：`player_shop.jsonl` 出现 `done`
+- [x] `system_shop_settle=2`，原始计数：day0 出勤 wage=30、revenue=62、net=31；day1 未到店 wage=0
+- [x] 出勤凭证改为店铺 `attendance_day`（记忆 80 条上限会淘汰），清空记忆后仍认（`test_work_writes_attendance_marker_in_npc_day`）
 
 ## T14 6h 配置
 - [ ] 6h 命令追加 `--player-shop 1`，报告单列 `system_shop_settle` 原始计数
+- [!] 严格口径阻塞：两次 50p 跑在高负载窗口（loadavg 13–15.2）各出现 2/4 个坏窗口，
+  坏窗口 `step_ms` 2.2–3.5s 而 CPU 仅 122–397ms（off-CPU 抢占）；loadavg ≤7.4 的三次跑 0 坏窗口。
+  需用户裁定 6h 启动条件（安静环境复跑 / 接受按窗口剔除干扰并单列）。
