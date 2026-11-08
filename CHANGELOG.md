@@ -9,6 +9,29 @@
 
 ---
 
+## [docs] 2026-11-08 — 战斗节奏复核：原版“玩家 0 出手”的源码依据 + 报告更正（未实现）
+
+- **改了什么**：
+  - 新增 `specs/xkx-parity/combat-tempo.spec.md`：原版 `combatd.lpc::fight()` 三分支、
+    `beast.lpc` 不设 `cps/cor` 导致走兽 `cps=0`、玩家恒走 guard 分支的源码取证；
+    差异清单 + S0–S3 分步修复设计。**只写设计，未实现。**
+  - `reports/xkx-ref/win-loss.md` 新增 `## corrections`：C1 更正“默认档 81 回合、虎剩 28”
+    （老板档无打虎事件；该样本来自临时 `player_start` 2,000,000 exp / skills 500 的
+    `p5-tiger`），并新增“样本来源与临时配置”表；旧表述保留不删。
+  - `tools/xkx_ref/measure_win_loss.py` 修正回合口径说明（原版 `rounds = max(attacks)`，
+    玩家 0 出手时等于 NPC 出手数）；tiger/tiger_hz 判据改为“胜负忠实、节奏未对齐”。
+- **为什么改**：上一轮“打不动所以忠实”只对了胜负；5.50 与 81 的节奏差未对齐，
+  且 81 回合样本并非默认档，必须纠正口径并把机制差异单独立项。
+- **验证方式**：
+  - 源码行号：`combatd.lpc:742/763/783/800`、`beast.lpc:60-67`（不设 cps/cor）、
+    `human.lpc:67-68`、`beast1.lpc:102-103`、`beast2.lpc:84-85`；
+    `reports/xkx-ref/win-loss/tiger_hz/fight006.txt`：19 次老虎出手、玩家 0 次出手。
+  - `measure_win_loss.py --report-only` 重新生成，报告含 corrections，其余数字未变。
+  - `tools/xkx_formula/` 与 `src/wsim/` 零改动。
+- **commit**：未记录（本条提交后回填）
+
+---
+
 ## [docs] 2026-11-08 — 试玩世界部署 `22ae271` + 杭州老虎胜负对拍
 
 - **改了什么**：
