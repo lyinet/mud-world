@@ -194,6 +194,7 @@ WRITE_ACTIONS: dict[str, str] = {
     "sleep": "sleep",
     # xkx 文字壳：战斗动词由 actions 层提供，API 只在动作已注册时放行。
     "fight": "fight",
+    "kill": "kill",
     "loot": "loot",
     # 原版 `wimpy`：自动逃跑阈值（0 关闭），不是新增的 flee 动词。
     "wimpy": "wimpy",
@@ -268,6 +269,7 @@ ACTION_ALIASES: dict[str, str] = {
     "drop": "drop",
     "sleep": "sleep",
     "fight": "fight",
+    "kill": "kill",
     "loot": "loot",
     "wimpy": "wimpy",
     "bai": "bai",
@@ -282,13 +284,13 @@ ACTION_ALIASES: dict[str, str] = {
 PLAYER_UNIMPLEMENTED_VERBS = frozenset({"marry", "apprentice"})
 
 FORBIDDEN_VERBS = frozenset(
-    {"rob", "attack", "kill", "marry_force", "player_expel", "item_create", "mint", "set_field"}
+    {"rob", "attack", "marry_force", "player_expel", "item_create", "mint", "set_field"}
 )
 
 # xkx 文字壳可用的战斗动词：仅在 actions/ 层真正注册了同名动作时放行，
 # 避免 API 层提前把未实现的动词暴露给玩家。
 XKX_EXTRA_PLAYER_VERBS = frozenset(
-    {"fight", "loot", "wimpy", "bai", "learn", "practice", "climb", "jump", "revive"}
+    {"fight", "kill", "loot", "wimpy", "bai", "learn", "practice", "climb", "jump", "revive"}
 )
 
 # `/api/world/feed` 的固定上限与“重要事件”动词白名单（公共信息，不含玩家私有数据）。
@@ -559,6 +561,8 @@ class WorldSession:
         self.room_reset_enabled = self._load_room_reset(self.world_config_path)
         # 战斗出手门/反击/昏迷快攻：默认关闭，只有世界配置显式打开才生效。
         self.initiative_gate = self._load_initiative_gate(self.world_config_path)
+        # fight/kill 分离：默认关闭，fight 保持旧口径（击杀），不注册 kill。
+        self.lethal_fight = self._load_lethal_fight(self.world_config_path)
         self.room_reset_policy = (
             RoomResetPolicy(content=self.content, seed=seed, enabled=True)
             if self.room_reset_enabled
@@ -584,6 +588,7 @@ class WorldSession:
             seed,
             room_reset=self.room_reset_policy,
             initiative_gate=self.initiative_gate,
+            lethal_fight=self.lethal_fight,
         )
         # 对话模型只挂 TalkAction；不构造 decision provider，不改 llm_enabled。
         # 旁路不属于世界状态：删掉只影响台词，不影响事件/状态/哈希。
@@ -1597,6 +1602,22 @@ class WorldSession:
             return False
         raw = loaded.get("combat") or {}
         return bool(raw.get("initiative_gate")) if isinstance(raw, dict) else False
+
+    @staticmethod
+    def _load_lethal_fight(path: Path | None) -> bool:
+        """只读 `combat.lethal_fight`；缺省/解析失败/非 dict 一律 False。"""
+        if path is None:
+            return False
+        try:
+            import yaml
+
+            loaded = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
+        except Exception:
+            return False
+        if not isinstance(loaded, dict):
+            return False
+        raw = loaded.get("combat") or {}
+        return bool(raw.get("lethal_fight")) if isinstance(raw, dict) else False
 
     @staticmethod
     def _load_player_start(path: Path | None) -> dict | None:

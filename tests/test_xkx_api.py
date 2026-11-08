@@ -384,14 +384,16 @@ def test_unknown_command_does_not_leak_codes(session):
 
 
 def test_fight_reports_real_rounds_and_death(session):
-    # 楼外楼只有店小二，只说“打”时默认对他出手；seed=42 下玩家取胜。
-    result = _cmd(session, "fight 店小二")
+    # 楼外楼只有店小二。世界开启 `combat.lethal_fight` 后 `fight` 是切磋（半血即止），
+    # 要拿“死亡/超额伤害”战报必须用 `kill`；seed=42 下玩家取胜。
+    result = _cmd(session, "kill 店小二")
     assert result["ok"] is True, result.get("reject_reason")
     text = "\n".join(_texts(result))
     assert "第1回合" in text
     # 招式接入后，人类默认招式以 `combat_action` 文案展示，不再固定“击中X，伤害N”。
     assert "挥拳攻击店小二" in text
-    assert "造成20点伤害" in text
+    # `kill` 走自己的 `action:kill` 随机流，seed=42 首击伤害为 21。
+    assert "造成21点伤害" in text
     assert "你赢了，店小二倒下了" in text
     # 战报细节来自引擎 details.combat（回合数、超额伤害），不是壳层编的。
     combat = result["engine_details"]["combat"]

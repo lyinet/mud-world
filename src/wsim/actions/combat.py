@@ -117,10 +117,16 @@ def combat_effects(
     extra_log: dict[str, Any] | None = None,
     drop_dead_npc_attacker: bool = False,
     initiative_gate: bool = False,
+    spar: bool = False,
 ) -> list[Effect]:
     """结算一场（或一回合）战斗并产出 Effect。`FightAction` 与 NPC 主动攻击共用。"""
     skill = intent.args.get("skill")
     defender_skill = intent.args.get("target_skill")
+
+    # 原版 `is_killing`：只要守方已经把攻击者登记为敌人，切磋也按击杀处理。
+    defender_killing = str(getattr(defender, "combat_target", "") or "") == str(attacker.id)
+    killing = (not spar) or defender_killing
+    effective_spar = spar and not killing
 
     trace: list = []
     result = simulate_fight(
@@ -133,6 +139,8 @@ def combat_effects(
         trace=trace,
         player_ids=set(state.players),
         initiative_gate=initiative_gate,
+        killing=killing,
+        spar=effective_spar,
     )
 
     effects: list[Effect] = []
@@ -147,7 +155,8 @@ def combat_effects(
             Effect(op="hp_add", data={"entity": defender.id, "delta": hp_b - defender.hp, "reason": reason})
         )
 
-    dead_ids = set(result["dead"])
+    # 非致命（切磋）不产生死亡/尸体/掉落/玩家死亡结算。
+    dead_ids = set(result["dead"]) if killing else set()
     for ent in (attacker, defender):
         if str(ent.id) not in dead_ids or ent.status == "dead":
             continue
@@ -234,7 +243,7 @@ def combat_effects(
                     content_drops=getattr(defender, "drops", None),
                 ),
                 str(defender.location),
-                "fight",
+                reason,
             )
         )
     if (
@@ -291,6 +300,10 @@ def combat_effects(
         "rounds": result["rounds"],
         "draws": int(result["draws"]),
     }
+    if spar or reason == "kill":
+        # 只在切磋/击杀入口暴露，旧 `fight` 事件载荷保持逐字节不变。
+        log["lethal"] = bool(killing)
+        log["stopped"] = bool(result["stopped"])
     if extra_log:
         log.update(extra_log)
     effects.append(Effect(op="combat_log", data=log))
@@ -299,9 +312,12 @@ def combat_effects(
 
 class FightAction(Action):
     verb = "fight"
+    reason = "fight"
+    salt = "action:fight"
 
-    def __init__(self, initiative_gate: bool = False):
+    def __init__(self, initiative_gate: bool = False, spar: bool = False):
         self.initiative_gate = bool(initiative_gate)
+        self.spar = bool(spar)
 
     def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
         target = _combat_target(intent)
@@ -336,12 +352,24 @@ class FightAction(Action):
             defender,
             rng,
             intent=intent,
-            salt="action:fight",
+            salt=self.salt,
             max_rounds=_round_cap(intent),
-            reason="fight",
+            reason=self.reason,
             loot=_int_dict(intent.args.get("loot")),
             initiative_gate=self.initiative_gate,
+            spar=self.spar,
         )
+
+
+class KillAction(FightAction):
+    """原版 `kill`：与 `fight` 同一套结算，但始终按击杀模式处理。"""
+
+    verb = "kill"
+    reason = "kill"
+    salt = "action:kill"
+
+    def __init__(self, initiative_gate: bool = False):
+        super().__init__(initiative_gate=initiative_gate, spar=False)
 
 
 class SystemSpawnAction(Action):

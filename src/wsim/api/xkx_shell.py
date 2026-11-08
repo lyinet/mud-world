@@ -131,6 +131,7 @@ VERB_ALIASES: dict[str, str] = {
     "buy": "buy", "买": "buy", "购买": "buy",
     "sell": "sell", "卖": "sell", "出售": "sell",
     "fight": "fight", "打": "fight", "战斗": "fight", "出手": "fight",
+    "kill": "kill", "杀": "kill", "杀死": "kill",
     "loot": "loot", "捡": "loot", "拾取": "loot",
     "wimpy": "wimpy",
     "get": "loot", "拿": "loot", "取": "loot",
@@ -436,6 +437,8 @@ class XKXShell:
                 return self._cmd_sell(account, rest, state, raw, request_id)
             if verb == "fight":
                 return self._cmd_fight(account, rest, state, raw, request_id)
+            if verb == "kill":
+                return self._cmd_kill(account, rest, state, raw, request_id)
             if verb == "loot":
                 return self._cmd_loot(account, rest, state, raw, request_id)
             if verb == "wimpy":
@@ -1153,10 +1156,20 @@ class XKXShell:
     def _cmd_fight(
         self, account: str, rest: str, state: dict[str, Any], raw: str, request_id: str
     ) -> dict[str, Any]:
-        reason = self._combat_reason("fight")
+        return self._cmd_attack(account, "fight", rest, state, raw, request_id)
+
+    def _cmd_kill(
+        self, account: str, rest: str, state: dict[str, Any], raw: str, request_id: str
+    ) -> dict[str, Any]:
+        return self._cmd_attack(account, "kill", rest, state, raw, request_id)
+
+    def _cmd_attack(
+        self, account: str, verb: str, rest: str, state: dict[str, Any], raw: str, request_id: str
+    ) -> dict[str, Any]:
+        reason = self._combat_reason(verb)
         if reason:
             return self._reply(
-                account, "fight", False,
+                account, verb, False,
                 [("warn", f"暂不可用：{reason}")],
                 state, raw, request_id,
             )
@@ -1171,29 +1184,29 @@ class XKXShell:
             label = self._first_word(rest)
             if picked_index and npcs:
                 return self._reply(
-                    account, "fight", False,
+                    account, verb, False,
                     [("error", f"这里没有第{picked_index}个「{label or '人'}」。在场：{hint}。")],
                     state, raw, request_id,
                 )
             if not label and npcs:
                 return self._reply(
-                    account, "fight", False,
-                    [("info", f"要打谁？在场：{hint}。可用 fight <人> 指定。")],
+                    account, verb, False,
+                    [("info", f"要打谁？在场：{hint}。可用 {verb} <人> 指定。")],
                     state, raw, request_id,
                 )
             return self._reply(
-                account, "fight", False,
+                account, verb, False,
                 [("error", f"这里没有可打的「{label or '人'}」。在场：{hint}。")],
                 state, raw, request_id,
             )
         resp = self.session.perform(
             account,
-            "fight",
+            verb,
             {"target": target["id"], "opponent": target["id"], "npc": target["id"]},
         )
         if not resp.get("ok"):
             return self._reply(
-                account, "fight", False,
+                account, verb, False,
                 [("error", self._reason(str(resp.get("reject_reason") or ""), fallback="这一场没能打成。"))],
                 state, raw, request_id,
             )
@@ -1202,6 +1215,8 @@ class XKXShell:
         combat = (resp.get("details") or {}).get("combat")
         if isinstance(combat, dict) and combat:
             lines.extend(self._combat_report_lines(combat, target))
+            if combat.get("stopped") and combat.get("lethal") is False:
+                lines.append(("info", "点到即止，双方各自收手。"))
         else:
             lines.append(("warn", "引擎没有返回战报（combat_log 缺失）。"))
         drops = (resp.get("details") or {}).get("loot")
@@ -1213,7 +1228,7 @@ class XKXShell:
         if isinstance(death, dict) and death:
             lines.extend(self._death_lines(death))
         lines.extend(self._score_core_lines(after))
-        reply = self._reply(account, "fight", True, lines, after, raw, request_id)
+        reply = self._reply(account, verb, True, lines, after, raw, request_id)
         reply["engine_details"] = dict(resp.get("details") or {})
         # 同模板多实例同屏时，台词无法区分；把实际目标与序号给客户端，
         # 便于 UI 高亮和回归测试分辨打的是哪一只（不改台词文本）。
@@ -1304,7 +1319,10 @@ class XKXShell:
                     lines.append(("combat", line))
         winner = str(combat.get("winner") or "")
         rounds_used = int(combat.get("rounds_used") or len(rounds))
-        if winner == "attacker":
+        stopped = bool(combat.get("stopped")) and combat.get("lethal") is False
+        if winner == "attacker" and stopped:
+            lines.append(("combat", f"共{rounds_used}回合，你占上风，{target['name']}拱手认输。"))
+        elif winner == "attacker":
             lines.append(("combat", f"共{rounds_used}回合，你赢了，{target['name']}倒下了。"))
         elif winner == "defender":
             lines.append(("error", f"共{rounds_used}回合，你倒下了。"))
@@ -1847,10 +1865,10 @@ class XKXShell:
         except Exception:
             registered = False
         if not registered:
-            if verb == "fight":
-                return "战斗动作还没接上（actions 层尚未注册 fight）。现在可以走、看、问、买卖。"
+            if verb in ("fight", "kill"):
+                return f"战斗动作还没接上（actions 层尚未注册 {verb}）。现在可以走、看、问、买卖。"
             return "捡拾动作还没接上（actions 层尚未注册 loot）。"
-        if verb == "fight":
+        if verb in ("fight", "kill"):
             # 动作注册不等于能打：玩家还没有气血/攻防时，点了也不会结算。
             try:
                 for ent in self.session.state.entities.values():

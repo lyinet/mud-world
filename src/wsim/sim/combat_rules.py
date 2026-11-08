@@ -400,6 +400,8 @@ def simulate_fight(
     action_table: dict[str, list[dict[str, Any]]] | None = None,
     hook_table: dict[str, dict[str, Any]] | None = None,
     initiative_gate: bool = False,
+    killing: bool = True,
+    spar: bool = False,
 ) -> dict[str, Any]:
     """原子结算战斗；`max_rounds=None` 表示不封顶（原版语义）。
 
@@ -428,6 +430,8 @@ def simulate_fight(
 
     rounds: list[dict[str, Any]] = []
     dead: set[str] = set()
+    stopped = False
+    stop_winner = ""
     limit = SAFETY_ROUNDS if max_rounds is None else max(1, min(int(max_rounds), SAFETY_ROUNDS))
     for round_no in range(1, limit + 1):
         actions: list[dict[str, Any]] = []
@@ -441,6 +445,7 @@ def simulate_fight(
             allow_riposte: bool = False,
             riposte: bool = False,
         ) -> str:
+            nonlocal stopped, stop_winner
             ap = _attack_power(src, src_skill)
             dp = _defense_power(dst, "dodge")
             mapped = src.mapped(src_skill)
@@ -558,7 +563,7 @@ def simulate_fight(
             wounded = xf.roll_wound(
                 damage=breakdown.final_damage,
                 armor=dst.defense + dst.apply_armor,
-                killing=KILLING,
+                killing=killing,
                 has_weapon=src.weapon,
                 prng=prng,
             )
@@ -590,12 +595,24 @@ def simulate_fight(
             state = xf.death_state(
                 qi=new_hp, jing=new_hp, eff_qi=new_eff, eff_jing=new_eff, living=True
             )
+            # 原版 `combatd.lpc` 的切磋半血即止：只要这一击造成伤害且守方
+            # `qi*2 <= max_qi`，双方罢手；不进入 die()/昏迷判定。
+            stop_hit = bool(
+                spar
+                and breakdown.final_damage > 0
+                and dst.max_hp > 0
+                and dst.hp * 2 <= dst.max_hp
+            )
+            if stop_hit:
+                stopped = True
+                stop_winner = "attacker" if src is me else "defender"
             # 原版 `char.lpc:65-78`：`eff_qi<0` → die()；`qi<0` → unconcious()，
             # 昏迷者在下一次自身心跳死亡，中间攻击方至多获得一次快攻。
-            if state == xf.STATE_DEAD:
-                dst.dead = True
-            elif state == xf.STATE_UNCONCIOUS:
-                dst.unconscious = True
+            elif not spar:
+                if state == xf.STATE_DEAD:
+                    dst.dead = True
+                elif state == xf.STATE_UNCONCIOUS:
+                    dst.unconscious = True
             down = state != xf.STATE_ALIVE
             entry.update({
                 "result": "hit",
@@ -616,6 +633,8 @@ def simulate_fight(
             if (allow_riposte and attack_type == "regular"
                     and breakdown.final_damage < 1 and dst.guarding):
                 _riposte(src, dst, skill_b if dst is victim else skill_a)
+            if stop_hit:
+                return "stop"
             return "down" if down else "alive"
 
         def _riposte(src: _Actor, dst: _Actor, dst_skill: str) -> None:
@@ -648,6 +667,11 @@ def simulate_fight(
                 if target.unconscious:
                     # `:742-760`：目标已昏迷，攻击方获得一次 `TYPE_QUICK` 补刀；
                     # 目标在下一次自身心跳 `die()`（`char.lpc:72-77`），因此最多 +1。
+                    # 切磋时，面对已昏迷的对手直接收手，不补刀判死。
+                    if spar:
+                        stopped = True
+                        stop_winner = "attacker" if actor is me else "defender"
+                        break
                     actor.guarding = False
                     strike(actor, target, actor_skill, attack_type="quick")
                     target.dead = True
@@ -657,6 +681,8 @@ def simulate_fight(
                     actor.guarding = False
                     strike(actor, target, actor_skill, attack_type="regular",
                            allow_riposte=True)
+                    if stopped:
+                        break
                     continue
                 # `:783-800`：守卫分支。首次守卫消耗两次 guard_msg 取数；
                 # 已守卫则静默 return，不取骰。
@@ -691,6 +717,11 @@ def simulate_fight(
                     })
 
         rounds.append({"round": round_no, "actions": actions})
+        if spar:
+            # 切磋永不判死；命中半血即止时立即结束。
+            if stopped:
+                break
+            continue
         for actor in (me, victim):
             if initiative_gate:
                 # 只认 `die()`（eff<0）与显式补刀；`qi<0` 是昏迷，不是死亡。
@@ -706,10 +737,10 @@ def simulate_fight(
         if dead:
             break
 
-    winner = ""
-    if victim.id in dead and me.id not in dead:
+    winner = stop_winner if stopped else ""
+    if not stopped and victim.id in dead and me.id not in dead:
         winner = "attacker"
-    elif me.id in dead and victim.id not in dead:
+    elif not stopped and me.id in dead and victim.id not in dead:
         winner = "defender"
 
     skill_updates: list[dict[str, Any]] = []
@@ -738,4 +769,7 @@ def simulate_fight(
                        victim.id: victim.exp - int(getattr(defender, "combat_exp", 0))},
         "skill_updates": skill_updates,
         "draws": prng.count,
+        "spar": bool(spar),
+        "killing": bool(killing),
+        "stopped": bool(stopped),
     }

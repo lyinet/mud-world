@@ -50,10 +50,11 @@ def build_registry(
     spawns: list[dict] | None = None,
     room_reset=None,
     initiative_gate: bool = False,
+    lethal_fight: bool = False,
 ) -> ActionRegistry:
     from .aggression import NpcAggressionAction
     from .basic import ConsumeAction, CultivateAction, MoveAction, WorkAction
-    from .combat import FightAction, SystemSpawnAction
+    from .combat import FightAction, KillAction, SystemSpawnAction
     from .business import (
         DismissAction,
         FoundSectAction,
@@ -178,7 +179,13 @@ def build_registry(
     reg.register(PlayerRestAction())
     reg.register(SystemPlayerPresenceAction())
     reg.register(SystemTickAction())
-    reg.register(FightAction(initiative_gate=initiative_gate))
+    if lethal_fight:
+        # 原版语义：fight 是切磋（半血即止），kill 才下死手。
+        reg.register(FightAction(initiative_gate=initiative_gate, spar=True))
+        reg.register(KillAction(initiative_gate=initiative_gate))
+    else:
+        # 旧口径：fight 仍按击杀处理，且不注册 kill。
+        reg.register(FightAction(initiative_gate=initiative_gate))
     # NPC 主动攻击：规则只从内容包派生；旧九地点内容没有 aggressive/三个专属 id，
     # 规则表为空，动作永远拒绝，事件流不变。
     from ..sim.aggression import aggression_rules
