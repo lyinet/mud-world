@@ -26,9 +26,12 @@
   - 先后推进一步触发 reset：`seq3971 tick2930 system_room_reset` 同时重生两只
     `wolfdog`，`death_tick` 分别为 315/327（正是老板当年的击杀）；`look` 原文
     `在场人物：二只大狼狗。`
+  - 观察账号在房内被重生即刻攻击（P5 语义）误杀其中一只（`seq4041`），下一个 reset
+    周期 `seq4199 tick3076` 又重生同一克隆（`death_tick 2996`，`hp 200/200`）；
+    `tick3082` 的 `look` 仍为 `在场人物：二只大狼狗。`，`view.npcs` 共 2 只。
   - 杭州老虎原版对拍：LPC 与虎头岩同源（exp 30000 / attack 20000 / defense 30000 /
     armor 1000），原版 MID 同样 0 胜 → **忠实记录，不改伤害/护甲数值**。
-- **commit**：未记录（本条为部署与对照文档提交，哈希见 git log）。
+- **commit**：3d6738f
 
 ---
 
