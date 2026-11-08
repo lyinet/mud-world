@@ -75,6 +75,30 @@
 
 ## T14 6h 配置
 - [ ] 6h 命令追加 `--player-shop 1`，报告单列 `system_shop_settle` 原始计数
-- [!] 严格口径阻塞：两次 50p 跑在高负载窗口（loadavg 13–15.2）各出现 2/4 个坏窗口，
-  坏窗口 `step_ms` 2.2–3.5s 而 CPU 仅 122–397ms（off-CPU 抢占）；loadavg ≤7.4 的三次跑 0 坏窗口。
-  需用户裁定 6h 启动条件（安静环境复跑 / 接受按窗口剔除干扰并单列）。
+- [!] 严格口径：0 坏窗口不变；高负载窗口不得剔除，改为测量环境前置（T15）
+
+## T15 测量环境前置（spec §16）
+- [x] spec 写死：loadavg ≤4 才启动、跑前 10min/跑中每 10s 采样、连续 5min >4 主动中止 `run_invalid(external_load)`
+- [x] 贴入本轮 loadavg/坏窗口对照表，并写明“不是放宽阈值”
+- [ ] soak 实现 loadavg 采样与 5 分钟中止标记（下一段代码）
+
+## T16 CPU 健康度（spec §17）
+- [x] `process_time` 差算锁内 step CPU p95/p99/max，进 `ambient_steps.jsonl` 与 `attribution.json.cpu_metric`
+- [x] 分项 CPU（progress_hash/write/flush、status_file）p95 进 status
+- [x] 基线：锁内 CPU max 122–397ms（wall 2.2–3.5s 的坏窗口）
+
+## T17 易失容量容器审计（spec §15）
+- [x] 店铺出勤 → `Business.attendance_day`（持久）
+- [x] 门派日结幂等 → `Faction.settle_day`（持久），显示层同源
+- [x] 清单落 spec：memories 80 / day_history 7 / audit 4096 / probe 512 / debts/accounts 合格
+- [x] 回归：清空记忆后出勤仍认、门派仍不重复发俸；legacy 哈希不变
+
+## T18 lag 峰值定位（spec §19 待补）
+- [ ] 定位 `lag_ticks_max=1176` 出现的 tick 与触发场景
+- [ ] 说明 1200 上限触发 `ambient_catchup_truncated` 的丢步后果
+
+## T19 6h 固定 commit 运行（spec §18）
+- [ ] 固定 commit 的独立 worktree + `git rev-parse HEAD` 写死
+- [ ] 磁盘 ≥5GB 原始输出；6h 内不加清理逻辑
+- [ ] 参数 `--duration 21600 --players 50 --think-time 2 --warmup 600 --player-shop 1`
+- [ ] 交付原始值：negative_rows、seq 连续、integrity_check、重启一致、九地点哈希、同 commit 全量 pytest

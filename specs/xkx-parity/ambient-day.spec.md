@@ -287,3 +287,76 @@ SETTLEMENTS = {
 - `lag_ticks_max=1122` 的 1122 是**世界 tick 数**，与 1200 上限同量纲（不是步数）。
 - `world_tick 132029 / clock_tick 150` 中的 `clock_tick=150` 是 **NPC tick 计数**，
   不是“NPC 日界触发次数”；144 tick = 1 NPC 日，故 150 ≈ 1.042 NPC 日，日界只触发 1 次。
+
+## 15. 易失容量容器审计（2026-11-08 裁定 5）
+
+全库扫描“有容量上限的容器是否承载结算判断依据”：
+
+| 容器 | 上限/位置 | 承载的判断 | 处置 |
+|---|---|---|---|
+| `WorldState.memories` | 80 条，`effects.py` `memory_add` 淘汰最旧 | 店铺出勤（`ATTENDANCE_MARKER`）、门派日结幂等（`SETTLE_MARKER`）、弟子“今日已结”显示 | **已改持久字段**：`Business.attendance_day`、`Faction.settle_day`；显示层同样先读字段，记忆只作旧事件回退 |
+| `WorldState.memories` | 同上 | headless 出勤窗口（`_worked_on_day(clock_marker=False)`） | 保留旧语义（只服务 headless 复现/哈希基线，不进共享世界判定）；列入本表，不静默改 |
+| `WorldState.memories` | 同上 | NPC 对话上下文 `talk:npc` 轮次（`social.py`） | 仅对话文案，不涉及金钱/结算，保持只读记忆 |
+| `Business.day_history` | 7 条，`effects.py` | 7 日账**展示** | spec 定义的 7 日窗口，不是判定依据 |
+| `mcp/audit.records` | 4096 条 | 审计日志 | 不参与结算 |
+| `scheduler` 探针 deque | 512 步 | 指标 p95/p99 | 仅度量 |
+| `state.debts` | 无上限（状态表） | 债务/欠饷判定 | 持久状态，合格 |
+| 账户余额 | `state.accounts` | 工资/会费/俸禄实付与短款 | 持久状态，合格 |
+
+回归测试：
+- `tests/test_ambient_clock_visibility.py::test_work_writes_attendance_marker_in_npc_day`（清空记忆后仍算出勤）；
+- `tests/test_player_sect_actions.py::test_pay_disciples_idempotent_after_memory_eviction`（清空记忆后仍不重复发俸）。
+
+规则：任何“结算/出勤/工资/债务/门派俸禄”的**判断依据禁止存放在有上限容器**；
+新增此类判断必须落持久字段（`to_dict()` 条件序列化，缺省不污染无该功能的世界哈希）。
+
+## 16. 6h 测量环境前置（2026-11-08 裁定 1）
+
+**这是保证测量环境合格，不是放宽阈值。**
+
+- 只在 `loadavg ≤ 4` 的空窗启动（建议凌晨 02:00 起）；
+- 跑前连续 10 分钟、每 10 秒采样 `loadavg`（1/5/15 分钟三值都记录）；
+- 跑中每 10 秒采样；**连续 5 分钟 `loadavg > 4` 即主动中止**，标
+  `run_invalid(reason=external_load)`，该 run **不用于判定代码**，换时段重跑；
+- 合格环境下仍要求**坏窗口 = 0**（任一 30s 窗口写 p95 >500ms 即未过）；
+- 报告必须贴出本次 `loadavg` 曲线摘要（max/median）与坏窗口对照表。
+
+依据（本轮实测）：
+
+| 跑 | 窗口 | 坏窗口 | 全跑 loadavg max | 坏窗口时 loadavg |
+|---|---|---|---|---|
+| strict15m | 30 | 0 | 7.06 | — |
+| shop-preflight6 | 40 | 0 | 7.34 | — |
+| mem45 | 89 | 0 | 5.20 | — |
+| ctrl10b（10p/ambient 关） | 30 | 0 | 6.90 | — |
+| shop-preflight7 | 69 | 4 | 15.74 | 8.77–14.22 |
+| strict15m-b | 30 | 2 | 15.20 | 13.27–15.20 |
+
+坏窗口形态一致：`step_ms` 2.2–3.5s，而锁内 CPU 仅 122–397ms，锁等待 0–462ms，
+GC 窗口内无 >15ms 停顿、checkpoint busy=0 → 锁内被 OS 抢占，非代码路径。
+
+## 17. CPU 健康度基准（裁定 2）
+
+- 口径：`time.process_time` 差（进程 CPU，跨线程），与墙钟 p95 **并列报告**；
+  墙钟 p95 是门（坏窗口 0），CPU p95/p99 是代码健康度。
+- 必报字段（`attribution.json.cpu_metric` + `ambient_status.json`）：
+  `step_proc_cpu_p95/p99/max`、`step_wall_p95/p99/max`；
+  分项 `parts_cpu: progress_hash / progress_write / progress_flush / status_file` 的 p95。
+- 本轮基线（`shop-preflight7`）：锁内 CPU 最大值 122–397ms（同一窗口墙钟 2.2–3.5s）；
+  CPU/wall < 15% 的窗口按“外部抢占”解释，不按代码回归处理。
+- 6h 必须给出 CPU p95/p99，若 CPU p95 明显抬升（>2× 本轮）即使墙钟过关也需说明原因。
+
+## 18. 6h 运行前置与交付（裁定 6）
+
+- 从**固定 commit 的独立 worktree** 运行，报告写死 `git rev-parse HEAD`；跑期间主干开发不影响该 worktree。
+- 启动前确认磁盘余量 ≥5GB（`df -h` 原始输出进报告）；**6h 内不加任何清理逻辑**（DB 保留期/归档另线处理）。
+- 参数：`--duration 21600 --players 50 --think-time 2 --warmup 600 --player-shop 1`，其余按 v2 口径。
+- 玩家店铺基线（`shop-preflight7-20261108`，6h 对照）：
+  - `player_shop.jsonl`：`hire ok target=duan_wudou` → `done shop=shop:player:shopo8499050`；
+  - `settlement_counts`：`system_shop_settle=2`；
+  - day0 原始行：`wage=30, revenue=62, restock=0, tax=1, net_profit=31, customers=10, stockout=False`；
+  - 雇员记忆原文：`在长跑摊出工（屠户），日结工资30文`；
+  - 掌门（店主）记忆原文：`长跑摊日结：营收62文，进货0文，工资30文，税1文，净利31文`；
+  - day1：`wage=0`（雇员未到店）→ **出勤按事实判定，不自动发钱**。
+- 跑完必交原始值：`negative_rows`、seq 连续性、`integrity_check`、重启后状态一致、
+  旧九地点三项哈希、同 commit 上全量 pytest。
