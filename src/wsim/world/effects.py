@@ -1360,6 +1360,14 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         state.schedule.pop(str(d["id"]), None)
         return
 
+    if op == "shop_attendance":
+        # 出勤持久凭证：记忆会被 80 条上限淘汰，不能当考勤证据。
+        biz = state.businesses.get(str(d["business"]))
+        if biz is None:
+            raise EffectError(f"shop_attendance 未知店铺: {d['business']}")
+        biz.attendance_day = _as_int(d["day"], "day")
+        return
+
     if op == "memory_add":
         npc = str(d["npc"])
         _entity(state, npc)

@@ -284,6 +284,9 @@ class Business:
     price_overrides: dict[str, int] = field(default_factory=dict)
     # 最近 7 个世界日的日结快照：空列表不写进 to_dict()，无玩家店世界零污染。
     day_history: list[dict[str, Any]] = field(default_factory=list)
+    # 出勤的持久凭证（仅玩家店铺、NPC 日口径）：最近一次带 employer 的到店 NPC 日。
+    # 记忆列表上限 80 条且按时间淘汰，不能作为出勤证据；-1 = 尚未出勤。
+    attendance_day: int = -1
 
     def to_dict(self) -> dict[str, Any]:
         data = {
@@ -303,6 +306,8 @@ class Business:
             data["price_overrides"] = dict(sorted(self.price_overrides.items()))
         if self.day_history:
             data["day_history"] = list(self.day_history)
+        if self.attendance_day >= 0:
+            data["attendance_day"] = int(self.attendance_day)
         return data
 
 

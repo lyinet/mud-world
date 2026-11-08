@@ -222,7 +222,12 @@ def _worked_on_day(
     state: WorldState, eid: str, day: int, clock_marker: bool = False
 ) -> bool:
     if clock_marker:
-        # NPC 日口径：只认当天上工写入的 NPC 日标记，不再用世界 tick 窗口。
+        # NPC 日口径：优先认店铺上的持久出勤凭证（记忆会被 80 条上限淘汰），
+        # 再退回当日 NPC 日标记（兼容旧事件 / 无店铺场景）。
+        for biz in state.businesses.values():
+            if eid in biz.employees or eid in biz.employee_wages:
+                if int(getattr(biz, "attendance_day", -1)) == day:
+                    return True
         needle = f"{ATTENDANCE_MARKER}:D{day}"
         return any(needle in str(mem.get("text", "")) for mem in state.memories.get(eid, ()))
     start = day * TICKS_PER_DAY
