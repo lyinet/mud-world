@@ -104,10 +104,46 @@ class EventStore:
         self.conn.close()
 
     def count(self) -> int:
+        """全史最后 seq（裁剪后仍单调）。
+
+        未裁剪时 `MAX(seq) == COUNT(*)`；裁剪只删 seq 前缀，行数会变小但写路径
+        `count()+1` 必须继续递增，因此这里取 MAX(seq)。空表返回 0（创世语义）。
+        """
         if self._cached_count is None:
-            row = self.conn.execute("SELECT COUNT(*) FROM events").fetchone()
-            self._cached_count = int(row[0])
+            row = self.conn.execute("SELECT MAX(seq) FROM events").fetchone()
+            self._cached_count = int(row[0]) if row and row[0] is not None else 0
         return self._cached_count
+
+    def max_seq(self) -> int:
+        row = self.conn.execute("SELECT MAX(seq) FROM events").fetchone()
+        return int(row[0]) if row and row[0] is not None else 0
+
+    def min_seq(self) -> int:
+        row = self.conn.execute("SELECT MIN(seq) FROM events").fetchone()
+        return int(row[0]) if row and row[0] is not None else 0
+
+    def iter_range(self, start_seq: int, end_seq: int):
+        """按 seq 升序流式读取 `[start_seq, end_seq)`；不全量载入内存。"""
+        cur = self.conn.execute(
+            f"SELECT {self._select_cols()} FROM events"
+            " WHERE seq>=? AND seq<? ORDER BY seq ASC",
+            (int(start_seq), int(end_seq)),
+        )
+        for row in cur:
+            yield self._row_to_event(row)
+
+    def delete_through(self, seq: int) -> int:
+        """删除 `seq <= N` 的前缀事件，单事务；返回删除行数。"""
+        cur = self.conn.execute("DELETE FROM events WHERE seq<=?", (int(seq),))
+        self.conn.commit()
+        return int(cur.rowcount or 0)
+
+    def checkpoint_truncate(self) -> tuple[int, int, int]:
+        """把 WAL 截断到 0（在线裁剪后回收 WAL 体积）；不阻塞读者。"""
+        row = self.conn.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()
+        if row is None:
+            return (0, 0, 0)
+        return (int(row[0]), int(row[1]), int(row[2]))
 
     def append(self, event: Event) -> None:
         if self._has_legacy:
