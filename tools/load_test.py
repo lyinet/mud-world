@@ -687,6 +687,20 @@ def verify_event_log(run_dir: str | Path) -> dict[str, Any]:
         negative_rows: list[str] = []
         transfers_before_after = 0
         outcomes: Counter[str] = Counter()
+        # debt_settle 是唯一不走 transfer 的余额搬运（债务人→债权人），
+        # 不记账会把“债务结清后收到钱”的一方算少，误报透支。
+        debts: dict[str, tuple[str, str]] = {}
+        business_accounts: dict[str, str] = {}
+        faction_accounts: dict[str, str] = {}
+
+        def _party_acc(party: str) -> str:
+            if party in business_accounts:
+                return business_accounts[party]
+            if party in faction_accounts:
+                return faction_accounts[party]
+            if party.startswith(("wallet:", "treasury:")):
+                return party
+            return f"wallet:{party}"
 
         for r in rows:
             seq = int(r["seq"])
@@ -746,6 +760,39 @@ def verify_event_log(run_dir: str | Path) -> dict[str, Any]:
                         accounts[src] = src_bal - amount
                         accounts[dst] = accounts.get(dst, 0) + amount
                         transfers_before_after += 1
+                    elif op == "create_business":
+                        bid = str(data.get("id") or "")
+                        acc = str(data.get("cash_account") or "")
+                        if bid and acc:
+                            business_accounts[bid] = acc
+                            accounts.setdefault(acc, 0)
+                    elif op == "create_faction":
+                        fid = str(data.get("id") or "")
+                        acc = str(data.get("treasury_account") or "")
+                        if fid and acc:
+                            faction_accounts[fid] = acc
+                            accounts.setdefault(acc, 0)
+                    elif op == "debt_create":
+                        did = str(data.get("id") or "")
+                        debtor = str(data.get("debtor") or "")
+                        creditor = str(data.get("creditor") or "")
+                        if did and debtor and creditor:
+                            debts[did] = (debtor, creditor)
+                    elif op == "debt_settle":
+                        did = str(data.get("id") or "")
+                        amount = int(data.get("amount") or 0)
+                        pair = debts.get(did)
+                        if pair is not None and amount > 0:
+                            debtor, creditor = pair
+                            src = _party_acc(debtor)
+                            dst = _party_acc(creditor)
+                            src_bal = accounts.get(src, 0)
+                            if src_bal < amount:
+                                negative_rows.append(
+                                    f"seq={seq} debt_settle 透支 {src} {src_bal}<{amount}"
+                                )
+                            accounts[src] = src_bal - amount
+                            accounts[dst] = accounts.get(dst, 0) + amount
                 except (TypeError, ValueError) as exc:
                     invalid_rows.append(f"seq={seq} {op} 数据不合法: {exc}")
 
