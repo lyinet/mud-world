@@ -327,7 +327,7 @@ REASON_TEXT: dict[str, str] = {
     "insufficient_stamina": "体力不足；请先休息或进食。",
     "unknown_target": "目标人物不存在。",
     "not_together": "对方不在你当前所在的地点。",
-    "target_offline": "对方不在线，不能进行该操作。",
+    "target_offline": "对方已离线，不能进行该操作。",
     "player_consent_required": "该操作需要对方本人同意；本阶段关闭 NPC 对玩家的婚配与招揽。",
     "bad_message": "消息不能为空且不超过 200 字。",
     "heartbeat_too_soon": "心跳过于频繁；请稍后再试。",
@@ -1809,6 +1809,10 @@ class WorldSession:
         for ent in sorted(self.state.entities.values(), key=lambda e: e.id):
             if ent.id == pid or ent.location != loc or ent.status != "alive":
                 continue
+            if str(ent.id).startswith("player:"):
+                prof = self.state.players.get(str(ent.id))
+                if prof is None or not prof.online or ent.presence != "online":
+                    continue
             nearby.append(
                 {"id": ent.id, "name": ent.name, "role": ent.role, "presence": ent.presence}
             )
@@ -2561,7 +2565,7 @@ class WorldSession:
         for other_id in sorted(self.state.players):
             prof = self.state.players[other_id]
             ent = self.state.entities.get(other_id)
-            if not prof.online or ent is None:
+            if not prof.online or ent is None or ent.presence != "online":
                 continue
             rows.append(
                 {
@@ -2849,6 +2853,17 @@ class WorldSession:
         verb = WRITE_ACTIONS.get(action)
         if verb is None:
             return self._reject_early(account, action, "unknown_action", tick)
+        # 先判离线目标再判“动词未开放”：对离线玩家 fight/kill/loot 必须给出
+        # “对方已离线”的明确原因，不能被 forbidden_verb 吞掉变成含糊拒绝。
+        target = str(payload.get("target") or "").strip()
+        if action in ("fight", "kill", "loot") and target:
+            tid = target if target.startswith("player:") else f"player:{target.lower()}"
+            tent = self.state.entities.get(tid)
+            tprof = self.state.players.get(tid)
+            if tprof is not None and (
+                not tprof.online or (tent is not None and tent.presence != "online")
+            ):
+                return self._reject_early(account, action, "target_offline", tick)
         if verb in FORBIDDEN_VERBS or (
             verb not in PLAYER_VERBS and not self._xkx_extra_verb_allowed(verb)
         ):

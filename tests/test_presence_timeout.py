@@ -128,6 +128,145 @@ def test_touch_tick_heartbeat_cooldown(tmp_path: Path) -> None:
     session.close()
 
 
+def _two_players_one_offline(tmp_path: Path) -> tuple[WorldSession, str, str]:
+    """u_live 活跃，u_gone 在 36 tick 后离线；两人同处 market。"""
+    session = _make(tmp_path)
+    assert _enter(session, "u_live", "观察者")["ok"]
+    assert _enter(session, "u_gone", "断线者")["ok"]
+    session._advance(PRESENCE_TIMEOUT_TICKS - 1)
+    assert _talk(session, "u_live")["ok"]
+    session._advance(1)
+    return session, "player:u_live", "player:u_gone"
+
+
+def test_offline_player_cannot_be_fought_or_killed(tmp_path: Path) -> None:
+    session, live, gone = _two_players_one_offline(tmp_path)
+    assert session.state.players[gone].online is False
+    hp_before = float(session.state.entities[gone].hp)
+    events_before = session.store.count()
+
+    for verb in ("fight", "kill"):
+        response = session.perform(
+            "u_live", verb, {"account_id": "u_live", "target": gone, "rounds": 5}
+        )
+        assert not response["ok"], (verb, response)
+        assert response["reject_reason"] == "target_offline", (verb, response)
+        assert response["reason_text"] == "对方已离线，不能进行该操作。"
+    assert float(session.state.entities[gone].hp) == hp_before
+    # 拒绝可留审计 reject 事件，但绝不能产生伤害/状态变化。
+    for event in session.store.read_all()[events_before:]:
+        assert event.outcome != "ok", event.verb
+        assert not any(e.get("op") in ("damage", "entity_status") for e in event.effects)
+
+    # 在线玩家仍按原规则拒绝（不是“离线”冒充）。
+    assert _enter(session, "u_third", "在线靶子")["ok"]
+    online = session.perform(
+        "u_live", "fight", {"account_id": "u_live", "target": "player:u_third"}
+    )
+    assert online["reject_reason"] == "target_is_player"
+    session.close()
+
+
+def test_offline_player_cannot_be_looted(tmp_path: Path) -> None:
+    session, _live, gone = _two_players_one_offline(tmp_path)
+    ent = session.state.entities[gone]
+    ent.inventory["dog_skin"] = 2
+    before = dict(ent.inventory)
+
+    response = session.perform(
+        "u_live", "loot", {"account_id": "u_live", "target": gone, "item": "dog_skin"}
+    )
+    assert not response["ok"], response
+    assert response["reject_reason"] == "target_offline"
+    assert dict(ent.inventory) == before, "不能从离线玩家身上拿走任何东西"
+
+    online = session.perform(
+        "u_live", "loot", {"account_id": "u_live", "target": "player:u_live"}
+    )
+    assert online["reject_reason"] == "target_is_player", "搜身路径一律拒绝"
+    session.close()
+
+
+def test_npc_aggression_rejects_offline_target(tmp_path: Path) -> None:
+    from wsim.actions.aggression import NpcAggressionAction
+
+    session, _live, gone = _two_players_one_offline(tmp_path)
+    npc_id = next(
+        eid for eid in sorted(session.state.entities) if not eid.startswith("player:")
+    )
+    npc = session.state.entities[npc_id]
+    player = session.state.entities[gone]
+    npc.location = player.location  # 同房，排除 not_together 干扰
+    # 该内容根没有主动攻击规则；这里只验证前置判定，规则表用最小替身。
+    action = NpcAggressionAction(rules={str(npc.template or npc.id): {"aggressive": True}})
+    tick = int(session.state.tick)
+    trigger = Intent(
+        actor=npc_id,
+        verb="npc_aggression",
+        args={"target": gone, "mode": "trigger"},
+        tick=tick,
+        source="system",
+    )
+    assert action.preconditions(session.state, trigger) == ["target_offline"]
+    session.close()
+
+
+def test_combat_timeout_eighteen_ticks_then_disengage(tmp_path: Path) -> None:
+    session = _make(tmp_path)
+    assert _enter(session, "u_fight", "鏖战者")["ok"]
+    pid = "player:u_fight"
+    npc_id = next(
+        eid
+        for eid, ent in sorted(session.state.entities.items())
+        if not eid.startswith("player:") and ent.status == "alive"
+    )
+    npc = session.state.entities[npc_id]
+    player = session.state.entities[pid]
+    npc.location = player.location
+    npc.combat_target = pid
+    npc.combat_enemies = [pid]
+    player.combat_target = npc_id
+    player.combat_enemies = [npc_id]
+    hp_before = float(player.hp)
+
+    session._advance(COMBAT_PRESENCE_TIMEOUT_TICKS - 1)
+    assert session.state.players[pid].online is True
+    session._advance(1)
+
+    # 每次 submit 都会用 clone 替换 state，断言必须重新取实体。
+    npc = session.state.entities[npc_id]
+    player = session.state.entities[pid]
+    assert session.state.players[pid].online is False
+    assert npc.combat_target == ""
+    assert npc.combat_enemies == []
+    assert player.combat_target == ""
+    assert player.combat_enemies == []
+    assert float(player.hp) == hp_before
+
+    # 脱战后 NPC 的 continue 不得对离线目标结算伤害。
+    tick = int(session.state.tick)
+    follow = session.writer.submit(
+        Intent(
+            actor=npc_id,
+            verb="npc_aggression",
+            args={"target": pid, "mode": "continue"},
+            tick=tick,
+            source="system",
+        )
+    )
+    assert follow.outcome != "ok" or all(e.get("op") != "damage" for e in follow.effects)
+    assert float(session.state.entities[pid].hp) == hp_before
+    session.close()
+
+
+def test_offline_player_not_in_status_nearby(tmp_path: Path) -> None:
+    session, live, gone = _two_players_one_offline(tmp_path)
+    nearby = session.status("u_live")["nearby"]
+    assert gone not in {row["id"] for row in nearby}
+    assert live not in {row["id"] for row in nearby}, "自己不出现在 nearby"
+    session.close()
+
+
 def _run_script(tmp_path: Path) -> tuple[str, str, list[tuple[int, str, str]]]:
     session = _make(tmp_path, run_id="script")
     assert _enter(session, "u_a", "玩家甲")["ok"]

@@ -6,7 +6,7 @@
 ## 提交 1：字段与超时判定
 
 ### T1 超时核心（纯函数 + 系统动作）
-- [ ] `src/wsim/actions/player.py`
+- [x] `src/wsim/actions/player.py`
   - 删 `PRESENCE_ACTIVE_SECONDS` / `PRESENCE_OFFLINE_SECONDS` / `activity_stage`
   - 加 `PRESENCE_TIMEOUT_TICKS = 36`
   - 加 `presence_timeout_pids(state, tick, timeout=36)`（`prof.last_intent_tick`，sorted；
@@ -18,49 +18,49 @@
 - 验证：`pytest tests/test_presence_timeout.py -k "boundary or timeout or idempotent"`
 
 ### T2 调度与推进双路径触发
-- [ ] `src/wsim/sim/scheduler.py::_process_tick`：`_process_npc_aggression(t)` 后发
+- [x] `src/wsim/sim/scheduler.py::_process_tick`：`_process_npc_aggression(t)` 后发
       `system_player_presence`（仅 due 非空）
-- [ ] `src/wsim/api/session.py::_advance`：escort 结算后同逻辑（锁内 `_submit`）
+- [x] `src/wsim/api/session.py::_advance`：escort 结算后同逻辑（锁内 `_submit`）
 - 验证：同 tick 只产生 1 条事件；无玩家世界 0 条新事件
 
 ### T3 拆除墙钟 presence
-- [ ] `src/wsim/api/session.py`：删 `_presence_clock`/`_last_active`/`_activity_of`/
+- [x] `src/wsim/api/session.py`：删 `_presence_clock`/`_last_active`/`_activity_of`/
       `_mark_offline`/启动 replay 重置/`_perform` 自动离线；`player_state`/`public_state`
       去掉 `now`/`idle_seconds`；同步 `resume`/`keepalive`
-- [ ] `tools/soak_test.py`：移除 `activity_stage` 依赖
+- [x] `tools/soak_test.py`：移除 `activity_stage` 依赖
 - 验证：`grep -rn "activity_stage|_presence_clock|_last_active" src tools` 无引用
 
 ### T4 只读请求活跃刷新
-- [ ] `WorldSession._touch_tick(pid)`：仅 online；距 `last_intent_tick < 12` 跳过；
+- [x] `WorldSession._touch_tick(pid)`：仅 online；距 `last_intent_tick < 12` 跳过；
       否则提交 `player_heartbeat`
-- [ ] 入口调用：`status`、`player_state`、`public_state`、`xkx_command`、`keepalive`
+- [x] 入口调用：`status`、`player_state`、`public_state`、`xkx_command`、`keepalive`
 - 验证：连续读 10 次只写 1 次心跳；跨 12 tick 再写
 
 ## 提交 2：离线语义与战斗排除
 
 ### T5 离线不可见/不可选
-- [ ] `src/wsim/actions/aggression.py::NpcAggressionAction.preconditions` trigger
+- [x] `src/wsim/actions/aggression.py::NpcAggressionAction.preconditions` trigger
       对离线玩家返回 `target_offline`
-- [ ] `src/wsim/actions/combat.py::FightAction.preconditions`：`player:` 目标先判
+- [x] `src/wsim/actions/combat.py::FightAction.preconditions`：`player:` 目标先判
       offline → `target_offline`；不进入 `apply`（`KillAction` 继承）
-- [ ] `src/wsim/actions/loot.py::LootAction.preconditions`：`args.target` 指向玩家 →
+- [x] `src/wsim/actions/loot.py::LootAction.preconditions`：`args.target` 指向玩家 →
       离线 `target_offline`、在线 `target_is_player`；不读玩家 `inventory`
-- [ ] 确认 `_online_players_view`/`public_state`/`/api/world/feed`/`xkx_shell`
+- [x] 确认 `_online_players_view`/`public_state`/`/api/world/feed`/`xkx_shell`
       不含离线者
 - 验证：逐条用例（look/选目标/伤害不落地/搜身/房间聚合/npc_aggression）
 
 ### T6 战斗中断线：立即脱战
-- [ ] `src/wsim/actions/player.py`：`_in_live_combat` + `COMBAT_PRESENCE_TIMEOUT_TICKS=18`
+- [x] `src/wsim/actions/player.py`：`_in_live_combat` + `COMBAT_PRESENCE_TIMEOUT_TICKS=18`
       （战斗态用 18，非战斗 36）
-- [ ] 超时动作清空**双方** `combat_target`/`combat_enemies`（NPC 侧确定性排序）
-- [ ] 下一 tick `npc_aggression` 因 `prof.online=False` reset，不结算伤害
+- [x] 超时动作清空**双方** `combat_target`/`combat_enemies`（NPC 侧确定性排序）
+- [x] 下一 tick `npc_aggression` 因 `prof.online=False` reset，不结算伤害
 - 验证：17 tick online、18 tick offline+脱战；脱战后 NPC 无伤害事件
 
 ### T7 测试
-- [ ] 新增 `tests/test_presence_timeout.py`（spec §4 ①–⑫）
-- [ ] 改写 `tests/test_w1_presence.py`（删墙钟三态，保留并发/日界断言）
-- [ ] 核对 `tests/test_w5_capacity.py`（200 席位是建档上限）
-- [ ] `tests/test_xkx_determinism_legacy.py` 保持绿（735 事件/两哈希不变）
+- [x] 新增 `tests/test_presence_timeout.py`（spec §4 ①–⑫）
+- [x] 改写 `tests/test_w1_presence.py`（删墙钟三态，保留并发/日界断言）
+- [x] 核对 `tests/test_w5_capacity.py`（200 席位是建档上限）
+- [x] `tests/test_xkx_determinism_legacy.py` 保持绿（735 事件/两哈希不变）
 - 验证：`PYTHONPATH=src python -m pytest -q` 全绿、EXIT=0
 
 ## 提交 3：清理与踢人

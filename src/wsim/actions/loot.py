@@ -49,6 +49,13 @@ class LootAction(Action):
             return ["player_not_entered"]
         if ent.status == "dead":
             return ["player_dead"]
+        target = str(intent.args.get("target") or "")
+        if target.startswith("player:"):
+            prof = state.players.get(target)
+            other = state.entities.get(target)
+            if prof is None or not prof.online or (other is not None and other.presence != "online"):
+                return ["target_offline"]
+            return ["target_is_player"]
         loc = _ground_location(intent, state, pid)
         if loc != ent.location or loc not in state.locations:
             return ["not_here"]

@@ -361,6 +361,9 @@ class FightAction(Action):
         if defender is None:
             return ["target_missing"]
         if target.startswith("player:"):
+            prof = state.players.get(target)
+            if prof is None or not prof.online or defender.presence != "online":
+                return ["target_offline"]
             return ["target_is_player"]
         if attacker.status == "dead":
             return ["actor_dead"]

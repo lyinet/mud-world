@@ -204,6 +204,9 @@ class NpcAggressionAction(Action):
                 return ["target_missing"]
             if not target_id.startswith("player:"):
                 return ["target_not_player"]
+            prof = state.players.get(target_id)
+            if prof is not None and (not prof.online or target.presence != "online"):
+                return ["target_offline"]
             if target.status != "alive":
                 return ["target_not_alive"]
             if target.location != npc.location:

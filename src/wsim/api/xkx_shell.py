@@ -160,6 +160,7 @@ _EXTRA_REASON_TEXT = {
     "self_target": "不能对自己下手。",
     "actor_missing": "你的角色不在这具身体里。",
     "target_is_player": "不能对别的玩家动手。",
+    "target_offline": "对方已离线。",
     "actor_dead": "你已经倒下了，先想办法回魂。",
     "target_dead": "对方已经倒下。",
     "player_offline": "你离开太久，已经离线；这次操作没有生效。",

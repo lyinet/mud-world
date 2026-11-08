@@ -1,6 +1,6 @@
 # Presence 超时（断线玩家不得永远站在房里）— 规格
 
-状态：待评审 | 作者：TraeCode | 日期：2026-11-08
+状态：已批准（补充边界已并入） | 作者：TraeCode | 日期：2026-11-08
 关联：`docs/W1/spec.md`、`spec.md`（根）、`docs/player-system.md` §6
 
 ## 1. 问题与根因
