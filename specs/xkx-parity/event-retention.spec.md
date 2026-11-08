@@ -296,6 +296,11 @@ PYTHONPATH=src python -m wsim.world.retention \
 - 快照是代码版本相关的缓存；升级后若 pickle 不可读，自动退回归档+尾段重建（可能更慢，
   但结果一致）。
 - 归档段压缩后不可原地更新；任何修正仍以“追加事件 + 后续快照”表达，不改历史段。
+- **归档磁盘仍会持续增长**：本方案把在线库压到保留窗口（默认 14 游戏日），但归档是
+  长期事实源，按 500 席外推原始写入 23GB/天、压缩后约 11GB/天。上线时归档目录必须
+  有独立生命周期（对象存储/冷备/按审计要求定期转储），本次不实现归档删除策略。
+- 保留期以游戏日计：`tick_step=6s` 时 14 游戏日 ≈ 3.4 小时真实时间，运维需按实际
+  `tick_step` 换算保留窗口与维护频率。
 - 关闭态红线由 `test_xkx_determinism_legacy` 与实际两次跑测保证；开启态不要求与关闭态
   事件哈希相同（删了前缀，`event_hash(read_all())` 必然变化），只要求重建后的
   **state_hash** 与全量一致。
@@ -312,7 +317,35 @@ PYTHONPATH=src python -m wsim.world.retention \
 7. 边界：`retention_days=1` 时只保留当前日；`S<=0` 或裁剪后为空时不裁剪。
 8. 关闭态字节一致、重建一致、中断恢复、边界四类单测全部通过；全量 `pytest` 不回归。
 
-## 15. 交付物
+## 16. 实测记录（2026-11-08，本机）
+
+### 16.1 合成数据（40 游戏日 / 12 万事件，单段 2 万）
+
+随机 240 字符负载（避免重复文本虚高压缩率）：
+
+- 生成：12 万事件 / 6.2s；`events.sqlite` **31.8MB**（265B/事件）
+- 维护（归档+快照+裁剪+verify）：**3.8s**
+- 归档：26 段，**15.50MB**（原始库的 **48.8%**，199B/事件）
+- 保留：14 游戏日 → 4.2 万事件；裁剪 + `VACUUM` 后主库 **15.66MB**
+- `archive_verify=[]`、`verify=True`（快照+尾段 与 归档+尾段 的 state hash 一致）
+
+重复文本负载压测（仅验证流程，不代表真实压缩率）：12 万事件 38.4MB，
+归档 1.01MB（2.6%），维护 2.5s，`VACUUM` 后主库 15.66MB。
+
+### 16.2 真实内容包（4 游戏日 / 无玩家）
+
+- headless `days=4, seed=42, npc_limit=0`：1622 事件
+- 维护 `retention_days=1`：归档 1208 事件 / 3 段；保留 414 事件
+- `verify=True`；裁剪后 `replay_into` 的 `state.hash()` 与 headless summary
+  `state_final` 一致；`player_ticks` 一致
+- 人为损坏快照文件后重启重建：自动退回归档段，state hash 仍一致
+
+### 16.3 确定性红线
+
+`tests/test_xkx_determinism_legacy.py` 改动后连续跑两次均通过：
+`events=735`、`state=009076f0…780ce9`、`event=02d5f812…078ae`。
+
+## 17. 交付物
 
 - 本文档 + `event-retention.tasks.md`
 - `src/wsim/world/retention.py`（归档/快照/裁剪/恢复/CLI）
