@@ -470,11 +470,14 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         if ent.max_hp <= 0:
             raise EffectError(f"实体没有战斗生命值: {ent.id}")
         old = int(ent.hp)
+        # 原版 receive_damage 的下限是 -1；只有 eff_qi 开关打开的战斗事件才带
+        # `floor=-1`，其余路径缺省仍钳 0，保证关闭态逐字节不变。
+        floor = _as_int(d.get("floor", 0), "floor") if op == "hp_add" else 0
         if op == "hp_add":
             value = old + _as_int(d["delta"], "delta")
         else:
             value = _as_int(d["value"], "value")
-        new = max(0, min(ent.max_hp, value))
+        new = max(min(0, floor), min(ent.max_hp, value))
         if op == "hp_add":
             # 事件是唯一事实源：钳制就地进行，并把**实际**增量写回 delta。
             # 否则“超额伤害”会让事件记 -71、状态只掉 -70，重放永远对不上。
@@ -485,10 +488,34 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         ent.hp = new
         return
 
+    if op in ("eff_hp_set", "eff_hp_add"):
+        # 原版 eff_qi：下限 -1（<0 即死），上限 max_qi；旧实体从未初始化(-2)开始。
+        ent = _entity(state, str(d["entity"]))
+        if ent.max_hp <= 0:
+            raise EffectError(f"实体没有战斗生命值: {ent.id}")
+        old = ent.eff_hp if ent.eff_hp >= -1 else int(ent.max_hp)
+        if op == "eff_hp_add":
+            value = old + _as_int(d["delta"], "delta")
+        else:
+            value = _as_int(d["value"], "value")
+        ent.eff_hp = max(-1, min(ent.max_hp, value))
+        return
+
+    if op == "heal_apply":
+        # 原版 heal_up 的原子结果：hp / eff_qi / 恢复信用 / 心跳倒计时。
+        ent = _entity(state, str(d["entity"]))
+        if ent.max_hp <= 0:
+            raise EffectError(f"实体没有战斗生命值: {ent.id}")
+        ent.hp = max(-1, min(int(ent.max_hp), _as_int(d["hp"], "hp")))
+        ent.eff_hp = max(-1, min(int(ent.max_hp), _as_int(d["eff"], "eff")))
+        ent.heal_credit = max(0, _as_int(d.get("heal_credit", 0), "heal_credit"))
+        ent.heal_cd = max(0, _as_int(d.get("heal_cd", 0), "heal_cd"))
+        return
+
     if op == "entity_status":
         ent = _entity(state, str(d["entity"]))
         status = str(d["status"])
-        if status not in ("alive", "dead", "reincarnated"):
+        if status not in ("alive", "dead", "reincarnated", "unconcious"):
             raise EffectError(f"非法实体状态: {status}")
         if status == "dead":
             if ent.hp > 0:
@@ -496,10 +523,25 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             ent.status = "dead"
             ent.death_tick = _as_int(d.get("tick", 0), "tick")
             ent.death_location = str(d.get("location", ent.location))
+            ent.revive_tick = 0
+            # 原版 char.lpc:66 `remove_all_enemy()`：死亡清空敌人表。
+            ent.combat_enemies = []
+            ent.combat_target = ""
+        elif status == "unconcious":
+            if ent.hp > 0:
+                raise EffectError("昏迷前 hp 必须 <= 0")
+            ent.status = "unconcious"
+            ent.revive_tick = _as_int(d.get("revive_tick", 0), "revive_tick")
+            ent.death_tick = 0
+            ent.death_location = ""
+            # 原版 char.lpc:73 同样 remove_all_enemy()；苏醒后不自动恢复仇恨。
+            ent.combat_enemies = []
+            ent.combat_target = ""
         else:
             ent.status = status
             ent.death_tick = 0
             ent.death_location = ""
+            ent.revive_tick = 0
         return
 
     if op == "revive":
@@ -511,6 +553,11 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         hp = _as_int(d["hp"], "hp") if "hp" in d else max(1, ent.max_hp // 2)
         ent.hp = max(1, min(ent.max_hp, hp))
         ent.status = "alive"
+        # 原版 reincarnate：eff_qi 回满、qi 保持 1（这里 hp 已钳到 >=1）。
+        ent.eff_hp = int(ent.max_hp)
+        ent.heal_credit = 0
+        ent.heal_cd = 0
+        ent.revive_tick = 0
         ent.death_tick = 0
         ent.death_location = ""
         return
@@ -540,6 +587,11 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         ent.combat_round = 0
         ent.combat_enemies = []
         ent.combat_contrib = {}
+        # 新 clone：eff_qi 回到"未初始化"（运行时按 max_hp），恢复计数器清零。
+        ent.eff_hp = -2
+        ent.heal_credit = 0
+        ent.heal_cd = 0
+        ent.revive_tick = 0
         if "location" in d:
             loc = str(d["location"])
             if loc not in state.locations:

@@ -198,6 +198,7 @@ class AmbientScheduler:
         state: WorldState | None = None,
         registry: Any | None = None,
         lock: Any | None = None,
+        eff_qi: bool = False,
     ):
         if cfg is None:
             raise ValueError("AmbientScheduler 需要 AmbientConfig")
@@ -218,6 +219,8 @@ class AmbientScheduler:
         self.shared = writer is not None
         self._lock = lock
         self._owns_store = store is None
+        # eff_qi：每 tick 的被动心跳恢复 + 昏迷苏醒；关闭时整段不触发。
+        self.eff_qi = bool(eff_qi)
 
         self.tick = int(cfg.start_tick)
         self._processed = 0
@@ -689,6 +692,10 @@ class AmbientScheduler:
                 self._emit_system(
                     Intent("system", "system_escort_arrive", {}, t, "system")
                 )
+        # 原版 `char.lpc:106-109` 的 heal_up 心跳：只在有人需要恢复/苏醒时发事件，
+        # 避免健康世界每 tick 多一条系统事件（也是关闭态逐字节一致的前提之一）。
+        if self.eff_qi and self._needs_heal():
+            self._emit_system(Intent("system", "system_heal", {}, t, "system"))
         # 原版 NPC 的 `kill_ob` 只是开战并登记心跳，真正的出手在下一个心跳；
         # 这里每个 tick 对“已交战”的 NPC 结算一回合（目标不在同房/不在线/已死则收兵）。
         self._process_npc_aggression(t)
@@ -710,6 +717,22 @@ class AmbientScheduler:
             return bool(effective_enemies(ent)) if ent is not None else False
         return bool(getattr(ent, "combat_target", ""))
 
+    def _needs_heal(self) -> bool:
+        """存在需要 heal_up/苏醒的实体时才发 `system_heal`。"""
+        for ent in self.writer.state.entities.values():
+            if int(ent.max_hp) <= 0:
+                continue
+            if ent.status == "unconcious":
+                if ent.revive_tick and int(ent.revive_tick) <= self.tick:
+                    return True
+                continue
+            if ent.status != "alive":
+                continue
+            eff = ent.eff_hp if int(ent.eff_hp) >= -1 else int(ent.max_hp)
+            if int(ent.hp) < eff or eff < int(ent.max_hp):
+                return True
+        return False
+
     def _process_npc_aggression(self, tick: int) -> None:
         """每 tick 给“已交战”的 NPC 发一条 continue/reset 意图。
 
@@ -727,6 +750,9 @@ class AmbientScheduler:
                 continue
             npc = state.entities[npc_id]
             if npc_id.startswith("player:"):
+                continue
+            # 昏迷/死亡的 NPC 不再出手（原版 `disable_player`），也不发 reset 意图。
+            if npc.status != "alive":
                 continue
             if multi_combat_enabled():
                 # 多敌：把整张表交给动作层，由它 prune + `random(4)` 选一个。

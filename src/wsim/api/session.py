@@ -503,6 +503,22 @@ def _reason_text(code: str) -> str:
     return REASON_TEXT.get(code) or f"操作未完成：{code}（详见 docs/player-api.md 错误码表）。"
 
 
+def _load_combat_flag(path: Path | None, key: str) -> bool:
+    """只读 `combat.<key>`；缺省/解析失败/非 dict 一律 False。"""
+    if path is None:
+        return False
+    try:
+        import yaml
+
+        loaded = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
+    except Exception:
+        return False
+    if not isinstance(loaded, dict):
+        return False
+    raw = loaded.get("combat") or {}
+    return bool(raw.get(key)) if isinstance(raw, dict) else False
+
+
 class WorldSession:
     """单进程、单写者的玩家世界。HTTP 层只调用 `perform` / 只读视图。"""
 
@@ -561,6 +577,8 @@ class WorldSession:
         self.room_reset_enabled = self._load_room_reset(self.world_config_path)
         # 战斗出手门/反击/昏迷快攻：默认关闭，只有世界配置显式打开才生效。
         self.initiative_gate = self._load_initiative_gate(self.world_config_path)
+        # eff_qi 伤势天花板：默认关闭；关闭态事件/字段/骰与开启前逐字节一致。
+        self.eff_qi = self._load_eff_qi(self.world_config_path)
         # fight/kill 分离：默认关闭，fight 保持旧口径（击杀），不注册 kill。
         self.lethal_fight = self._load_lethal_fight(self.world_config_path)
         self.room_reset_policy = (
@@ -589,6 +607,7 @@ class WorldSession:
             room_reset=self.room_reset_policy,
             initiative_gate=self.initiative_gate,
             lethal_fight=self.lethal_fight,
+            eff_qi=self.eff_qi,
         )
         # 对话模型只挂 TalkAction；不构造 decision provider，不改 llm_enabled。
         # 旁路不属于世界状态：删掉只影响台词，不影响事件/状态/哈希。
@@ -1590,18 +1609,12 @@ class WorldSession:
     @staticmethod
     def _load_initiative_gate(path: Path | None) -> bool:
         """只读 `combat.initiative_gate`；缺省/解析失败/非 dict 一律 False。"""
-        if path is None:
-            return False
-        try:
-            import yaml
+        return _load_combat_flag(path, "initiative_gate")
 
-            loaded = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
-        except Exception:
-            return False
-        if not isinstance(loaded, dict):
-            return False
-        raw = loaded.get("combat") or {}
-        return bool(raw.get("initiative_gate")) if isinstance(raw, dict) else False
+    @staticmethod
+    def _load_eff_qi(path: Path | None) -> bool:
+        """只读 `combat.eff_qi`；缺省/解析失败/非 dict 一律 False。"""
+        return _load_combat_flag(path, "eff_qi")
 
     @staticmethod
     def _load_lethal_fight(path: Path | None) -> bool:
@@ -3705,6 +3718,7 @@ class WorldSession:
             store=self.store,
             registry=self.registry,
             lock=self.lock,
+            eff_qi=self.eff_qi,
         )
         self.ambient = scheduler
         self._ambient_thread = scheduler.start_background()

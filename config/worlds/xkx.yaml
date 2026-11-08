@@ -11,12 +11,14 @@ seed: 20261014
 tick_step: 6
 npc_limit: 0
 # 战斗出手门（S1，combatd.lpc:763）；S4：fight=切磋（半血停战）、kill=致命。
+# eff_qi：原版气血上限（伤势天花板）；验收通过前保持关闭，关闭态与旧世界逐字节一致。
 combat:
   initiative_gate: true
   lethal_fight: true
   # 多人同屏战斗：敌人表 + random(4) 选敌（2 人 75/25）。
   # 关闭态零字段/零事件/零额外骰；回滚只需撤掉本键后重启。
   multi_combat: true
+  eff_qi: false
 spawn: /d/hangzhou/jiulou
 display_name: 游侠儿
 archetype: 游侠

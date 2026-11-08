@@ -510,6 +510,12 @@ REST_RATE_TOWN = 0.5
 REST_RATE_WILD = 0.25
 
 
+def healing_ceiling(ent: Any) -> int:
+    """恢复上限：原版 `eff_qi`；旧实体未初始化(-2)时按 `max_qi`。"""
+    eff = int(getattr(ent, "eff_hp", -2))
+    return eff if eff >= -1 else int(ent.max_hp)
+
+
 def rest_rate(state: WorldState, location: str, home: str) -> float:
     loc = state.locations.get(location) or {}
     services = loc.get("services") or []
@@ -579,13 +585,16 @@ class PlayerRestAction(Action):
         tick = int(intent.tick)
         if str(intent.verb) == "sleep":
             stamina_delta = max(0.0, float(ent.max_stamina) - float(ent.stamina))
-            hp_delta = max(0, int(ent.max_hp) - int(ent.hp)) if int(ent.max_hp) > 0 else 0
+            # 原版 sleep.lpc:208-209：醒来 `qi = eff_qi`，绝不回满 max_qi。
+            hp_delta = max(0, healing_ceiling(ent) - int(ent.hp)) if int(ent.max_hp) > 0 else 0
             reason = "sleep"
         else:
             rate = rest_rate(state, str(ent.location), str(ent.home or ""))
             delta = float(int(hours) * TICKS_PER_HOUR) * rate
             stamina_delta = delta
-            hp_delta = int(delta) if int(ent.max_hp) > 0 else 0
+            # rest 同样封顶 eff_qi：伤势只能靠 heal_up 抬的天花板恢复。
+            room = max(0, healing_ceiling(ent) - int(ent.hp)) if int(ent.max_hp) > 0 else 0
+            hp_delta = min(int(delta), room)
             reason = "rest"
         effects: list[Effect] = [
             Effect("stamina", {"entity": pid, "delta": stamina_delta, "reason": reason, "hours": int(hours)}),

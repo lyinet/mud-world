@@ -51,6 +51,7 @@ def build_registry(
     room_reset=None,
     initiative_gate: bool = False,
     lethal_fight: bool = False,
+    eff_qi: bool = False,
 ) -> ActionRegistry:
     from .aggression import NpcAggressionAction
     from .basic import ConsumeAction, CultivateAction, MoveAction, WorkAction
@@ -100,6 +101,7 @@ def build_registry(
         SystemBudgetAction,
         SystemDebtsAction,
         SystemGoalAction,
+        SystemHealAction,
         SystemLivingAction,
         SystemRecoverAction,
         SystemSavingsTaxAction,
@@ -162,6 +164,7 @@ def build_registry(
     reg.register(SystemMilestoneAction(content))
     reg.register(SystemMaintenanceAction(content))
     reg.register(SystemRecoverAction(content))
+    reg.register(SystemHealAction(content))
     reg.register(SystemLivingAction(content))
     reg.register(SystemDebtsAction(content))
     reg.register(SystemSavingsTaxAction(content))
@@ -181,16 +184,16 @@ def build_registry(
     reg.register(SystemTickAction())
     if lethal_fight:
         # 原版语义：fight 是切磋（半血即止），kill 才下死手。
-        reg.register(FightAction(initiative_gate=initiative_gate, spar=True))
-        reg.register(KillAction(initiative_gate=initiative_gate))
+        reg.register(FightAction(initiative_gate=initiative_gate, spar=True, eff_qi=eff_qi))
+        reg.register(KillAction(initiative_gate=initiative_gate, eff_qi=eff_qi))
     else:
         # 旧口径：fight 仍按击杀处理，且不注册 kill。
-        reg.register(FightAction(initiative_gate=initiative_gate))
+        reg.register(FightAction(initiative_gate=initiative_gate, eff_qi=eff_qi))
     # NPC 主动攻击：规则只从内容包派生；旧九地点内容没有 aggressive/三个专属 id，
     # 规则表为空，动作永远拒绝，事件流不变。
     from ..sim.aggression import aggression_rules
 
-    reg.register(NpcAggressionAction(aggression_rules(content), initiative_gate=initiative_gate))
+    reg.register(NpcAggressionAction(aggression_rules(content), initiative_gate=initiative_gate, eff_qi=eff_qi))
     reg.register(LootAction(content))
     reg.register(DropAction(content))
     reg.register(WimpyAction())

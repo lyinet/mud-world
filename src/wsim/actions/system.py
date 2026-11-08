@@ -499,6 +499,85 @@ class SystemRecoverAction(Action):
         return [Effect("stamina", {"entity": e.id, "delta": amount}) for e in state.alive_entities()]
 
 
+# 1 tick = 600 游戏秒；原版 1 心跳 = 365 游戏秒（natured.lpc:8），默认 1000ms。
+# 因此 1 tick = 600/365 心跳 → 单位 1/10000 心跳的信用为 16438。（见 eff-qi.spec.md §2）
+HEAL_CREDIT_PER_TICK = 16438
+# 原版 `char.lpc:106-109`：`tick = 5 + random(10)`，下一次触发间隔 6..15 心跳。
+HEAL_CD_MIN = 6
+HEAL_CD_SPAN = 10
+
+
+class SystemHealAction(Action):
+    """原版 `heal_up`：被动心跳恢复 `eff_qi`/`qi`，并驱动昏迷实体苏醒。
+
+    只在 `combat.eff_qi` 打开时由 scheduler 发出；每次事件逐实体结算。
+    """
+
+    verb = "system_heal"
+
+    def __init__(self, content=None):
+        self.content = content
+
+    def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
+        effects: list[Effect] = []
+        for ent in sorted(state.entities.values(), key=lambda e: e.id):
+            max_hp = int(ent.max_hp)
+            if max_hp <= 0:
+                continue
+            if ent.status == "unconcious":
+                # 原版 `revive()` 只恢复行动力：qi 仍是 0，eff_qi 不变。
+                if ent.revive_tick and int(intent.tick) >= int(ent.revive_tick):
+                    effects.append(
+                        Effect("entity_status", {"entity": ent.id, "status": "alive"})
+                    )
+                continue
+            if ent.status != "alive":
+                continue
+            eff = int(ent.eff_hp) if int(ent.eff_hp) >= -1 else max_hp
+            hp = int(ent.hp)
+            if hp >= eff and eff >= max_hp:
+                # 完全健康：清掉残留计数（只在确实非零时发事件）。
+                if ent.heal_credit or ent.heal_cd:
+                    effects.append(
+                        Effect(
+                            "heal_apply",
+                            {
+                                "entity": ent.id,
+                                "hp": hp,
+                                "eff": eff,
+                                "heal_credit": 0,
+                                "heal_cd": 0,
+                            },
+                        )
+                    )
+                continue
+            con = int((getattr(ent, "attrs", None) or {}).get("con", 20))
+            credit = int(ent.heal_credit) + HEAL_CREDIT_PER_TICK
+            cd = int(ent.heal_cd) or (HEAL_CD_MIN + rng.below(HEAL_CD_SPAN))
+            while credit >= cd * 10000:
+                credit -= cd * 10000
+                hp = min(hp + con // 3, eff)
+                if hp >= eff:
+                    hp = eff
+                    if eff < max_hp:
+                        eff += 1
+                cd = HEAL_CD_MIN + rng.below(HEAL_CD_SPAN)
+            # 即使本 tick 没触发，也要把累积信用写回，否则永远凑不满一次 heal_up。
+            effects.append(
+                Effect(
+                    "heal_apply",
+                    {
+                        "entity": ent.id,
+                        "hp": hp,
+                        "eff": eff,
+                        "heal_credit": credit,
+                        "heal_cd": cd,
+                    },
+                )
+            )
+        return effects
+
+
 class SystemLivingAction(Action):
     verb = "system_living"
 

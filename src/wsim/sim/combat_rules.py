@@ -174,12 +174,14 @@ def _is_player(ent: Any, player_ids: set[str]) -> bool:
 class _Actor:
     """一次战斗内单个对象的可变副本；只读 Entity，不写 state。"""
 
-    def __init__(self, ent: Any, player_ids: set[str]):
+    def __init__(self, ent: Any, player_ids: set[str], eff_qi: bool = False):
         self.ent = ent
         self.id = str(ent.id)
         self.max_hp = int(getattr(ent, "max_hp", 0))
         self.hp = int(getattr(ent, "hp", 0))
-        self.eff_hp = self.max_hp  # 本次战斗从满 eff_qi 开始；跨场伤势未建模
+        # 原版 eff_qi：跨场携带的伤势天花板；-2 是"旧实体未初始化"，按 max_qi 处理。
+        stored_eff = int(getattr(ent, "eff_hp", -2))
+        self.eff_hp = stored_eff if eff_qi and stored_eff >= -1 else self.max_hp
         self.levels = dict(skill_map(ent))
         self.learned = {str(k): int(v) for k, v in (getattr(ent, "skill_xp", None) or {}).items()}
         self.exp = int(getattr(ent, "combat_exp", 0))
@@ -230,7 +232,8 @@ class _Actor:
         # `set_temp("guarding", ...)` 的生命周期见 combatd.lpc:694/744/764/784。
         self.guarding = False
         # 原版 `!living(victim)`（qi<0 昏迷）与 `eff_qi<0`（die）是两种状态。
-        self.unconscious = False
+        # 跨场昏迷要带进来，否则补刀不会走 Quick（combatd.lpc:741-747）。
+        self.unconscious = str(getattr(ent, "status", "alive")) == "unconcious"
         self.dead = False
 
     def level(self, skill: str) -> int:
@@ -400,6 +403,7 @@ def simulate_fight(
     action_table: dict[str, list[dict[str, Any]]] | None = None,
     hook_table: dict[str, dict[str, Any]] | None = None,
     initiative_gate: bool = False,
+    eff_qi: bool = False,
     killing: bool = True,
     spar: bool = False,
 ) -> dict[str, Any]:
@@ -414,8 +418,8 @@ def simulate_fight(
     player_ids = player_ids or set()
     actions_by_skill = load_action_table() if action_table is None else action_table
     hooks_by_skill = load_hook_table() if hook_table is None else hook_table
-    me = _Actor(attacker, player_ids)
-    victim = _Actor(defender, player_ids)
+    me = _Actor(attacker, player_ids, eff_qi=eff_qi)
+    victim = _Actor(defender, player_ids, eff_qi=eff_qi)
     if me.max_hp <= 0 or victim.max_hp <= 0:
         raise ValueError("战斗双方必须都有 max_hp")
     skill_a = attack_skill(attacker, skill)
@@ -552,6 +556,9 @@ def simulate_fight(
                 # apply/unarmed_damage；`Entity.attack` 是旧内容的等价基础伤害入口。
                 raw_damage=src.attack
                 + int(src.temp_apply.get("apply/damage" if src.weapon else "apply/unarmed_damage", 0)),
+                # 原版 combatd.lpc:436-456 的护甲减伤：基础护甲(内容 defense)
+                # + 装备临时 apply/armor；`apply/defense` 属于 skill_power，
+                # 不进减伤，也不进破防门（:560 只认 apply/armor）。
                 armor=dst.defense + dst.apply_armor,
                 str_effective=attr(src.ent, "str"),
                 attacker_exp=src.exp,
@@ -564,9 +571,13 @@ def simulate_fight(
                 **hooks,
             )
             new_hp = xf.apply_qi_damage(dst.hp, breakdown.final_damage)
+            # 原版 combatd.lpc:560 只认 apply/armor；apply/defense 只进命中率。
+            # 关闭 eff_qi 时沿用旧口径（base defense + apply/armor），保证关闭态与
+            # 开启前逐字节一致；开启后才切到原版 `apply/armor` 单口径。
+            wound_armor = dst.apply_armor if eff_qi else dst.defense + dst.apply_armor
             wounded = xf.roll_wound(
                 damage=breakdown.final_damage,
-                armor=dst.defense + dst.apply_armor,
+                armor=wound_armor,
                 killing=killing,
                 has_weapon=src.weapon,
                 prng=prng,
@@ -574,7 +585,7 @@ def simulate_fight(
             new_eff = dst.eff_hp
             if wounded:
                 vitals = xf.apply_qi_wound(
-                    new_hp, dst.eff_hp, breakdown.final_damage - (dst.defense + dst.apply_armor)
+                    new_hp, dst.eff_hp, breakdown.final_damage - wound_armor
                 )
                 new_hp, new_eff = vitals.qi, vitals.eff_qi
 
@@ -670,7 +681,8 @@ def simulate_fight(
                     continue
                 if target.unconscious:
                     # `:742-760`：目标已昏迷，攻击方获得一次 `TYPE_QUICK` 补刀；
-                    # 目标在下一次自身心跳 `die()`（`char.lpc:72-77`），因此最多 +1。
+                    # 目标在下一次自身心跳 `die()`（`char.lpc:72-77`）。
+                    # 只有**命中且 qi 重新 <0** 才转死；未命中/被招架则继续昏迷。
                     # 切磋时，面对已昏迷的对手直接收手，不补刀判死。
                     if spar:
                         stopped = True
@@ -678,7 +690,8 @@ def simulate_fight(
                         break
                     actor.guarding = False
                     strike(actor, target, actor_skill, attack_type="quick")
-                    target.dead = True
+                    if target.hp < 0:
+                        target.dead = True
                     continue
                 # `:763`：主动门。走兽 cps=0 时 random(0) 不取骰。
                 gate_n = max(0, int(target.cps * 3))
@@ -743,7 +756,7 @@ def simulate_fight(
                 break
             continue
         for actor in (me, victim):
-            if initiative_gate:
+            if eff_qi or initiative_gate:
                 # 只认 `die()`（eff<0）与显式补刀；`qi<0` 是昏迷，不是死亡。
                 if actor.dead or actor.eff_hp < 0:
                     dead.add(actor.id)
@@ -751,7 +764,7 @@ def simulate_fight(
                 # 旧口径：气血/有效气血任一为负即视为倒下。
                 if actor.hp < 0 or actor.eff_hp < 0:
                     dead.add(actor.id)
-        if initiative_gate and me.unconscious and victim.unconscious:
+        if (eff_qi or initiative_gate) and me.unconscious and victim.unconscious:
             # 双方同时昏迷：各自下个心跳都会 die()，本引擎直接判同归于尽。
             dead.update((me.id, victim.id))
         if dead:
@@ -783,6 +796,11 @@ def simulate_fight(
         "rounds_used": len(rounds),
         "hp": {me.id: max(0, me.hp), victim.id: max(0, victim.hp)},
         "hp_raw": {me.id: me.hp, victim.id: victim.hp},
+        "eff_hp_raw": {me.id: me.eff_hp, victim.id: victim.eff_hp},
+        "unconscious": sorted({
+            actor.id for actor in (me, victim)
+            if actor.unconscious and not actor.dead and actor.eff_hp >= 0
+        }),
         "dead": sorted(dead),
         "winner": winner,
         "combat_exp": {me.id: me.exp - int(getattr(attacker, "combat_exp", 0)),
