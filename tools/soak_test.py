@@ -1413,12 +1413,19 @@ def _build_attribution(
         lock_waits = [float(s.get("lock_wait_ms") or 0.0) for s in seg]
         in_locks = [float(s.get("in_lock_ms") or 0.0) for s in seg]
         in_lock_cpus = [float(s.get("in_lock_cpu_ms") or 0.0) for s in seg]
+        proc_cpus = [float(s.get("in_lock_proc_cpu_ms") or 0.0) for s in seg]
         step_vals = [float(s.get("step_ms") or 0.0) for s in seg]
         parts: dict[str, float] = {}
+        parts_cpu: dict[str, float] = {}
         for s in seg:
             for key, val in (s.get("parts") or {}).items():
                 try:
                     parts[key] = max(parts.get(key, 0.0), float(val))
+                except (TypeError, ValueError):
+                    continue
+            for key, val in (s.get("parts_cpu") or {}).items():
+                try:
+                    parts_cpu[key] = max(parts_cpu.get(key, 0.0), float(val))
                 except (TypeError, ValueError):
                     continue
         gc_seg = [g for g in gc_events if lo <= g[0] <= hi]
@@ -1453,7 +1460,12 @@ def _build_attribution(
             "in_lock_ms_p95": lt.percentiles(in_locks).get("p95") if in_locks else None,
             "in_lock_ms_max": round(max(in_locks), 2) if in_locks else None,
             "in_lock_cpu_ms_max": round(max(in_lock_cpus), 2) if in_lock_cpus else None,
+            # process_time 口径（不随机器噪声漂移）：step CPU 的 p95/p99/max。
+            "in_lock_proc_cpu_ms_p95": lt.percentiles(proc_cpus).get("p95") if proc_cpus else None,
+            "in_lock_proc_cpu_ms_p99": lt.percentiles(proc_cpus).get("p99") if proc_cpus else None,
+            "in_lock_proc_cpu_ms_max": round(max(proc_cpus), 2) if proc_cpus else None,
             "in_lock_parts_max_ms": {k: round(v, 2) for k, v in sorted(parts.items())},
+            "in_lock_parts_cpu_max_ms": {k: round(v, 2) for k, v in sorted(parts_cpu.items())},
             "ambient_status": {
                 k: amb.get(k) for k in ("step_ms_p95", "lock_wait_ms_p95", "in_lock_ms_p95",
                                         "lag_ticks", "lag_steps", "queue_backlog")
@@ -1483,6 +1495,11 @@ def _build_attribution(
     for r in bad_rows:
         key = str((r.get("attribution") or {}).get("cause") or "unknown")
         counts[key] = counts.get(key, 0) + 1
+    # 全跑 CPU 口径（process_time）：墙钟 p95 是门，CPU p95/p99 是代码健康度。
+    proc_all = [float(s.get("in_lock_proc_cpu_ms") or 0.0) for s in steps]
+    wall_all = [float(s.get("step_ms") or 0.0) for s in steps]
+    proc_p = lt.percentiles(proc_all) if proc_all else {}
+    wall_p = lt.percentiles(wall_all) if wall_all else {}
     return {
         "schema": "soak-attribution/v1",
         "warmup_s": warmup,
@@ -1494,6 +1511,16 @@ def _build_attribution(
         "cause_counts": counts,
         "gc_pauses_total": len(gc_events),
         "gc_pauses_max_ms": round(max((g[2] for g in gc_events), default=0.0), 2),
+        "cpu_metric": {
+            "basis": "time.process_time delta inside guard lock",
+            "samples": len(proc_all),
+            "step_proc_cpu_p95": proc_p.get("p95"),
+            "step_proc_cpu_p99": proc_p.get("p99"),
+            "step_proc_cpu_max": proc_p.get("max"),
+            "step_wall_p95": wall_p.get("p95"),
+            "step_wall_p99": wall_p.get("p99"),
+            "step_wall_max": wall_p.get("max"),
+        },
         "windows": table,
     }
 
