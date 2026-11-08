@@ -14,6 +14,9 @@ npc_limit: 0
 combat:
   initiative_gate: true
   lethal_fight: true
+  # 多人同屏战斗：敌人表 + random(4) 选敌（2 人 75/25）。
+  # 关闭态零字段/零事件/零额外骰；回滚只需撤掉本键后重启。
+  multi_combat: true
 spawn: /d/hangzhou/jiulou
 display_name: 游侠儿
 archetype: 游侠
