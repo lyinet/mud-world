@@ -434,6 +434,124 @@ def _machine_load(exclude: set[int] | None = None) -> dict[str, Any]:
     return out
 
 
+# --------------------------------------------------------------- measurement environment (loadavg)
+_LOAD_SAMPLE_S = 10.0
+_LOAD_OVER_WINDOW_S = 300.0
+
+
+def _loadavg_stats(samples: list[dict[str, Any]], threshold: float) -> dict[str, Any]:
+    vals = [float(s["load1"]) for s in samples if s.get("load1") is not None]
+    over = [v for v in vals if v > threshold]
+    longest = 0.0
+    run_start: float | None = None
+    last_over: float | None = None
+    for s in samples:
+        l1, t = s.get("load1"), s.get("t")
+        if l1 is None or t is None:
+            continue
+        if float(l1) > threshold:
+            if run_start is None:
+                run_start = float(t)
+            last_over = float(t)
+            longest = max(longest, last_over - run_start)
+        else:
+            run_start = None
+            last_over = None
+    return {
+        "threshold": threshold,
+        "samples": len(samples),
+        "max_load1": round(max(vals), 2) if vals else None,
+        "mean_load1": round(statistics.fmean(vals), 2) if vals else None,
+        "last_load1": round(vals[-1], 2) if vals else None,
+        "over_threshold_samples": len(over),
+        "over_threshold_pct": round(len(over) / len(vals) * 100.0, 1) if vals else None,
+        "max_continuous_over_s": round(longest, 1),
+        "continuous_over_limit_s": _LOAD_OVER_WINDOW_S,
+    }
+
+
+def _load_sample(elapsed_s: float) -> dict[str, Any]:
+    row: dict[str, Any] = {"ts": _iso(), "t": time.time(), "elapsed_s": round(elapsed_s, 1)}
+    try:
+        l1, l5, l15 = os.getloadavg()
+        row.update({"load1": round(l1, 2), "load5": round(l5, 2), "load15": round(l15, 2)})
+    except Exception:
+        row.update({"load1": None, "load5": None, "load15": None})
+    return row
+
+
+def _pre_idle_precondition(seconds: float, threshold: float, path: Path) -> dict[str, Any]:
+    """跑前空窗取样：机器空闲是测量前置条件，不合格就不启服务（该 run 不用于判定代码）。"""
+    if path.exists():
+        path.unlink()
+    samples: list[dict[str, Any]] = []
+    start = _mono()
+    print(f"[soak] pre-idle sampling {seconds:.0f}s (loadavg<={threshold:g}) -> {path}", flush=True)
+    with path.open("a", encoding="utf-8") as fh:
+        while _mono() - start < seconds:
+            row = _load_sample(_mono() - start)
+            fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+            fh.flush()
+            samples.append(row)
+            left = seconds - (_mono() - start)
+            if left > 0:
+                time.sleep(min(_LOAD_SAMPLE_S, left))
+    stats = _loadavg_stats(samples, threshold)
+    final_ok = stats["last_load1"] is not None and stats["last_load1"] <= threshold
+    sustained_ok = stats["max_continuous_over_s"] < _LOAD_OVER_WINDOW_S
+    return {
+        "seconds": round(seconds, 1),
+        "qualified": bool(final_ok and sustained_ok),
+        "final_load1_ok": bool(final_ok),
+        "no_sustained_over": bool(sustained_ok),
+        "stats": stats,
+    }
+
+
+def _monitor_loadavg(
+    stop: threading.Event,
+    path: Path,
+    threshold: float,
+    state: dict[str, Any],
+    start_mono: float,
+) -> None:
+    """跑中每 10s 采样；连续 5 分钟 > 阈值即主动中止并标 run_invalid(reason=external_load)。"""
+    samples: list[dict[str, Any]] = []
+    over_since: float | None = None
+    next_at = _mono()
+    with path.open("w", encoding="utf-8") as fh:
+        while not stop.is_set():
+            now = _mono()
+            row = _load_sample(now - start_mono)
+            fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+            fh.flush()
+            samples.append(row)
+            l1 = row.get("load1")
+            if l1 is not None and float(l1) > threshold:
+                if over_since is None:
+                    over_since = now
+                if now - over_since >= _LOAD_OVER_WINDOW_S:
+                    state["invalid"] = True
+                    state["reason"] = "external_load"
+                    state["abort_elapsed_s"] = round(now - start_mono, 1)
+                    state["stats"] = _loadavg_stats(samples, threshold)
+                    print(
+                        f"[soak] run_invalid(reason=external_load): loadavg>{threshold:g} "
+                        f"连续 {now - over_since:.0f}s，主动中止（该 run 不用于判定代码）",
+                        flush=True,
+                    )
+                    stop.set()
+                    return
+            else:
+                over_since = None
+            next_at += _LOAD_SAMPLE_S
+            while not stop.is_set() and _mono() < next_at:
+                time.sleep(min(0.5, max(0.0, next_at - _mono())))
+            if _mono() < next_at:
+                next_at = _mono()
+    state["stats"] = _loadavg_stats(samples, threshold)
+
+
 # --------------------------------------------------------------------------- probe (server-side)
 _SITE_CUSTOMIZE = '''"""soak 探针：由 tools/soak_test.py 生成，只做事后诊断，不改任何业务代码。
 
@@ -1585,6 +1703,7 @@ def _build_summary(
     started_at: str,
     memory_profile: dict[str, Any] | None,
     player_shop: dict[str, Any] | None = None,
+    loadavg: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     samples, windows = sampler.snapshot()
     if samples:
@@ -1658,6 +1777,8 @@ def _build_summary(
             "think_time_s": args.think_time,
             "sample_interval_s": args.sample_interval,
             "warmup_s": warmup,
+            "max_loadavg": args.max_loadavg,
+            "pre_idle_s": args.pre_idle,
             "ambient": True,
             "ambient_cpu_pct": args.ambient_cpu,
             "auth": "off",
@@ -1739,6 +1860,9 @@ def _build_summary(
         "shutdown": stop_info,
         "restart": restart,
         "memory_profile": memory_profile,
+        "loadavg": loadavg or {"valid": True, "skipped": True},
+        "run_valid": bool((loadavg or {}).get("valid", True)),
+        "run_invalid_reason": None if (loadavg or {}).get("valid", True) else ((loadavg or {}).get("reason") or "external_load"),
         "checks": {},
     }
     attribution = _build_attribution(report_dir=report_dir, run_dir=run_dir, windows=windows, warmup=warmup)
@@ -1749,6 +1873,7 @@ def _build_summary(
     summary["extrapolation"] = _extrapolation(summary)
     slow_ratio = summary["latency"]["window_10m"]["p95_ratio"]
     checks = {
+        "run_valid": bool(summary["run_valid"]),
         "strict_no_30s_window_write_p95_over_500": bool(attribution.get("bad_windows") == 0),
         "rss_growth_lt_5pct_per_hour": bool(
             growth_pct_h < 5.0 and (peak_growth_pct is None or peak_growth_pct < 5.0)
@@ -1900,9 +2025,26 @@ def _run_soak(args: argparse.Namespace) -> int:
     samples_path.touch()
     probe_dir = _write_probe_dir(report_dir)
     port = args.port or _free_port()
-    started_at = _iso()
     print(f"[soak] run={run_id} duration={args.duration}s players={args.players} port={port}", flush=True)
     print(f"[soak] report={report_dir}", flush=True)
+
+    pre_idle: dict[str, Any] = {"seconds": 0.0, "qualified": True, "skipped": True}
+    if args.pre_idle > 0:
+        pre_idle = _pre_idle_precondition(args.pre_idle, args.max_loadavg, report_dir / "loadavg_pre.jsonl")
+        pre_idle["skipped"] = False
+        print(
+            f"[soak] pre-idle qualified={pre_idle['qualified']} "
+            f"stats={json.dumps(pre_idle['stats'], ensure_ascii=False)}",
+            flush=True,
+        )
+        if not pre_idle["qualified"]:
+            print("[soak] run_invalid(reason=external_load): 前置空窗不合格，本次不启服务、不用于判定代码", flush=True)
+            _json_dump(report_dir / "run_invalid.json", {
+                "run_id": run_id, "reason": "external_load", "phase": "pre_idle",
+                "pre_idle": pre_idle,
+            })
+            return 2
+    started_at = _iso()
 
     server = ManagedServer(
         run_id=run_id, port=port, log_path=report_dir / "server.log",
@@ -1922,6 +2064,16 @@ def _run_soak(args: argparse.Namespace) -> int:
         interval=args.sample_interval, stop=stop, start_at=start_at, phase="soak",
     )
     sampler.start()
+
+    load_state: dict[str, Any] = {"invalid": False, "reason": "", "stats": {}}
+    load_monitor: threading.Thread | None = None
+    if args.max_loadavg > 0:
+        load_monitor = threading.Thread(
+            target=_monitor_loadavg,
+            args=(stop, report_dir / "loadavg.jsonl", args.max_loadavg, load_state, start_at),
+            name="loadavg-monitor", daemon=True,
+        )
+        load_monitor.start()
 
     player_cls = LegacyPlayer
     tag = args.tag or f"{random.randint(0, 9999):04d}"
@@ -1965,6 +2117,9 @@ def _run_soak(args: argparse.Namespace) -> int:
     next_log = t_start + 300.0
     while _mono() < t_start + args.duration:
         time.sleep(1.0)
+        if stop.is_set():
+            # loadavg 监控判定外部负载持续超阈后主动中止；该 run 标 run_invalid
+            break
         if _mono() >= next_log:
             next_log += 300.0
             rows, _ = sampler.snapshot()
@@ -1986,6 +2141,8 @@ def _run_soak(args: argparse.Namespace) -> int:
     duration_actual = _mono() - t_start
     print(f"[soak] load finished after {duration_actual:.1f}s, stopping players", flush=True)
     stop.set()
+    if load_monitor is not None:
+        load_monitor.join(timeout=15)
     for th in threads:
         th.join(timeout=30)
     sampler.stop.set()
@@ -2017,8 +2174,22 @@ def _run_soak(args: argparse.Namespace) -> int:
         started_at=started_at,
         memory_profile=memory_profile,
         player_shop=shop_result,
+        loadavg={
+            "valid": not bool(load_state.get("invalid")),
+            "reason": load_state.get("reason") or None,
+            "abort_elapsed_s": load_state.get("abort_elapsed_s"),
+            "threshold": args.max_loadavg,
+            "in_run": load_state.get("stats") or {},
+            "pre_idle": pre_idle,
+        },
     )
     _json_dump(report_dir / "summary.json", summary)
+    if not summary["run_valid"]:
+        _json_dump(report_dir / "run_invalid.json", {
+            "run_id": run_id, "reason": summary.get("run_invalid_reason"),
+            "abort_elapsed_s": summary["loadavg"].get("abort_elapsed_s"),
+            "note": "该 run 不用于判定代码，需换时段重跑",
+        })
     print(f"[soak] summary -> {report_dir / 'summary.json'}", flush=True)
     for key, ok in summary["checks"].items():
         print(f"[soak] check {key}: {'PASS' if ok else 'FAIL'}", flush=True)
@@ -2248,6 +2419,10 @@ def _build_parser() -> argparse.ArgumentParser:
                         help="关掉 ambient（同机对照组：判断 >500ms 是代码还是机器噪声）")
     parser.add_argument("--player-shop", type=int, default=0,
                         help="脚本注入玩家人数：开摊 + 攒好感 + 雇掌柜，用于跑 system_shop_settle")
+    parser.add_argument("--max-loadavg", type=float, default=4.0,
+                        help="测量前置：loadavg(1m) 阈值；跑中连续 5 分钟超阈即主动中止并标 run_invalid")
+    parser.add_argument("--pre-idle", type=float, default=600.0,
+                        help="跑前空窗取样时长（秒，默认 600）；0=跳过（仅短验/调试可跳，长跑必须保留）")
     parser.add_argument("--strict", action="store_true", help="任一验收项 FAIL 时返回码 1")
     parser.add_argument("--heap-minutes", type=float, default=20.0)
     parser.add_argument("--heap-interval", type=float, default=300.0)
