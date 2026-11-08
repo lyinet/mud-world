@@ -351,6 +351,24 @@ def _db_snapshot(run_dir: Path, *, count_rows: bool = True) -> dict[str, Any]:
     return out
 
 
+def _verb_counts(run_dir: Path) -> dict[str, int]:
+    """按 verb 统计事件数（只查 system_*，给日界结算原始计数）。"""
+    db = run_dir / "events.sqlite"
+    if not db.exists():
+        return {}
+    try:
+        conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=5)
+        try:
+            rows = conn.execute(
+                "SELECT verb, COUNT(*) FROM events WHERE verb LIKE 'system%' GROUP BY verb"
+            ).fetchall()
+        finally:
+            conn.close()
+    except Exception:
+        return {}
+    return {str(v): int(c) for v, c in rows}
+
+
 def _health(base: str) -> dict[str, Any]:
     try:
         status, payload, _ = lt._request(base, "/api/health", timeout=5.0)
@@ -370,37 +388,46 @@ def _ambient_status(run_dir: Path) -> dict[str, Any]:
     except Exception:
         return out
     for key in ("step_ms_p95", "step_ms_max", "lock_wait_ms_p95", "lock_wait_ms_max",
-                "in_lock_ms_p95", "in_lock_ms_max", "step_parts", "store_ck",
-                "step_ms_samples", "lag_ticks", "lag_ticks_max", "lag_steps",
+                "in_lock_ms_p95", "in_lock_ms_max", "in_lock_cpu_ms_p95", "step_parts",
+                "store_ck", "step_ms_samples", "lag_ticks", "lag_ticks_max", "lag_steps",
                 "ambient_tick", "world_tick", "npc_tick", "queue_backlog"):
         if key in raw:
             out[key] = raw[key]
     return out
 
 
-def _machine_load() -> dict[str, Any]:
-    """同机其他进程负载：loadavg + 前 5 个吃 CPU 的进程（不含本进程）。"""
+def _machine_load(exclude: set[int] | None = None) -> dict[str, Any]:
+    """同机其他进程负载：loadavg + 前 5 个吃 CPU 的进程（可排除本进程/服务进程）。"""
     out: dict[str, Any] = {}
     try:
         load = os.getloadavg()
         out["loadavg"] = [round(v, 2) for v in load]
     except Exception:
         pass
+    excluded = set(exclude or ())
     try:
         proc = subprocess.run(
             ["ps", "-Ao", "pid,pcpu,comm", "-r"],
             capture_output=True, text=True, timeout=5,
         )
         rows = []
-        for line in proc.stdout.splitlines()[1:6]:
+        for line in proc.stdout.splitlines()[1:]:
             parts = line.split(None, 2)
             if len(parts) < 3:
                 continue
             try:
-                rows.append({"pid": int(parts[0]), "cpu": float(parts[1]),
+                pid = int(parts[0])
+            except ValueError:
+                continue
+            if pid in excluded:
+                continue
+            try:
+                rows.append({"pid": pid, "cpu": float(parts[1]),
                              "comm": os.path.basename(parts[2].strip())})
             except ValueError:
                 continue
+            if len(rows) >= 5:
+                break
         out["top_cpu"] = rows
     except Exception:
         pass
@@ -1088,7 +1115,7 @@ class SoakSampler(threading.Thread):
         health = _health(self.server.base)
         db = _db_snapshot(self.run_dir)
         amb = _ambient_status(self.run_dir)
-        machine = _machine_load()
+        machine = _machine_load({self.server.pid, os.getpid()})
         win = self.recorder.window(label=f"{self.phase}@{round(elapsed)}s")
         epoch_end = time.time()
         row = {
@@ -1385,6 +1412,7 @@ def _build_attribution(
         seg = _steps_in(lo, hi)
         lock_waits = [float(s.get("lock_wait_ms") or 0.0) for s in seg]
         in_locks = [float(s.get("in_lock_ms") or 0.0) for s in seg]
+        in_lock_cpus = [float(s.get("in_lock_cpu_ms") or 0.0) for s in seg]
         step_vals = [float(s.get("step_ms") or 0.0) for s in seg]
         parts: dict[str, float] = {}
         for s in seg:
@@ -1424,6 +1452,7 @@ def _build_attribution(
             "lock_wait_ms_max": round(max(lock_waits), 2) if lock_waits else None,
             "in_lock_ms_p95": lt.percentiles(in_locks).get("p95") if in_locks else None,
             "in_lock_ms_max": round(max(in_locks), 2) if in_locks else None,
+            "in_lock_cpu_ms_max": round(max(in_lock_cpus), 2) if in_lock_cpus else None,
             "in_lock_parts_max_ms": {k: round(v, 2) for k, v in sorted(parts.items())},
             "ambient_status": {
                 k: amb.get(k) for k in ("step_ms_p95", "lock_wait_ms_p95", "in_lock_ms_p95",
@@ -1482,12 +1511,14 @@ def _classify_window(row: dict[str, Any]) -> dict[str, Any]:
     status_file = float(parts.get("status_file_ms") or 0.0)
     state_hash = float(parts.get("progress_hash_ms") or 0.0)
     machine_cpu = float((row.get("machine_cpu_sum") or 0.0))
+    offcpu = max(0.0, in_lock - float(row.get("in_lock_cpu_ms_max") or 0.0))
     candidates = {
         "gc": gc_max,
         "checkpoint": ck_ms,
         "progress_flush": flush,
         "status_file": status_file,
         "state_hash": state_hash,
+        "offcpu_stall": offcpu,
         "in_lock_total": in_lock,
         "machine_cpu": machine_cpu,
     }
@@ -1497,6 +1528,8 @@ def _classify_window(row: dict[str, Any]) -> dict[str, Any]:
         "evidence_ms": round(top[1], 2),
         "write_p95_ms": round(write_p95, 2),
         "in_lock_ms_max": round(in_lock, 2),
+        "in_lock_cpu_ms_max": round(float(row.get("in_lock_cpu_ms_max") or 0.0), 2),
+        "offcpu_stall_ms": round(offcpu, 2),
         "gc_max_ms": round(gc_max, 2),
         "gc_count": (row.get("gc_pauses") or {}).get("count"),
         "checkpoint": ck,
@@ -1524,6 +1557,7 @@ def _build_summary(
     run_dir: Path,
     started_at: str,
     memory_profile: dict[str, Any] | None,
+    player_shop: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     samples, windows = sampler.snapshot()
     if samples:
@@ -1683,6 +1717,8 @@ def _build_summary(
     attribution = _build_attribution(report_dir=report_dir, run_dir=run_dir, windows=windows, warmup=warmup)
     summary["attribution"] = attribution
     _json_dump(report_dir / "attribution.json", attribution)
+    summary["player_shop"] = dict(player_shop or {})
+    summary["settlement_counts"] = _verb_counts(run_dir)
     summary["extrapolation"] = _extrapolation(summary)
     slow_ratio = summary["latency"]["window_10m"]["p95_ratio"]
     checks = {
@@ -1706,6 +1742,112 @@ def _build_summary(
 
 
 # --------------------------------------------------------------------------- soak run
+def _inject_player_shop(
+    server: Any,
+    players: list[lt.VirtualPlayer],
+    log_path: Path,
+    stop: threading.Event,
+    *,
+    budget_s: float,
+) -> dict[str, Any]:
+    """脚本注入玩家店铺：公开 API 开摊 + 对话攒好感 + 雇一名掌柜。
+
+    只为让 NPC 日界结算 `system_shop_settle` 真跑出来（开张/出勤/工资）。
+    不写事件日志、不碰世界状态；每次尝试都落 player_shop.jsonl。
+    """
+    result: dict[str, Any] = {"ok": False, "owner": "", "shop": "", "hired": "",
+                              "attempts": {"open": 0, "talk": 0, "hire": 0},
+                              "reasons": {}}
+    if not players:
+        return result
+    owner = players[0]
+    deadline = time.time() + budget_s
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    log_fh = log_path.open("a", encoding="utf-8")
+
+    def _log(**kw: Any) -> None:
+        log_fh.write(json.dumps({"ts": _iso(), **kw}, ensure_ascii=False, sort_keys=True) + "\n")
+        log_fh.flush()
+
+    def _reason(payload: dict[str, Any]) -> str:
+        return str(payload.get("reject_reason") or payload.get("reason") or "")
+
+    shop: str = ""
+    target: str = ""
+    while time.time() < deadline and not stop.is_set():
+        try:
+            if not owner.stats.entered:
+                owner._register_login()
+                owner._enter()
+                time.sleep(2.0)
+                continue
+            state = owner._state()
+            if not state.get("ok"):
+                owner._enter()
+                time.sleep(2.0)
+                continue
+            player = state.get("player") or {}
+            loc = str(player.get("location") or "")
+            present = [p for p in (state.get("present_npcs") or [])
+                       if not str(p.get("id") or "").startswith("player:")]
+            if not shop:
+                res = owner._write("/api/player/action", {
+                    "verb": "open_shop",
+                    "args": {"at": loc, "shop_type": "stall", "name": "长跑摊"},
+                })
+                result["attempts"]["open"] += 1
+                code = _reason(res)
+                result["reasons"][code or "ok"] = result["reasons"].get(code or "ok", 0) + 1
+                _log(step="open_shop", at=loc, ok=bool(res.get("ok")), reason=code)
+                if res.get("ok"):
+                    shop = f"shop:{player.get('id') or ''}"
+                    result["owner"] = str(player.get("id") or "")
+                    result["shop"] = shop
+                elif code == "already_owns_shop":
+                    shop = "shop:*"
+                    result["shop"] = shop
+                time.sleep(3.0)
+                continue
+            if not target or target not in {str(p.get("id") or "") for p in present}:
+                cands = [p for p in present
+                         if float(((p.get("skills") or {}).get("level")) or 0.0) >= 0.2]
+                if not cands:
+                    # 店里没人：原地等 NPC 走街进来（摊子就开在人流点上）。
+                    time.sleep(3.0)
+                    continue
+                target = str(cands[0].get("id") or "")
+                result["hired"] = ""
+            talked = owner._write("/api/player/talk", {
+                "target": target, "message": "掌柜的，聊聊？",
+            })
+            result["attempts"]["talk"] += 1
+            hire = owner._write("/api/player/action", {
+                "verb": "recruit", "args": {"target": target, "shop": shop},
+            })
+            result["attempts"]["hire"] += 1
+            code = _reason(hire)
+            _log(step="hire", target=target, ok=bool(hire.get("ok")), reason=code,
+                 talk_ok=bool(talked.get("ok")))
+            if hire.get("ok"):
+                result["hired"] = target
+                result["ok"] = True
+                _log(step="done", shop=shop, hired=target)
+                break
+            result["reasons"][code or "ok"] = result["reasons"].get(code or "ok", 0) + 1
+            if code in ("relation_too_low", "skill_too_low", "target_not_at_shop"):
+                time.sleep(1.0)
+            elif code == "shop_full":
+                result["ok"] = True
+                break
+            else:
+                time.sleep(3.0)
+        except Exception as exc:  # 注入失败不能拖垮压测
+            _log(step="error", error=f"{type(exc).__name__}: {exc}")
+            time.sleep(5.0)
+    log_fh.close()
+    return result
+
+
 def _run_soak(args: argparse.Namespace) -> int:
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     run_id = args.run or f"soak-{stamp}"
@@ -1759,6 +1901,15 @@ def _run_soak(args: argparse.Namespace) -> int:
             time.sleep(args.ramp_up / args.players)
 
     t_start = _mono()
+    shop_result: dict[str, Any] = {}
+    if args.player_shop > 0:
+        def _shop_job() -> None:
+            shop_result.update(_inject_player_shop(
+                server, players[: args.player_shop], report_dir / "player_shop.jsonl",
+                stop, budget_s=min(float(args.duration), 6 * 3600.0),
+            ))
+        threading.Thread(target=_shop_job, daemon=True, name="player-shop").start()
+        time.sleep(0.5)
     next_log = t_start + 300.0
     while _mono() < t_start + args.duration:
         time.sleep(1.0)
@@ -1813,6 +1964,7 @@ def _run_soak(args: argparse.Namespace) -> int:
         invariants=invariants, restart=restart, report_dir=report_dir, run_dir=run_dir,
         started_at=started_at,
         memory_profile=memory_profile,
+        player_shop=shop_result,
     )
     _json_dump(report_dir / "summary.json", summary)
     print(f"[soak] summary -> {report_dir / 'summary.json'}", flush=True)
@@ -2042,6 +2194,8 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--ambient-cpu", type=float, default=70.0, help="XKX_AMBIENT_CPU")
     parser.add_argument("--no-ambient", action="store_true",
                         help="关掉 ambient（同机对照组：判断 >500ms 是代码还是机器噪声）")
+    parser.add_argument("--player-shop", type=int, default=0,
+                        help="脚本注入玩家人数：开摊 + 攒好感 + 雇掌柜，用于跑 system_shop_settle")
     parser.add_argument("--strict", action="store_true", help="任一验收项 FAIL 时返回码 1")
     parser.add_argument("--heap-minutes", type=float, default=20.0)
     parser.add_argument("--heap-interval", type=float, default=300.0)

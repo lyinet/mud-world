@@ -383,6 +383,7 @@ class AmbientScheduler:
         self._step_ms_max = 0.0
         self._lock_wait_ms: deque[float] = deque(maxlen=512)
         self._in_lock_ms: deque[float] = deque(maxlen=512)
+        self._in_lock_cpu_ms: deque[float] = deque(maxlen=512)
         self._lock_wait_ms_max = 0.0
         self._in_lock_ms_max = 0.0
         self._last_parts: dict[str, float] = {}
@@ -460,6 +461,7 @@ class AmbientScheduler:
             "lock_wait_ms_max": round(self._lock_wait_ms_max, 2),
             "in_lock_ms_p95": self._p95(self._in_lock_ms),
             "in_lock_ms_max": round(self._in_lock_ms_max, 2),
+            "in_lock_cpu_ms_p95": self._p95(self._in_lock_cpu_ms),
             "step_parts": dict(self._last_parts),
             "store_ck": self.store.ck_stats() if hasattr(self.store, "ck_stats") else {},
             "skipped_days": int(self._skipped_days) if self.shared else 0,
@@ -1155,7 +1157,8 @@ class AmbientScheduler:
         if ms > self._step_ms_max:
             self._step_ms_max = float(ms)
 
-    def _observe_step_split(self, lock_wait_ms: float, in_lock_ms: float, epoch: float) -> None:
+    def _observe_step_split(self, lock_wait_ms: float, in_lock_ms: float,
+                            in_lock_cpu_ms: float, epoch: float) -> None:
         """归因：一步拆成锁等待 / 锁内执行，并落 ambient_steps.jsonl。
 
         30s 窗口里的写 p95 若变慢，可以直接对上这一步到底是“等锁”还是
@@ -1163,6 +1166,7 @@ class AmbientScheduler:
         """
         self._lock_wait_ms.append(float(lock_wait_ms))
         self._in_lock_ms.append(float(in_lock_ms))
+        self._in_lock_cpu_ms.append(float(in_lock_cpu_ms))
         if lock_wait_ms > self._lock_wait_ms_max:
             self._lock_wait_ms_max = float(lock_wait_ms)
         if in_lock_ms > self._in_lock_ms_max:
@@ -1174,6 +1178,9 @@ class AmbientScheduler:
             "step_ms": round(lock_wait_ms + in_lock_ms, 3),
             "lock_wait_ms": round(float(lock_wait_ms), 3),
             "in_lock_ms": round(float(in_lock_ms), 3),
+            # 锁内墙钟与锁内 CPU 之差 = 被 OS 抢占/在 GIL/IO 上让出（含 GC 停顿）。
+            # 两者接近说明确实是代码在算；差得远说明不是代码慢，而是被调度掉。
+            "in_lock_cpu_ms": round(float(in_lock_cpu_ms), 3),
             "parts": dict(self._last_parts),
             "shared": bool(self.shared),
         }
@@ -1213,13 +1220,16 @@ class AmbientScheduler:
         t0_epoch = time.clock_gettime(time.CLOCK_REALTIME)
         t_enter = None
         t_in_end = None
+        c_enter = None
         try:
             # 共享模式下整 tick（含事件追加/提交）都在 API 的锁内，
             # 与玩家写路径串行，保证单写者、单事务、seq 连续。
             with self._guard():
                 t_enter = self.clock()
+                c_enter = self.cpu_clock()
                 self._process_tick()
                 t_in_end = self.clock()
+                c_in_end = self.cpu_clock()
         except Exception as exc:  # 不静默：落盘后继续抛出
             self._write_error("tick", exc)
             raise
@@ -1227,8 +1237,9 @@ class AmbientScheduler:
         wall = t_exit - t0_wall
         lock_wait = (t_enter - t0_wall) if t_enter is not None else 0.0
         in_lock = (t_in_end - t_enter) if (t_enter is not None and t_in_end is not None) else 0.0
+        in_lock_cpu = (c_in_end - c_enter) if (c_enter is not None) else 0.0
         self._observe_step_ms(wall * 1000.0)
-        self._observe_step_split(lock_wait * 1000.0, in_lock * 1000.0, t0_epoch)
+        self._observe_step_split(lock_wait * 1000.0, in_lock * 1000.0, in_lock_cpu * 1000.0, t0_epoch)
         self._cpu_guard(wall, self.cpu_clock() - t0_cpu)
 
     def start(
