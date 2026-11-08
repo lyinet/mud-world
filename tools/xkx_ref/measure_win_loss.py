@@ -254,8 +254,8 @@ def build_report() -> None:
     A("")
     A("## 2. 结果对照")
     A("")
-    A("| 对手 | 原版 胜/负/逃/超时 | 原版 平均回合 | 原版 剩余气血(中位/最低/最高) | 原版 对方命中率 | "
-      "复刻 胜/负 | 复刻 平均回合 | 复刻 剩余气血 | 复刻 对方命中率 |")
+    A("| 对手 | 原版 胜/负/逃/超时 | 原版 attack_rounds | 原版 剩余气血(中位/最低/最高) | 原版 对方命中率 | "
+      "复刻 胜/负 | 复刻 rounds_used | 复刻 剩余气血 | 复刻 对方命中率 |")
     A("|---|---|---|---|---|---|---|---|---|")
     for b in blocks:
         r = REPLICA[b["tkey"]]
@@ -265,6 +265,9 @@ def build_report() -> None:
         A(f"| {TARGETS[b['tkey']]['name']} | {wl} | {b['rounds']:.2f} | {hp} | "
           f"{b['npc_hits']}/{b['npc_attacks']} = {mh.pct(b['npc_hits'] / b['npc_attacks']) if b['npc_attacks'] else '-'} "
           f"[{mh.pct(lo)}, {mh.pct(hi)}] | {r['wl']} | {r['rounds']:.2f} | {r['hp']} | {r['hit']:.2f}% |")
+    A("")
+    A("> 两列单位不同，禁止相减：原版 `attack_rounds = max(我方出手, 对方出手)`"
+      "（玩家 0 出手时等于对方出手数）；复刻 `rounds_used` 是双方各获得一次行动机会的交换轮数。")
     A("")
     A("## 3. 判据")
     A("")
@@ -305,9 +308,14 @@ def build_report() -> None:
       "（exp 30000、`apply/attack` 20000、`apply/defense` 30000、`apply/armor` 1000）；"
       "原版 MID 新采 10 场 0 胜 10 负、平均 5.50 回合、老虎 55/55 次出手全部命中，"
       "玩家 0 次出手。**胜负上原版同样打不动 → 不改伤害/护甲数值**。"
-      "但节奏机制并不忠实：原版玩家 0 出手来自 `combatd.lpc:763` 的 cps/cor guard 分支"
-      "（走兽 `beast.lpc` 不设 cps/cor → 0），复刻则是每轮挥击但 0 命中；"
-      "详见 `specs/xkx-parity/combat-tempo.spec.md`。**修复前不把节奏判为忠实。**")
+      "但节奏机制并不忠实：原版玩家 **主动** 0 出手来自 `combatd.lpc:763` 的 cps/cor guard 分支"
+      "（走兽 `beast.lpc` 不设 cps/cor → 0，运行期实测 0；`random(0)=0` 实测 50/50），"
+      "复刻则是每轮挥击但 0 命中；老虎 0 出手还因为它 55/55 全中、从不触发反击，"
+      "且 `chat_chance_combat=0` 不产生 busy 窗口。"
+      "**注意：不能由此推出“走兽不可击杀”**——同为走兽、`cps=0` 的郭庄大狼狗，"
+      "MID 玩家 10/10 可击杀，玩家出手全部来自 `combatd.lpc:692-718` 的反击通道"
+      "（详见 `specs/xkx-parity/combat-tempo.spec.md` §1.7–1.9）。"
+      "**修复前不把节奏判为忠实。**")
     A("")
     A("## 4. 共同败因（两侧同向，不等于已对齐）")
     A("")
@@ -331,7 +339,8 @@ def build_report() -> None:
     A("- 原版样本量：店小二/流氓/小沙弥/刀客/绿营清兵各 20 场，老虎（虎头岩/杭州山路）各 10 场"
       "（复刻为 40/40/40/40/40/10；杭州山路沿用同数值老虎的复刻 0/10 口径）。"
       "0 胜的 20 场样本 95% 置信上界约 14%（Clopper-Pearson），不能排除低概率胜。")
-    A("- 回合数口径不完全等价（见 §1）；两侧平均回合只作量级对照。")
+    A("- 回合数口径不等价（见 §1）：原版 `attack_rounds`、复刻 `rounds_used`，两列分列、禁止相减，"
+      "只作量级对照。")
     A("- 负场的临终气血**取不到**（角色已在鬼门关重生），表中记 0 是按约定，不是实测。")
     A("- 原版采样期间仓库 HEAD 在 `src/wsim` 上前进，但原版侧只依赖 `run/mudlib` + 驱动，未受影响。")
     A("")
@@ -341,7 +350,7 @@ def build_report() -> None:
         A(f"### {TARGETS[b['tkey']]['name']}（{len(b['fights'])} 场，{b['win']} 胜 {b['loss']} 负 "
           f"{b['fled']} 逃 {b['timeout']} 超时）")
         A("")
-        A("| # | 结果 | 回合 | 我方出手/命中 | 对方出手/命中 | 战后气血 | 原始日志 |")
+        A("| # | 结果 | attack_rounds | 我方出手/命中 | 对方出手/命中 | 战后气血 | 原始日志 |")
         A("|---|---|---|---|---|---|---|")
         for f in b["fights"]:
             hp = f.get("hp_after")
