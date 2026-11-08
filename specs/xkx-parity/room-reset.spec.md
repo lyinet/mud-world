@@ -97,12 +97,13 @@ ob->move(this_player());
 - `Entity.last_death_tick/last_death_location`（非 0 才进 `to_dict()`，旧世界哈希不变）。
 - `entity_respawn` 事件 data 同时带 `death_tick`/`death_location`（死亡发生时刻/地点）。
 
-顺带补齐战利品链路（验收闭环必需）：
+战利品链路（验收闭环必需，复用远端已接通的实现）：
 
 - 原版 `wolfdog.lpc::die()` / `laohu.lpc::die()` 里 `new()` 狗皮/虎骨；内容包以
-  `npcs[].drops` 记录。此前复刻只掉背包/装备，`drops` 未接通。
-- `FightAction(content)` 增加 `content_drops()`：只认 `landing=="ground"`、`qty` 为正整数、
-  `chance` 为 0..1；`chance>=1` 不消费随机流，旧内容无 `drops` 时行为逐字节不变。
+  `npcs[].drops` 记录，创世时写入 `Entity.drops`（只收 `chance==1.0`、
+  `item_resolved==true`、`landing=="ground"`）。
+- `combat._drop_counts(..., content_drops=...)` 在 NPC 死亡时把 `Entity.drops` 并入
+  落地物品；旧内容没有 `drops` 字段时字典为空，事件流逐字节不变。
 
 ## 5. 验收（事件库原始行）
 
@@ -115,7 +116,7 @@ ob->move(this_player());
 |------|------------------------------------|--------------|
 | 杀狗 | `2 / 0 / fight / ok` | `hp_add -200`、`entity_status dead`、`loot_create /d/hangzhou/npc/obj/goupi qty=1 reason=fight` |
 | 捡皮 | `3 / 0 / loot / ok` | `loot_take goupi → player:accept qty=1 weight=5000` |
-| reset | `4 / 1 / system_room_reset / ok` | `entity_respawn`：`hp=200 max_hp=200`、`death_tick=0 death_location=/d/hangzhou/guozhuang`、`attrs{str26 con24 dex7 int8 kar11}`、`temp_apply{armor2 attack15 damage6}` |
+| reset | `4 / 1 / system_room_reset / ok` | `entity_respawn`：`hp=200 max_hp=200`、`death_tick=0 death_location=/d/hangzhou/guozhuang`、`attrs{str26 con24 dex7 int8 kar11 cor30}`、`temp_apply{armor2 attack15 damage6}` |
 | 再杀 | `5 / 1 / fight / ok` | 再次 `entity_status dead` + `loot_create goupi qty=1 reason=fight` |
 
 原始行（节选，完整见 `/tmp/p5_accept.out`）：
@@ -123,7 +124,7 @@ ob->move(this_player());
 ```json
 {"seq":2,"tick":0,"actor":"player:accept","verb":"fight","outcome":"ok","args":{"target":"/d/hangzhou/npc/wolfdog"},"effects":[{"op":"hp_add","data":{"entity":"/d/hangzhou/npc/wolfdog","delta":-200,"reason":"fight"}},{"op":"entity_status","data":{"entity":"/d/hangzhou/npc/wolfdog","status":"dead","location":"/d/hangzhou/guozhuang","tick":0}},{"op":"loot_create","data":{"item":"/d/hangzhou/npc/obj/goupi","location":"/d/hangzhou/guozhuang","qty":1,"reason":"fight"}}]}
 {"seq":3,"tick":0,"actor":"player:accept","verb":"loot","outcome":"ok","args":{"item":"/d/hangzhou/npc/obj/goupi"},"effects":[{"op":"loot_take","data":{"entity":"player:accept","item":"/d/hangzhou/npc/obj/goupi","location":"/d/hangzhou/guozhuang","qty":1,"weight":5000}}]}
-{"seq":4,"tick":1,"actor":"system","verb":"system_room_reset","outcome":"ok","args":{"tick":1},"effects":[{"op":"entity_respawn","data":{"entity":"/d/hangzhou/npc/wolfdog","location":"/d/hangzhou/guozhuang","hp":200,"max_hp":200,"attrs":{"con":24,"dex":7,"int":8,"kar":11,"str":26},"combat_exp":1000,"death_tick":0,"death_location":"/d/hangzhou/guozhuang","equipment":[],"equipped":{},"equipped_apply":{},"inventory":{},"max_stamina":100.0,"stamina":100.0,"race":"走兽","skill_levels":{},"skill_xp":{},"temp_apply":{"apply/armor":2,"apply/attack":15,"apply/damage":6},"weapon_type":""}}]}
+{"seq":4,"tick":1,"actor":"system","verb":"system_room_reset","outcome":"ok","args":{"tick":1},"effects":[{"op":"entity_respawn","data":{"entity":"/d/hangzhou/npc/wolfdog","location":"/d/hangzhou/guozhuang","hp":200,"max_hp":200,"attrs":{"con":24,"cor":30,"dex":7,"int":8,"kar":11,"str":26},"combat_exp":1000,"death_tick":0,"death_location":"/d/hangzhou/guozhuang","equipment":[],"equipped":{},"equipped_apply":{},"inventory":{},"max_stamina":100.0,"stamina":100.0,"race":"走兽","skill_levels":{},"skill_xp":{},"temp_apply":{"apply/armor":2,"apply/attack":15,"apply/damage":6},"weapon_type":""}}]}
 {"seq":5,"tick":1,"actor":"player:accept","verb":"fight","outcome":"ok","args":{"target":"/d/hangzhou/npc/wolfdog"},"effects":[{"op":"hp_add","data":{"entity":"/d/hangzhou/npc/wolfdog","delta":-200,"reason":"fight"}},{"op":"entity_status","data":{"entity":"/d/hangzhou/npc/wolfdog","status":"dead","location":"/d/hangzhou/guozhuang","tick":1}},{"op":"loot_create","data":{"item":"/d/hangzhou/npc/obj/goupi","location":"/d/hangzhou/guozhuang","qty":1,"reason":"fight"}}]}
 ```
 
@@ -145,26 +146,36 @@ ob->move(this_player());
 ```json
 {"seq":2,"tick":0,"actor":"player:accept","verb":"fight","outcome":"ok","args":{"target":"/d/hangzhou/npc/laohu"},"effects":[{"op":"entity_status","data":{"entity":"/d/hangzhou/npc/laohu","status":"dead","location":"/d/hangzhou/shanlu6","tick":0}},{"op":"loot_create","data":{"item":"/clone/medicine/vegetable/hugu","location":"/d/hangzhou/shanlu6","qty":1,"reason":"fight"}}]}
 {"seq":3,"tick":2,"actor":"system","verb":"system_room_reset","outcome":"ok","args":{"tick":2},"effects":[{"op":"entity_respawn","data":{"entity":"/d/hangzhou/npc/laohu","location":"/d/hangzhou/shanlu6","hp":200,"max_hp":200,"attrs":{"con":5,"dex":5,"int":10,"kar":7,"str":7},"combat_exp":30000,"death_tick":0,"death_location":"/d/hangzhou/shanlu6","max_neili":800,"neili":800,"race":"走兽","temp_apply":{"apply/armor":1000,"apply/attack":20000,"apply/defense":30000}}}]}
+{"seq":4,"tick":2,"actor":"/d/hangzhou/npc/laohu","verb":"npc_aggression","outcome":"ok","args":{"mode":"trigger","target":"player:accept"},"effects":[{"op":"set_field","data":{"entity":"/d/hangzhou/npc/laohu","field":"combat_target","value":"player:accept"}},{"op":"set_field","data":{"entity":"/d/hangzhou/npc/laohu","field":"combat_tick","value":2}},{"op":"set_field","data":{"entity":"/d/hangzhou/npc/laohu","field":"combat_round","value":0}},{"op":"aggression_log","data":{"kind":"always","mode":"trigger","npc":"/d/hangzhou/npc/laohu","npc_name":"老虎","result":"attack","target":"player:accept","target_name":"验收玩家","tick":2,"triggered":true}}]}
 ```
 
 - **满血**：`hp == max_hp == 200`（由 `resolve_npc_vitals` 的基线决定；原版为 `new()` 后
   的满值）。
-- **是否仍主动攻击**：**不会**。原版 `feature/attack.lpc::init()` 对 `attitude=="aggressive"`
-  调 `COMBAT_D->auto_fight`；复刻没有实现 `init()`/`auto_fight`（`grep -rn "auto_fight|kill_ob"
-  src/wsim` 为空）。这是 P5 之前就存在的缺口，不是 reset 引入的；reset 只恢复 Vitals，
-  不会改变攻击能力。若要补，需单独立项实现进入房间时的自动战斗。
+- **是否仍主动攻击**：**会**。远端已实现 `NpcAggressionAction`（`src/wsim/sim/aggression.py`
+  从内容包派生规则；老虎为 `always`、毒蛇/狼狗为概率触发），失败态 `destruct()` 与
+  P5 的 `status=dead` 各自独立。重生后同一 `npc_aggression` 动作仍能触发
+  （`triggered=true`、`combat_target=player:accept`）。
+- **触发时机差异**：原版 `init()` 在新 clone 进入环境时对房内玩家触发；复刻的
+  `WorldSession` 只在玩家 `enter/move/climb/jump/revive` 成功后触发。因此“老虎在玩家
+  原地不动时重生”这一瞬间不会自动开打，玩家再进出一次就会触发。记录为可感知偏差。
 
 ## 6. 确定性、哈希与回归
 
 - 关闭态：`tests/test_xkx_determinism_legacy.py` 全绿，旧九地点
   `735` 事件、`state_final 009076f0346352e328d8c158a3017a3e26fbc0b2c59ef7ca20c8fc3d1f780ce9`、
   `event_final 02d5f812c427833387e592ad9321ebd72a9c5c719825b958f53af83d795078ae` 不变。
-- 打开态、健康世界（无死亡/无缺失）：零 `system_room_reset` 事件，哈希与关闭态完全一致
+- 打开态、健康世界（seed 20261014/1日，无死亡/无缺失）：`events 722`、
+  `state_final 2265c85c1be9596d3f5b31dcc69fbfa57c1eca9f4a5ee4d9b783b6379263fe97`、
+  `event_final d0c4777d605fed0046db5aa5d9a11712e82ef4fbb2cbe37553a05252c224e67d`，
+  与关闭态完全一致，零 `system_room_reset`
   （`tests/test_xkx_room_reset.py::test_enabled_reset_is_reproducible_and_noop_on_healthy_world`）。
+  该基线与 P4 报告不同，是因为合并了 21 个远端提交，不是 P5 造成。
 - 同 seed 两次打开态一致（同一测试内 `reset-on-a == reset-on-b`）。
 - 实体数：重生复用原实体 id，不新增实体（测试 `len(state.entities)` 不变）。
-- `content_hash`：P5 未改 `content/xkx/**`，`adc6c474…` 前后一致，无需 `--reset`。
-  （最后一次内容侧变更是远端合并 `8f1b2dd`，与本轮无关。）
+- `content_hash`：P5 的 diff 不含 `content/xkx/**`；合并后
+  `56417288eb1a4620025ef6ad4740fa5924ffd39b9a7f6573fa8585015f9d2576`，
+  与 `origin/xkx-parity` 完全一致（本地合并前的 `adc6c474…` 是远端 21 个提交的内容侧
+  变更，不是 P5），因此 P5 不触发 `--reset`。
 - 全量 `python3 -m pytest -q` 通过。
 
 ## 7. 已知偏差（明确不做/近似）
@@ -175,7 +186,8 @@ ob->move(this_player());
    放弃“打断任务中的 NPC”。这是刻意的可玩性/可复现性取舍，写进本 spec。
 2. 周期粒度 10 分钟（见第 3 节）。
 3. 商店货架 30 件上限（见第 2 节）。
-4. 老虎/大狼狗等 `init()` 主动攻击未实现（见 5.2）。
+4. 主动攻击已由远端实现，但只在玩家 `enter/move/climb/jump/revive` 后触发；
+   “玩家原地不动时 NPC 重生”不会自动开打（原版 `init()` 会）。见 5.2。
 5. 不建模房间 unload / `clean_up`；`no_clean_up` 语义不影响事件流，故省略。
 6. 战利品统一落地为地面物品（`landing=ground`）；原版老虎的虎骨先放尸体再随尸体落地，
    尸体对象未建模。
