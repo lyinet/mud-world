@@ -28,7 +28,7 @@
     `reports/xkx-ref/win-loss/tiger_hz/fight006.txt`：19 次老虎出手、玩家 0 次出手。
   - `measure_win_loss.py --report-only` 重新生成，报告含 corrections，其余数字未变。
   - `tools/xkx_formula/` 与 `src/wsim/` 零改动。
-- **commit**：未记录（本条提交后回填）
+- **commit**：`25c67bf`
 
 ---
 
