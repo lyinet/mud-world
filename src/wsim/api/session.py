@@ -486,6 +486,8 @@ class WorldSession:
                 self.writer.submit(
                     Intent(actor="system", verb="system_quest_post", args={}, tick=0, source="system")
                 )
+        # NPC 日历日界的基准：headless 下等于世界日，行为与旧版一致。
+        self._last_clock_day = int(self.writer.state.tick) // TICKS_PER_DAY
         # 写路径尾部缓存：启动时从 sqlite 重建，之后由每次事务成功后 observe 同步。
         self.tail = EventTail(self.store)
         # 回放/创世完成后，仍在线的档案从“服务启动时刻”开始计活跃；崩溃恢复不依赖内存历史。
@@ -1206,18 +1208,23 @@ class WorldSession:
         view["marriage"] = self._marriage_view(pid)
         view["sect"] = self._sect_view(pid)
         view["tick"] = self.state.tick
+        # NPC 日历：玩家可见日期/截止的唯一来源（世界 tick 仍用于事件序列）。
+        view["clock_tick"] = self.clock_tick()
+        view["clock_day"] = self.clock_tick() // TICKS_PER_DAY
+        today["clock_tick"] = view["clock_tick"]
+        today["clock_day"] = view["clock_day"]
         view["ok"] = True
         return view
 
     def _settled_today(self, pid: str, fac) -> bool:
         from ..actions.player_sect import SETTLE_MARKER
 
-        marker = f"{SETTLE_MARKER}:{fac.id}:D{int(self.state.tick) // TICKS_PER_DAY}"
+        marker = f"{SETTLE_MARKER}:{fac.id}:D{self.clock_tick() // TICKS_PER_DAY}"
         return any(marker in str(m.get("text", "")) for m in self.state.memories.get(pid, ()))
 
     def _disciple_settled_today(self, did: str) -> bool:
         """逐人日结状态：日结成功时每名在册弟子都会写下「…日结：第 N 日…」记忆。"""
-        day = int(self.state.tick) // TICKS_PER_DAY
+        day = self.clock_tick() // TICKS_PER_DAY
         needle = f"日结：第{day}日"
         return any(needle in str(m.get("text", "")) for m in self.state.memories.get(did, ()))
 
@@ -1431,7 +1438,7 @@ class WorldSession:
 
     def _quest_lock_reason(self, quest, player_rep: float) -> str:
         """被挡住的开放任务：返回玩家可读原因码；可正常展示时返回空串。"""
-        tick = int(self.state.tick)
+        tick = self.clock_tick()
         if quest.deadline_tick and tick > quest.deadline_tick:
             return "quest_expired"
         giver = self.state.entities.get(quest.giver)
@@ -1883,7 +1890,7 @@ class WorldSession:
             if q.status == "accepted" and q.acceptor == pid
         )
         player = self.state.entities.get(pid)
-        tick = int(self.state.tick)
+        tick = self.clock_tick()
         player_rep = reputation_points(self.state, pid) if player is not None else 0.0
         for quest in self._sorted_quests():
             if quest.status == "open":
@@ -2144,7 +2151,10 @@ class WorldSession:
         reason = self._precheck_player_action(action, pid, args, tick)
         if reason:
             return self._reject_early(account, action, reason, tick)
-        intent = Intent(actor=pid, verb=verb, args=args, tick=tick, source="player")
+        intent = Intent(
+            actor=pid, verb=verb, args=args, tick=tick, source="player",
+            clock_tick=self._intent_clock(),
+        )
         created = prof is None
         event = self._submit(intent)
         # 婚姻是唯一的多事件链：求婚 -> NPC 裁决事件 -> 成婚。
@@ -2163,6 +2173,7 @@ class WorldSession:
                         tick=int(self.state.tick),
                         source="npc",
                         reason=f"{pid}求婚，{target}接受",
+                        clock_tick=self._intent_clock(),
                     )
                 )
                 if accept_event.outcome == "ok":
@@ -2183,6 +2194,7 @@ class WorldSession:
                             tick=int(self.state.tick),
                             source="system",
                             reason=f"{pid}与{target}成婚",
+                            clock_tick=self._intent_clock(),
                         )
                     )
                 else:
@@ -2200,6 +2212,7 @@ class WorldSession:
                         tick=int(self.state.tick),
                         source="npc",
                         reason=f"{pid}求婚，{target}婉拒",
+                        clock_tick=self._intent_clock(),
                     )
                 )
         # 首次进入的一次性初始资产是独立事件：enter 本身仍不铸币，
@@ -2215,6 +2228,7 @@ class WorldSession:
                         args={"account_id": account, "player_id": pid, "reason": "first_entry"},
                         tick=int(event.tick),
                         source="player",
+                        clock_tick=self._intent_clock(),
                     )
                 )
         if advance:
@@ -2691,6 +2705,9 @@ class WorldSession:
     def _submit(self, intent: Intent):
         data = {"actor": intent.actor, "verb": intent.verb, "args": intent.args,
                 "tick": intent.tick, "source": intent.source}
+        if intent.clock_tick is not None:
+            # NPC 日历透传：不进事件/哈希，只用于判定层。
+            data["clock_tick"] = intent.clock_tick
         try:
             # 账号通过 API 校验后，服务端才授予该身份 propose 权限；权限不来自请求参数。
             # NPC/系统事件链（婚姻裁决）也由服务端构造，同样在首次提交前登记。
@@ -2714,25 +2731,59 @@ class WorldSession:
             raise RuntimeError(f"event_missing_after_apply:{seq}")
         return event
 
+    def _intent_clock(self) -> int | None:
+        """Intent 上的 NPC 时钟：只在 ambient 运行时注入；headless 留 None 走旧 tick。"""
+        sched = self.ambient
+        if sched is None or getattr(sched, "stopped", False):
+            return None
+        return int(sched.tick)
+
+    def clock_tick(self) -> int:
+        """NPC 日历 tick 唯一入口：ambient 存在且未停止时读 ambient 步数。
+
+        共享世界 144 个 ambient 步 = 1 NPC 日（1x 配速下约 14.4 分钟真实时间）；
+        无自走环境回退到世界 tick，因此 headless/测试行为与旧版逐字节一致。
+        玩家可见日期、委托截止判定、工资/出勤/门派日结都只能走这里或
+        `core.clock.npc_tick_of()`，禁止各处自行换算。
+        """
+        sched = self.ambient
+        if sched is not None and not getattr(sched, "stopped", False):
+            return int(sched.tick)
+        return int(self.state.tick)
+
     def _advance(self, step: int | None = None) -> None:
         step = int(step or self.tick_step)
         if step <= 0:
             return
         tick = int(self.state.tick) + step
         args: dict[str, Any] = {"step": step}
-        if day_of(tick) != day_of(int(self.state.tick)):
+        # 玩家可感知的“日”只认 NPC 日历，与 ambient 日结同源。headless 没有
+        # ambient 时沿用旧的 day_of(tick) 比较，保证事件序列逐字节不变。
+        ambient_live = self.ambient is not None and not getattr(self.ambient, "stopped", False)
+        if ambient_live:
+            clock_day = self.clock_tick() // TICKS_PER_DAY
+            trigger = clock_day != self._last_clock_day
+            if trigger:
+                self._last_clock_day = clock_day
+        else:
+            clock_day = day_of(tick)
+            trigger = clock_day != day_of(int(self.state.tick))
+        if trigger:
             # 日界结算合并进这一条 system_tick 事件（体力回复 → 过期委托下架 → 补发）。
             # 改前每个世界日额外写 5 条（presence/recover/quest_fail/quest_post/tick）；
             # 改后只写 1 条；system_player_presence 不再按全局 tick 批量把在线玩家标离线。
             args.update(
                 {
                     "day_boundary": True,
-                    "day": day_of(tick),
+                    "day": clock_day,
                     "prune_expired": True,
                 }
             )
         event = self.writer.submit(
-            Intent(actor="system", verb="system_tick", args=args, tick=tick, source="system")
+            Intent(
+                actor="system", verb="system_tick", args=args, tick=tick, source="system",
+                clock_tick=self._intent_clock(),
+            )
         )
         self.tail.observe(event)
         # 玩家押镖闭环：仅当有玩家镖单到期时才补一条到达结算，不改变无镖单世界的 seq。

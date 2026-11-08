@@ -8,6 +8,16 @@ TICKS_PER_HOUR = 6
 TICKS_PER_DAY = 144
 
 
+def npc_tick_of(intent) -> int:
+    """NPC 日历 tick 的唯一取值入口。
+
+    共享世界由调度器在提交前补 `clock_tick`（ambient 步数）；无自走环境为
+    None，回退到 `intent.tick`，因此 headless 行为与旧版逐字节一致。
+    """
+    ct = getattr(intent, "clock_tick", None)
+    return int(intent.tick) if ct is None else int(ct)
+
+
 def day_of(tick: int) -> int:
     """0-based 游戏日。"""
     return tick // TICKS_PER_DAY

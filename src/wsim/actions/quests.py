@@ -1,7 +1,7 @@
 """任务系统（P2-B）：内容包模板 -> 发布 / 接单 / 交付，全部走事件日志。"""
 from __future__ import annotations
 
-from ..core.clock import TICKS_PER_DAY
+from ..core.clock import TICKS_PER_DAY, npc_tick_of
 from ..core.models import Effect, Intent, Reject
 from ..world.state import WorldState
 from .common import (
@@ -36,9 +36,18 @@ class SystemQuestPostAction(Action):
     # ------------------------------------------------------------ 发布单元
     @staticmethod
     def _quest_effect(
-        tpl: dict, tid: str, giver: str, tick: int, *, floor: bool = False, advance: int = 0
+        tpl: dict,
+        tid: str,
+        giver: str,
+        tick: int,
+        *,
+        clock_tick: int | None = None,
+        floor: bool = False,
+        advance: int = 0,
     ) -> Effect:
         settlement = tpl.get("settlement") or {}
+        # 截止时间是 NPC 时钟单位（显示与判定同源）；created_tick/id 仍是事件轴 tick。
+        deadline_base = int(tick) if clock_tick is None else int(clock_tick)
         data = {
             "id": f"quest:{tid}:{tick}",
             "template_id": tid,
@@ -49,7 +58,7 @@ class SystemQuestPostAction(Action):
             "args": dict(tpl.get("intent_args") or {}),
             "reward_money": int((tpl.get("reward") or {}).get("money", 0)),
             "reward_relation": float((tpl.get("reward") or {}).get("relation", 0.0)),
-            "deadline_tick": tick + int(tpl.get("deadline_days", 1)) * TICKS_PER_DAY,
+            "deadline_tick": deadline_base + int(tpl.get("deadline_days", 1)) * TICKS_PER_DAY,
             "created_tick": tick,
             "settlement_amount": int(settlement.get("amount", 0)),
         }
@@ -102,7 +111,11 @@ class SystemQuestPostAction(Action):
             qid = f"quest:{tid}:{intent.tick}"
             if qid in state.quests:
                 continue
-            effects.append(self._quest_effect(tpl, tid, giver, intent.tick))
+            effects.append(
+                self._quest_effect(
+                    tpl, tid, giver, intent.tick, clock_tick=npc_tick_of(intent)
+                )
+            )
             created.add(tid)
         effects.extend(self._floor_posts(state, intent, created))
         return effects
@@ -151,7 +164,8 @@ class SystemQuestPostAction(Action):
                 if not group:
                     continue
                 posted = self._post_first_in_rotation(
-                    state, intent.tick, day, group, created, effects, treasury_left
+                    state, intent.tick, day, group, created, effects, treasury_left,
+                    clock_tick=npc_tick_of(intent),
                 )
                 if posted is not None:
                     treasury_left -= posted
@@ -212,6 +226,8 @@ class SystemQuestPostAction(Action):
         created: set[str],
         effects: list[Effect],
         treasury_left: int,
+        *,
+        clock_tick: int | None = None,
     ) -> int | None:
         """确定性轮转：从 `day % n` 起按模板 id 顺序找第一张可发单。"""
         start = day % len(group)
@@ -241,7 +257,11 @@ class SystemQuestPostAction(Action):
                         },
                     )
                 )
-            effects.append(self._quest_effect(tpl, tid, giver, tick, floor=True, advance=advance))
+            effects.append(
+                self._quest_effect(
+                    tpl, tid, giver, tick, clock_tick=clock_tick, floor=True, advance=advance
+                )
+            )
             created.add(tid)
             return advance
         return None
@@ -261,7 +281,7 @@ class QuestAcceptAction(Action):
             return ["quest_not_found"]
         if quest.status != "open":
             return ["quest_not_open"]
-        if quest.deadline_tick and intent.tick > quest.deadline_tick:
+        if quest.deadline_tick and npc_tick_of(intent) > quest.deadline_tick:
             return ["quest_expired"]
         giver = state.entities.get(quest.giver)
         if giver is None or giver.status != "alive":
@@ -293,7 +313,7 @@ class QuestAcceptAction(Action):
         if giver is None or ent.location != giver.location:
             raise Reject("not_at_giver")
         return [
-            Effect("quest_accept", {"id": qid, "actor": ent.id, "tick": intent.tick}),
+            Effect("quest_accept", {"id": qid, "actor": ent.id, "tick": npc_tick_of(intent)}),
             # 玩家接单即建立可见进度（0 单位）；NPC 接单不写，保持无玩家世界哈希不变。
             *(
                 [
@@ -330,7 +350,7 @@ class QuestDeliverAction(Action):
             return ["quest_not_found"]
         if quest.status != "accepted" or quest.acceptor != ent.id:
             return ["quest_not_accepted_by_actor"]
-        if intent.tick > quest.deadline_tick:
+        if npc_tick_of(intent) > quest.deadline_tick:
             return ["quest_expired"]
         tpl = self.content.quests.get(quest.template_id) or {}
         giver = state.entities.get(quest.giver)
@@ -386,7 +406,7 @@ class QuestDeliverAction(Action):
                      "affection": min(100.0, quest.reward_relation * 5), "trust": 45.0},
                 )
             )
-        effects.append(Effect("quest_complete", {"id": quest.id, "tick": intent.tick}))
+        effects.append(Effect("quest_complete", {"id": quest.id, "tick": npc_tick_of(intent)}))
         effects.extend(
             memory(
                 state,
@@ -407,19 +427,20 @@ class SystemQuestFailAction(Action):
 
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
         effects: list[Effect] = []
+        clock = npc_tick_of(intent)
         for qid in sorted(state.quests):
             q = state.quests[qid]
-            if q.status == "accepted" and intent.tick > q.deadline_tick:
-                effects.append(Effect("quest_fail", {"id": qid, "tick": intent.tick}))
+            if q.status == "accepted" and clock > q.deadline_tick:
+                effects.append(Effect("quest_fail", {"id": qid, "tick": clock}))
                 if q.acceptor in state.entities:
                     effects.extend(
                         memory(state, q.acceptor, intent.tick, f"任务「{q.template_id}」超时未交付", 0.4)
                     )
-            elif q.status == "open" and intent.tick > q.deadline_tick:
+            elif q.status == "open" and clock > q.deadline_tick:
                 # 无人接单且已过期：标记 expired；在线玩家世界按日界补发前先下架，
                 # 避免过期单留在板上、也避免它累积占满补发配额。
                 # 不写 NPC 记忆（没有接单人就没人需要解释）；历史仍留在 quest_stats。
-                effects.append(Effect("quest_fail", {"id": qid, "tick": intent.tick}))
+                effects.append(Effect("quest_fail", {"id": qid, "tick": clock}))
                 if bool(intent.args.get("prune_expired", False)):
                     effects.append(Effect("quest_prune", {"ids": [qid]}))
         # 过期/失败记录保留 7 天后清理；quest_stats 保留历史，不受清理影响。
@@ -429,7 +450,7 @@ class SystemQuestFailAction(Action):
             for qid, q in sorted(state.quests.items())
             if q.status in ("expired", "failed")
             and q.completed_tick >= 0
-            and intent.tick - q.completed_tick > retention * TICKS_PER_DAY
+            and clock - q.completed_tick > retention * TICKS_PER_DAY
         ]
         if stale:
             effects.append(Effect("quest_prune", {"ids": stale}))
@@ -451,7 +472,7 @@ class SystemQuestFailAction(Action):
                 if q.status == "completed" and q.completed_tick >= 0
             )
             # 时间维度命中项一定是排序后的前缀，可与数量上限取并集（取较长的前缀）。
-            by_time = sum(1 for ctick, _ in completed if intent.tick - ctick > keep_days * TICKS_PER_DAY)
+            by_time = sum(1 for ctick, _ in completed if clock - ctick > keep_days * TICKS_PER_DAY)
             prune_n = max(by_time, len(completed) - keep_max)
             for start in range(0, prune_n, 512):
                 ids = [qid for _, qid in completed[start:min(start + 512, prune_n)]]

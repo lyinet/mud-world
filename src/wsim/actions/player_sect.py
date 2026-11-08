@@ -14,7 +14,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from ..core.clock import TICKS_PER_DAY
+from ..core.clock import TICKS_PER_DAY, npc_tick_of
 from ..core.models import Effect, Intent, Reject
 from ..world.state import Faction, WorldState
 from .business import FoundSectAction
@@ -440,8 +440,9 @@ class PlayerPayDisciplesAction(Action):
         self.content = content
 
     def _day(self, intent: Intent) -> int:
-        day = arg_int(intent, "day", default=int(intent.tick) // TICKS_PER_DAY, minimum=0)
-        if day > int(intent.tick) // TICKS_PER_DAY:
+        clock = npc_tick_of(intent)
+        day = arg_int(intent, "day", default=clock // TICKS_PER_DAY, minimum=0)
+        if day > clock // TICKS_PER_DAY:
             raise Reject("bad_arg:day")
         return day
 

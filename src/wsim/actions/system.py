@@ -527,7 +527,9 @@ class SystemLivingAction(Action):
             "upkeep": upkeep.id if upkeep is not None else dues_party,
             "dues": dues_party,
         }
-        day = day_of(intent.tick)
+        # NPC 日：共享世界由日界事件 args["day"] 显式给出；headless 时等于
+        # day_of(intent.tick)，旧哈希不变。
+        day = int(intent.args.get("day", day_of(intent.tick)))
         effects: list[Effect] = []
         for kind in ("housing", "upkeep", "dues"):
             amount = int(row.get(kind, 0))
@@ -730,7 +732,17 @@ class SystemShopSettleAction(Action):
             shop_settlement_effects,
         )
 
-        rows = build_shop_settlements(self.content, state, int(intent.tick))
+        clock_arg = getattr(intent, "clock_tick", None)
+        if clock_arg is None:
+            # 无自走：沿用世界 tick 口径，逐字节兼容旧日结/出勤/历史行。
+            rows = build_shop_settlements(self.content, state, int(intent.tick))
+        else:
+            # 有 NPC 时钟：出勤判定与账本日都读同一个 NPC 日（args["day"] = 刚结束的
+            # NPC 日）；显示（7 日账 day）与判定（出勤/工资）同源。
+            day = int(intent.args.get("day", int(clock_arg) // TICKS_PER_DAY))
+            rows = build_shop_settlements(
+                self.content, state, int(intent.tick), ledger_day=day, clock_day=day
+            )
         effects = shop_settlement_effects(self.content, state, rows, int(intent.tick))
         effects.extend(shop_day_reset_effects(state, rows))
         return effects

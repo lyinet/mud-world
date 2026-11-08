@@ -564,6 +564,7 @@ class Planner:
         tier: str,
         variant: int = 0,
         secondary: GoalChoice | None = None,
+        clock_tick: int | None = None,
     ) -> list[Intent]:
         ent = state.entities.get(npc)
         if ent is None or ent.status != "alive":
@@ -602,7 +603,10 @@ class Planner:
             # 任务优先：接单 -> 执行（交付由 headless 在动作成功后推进）。
             # 放在上工之前：清早 NPC 与发起人多半都在驻地，接单离规划时刻更近，
             # 避免“计划时发起人还在、执行时已走开”的 not_at_giver 静默失败。
-            loc, cursor, cash = self._quest_step(state, intents, npc, loc, cursor, seg_end, cash, memo)
+            loc, cursor, cash = self._quest_step(
+                state, intents, npc, loc, cursor, seg_end, cash, memo,
+                clock_tick=clock_tick,
+            )
 
             employer = self._employer(state, ent)
             work_loc = employer.location if employer is not None else ""
@@ -679,7 +683,8 @@ class Planner:
             # 决定“今天去不去”，命中就走过去买一件（不靠“恰好路过”）。
             if not saving_for_sect:
                 loc, cursor, cash = self._player_shop_trip(
-                    state, intents, npc, loc, cursor, seg_end, cash, memo, reason
+                    state, intents, npc, loc, cursor, seg_end, cash, memo, reason,
+                    clock_day=day_of(clock_tick) if clock_tick is not None else None,
                 )
 
             # 婚后日常不在这里排期：内容目标耗尽后 plan 根本不会被调用，
@@ -687,7 +692,10 @@ class Planner:
 
             # 消费倾向：有余钱就买一件商品/口粮，钱回流店铺。
             if not saving_for_sect:
-                loc, cursor, cash = self._propensity_buy(state, intents, npc, loc, cursor, seg_end, cash, memo)
+                loc, cursor, cash = self._propensity_buy(
+                    state, intents, npc, loc, cursor, seg_end, cash, memo,
+                    clock_day=day_of(clock_tick) if clock_tick is not None else None,
+                )
 
             # 目标动作：按档位深度
             for k in range(depth):
@@ -833,6 +841,7 @@ class Planner:
         end: int,
         cash: int,
         memo: dict[str, Any],
+        clock_tick: int | None = None,
     ) -> tuple[str, int, int]:
         if memo.get("quest_executed") or cursor >= end:
             return loc, cursor, cash
@@ -841,17 +850,23 @@ class Planner:
         limit = max(1, int(quest_cfg.get("max_concurrent", 2)))
         escort_limit = max(1, int(quest_cfg.get("max_concurrent_escort", 1)))
         max_hops = max(1, int(quest_cfg.get("accept_max_hops", 3)))
+
+        def _now(cur: int) -> int:
+            # 有 NPC 时钟时整段计划读同一个 NPC 时刻；headless 无 clock_tick 时
+            # 保持旧的“随 cursor 推进”语义，事件序列逐字节不变。
+            return cur if clock_tick is None else int(clock_tick)
+
         accepted = sorted(
             (q for q in state.quests.values()
              if q.status == "accepted" and q.acceptor == npc
-             and q.accepted_tick >= 0 and cursor - q.accepted_tick >= TICKS_PER_DAY),
+             and q.accepted_tick >= 0 and _now(cursor) - q.accepted_tick >= TICKS_PER_DAY),
             key=lambda q: q.id,
         )
         if accepted:
             q = accepted[0]
             last = self._quest_attempt.get(q.id, -TICKS_PER_DAY * 2)
-            if cursor - last >= TICKS_PER_DAY:
-                self._quest_attempt[q.id] = cursor
+            if _now(cursor) - last >= TICKS_PER_DAY:
+                self._quest_attempt[q.id] = _now(cursor)
                 memo["quest_executed"] = q.id
                 return self._quest_execute(state, intents, npc, loc, cursor, end, cash, q)
         # 押镖单独立占位：不占普通任务的并发额度，避免长期被采购/跑腿挤掉。
@@ -875,7 +890,7 @@ class Planner:
             elif len(errand_accepted) >= limit:
                 continue
             # 截止太近就不接，避免“接了也来不及交付”的必拒。
-            if q.deadline_tick >= 0 and q.deadline_tick - cursor < TICKS_PER_DAY:
+            if q.deadline_tick >= 0 and q.deadline_tick - _now(cursor) < TICKS_PER_DAY:
                 continue
             giver = state.entities.get(q.giver)
             if giver is None or giver.status != "alive":
@@ -896,10 +911,10 @@ class Planner:
             # 不合格的 NPC 身上（该地点最小 id 未必有押镖资格）。
             # 竞争由单写者事件顺序自然裁决，落败者最多产生少量 quest_not_open。
             last = self._quest_attempt.get(q.id, -TICKS_PER_DAY * 2)
-            if cursor - last < TICKS_PER_DAY:
+            if _now(cursor) - last < TICKS_PER_DAY:
                 continue
-            self._quest_attempt[q.id] = cursor
-            self._quest_served[q.template_id] = cursor
+            self._quest_attempt[q.id] = _now(cursor)
+            self._quest_served[q.template_id] = _now(cursor)
             cursor = self._add(
                 intents, npc, "quest_accept", {"quest": q.id, "quest_verb": q.verb}, cursor, end,
                 f"在{giver.name}处接下任务「{q.template_id}」",
@@ -1032,6 +1047,7 @@ class Planner:
         cash: int,
         memo: dict[str, Any],
         reason,
+        clock_day: int | None = None,
     ) -> tuple[str, int, int]:
         """专程进店：日常活动地附近有玩家店时，走过去买一件。
 
@@ -1050,7 +1066,7 @@ class Planner:
         )
         if not shops:
             return loc, cursor, cash
-        day = day_of(cursor)
+        day = day_of(cursor) if clock_day is None else int(clock_day)
         target = next((b for b in shops if b.location == loc), None)
         if target is None:
             near = [
@@ -1100,6 +1116,7 @@ class Planner:
         end: int,
         cash: int,
         memo: dict[str, Any],
+        clock_day: int | None = None,
     ) -> tuple[str, int, int]:
         """消费倾向：有余钱就买一件商品/口粮，钱回流店铺（非 top3 动作）。
 
@@ -1115,7 +1132,7 @@ class Planner:
             return loc, cursor, cash
         if treasury_guard_active(state, self.content):
             return loc, cursor, cash
-        day = day_of(cursor)
+        day = day_of(cursor) if clock_day is None else int(clock_day)
         market = player_market_active(state)
         best: tuple[int, str] | None = None  # (price, iid)
         if market:
@@ -1774,7 +1791,9 @@ class MockReasoner(Reasoner):
             self.selector.strategy_book = book
             self.selector.strategy_mode = True
 
-    def _spouse_visit(self, state: WorldState, npc: str, tick: int) -> list[Intent]:
+    def _spouse_visit(
+        self, state: WorldState, npc: str, tick: int, clock_tick: int | None = None
+    ) -> list[Intent]:
         """婚后日常：配偶是玩家时，每天至少一次走到玩家身边陪伴。
 
         放在 `decide` 入口而不是 `Planner.plan`，因为内容目标耗尽后
@@ -1788,7 +1807,7 @@ class MockReasoner(Reasoner):
         spouse_id = str(ent.spouse or "")
         if not spouse_id.startswith("player:"):
             return []
-        day = day_of(tick)
+        day = day_of(tick) if clock_tick is None else day_of(clock_tick)
         if self._spouse_day.get(npc) == day:
             return []
         spouse = state.entities.get(spouse_id)
@@ -1847,7 +1866,7 @@ class MockReasoner(Reasoner):
             return self._legacy(npc, npc_state, tick)
 
         # 婚后日常优先于内容计划：即使无可用内容目标（choice is None），也照常陪伴。
-        spouse_intents = self._spouse_visit(state, npc, tick)
+        spouse_intents = self._spouse_visit(state, npc, tick, world_view.get("clock_tick"))
         if spouse_intents:
             return spouse_intents
 
@@ -1988,6 +2007,7 @@ class MockReasoner(Reasoner):
         plan = self.planner.plan(
             state, npc, choice, start, interval, tier,
             self._variant.get(npc, 0), secondary=self_choice,
+            clock_tick=world_view.get("clock_tick"),
         )
         self.postponed_open_shop += self.planner.postponed_open_shop
         self.planner.postponed_open_shop = 0

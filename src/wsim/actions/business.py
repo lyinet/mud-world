@@ -218,7 +218,13 @@ def settled_day_of(tick: int) -> int:
     return day - 1
 
 
-def _worked_on_day(state: WorldState, eid: str, day: int) -> bool:
+def _worked_on_day(
+    state: WorldState, eid: str, day: int, clock_marker: bool = False
+) -> bool:
+    if clock_marker:
+        # NPC 日口径：只认当天上工写入的 NPC 日标记，不再用世界 tick 窗口。
+        needle = f"{ATTENDANCE_MARKER}:D{day}"
+        return any(needle in str(mem.get("text", "")) for mem in state.memories.get(eid, ()))
     start = day * TICKS_PER_DAY
     end = start + TICKS_PER_DAY
     for mem in state.memories.get(eid, ()):
@@ -240,7 +246,13 @@ def shop_stock_snapshot(content, biz) -> tuple[int, list[str]]:
     return stock_units, stockout_items
 
 
-def build_shop_settlements(content, state: WorldState, tick: int | None = None) -> list[dict]:
+def build_shop_settlements(
+    content,
+    state: WorldState,
+    tick: int | None = None,
+    ledger_day: int | None = None,
+    clock_day: int | None = None,
+) -> list[dict]:
     """计算玩家店铺当日日结行（不产生效果，只给日界事件 args 用）。
 
     流水直接读 `Business.day_revenue/day_restock`（由 transfer 效果维护），
@@ -249,6 +261,10 @@ def build_shop_settlements(content, state: WorldState, tick: int | None = None) 
     实付/欠付，净利口径：revenue - restock - 工资 - 税。
     """
     day = settled_day_of(int(tick)) if tick is not None else None
+    if clock_day is not None:
+        # 有 NPC 时钟：出勤/工资判定改读 NPC 日，与账本日同源。
+        day = int(clock_day)
+    row_day = int(ledger_day) if ledger_day is not None else day
     rows: list[dict] = []
     for bid in sorted(state.businesses):
         biz = state.businesses[bid]
@@ -266,7 +282,9 @@ def build_shop_settlements(content, state: WorldState, tick: int | None = None) 
             contract_wage = int(biz.employee_wages.get(eid, 0))
             if contract_wage <= 0:
                 continue
-            present = True if day is None else _worked_on_day(state, eid, day)
+            present = True if day is None else _worked_on_day(
+                state, eid, day, clock_marker=clock_day is not None
+            )
             row = {
                 "employee": eid,
                 "name": e.name,
@@ -310,6 +328,7 @@ def build_shop_settlements(content, state: WorldState, tick: int | None = None) 
         rows.append({
             "shop": bid,
             "kind": biz.kind,
+            **({"day": row_day} if (ledger_day is not None or clock_day is not None) else {}),
             "revenue": revenue,
             "restock": restock,
             "tx": int(biz.day_customers),
@@ -425,7 +444,10 @@ def shop_settlement_effects(content, state: WorldState, rows: list[dict], tick: 
 
 def build_shop_history_row(row: dict, tick: int) -> tuple[int, dict]:
     """shop_report 的 7 日行：与 system_shop_settle 事件 args 同源，只留决策字段。"""
-    day = settled_day_of(int(tick))
+    day = row.get("day")
+    if day is None:
+        day = settled_day_of(int(tick))
+    day = int(day)
     return day, {
         "day": day,
         "revenue": int(row.get("revenue", 0)),

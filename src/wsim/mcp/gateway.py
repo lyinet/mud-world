@@ -307,6 +307,11 @@ class MCPGateway:
             tick = int(raw.get("tick", self._tick()))
         except (TypeError, ValueError) as exc:
             raise GatewayError(f"bad_tick:{exc}") from exc
+        clock = raw.get("clock_tick")
+        try:
+            clock_tick = None if clock is None else int(clock)
+        except (TypeError, ValueError):
+            clock_tick = None
         return Intent(
             actor=str(raw.get("actor", "")),
             verb=str(raw.get("verb", "")),
@@ -314,6 +319,7 @@ class MCPGateway:
             tick=tick,
             source=str(raw.get("source", default_source)),
             intent_id=str(raw.get("intent_id", "")),
+            clock_tick=clock_tick,
         )
 
     @staticmethod
