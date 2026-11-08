@@ -53,7 +53,7 @@
 
 ## T7 收尾
 
-- [ ] 更新 CHANGELOG。
-- [ ] `git diff --stat -- tools/xkx_formula` 为空。
-- [ ] 全量 pytest 全绿。
+- [x] 更新 CHANGELOG。
+- [x] `git diff --stat -- tools/xkx_formula` 为空。
+- [x] 全量 pytest 全绿（1034 收集 / 0 failed / exit 0）。
 - [ ] 显式 `git add`（逐文件），提交并 push（不 force）。

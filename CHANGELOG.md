@@ -9,6 +9,67 @@
 
 ---
 
+## [feat] 2026-11-08 — fight / kill 分离（S4）
+
+- **改了什么**：
+  - `src/wsim/sim/combat_rules.py`：`simulate_fight(..., killing=True, spar=False)`；
+    `roll_wound(killing=...)`；每次命中后 `spar && damage>0 && dst.hp*2 <= dst.max_hp`
+    即记 `stopped`、winner=出手方并跳出，不置 `dead`；`spar` 下跳过“昏迷→下一心跳
+    `die()`”；返回 `spar/killing/stopped`。
+  - `src/wsim/actions/combat.py`：`combat_effects(..., spar=False, reason="fight")`，
+    `killing = (not spar) or defender.combat_target == attacker.id`；非致命时跳过
+    `entity_status dead`、尸体、`drops`/`loot_create`、玩家死亡，保留 `combat_exp_add`
+    与技能进度；新增 `KillAction`。
+  - `src/wsim/actions/registry.py`、`src/wsim/api/session.py`：`combat.lethal_fight`
+    开关（默认关闭）；关闭时 `fight` 仍致命且不注册 `kill`，开启时 `fight` 切磋 +
+    `kill` 致命。`src/wsim/api/xkx_shell.py` 接入 `kill` 命令与“点到即止”停战文案，
+    停战战报改为“你占上风，X拱手认输”，不再误报“倒下了”。
+  - `tests/test_fight_kill_split.py` 新增 7 项；`config/worlds/xkx.yaml` 开启
+    `combat.lethal_fight: true`（**单独提交**，便于回滚）。
+- **为什么改**：复刻里 `fight 大狼狗` 直接判死，换成店小二就是“切磋把店主杀了”。
+  原版 `combatd.lpc:665-685` 的半血停战只在双方都不是 killer 时成立，必须靠
+  `fight`/`kill` 两个动词分离才能表达。
+- **验证方式**：
+  - 单测：`fight 店小二` 半血停战、存活、无掉落、给经验；主动攻击型 NPC 下
+    `fight` 仍致命；`kill` 致死并掉皮；开关关/开两种行为；同 seed 双跑事件与
+    `state_hash` 一致。
+  - 活世界（8011，未 `--reset`）：`fight 店小二` `seq 8127` → `lethal false,
+    stopped true, rounds 6, dead []`、HP 100/100，`look` 仍活着，`buy 龙井虾仁`
+    `seq 8136` 成功；`kill 大狼狗` `seq 8139`/`8160` → `loot_create` 狗皮
+    `reason:"kill"`，`loot 狗皮` `seq 8152` → 行囊 狗皮×2。
+  - 旧九地点哈希不变：`735 / 009076f0… / 02d5f812…`。
+  - 全量 pytest：1034 项收集、0 failed（exit 0）。
+- **commit**：e348698
+
+## [fix] 2026-11-08 — 重生载荷字段对齐 genesis + 属性逐实例掷点（B/C）
+
+- **改了什么**：
+  - `src/wsim/sim/room_reset.py`：`_baseline()` 以 `genesis` 创世载荷为准逐字段镜像，
+    补 `name/role/home/personality/skills/drops/status/template/instance`，删除创世
+    不发的 `max_stamina/skill_xp`；重生 `roll_key = f"{ent.id}#{death_tick}"`。
+  - `src/wsim/world/effects.py`：`entity_respawn` 应用 `name/role/home/personality/
+    drops/status/template/instance`，复位 `max_stamina=100.0`、`skill_xp={}`。
+  - `src/wsim/sim/genesis.py`：clone 创世按实例 `roll_key=iid` 掷 `vitals`；
+    `src/wsim/sim/vitals.py`：`roll_attrs` 键改 `xkx-attrs:<seed>:<roll_key>:<attr>`。
+  - `tests/test_xkx_respawn_fields.py`（新建）：genesis spawn 与 respawn 载荷字段集
+    **完全相等**（不是包含）；`tests/test_attrs_roll.py` 补 clone 独立/同 seed 一致/
+    重生重掷/人类 `cor` 分布。
+- **为什么改**：活世界重生后的 `entity_respawn` 丢 `drops`，狼狗重生不掉皮；
+  且复刻把 `attrs_roll` 按模板写死，违背 `race/human.lpc:60-68` 每实例
+  `10+random(21)` 的原版行为。
+- **验证方式**：
+  - 老板库 8011（不重建、不 `--reset`）：`seq 7199`/`7214` `entity_respawn`
+    含 `"drops":{".../goupi":1}`；`seq 7212` 真 HTTP `fight` → `loot_create`；
+    `seq 7216` `loot` → 背包 狗皮×1。
+  - 旧九地点哈希不变：`events_total=735`、
+    `state_final=009076f0346352e328d8c158a3017a3e26fbc0b2c59ef7ca20c8fc3d1f780ce9`、
+    `event_final=02d5f812c427833387e592ad9321ebd72a9c5c719825b958f53af83d795078ae`。
+  - 店小二 20 场（seed 101-120）：玩家守卫 118/386=30.57%，店小二 38/249=15.26%
+    （目标 24%±8pp，**差下限 0.74pp，未闭合，已单报**）；`cor` min/mean/max =
+    12/21.6/30。
+  - 全量 pytest：1034 项收集、0 failed（exit 0）；`tools/xkx_formula` 零改动。
+- **commit**：181c501
+
 ## [feat] 2026-11-08 — S1 出手门 + 守卫 + 反击 + 昏迷补刀（三件套）
 
 - **改了什么**：
