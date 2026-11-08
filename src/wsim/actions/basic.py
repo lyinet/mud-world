@@ -199,6 +199,7 @@ class WorkAction(Action):
         skill = skill_for(self.content, ent.role)
 
         effects: list[Effect] = []
+        attendance: list[Effect] = []
         if employed_by_self:
             # 店主自雇：工资记 0，不生成“自己欠自己”的工资债。
             # 店主收益走月度分红（system_shop_dividend），不走工资。
@@ -211,10 +212,15 @@ class WorkAction(Action):
                 # 有 NPC 时钟：把出勤钉在 NPC 日上，日结按同一日判定出勤。
                 # 标记格式必须与 business.ATTENDANCE_MARKER 的判定串一致
                 # （`工资本日由日结发放:D{day}`），金额放在标记之后。
+                npc_day = npc_tick_of(intent) // TICKS_PER_DAY
                 note = (
-                    f"已签日结契约，工资本日由日结发放:D{npc_tick_of(intent) // TICKS_PER_DAY}"
+                    f"已签日结契约，工资本日由日结发放:D{npc_day}"
                     f"，应得{gross}文"
                 )
+                # 记忆 80 条上限会淘汰旧条目，出勤另记持久凭证。
+                attendance.append(Effect("shop_attendance", {
+                    "business": bid, "employee": ent.id, "day": npc_day,
+                }))
         else:
             effects.extend(
                 payment_with_shortfall(
@@ -238,6 +244,7 @@ class WorkAction(Action):
                 Effect("set_field", {"entity": ent.id, "field": "last_action_tick", "value": intent.tick}),
                 *goal_progress(state, ent.id, "wealth", float(max(0, net)), intent.tick, goal_id=explicit_goal_id(intent)),
                 *memory(state, ent.id, intent.tick, note, 0.2),
+                *attendance,
                 *quest_progress_effects(
                     state, ent.id, "work",
                     tick=intent.tick, location=ent.location, hours=hours,

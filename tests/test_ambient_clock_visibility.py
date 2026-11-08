@@ -110,6 +110,8 @@ def test_work_writes_attendance_marker_in_npc_day(content):
                     tick=9999, clock_tick=288, source="test")
     assert action.preconditions(state, intent) == []
     apply_effects(state, action.apply(state, intent, None))
+    # 记忆上限 80 条会淘汰旧条目：出勤必须有持久凭证，清空记忆后仍要认。
+    state.memories.pop("npc:emp", None)
     # clock_tick=288 → NPC 日 2；世界 tick 9999 是第 69 日，旧口径不该算出勤。
     assert _worked_on_day(state, "npc:emp", 2, clock_marker=True) is True
     assert _worked_on_day(state, "npc:emp", 2, clock_marker=False) is False
