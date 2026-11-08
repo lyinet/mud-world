@@ -458,6 +458,10 @@ class PlayerPayDisciplesAction(Action):
         day = self._day(intent)
         if not active_disciples(state, fac):
             return ["no_disciples"]
+        # 幂等证据优先用门派持久字段（记忆 80 条上限会淘汰当日标记）；
+        # 旧事件/无该字段时退回记忆标记。
+        if int(getattr(fac, "settle_day", -1)) == day:
+            return ["already_settled_today"]
         marker = f"{SETTLE_MARKER}:{fac.id}:D{day}"
         if any(marker in str(m.get("text", "")) for m in state.memories.get(ent.id, ())):
             return ["already_settled_today"]
@@ -579,6 +583,8 @@ class PlayerPayDisciplesAction(Action):
             + (f"，{len(leavers)}名弟子欠饷离派" if leavers else "")
         )
         effects.extend(memory(state, ent.id, tick, text, 0.5))
+        # 幂等落持久字段：记忆最多 80 条，掌门活跃一天就可能把当日标记挤掉。
+        effects.append(Effect("faction_settle", {"faction": fac.id, "day": int(day)}))
         effects.append(Effect("set_field", {"entity": ent.id, "field": "last_action_tick", "value": tick}))
         return effects
 
