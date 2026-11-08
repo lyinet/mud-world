@@ -90,6 +90,19 @@ class EventStore:
             except sqlite3.Error:
                 self._ck_stop.wait(1.0)
 
+    def _stop_checkpointer(self) -> None:
+        self._ck_stop.set()
+        thread = self._ck_thread
+        if thread is not None:
+            thread.join(timeout=2.0)
+            self._ck_thread = None
+        if self._ck_conn is not None:
+            try:
+                self._ck_conn.close()
+            except sqlite3.Error:
+                pass
+            self._ck_conn = None
+
     def close(self) -> None:
         self._ck_stop.set()
         thread = self._ck_thread
@@ -144,6 +157,16 @@ class EventStore:
         if row is None:
             return (0, 0, 0)
         return (int(row[0]), int(row[1]), int(row[2]))
+
+    def vacuum_offline(self) -> None:
+        """离线回收磁盘（VACUUM 需要独占锁）；调用方必须保证没有其他写入者。
+
+        会停掉后台 checkpoint 线程，之后本实例只剩主连接可用，适合 CLI 收尾。
+        """
+        self._stop_checkpointer()
+        self.conn.execute("VACUUM")
+        self.conn.commit()
+        self.conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
 
     def append(self, event: Event) -> None:
         if self._has_legacy:
