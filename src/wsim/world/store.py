@@ -15,6 +15,7 @@ import json
 import os
 import sqlite3
 import threading
+import time
 from pathlib import Path
 
 from ..core.canonical import dumps, hash_obj
@@ -64,6 +65,13 @@ class EventStore:
         cols = {str(r[1]) for r in self.conn.execute("PRAGMA table_info(events)")}
         self._has_legacy = "legacy" in cols
         self._cached_count: int | None = None
+        # checkpoint 归因：后台 PASSIVE 回写耗时。若某窗口写延迟尖刺与这里
+        # 的 ck_ms_max 同步，说明停顿来自 WAL 回写而非锁内自走。
+        self._ck_runs = 0
+        self._ck_ms_total = 0.0
+        self._ck_ms_max = 0.0
+        self._ck_busy_runs = 0
+        self._ck_last: dict[str, int] = {}
         if self.path != ":memory:" and CHECKPOINT_INTERVAL_S > 0:
             self._start_checkpointer()
 
@@ -86,11 +94,32 @@ class EventStore:
         while not self._ck_stop.wait(CHECKPOINT_INTERVAL_S):
             if self._ck_conn is None:
                 return
+            t0 = time.clock_gettime(time.CLOCK_MONOTONIC)
             try:
                 # PASSIVE 不等写者/读者；拿不到帧就下轮再来，绝不阻塞 commit。
-                self._ck_conn.execute("PRAGMA wal_checkpoint(PASSIVE)").fetchall()
+                rows = self._ck_conn.execute("PRAGMA wal_checkpoint(PASSIVE)").fetchall()
+                dt = (time.clock_gettime(time.CLOCK_MONOTONIC) - t0) * 1000.0
+                self._ck_runs += 1
+                self._ck_ms_total += dt
+                if dt > self._ck_ms_max:
+                    self._ck_ms_max = dt
+                if rows:
+                    busy, log_frames, ck_frames = (int(rows[0][0]), int(rows[0][1]), int(rows[0][2]))
+                    self._ck_last = {"busy": busy, "log": log_frames, "checkpointed": ck_frames}
+                    if busy:
+                        self._ck_busy_runs += 1
             except sqlite3.Error:
                 self._ck_stop.wait(1.0)
+
+    def ck_stats(self) -> dict[str, float | int | dict[str, int]]:
+        """checkpoint 计数与耗时（只读快照，归因用）。"""
+        return {
+            "runs": self._ck_runs,
+            "ms_total": round(self._ck_ms_total, 3),
+            "ms_max": round(self._ck_ms_max, 3),
+            "busy_runs": self._ck_busy_runs,
+            "last": dict(self._ck_last),
+        }
 
     def close(self) -> None:
         self._ck_stop.set()

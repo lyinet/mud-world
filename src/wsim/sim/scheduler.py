@@ -330,6 +330,10 @@ class AmbientScheduler:
         self._progress_fh = (self.out_dir / "ambient_progress.jsonl").open("a", encoding="utf-8")
         self._summary_fh = (self.out_dir / "ambient_summaries.jsonl").open("a", encoding="utf-8")
         self._control_fh = (self.out_dir / "ambient_control.jsonl").open("a", encoding="utf-8")
+        # 归因探针：每步一行（锁等待 / 锁内 / 进度写 / 状态写），缓冲 30 行再落盘，
+        # 避免探针自身的 IO 成为被测停顿。ambient_steps.jsonl 仅供归因，不进任何哈希。
+        self._steps_fh = (self.out_dir / "ambient_steps.jsonl").open("a", encoding="utf-8")
+        self._steps_pending = 0
 
         npcs = self.content.npcs[: cfg.npc_limit] if cfg.npc_limit else self.content.npcs
         if not npcs:
@@ -389,6 +393,11 @@ class AmbientScheduler:
         # 调度步实际耗时（滚动窗口，用于区分“锁内自走变慢”与“进程/系统级停顿”）。
         self._step_ms: deque[float] = deque(maxlen=512)
         self._step_ms_max = 0.0
+        self._lock_wait_ms: deque[float] = deque(maxlen=512)
+        self._in_lock_ms: deque[float] = deque(maxlen=512)
+        self._lock_wait_ms_max = 0.0
+        self._in_lock_ms_max = 0.0
+        self._last_parts: dict[str, float] = {}
         self._skipped_days = 0
         self._dropped_stale = 0
         # lag_steps：累计被 max_catchup_ticks 截断的调度步数（与
@@ -459,6 +468,12 @@ class AmbientScheduler:
             "npc_tick": int(self.tick),
             "step_ms_max": round(self._step_ms_max, 2),
             "step_ms_p95": self._step_ms_p95(),
+            "lock_wait_ms_p95": self._p95(self._lock_wait_ms),
+            "lock_wait_ms_max": round(self._lock_wait_ms_max, 2),
+            "in_lock_ms_p95": self._p95(self._in_lock_ms),
+            "in_lock_ms_max": round(self._in_lock_ms_max, 2),
+            "step_parts": dict(self._last_parts),
+            "store_ck": self.store.ck_stats() if hasattr(self.store, "ck_stats") else {},
             "skipped_days": int(self._skipped_days) if self.shared else 0,
             "skipped_wakes": int(self.lod.skipped_wakes),
             "dropped_stale": int(self._dropped_stale),
@@ -483,10 +498,12 @@ class AmbientScheduler:
         }
         tmp = self.status_path.with_name(self.status_path.name + ".tmp")
         try:
+            t0 = self.clock()
             tmp.write_text(
                 json.dumps(payload, ensure_ascii=False, sort_keys=True), encoding="utf-8"
             )
             os.replace(tmp, self.status_path)
+            self._last_parts["status_file_ms"] = round((self.clock() - t0) * 1000.0, 3)
         except OSError as exc:
             self._log_line(f"[{stamp(self.tick)}] ambient_status_write_failed {type(exc).__name__}: {exc}")
 
@@ -979,7 +996,9 @@ class AmbientScheduler:
         self._push(base + 1, 3, "replan", payload.actor)
 
     def _write_progress(self, t: int) -> None:
+        t0 = self.clock()
         state_digest = state_hash(self.writer.state)
+        t_hash = self.clock() - t0
         self._progress_chain = hash_obj(
             {
                 "prev": self._progress_chain,
@@ -999,7 +1018,11 @@ class AmbientScheduler:
             "chain": self._progress_chain,
         }
         self._progress_fh.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
+        t1 = self.clock()
         self._progress_fh.flush()
+        self._last_parts["progress_hash_ms"] = round(t_hash * 1000.0, 3)
+        self._last_parts["progress_write_ms"] = round((t1 - t0 - t_hash) * 1000.0, 3)
+        self._last_parts["progress_flush_ms"] = round((self.clock() - t1) * 1000.0, 3)
 
     def _write_summary(self, t: int) -> None:
         now = self.clock()
@@ -1239,12 +1262,45 @@ class AmbientScheduler:
         if ms > self._step_ms_max:
             self._step_ms_max = float(ms)
 
-    def _step_ms_p95(self) -> float:
-        if not self._step_ms:
+    def _observe_step_split(self, lock_wait_ms: float, in_lock_ms: float, epoch: float) -> None:
+        """归因：一步拆成锁等待 / 锁内执行，并落 ambient_steps.jsonl。
+
+        30s 窗口里的写 p95 若变慢，可以直接对上这一步到底是“等锁”还是
+        “锁内自走 + 落盘”造成的。探针缓冲 30 行后 flush，避免自身成为停顿源。
+        """
+        self._lock_wait_ms.append(float(lock_wait_ms))
+        self._in_lock_ms.append(float(in_lock_ms))
+        if lock_wait_ms > self._lock_wait_ms_max:
+            self._lock_wait_ms_max = float(lock_wait_ms)
+        if in_lock_ms > self._in_lock_ms_max:
+            self._in_lock_ms_max = float(in_lock_ms)
+        row = {
+            "epoch": round(epoch, 3),
+            "npc_tick": int(self.tick),
+            "world_tick": int(self.writer.state.tick),
+            "step_ms": round(lock_wait_ms + in_lock_ms, 3),
+            "lock_wait_ms": round(float(lock_wait_ms), 3),
+            "in_lock_ms": round(float(in_lock_ms), 3),
+            "parts": dict(self._last_parts),
+            "shared": bool(self.shared),
+        }
+        self._steps_fh.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
+        self._steps_pending += 1
+        if self._steps_pending >= 30:
+            try:
+                self._steps_fh.flush()
+            finally:
+                self._steps_pending = 0
+
+    def _p95(self, values: deque[float]) -> float:
+        if not values:
             return 0.0
-        vals = sorted(self._step_ms)
+        vals = sorted(values)
         idx = max(0, int(len(vals) * 0.95) - 1)
         return round(vals[idx], 2)
+
+    def _step_ms_p95(self) -> float:
+        return self._p95(self._step_ms)
 
     def run_ticks(self, n: int) -> int:
         """不配速连跑 n 个 tick（测试/验收用），仍受 CPU 护栏约束。"""
@@ -1261,16 +1317,25 @@ class AmbientScheduler:
     def _tick_with_guard(self) -> None:
         t0_wall = self.clock()
         t0_cpu = self.cpu_clock()
+        t0_epoch = time.clock_gettime(time.CLOCK_REALTIME)
+        t_enter = None
+        t_in_end = None
         try:
             # 共享模式下整 tick（含事件追加/提交）都在 API 的锁内，
             # 与玩家写路径串行，保证单写者、单事务、seq 连续。
             with self._guard():
+                t_enter = self.clock()
                 self._process_tick()
+                t_in_end = self.clock()
         except Exception as exc:  # 不静默：落盘后继续抛出
             self._write_error("tick", exc)
             raise
-        wall = self.clock() - t0_wall
+        t_exit = self.clock()
+        wall = t_exit - t0_wall
+        lock_wait = (t_enter - t0_wall) if t_enter is not None else 0.0
+        in_lock = (t_in_end - t_enter) if (t_enter is not None and t_in_end is not None) else 0.0
         self._observe_step_ms(wall * 1000.0)
+        self._observe_step_split(lock_wait * 1000.0, in_lock * 1000.0, t0_epoch)
         self._cpu_guard(wall, self.cpu_clock() - t0_cpu)
 
     def start(
@@ -1465,6 +1530,11 @@ class AmbientScheduler:
             "step_ms_max": round(self._step_ms_max, 2),
             "step_ms_p95": self._step_ms_p95(),
             "step_ms_samples": len(self._step_ms),
+            "lock_wait_ms_max": round(self._lock_wait_ms_max, 2),
+            "lock_wait_ms_p95": self._p95(self._lock_wait_ms),
+            "in_lock_ms_max": round(self._in_lock_ms_max, 2),
+            "in_lock_ms_p95": self._p95(self._in_lock_ms),
+            "store_ck": self.store.ck_stats() if hasattr(self.store, "ck_stats") else {},
             "cpu_pauses": self._cpu_pauses,
             "cpu_resumes": self._cpu_resumes,
             "parent_pid": self.cfg.parent_pid,
@@ -1520,8 +1590,9 @@ class AmbientScheduler:
         )
 
     def _close(self) -> None:
-        for fh in (self._audit_fh, self._progress_fh, self._summary_fh, self._control_fh):
+        for fh in (self._audit_fh, self._progress_fh, self._summary_fh, self._control_fh, self._steps_fh):
             try:
+                fh.flush()
                 fh.close()
             except Exception:
                 pass
