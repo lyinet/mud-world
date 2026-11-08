@@ -11,12 +11,20 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from wsim.api import WorldSession  # noqa: E402
 from wsim.core.rng import PRNG  # noqa: E402
 from wsim.sim.combat_rules import TraceRandom, simulate_fight  # noqa: E402
 from wsim.world.state import Entity  # noqa: E402
+
+WORLD_CONFIG = ROOT / "config" / "worlds" / "xkx.yaml"
+XKX_CONTENT = ROOT / "content" / "xkx"
+ACCOUNT = "xkx_tester"
+XIAOER = "/d/hangzhou/npc/xiaoer2"
 
 
 class RecordingRng:
@@ -224,3 +232,56 @@ def test_riposte_fires_after_dodge_or_parry():
     assert missed["result"] in ("dodge", "parry")
     assert riposte["attack_type"] in ("quick", "riposte")
     assert riposte["riposte"] is True
+
+
+def _gate_actions(config_path: Path, run_dir: Path) -> list[dict]:
+    """按给定世界配置跑一场 `kill 店小二`，收集逐刀动作行。"""
+    cfg = yaml.safe_load(Path(config_path).read_text(encoding="utf-8")) or {}
+    session = WorldSession(
+        ROOT,
+        run_id="xkx-gate",
+        seed=42,
+        npc_limit=0,
+        run_dir=run_dir,
+        content_root=XKX_CONTENT,
+        world_config=config_path,
+        spawn=str(cfg.get("spawn") or "market"),
+    )
+    try:
+        result = session.xkx_command(ACCOUNT, {"account_id": ACCOUNT, "command": "kill 店小二"})
+    finally:
+        session.close()
+    return [act for rnd in result["engine_details"]["combat"]["rounds"] for act in rnd["actions"]]
+
+
+def test_initiative_gate_flag_is_read_from_world_config(tmp_path):
+    """`_load_initiative_gate` 必须真的生效：同 seed 下开/关两态出手统计必须不同。
+
+    合并线审计发现把 `initiative_gate` 关掉后 156 项测试全绿——因为没有任何
+    测试调用 `_load_initiative_gate`，改配置不会让任何用例变色。这条走真实
+    世界配置（`WorldSession`），把仓库配置翻回关闭态本条即变红。
+    """
+    cfg = yaml.safe_load(WORLD_CONFIG.read_text(encoding="utf-8")) or {}
+    assert (cfg.get("combat") or {}).get("initiative_gate") is True
+
+    off_cfg = dict(cfg)
+    off_cfg["combat"] = dict(cfg.get("combat") or {}, initiative_gate=False)
+    off_path = tmp_path / "xkx-gate-off.yaml"
+    off_path.write_text(yaml.safe_dump(off_cfg, allow_unicode=True), encoding="utf-8")
+
+    on_acts = _gate_actions(WORLD_CONFIG, tmp_path / "on")
+    off_acts = _gate_actions(off_path, tmp_path / "off")
+
+    # 开启态：每一刀都登记 attack_type，普通攻击带门骰，且确有被门挡下的回合。
+    assert all("attack_type" in a for a in on_acts)
+    assert any(a.get("gate_pass") is False for a in on_acts)
+    assert any(a.get("riposte") is True for a in on_acts)
+    # 关闭态：同一 seed 走旧口径（双方每心跳各一刀），没有门字段也没有反击。
+    assert all("attack_type" not in a for a in off_acts)
+    assert not any("gate_roll" in a for a in off_acts)
+    assert not any(a.get("riposte") for a in off_acts)
+    # 出手统计是配置的函数而不是常量：店小二在开启态被门挡过，出手数更少。
+    assert len([a for a in on_acts if a["actor"] == XIAOER]) < len(
+        [a for a in off_acts if a["actor"] == XIAOER]
+    )
+    assert len(on_acts) != len(off_acts)

@@ -601,3 +601,20 @@ full_refill_ticks = max_qi / points_per_tick
 
 **剩余差距的下一个候选根因（待逐刀账本验证，不先改）**：原版玩家 8.4 刀 / 累计伤害估算 125 才杀死 50 血狼狗，复刻 4.9 刀 / 75；每刀量级接近（17.9 vs 15.3），差别在“跨过死亡阈值所需的刀数/有效伤害”，不在出手频率。已排除：`cor`、玩家 `cps/cor`、`heal_cd` 前移（关闭态 5.40 同样低于原版 8.4）。也不用“原版昏迷后回血拖长”解释——`unconcious()`（`damage.lpc:105-144`）只把 `qi/jing` 置 0 并 `remove_all_enemy()`，`revive()`（`:146-160`）只恢复行动、不回血。下一步只能按 §1.8 同格式做逐刀账本（同记 `qi`、`eff_qi`、wound 判定、命中/招架、伤害与 armor），才能定位是 wound 概率、伤害取值还是收场判定差异。
 
+### 10.15 开关审计补漏：`initiative_gate` 读配置在此前无任何测试覆盖
+
+合并线把 `eff_qi` / `multi_combat` / `initiative_gate` 三个开关关掉后跑全量，156 项全绿。`multi_combat` 单人开/关本就应一致；`eff_qi` 的两条假通过已改成开/关双态交叉（`test_xkx_api` 首两击 `[19,21]` vs `[15,14]`、`test_xkx_growth` 昏迷 vs 死亡还阳）。`initiative_gate` 是另一类漏锁：`_load_initiative_gate`（`src/wsim/api/session.py:1610`）没有任何测试调用，`test_xkx_initiative_gate.py` 全是公式级、显式传参不读仓库配置——改配置不会有任何反应。
+
+补的集成级断言 `test_initiative_gate_flag_is_read_from_world_config`：
+
+- 走真实 `WorldSession` + 仓库 `config/worlds/xkx.yaml`，同 seed 42 各跑一场 `kill 店小二`；
+- 开启态：每一刀带 `attack_type`，普通攻击带 `gate_roll/gate_pass`，存在 `gate_pass=False`（被门挡下）与 `riposte=True`；
+- 关闭态：同一 seed 全部动作为旧口径，无 `attack_type`/`gate_roll`，无反击；
+- 出手统计是配置的函数：店小二开启态 10 刀 < 关闭态 11 刀，总出手 22 ≠ 23，回合 11 ≠ 12。
+
+假回退验证两种都做了，都会变红：
+
+1. 仓库配置翻 `initiative_gate: false` → 在 `assert ... is True` 处红；
+2. 把 `_load_initiative_gate` 改成恒 `return False`（模拟真漏锁）→ 在 `assert all("attack_type" in a for a in on_acts)` 处红。
+
+另：`test_fight_reports_real_rounds_and_death` 里 `assert "超额伤害" in text` 已删。主线 `e3f17a9` 已删除该自造战报（原版 `damage.lpc:37` 返回请求伤害、`combatd.lpc:569` 只显示本次伤害），本分支从 `93f9f6` 分出未经过该删除，断言过时；引擎侧断言（双态首两击、回合数相等）全部保留。

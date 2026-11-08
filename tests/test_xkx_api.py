@@ -401,7 +401,7 @@ def _isolated_session(run_dir: Path, world_config: Path):
 
 def test_fight_reports_real_rounds_and_death(tmp_path):
     # 楼外楼只有店小二。世界开启 `combat.lethal_fight` 后 `fight` 是切磋（半血即止），
-    # 要拿“死亡/超额伤害”战报必须用 `kill`；seed=42 下玩家取胜。
+    # 要拿“死亡”战报必须用 `kill`；seed=42 下玩家取胜。
     #
     # 两态都要断言：开启 `eff_qi` 后每场战斗开头两方各抽一次 heal_cd
     # （`combat_rules.py:433`），骰流前移 2，首击由关闭态 15 变 19。
@@ -426,7 +426,8 @@ def test_fight_reports_real_rounds_and_death(tmp_path):
         # 招式接入后，人类默认招式以 `combat_action` 文案展示，不再固定“击中X，伤害N”。
         assert "挥拳攻击店小二" in text
         assert "你赢了，店小二倒下了" in text
-        assert "超额伤害" in text
+    # 不能断言“超额伤害”：原版 `damage.lpc:37` 返回请求伤害、`combatd.lpc:569`
+    # 只显示本次伤害，该战报行是我们自造的，主线 `e3f17a9` 已删除。
     # 必须按“首击/首两击序列”判，不能按全文出现与否：关闭态后续也会掷出
     # 19（本 seed 第 4 刀），全文判“出现/不出现”两态都会假绿。
     assert _first_damages(on_text) == [19, 21]
