@@ -108,3 +108,105 @@
 - 毒蛇：不带雄黄进入 `/d/hangzhou/huanglongdong` 会被攻击；带雄黄进入不触发。
 - 大狼狗：同 seed 双跑，`/d/hangzhou/guozhuang` 的判定与伤害完全一致。
 - 旧九地点世界：原有 golden/确定性基线原样通过。
+
+## 偷袭窗口与登记时机（2026-11-09 实测校正）
+
+### 原版调用链（行号）
+
+- `feature/attack.lpc:245-273 init()`：对象被 move 进房间时由 MudOS 同步调用；aggressive
+  分支在 `:269-271` 调 `COMBAT_D->auto_fight(this_object(), ob, "aggressive")`。
+- `adm/daemons/combatd.lpc:808-820 auto_fight()`：`:819 call_out("start_aggressive", 0, me, obj)`。
+  即 **`kill_ob` 不在 move 指令内**，而是排到下一次 call_out 处理。
+- `adm/daemons/combatd.lpc:900-914 start_aggressive()`：`:913 me->kill_ob(obj)`。
+- 自定义 `init()` 的两只：`d/hangzhou/npc/wolfdog.lpc:29-36`、`d/hangzhou/npc/dushe.lpc:27-36`
+  都是 `call_out("kill_ob", 1, ob)`，即 **1 个心跳后**才登记。
+- `feature/attack.lpc:69` `kill_ob()`：把目标加进 killer；`fight_ob()` 在 `:35-66`，
+  `:64-65 enemy += ({ ob })`。
+- `cmds/std/touxi.lpc:18-19`：拒绝条件只有 `obj->is_fighting(me)`——**只看目标是否已把
+  攻击者登记为敌人**，不看攻击者自己是否在战斗。
+- `inherit/char/char.lpc:57-97 heart_beat()`：`:87-96` 只有在有敌人时才 `attack()`；
+  即 `kill_ob` 之后第一刀落在 NPC 的下一个心跳。
+
+### 复刻现状（修复前，行号）
+
+- `src/wsim/api/session.py:3077`：move/enter 成功的**同一条指令内**调用
+  `_trigger_npc_aggression`。
+- `src/wsim/actions/aggression.py:231-237`（trigger 预检）、`:332`（原 immediate 分支）：
+  命中时立即写 `combat_target` / `combat_tick` / `combat_round`。
+- `src/wsim/actions/combat.py:583-592`：touxi 的拒绝条件 =
+  `defender.combat_target == attacker.id` 或 attacker 在 `effective_enemies(defender)` 中。
+- 规则与掷骰：`src/wsim/sim/aggression.py:72-110`（laohu=always，dushe=unless_item，
+  wolfdog=chance_kar_per 阈值 30）、`:149`（`decide()`）。
+
+### 可判定规则（修复前）
+
+- **R1**：touxi 只针对**单个目标**判定；目标未把攻击者登记为敌人就允许，已登记就
+  `already_fighting`。
+- **R2**：进房触发是同步的：目标规则一旦 `triggered=true`，同一 tick 即写
+  `combat_target`，之后任何 tick 的 touxi 都会被拒；`triggered=false` 的目标
+  （概率未中、带雄黄、非主动、或同模板的另一个未触发 clone）仍可被偷袭。
+- **R3**：不存在“同 tick move 后 touxi 可以”的窗口——复刻把窗口压成了 0；能否偷袭
+  只取决于**该目标这次是否触发**，与 tick 先后无关。
+
+### 2026-11-09 矛盾复现（seed=42，content_hash=56417288…）
+
+狼狗（`/d/hangzhou/guozhuang` 同房两个 clone）：
+
+- `seq 6 tick 0` canonical `wolfdog`：`chance_kar_per roll=0 total=40 threshold=30
+  triggered=true` → 写 `combat_target=player:u_demo`。
+- `seq 7 tick 0` `wolfdog@/d/hangzhou/guozhuang#2`：`roll=39 total=40 threshold=30
+  triggered=false`。
+- `seq 9 tick 6 touxi`：target = `…guozhuang#2`（未触发那只），outcome=ok，
+  `opening={"branch":"triple","mode":"touxi"}`，三刀 17/20/0，目标 50→13。
+- 结论：狼狗偷袭成功不是窗口成立，而是**打的是没触发的那只 clone**。
+
+老虎（同房只有一只，`always`）：
+
+- `seq 7 tick 6 move` → `seq 8 tick 6 npc_aggression`（triggered=true）→
+  `seq 10 tick 12 touxi` = `rejected:already_fighting`。
+- 与 R2 一致；对照原版 `call_out(...,0)`，下一次玩家指令前基本已登记，**该拒绝忠实**。
+
+### 与原版的差异判定
+
+**真偏差**：原版 `kill_ob` 至少延迟一个 call_out（aggressive 0 拍；wolfdog/dushe 1 心跳），
+复刻在 move 指令内立即登记。后果：
+
+- laohu 这类 `call_out(...,0)`：玩家下一条指令前基本已登记，行为等价；
+- wolfdog/dushe 这类 `call_out("kill_ob", 1)`：原版存在 1 个心跳的偷袭窗口，复刻没有。
+
+### 修法（已实施）
+
+1. `Entity` 新增 `aggro_tick` / `aggro_target`（`aggro_tick=0` 表示无待生效）；
+   `npc_aggression(mode=trigger)` 命中时只写
+   `aggro_tick = intent.tick + delay`，暂不写 `combat_target`。`delay` 由规则携带
+   （always=0，chance_kar_per/unless_item=1）。
+2. ambient 每 tick 把 `state.tick >= aggro_tick` 的待生效条目转成
+   `npc_aggression(mode=promote)`（写 `combat_target/combat_tick/combat_round`，
+   多敌时补 `combat_enemies`）；未到 `aggro_tick` 直接跳过，不出手。
+3. **`TouxiAction` 无需改动**：待生效期间 `combat_target` 未写、不在
+   `effective_enemies` 中，`combat.py:587-592` 的现有判定自然放行——与原版
+   `touxi.lpc:18-19` 只查 `obj->is_fighting(me)` 等价。
+4. `to_dict()` 仅在 `aggro_tick` 非 0 时输出；旧世界规则为空，不受影响。
+   转正时 `aggro_tick/aggro_target` 清零，不在健康实体上残留。
+
+### 可判定规则（修复后，seed=42 实测）
+
+- **R4**：`always`（laohu）`delay=0` → 进房同 tick 登记，同 tick 及之后 `touxi`
+  一律 `already_fighting`。
+- **R5**：`chance_kar_per`（wolfdog）/`unless_item`（dushe）掷中后挂起
+  `aggro_tick = 进房 tick + 1`；**进房同 tick** 的 `touxi` 允许，
+  下一 tick `promote` 后拒绝。掷不中/带雄黄的目标永远可偷袭。
+- **R6**：规则按**单个目标**判定，同模板其他 clone 各自独立（一只登记不影响另一只）。
+
+实测（`/tmp/touxi_window_after.json`）：
+
+- A：wolfdog canonical，`trigger_tick=0`、`touxi_tick=0` → **ok**，
+  `opening={"branch":"triple","mode":"touxi"}`，三刀 17/20/0，hp 50→13；
+  终态 `combat_target=""`、`aggro_tick=1`。
+- B：同目标 tick 1 先 `promote`（`combat_target=player:xkx_win`、`aggro_tick=0`）
+  → `touxi` = `rejected:already_fighting`。
+- C：tiger `trigger_tick=0`、`touxi_tick=0` → `rejected:already_fighting`
+  （`combat_target=player:xkx_win`、`aggro_tick=0`）。
+
+验收（`tests/test_xkx_npc_aggression.py` 三例）：wolfdog 挂起期 ok / promote 后拒；
+laohu 无窗口；掷不中的 clone 始终可偷袭。

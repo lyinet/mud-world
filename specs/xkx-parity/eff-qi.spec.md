@@ -697,3 +697,52 @@ rd actor  -> target  type   result dmg_req dmg_act qi        eff       wound_req
 4. **wound 不是每刀都扣。** 原版 38 次玩家命中里只有 **9 次**触发 `receive_wound`（23.7%）；限定破防门通过的 33 次，伤门触发率 **27.3%**，与源码 `1/4 + 3/4·1/7 = 35.7%` 在 n=33 的噪声内。复刻 179 次 roll 触发 55 次（30.7%），与公式一致。两边都只在破防+掷中时扣 `eff_qi`，代码路径（`roll_wound`）逐行对齐。
 
 **结论**：`4.9 刀打穿 vs 原版 8.4 刀` 这个对照**不成立**——原版实测 4.80 次出手 / 3.80 次命中即打穿 50 血狼狗，复刻 4.90-5.28 次出手 / 4.20 次命中，差异在 ±0.4 刀、约 1 个样本标准误内。每刀伤害（17.03 vs 17.90）、护甲（2 vs 2）、命中/闪避/招架率、wound 触发率均对齐。剩余差异只有心跳回合数（原版 11.50 / 复刻 8.38），属 tempo（`is_busy`/守势空转）而非伤害链路，另在 `combat-tempo.spec.md` 跟踪。
+
+## 11. `eff_hp = -2` 哨兵：生命周期核实（2026-11-09）
+
+### 结论
+
+`-2` 不是“旧档迁移专用哨兵”，而是 `Entity` 的构造默认值，**新建实体也保持 -2**；
+但它不会落盘，也不会被任何读路径当成真实伤势。
+
+### 证据（基线 `ebf5d50`）
+
+- `src/wsim/world/state.py:62-64`：`eff_hp: int = -2`，注释即“旧实体未初始化，运行时按 max_hp”。
+- 创世：`src/wsim/world/effects.py:318-327` 的 `create_entity` 只构造
+  id/name/role/location/stamina/skills/personality；`max_hp`/`hp` 在 `:321-323` 才写入，
+  **全程没有写 `eff_hp`**。实测 `genesis` / `genesis_player` 的 create_entity payload
+  只有 `hp`/`max_hp`，无 `eff_hp`（`/tmp/touxi-window/tiger-move/events.sqlite`）。
+- 重生：`src/wsim/world/effects.py:699-701` 显式 `ent.eff_hp = -2`；数值覆盖在
+  `:710-714` 之后，故即便改成满值也必须放在覆盖之后。
+- 序列化：`src/wsim/world/state.py:174-175` 只在
+  `eff_hp >= -1 and eff_hp != max_hp` 时输出 `eff_hp`；`-2` **永远不会写进 `to_dict()`**。
+- 读路径全部归一：`sim/combat_rules.py:184`（< -1 → max_hp）、
+  `world/effects.py:581`（`eff_hp_add/set` 的 old 值）、`actions/player.py:588`、
+  `actions/combat.py:178`、`actions/system.py:536`、`sim/scheduler.py:962`。
+
+### 判定
+
+- 功能上**不是 bug**：所有读路径把 `-2` 当满血，`to_dict()` 不外泄哨兵，旧世界哈希不变。
+- 保真度上**是新实体漏写**：原版在 `chard.lpc:72-80` / `npcd.lpc:303-304` /
+  `updated.lpc:263-268` 设置 `max_qi` 时同步 `qi = eff_qi = max_qi`（本 spec §1.1:31
+  已审计）。复刻的创世/重生没有这一步，靠运行时兜底。
+
+### 最小修法（已实施）
+
+1. `src/wsim/world/effects.py` `create_entity`：在 `:321-323` 写完 `max_hp/hp` 后加
+   `if ent.max_hp > 0: ent.eff_hp = int(ent.max_hp)`；`max_hp==0` 的旧内容保持默认。
+2. `entity_respawn`：把 `:701` 的 `-2` 改为在 `:710-714` 的数值覆盖完成后
+   `ent.eff_hp = int(ent.max_hp)`（必须在 `max_hp` 覆盖之后）。
+3. 两处都不改变 `to_dict()` 输出（`eff_hp == max_hp` 本来就不输出），也不改变战斗/
+   恢复行为，因此**无需迁移、哈希不变**。
+
+### 回归测试
+
+- `tests/test_combat_eff_qi.py` 增：
+  1. `test_genesis_entity_eff_hp_equals_max`：`create_entity(max_hp=425, hp=425)` 后
+     `ent.eff_hp == ent.max_hp == 425`，且 `"eff_hp" not in ent.to_dict()`。
+  2. `test_respawn_entity_eff_hp_equals_max_after_overrides`：死亡 → `entity_respawn(max_hp=300, hp=300)`，
+     `eff_hp == 300`（锁住“覆盖之后赋值”）。
+  3. `test_to_dict_never_serializes_sentinel`：手工 `ent.eff_hp = -2`，`to_dict()` 无
+     `eff_hp` 键。
+- 旧世界：现有 golden/确定性用例保持不变并全绿。
