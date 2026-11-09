@@ -31,10 +31,14 @@ archetype: 游侠
 # unarmed/dodge/parry 同级 40，保证攻防两侧同一档位、数据自洽。
 player_start:
   combat_exp: 6400
+  # 内力：供 `exert recover` / `regenerate` 使用（combat.healing 打开时）。
+  # 原版新玩家靠 dazuo 自 0 修炼，该子系统未落地，这里按满值起步。
+  max_neili: 200
   skills:
     unarmed: 40
     dodge: 40
     parry: 40
+    force: 40
 auth: off
 ambient: 0
 # NPC 游走：默认关闭；只有本世界配置显式打开。

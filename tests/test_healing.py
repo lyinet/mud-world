@@ -13,6 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from wsim.actions.player import player_genesis_effects  # noqa: E402
 from wsim.actions.system import SystemHealAction  # noqa: E402
 from wsim.core.models import Effect, Intent  # noqa: E402
 from wsim.world.effects import apply_effects  # noqa: E402
@@ -169,3 +170,20 @@ def test_heal_up_jing_is_not_boosted_by_neili():
                       neili=0, max_neili=500)
     heal = _heal_up(state, healing=True, hp=100, eff=100)
     assert heal["jing"] == 16
+
+
+# ---- player_start 数据 -------------------------------------------------
+
+def test_player_start_grants_force_and_neili():
+    """xkx 世界新玩家：force=40、max_neili=200、cps/cor 仍为 23/24。"""
+    import yaml
+
+    cfg = yaml.safe_load((ROOT / "config/worlds/xkx.yaml").read_text(encoding="utf-8"))
+    state = _state()
+    apply_effects(state, player_genesis_effects(
+        "player:1", "甲", "inn", start=cfg["player_start"], jing=True,
+    ))
+    ent = state.entities["player:1"]
+    assert (ent.max_neili, ent.neili) == (200, 200)
+    assert ent.skill_levels["force"] == 40
+    assert (ent.attrs["cps"], ent.attrs["cor"]) == (23, 24)

@@ -117,6 +117,21 @@ def _player_vitals(archetype: str = "", start: dict | None = None, jing: bool = 
     }
     if jing:
         data.update({"max_jing": PLAYER_MAX_JING, "jing": PLAYER_MAX_JING, "eff_jing": PLAYER_MAX_JING})
+    # 内力：只在世界配置显式给出 `max_neili` 时落字段（旧世界/旧九地点不带，载荷不变）。
+    # 缺省可用内力按满值处理——原版新玩家靠 `dazuo` 自 0 修炼，本阶段不做该子系统，
+    # 否则 `exert recover` 会因 `neili<20` 永远无法使用（见 healing.spec.md §6.5-B）。
+    if isinstance(start, dict):
+        raw_max = start.get("max_neili")
+        if isinstance(raw_max, int) and not isinstance(raw_max, bool) and raw_max > 0:
+            raw_cur = start.get("neili")
+            if not (
+                isinstance(raw_cur, int)
+                and not isinstance(raw_cur, bool)
+                and 0 <= raw_cur <= raw_max
+            ):
+                raw_cur = raw_max
+            data["max_neili"] = raw_max
+            data["neili"] = raw_cur
     return data
 
 
