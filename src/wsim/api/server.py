@@ -60,6 +60,8 @@ _WORLD_MAP = "/api/world/map"
 _ADMIN_KICK_ROUTE = "/api/admin/players/kick"
 # xkx 帮助目录：153 命令 / 32 主题，公共只读，不含玩家数据。
 _XKX_HELP = "/api/xkx/help"
+# xkx 旁路观察：只看房间/角色，不写事件、不上线、不触发主动怪。
+_XKX_OBSERVE = "/api/xkx/observe"
 _INTENTS_PREFIX = "/api/player/intents/"
 _METRICS = "/api/metrics"
 
@@ -78,6 +80,15 @@ class _HeadersTooLarge(Exception):
 
 # 席位/额度类业务拒绝：用 429 明确表达“不是服务端 500”。
 _CAPACITY_CODES = frozenset({"player_cap_reached", "endowment_cap_reached"})
+
+# 只读观察的失败码 -> HTTP 状态；未知码回落 400（保持“可解析的错误体”）。
+_OBSERVE_STATUS = {
+    "unknown_entity": 404,
+    "unknown_room": 404,
+    "bad_account": 400,
+    "observe_missing_target": 400,
+    "entity_not_in_room": 400,
+}
 
 _AUTH_STATUS = {
     "auth_missing_token": 401,
@@ -638,6 +649,30 @@ class _Handler(BaseHTTPRequestHandler):
         if identity is not None and requested and requested != identity:
             # 与写端点同规则：令牌账号是唯一事实源，不接受读别人的状态。
             self._send(403, error_payload("auth_account_mismatch", session.state.tick))
+            return
+        if path == _XKX_OBSERVE:
+            # 旁路观察：不写事件、不上线、不推进 tick。服务模式下必须带令牌，
+            # 且只能看自己的角色（与 /api/player/intents 同口径），避免开未鉴权后门。
+            if self._auth_required() and identity is None:
+                self._send_auth_error("auth_missing_token")
+                return
+            entity_id = str(query.get("entity_id") or "").strip()
+            requested_entity = entity_id[len("player:"):] if entity_id.startswith("player:") else ""
+            if identity is not None and requested_entity and requested_entity != identity:
+                self._send(403, error_payload("auth_account_mismatch", session.state.tick))
+                return
+            room_id = str(query.get("room_id") or query.get("location") or "")
+            # 带令牌且什么都不指定时默认观察自己；避免“空查询”在服务模式下无意义报错。
+            default_account = (identity or "") if not room_id else ""
+            payload = session.observe(
+                account_id=str(account or default_account) if not entity_id else "",
+                entity_id=entity_id,
+                room_id=room_id,
+            )
+            status = 200 if payload.get("ok") else _OBSERVE_STATUS.get(
+                str(payload.get("reject_reason") or ""), 400
+            )
+            self._send(status, payload)
             return
         # 服务模式：无令牌只看公共摘要；legacy 模式保持匿名全量（行为不变）。
         anonymous = identity is None and self._auth_required()

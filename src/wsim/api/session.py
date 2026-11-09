@@ -2757,6 +2757,29 @@ class WorldSession:
         """`GET /api/xkx/help`：153 命令 / 32 主题的只读目录，供游戏内 help 与补全。"""
         return self._xkx_shell_instance().catalog()
 
+    def observe(
+        self,
+        *,
+        account_id: str = "",
+        entity_id: str = "",
+        room_id: str = "",
+    ) -> dict[str, Any]:
+        """`GET /api/xkx/observe`：旁路观察房间/角色，零副作用。
+
+        与 `xkx_command` 的关键区别：不调用 `_touch_tick`、不自动 enter、不推进
+        tick、不触发 `npc_aggression`。只拿一次只读快照做投影。
+        """
+        from .observe import build_observe_view
+
+        with self._read_snapshot() as snapshot:
+            return build_observe_view(
+                self,
+                snapshot,
+                account_id=account_id,
+                entity_id=entity_id,
+                room_id=room_id,
+            )
+
     def resume(
         self,
         account: str,
