@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from ..core.clock import TICKS_PER_DAY, day_of, npc_tick_of
 from ..core.models import Effect, Intent, Reject
+from ..sim.aggression import chase_followers
 from ..world.state import WorldState
 from .common import (
     arg_int,
@@ -95,12 +96,17 @@ class MoveAction(Action):
         if steps == 0:
             # 原地一跳：已在此地，不扣体力、不写记忆，避免“看起来在动”的空转事件。
             return []
-        return [
+        effects = [
             Effect("set_location", {"entity": ent.id, "to": step}),
             Effect("stamina", {"entity": ent.id, "delta": -cost * steps}),
             Effect("set_field", {"entity": ent.id, "field": "last_action_tick", "value": intent.tick}),
             *memory(state, ent.id, intent.tick, f"移动到 {step}", 0.1),
         ]
+        # 原版 `go.lpc:329` + `team.lpc:26-38`：pursuer 且 killer 命中玩家的 NPC
+        # 跟到同一落点。关闭态 chase_followers 恒为空，事件流不变。
+        for fid in chase_followers(state, ent.id, ent.location):
+            effects.append(Effect("set_location", {"entity": fid, "to": step}))
+        return effects
 
 
 class CultivateAction(Action):

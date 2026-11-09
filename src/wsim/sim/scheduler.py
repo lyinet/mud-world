@@ -35,7 +35,13 @@ from ..world.hash import event_hash, state_hash
 from ..world.state import WorldState
 from ..world.store import EventStore
 from ..world.writer import Writer
-from .aggression import effective_enemies, multi_combat_enabled
+from .aggression import (
+    effective_enemies,
+    killer_chase_enabled,
+    killer_ids,
+    multi_combat_enabled,
+    rule_for,
+)
 from .genesis import build_genesis
 from .headless import intent_block_reason, is_prunable
 from .intent import MockReasoner
@@ -973,7 +979,7 @@ class AmbientScheduler:
         """
         action = self.registry.get("npc_aggression") if self.registry is not None else None
         rules = getattr(action, "rules", None) if action is not None else None
-        if not rules:
+        if not rules and not killer_chase_enabled():
             return
         state = self.writer.state
         for npc_id in sorted(state.entities):
@@ -981,6 +987,14 @@ class AmbientScheduler:
                 continue
             npc = state.entities[npc_id]
             if npc_id.startswith("player:"):
+                continue
+            # 无规则、无 killer、无敌人/主目标的普通 NPC 不必每 tick 进循环。
+            if (
+                rule_for(npc, rules or {}) is None
+                and not killer_ids(npc)
+                and not effective_enemies(npc)
+                and not npc.combat_target
+            ):
                 continue
             # 昏迷/死亡的 NPC 不再出手（原版 `disable_player`），也不发 reset 意图。
             if npc.status != "alive":

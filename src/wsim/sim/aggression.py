@@ -68,6 +68,31 @@ def is_killing(entity: Any, target_id: str) -> bool:
     return bool(target_id) and str(target_id) in killer_ids(entity)
 
 
+def chase_followers(state: Any, mover_id: str, origin: str) -> list[str]:
+    """原版 `go.lpc:329` + `team.lpc:26-38`：谁会在玩家移动后跟出原房间。
+
+    只收 `pursuer=True` 且 killer 命中玩家、仍与玩家在原房间的存活 NPC；
+    关闭态/非玩家移动一律返回空，不产生任何事件。
+    """
+    if not killer_chase_enabled():
+        return []
+    mover_id = str(mover_id or "")
+    if not mover_id.startswith("player:"):
+        return []
+    out: list[str] = []
+    for eid in sorted(getattr(state, "entities", {})):
+        if eid == mover_id or eid.startswith("player:"):
+            continue
+        ent = state.entities[eid]
+        if not bool(getattr(ent, "pursuer", False)):
+            continue
+        if str(getattr(ent, "status", "")) != "alive" or str(ent.location) != str(origin):
+            continue
+        if is_killing(ent, mover_id):
+            out.append(eid)
+    return out
+
+
 def effective_enemies(entity: Any) -> list[str]:
     """当前敌人表；旧存档只有 `combat_target` 时回退成单元素表。"""
     raw = getattr(entity, "combat_enemies", None) or []

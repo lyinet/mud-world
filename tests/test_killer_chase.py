@@ -7,7 +7,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from wsim.actions.aggression import _remove_enemy, _reset  # noqa: E402
+from types import SimpleNamespace  # noqa: E402
+
+from wsim.actions.aggression import NpcAggressionAction, _remove_enemy, _reset  # noqa: E402
+from wsim.actions.basic import MoveAction  # noqa: E402
 from wsim.actions.combat import AnsuanAction, FightAction, KillAction, TouxiAction  # noqa: E402
 from wsim.core.models import Effect, Intent  # noqa: E402
 from wsim.core.rng import PRNG  # noqa: E402
@@ -197,6 +200,77 @@ def test_death_clears_killer_both_ways():
         )
         assert monster.killer == []
         assert hero.killer == []
+    finally:
+        configure_killer_chase(old_k)
+
+
+def test_hatred_trigger_skips_rule_and_dice():
+    old_k = killer_chase_enabled()
+    try:
+        configure_killer_chase(True)
+        hero, monster = _hero(), _monster(race="人类")
+        monster.killer = ["player:hero"]
+        state = _state(hero=hero, monster=monster)
+        action = NpcAggressionAction(rules={})
+        intent = Intent(
+            actor="npc.boar",
+            verb="npc_aggression",
+            args={"mode": "trigger", "target": "player:hero"},
+            tick=11,
+            source="npc",
+        )
+        assert action.preconditions(state, intent) == []
+        effects = action.apply(state, intent, PRNG(42, 11))
+        trial = apply_atomic(state, effects)
+        assert trial.entities["npc.boar"].combat_target == "player:hero"
+        logs = [e for e in effects if e.op == "aggression_log"]
+        assert logs and logs[0].data["kind"] == "hatred"
+        assert logs[0].data["result"] == "attack"
+    finally:
+        configure_killer_chase(old_k)
+
+
+def test_pursuer_follows_across_room_when_killing():
+    old_k = killer_chase_enabled()
+    try:
+        configure_killer_chase(True)
+        state = _state(
+            extra_locations={"road": {"id": "road", "name": "大道", "exits": ["inn"]}},
+        )
+        state.locations["inn"]["exits"] = ["road"]
+        monster = state.entities["npc.boar"]
+        monster.pursuer = True
+        monster.killer = ["player:hero"]
+        content = SimpleNamespace(economy={"stamina_move": 5})
+        intent = Intent(actor="player:hero", verb="move", args={"to": "road"}, tick=12, source="player")
+        effects = MoveAction(content).apply(state, intent, PRNG(42, 12))
+        trial = apply_atomic(state, effects)
+        assert trial.entities["npc.boar"].location == "road"
+
+        # 没有 pursuer 时原版只保留 killer，不跟房。
+        state.entities["npc.boar"].pursuer = False
+        effects = MoveAction(content).apply(state, intent, PRNG(42, 12))
+        trial = apply_atomic(state, effects)
+        assert trial.entities["npc.boar"].location == "inn"
+    finally:
+        configure_killer_chase(old_k)
+
+
+def test_pursuer_follow_disabled_when_flag_off():
+    old_k = killer_chase_enabled()
+    try:
+        configure_killer_chase(False)
+        state = _state(
+            extra_locations={"road": {"id": "road", "name": "大道", "exits": ["inn"]}},
+        )
+        state.locations["inn"]["exits"] = ["road"]
+        monster = state.entities["npc.boar"]
+        monster.pursuer = True
+        monster.killer = ["player:hero"]
+        content = SimpleNamespace(economy={"stamina_move": 5})
+        intent = Intent(actor="player:hero", verb="move", args={"to": "road"}, tick=12, source="player")
+        effects = MoveAction(content).apply(state, intent, PRNG(42, 12))
+        assert all(e.op != "set_location" or e.data.get("entity") != "npc.boar" for e in effects)
     finally:
         configure_killer_chase(old_k)
 
