@@ -44,7 +44,14 @@ def _wimpy_escape(state: WorldState, npc: Any, target: Any, rng: Any, intent: In
     threshold = int(getattr(target, "wimpy", 0) or 0)
     max_hp = int(getattr(target, "max_hp", 0) or 0)
     hp = int(getattr(target, "hp", 0) or 0)
-    if threshold <= 0 or max_hp <= 0 or hp * 100 > threshold * max_hp:
+    if threshold <= 0 or max_hp <= 0:
+        return [], False
+    # 原版 `char.lpc:87-92`：qi% 或 jing% 任一低于阈值都触发逃跑。
+    max_jing = int(getattr(target, "max_jing", 0) or 0)
+    jing = int(getattr(target, "jing", 0) or 0)
+    qi_low = hp * 100 <= threshold * max_hp
+    jing_low = max_jing > 0 and jing * 100 <= threshold * max_jing
+    if not (qi_low or jing_low):
         return [], False
 
     round_no = int(npc.combat_round) + 1
@@ -64,6 +71,9 @@ def _wimpy_escape(state: WorldState, npc: Any, target: Any, rng: Any, intent: In
         "intent_tick": int(intent.tick),
         "reason": "wimpy",
     }
+    # 精神组只在启用时入日志；关闭态 wimpy_log 逐字节不变。
+    if max_jing > 0:
+        base.update(jing=jing, max_jing=max_jing, jing_pct=max(0, min(100, jing * 100 // max_jing)))
     if not exits:
         base.update(result="no_exit", from_location=str(target.location), exit_count=0, roll_order=[])
         return [Effect(op="wimpy_log", data=base)], False

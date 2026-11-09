@@ -13,6 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from wsim.actions.combat import AnsuanAction  # noqa: E402
 from wsim.actions.player import (  # noqa: E402
     PlayerRestAction,
     _player_vitals,
@@ -328,3 +329,75 @@ def test_max_jingli_is_not_modeled():
     data = Entity(id="npc.a", name="甲", role="npc", location="inn",
                   max_hp=10, hp=10, max_jing=5, jing=5, eff_jing=5).to_dict()
     assert "jingli" not in data and "max_jingli" not in data
+
+
+# ---- ansuan / wimpy -----------------------------------------------------
+
+def _ansuan_state(jing: int) -> WorldState:
+    state = WorldState(locations={
+        "inn": {"id": "inn", "name": "客栈", "exits": ["street"]},
+        "street": {"id": "street", "name": "街", "exits": ["inn"]},
+    })
+    apply_effects(state, [
+        Effect("create_entity", {
+            "id": "player:p", "name": "英雄", "role": "wanderer", "location": "inn",
+            "max_hp": 100, "hp": 100, "max_jing": 100, "jing": jing,
+            "attrs": {"str": 20, "con": 20, "dex": 20, "kar": 20, "per": 20},
+            "combat_exp": 10, "skill_levels": {"unarmed": 40},
+        }),
+        Effect("create_entity", {
+            "id": "npc.t", "name": "目标", "role": "npc", "location": "street",
+            "max_hp": 50, "hp": 50, "attrs": {"str": 10, "dex": 10},
+        }),
+    ])
+    return state
+
+
+def _ansuan_intent() -> Intent:
+    return Intent("player:p", "ansuan", {"target": "npc.t", "to": "street"}, 10, "player")
+
+
+def test_ansuan_rejects_jing_99():
+    state = _ansuan_state(99)
+    action = AnsuanAction(jing=True)
+    assert "cannot_focus" in action.preconditions(state, _ansuan_intent())
+
+
+def test_ansuan_jing_100_leaves_50():
+    state = _ansuan_state(100)
+    action = AnsuanAction(jing=True)
+    assert action.preconditions(state, _ansuan_intent()) == []
+    effects = action.apply(state, _ansuan_intent(), __import__("random").Random(42))
+    jing_ev = next(e for e in effects if e.op == "jing_add")
+    assert jing_ev.data["delta"] == -50 and jing_ev.data["jing_before"] == 100
+    apply_effects(state, effects)
+    assert state.entities["player:p"].jing == 50
+
+
+def test_ansuan_off_ignores_jing_gate():
+    state = _ansuan_state(99)
+    assert AnsuanAction(jing=False).preconditions(state, _ansuan_intent()) == []
+
+
+def test_wimpy_triggers_on_low_jing_even_with_full_qi():
+    from types import SimpleNamespace
+
+    from wsim.actions.aggression import _wimpy_escape
+
+    state = WorldState(locations={
+        "inn": {"id": "inn", "exits": ["road"]},
+        "road": {"id": "road", "exits": ["inn"]},
+    })
+    npc = SimpleNamespace(id="npc.t", name="老虎", combat_round=0)
+    target = SimpleNamespace(
+        id="player:p", name="英雄", location="inn", wimpy=80,
+        max_hp=100, hp=100, max_jing=100, jing=10, attrs={"dex": 20},
+    )
+    intent = SimpleNamespace(tick=5)
+    effects, escaped = _wimpy_escape(state, npc, target, __import__("random").Random(42), intent)
+    # 只要 qi 满、jing 10%，wimpy 就必须进入逃跑流程（成功/失败都记 wimpy_log）。
+    assert effects and effects[0].op == "wimpy_log"
+    assert effects[0].data["jing"] == 10 and effects[0].data["jing_pct"] == 10
+    # qi/jing 都高于阈值：不逃。
+    target.jing = 100
+    assert _wimpy_escape(state, npc, target, __import__("random").Random(42), intent) == ([], False)

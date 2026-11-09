@@ -637,6 +637,7 @@ class TouxiAction(FightAction):
                 "attacker_killing": _already_killing(attacker, defender),
             },
         )
+        # `ansuan.lpc:227` 的消耗在 `AnsuanAction.apply` 里扣，这里不动。
         # `touxi.lpc:58`：出手之后无论是否被发现都 `obj->kill_ob(me)`。
         if multi_combat_enabled() and PASSIVE_RETALIATION:
             reg = _retaliation_registration(defender, attacker, int(intent.tick))
@@ -653,8 +654,9 @@ class AnsuanAction(FightAction):
     reason = "ansuan"
     salt = "action:ansuan"
 
-    def __init__(self, initiative_gate: bool = False, eff_qi: bool = False):
+    def __init__(self, initiative_gate: bool = False, eff_qi: bool = False, jing: bool = False):
         super().__init__(initiative_gate=initiative_gate, spar=False, eff_qi=eff_qi)
+        self.jing = bool(jing)
 
     def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
         target = _combat_target(intent)
@@ -678,6 +680,9 @@ class AnsuanAction(FightAction):
             return ["target_dead"]
         if int(attacker.max_hp) <= 0 or int(defender.max_hp) <= 0:
             return ["no_combat_stats"]
+        # `ansuan.lpc:133-134`：`jing >= 100` 才能凝神偷袭。
+        if self.jing and int(attacker.max_jing) > 0 and int(attacker.jing) < 100:
+            return ["cannot_focus"]
         if str(attacker.combat_target or "") or effective_enemies(attacker):
             # `ansuan.lpc:134`：你已经在战斗中了。
             return ["already_fighting"]
@@ -719,6 +724,14 @@ class AnsuanAction(FightAction):
                 "target_killing": (not can_speak) or _already_killing(defender, attacker),
             },
         )
+        # `ansuan.lpc:227`：出手消耗 50 点精神（之后剩 50，可被 heal_up 补回）。
+        if self.jing and int(attacker.max_jing) > 0:
+            effects.insert(0, Effect(op="jing_add", data={
+                "entity": attacker.id,
+                "delta": -50,
+                "reason": "ansuan",
+                "jing_before": int(attacker.jing),
+            }))
         log = _combat_log(effects)
         opening = log.get("opening") or {}
         detected = bool(opening.get("detected"))

@@ -834,7 +834,7 @@ class WorldSession:
                 "neili_reason": "引擎尚无内力（neili）字段，暂未开放。",
             }
         hp = int(getattr(ent, "hp", 0) or 0)
-        return {
+        data = {
             "hp": hp,
             "max_hp": max_hp,
             "hp_pct": max(0, min(100, round(hp * 100 / max_hp))),
@@ -842,6 +842,19 @@ class WorldSession:
             "neili": None,
             "neili_reason": "引擎尚无内力（neili）字段，暂未开放。",
         }
+        # 精神组只在 `max_jing>0`（开关打开后创世/迁移过）时输出，关闭态响应不变。
+        max_jing = int(getattr(ent, "max_jing", 0) or 0)
+        if max_jing > 0:
+            eff = int(getattr(ent, "eff_jing", -2) or 0)
+            eff = eff if eff >= -1 else max_jing
+            jing = int(getattr(ent, "jing", 0) or 0)
+            data.update({
+                "jing": jing,
+                "max_jing": max_jing,
+                "eff_jing": eff,
+                "jing_pct": max(0, min(100, round(jing * 100 / max_jing))),
+            })
+        return data
 
     def _attrs_view(self, ent) -> tuple[list[dict[str, Any]], str, dict[str, int]]:
         """属性只读视图：原始键值 + 固定顺序的中文展示项。"""

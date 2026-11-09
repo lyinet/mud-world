@@ -192,7 +192,7 @@ def build_registry(
         reg.register(FightAction(initiative_gate=initiative_gate, eff_qi=eff_qi))
     # `touxi` / `ansuan` 是原版独立命令，内部直接 `do_attack()`，与 fight/kill 并存。
     reg.register(TouxiAction(initiative_gate=initiative_gate, eff_qi=eff_qi))
-    reg.register(AnsuanAction(initiative_gate=initiative_gate, eff_qi=eff_qi))
+    reg.register(AnsuanAction(initiative_gate=initiative_gate, eff_qi=eff_qi, jing=jing))
     # NPC 主动攻击：规则只从内容包派生；旧九地点内容没有 aggressive/三个专属 id，
     # 规则表为空，动作永远拒绝，事件流不变。
     from ..sim.aggression import aggression_rules

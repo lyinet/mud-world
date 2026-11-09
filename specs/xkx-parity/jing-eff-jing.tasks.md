@@ -56,14 +56,15 @@
 - [x] T4.4 通道语义由 `jing_add`（damage）/`eff_jing_add`（wound）+ `floor=-1`
       固定；`max_jing==0` 的实体不产生任何 jing 事件（关闭态逐字节不变）。
       常规招式只打 qi，jing 伤害技能不在本期内容（见 spec §7.4）。
-- [ ] T4.5 `src/wsim/actions/aggression.py:37-105`：wimpy 同时比较
+- [x] T4.5 `src/wsim/actions/aggression.py:37-105`：wimpy 同时比较
       `jing*100/max_jing`（`char.lpc:87-92`），`max_jing==0` 时只看 qi。
-- [ ] T4.6 验证 J10：`jing=10%`、qi 满 → flee 事件出现；qi/jing 都高于阈值时不出逃。
+- [x] T4.6 验证 J10：`jing=10%`、qi 满 → wimpy_log 出现（`jing_pct=10`）；
+      qi/jing 都高于阈值时不出逃。
 
 ## T5 动作接入
 
-- [ ] T5.1 `AnsuanAction`（`actions/combat.py:624+`）：precondition `jing < 100` →
-      `rejected:cannot_focus`；apply `jing -= 50`，日志带 `jing_before/jing_after`。
+- [x] T5.1 `AnsuanAction`（`actions/combat.py:624+`）：precondition `jing < 100` →
+      `rejected:cannot_focus`；apply `jing -= 50`，事件带 `jing_before`。
 - [x] T5.2 `SystemHealAction`（`actions/system.py:514-578`）：同一心跳恢复
       `jing += con//3`（`max_jingli` 项按 0），封 `eff_jing` 后 `eff_jing += 1`；
       与 hp 共用 `heal_credit/heal_cd`。
@@ -71,17 +72,17 @@
       （`sleep.lpc:207-217`）；`healing_ceiling` 增加 jing 版；`rest` 同样封 `eff_jing`。
       过量睡眠分支按 `last_slp`（tick）：同一 tick 内再次 sleep 且 `max_jing>160`
       走 `jing += eff_jing//2 - jing//2`。
-- [ ] T5.4 验证 J4-J7：ansuan 99 拒 / 100 过后 50；sleep 10→80 不回 100；
+- [x] T5.4 验证 J4-J7：ansuan 99 拒 / 100 过后 50；sleep 10→80 不回 100；
       heal 每触发 +6 且封顶后 eff+1。
 
 ## T6 接口与展示
 
 - [x] T6.1 `api/session.py` 增加 `_load_jing`（与 `_load_eff_qi:1623` 同构），
       传给 `WorldSession`。
-- [ ] T6.2 `_vitals_view`（`session.py:809`）在开关开时输出
+- [x] T6.2 `_vitals_view`（`session.py:809`）在开关开时输出
       `jing/max_jing/eff_jing`；关闭时不加键。
-- [ ] T6.3 `hp` 等展示命令按原版口径输出（仅在开关开时）。
-- [ ] T6.4 验证：关闭开关的 API 响应与当前逐字节一致。
+- [x] T6.3 `hp` 等展示命令按原版口径输出（仅在开关开时）。
+- [x] T6.4 验证：关闭开关的 API 响应与当前逐字节一致。
 
 ## T7 验收与基线
 
