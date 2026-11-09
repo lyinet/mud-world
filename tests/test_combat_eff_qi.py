@@ -188,8 +188,56 @@ def test_eff_qi_persists_across_fights_and_serializes_only_when_hurt():
 
 def test_old_entity_without_eff_field_is_treated_as_full():
     state = _state()
+    # 新实体已在 create_entity 初始化 eff_hp；手工还原成旧档哨兵再测兼容。
+    state.entities[HERO].eff_hp = -2
     assert state.entities[HERO].eff_hp == -2
     assert "eff_hp" not in state.entities[HERO].to_dict()
+
+
+def test_genesis_entity_eff_hp_equals_max():
+    state = _state()
+    ent = state.entities[HERO]
+    assert ent.max_hp == 100
+    assert ent.eff_hp == ent.max_hp == 100
+    # 未受伤：to_dict() 不输出 eff 系列（哈希不变）。
+    assert "eff_hp" not in ent.to_dict()
+
+
+def test_respawn_entity_eff_hp_equals_max_after_overrides():
+    state = _state()
+    state.entities[MON].status = "dead"
+    apply_effects(
+        state,
+        [
+            Effect(
+                "entity_respawn",
+                {
+                    "entity": MON,
+                    "location": "inn",
+                    "max_hp": 300,
+                    "hp": 300,
+                    "attack": 5,
+                    "defense": 0,
+                    "attrs": {"str": 20, "dex": 15, "con": 20},
+                    "skill_levels": {"unarmed": 10, "dodge": 0, "parry": 0},
+                    "combat_exp": 5,
+                },
+            )
+        ],
+    )
+    ent = state.entities[MON]
+    assert ent.max_hp == 300
+    assert ent.eff_hp == 300  # 必须在 max_hp 覆盖之后赋值
+    assert "eff_hp" not in ent.to_dict()
+
+
+def test_to_dict_never_serializes_sentinel():
+    state = _state()
+    ent = state.entities[HERO]
+    ent.eff_hp = -2
+    assert "eff_hp" not in ent.to_dict()
+    ent.eff_hp = -1
+    assert ent.to_dict()["eff_hp"] == -1
 
 
 # ---------------------------------------------------------------- 昏迷 / 补刀

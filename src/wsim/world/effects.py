@@ -321,6 +321,10 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         if "max_hp" in d:
             ent.max_hp = _as_int(d.get("max_hp", 0), "max_hp")
             ent.hp = max(0, min(ent.max_hp, _as_int(d.get("hp", ent.max_hp), "hp")))
+            # 原版 `chard.lpc:72-80` / `npcd.lpc:303-304`：set max_qi 后同步 eff_qi。
+            # 只在有气血上限时写；`max_hp==0`（旧内容包）保持未初始化哨兵 -2。
+            if ent.max_hp > 0:
+                ent.eff_hp = int(ent.max_hp)
         if "attack" in d:
             ent.attack = _as_int(d["attack"], "attack")
         if "defense" in d:
@@ -692,7 +696,8 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         ent.combat_contrib = {}
         ent.aggro_tick = 0
         ent.aggro_target = ""
-        # 新 clone：eff_qi 回到"未初始化"（运行时按 max_hp），恢复计数器清零。
+        # 新 clone：eff_qi 回到满值（原版重新 `new()` 后 `qi = eff_qi = max_qi`），
+        # 恢复计数器清零。
         ent.eff_hp = -2
         ent.heal_credit = 0
         ent.heal_cd = 0
@@ -707,6 +712,9 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             if key in d:
                 setattr(ent, key, _as_int(d[key], key) if key != "stamina" and key != "max_stamina"
                         else _as_num(d[key], key))
+        # 必须在 `max_hp` 覆盖之后写，否则重生到更小上限时 eff_hp 会高于 max_hp。
+        if int(ent.max_hp) > 0:
+            ent.eff_hp = int(ent.max_hp)
         for key in ("attrs", "skill_levels", "skill_xp", "temp_apply", "inventory"):
             if key in d:
                 setattr(ent, key, {str(k): int(v) for k, v in dict(d[key]).items()})
