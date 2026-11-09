@@ -63,7 +63,14 @@ from ..core.models import Intent
 from ..agent import dialogue_runtime
 from ..agent.dialogue_aside import DialogueAside
 from ..mcp.gateway import MCPGateway, GatewayError
-from ..sim.aggression import aggression_rules, effective_enemies, multi_combat_enabled, rule_for
+from ..sim.aggression import (
+    aggression_rules,
+    effective_enemies,
+    is_killing,
+    killer_chase_enabled,
+    multi_combat_enabled,
+    rule_for,
+)
 from ..sim.genesis import build_genesis
 from ..sim.room_reset import RoomResetPolicy
 from ..sim.vitals import backfill_jing
@@ -1657,6 +1664,11 @@ class WorldSession:
         return _load_combat_flag(path, "jing")
 
     @staticmethod
+    def _load_killer_chase(path: Path | None) -> bool:
+        """只读 `combat.killer_chase`；缺省/解析失败/非 dict 一律 False。"""
+        return _load_combat_flag(path, "killer_chase")
+
+    @staticmethod
     def _load_lethal_fight(path: Path | None) -> bool:
         """只读 `combat.lethal_fight`；缺省/解析失败/非 dict 一律 False。"""
         if path is None:
@@ -1757,7 +1769,7 @@ class WorldSession:
         房内玩家触发；这里复用同一函数/意图/`decide()`，不另写判定。
         """
         rules = self.aggression_rules
-        if not rules:
+        if not rules and not killer_chase_enabled():
             return []
         ent = self.state.entities.get(pid)
         if ent is None:
@@ -1777,8 +1789,14 @@ class WorldSession:
                     continue
             elif npc.combat_target:
                 continue
-            if rule_for(npc, rules) is None:
-                continue
+            rule = rule_for(npc, rules)
+            if rule is None:
+                # 原版 `attack.lpc:262-264` 的 init() hatred：即使没有 aggressive
+                # 规则，只要此玩家仍在 killer 名单且 NPC 尚未交战，也会 auto_fight。
+                if not (killer_chase_enabled() and is_killing(npc, pid)):
+                    continue
+                if effective_enemies(npc) or npc.combat_target or npc.aggro_tick:
+                    continue
             event = self._submit(
                 Intent(
                     actor=npc_id,

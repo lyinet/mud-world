@@ -14,7 +14,12 @@ from .server import create_server, resolve_auth_required
 from .session import WorldSession
 from .persistence import ContentHashMismatch
 from .world_guard import check_startup, write_world_id
-from ..sim.aggression import configure_multi_combat, multi_combat_enabled
+from ..sim.aggression import (
+    configure_killer_chase,
+    configure_multi_combat,
+    killer_chase_enabled,
+    multi_combat_enabled,
+)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -70,6 +75,10 @@ def main(argv: list[str] | None = None) -> int:
     # 多敌开关：世界配置 `combat.multi_combat` 在进程启动时读一次（环境变量优先）。
     configure_multi_combat(
         WorldSession._load_multi_combat(Path(args.world_config).resolve() if args.world_config else None)
+    )
+    # 追杀名单开关：独立于 multi_combat，缺省关闭。
+    configure_killer_chase(
+        WorldSession._load_killer_chase(Path(args.world_config).resolve() if args.world_config else None)
     )
 
     root = Path(args.root).resolve()
@@ -140,6 +149,7 @@ def main(argv: list[str] | None = None) -> int:
                 "content_root": str(session.content_root),
                 "world_config": str(session.world_config_path or ""),
                 "multi_combat": multi_combat_enabled(),
+                "killer_chase": killer_chase_enabled(),
                 "allow_new_world": bool(args.allow_new_world),
                 "ambient": (ambient_info or {}).get("ambient", "stopped"),
                 "docs": "docs/player-api.md",

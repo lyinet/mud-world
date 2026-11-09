@@ -12,7 +12,13 @@ from typing import Any
 
 from ..core.models import Effect, Intent
 from ..core.rng import PRNG
-from ..sim.aggression import effective_enemies, multi_combat_enabled
+from ..sim.aggression import (
+    effective_enemies,
+    is_killing,
+    killer_chase_enabled,
+    killer_ids,
+    multi_combat_enabled,
+)
 from ..sim.combat_rules import simulate_fight
 from ..sim.spawn import spawn_effects
 from ..world.state import WorldState
@@ -254,6 +260,8 @@ def combat_effects(
                     "location": _death_location(ent),
                     # 原版 char.lpc:66 `remove_all_enemy()`；只在 eff_qi 开启时双向摘除。
                     **({"remove_all_enemy": True} if eff_qi else {}),
+                    # 原版 damage.lpc:291-292：死亡清自身 killer，并清同房间他人的 killer。
+                    **({"remove_all_killer": True} if killer_chase_enabled() else {}),
                 },
             )
         )
@@ -447,43 +455,64 @@ def _combat_log(effects: list[Effect]) -> dict[str, Any]:
     return {}
 
 
-def _retaliation_registration(defender: Any, attacker: Any, tick: int) -> list[Effect]:
-    """把攻击者登记进 NPC 敌人表（`multi_combat` 门控），供其后心跳还手。
+def _retaliation_registration(
+    defender: Any, attacker: Any, tick: int, *, killer: bool = False
+) -> list[Effect]:
+    """把攻击者登记进 NPC 敌人表（`multi_combat` 门控）与 killer 名单。
 
     `fight` / `kill` / `touxi` / `ansuan` 共用；已经登记时不重复写事件。
+    `killer=True` 对应原版目标侧真正执行了 `kill_ob`：说话者 `fight` 只走
+    `fight_ob`，不写 killer；`kill`/`touxi`/不会说话者的 `fight`/被发现的
+    `ansuan` 才写。killer 与 multi_combat 相互独立。
     """
-    if not (multi_combat_enabled() and PASSIVE_RETALIATION):
+    if not PASSIVE_RETALIATION:
         return []
     if str(defender.id).startswith("player:") or defender.status != "alive":
         return []
-    enemies = effective_enemies(defender)
-    if str(attacker.id) in enemies:
-        return []
-    out = [
-        Effect(
-            op="set_field",
-            data={
-                "entity": defender.id,
-                "field": "combat_enemies",
-                "value": [*enemies, str(attacker.id)],
-            },
+    out: list[Effect] = []
+    if multi_combat_enabled():
+        enemies = effective_enemies(defender)
+        if str(attacker.id) not in enemies:
+            out.append(
+                Effect(
+                    op="set_field",
+                    data={
+                        "entity": defender.id,
+                        "field": "combat_enemies",
+                        "value": [*enemies, str(attacker.id)],
+                    },
+                )
+            )
+            if not defender.combat_target:
+                out.extend([
+                    Effect(
+                        op="set_field",
+                        data={
+                            "entity": defender.id,
+                            "field": "combat_target",
+                            "value": str(attacker.id),
+                        },
+                    ),
+                    Effect(
+                        op="set_field",
+                        data={"entity": defender.id, "field": "combat_tick", "value": int(tick)},
+                    ),
+                    Effect(
+                        op="set_field",
+                        data={"entity": defender.id, "field": "combat_round", "value": 0},
+                    ),
+                ])
+    if killer and killer_chase_enabled() and not is_killing(defender, str(attacker.id)):
+        out.append(
+            Effect(
+                op="set_field",
+                data={
+                    "entity": defender.id,
+                    "field": "killer",
+                    "value": [*killer_ids(defender), str(attacker.id)],
+                },
+            )
         )
-    ]
-    if not defender.combat_target:
-        out.extend([
-            Effect(
-                op="set_field",
-                data={"entity": defender.id, "field": "combat_target", "value": str(attacker.id)},
-            ),
-            Effect(
-                op="set_field",
-                data={"entity": defender.id, "field": "combat_tick", "value": int(tick)},
-            ),
-            Effect(
-                op="set_field",
-                data={"entity": defender.id, "field": "combat_round", "value": 0},
-            ),
-        ])
     return out
 
 
@@ -506,9 +535,10 @@ def _clear_enemies_when_dead(
 
 
 def _already_killing(src: Any, dst: Any) -> bool:
-    """`src->is_killing(dst)` 的引擎近似：击杀目标或已在敌人表里。"""
+    """`src->is_killing(dst)` 的引擎近似：killer 名单、主目标或敌人表。"""
     return (
-        str(getattr(src, "combat_target", "") or "") == str(dst.id)
+        is_killing(src, str(dst.id))
+        or str(getattr(src, "combat_target", "") or "") == str(dst.id)
         or str(dst.id) in effective_enemies(src)
     )
 
@@ -569,11 +599,30 @@ class FightAction(Action):
             eff_qi=self.eff_qi,
             spar=self.spar,
         )
-        if multi_combat_enabled() and PASSIVE_RETALIATION:
-            reg = _retaliation_registration(defender, attacker, int(intent.tick))
+        # `kill.lpc:98` / `fight.lpc:57`：击杀与不会说话者走 kill_ob 写 killer；
+        # 会说话者的 `fight` 是 fight_ob，不写。
+        killer = self.reason == "kill" or (
+            self.reason == "fight" and not _can_speak(defender)
+        )
+        if PASSIVE_RETALIATION and (multi_combat_enabled() or killer_chase_enabled()):
+            reg = _retaliation_registration(defender, attacker, int(intent.tick), killer=killer)
             if reg:
                 effects[0:0] = reg
             _clear_enemies_when_dead(effects, defender, registered=bool(reg))
+        # `kill.lpc:82`：玩家 `me->kill_ob(obj)` 也会把目标写进自己的 killer。
+        if self.reason == "kill" and killer_chase_enabled():
+            attacker_killer = killer_ids(attacker)
+            if str(defender.id) not in attacker_killer:
+                effects[0:0] = [
+                    Effect(
+                        op="set_field",
+                        data={
+                            "entity": attacker.id,
+                            "field": "killer",
+                            "value": [*attacker_killer, str(defender.id)],
+                        },
+                    )
+                ]
         return effects
 
 
@@ -639,8 +688,8 @@ class TouxiAction(FightAction):
         )
         # `ansuan.lpc:227` 的消耗在 `AnsuanAction.apply` 里扣，这里不动。
         # `touxi.lpc:58`：出手之后无论是否被发现都 `obj->kill_ob(me)`。
-        if multi_combat_enabled() and PASSIVE_RETALIATION:
-            reg = _retaliation_registration(defender, attacker, int(intent.tick))
+        if PASSIVE_RETALIATION and (multi_combat_enabled() or killer_chase_enabled()):
+            reg = _retaliation_registration(defender, attacker, int(intent.tick), killer=True)
             if reg:
                 effects[0:0] = reg
             _clear_enemies_when_dead(effects, defender, registered=bool(reg))
@@ -735,8 +784,12 @@ class AnsuanAction(FightAction):
         log = _combat_log(effects)
         opening = log.get("opening") or {}
         detected = bool(opening.get("detected"))
-        if multi_combat_enabled() and PASSIVE_RETALIATION and (detected or not can_speak):
-            reg = _retaliation_registration(defender, attacker, int(intent.tick))
+        if (
+            PASSIVE_RETALIATION
+            and (multi_combat_enabled() or killer_chase_enabled())
+            and (detected or not can_speak)
+        ):
+            reg = _retaliation_registration(defender, attacker, int(intent.tick), killer=True)
             if reg:
                 effects[0:0] = reg
             _clear_enemies_when_dead(effects, defender, registered=bool(reg))

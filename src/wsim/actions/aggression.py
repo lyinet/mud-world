@@ -12,8 +12,12 @@ from ..core.models import Effect, Intent
 from ..core.rng import PRNG
 from ..sim.aggression import (
     MAX_OPPONENT,
+    chase_followers,
     decide,
     effective_enemies,
+    is_killing,
+    killer_chase_enabled,
+    killer_ids,
     multi_combat_enabled,
     rule_for,
     select_index,
@@ -107,6 +111,9 @@ def _wimpy_escape(state: WorldState, npc: Any, target: Any, rng: Any, intent: In
         if str(target.id) not in effective_enemies(other):
             continue
         effects.extend(_remove_enemy(other, str(target.id)))
+    # 原版玩家逃跑也走 `go.lpc main()`：pursuer + killer 的 NPC 会跟到出口。
+    for fid in chase_followers(state, target.id, target.location):
+        effects.append(Effect(op="set_location", data={"entity": fid, "to": dest}))
     base.update(
         result="success",
         from_location=str(target.location),
@@ -157,8 +164,27 @@ def _reset(npc: Any) -> list[Effect]:
     return effects
 
 
+def _add_killer(npc: Any, target_id: str) -> list[Effect]:
+    """原版 `attack.lpc:83-84`：`kill_ob` 把目标 id 追加进 killer（去重）。
+
+    关闭态严格返回 []，不新增字段、不产生事件。
+    """
+    target_id = str(target_id or "")
+    if not killer_chase_enabled() or not target_id or is_killing(npc, target_id):
+        return []
+    return [
+        Effect(
+            op="set_field",
+            data={"entity": npc.id, "field": "killer", "value": [*killer_ids(npc), target_id]},
+        )
+    ]
+
+
 def _remove_enemy(npc: Any, target_id: str) -> list[Effect]:
     """从 NPC 敌人表中摘掉一个目标；表空才整只收兵（multi 语义）。"""
+    # 原版 `attack.lpc:152-153`：只要目标还在 killer 名单，就拒绝 remove_enemy。
+    if killer_chase_enabled() and is_killing(npc, target_id):
+        return []
     if not multi_combat_enabled():
         return _reset(npc) if str(getattr(npc, "combat_target", "")) == target_id else []
     remaining = [eid for eid in effective_enemies(npc) if eid != target_id]
@@ -217,10 +243,14 @@ class NpcAggressionAction(Action):
         if str(intent.actor).startswith("player:"):
             return ["actor_is_player"]
         mode = str(intent.args.get("mode") or "")
+        target_id = str(intent.args.get("target") or "")
         # 规则表只决定“主动开战”。multi 开时，被玩家先打的普通 NPC 也能继续心跳还手
         # （4004 实测：店小二 5/5 还手），所以 continue 不要求它在规则表里。
+        # killer 命中的触发/续战同样不要求 aggressive 规则（原版 init 的 hatred）。
+        killer_fight = killer_chase_enabled() and bool(target_id) and is_killing(npc, target_id)
         if self._rule(npc) is None and not (mode == "continue" and multi_combat_enabled()):
-            return ["not_aggressive"]
+            if mode not in ("reset", "promote") and not killer_fight:
+                return ["not_aggressive"]
         if npc.status != "alive":
             return ["actor_not_alive"]
         if mode == "trigger":
@@ -327,6 +357,9 @@ class NpcAggressionAction(Action):
                         ]
                     )
                 registered = True
+            if registered:
+                # 延迟窗口结束才真正执行 `kill_ob`，此时才写 killer。
+                effects.extend(_add_killer(npc, pending))
             effects.append(
                 _log(npc, target, "promote", result="engaged" if registered else "target_gone")
             )
@@ -334,12 +367,25 @@ class NpcAggressionAction(Action):
 
         if mode == "trigger":
             rule = self._rule(npc)
-            if rule is None or target is None:
+            if target is None:
                 return _reset(npc)
-            triggered, info = decide(rule, npc, target, rng)
+            # 原版 `attack.lpc:262-264` init() 先判 killer（hatred），再判 attitude
+            # aggressive；已在名单里的玩家回房时，即使 NPC 有 aggressive 规则，也走
+            # hatred：立即开战、不掷骰、不看 attitude。
+            hatred = killer_chase_enabled() and is_killing(npc, str(target.id))
+            if hatred:
+                triggered, info = True, {"kind": "hatred", "result": "attack"}
+            elif rule is None:
+                return _reset(npc)
+            else:
+                triggered, info = decide(rule, npc, target, rng)
             effects: list[Effect] = []
             enemies = effective_enemies(npc)
-            delay = max(0, int(rule.get("delay") or 0))
+            delay = (
+                0
+                if hatred
+                else (max(0, int(rule.get("delay") or 0)) if rule else 0)
+            )
             if triggered and delay > 0:
                 # 原版自定义 `init()` 的 `call_out("kill_ob", 1, ob)`：先记待生效，
                 # 下一个心跳才登记敌人；窗口内 touxi/ansuan 仍可出手。
@@ -409,6 +455,9 @@ class NpcAggressionAction(Action):
                             ),
                         ]
                     )
+            # 原版 `kill_ob` 执行即写 killer；延迟窗口只在 promote 时写。
+            if triggered and delay <= 0:
+                effects.extend(_add_killer(npc, str(target.id)))
             log_kwargs: dict[str, Any] = {
                 "triggered": triggered,
                 "tick": int(intent.tick),
