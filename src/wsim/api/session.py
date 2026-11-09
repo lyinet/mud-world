@@ -11,6 +11,7 @@ import math
 import os
 import threading
 import time
+import warnings
 import weakref
 from collections import OrderedDict
 from contextlib import contextmanager
@@ -65,6 +66,7 @@ from ..mcp.gateway import MCPGateway, GatewayError
 from ..sim.aggression import aggression_rules, effective_enemies, multi_combat_enabled, rule_for
 from ..sim.genesis import build_genesis
 from ..sim.room_reset import RoomResetPolicy
+from ..sim.vitals import backfill_jing
 from ..sim.scheduler import AmbientConfig, AmbientScheduler
 from ..world.state import WorldState
 from ..world.store import EventStore
@@ -578,10 +580,16 @@ class WorldSession:
         self.initiative_gate = self._load_initiative_gate(self.world_config_path)
         # eff_qi 伤势天花板：默认关闭；关闭态事件/字段/骰与开启前逐字节一致。
         self.eff_qi = self._load_eff_qi(self.world_config_path)
+        # jing 精神子系统：独立开关，默认关闭；依赖 eff_qi（死亡/昏迷依附伤势结算）。
+        # `combat.jing: true` 但 `combat.eff_qi` 未开时按配置错误处理，降级为关闭。
+        self.jing = self._load_jing(self.world_config_path)
+        if self.jing and not self.eff_qi:
+            warnings.warn("combat.jing requires combat.eff_qi; disabling jing", RuntimeWarning)
+            self.jing = False
         # fight/kill 分离：默认关闭，fight 保持旧口径（击杀），不注册 kill。
         self.lethal_fight = self._load_lethal_fight(self.world_config_path)
         self.room_reset_policy = (
-            RoomResetPolicy(content=self.content, seed=seed, enabled=True)
+            RoomResetPolicy(content=self.content, seed=seed, enabled=True, jing=self.jing)
             if self.room_reset_enabled
             else None
         )
@@ -607,6 +615,7 @@ class WorldSession:
             initiative_gate=self.initiative_gate,
             lethal_fight=self.lethal_fight,
             eff_qi=self.eff_qi,
+            jing=self.jing,
         )
         # 对话模型只挂 TalkAction；不构造 decision provider，不改 llm_enabled。
         # 旁路不属于世界状态：删掉只影响台词，不影响事件/状态/哈希。
@@ -657,10 +666,14 @@ class WorldSession:
             self.writer = Writer(state, self.store, self.registry, seed)
             self.writer._player_ticks.update(player_ticks)
             self.writer.committed_intents = self.store.count()
+            # 旧档迁移：`combat.jing` 打开时给回放出的旧实体补一次精神上限；
+            # 已有 `max_jing>0` 的不覆盖，关闭态整段不执行。
+            if self.jing:
+                backfill_jing(self.writer.state)
         else:
             state = WorldState(locations=locations)
             self.writer = Writer(state, self.store, self.registry, seed)
-            genesis = build_genesis(self.content, npcs, root=self.root, seed=self.seed)
+            genesis = build_genesis(self.content, npcs, root=self.root, seed=self.seed, jing=self.jing)
             self.writer.bootstrap(genesis.effects, tick=0, verb="genesis")
             # 创世预置账号：唯一发放 300 文 + 炊饼×3 + 粗布×1 的地方。
             seed_ids = [player_id]
@@ -676,6 +689,7 @@ class WorldSession:
                             display_name if pid == player_id else pid.removeprefix("player:"),
                             spawn,
                             start=self.player_start,
+                            jing=self.jing,
                         ),
                         tick=0,
                         verb="genesis_player",
@@ -1623,6 +1637,11 @@ class WorldSession:
     def _load_eff_qi(path: Path | None) -> bool:
         """只读 `combat.eff_qi`；缺省/解析失败/非 dict 一律 False。"""
         return _load_combat_flag(path, "eff_qi")
+
+    @staticmethod
+    def _load_jing(path: Path | None) -> bool:
+        """只读 `combat.jing`；缺省/解析失败/非 dict 一律 False。"""
+        return _load_combat_flag(path, "jing")
 
     @staticmethod
     def _load_lethal_fight(path: Path | None) -> bool:

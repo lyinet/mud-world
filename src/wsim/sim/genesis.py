@@ -100,6 +100,7 @@ def build_genesis(
     root: Path | None = None,
     state: WorldState | None = None,
     seed: int = 0,
+    jing: bool = False,
 ) -> GenesisResult:
     """构建创世事件。
 
@@ -239,7 +240,7 @@ def build_genesis(
         }
         # 带内容战斗数据的 NPC（xkx 切片）落 max_hp/attrs/skills；
         # legacy 内容没有 vitals/attrs/skills 键，解析结果为 None，事件逐字节不变。
-        npc_vitals = resolve_npc_vitals(npc, seed=seed, errors=mismatches)
+        npc_vitals = resolve_npc_vitals(npc, seed=seed, errors=mismatches, jing=jing)
         if npc_vitals is not None:
             entity_data.update(npc_vitals)
         # P4a：内容包显式标注的参考快照初始状态（如采集时被打晕的毒蛇/大狼狗）。
@@ -369,7 +370,7 @@ def build_genesis(
         # 原版每个 clone 在 `new()` 时独立掷点（`race/human.lpc:60-68`）。
         # 键用实例 id 而不是模板 id：同模板的各槽位互不相同；仍是
         # (seed, 实例身份) 的纯函数，回放/双跑逐字节可复现。
-        inst_vitals = resolve_npc_vitals(npc_by_id[ref], seed=seed, errors=mismatches, roll_key=iid)
+        inst_vitals = resolve_npc_vitals(npc_by_id[ref], seed=seed, errors=mismatches, roll_key=iid, jing=jing)
         if inst_vitals is not None:
             data.update(inst_vitals)
         acc = f"wallet:{iid}"

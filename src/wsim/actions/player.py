@@ -48,6 +48,8 @@ STARTING_ITEMS: dict[str, int] = {"flatbread": 3, "coarse_cloth": 1}
 #   保证攻防两侧同一档位，不会出现“拳脚 40 级却只有 250 经验”的不自洽状态。
 #   世界配置 `player_start` 可覆盖这三项。
 PLAYER_MAX_HP = 100
+# 原版 logind.lpc:918-922：新玩家 jing=max_jing=eff_jing=100（age<=14，human.lpc:71-74）。
+PLAYER_MAX_JING = 100
 PLAYER_START_COMBAT_EXP = 6400
 PLAYER_START_SKILL_LEVELS: dict[str, int] = {"unarmed": 40, "dodge": 40, "parry": 40}
 DEFAULT_ARCHETYPE = "游侠"
@@ -91,15 +93,16 @@ def _start_values(start: dict | None) -> tuple[int, dict[str, int]]:
     return combat_exp, skills
 
 
-def _player_vitals(archetype: str = "", start: dict | None = None) -> dict:
+def _player_vitals(archetype: str = "", start: dict | None = None, jing: bool = False) -> dict:
     """确定性玩家气血/属性/初始武功；未知身份回落到游侠。
 
     只由玩家创世路径调用；是否启用由内容包门控（见 `content_has_combat_data`）。
     `start` 来自世界配置 `player_start`，缺省/非法项回落到模块默认（MID 档）。
+    `jing` 只在 `combat.jing` 打开时落精神字段，关闭态载荷逐字节不变。
     """
     attrs = ARCHETYPE_ATTRS.get(archetype or DEFAULT_ARCHETYPE, ARCHETYPE_ATTRS[DEFAULT_ARCHETYPE])
     combat_exp, skill_levels = _start_values(start)
-    return {
+    data = {
         "max_hp": PLAYER_MAX_HP,
         "hp": PLAYER_MAX_HP,
         "attrs": dict(attrs),
@@ -112,6 +115,9 @@ def _player_vitals(archetype: str = "", start: dict | None = None) -> dict:
         # 只由带战斗数据的内容包启用；旧九地点玩家创世不带这些键。
         "race": "人类",
     }
+    if jing:
+        data.update({"max_jing": PLAYER_MAX_JING, "jing": PLAYER_MAX_JING, "eff_jing": PLAYER_MAX_JING})
+    return data
 
 
 ENDOWMENT_SOURCE = "genesis_player_endowment"
@@ -314,6 +320,7 @@ def player_genesis_effects(
     money: int = STARTING_MONEY,
     items: dict[str, int] | None = None,
     start: dict | None = None,
+    jing: bool = False,
 ) -> list[Effect]:
     """创世预置：允许铸币/造物的玩家入口之一（另一条是首次进入发放）。"""
     items = items if items is not None else dict(STARTING_ITEMS)
@@ -327,7 +334,7 @@ def player_genesis_effects(
         "max_stamina": 100.0,
     }
     # 预置账号没有身份参数，按默认身份（游侠）落地气血与属性。
-    entity_data.update(_player_vitals(DEFAULT_ARCHETYPE, start))
+    entity_data.update(_player_vitals(DEFAULT_ARCHETYPE, start, jing=jing))
     effects: list[Effect] = [
         Effect("create_entity", entity_data),
         Effect("create_account", {"account": wallet(pid), "balance": 0}),
@@ -361,14 +368,15 @@ def content_has_combat_data(content) -> bool:
 class PlayerEnterAction(Action):
     verb = "player_enter"
 
-    def __init__(self, content=None) -> None:
+    def __init__(self, content=None, jing: bool = False) -> None:
         self.content = content
+        self.jing = bool(jing)
 
     def _vitals(self, archetype: str, start: dict | None = None) -> dict:
         # content=None（单测/旧调用）按开启处理，避免新角色无血。
         if self.content is not None and not content_has_combat_data(self.content):
             return {}
-        return _player_vitals(archetype, start)
+        return _player_vitals(archetype, start, jing=self.jing)
 
     def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
         pid = _player_id(intent)

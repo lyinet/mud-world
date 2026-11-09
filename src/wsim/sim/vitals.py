@@ -180,12 +180,49 @@ def _apply_attrs_derive(
         attrs[attr] = _int_or(rule.get("total")) - sum(attrs[k] for k in minus)
 
 
+def jing_for_npc(max_hp: int, content_max_jing: int) -> int:
+    """NPC 的精神上限：复刻 `npcd.lpc:305-309` 的"内容值 + max_qi/2 下限"。
+
+    原版先按 `hp_status["max_jing"]` 覆写，再抬到 `max_qi/2`。`hp_status` 的原始
+    来源不在本仓库（spec §1.2 已注明未取证），所以没有内容值时按 `max_qi/2`。
+    这个覆写发生在 race 公式之后，因此走兽也不用 `beast.lpc` 的年龄公式：
+    `laohu`(425/2)=212、`wolfdog`(50/2)=25，正是原版 npcd 的下限结果。
+    """
+    if content_max_jing > 0:
+        return content_max_jing
+    return max(0, int(max_hp) // 2)
+
+
+def backfill_jing(state: Any, *, player_max_jing: int = 100) -> int:
+    """旧档迁移：给 `max_jing` 缺失的存活实体补一次精神上限。
+
+    只由 `combat.jing` 打开的会话在回放旧事件后调用；已有 `max_jing>0` 的实体
+    不覆盖（幂等）。玩家按 `logind.lpc:918-922` 的 100，NPC 按 `max_hp/2`。
+    返回回填数量，便于调用方记录；关闭态不会走到这里。
+    """
+    filled = 0
+    for ent in state.entities.values():
+        if int(getattr(ent, "max_jing", 0)) > 0:
+            continue
+        if int(getattr(ent, "max_hp", 0)) <= 0:
+            continue
+        max_jing = player_max_jing if str(ent.id).startswith("player:") else int(ent.max_hp) // 2
+        if max_jing <= 0:
+            continue
+        ent.max_jing = int(max_jing)
+        ent.jing = int(max_jing)
+        ent.eff_jing = int(max_jing)
+        filled += 1
+    return filled
+
+
 def resolve_npc_vitals(
     npc: dict[str, Any],
     *,
     seed: int = 0,
     errors: list[str] | None = None,
     roll_key: str | None = None,
+    jing: bool = False,
 ) -> dict[str, Any] | None:
     """返回可直接并入 `create_entity` 的字段；legacy NPC 返回 None。
 
@@ -244,4 +281,9 @@ def resolve_npc_vitals(
         resolved["map_skills"] = map_skills
     if prepare_skills:
         resolved["prepare_skills"] = prepare_skills
+    # `combat.jing` 关闭时整组不落键：创世事件与旧世界逐字节一致。
+    if jing:
+        max_jing = jing_for_npc(max_hp, _int_or(vitals.get("max_jing")))
+        resolved["max_jing"] = max_jing
+        resolved["jing"] = max_jing
     return resolved

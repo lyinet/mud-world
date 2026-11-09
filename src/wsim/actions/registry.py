@@ -52,6 +52,7 @@ def build_registry(
     initiative_gate: bool = False,
     lethal_fight: bool = False,
     eff_qi: bool = False,
+    jing: bool = False,
 ) -> ActionRegistry:
     from .aggression import NpcAggressionAction
     from .basic import ConsumeAction, CultivateAction, MoveAction, WorkAction
@@ -174,7 +175,7 @@ def build_registry(
     reg.register(SystemTreasuryGuardAction(content))
     reg.register(SystemBudgetAction(content))
     reg.register(SystemEscortArriveAction(content))
-    reg.register(PlayerEnterAction(content))
+    reg.register(PlayerEnterAction(content, jing=jing))
     reg.register(PlayerEndowmentAction())
     reg.register(PlayerHeartbeatAction())
     reg.register(PlayerPresenceAction())

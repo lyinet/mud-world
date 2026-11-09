@@ -325,6 +325,15 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             # 只在有气血上限时写；`max_hp==0`（旧内容包）保持未初始化哨兵 -2。
             if ent.max_hp > 0:
                 ent.eff_hp = int(ent.max_hp)
+        # 原版 `npcd.lpc:305-309` / `chard.lpc:72-80`：有精神上限时 jing=eff_jing=max_jing。
+        # 只有 `combat.jing` 打开才会出现在载荷里；旧内容/关闭态不写任何 jing 字段。
+        if "max_jing" in d:
+            ent.max_jing = max(0, _as_int(d.get("max_jing", 0), "max_jing"))
+            ent.jing = max(0, min(ent.max_jing, _as_int(d.get("jing", ent.max_jing), "jing")))
+            if "eff_jing" in d:
+                ent.eff_jing = max(-1, min(ent.max_jing, _as_int(d["eff_jing"], "eff_jing")))
+            elif ent.max_jing > 0:
+                ent.eff_jing = int(ent.max_jing)
         if "attack" in d:
             ent.attack = _as_int(d["attack"], "attack")
         if "defense" in d:
@@ -715,6 +724,15 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         # 必须在 `max_hp` 覆盖之后写，否则重生到更小上限时 eff_hp 会高于 max_hp。
         if int(ent.max_hp) > 0:
             ent.eff_hp = int(ent.max_hp)
+        # 新 clone 的 jing 同样回满（原版 `new()` 后 `jing = eff_jing = max_jing`）。
+        if "max_jing" in d:
+            ent.max_jing = max(0, _as_int(d["max_jing"], "max_jing"))
+        if int(ent.max_jing) > 0:
+            ent.jing = int(ent.max_jing)
+            ent.eff_jing = int(ent.max_jing)
+        else:
+            ent.jing = 0
+            ent.eff_jing = -2
         for key in ("attrs", "skill_levels", "skill_xp", "temp_apply", "inventory"):
             if key in d:
                 setattr(ent, key, {str(k): int(v) for k, v in dict(d[key]).items()})
@@ -836,6 +854,15 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             raise EffectError("vitals_set 的 max_hp 必须为正")
         ent.max_hp = max_hp
         ent.hp = max(0, min(max_hp, _as_int(d.get("hp", max_hp), "hp")))
+        # 旧档补基础值时一并补精神；只有载荷显式带 max_jing 才写，关闭态零新增。
+        if "max_jing" in d:
+            ent.max_jing = max(0, _as_int(d["max_jing"], "max_jing"))
+            ent.jing = max(0, min(ent.max_jing, _as_int(d.get("jing", ent.max_jing), "jing")))
+            ent.eff_jing = (
+                max(-1, min(ent.max_jing, _as_int(d["eff_jing"], "eff_jing")))
+                if "eff_jing" in d
+                else int(ent.max_jing)
+            )
         if "attrs" in d:
             ent.attrs = {str(k): _as_int(v, f"attrs.{k}") for k, v in dict(d["attrs"] or {}).items()}
         if "combat_exp" in d:
