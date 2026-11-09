@@ -67,6 +67,8 @@ class Entity:
     jing: int = 0
     max_jing: int = 0
     eff_jing: int = -2
+    # 原版 `sleep.lpc:213` 的 `last_slp`：只在 jing 启用且睡过时写，旧世界不出现。
+    last_slp: int = 0
     # 被动心跳恢复（原版 heal_up）：credit 单位 1/10000 tick，cd 为剩余心跳数。
     heal_credit: int = 0
     heal_cd: int = 0
@@ -188,6 +190,8 @@ class Entity:
             jing_hurt = self.eff_jing >= -1 and int(self.eff_jing) != int(self.max_jing)
             if jing_hurt:
                 data["eff_jing"] = int(self.eff_jing)
+            if self.last_slp:
+                data["last_slp"] = int(self.last_slp)
         # heal_credit/heal_cd 是 qi/jing 共用的同一颗心跳信用：任一条受伤都输出。
         if hp_hurt or jing_hurt:
             if self.heal_credit:

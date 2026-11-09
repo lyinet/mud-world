@@ -965,7 +965,15 @@ class AmbientScheduler:
             # 精神见底：原版 `char.lpc:65-78` 在下一次心跳判死/昏迷，必须先跑一次
             # `system_heal` 的判定分支（普通 jing 伤势的恢复在 T5 接入）。
             if self.jing and int(ent.max_jing) > 0:
-                if int(ent.eff_jing) < 0 or int(ent.jing) < 0:
+                eff_jing = (
+                    int(ent.eff_jing) if int(ent.eff_jing) >= -1 else int(ent.max_jing)
+                )
+                if (
+                    int(ent.jing) < 0
+                    or eff_jing < 0
+                    or int(ent.jing) < eff_jing
+                    or eff_jing < int(ent.max_jing)
+                ):
                     return True
             eff = ent.eff_hp if int(ent.eff_hp) >= -1 else int(ent.max_hp)
             if int(ent.hp) < eff or eff < int(ent.max_hp):

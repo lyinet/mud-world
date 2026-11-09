@@ -13,7 +13,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from wsim.actions.player import _player_vitals, player_genesis_effects  # noqa: E402
+from wsim.actions.player import (  # noqa: E402
+    PlayerRestAction,
+    _player_vitals,
+    player_genesis_effects,
+)
 from wsim.actions.registry import ActionRegistry  # noqa: E402
 from wsim.actions.system import SystemHealAction  # noqa: E402
 from wsim.api.xkx_content import load_xkx_content  # noqa: E402
@@ -233,3 +237,94 @@ def test_jing_damage_zero_then_minus_one_is_unconcious_and_zeroes_both():
     assert ops == ["hp_set", "jing_set", "entity_status"]
     assert heal.effects[-1]["data"]["cause"] == "jing"
     assert (heal.effects[-1]["data"]["revive_tick"], event.tick) == (108, 2)
+
+
+# ---- 恢复：sleep / heal_up ---------------------------------------------
+
+def _sleep_state(**kw):
+    state = _state()
+    data = {
+        "id": "player:p", "name": "玩家", "role": "visitor", "location": "inn",
+        "max_hp": 100, "hp": 50, "max_jing": 100, "jing": 10, "eff_jing": 80,
+        "max_stamina": 100.0, "stamina": 100.0,
+    }
+    data.update(kw)
+    apply_effects(state, [Effect("create_entity", data)])
+    return state
+
+
+def test_sleep_normal_refills_jing_to_eff():
+    """J5：正常睡眠 `jing = eff_jing`，不回满 max_jing。"""
+    state = _sleep_state()
+    effects = PlayerRestAction().apply(
+        state, Intent("player:p", "sleep", {}, 100, "player"), __import__("random").Random(42)
+    )
+    jing_ev = next(e for e in effects if e.op == "jing_add")
+    assert jing_ev.data["delta"] == 70
+    assert any(e.op == "set_field" and e.data["field"] == "last_slp" for e in effects)
+    apply_effects(state, effects)
+    ent = state.entities["player:p"]
+    # eff_hp 未初始化(-2)时 hp 恢复到 max_hp=100，与既有 eff_qi 语义一致。
+    assert (ent.jing, ent.eff_jing, ent.hp) == (80, 80, 100)
+    assert ent.last_slp == 100
+
+
+def test_sleep_too_soon_refills_half():
+    """过量睡眠：`jing += eff_jing/2 - jing/2`。"""
+    state = _sleep_state(max_jing=200, jing=10, eff_jing=80)
+    apply_effects(state, [Effect("set_field", {
+        "entity": "player:p", "field": "last_slp", "value": 100,
+    })])
+    effects = PlayerRestAction().apply(
+        state, Intent("player:p", "sleep", {}, 100, "player"), __import__("random").Random(42)
+    )
+    jing_ev = next(e for e in effects if e.op == "jing_add")
+    assert jing_ev.data["delta"] == 35  # 80//2 - 10//2
+    apply_effects(state, effects)
+    assert state.entities["player:p"].jing == 45
+
+
+def test_heal_up_adds_con_third_to_jing():
+    """J7：每次 heal_up 触发 `jing += con/3`，封顶后 `eff_jing += 1`。"""
+    import random as _random
+
+    state = _state()
+    apply_effects(state, [Effect("create_entity", {
+        "id": "npc.a", "name": "甲", "role": "npc", "location": "inn",
+        "max_hp": 100, "hp": 100, "attrs": {"con": 20},
+        "max_jing": 100, "jing": 10, "eff_jing": 80,
+    })])
+    apply_effects(state, [Effect("heal_apply", {
+        "entity": "npc.a", "hp": 100, "eff": 100, "heal_credit": 0, "heal_cd": 1,
+    })])
+    effects = SystemHealAction(None, jing=True).apply(
+        state, Intent("npc.a", "system_heal", {}, 7, "system"), _random.Random(42)
+    )
+    heal = next(e for e in effects if e.op == "heal_apply").data
+    assert heal["jing"] == 16  # 10 + 20//3
+    assert heal["eff_jing"] == 80
+
+
+def test_heal_up_raises_eff_jing_by_one():
+    import random as _random
+
+    state = _state()
+    apply_effects(state, [Effect("create_entity", {
+        "id": "npc.a", "name": "甲", "role": "npc", "location": "inn",
+        "max_hp": 100, "hp": 100, "attrs": {"con": 20},
+        "max_jing": 100, "jing": 80, "eff_jing": 80,
+    })])
+    apply_effects(state, [Effect("heal_apply", {
+        "entity": "npc.a", "hp": 100, "eff": 100, "heal_credit": 0, "heal_cd": 1,
+    })])
+    effects = SystemHealAction(None, jing=True).apply(
+        state, Intent("npc.a", "system_heal", {}, 7, "system"), _random.Random(42)
+    )
+    heal = next(e for e in effects if e.op == "heal_apply").data
+    assert (heal["jing"], heal["eff_jing"]) == (80, 81)
+
+
+def test_max_jingli_is_not_modeled():
+    data = Entity(id="npc.a", name="甲", role="npc", location="inn",
+                  max_hp=10, hp=10, max_jing=5, jing=5, eff_jing=5).to_dict()
+    assert "jingli" not in data and "max_jingli" not in data

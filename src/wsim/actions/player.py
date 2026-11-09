@@ -596,6 +596,12 @@ def healing_ceiling(ent: Any) -> int:
     return eff if eff >= -1 else int(ent.max_hp)
 
 
+def jing_ceiling(ent: Any) -> int:
+    """精神恢复上限：原版 `eff_jing`；未初始化(-2)时按 `max_jing`。"""
+    eff = int(getattr(ent, "eff_jing", -2))
+    return eff if eff >= -1 else int(getattr(ent, "max_jing", 0))
+
+
 def rest_rate(state: WorldState, location: str, home: str) -> float:
     loc = state.locations.get(location) or {}
     services = loc.get("services") or []
@@ -663,10 +669,23 @@ class PlayerRestAction(Action):
         hours = arg_int(intent, "hours", REST_HOURS_DEFAULT, minimum=1, maximum=REST_HOURS_MAX)
         ent = state.entities[pid]
         tick = int(intent.tick)
+        jing_delta = 0
+        set_last_slp = False
         if str(intent.verb) == "sleep":
             stamina_delta = max(0.0, float(ent.max_stamina) - float(ent.stamina))
             # 原版 sleep.lpc:208-209：醒来 `qi = eff_qi`，绝不回满 max_qi。
             hp_delta = max(0, healing_ceiling(ent) - int(ent.hp)) if int(ent.max_hp) > 0 else 0
+            if int(ent.max_jing) > 0:
+                eff_j = jing_ceiling(ent)
+                # `sleep.lpc:195-200`：`mud_age-last_slp < 120` 且 `max_jing > 160`
+                # 走“睡太多”分支，只回一半（`jing += eff_jing/2 - jing/2`）。
+                # 1 tick=600 游戏秒，120 秒不足 1 tick，故同一 tick 内再次 sleep 即过量。
+                over_sleep = int(ent.max_jing) > 160 and tick < int(ent.last_slp) + 1
+                if over_sleep:
+                    jing_delta = max(0, eff_j // 2 - int(ent.jing) // 2)
+                else:
+                    jing_delta = max(0, eff_j - int(ent.jing))
+                set_last_slp = True
             reason = "sleep"
         else:
             rate = rest_rate(state, str(ent.location), str(ent.home or ""))
@@ -675,12 +694,19 @@ class PlayerRestAction(Action):
             # rest 同样封顶 eff_qi：伤势只能靠 heal_up 抬的天花板恢复。
             room = max(0, healing_ceiling(ent) - int(ent.hp)) if int(ent.max_hp) > 0 else 0
             hp_delta = min(int(delta), room)
+            if int(ent.max_jing) > 0:
+                room_jing = max(0, jing_ceiling(ent) - int(ent.jing))
+                jing_delta = min(int(delta), room_jing)
             reason = "rest"
         effects: list[Effect] = [
             Effect("stamina", {"entity": pid, "delta": stamina_delta, "reason": reason, "hours": int(hours)}),
         ]
         if hp_delta > 0:
             effects.append(Effect("hp_add", {"entity": pid, "delta": hp_delta, "reason": reason}))
+        if jing_delta > 0:
+            effects.append(Effect("jing_add", {"entity": pid, "delta": jing_delta, "reason": reason}))
+        if set_last_slp:
+            effects.append(Effect("set_field", {"entity": pid, "field": "last_slp", "value": tick}))
         effects.append(Effect("set_field", {"entity": pid, "field": "last_action_tick", "value": tick}))
         return effects
 

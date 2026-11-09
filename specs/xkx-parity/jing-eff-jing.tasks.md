@@ -64,17 +64,19 @@
 
 - [ ] T5.1 `AnsuanAction`（`actions/combat.py:624+`）：precondition `jing < 100` →
       `rejected:cannot_focus`；apply `jing -= 50`，日志带 `jing_before/jing_after`。
-- [ ] T5.2 `SystemHealAction`（`actions/system.py:514-578`）：同一心跳恢复
+- [x] T5.2 `SystemHealAction`（`actions/system.py:514-578`）：同一心跳恢复
       `jing += con//3`（`max_jingli` 项按 0），封 `eff_jing` 后 `eff_jing += 1`；
       与 hp 共用 `heal_credit/heal_cd`。
-- [ ] T5.3 `sleep`（`actions/player.py:623-699`）：醒来 `jing = eff_jing`
+- [x] T5.3 `sleep`（`actions/player.py:623-699`）：醒来 `jing = eff_jing`
       （`sleep.lpc:207-217`）；`healing_ceiling` 增加 jing 版；`rest` 同样封 `eff_jing`。
+      过量睡眠分支按 `last_slp`（tick）：同一 tick 内再次 sleep 且 `max_jing>160`
+      走 `jing += eff_jing//2 - jing//2`。
 - [ ] T5.4 验证 J4-J7：ansuan 99 拒 / 100 过后 50；sleep 10→80 不回 100；
       heal 每触发 +6 且封顶后 eff+1。
 
 ## T6 接口与展示
 
-- [ ] T6.1 `api/session.py` 增加 `_load_jing`（与 `_load_eff_qi:1623` 同构），
+- [x] T6.1 `api/session.py` 增加 `_load_jing`（与 `_load_eff_qi:1623` 同构），
       传给 `WorldSession`。
 - [ ] T6.2 `_vitals_view`（`session.py:809`）在开关开时输出
       `jing/max_jing/eff_jing`；关闭时不加键。

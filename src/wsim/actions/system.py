@@ -565,21 +565,28 @@ class SystemHealAction(Action):
                 continue
             eff = int(ent.eff_hp) if int(ent.eff_hp) >= -1 else max_hp
             hp = int(ent.hp)
-            if hp >= eff and eff >= max_hp:
+            use_jing = self.jing and int(ent.max_jing) > 0
+            eff_jing = (
+                int(ent.eff_jing) if int(ent.eff_jing) >= -1 else int(ent.max_jing)
+            )
+            jing = int(ent.jing)
+            jing_healthy = (not use_jing) or (
+                jing >= eff_jing and eff_jing >= int(ent.max_jing)
+            )
+            if hp >= eff and eff >= max_hp and jing_healthy:
                 # 完全健康：清掉残留计数（只在确实非零时发事件）。
                 if ent.heal_credit or ent.heal_cd:
-                    effects.append(
-                        Effect(
-                            "heal_apply",
-                            {
-                                "entity": ent.id,
-                                "hp": hp,
-                                "eff": eff,
-                                "heal_credit": 0,
-                                "heal_cd": 0,
-                            },
-                        )
-                    )
+                    data = {
+                        "entity": ent.id,
+                        "hp": hp,
+                        "eff": eff,
+                        "heal_credit": 0,
+                        "heal_cd": 0,
+                    }
+                    if use_jing:
+                        data["jing"] = jing
+                        data["eff_jing"] = eff_jing
+                    effects.append(Effect("heal_apply", data))
                 continue
             con = int((getattr(ent, "attrs", None) or {}).get("con", 20))
             credit = int(ent.heal_credit) + HEAL_CREDIT_PER_TICK
@@ -591,20 +598,27 @@ class SystemHealAction(Action):
                     hp = eff
                     if eff < max_hp:
                         eff += 1
+                # 原版 `heal_up`（damage.lpc:360-367）：同一次触发也给 jing 加 con/3，
+                # 封顶后 `eff_jing += 1`（每 tick 最多 +1）。
+                if use_jing:
+                    jing = min(jing + con // 3, eff_jing)
+                    if jing >= eff_jing:
+                        jing = eff_jing
+                        if eff_jing < int(ent.max_jing):
+                            eff_jing += 1
                 cd = rng.randint(HEAL_CD_MIN, HEAL_CD_MIN + HEAL_CD_SPAN - 1)
             # 即使本 tick 没触发，也要把累积信用写回，否则永远凑不满一次 heal_up。
-            effects.append(
-                Effect(
-                    "heal_apply",
-                    {
-                        "entity": ent.id,
-                        "hp": hp,
-                        "eff": eff,
-                        "heal_credit": credit,
-                        "heal_cd": cd,
-                    },
-                )
-            )
+            data = {
+                "entity": ent.id,
+                "hp": hp,
+                "eff": eff,
+                "heal_credit": credit,
+                "heal_cd": cd,
+            }
+            if use_jing:
+                data["jing"] = jing
+                data["eff_jing"] = eff_jing
+            effects.append(Effect("heal_apply", data))
         return effects
 
 

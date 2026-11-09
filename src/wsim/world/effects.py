@@ -44,6 +44,8 @@ _ENTITY_FIELDS = {
     # 原版 `init()` 的 `call_out("kill_ob", N)` 延迟窗口（只由 xkx 规则写入）。
     "aggro_tick",
     "aggro_target",
+    # 精神组：`sleep.lpc:213` 的最近睡觉 tick（只在 combat.jing 打开时写）。
+    "last_slp",
     # 多敌敌人表/伤害贡献（只在 `XKX_MULTI_COMBAT` 开启时写入）。
     "combat_enemies",
     "combat_contrib",
@@ -637,6 +639,11 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         ent.eff_hp = max(-1, min(int(ent.max_hp), _as_int(d["eff"], "eff")))
         ent.heal_credit = max(0, _as_int(d.get("heal_credit", 0), "heal_credit"))
         ent.heal_cd = max(0, _as_int(d.get("heal_cd", 0), "heal_cd"))
+        # 精神组只在开关打开（`max_jing>0`）且事件显式带键时写；旧事件零改动。
+        if "jing" in d and ent.max_jing > 0:
+            ent.jing = max(-1, min(int(ent.max_jing), _as_int(d["jing"], "jing")))
+        if "eff_jing" in d and ent.max_jing > 0:
+            ent.eff_jing = max(-1, min(int(ent.max_jing), _as_int(d["eff_jing"], "eff_jing")))
         return
 
     if op == "entity_status":
