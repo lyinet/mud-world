@@ -41,6 +41,9 @@ _ENTITY_FIELDS = {
     "combat_target",
     "combat_tick",
     "combat_round",
+    # 原版 `init()` 的 `call_out("kill_ob", N)` 延迟窗口（只由 xkx 规则写入）。
+    "aggro_tick",
+    "aggro_target",
     # 多敌敌人表/伤害贡献（只在 `XKX_MULTI_COMBAT` 开启时写入）。
     "combat_enemies",
     "combat_contrib",
@@ -687,6 +690,8 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         ent.combat_round = 0
         ent.combat_enemies = []
         ent.combat_contrib = {}
+        ent.aggro_tick = 0
+        ent.aggro_target = ""
         # 新 clone：eff_qi 回到"未初始化"（运行时按 max_hp），恢复计数器清零。
         ent.eff_hp = -2
         ent.heal_credit = 0

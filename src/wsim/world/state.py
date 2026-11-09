@@ -113,6 +113,11 @@ class Entity:
     combat_target: str = ""
     combat_tick: int = 0
     combat_round: int = 0
+    # 原版 `init()` 不直接 `kill_ob`，而是 `call_out("start_aggressive", 0)` 或
+    # `call_out("kill_ob", 1)`：此字段是延迟生效 tick，0 表示没有待生效的登记。
+    # 待生效期间尚未写 `combat_target`，因此 `touxi`/`ansuan` 仍可偷袭（忠实原版窗口）。
+    aggro_tick: int = 0
+    aggro_target: str = ""
     # 多敌敌人表（原版 `enemy` 数组）：登记顺序、按 id 去重，最多参与 `random(4)` 窗口。
     # `combat_target` 是最近一次选中的主目标；空表不输出，旧世界哈希不变。
     combat_enemies: list[str] = field(default_factory=list)
@@ -221,6 +226,10 @@ class Entity:
             data["combat_target"] = self.combat_target
             data["combat_tick"] = int(self.combat_tick)
             data["combat_round"] = int(self.combat_round)
+        # 只在延迟登记窗口内出现；生效后清零，不残留到旧世界/健康实体。
+        if self.aggro_tick:
+            data["aggro_tick"] = int(self.aggro_tick)
+            data["aggro_target"] = self.aggro_target
         if self.combat_enemies:
             data["combat_enemies"] = list(self.combat_enemies)
         if self.combat_contrib:

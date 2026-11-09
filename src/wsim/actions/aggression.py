@@ -112,6 +112,20 @@ def _reset(npc: Any) -> list[Effect]:
         Effect(op="set_field", data={"entity": npc.id, "field": "combat_tick", "value": 0}),
         Effect(op="set_field", data={"entity": npc.id, "field": "combat_round", "value": 0}),
     ]
+    # 延迟登记窗口内也要一并取消（原版目标离开时 `start_aggressive` 会复检）。
+    if getattr(npc, "aggro_tick", 0) or getattr(npc, "aggro_target", ""):
+        effects.extend(
+            [
+                Effect(
+                    op="set_field",
+                    data={"entity": npc.id, "field": "aggro_tick", "value": 0},
+                ),
+                Effect(
+                    op="set_field",
+                    data={"entity": npc.id, "field": "aggro_target", "value": ""},
+                ),
+            ]
+        )
     # 关态且旧实体没有新字段时，不新增任何事件（旧世界逐字节不变）。
     if (
         multi_combat_enabled()
@@ -214,10 +228,13 @@ class NpcAggressionAction(Action):
             if target.location != npc.location:
                 return ["not_together"]
             if multi_combat_enabled():
+                pending = int(getattr(npc, "aggro_tick", 0) or 0)
+                if pending and str(getattr(npc, "aggro_target", "")) == target_id:
+                    return ["already_fighting"]
                 # 只拒绝“这个玩家已经在敌人表里”，不再因为已有主目标就拒绝第二人。
                 if target_id in effective_enemies(npc):
                     return ["already_fighting"]
-            elif npc.combat_target:
+            elif getattr(npc, "aggro_tick", 0) or npc.combat_target:
                 return ["already_fighting"]
             if int(npc.max_hp) <= 0 or int(target.max_hp) <= 0:
                 return ["no_combat_stats"]
@@ -231,6 +248,8 @@ class NpcAggressionAction(Action):
             return []
         if mode == "reset":
             return []
+        if mode == "promote":
+            return []
         return ["bad_mode"]
 
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
@@ -241,6 +260,68 @@ class NpcAggressionAction(Action):
         if mode == "reset":
             return [*_reset(npc), _log(npc, target, "reset", result="ended")]
 
+        if mode == "promote":
+            pending = str(getattr(npc, "aggro_target", "") or "")
+            target = state.entities.get(pending)
+            effects = [
+                Effect(op="set_field", data={"entity": npc.id, "field": "aggro_tick", "value": 0}),
+                Effect(op="set_field", data={"entity": npc.id, "field": "aggro_target", "value": ""}),
+            ]
+            registered = False
+            if target is not None and target.status == "alive" and target.location == npc.location:
+                enemies = effective_enemies(npc)
+                if multi_combat_enabled():
+                    if pending not in enemies:
+                        effects.append(
+                            Effect(
+                                op="set_field",
+                                data={
+                                    "entity": npc.id,
+                                    "field": "combat_enemies",
+                                    "value": [*enemies, pending],
+                                },
+                            )
+                        )
+                    if not npc.combat_target:
+                        effects.extend(
+                            [
+                                Effect(
+                                    op="set_field",
+                                    data={"entity": npc.id, "field": "combat_target", "value": pending},
+                                ),
+                                Effect(
+                                    op="set_field",
+                                    data={"entity": npc.id, "field": "combat_tick", "value": int(intent.tick)},
+                                ),
+                                Effect(
+                                    op="set_field",
+                                    data={"entity": npc.id, "field": "combat_round", "value": 0},
+                                ),
+                            ]
+                        )
+                else:
+                    effects.extend(
+                        [
+                            Effect(
+                                op="set_field",
+                                data={"entity": npc.id, "field": "combat_target", "value": pending},
+                            ),
+                            Effect(
+                                op="set_field",
+                                data={"entity": npc.id, "field": "combat_tick", "value": int(intent.tick)},
+                            ),
+                            Effect(
+                                op="set_field",
+                                data={"entity": npc.id, "field": "combat_round", "value": 0},
+                            ),
+                        ]
+                    )
+                registered = True
+            effects.append(
+                _log(npc, target, "promote", result="engaged" if registered else "target_gone")
+            )
+            return effects
+
         if mode == "trigger":
             rule = self._rule(npc)
             if rule is None or target is None:
@@ -248,7 +329,27 @@ class NpcAggressionAction(Action):
             triggered, info = decide(rule, npc, target, rng)
             effects: list[Effect] = []
             enemies = effective_enemies(npc)
-            if triggered:
+            delay = max(0, int(rule.get("delay") or 0))
+            if triggered and delay > 0:
+                # 原版自定义 `init()` 的 `call_out("kill_ob", 1, ob)`：先记待生效，
+                # 下一个心跳才登记敌人；窗口内 touxi/ansuan 仍可出手。
+                effects.extend(
+                    [
+                        Effect(
+                            op="set_field",
+                            data={
+                                "entity": npc.id,
+                                "field": "aggro_tick",
+                                "value": int(intent.tick) + delay,
+                            },
+                        ),
+                        Effect(
+                            op="set_field",
+                            data={"entity": npc.id, "field": "aggro_target", "value": str(target.id)},
+                        ),
+                    ]
+                )
+            elif triggered:
                 if multi_combat_enabled():
                     # 原版 `enemy += ({ob})`：登记全部合法玩家，不去重覆盖已有目标。
                     if str(target.id) not in enemies:
@@ -303,6 +404,9 @@ class NpcAggressionAction(Action):
                 "tick": int(intent.tick),
                 **info,
             }
+            if delay:
+                log_kwargs["delay"] = delay
+                log_kwargs["aggro_tick"] = int(intent.tick) + delay
             if multi_combat_enabled():
                 log_kwargs["targets"] = enemies
             effects.append(_log(npc, target, "trigger", **log_kwargs))

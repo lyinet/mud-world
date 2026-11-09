@@ -72,17 +72,20 @@ def select_index(count: int, rng: Any) -> tuple[int, int]:
 AGGRESSION_SPECS: dict[str, dict[str, Any]] = {
     "/d/hangzhou/npc/laohu": {
         "kind": "always",
+        "delay": 0,
         "source": "d/hangzhou/npc/laohu.lpc:20 -> feature/attack.lpc:269",
     },
     "/d/hangzhou/npc/dushe": {
         "kind": "unless_item",
         "item": "/clone/medicine/vegetable/xionghuang",
         "item_key": "xionghuang",
+        "delay": 1,
         "source": "d/hangzhou/npc/dushe.lpc:27-34",
     },
     "/d/hangzhou/npc/wolfdog": {
         "kind": "chance_kar_per",
         "threshold": 30,
+        "delay": 1,
         "source": "d/hangzhou/npc/wolfdog.lpc:29-36",
     },
 }
@@ -104,6 +107,7 @@ def aggression_rules(content: Any) -> dict[str, dict[str, Any]]:
             # feature/attack.lpc:269：attitude=aggressive 的 NPC 无条件 auto_fight。
             rules[npc_id] = {
                 "kind": "always",
+                "delay": 0,
                 "name": str(npc.get("name") or npc_id),
                 "source": "feature/attack.lpc:269",
             }

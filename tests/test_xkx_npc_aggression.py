@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from wsim.actions.aggression import NpcAggressionAction  # noqa: E402
+from wsim.actions.combat import TouxiAction  # noqa: E402
 from wsim.actions.registry import ActionRegistry  # noqa: E402
 from wsim.api import WorldSession  # noqa: E402
 from wsim.core.content import load_content  # noqa: E402
@@ -257,6 +258,76 @@ def test_wolfdog_roll_is_locked_to_prng_seed_and_event_seq():
     log2 = _log(declined)
     assert (log2["roll"], log2["result"]) == (36, "declined_chance")
     assert writer2.state.entities["/d/hangzhou/npc/wolfdog"].combat_target == ""
+
+
+# ---------------------------------------------------------------- 延迟 kill_ob 窗口
+def test_delayed_rule_pends_then_promotes_and_blocks_touxi():
+    npc_id = "/d/hangzhou/npc/wolfdog"
+    rules = _rules("chance_kar_per", npc_id=npc_id, threshold=30, delay=1)
+    writer, _ = _world(rules, npc_id=npc_id)
+    event = _trigger(writer, 0, npc_id)
+    log = _log(event)
+    assert log["result"] == "attack" and log["triggered"] is True
+    assert log["delay"] == 1 and log["aggro_tick"] == 1
+
+    npc = writer.state.entities[npc_id]
+    # 窗口内尚未 kill_ob：对应原版 `obj->is_fighting(me)` 为假，touxi 可出手。
+    assert npc.combat_target == ""
+    assert npc.aggro_tick == 1 and npc.aggro_target == PLAYER_ID
+    touxi = TouxiAction()
+    assert (
+        touxi.preconditions(writer.state, Intent(PLAYER_ID, "touxi", {"target": npc_id}, 0, "player"))
+        == []
+    )
+
+    action = NpcAggressionAction(rules)
+    fake = SimpleNamespace(
+        registry=SimpleNamespace(get=lambda verb: action),
+        writer=writer,
+        _aggression_ticks={},
+        _submit=writer.submit,
+    )
+    AmbientScheduler._process_npc_aggression(fake, 0)  # 未到生效 tick，不登记、不出手
+    npc = writer.state.entities[npc_id]
+    assert npc.combat_target == "" and npc.aggro_tick == 1
+
+    AmbientScheduler._process_npc_aggression(fake, 1)  # 到点：promote，然后第 1 回合
+    npc = writer.state.entities[npc_id]
+    assert npc.aggro_tick == 0 and npc.aggro_target == ""
+    assert npc.combat_target == PLAYER_ID
+    assert (
+        touxi.preconditions(writer.state, Intent(PLAYER_ID, "touxi", {"target": npc_id}, 1, "player"))
+        == ["already_fighting"]
+    )
+
+
+def test_always_rule_has_no_pending_window():
+    writer, _ = _world(_rules("always"))
+    _trigger(writer, 0)
+    npc = writer.state.entities[NPC_ID]
+    assert npc.combat_target == PLAYER_ID and npc.aggro_tick == 0
+    assert (
+        TouxiAction().preconditions(
+            writer.state, Intent(PLAYER_ID, "touxi", {"target": NPC_ID}, 0, "player")
+        )
+        == ["already_fighting"]
+    )
+
+
+def test_declined_chance_clone_stays_sneakable():
+    npc_id = "/d/hangzhou/npc/wolfdog"
+    rules = _rules("chance_kar_per", npc_id=npc_id, threshold=-1, delay=1)
+    writer, _ = _world(rules, npc_id=npc_id)
+    event = _trigger(writer, 0, npc_id)
+    assert _log(event)["result"] == "declined_chance"
+    npc = writer.state.entities[npc_id]
+    assert npc.combat_target == "" and npc.aggro_tick == 0
+    assert (
+        TouxiAction().preconditions(
+            writer.state, Intent(PLAYER_ID, "touxi", {"target": npc_id}, 0, "player")
+        )
+        == []
+    )
 
 
 def test_decide_uses_kar_plus_per_not_wall_clock():

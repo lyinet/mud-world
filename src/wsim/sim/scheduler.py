@@ -985,6 +985,25 @@ class AmbientScheduler:
             # 昏迷/死亡的 NPC 不再出手（原版 `disable_player`），也不发 reset 意图。
             if npc.status != "alive":
                 continue
+            pending = int(getattr(npc, "aggro_tick", 0) or 0)
+            if pending:
+                # 原版 `call_out("kill_ob", 1)`：未到生效 tick 前不登记、不出手，
+                # 玩家仍可在这一个心跳窗口内 `touxi`/`ansuan`。
+                if tick < pending:
+                    continue
+                self._submit(
+                    Intent(
+                        actor=npc_id,
+                        verb="npc_aggression",
+                        args={
+                            "mode": "promote",
+                            "target": str(getattr(npc, "aggro_target", "") or ""),
+                        },
+                        tick=int(tick),
+                        source="npc",
+                        reason=f"{npc_id} 延迟 kill_ob 生效 {tick}",
+                    )
+                )
             if multi_combat_enabled():
                 # 多敌：把整张表交给动作层，由它 prune + `random(4)` 选一个。
                 engaged_ids: list[str] = []
