@@ -14,6 +14,9 @@ from ..sim.aggression import (
     MAX_OPPONENT,
     decide,
     effective_enemies,
+    is_killing,
+    killer_chase_enabled,
+    killer_ids,
     multi_combat_enabled,
     rule_for,
     select_index,
@@ -147,8 +150,27 @@ def _reset(npc: Any) -> list[Effect]:
     return effects
 
 
+def _add_killer(npc: Any, target_id: str) -> list[Effect]:
+    """原版 `attack.lpc:83-84`：`kill_ob` 把目标 id 追加进 killer（去重）。
+
+    关闭态严格返回 []，不新增字段、不产生事件。
+    """
+    target_id = str(target_id or "")
+    if not killer_chase_enabled() or not target_id or is_killing(npc, target_id):
+        return []
+    return [
+        Effect(
+            op="set_field",
+            data={"entity": npc.id, "field": "killer", "value": [*killer_ids(npc), target_id]},
+        )
+    ]
+
+
 def _remove_enemy(npc: Any, target_id: str) -> list[Effect]:
     """从 NPC 敌人表中摘掉一个目标；表空才整只收兵（multi 语义）。"""
+    # 原版 `attack.lpc:152-153`：只要目标还在 killer 名单，就拒绝 remove_enemy。
+    if killer_chase_enabled() and is_killing(npc, target_id):
+        return []
     if not multi_combat_enabled():
         return _reset(npc) if str(getattr(npc, "combat_target", "")) == target_id else []
     remaining = [eid for eid in effective_enemies(npc) if eid != target_id]
@@ -317,6 +339,9 @@ class NpcAggressionAction(Action):
                         ]
                     )
                 registered = True
+            if registered:
+                # 延迟窗口结束才真正执行 `kill_ob`，此时才写 killer。
+                effects.extend(_add_killer(npc, pending))
             effects.append(
                 _log(npc, target, "promote", result="engaged" if registered else "target_gone")
             )
@@ -399,6 +424,9 @@ class NpcAggressionAction(Action):
                             ),
                         ]
                     )
+            # 原版 `kill_ob` 执行即写 killer；延迟窗口只在 promote 时写。
+            if triggered and delay <= 0:
+                effects.extend(_add_killer(npc, str(target.id)))
             log_kwargs: dict[str, Any] = {
                 "triggered": triggered,
                 "tick": int(intent.tick),

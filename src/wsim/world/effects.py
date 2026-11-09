@@ -49,6 +49,9 @@ _ENTITY_FIELDS = {
     "combat_contrib",
     # 原版 `env/wimpy` 阈值（玩家命令 wimpy 写入，0..80）。
     "wimpy",
+    # 原版 `feature/attack.lpc` 追杀名单 / `set("pursuer", 1)` 跟随标记。
+    "killer",
+    "pursuer",
     # NPC 原版 `die()` 固定掉落（内容包 drops，死亡时转地面物品）。
     "drops",
 }
@@ -626,6 +629,16 @@ def _apply_one(state: WorldState, e: Effect) -> None:
                         ]
                     if other.combat_target == ent.id:
                         other.combat_target = ""
+            # 原版 damage.lpc:291-292：死者 remove_all_killer，并让同房间所有人
+            # remove_killer(死者)。killer 是独立名单，remove_all_enemy 不清。
+            if d.get("remove_all_killer"):
+                ent.killer = []
+                loc = str(ent.death_location)
+                for other in state.entities.values():
+                    if other.id == ent.id or str(other.location) != loc:
+                        continue
+                    if ent.id in (getattr(other, "killer", None) or []):
+                        other.killer = [k for k in other.killer if k != ent.id]
         elif status == "unconcious":
             if ent.hp > 0:
                 raise EffectError("昏迷前 hp 必须 <= 0")
@@ -698,6 +711,13 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         ent.combat_contrib = {}
         ent.aggro_tick = 0
         ent.aggro_target = ""
+        # 新 clone 没有 killer；同房间他人持有的本槽位 id 也一并清掉。
+        ent.killer = []
+        for other in state.entities.values():
+            if other.id == ent.id:
+                continue
+            if ent.id in (getattr(other, "killer", None) or []):
+                other.killer = [k for k in other.killer if k != ent.id]
         # 新 clone：eff_qi 回到满值（原版重新 `new()` 后 `qi = eff_qi = max_qi`），
         # 恢复计数器清零。
         ent.eff_hp = -2
@@ -1011,9 +1031,9 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         if fld in ("location", "home") and d["value"] not in state.locations:
             raise EffectError(f"地点不存在: {d['value']}")
         value = d["value"]
-        if fld == "combat_enemies":
+        if fld in ("combat_enemies", "killer"):
             if not isinstance(value, list):
-                raise EffectError("combat_enemies 必须是 id 列表")
+                raise EffectError(f"{fld} 必须是 id 列表")
             seen: list[str] = []
             for item in value:
                 sid = str(item)
