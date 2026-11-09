@@ -1,6 +1,7 @@
 """原版 `feature/attack.lpc` killer 名单复刻测试。"""
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -12,6 +13,7 @@ from types import SimpleNamespace  # noqa: E402
 from wsim.actions.aggression import NpcAggressionAction, _remove_enemy, _reset  # noqa: E402
 from wsim.actions.basic import MoveAction  # noqa: E402
 from wsim.actions.combat import AnsuanAction, FightAction, KillAction, TouxiAction  # noqa: E402
+from wsim.api.session import WorldSession  # noqa: E402
 from wsim.core.models import Effect, Intent  # noqa: E402
 from wsim.core.rng import PRNG  # noqa: E402
 from wsim.sim.aggression import (  # noqa: E402
@@ -273,6 +275,134 @@ def test_pursuer_follow_disabled_when_flag_off():
         assert all(e.op != "set_location" or e.data.get("entity") != "npc.boar" for e in effects)
     finally:
         configure_killer_chase(old_k)
+
+
+def _xkx_session(tmp_path: Path, run_id: str, spawn: str) -> WorldSession:
+    return WorldSession(
+        ROOT,
+        run_id=run_id,
+        run_dir=tmp_path / run_id,
+        seed=42,
+        npc_limit=0,
+        endow=False,
+        post_quests=False,
+        content_root=ROOT / "content/xkx",
+        spawn=spawn,
+    )
+
+
+def test_session_follow_after_attack(tmp_path):
+    old_k, old_m = killer_chase_enabled(), multi_combat_enabled()
+    session = None
+    try:
+        configure_killer_chase(True)
+        configure_multi_combat(True)
+        session = _xkx_session(tmp_path, "killer-follow", "/d/hangzhou/shanlu6")
+        enter = session.perform(
+            "usr",
+            "enter",
+            {"account_id": "usr", "display_name": "测试甲", "archetype": "游侠"},
+            advance=False,
+        )
+        assert enter["ok"] and enter["event_seq"] == 2 and enter["tick"] == 0
+
+        npc_id = "/d/hangzhou/npc/laohu"
+        session.state.entities[npc_id].pursuer = True
+        fight = session.perform(
+            "usr", "fight", {"target": npc_id, "max_rounds": 1}, advance=False
+        )
+        assert fight["ok"] and fight["event_seq"] == 5 and fight["tick"] == 0
+        assert session.state.entities[npc_id].killer == ["player:usr"]
+
+        move = session.perform(
+            "usr", "move", {"to": "/d/hangzhou/yuhuangshan"}, advance=False
+        )
+        assert move["ok"] and move["event_seq"] == 6 and move["tick"] == 0
+        assert session.state.entities["player:usr"].location == "/d/hangzhou/yuhuangshan"
+        assert session.state.entities[npc_id].location == "/d/hangzhou/yuhuangshan"
+        assert session.state.entities[npc_id].killer == ["player:usr"]
+    finally:
+        if session is not None:
+            session.close()
+        configure_killer_chase(old_k)
+        configure_multi_combat(old_m)
+
+
+def test_session_reset_keeps_killer(tmp_path):
+    old_k, old_m = killer_chase_enabled(), multi_combat_enabled()
+    session = None
+    try:
+        configure_killer_chase(True)
+        configure_multi_combat(True)
+        session = _xkx_session(tmp_path, "killer-reset", "/d/hangzhou/shanlu6")
+        session.perform(
+            "usr",
+            "enter",
+            {"account_id": "usr", "display_name": "测试甲", "archetype": "游侠"},
+            advance=False,
+        )
+        npc_id = "/d/hangzhou/npc/laohu"
+        fight = session.perform(
+            "usr", "fight", {"target": npc_id, "max_rounds": 1}, advance=False
+        )
+        assert fight["ok"] and fight["event_seq"] == 5
+        tick = int(session.state.tick)
+        event = session.writer.submit(
+            Intent(
+                actor=npc_id,
+                verb="npc_aggression",
+                args={"mode": "reset"},
+                tick=tick,
+                source="npc",
+            )
+        )
+        assert event.outcome == "ok" and event.seq == 6 and event.tick == 0
+        assert session.state.entities[npc_id].combat_enemies == []
+        assert session.state.entities[npc_id].combat_target == ""
+        assert session.state.entities[npc_id].killer == ["player:usr"]
+        assert not any(
+            eff.get("op") == "set_field" and eff.get("data", {}).get("field") == "killer"
+            for eff in event.effects
+        )
+    finally:
+        if session is not None:
+            session.close()
+        configure_killer_chase(old_k)
+        configure_multi_combat(old_m)
+
+
+def test_session_flag_off_has_no_killer_fields(tmp_path):
+    old_k, old_m = killer_chase_enabled(), multi_combat_enabled()
+    session = None
+    try:
+        configure_killer_chase(False)
+        configure_multi_combat(True)
+        session = _xkx_session(tmp_path, "killer-off", "/d/hangzhou/shanlu6")
+        session.perform(
+            "usr",
+            "enter",
+            {"account_id": "usr", "display_name": "测试甲", "archetype": "游侠"},
+            advance=False,
+        )
+        npc_id = "/d/hangzhou/npc/laohu"
+        fight = session.perform(
+            "usr", "fight", {"target": npc_id, "max_rounds": 1}, advance=False
+        )
+        assert fight["ok"] and fight["event_seq"] == 5 and fight["tick"] == 0
+        assert "killer" not in session.state.entities[npc_id].to_dict()
+        assert "pursuer" not in session.state.entities[npc_id].to_dict()
+        row = session.store.conn.execute(
+            "select effects from events where seq = ?", (fight["event_seq"],)
+        ).fetchone()
+        effects = json.loads(row[0])
+        assert not any(
+            eff.get("data", {}).get("field") in ("killer", "pursuer") for eff in effects
+        )
+    finally:
+        if session is not None:
+            session.close()
+        configure_killer_chase(old_k)
+        configure_multi_combat(old_m)
 
 
 def test_killer_chase_off_keeps_legacy_baseline(tmp_path):
