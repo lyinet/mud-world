@@ -297,7 +297,7 @@ FORBIDDEN_VERBS = frozenset(
 XKX_EXTRA_PLAYER_VERBS = frozenset(
     {
         "fight", "kill", "touxi", "ansuan", "loot", "wimpy", "bai",
-        "learn", "practice", "climb", "jump", "revive",
+        "learn", "practice", "climb", "jump", "revive", "exert", "yun",
     }
 )
 

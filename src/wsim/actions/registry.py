@@ -120,6 +120,7 @@ def build_registry(
     )
     from .xkx_quests import XkxQuestAcceptAction, XkxQuestDeliverAction
     from .wimpy import WimpyAction
+    from .skills import ExertAction
 
     reg = ActionRegistry()
     reg.register(MoveAction(content))
@@ -167,6 +168,7 @@ def build_registry(
     reg.register(SystemMaintenanceAction(content))
     reg.register(SystemRecoverAction(content))
     reg.register(SystemHealAction(content, jing=jing, healing=healing))
+    reg.register(ExertAction(healing=healing))
     reg.register(SystemLivingAction(content))
     reg.register(SystemDebtsAction(content))
     reg.register(SystemSavingsTaxAction(content))
