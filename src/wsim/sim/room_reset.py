@@ -63,6 +63,8 @@ class RoomResetPolicy:
     content: Any = None
     seed: int = 0
     enabled: bool = False
+    # `combat.jing`：重生基线是否带精神字段（默认关闭，关闭态载荷逐字节不变）。
+    jing: bool = False
 
     def _phase(self, room: str) -> int:
         return PRNG(int(self.seed), 0, f"room_reset_phase:{room}").randint(0, RESET_PERIOD_TICKS - 1)
@@ -92,7 +94,8 @@ class RoomResetPolicy:
         # 原版每次 new() 现掷：重生用死亡 tick 作为确定性 spawn 序号，既重掷又
         # 可回放（death_tick 已在事件日志里）。
         roll_key = f"{ent.id}#{int(ent.death_tick)}" if int(ent.death_tick) > 0 else ent.id
-        vitals = resolve_npc_vitals(npc, seed=int(self.seed), errors=errors, roll_key=roll_key) or {}
+        vitals = resolve_npc_vitals(npc, seed=int(self.seed), errors=errors, roll_key=roll_key,
+                                    jing=bool(self.jing)) or {}
         master_of, disciples = npc_relation_maps(getattr(self.content, "npcs", []) or [])
         role = str(npc.get("role") or ent.role)
         payload: dict[str, Any] = {

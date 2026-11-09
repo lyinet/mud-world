@@ -182,6 +182,15 @@ class _Actor:
         # 原版 eff_qi：跨场携带的伤势天花板；-2 是"旧实体未初始化"，按 max_qi 处理。
         stored_eff = int(getattr(ent, "eff_hp", -2))
         self.eff_hp = stored_eff if eff_qi and stored_eff >= -1 else self.max_hp
+        # 精神组：只有 `combat.jing` 创世/迁移后 `max_jing>0` 才有意义；-2 视为满值。
+        self.max_jing = int(getattr(ent, "max_jing", 0))
+        self.jing = int(getattr(ent, "jing", 0))
+        stored_eff_jing = int(getattr(ent, "eff_jing", -2))
+        self.eff_jing = (
+            stored_eff_jing
+            if self.max_jing > 0 and stored_eff_jing >= -1
+            else self.max_jing
+        )
         self.levels = dict(skill_map(ent))
         self.learned = {str(k): int(v) for k, v in (getattr(ent, "skill_xp", None) or {}).items()}
         self.exp = int(getattr(ent, "combat_exp", 0))
@@ -514,7 +523,8 @@ def simulate_fight(
                     ap=ap, dp=dp,
                     attacker_is_player=src.is_player, victim_is_player=dst.is_player,
                     attacker_int=attr(src.ent, "int"), attacker_attack_skill_level=src.level(src_skill),
-                    victim_jing=max(0, dst.hp), victim_max_jing=dst.max_hp,
+                    victim_jing=dst.jing if dst.max_jing > 0 else max(0, dst.hp),
+                    victim_max_jing=dst.max_jing if dst.max_jing > 0 else dst.max_hp,
                     victim_int=attr(dst.ent, "int"), victim_dodge_skill_level=dst.level("dodge"),
                     prng=prng,
                 )
@@ -548,7 +558,8 @@ def simulate_fight(
                 reward = xf.parry_rewards(
                     ap=ap, dp=dp,
                     attacker_is_player=src.is_player, victim_is_player=dst.is_player,
-                    victim_jing=max(0, dst.hp), victim_max_jing=dst.max_hp,
+                    victim_jing=dst.jing if dst.max_jing > 0 else max(0, dst.hp),
+                    victim_max_jing=dst.max_jing if dst.max_jing > 0 else dst.max_hp,
                     victim_int=attr(dst.ent, "int"),
                     victim_parry_skill_level=dst.level("parry"),
                     prng=prng,
@@ -615,7 +626,8 @@ def simulate_fight(
             reward = xf.damage_rewards(
                 ap=ap, dp=dp, damage=breakdown.final_damage,
                 attacker_is_player=src.is_player, victim_is_player=dst.is_player,
-                attacker_jing=max(0, src.hp), attacker_max_jing=src.max_hp,
+                attacker_jing=src.jing if src.max_jing > 0 else max(0, src.hp),
+                attacker_max_jing=src.max_jing if src.max_jing > 0 else src.max_hp,
                 attacker_int=attr(src.ent, "int"),
                 attacker_attack_skill_level=src.level(src_skill),
                 attacker_potential=0, attacker_learned_points=0,
@@ -631,7 +643,13 @@ def simulate_fight(
             dst.hp = new_hp
             dst.eff_hp = new_eff
             state = xf.death_state(
-                qi=new_hp, jing=new_hp, eff_qi=new_eff, eff_jing=new_eff, living=True
+                qi=new_hp,
+                # 原版 `char.lpc:65-78` 同时看 jing/eff_jing；未启用 jing 的实体
+                # (`max_jing==0`) 维持旧口径（复用 hp），保证关闭态结果不变。
+                jing=dst.jing if dst.max_jing > 0 else new_hp,
+                eff_qi=new_eff,
+                eff_jing=dst.eff_jing if dst.max_jing > 0 else new_eff,
+                living=True,
             )
             # 原版 `combatd.lpc` 的切磋半血即止：只要这一击造成伤害且守方
             # `qi*2 <= max_qi`，双方罢手；不进入 die()/昏迷判定。
@@ -894,6 +912,8 @@ def simulate_fight(
         "hp": {me.id: max(0, me.hp), victim.id: max(0, victim.hp)},
         "hp_raw": {me.id: me.hp, victim.id: victim.hp},
         "eff_hp_raw": {me.id: me.eff_hp, victim.id: victim.eff_hp},
+        "jing_raw": {me.id: me.jing, victim.id: victim.jing},
+        "eff_jing_raw": {me.id: me.eff_jing, victim.id: victim.eff_jing},
         "unconscious": sorted({
             actor.id for actor in (me, victim)
             if actor.unconscious and not actor.dead and actor.eff_hp >= 0

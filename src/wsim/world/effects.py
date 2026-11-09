@@ -44,6 +44,8 @@ _ENTITY_FIELDS = {
     # 原版 `init()` 的 `call_out("kill_ob", N)` 延迟窗口（只由 xkx 规则写入）。
     "aggro_tick",
     "aggro_target",
+    # 精神组：`sleep.lpc:213` 的最近睡觉 tick（只在 combat.jing 打开时写）。
+    "last_slp",
     # 多敌敌人表/伤害贡献（只在 `XKX_MULTI_COMBAT` 开启时写入）。
     "combat_enemies",
     "combat_contrib",
@@ -325,6 +327,15 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             # 只在有气血上限时写；`max_hp==0`（旧内容包）保持未初始化哨兵 -2。
             if ent.max_hp > 0:
                 ent.eff_hp = int(ent.max_hp)
+        # 原版 `npcd.lpc:305-309` / `chard.lpc:72-80`：有精神上限时 jing=eff_jing=max_jing。
+        # 只有 `combat.jing` 打开才会出现在载荷里；旧内容/关闭态不写任何 jing 字段。
+        if "max_jing" in d:
+            ent.max_jing = max(0, _as_int(d.get("max_jing", 0), "max_jing"))
+            ent.jing = max(0, min(ent.max_jing, _as_int(d.get("jing", ent.max_jing), "jing")))
+            if "eff_jing" in d:
+                ent.eff_jing = max(-1, min(ent.max_jing, _as_int(d["eff_jing"], "eff_jing")))
+            elif ent.max_jing > 0:
+                ent.eff_jing = int(ent.max_jing)
         if "attack" in d:
             ent.attack = _as_int(d["attack"], "attack")
         if "defense" in d:
@@ -586,6 +597,39 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         ent.eff_hp = max(-1, min(ent.max_hp, value))
         return
 
+    if op in ("jing_add", "jing_set"):
+        # 原版 `receive_damage("jing", n)`（damage.lpc:14-38）：与 qi 同构，
+        # 下限 -1；只有开关打开的战斗/技能事件才带 `floor=-1`。
+        ent = _entity(state, str(d["entity"]))
+        if ent.max_jing <= 0:
+            raise EffectError(f"实体没有精神值: {ent.id}")
+        old = int(ent.jing)
+        if op == "jing_add":
+            value = old + _as_int(d["delta"], "delta")
+        else:
+            value = _as_int(d["value"], "value")
+        floor = _as_int(d.get("floor", 0), "floor") if op == "jing_add" else 0
+        new = max(min(0, floor), min(ent.max_jing, value))
+        if op == "jing_add":
+            d["delta"] = new - old
+            if isinstance(e.data, dict):
+                e.data["delta"] = new - old
+        ent.jing = new
+        return
+
+    if op in ("eff_jing_set", "eff_jing_add"):
+        # 原版 `receive_wound("jing", n)`（damage.lpc:40-63）：改 eff_jing，下限 -1。
+        ent = _entity(state, str(d["entity"]))
+        if ent.max_jing <= 0:
+            raise EffectError(f"实体没有精神值: {ent.id}")
+        old = ent.eff_jing if ent.eff_jing >= -1 else int(ent.max_jing)
+        if op == "eff_jing_add":
+            value = old + _as_int(d["delta"], "delta")
+        else:
+            value = _as_int(d["value"], "value")
+        ent.eff_jing = max(-1, min(ent.max_jing, value))
+        return
+
     if op == "heal_apply":
         # 原版 heal_up 的原子结果：hp / eff_qi / 恢复信用 / 心跳倒计时。
         ent = _entity(state, str(d["entity"]))
@@ -595,6 +639,11 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         ent.eff_hp = max(-1, min(int(ent.max_hp), _as_int(d["eff"], "eff")))
         ent.heal_credit = max(0, _as_int(d.get("heal_credit", 0), "heal_credit"))
         ent.heal_cd = max(0, _as_int(d.get("heal_cd", 0), "heal_cd"))
+        # 精神组只在开关打开（`max_jing>0`）且事件显式带键时写；旧事件零改动。
+        if "jing" in d and ent.max_jing > 0:
+            ent.jing = max(-1, min(int(ent.max_jing), _as_int(d["jing"], "jing")))
+        if "eff_jing" in d and ent.max_jing > 0:
+            ent.eff_jing = max(-1, min(int(ent.max_jing), _as_int(d["eff_jing"], "eff_jing")))
         return
 
     if op == "entity_status":
@@ -603,7 +652,9 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         if status not in ("alive", "dead", "reincarnated", "unconcious"):
             raise EffectError(f"非法实体状态: {status}")
         if status == "dead":
-            if ent.hp > 0:
+            # qi 死亡（原路径）要求 hp 已归零；jing 致死（char.lpc:65-69）时
+            # qi 可以仍满，事件必须显式标 `cause="jing"`。
+            if ent.hp > 0 and str(d.get("cause", "")) != "jing":
                 raise EffectError("死亡前 hp 必须为 0（伤害必须由 hp_add 先行结算）")
             ent.status = "dead"
             ent.death_tick = _as_int(d.get("tick", 0), "tick")
@@ -625,7 +676,8 @@ def _apply_one(state: WorldState, e: Effect) -> None:
                     if other.combat_target == ent.id:
                         other.combat_target = ""
         elif status == "unconcious":
-            if ent.hp > 0:
+            # jing 致昏（char.lpc:72-78）时 hp 可以 >0，事件必须显式标 `cause="jing"`。
+            if ent.hp > 0 and str(d.get("cause", "")) != "jing":
                 raise EffectError("昏迷前 hp 必须 <= 0")
             ent.status = "unconcious"
             ent.revive_tick = _as_int(d.get("revive_tick", 0), "revive_tick")
@@ -715,6 +767,15 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         # 必须在 `max_hp` 覆盖之后写，否则重生到更小上限时 eff_hp 会高于 max_hp。
         if int(ent.max_hp) > 0:
             ent.eff_hp = int(ent.max_hp)
+        # 新 clone 的 jing 同样回满（原版 `new()` 后 `jing = eff_jing = max_jing`）。
+        if "max_jing" in d:
+            ent.max_jing = max(0, _as_int(d["max_jing"], "max_jing"))
+        if int(ent.max_jing) > 0:
+            ent.jing = int(ent.max_jing)
+            ent.eff_jing = int(ent.max_jing)
+        else:
+            ent.jing = 0
+            ent.eff_jing = -2
         for key in ("attrs", "skill_levels", "skill_xp", "temp_apply", "inventory"):
             if key in d:
                 setattr(ent, key, {str(k): int(v) for k, v in dict(d[key]).items()})
@@ -836,6 +897,15 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             raise EffectError("vitals_set 的 max_hp 必须为正")
         ent.max_hp = max_hp
         ent.hp = max(0, min(max_hp, _as_int(d.get("hp", max_hp), "hp")))
+        # 旧档补基础值时一并补精神；只有载荷显式带 max_jing 才写，关闭态零新增。
+        if "max_jing" in d:
+            ent.max_jing = max(0, _as_int(d["max_jing"], "max_jing"))
+            ent.jing = max(0, min(ent.max_jing, _as_int(d.get("jing", ent.max_jing), "jing")))
+            ent.eff_jing = (
+                max(-1, min(ent.max_jing, _as_int(d["eff_jing"], "eff_jing")))
+                if "eff_jing" in d
+                else int(ent.max_jing)
+            )
         if "attrs" in d:
             ent.attrs = {str(k): _as_int(v, f"attrs.{k}") for k, v in dict(d["attrs"] or {}).items()}
         if "combat_exp" in d:

@@ -231,6 +231,7 @@ class AmbientScheduler:
         registry: Any | None = None,
         lock: Any | None = None,
         eff_qi: bool = False,
+        jing: bool = False,
     ):
         if cfg is None:
             raise ValueError("AmbientScheduler 需要 AmbientConfig")
@@ -265,6 +266,8 @@ class AmbientScheduler:
         self._owns_store = store is None
         # eff_qi：每 tick 的被动心跳恢复 + 昏迷苏醒；关闭时整段不触发。
         self.eff_qi = bool(eff_qi)
+        # jing：精神组的死亡/昏迷/恢复；依赖 eff_qi。
+        self.jing = bool(jing) and self.eff_qi
 
         self.tick = int(cfg.start_tick)
         self._processed = 0
@@ -959,6 +962,19 @@ class AmbientScheduler:
                 continue
             if ent.status != "alive":
                 continue
+            # 精神见底：原版 `char.lpc:65-78` 在下一次心跳判死/昏迷，必须先跑一次
+            # `system_heal` 的判定分支（普通 jing 伤势的恢复在 T5 接入）。
+            if self.jing and int(ent.max_jing) > 0:
+                eff_jing = (
+                    int(ent.eff_jing) if int(ent.eff_jing) >= -1 else int(ent.max_jing)
+                )
+                if (
+                    int(ent.jing) < 0
+                    or eff_jing < 0
+                    or int(ent.jing) < eff_jing
+                    or eff_jing < int(ent.max_jing)
+                ):
+                    return True
             eff = ent.eff_hp if int(ent.eff_hp) >= -1 else int(ent.max_hp)
             if int(ent.hp) < eff or eff < int(ent.max_hp):
                 return True

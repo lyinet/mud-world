@@ -180,6 +180,28 @@ def combat_effects(
                 effects.append(
                     Effect(op="eff_hp_set", data={"entity": ent.id, "value": raw_eff})
                 )
+        # 精神组回写：只对 `max_jing>0`（开关打开后创世/迁移过）的实体生效，
+        # 走 `receive_damage("jing")`/`receive_wound("jing")` 同一组原语。
+        for ent in (attacker, defender):
+            if int(ent.max_jing) <= 0:
+                continue
+            raw_jing = int(result["jing_raw"][str(ent.id)])
+            if raw_jing != int(ent.jing):
+                effects.append(
+                    Effect(op="jing_add", data={
+                        "entity": ent.id,
+                        "delta": raw_jing - int(ent.jing),
+                        "floor": -1,
+                    })
+                )
+            raw_eff_jing = int(result["eff_jing_raw"][str(ent.id)])
+            current_jing = (
+                int(ent.eff_jing) if int(ent.eff_jing) >= -1 else int(ent.max_jing)
+            )
+            if raw_eff_jing != current_jing:
+                effects.append(
+                    Effect(op="eff_jing_set", data={"entity": ent.id, "value": raw_eff_jing})
+                )
 
     # `combat_contrib`：只记录实际扣掉的气血，供审计；不是仇恨权重、不参与选敌。
     # 双向交手（含反击）时两边都要记：NPC 打玩家、玩家反击打掉 NPC 的气血也归玩家。
@@ -303,6 +325,9 @@ def combat_effects(
                 continue
             if int(ent.hp) != 0:
                 effects.append(Effect(op="hp_set", data={"entity": ent.id, "value": 0}))
+            # 原版 `damage.lpc:137-138`：昏迷时 `set("jing",0); set("qi",0)`。
+            if int(ent.max_jing) > 0 and int(ent.jing) != 0:
+                effects.append(Effect(op="jing_set", data={"entity": ent.id, "value": 0}))
             con = int((ent.attrs or {}).get("con", 20))
             # 苏醒 delay 走独立派生流，不与战斗骰交错（原版是心跳 call_out）。
             rrng = PRNG(
@@ -612,6 +637,7 @@ class TouxiAction(FightAction):
                 "attacker_killing": _already_killing(attacker, defender),
             },
         )
+        # `ansuan.lpc:227` 的消耗在 `AnsuanAction.apply` 里扣，这里不动。
         # `touxi.lpc:58`：出手之后无论是否被发现都 `obj->kill_ob(me)`。
         if multi_combat_enabled() and PASSIVE_RETALIATION:
             reg = _retaliation_registration(defender, attacker, int(intent.tick))
@@ -628,8 +654,9 @@ class AnsuanAction(FightAction):
     reason = "ansuan"
     salt = "action:ansuan"
 
-    def __init__(self, initiative_gate: bool = False, eff_qi: bool = False):
+    def __init__(self, initiative_gate: bool = False, eff_qi: bool = False, jing: bool = False):
         super().__init__(initiative_gate=initiative_gate, spar=False, eff_qi=eff_qi)
+        self.jing = bool(jing)
 
     def preconditions(self, state: WorldState, intent: Intent) -> list[str]:
         target = _combat_target(intent)
@@ -653,6 +680,9 @@ class AnsuanAction(FightAction):
             return ["target_dead"]
         if int(attacker.max_hp) <= 0 or int(defender.max_hp) <= 0:
             return ["no_combat_stats"]
+        # `ansuan.lpc:133-134`：`jing >= 100` 才能凝神偷袭。
+        if self.jing and int(attacker.max_jing) > 0 and int(attacker.jing) < 100:
+            return ["cannot_focus"]
         if str(attacker.combat_target or "") or effective_enemies(attacker):
             # `ansuan.lpc:134`：你已经在战斗中了。
             return ["already_fighting"]
@@ -694,6 +724,14 @@ class AnsuanAction(FightAction):
                 "target_killing": (not can_speak) or _already_killing(defender, attacker),
             },
         )
+        # `ansuan.lpc:227`：出手消耗 50 点精神（之后剩 50，可被 heal_up 补回）。
+        if self.jing and int(attacker.max_jing) > 0:
+            effects.insert(0, Effect(op="jing_add", data={
+                "entity": attacker.id,
+                "delta": -50,
+                "reason": "ansuan",
+                "jing_before": int(attacker.jing),
+            }))
         log = _combat_log(effects)
         opening = log.get("opening") or {}
         detected = bool(opening.get("detected"))

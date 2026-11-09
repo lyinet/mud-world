@@ -52,6 +52,7 @@ def build_registry(
     initiative_gate: bool = False,
     lethal_fight: bool = False,
     eff_qi: bool = False,
+    jing: bool = False,
 ) -> ActionRegistry:
     from .aggression import NpcAggressionAction
     from .basic import ConsumeAction, CultivateAction, MoveAction, WorkAction
@@ -164,7 +165,7 @@ def build_registry(
     reg.register(SystemMilestoneAction(content))
     reg.register(SystemMaintenanceAction(content))
     reg.register(SystemRecoverAction(content))
-    reg.register(SystemHealAction(content))
+    reg.register(SystemHealAction(content, jing=jing))
     reg.register(SystemLivingAction(content))
     reg.register(SystemDebtsAction(content))
     reg.register(SystemSavingsTaxAction(content))
@@ -174,7 +175,7 @@ def build_registry(
     reg.register(SystemTreasuryGuardAction(content))
     reg.register(SystemBudgetAction(content))
     reg.register(SystemEscortArriveAction(content))
-    reg.register(PlayerEnterAction(content))
+    reg.register(PlayerEnterAction(content, jing=jing))
     reg.register(PlayerEndowmentAction())
     reg.register(PlayerHeartbeatAction())
     reg.register(PlayerPresenceAction())
@@ -191,7 +192,7 @@ def build_registry(
         reg.register(FightAction(initiative_gate=initiative_gate, eff_qi=eff_qi))
     # `touxi` / `ansuan` 是原版独立命令，内部直接 `do_attack()`，与 fight/kill 并存。
     reg.register(TouxiAction(initiative_gate=initiative_gate, eff_qi=eff_qi))
-    reg.register(AnsuanAction(initiative_gate=initiative_gate, eff_qi=eff_qi))
+    reg.register(AnsuanAction(initiative_gate=initiative_gate, eff_qi=eff_qi, jing=jing))
     # NPC 主动攻击：规则只从内容包派生；旧九地点内容没有 aggressive/三个专属 id，
     # 规则表为空，动作永远拒绝，事件流不变。
     from ..sim.aggression import aggression_rules

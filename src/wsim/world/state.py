@@ -62,6 +62,13 @@ class Entity:
     # 原版 `eff_qi`（伤势天花板）：0/-1 都是合法值，用 -2 表示"旧实体未初始化"，
     # 运行时按 `max_hp` 处理；旧世界/未受伤实体不写进 to_dict()，哈希不变。
     eff_hp: int = -2
+    # 原版 `jing`/`eff_jing`（精神）：与 qi 组完全同构（`-2` 同样是"未初始化"）。
+    # `max_jing==0` 表示未启用/旧档；关闭态不写字段、不序列化，旧世界哈希不变。
+    jing: int = 0
+    max_jing: int = 0
+    eff_jing: int = -2
+    # 原版 `sleep.lpc:213` 的 `last_slp`：只在 jing 启用且睡过时写，旧世界不出现。
+    last_slp: int = 0
     # 被动心跳恢复（原版 heal_up）：credit 单位 1/10000 tick，cd 为剩余心跳数。
     heal_credit: int = 0
     heal_cd: int = 0
@@ -166,17 +173,31 @@ class Entity:
         if self.drops:
             data["drops"] = dict(sorted(self.drops.items()))
         # 战斗字段：只在内容包显式提供后出现，旧世界（max_hp=0）不新增任何键。
+        hp_hurt = False
+        jing_hurt = False
         if self.max_hp:
             data["hp"] = int(self.hp)
             data["max_hp"] = int(self.max_hp)
             # 只有"真受过伤"才写 eff_qi：未初始化(-2)与未受伤(==max)都不写，
             # 保证旧世界与健康实体零新增字段。
-            if self.eff_hp >= -1 and int(self.eff_hp) != int(self.max_hp):
+            hp_hurt = self.eff_hp >= -1 and int(self.eff_hp) != int(self.max_hp)
+            if hp_hurt:
                 data["eff_hp"] = int(self.eff_hp)
-                if self.heal_credit:
-                    data["heal_credit"] = int(self.heal_credit)
-                if self.heal_cd:
-                    data["heal_cd"] = int(self.heal_cd)
+        if self.max_jing:
+            # 与 hp 组同构：`max_jing==0` 时整组不出现（关闭态/旧档零新增键）。
+            data["jing"] = int(self.jing)
+            data["max_jing"] = int(self.max_jing)
+            jing_hurt = self.eff_jing >= -1 and int(self.eff_jing) != int(self.max_jing)
+            if jing_hurt:
+                data["eff_jing"] = int(self.eff_jing)
+            if self.last_slp:
+                data["last_slp"] = int(self.last_slp)
+        # heal_credit/heal_cd 是 qi/jing 共用的同一颗心跳信用：任一条受伤都输出。
+        if hp_hurt or jing_hurt:
+            if self.heal_credit:
+                data["heal_credit"] = int(self.heal_credit)
+            if self.heal_cd:
+                data["heal_cd"] = int(self.heal_cd)
         if self.revive_tick:
             data["revive_tick"] = int(self.revive_tick)
         if self.attack:
