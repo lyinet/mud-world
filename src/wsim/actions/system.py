@@ -515,8 +515,9 @@ class SystemHealAction(Action):
 
     verb = "system_heal"
 
-    def __init__(self, content=None):
+    def __init__(self, content=None, jing: bool = False):
         self.content = content
+        self.jing = bool(jing)
 
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
         effects: list[Effect] = []
@@ -524,6 +525,35 @@ class SystemHealAction(Action):
             max_hp = int(ent.max_hp)
             if max_hp <= 0:
                 continue
+            # 原版 `char.lpc:65-78` 心跳开头：`eff_jing<0` → die()；`jing<0` → 昏迷。
+            # 这里的死亡/昏迷与 qi 无关（qi 可以仍满），事件显式标 `cause="jing"`。
+            if self.jing and int(ent.max_jing) > 0 and ent.status == "alive":
+                if int(ent.eff_jing) < 0:
+                    effects.append(Effect("entity_status", {
+                        "entity": ent.id,
+                        "status": "dead",
+                        "tick": int(intent.tick),
+                        "location": str(ent.location),
+                        "cause": "jing",
+                        "remove_all_enemy": True,
+                    }))
+                    continue
+                if int(ent.jing) < 0:
+                    con = int((getattr(ent, "attrs", None) or {}).get("con", 20))
+                    span = max(1, 100 - con)
+                    revive_ticks = max(
+                        1, int(round((30 + rng.randint(0, span - 1)) * 0.6083))
+                    )
+                    if int(ent.hp) != 0:
+                        effects.append(Effect("hp_set", {"entity": ent.id, "value": 0}))
+                    effects.append(Effect("jing_set", {"entity": ent.id, "value": 0}))
+                    effects.append(Effect("entity_status", {
+                        "entity": ent.id,
+                        "status": "unconcious",
+                        "revive_tick": int(intent.tick) + revive_ticks,
+                        "cause": "jing",
+                    }))
+                    continue
             if ent.status == "unconcious":
                 # 原版 `revive()` 只恢复行动力：qi 仍是 0，eff_qi 不变。
                 if ent.revive_tick and int(intent.tick) >= int(ent.revive_tick):

@@ -34,25 +34,28 @@
 
 ## T3 伤害与恢复原语
 
-- [ ] T3.1 `src/wsim/world/effects.py`：新增 `jing_add/jing_set/eff_jing_add/eff_jing_set`，
+- [x] T3.1 `src/wsim/world/effects.py`：新增 `jing_add/jing_set/eff_jing_add/eff_jing_set`，
       钳制与 `hp` 组一致（值 ≥0；有效值下限 -1；`eff_jing ≤ max_jing`）。
 - [ ] T3.2 `heal_apply`（`effects.py:589`）支持 `jing/eff_jing`，同一事件内与 hp 一并写。
-- [ ] T3.3 昏迷事件把 `jing` 与 `qi` 一起清 0（`damage.lpc:137-138`）；苏醒不清 jing。
-- [ ] T3.4 `entity_status` / `entity_respawn` 的死亡前置条件允许「qi 满但 jing 见底」
-      （不再只要求 `hp==0`）。
-- [ ] T3.5 验证 J8-J9：`eff_jing` 0→-1 判 dead（qi 满）；`jing` 0→-1 判 unconcious
-      且事件中 `jing=0, qi=0`。
+- [x] T3.3 昏迷事件把 `jing` 与 `qi` 一起清 0（`damage.lpc:137-138`）；苏醒不清 jing。
+- [x] T3.4 `entity_status` / `entity_respawn` 的死亡前置条件允许「qi 满但 jing 见底」
+      （不再只要求 `hp==0`；事件显式带 `cause="jing"`）。
+- [x] T3.5 验证 J8-J9：`eff_jing` 0→-1 判 dead（qi 满）；`jing` 0→-1 判 unconcious
+      且事件中 `jing=0, qi=0`。原始值：J8 `damage seq=2 tick=2`、`heal seq=3 tick=42`、
+      `hp=425/eff_jing=-1`；J9 同 seq/tick，`hp_set 0 → jing_set 0 → unconcious`，
+      `revive_tick=108`。
 
 ## T4 战斗结算接线
 
-- [ ] T4.1 `src/wsim/sim/combat_rules.py:517,551`：`victim_jing/victim_max_jing`
+- [x] T4.1 `src/wsim/sim/combat_rules.py:517,551`：`victim_jing/victim_max_jing`
       改传真实 `jing/max_jing`（奖励公式已按 jing% 实现）。
-- [ ] T4.2 `src/wsim/sim/combat_rules.py:618`：`attacker_jing/attacker_max_jing`
+- [x] T4.2 `src/wsim/sim/combat_rules.py:618`：`attacker_jing/attacker_max_jing`
       改传真实 `jing/max_jing`。
-- [ ] T4.3 `src/wsim/sim/combat_rules.py:633`：`death_state` 传
+- [x] T4.3 `src/wsim/sim/combat_rules.py:633`：`death_state` 传
       `jing=dst.jing, eff_jing=dst.eff_jing`，删除「jing=hp」复用。
-- [ ] T4.4 伤害结算增加 `channel="jing"`：`receive_damage("jing")` 走 `jing`、
-      `receive_wound("jing")` 走 `eff_jing`，下限 -1；默认通道仍为 qi。
+- [x] T4.4 通道语义由 `jing_add`（damage）/`eff_jing_add`（wound）+ `floor=-1`
+      固定；`max_jing==0` 的实体不产生任何 jing 事件（关闭态逐字节不变）。
+      常规招式只打 qi，jing 伤害技能不在本期内容（见 spec §7.4）。
 - [ ] T4.5 `src/wsim/actions/aggression.py:37-105`：wimpy 同时比较
       `jing*100/max_jing`（`char.lpc:87-92`），`max_jing==0` 时只看 qi。
 - [ ] T4.6 验证 J10：`jing=10%`、qi 满 → flee 事件出现；qi/jing 都高于阈值时不出逃。

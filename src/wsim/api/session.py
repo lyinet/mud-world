@@ -3907,6 +3907,7 @@ class WorldSession:
             registry=self.registry,
             lock=self.lock,
             eff_qi=self.eff_qi,
+            jing=self.jing,
         )
         self.ambient = scheduler
         self._ambient_thread = scheduler.start_background()

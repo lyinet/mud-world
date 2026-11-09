@@ -180,6 +180,28 @@ def combat_effects(
                 effects.append(
                     Effect(op="eff_hp_set", data={"entity": ent.id, "value": raw_eff})
                 )
+        # 精神组回写：只对 `max_jing>0`（开关打开后创世/迁移过）的实体生效，
+        # 走 `receive_damage("jing")`/`receive_wound("jing")` 同一组原语。
+        for ent in (attacker, defender):
+            if int(ent.max_jing) <= 0:
+                continue
+            raw_jing = int(result["jing_raw"][str(ent.id)])
+            if raw_jing != int(ent.jing):
+                effects.append(
+                    Effect(op="jing_add", data={
+                        "entity": ent.id,
+                        "delta": raw_jing - int(ent.jing),
+                        "floor": -1,
+                    })
+                )
+            raw_eff_jing = int(result["eff_jing_raw"][str(ent.id)])
+            current_jing = (
+                int(ent.eff_jing) if int(ent.eff_jing) >= -1 else int(ent.max_jing)
+            )
+            if raw_eff_jing != current_jing:
+                effects.append(
+                    Effect(op="eff_jing_set", data={"entity": ent.id, "value": raw_eff_jing})
+                )
 
     # `combat_contrib`：只记录实际扣掉的气血，供审计；不是仇恨权重、不参与选敌。
     # 双向交手（含反击）时两边都要记：NPC 打玩家、玩家反击打掉 NPC 的气血也归玩家。
@@ -303,6 +325,9 @@ def combat_effects(
                 continue
             if int(ent.hp) != 0:
                 effects.append(Effect(op="hp_set", data={"entity": ent.id, "value": 0}))
+            # 原版 `damage.lpc:137-138`：昏迷时 `set("jing",0); set("qi",0)`。
+            if int(ent.max_jing) > 0 and int(ent.jing) != 0:
+                effects.append(Effect(op="jing_set", data={"entity": ent.id, "value": 0}))
             con = int((ent.attrs or {}).get("con", 20))
             # 苏醒 delay 走独立派生流，不与战斗骰交错（原版是心跳 call_out）。
             rrng = PRNG(

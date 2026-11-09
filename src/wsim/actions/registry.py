@@ -165,7 +165,7 @@ def build_registry(
     reg.register(SystemMilestoneAction(content))
     reg.register(SystemMaintenanceAction(content))
     reg.register(SystemRecoverAction(content))
-    reg.register(SystemHealAction(content))
+    reg.register(SystemHealAction(content, jing=jing))
     reg.register(SystemLivingAction(content))
     reg.register(SystemDebtsAction(content))
     reg.register(SystemSavingsTaxAction(content))

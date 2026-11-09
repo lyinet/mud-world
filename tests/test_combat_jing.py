@@ -14,12 +14,16 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from wsim.actions.player import _player_vitals, player_genesis_effects  # noqa: E402
+from wsim.actions.registry import ActionRegistry  # noqa: E402
+from wsim.actions.system import SystemHealAction  # noqa: E402
 from wsim.api.xkx_content import load_xkx_content  # noqa: E402
-from wsim.core.models import Effect  # noqa: E402
+from wsim.core.models import Effect, Intent  # noqa: E402
 from wsim.sim.genesis import build_genesis  # noqa: E402
 from wsim.sim.vitals import backfill_jing, jing_for_npc  # noqa: E402
 from wsim.world.effects import apply_effects  # noqa: E402
 from wsim.world.state import Entity, WorldState  # noqa: E402
+from wsim.world.store import EventStore  # noqa: E402
+from wsim.world.writer import Writer  # noqa: E402
 
 LOCATIONS = {"inn": {"id": "inn", "name": "客栈", "exits": []}}
 LAOHU = "/d/hangzhou/npc/laohu"
@@ -158,3 +162,74 @@ def test_respawn_restores_full_jing():
     })])
     ent = state.entities["npc.a"]
     assert (ent.jing, ent.max_jing, ent.eff_jing) == (25, 25, 25)
+
+
+# ---- 伤害通道下限（J8/J9 的原语） ---------------------------------------
+
+def test_jing_damage_and_wound_floor_minus_one():
+    state = _state()
+    apply_effects(state, [Effect("create_entity", {
+        "id": "npc.a", "name": "甲", "role": "npc", "location": "inn",
+        "max_hp": 425, "hp": 425, "max_jing": 212, "jing": 212,
+    })])
+    # receive_damage("jing", n)：jing 扣到 0 以下写 -1。
+    apply_effects(state, [Effect("jing_add", {"entity": "npc.a", "delta": -9999, "floor": -1})])
+    # receive_wound("jing", n)：eff_jing 扣到 0 以下写 -1。
+    apply_effects(state, [Effect("eff_jing_add", {"entity": "npc.a", "delta": -9999})])
+    ent = state.entities["npc.a"]
+    assert ent.jing == -1
+    assert ent.eff_jing == -1
+    assert ent.hp == 425  # qi 完全不受影响
+    # 无 floor 的旧语义仍钳 0（关闭态路径不会被这条事件走到）。
+    apply_effects(state, [Effect("jing_add", {"entity": "npc.a", "delta": -5})])
+    assert state.entities["npc.a"].jing == 0
+
+
+def _jing_writer(*, max_jing: int, jing: int, eff_jing: int) -> Writer:
+    state = _state()
+    store = EventStore(":memory:")
+    reg = ActionRegistry()
+    reg.register(SystemHealAction(None, jing=True))
+    writer = Writer(state, store, reg, seed=42)
+    writer.bootstrap([Effect("create_entity", {
+        "id": "npc.a", "name": "甲", "role": "npc", "location": "inn",
+        "max_hp": 425, "hp": 425, "max_jing": max_jing, "jing": jing,
+        "eff_jing": eff_jing,
+    })], tick=0)
+    return writer
+
+
+def test_jing_wound_zero_then_minus_one_is_death_with_full_qi():
+    """J8：eff_jing 0 → -1 → 心跳判 dead，qi 仍满。"""
+    writer = _jing_writer(max_jing=212, jing=212, eff_jing=212)
+    writer.bootstrap([Effect("eff_jing_set", {"entity": "npc.a", "value": 0})], tick=1)
+    event = writer.bootstrap(
+        [Effect("eff_jing_add", {"entity": "npc.a", "delta": -1})], tick=2
+    )
+    assert writer.state.entities["npc.a"].eff_jing == -1
+    heal = writer.submit(Intent("npc.a", "system_heal", {}, 42, "system"))
+    assert heal.outcome == "ok"
+    ent = writer.state.entities["npc.a"]
+    assert ent.status == "dead"
+    assert ent.hp == 425  # qi 仍满
+    status = [e for e in heal.effects if e["op"] == "entity_status"][0]
+    assert status["data"]["cause"] == "jing"
+    assert (status["data"]["tick"], event.tick) == (42, 2)
+
+
+def test_jing_damage_zero_then_minus_one_is_unconcious_and_zeroes_both():
+    """J9：jing 0 → -1 → 心跳判 unconcious，事件里 qi=0、jing=0。"""
+    writer = _jing_writer(max_jing=100, jing=0, eff_jing=100)
+    event = writer.bootstrap(
+        [Effect("jing_add", {"entity": "npc.a", "delta": -1, "floor": -1})], tick=2
+    )
+    assert writer.state.entities["npc.a"].jing == -1
+    heal = writer.submit(Intent("npc.a", "system_heal", {}, 42, "system"))
+    assert heal.outcome == "ok"
+    ent = writer.state.entities["npc.a"]
+    assert ent.status == "unconcious"
+    assert (ent.hp, ent.jing) == (0, 0)
+    ops = [e["op"] for e in heal.effects]
+    assert ops == ["hp_set", "jing_set", "entity_status"]
+    assert heal.effects[-1]["data"]["cause"] == "jing"
+    assert (heal.effects[-1]["data"]["revive_tick"], event.tick) == (108, 2)

@@ -595,6 +595,39 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         ent.eff_hp = max(-1, min(ent.max_hp, value))
         return
 
+    if op in ("jing_add", "jing_set"):
+        # 原版 `receive_damage("jing", n)`（damage.lpc:14-38）：与 qi 同构，
+        # 下限 -1；只有开关打开的战斗/技能事件才带 `floor=-1`。
+        ent = _entity(state, str(d["entity"]))
+        if ent.max_jing <= 0:
+            raise EffectError(f"实体没有精神值: {ent.id}")
+        old = int(ent.jing)
+        if op == "jing_add":
+            value = old + _as_int(d["delta"], "delta")
+        else:
+            value = _as_int(d["value"], "value")
+        floor = _as_int(d.get("floor", 0), "floor") if op == "jing_add" else 0
+        new = max(min(0, floor), min(ent.max_jing, value))
+        if op == "jing_add":
+            d["delta"] = new - old
+            if isinstance(e.data, dict):
+                e.data["delta"] = new - old
+        ent.jing = new
+        return
+
+    if op in ("eff_jing_set", "eff_jing_add"):
+        # 原版 `receive_wound("jing", n)`（damage.lpc:40-63）：改 eff_jing，下限 -1。
+        ent = _entity(state, str(d["entity"]))
+        if ent.max_jing <= 0:
+            raise EffectError(f"实体没有精神值: {ent.id}")
+        old = ent.eff_jing if ent.eff_jing >= -1 else int(ent.max_jing)
+        if op == "eff_jing_add":
+            value = old + _as_int(d["delta"], "delta")
+        else:
+            value = _as_int(d["value"], "value")
+        ent.eff_jing = max(-1, min(ent.max_jing, value))
+        return
+
     if op == "heal_apply":
         # 原版 heal_up 的原子结果：hp / eff_qi / 恢复信用 / 心跳倒计时。
         ent = _entity(state, str(d["entity"]))
@@ -612,7 +645,9 @@ def _apply_one(state: WorldState, e: Effect) -> None:
         if status not in ("alive", "dead", "reincarnated", "unconcious"):
             raise EffectError(f"非法实体状态: {status}")
         if status == "dead":
-            if ent.hp > 0:
+            # qi 死亡（原路径）要求 hp 已归零；jing 致死（char.lpc:65-69）时
+            # qi 可以仍满，事件必须显式标 `cause="jing"`。
+            if ent.hp > 0 and str(d.get("cause", "")) != "jing":
                 raise EffectError("死亡前 hp 必须为 0（伤害必须由 hp_add 先行结算）")
             ent.status = "dead"
             ent.death_tick = _as_int(d.get("tick", 0), "tick")
@@ -634,7 +669,8 @@ def _apply_one(state: WorldState, e: Effect) -> None:
                     if other.combat_target == ent.id:
                         other.combat_target = ""
         elif status == "unconcious":
-            if ent.hp > 0:
+            # jing 致昏（char.lpc:72-78）时 hp 可以 >0，事件必须显式标 `cause="jing"`。
+            if ent.hp > 0 and str(d.get("cause", "")) != "jing":
                 raise EffectError("昏迷前 hp 必须 <= 0")
             ent.status = "unconcious"
             ent.revive_tick = _as_int(d.get("revive_tick", 0), "revive_tick")
