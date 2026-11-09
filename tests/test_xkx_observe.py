@@ -142,6 +142,35 @@ def test_observe_unknown_targets_return_explicit_codes(tmp_path):
         session.close()
 
 
+def test_observe_exposes_jing_fields_matching_entities(tmp_path):
+    """精神组三字段必须出现在 observe 响应里，且与实体真实值一致。"""
+    session = _session(tmp_path)
+    try:
+        # 玩家 100 / 老虎 212 / 大狼狗 25（feat/xkx-jing 的现值）。
+        cases = [
+            ("player:u_demo", 100),
+            ("/d/hangzhou/npc/laohu", 212),
+            ("/d/hangzhou/npc/wolfdog", 25),
+        ]
+        before_seq = int(session.store.max_seq())
+        for entity_id, expected in cases:
+            ent = session.state.entities[entity_id]
+            view = session.observe(entity_id=entity_id)
+            assert view["ok"] is True
+            ch = view["character"]
+            assert {
+                "jing", "max_jing", "eff_jing", "eff_jing_effective", "eff_jing_state"
+            } <= set(ch)
+            assert ch["jing"] == expected == int(ent.jing)
+            assert ch["max_jing"] == int(ent.max_jing)
+            assert ch["eff_jing"] == int(ent.eff_jing)
+            assert ch["eff_jing_effective"] == expected
+            assert ch["eff_jing_state"] == "value"
+        assert int(session.store.max_seq()) == before_seq
+    finally:
+        session.close()
+
+
 # ---------------------------------------------------------------- HTTP 鉴权口径
 def _request(base: str, path: str, token: str = "") -> tuple[int, dict]:
     headers = {"Content-Type": "application/json"}

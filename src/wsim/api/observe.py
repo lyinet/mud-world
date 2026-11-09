@@ -119,15 +119,24 @@ def _room_view(content: Any, state: Any, loc_id: str) -> dict[str, Any]:
     }
 
 
+def _resolved_eff(raw: int, maximum: int) -> tuple[int, str]:
+    """`eff_hp` / `eff_jing` 共用的解析口径：-2=旧实体未初始化，-1=濒死。"""
+    if raw >= 0:
+        return raw, "value"
+    if raw == -1:
+        # 原版 eff_qi/eff_jing 下限 -1 = 伤势到濒死，仍按真实值参与判定。
+        return 0, "dying"
+    return maximum, "unset"
+
+
 def _character_view(content: Any, state: Any, ent: Any) -> dict[str, Any]:
     raw_eff = int(getattr(ent, "eff_hp", -2))
-    if raw_eff >= 0:
-        eff, eff_state = raw_eff, "value"
-    elif raw_eff == -1:
-        # 原版 eff_qi 下限 -1 = 伤势到濒死，仍按真实值参与判定。
-        eff, eff_state = 0, "dying"
-    else:
-        eff, eff_state = int(getattr(ent, "max_hp", 0) or 0), "unset"
+    eff, eff_state = _resolved_eff(raw_eff, int(getattr(ent, "max_hp", 0) or 0))
+    # 精神组与气血组同构（`feat/xkx-jing`）；`max_jing==0` 表示未启用/旧档。
+    raw_eff_jing = int(getattr(ent, "eff_jing", -2))
+    eff_jing, eff_jing_state = _resolved_eff(
+        raw_eff_jing, int(getattr(ent, "max_jing", 0) or 0)
+    )
     inventory = [
         {"item": str(item), "name": _item_name(content, str(item)), "qty": int(qty)}
         for item, qty in sorted((getattr(ent, "inventory", None) or {}).items())
@@ -157,10 +166,16 @@ def _character_view(content: Any, state: Any, ent: Any) -> dict[str, Any]:
         "online": bool(getattr(prof, "online", False)) if prof is not None else None,
         "hp": int(getattr(ent, "hp", 0) or 0),
         "max_hp": int(getattr(ent, "max_hp", 0) or 0),
-        # eff_hp 原样给出，另给解析值：-2=旧实体未初始化（按 max_hp），-1=濒死。
+        # eff_hp / eff_jing 原样给出，另给解析值：-2=旧实体未初始化（按 max 计），
+        # -1=濒死（effective 记 0）；两者共用 `_resolved_eff` 口径。
         "eff_hp": raw_eff,
         "eff_hp_effective": eff,
         "eff_hp_state": eff_state,
+        "jing": int(getattr(ent, "jing", 0) or 0),
+        "max_jing": int(getattr(ent, "max_jing", 0) or 0),
+        "eff_jing": raw_eff_jing,
+        "eff_jing_effective": eff_jing,
+        "eff_jing_state": eff_jing_state,
         "inventory": inventory,
         "inventory_total": sum(row["qty"] for row in inventory),
         "equipped": equipped,
