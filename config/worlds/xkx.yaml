@@ -20,6 +20,9 @@ combat:
   multi_combat: true
   # 2026-11-08 验收通过（spec §10）后开启；撤销本键或改回 false 即回到旧口径。
   eff_qi: true
+  # 2026-11-09 验收通过 J1-J11（spec §7.2）后开启；依赖 eff_qi。
+  # 撤销本键或改回 false 即回到无精神字段的旧口径。
+  jing: true
 spawn: /d/hangzhou/jiulou
 display_name: 游侠儿
 archetype: 游侠
