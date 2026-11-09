@@ -23,6 +23,9 @@ combat:
   # 2026-11-09 验收通过 J1-J11（spec §7.2）后开启；依赖 eff_qi。
   # 撤销本键或改回 false 即回到无精神字段的旧口径。
   jing: true
+  # 2026-11-09 疗伤子系统（spec §7）验收后开启；依赖 eff_qi。
+  # 撤销本键或改回 false 即回到"只有 heal_up +1"的旧口径。
+  healing: true
 spawn: /d/hangzhou/jiulou
 display_name: 游侠儿
 archetype: 游侠
