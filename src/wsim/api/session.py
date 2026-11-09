@@ -1625,6 +1625,11 @@ class WorldSession:
         return _load_combat_flag(path, "eff_qi")
 
     @staticmethod
+    def _load_killer_chase(path: Path | None) -> bool:
+        """只读 `combat.killer_chase`；缺省/解析失败/非 dict 一律 False。"""
+        return _load_combat_flag(path, "killer_chase")
+
+    @staticmethod
     def _load_lethal_fight(path: Path | None) -> bool:
         """只读 `combat.lethal_fight`；缺省/解析失败/非 dict 一律 False。"""
         if path is None:

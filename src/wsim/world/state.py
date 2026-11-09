@@ -126,6 +126,12 @@ class Entity:
     # 原版 `env/wimpy`：当「气」百分比低于该值时自动尝试逃跑（0 为关闭）。
     # 只在玩家显式设置后写入；0 不输出，旧世界哈希逐字节不变。
     wimpy: int = 0
+    # 原版 `feature/attack.lpc:13` 的 `killer` 名单：被 `kill_ob` 写入后不随
+    # `remove_all_enemy` 清空；空列表不输出，旧世界哈希逐字节不变。
+    killer: list[str] = field(default_factory=list)
+    # 原版 `set("pursuer", 1)`：只有带该标记的 NPC 才会在 `follow_me` 里跨房追人。
+    # 旧内容不提供该键、默认 false 且不输出，旧世界哈希逐字节不变。
+    pursuer: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         data = {
@@ -236,6 +242,10 @@ class Entity:
             data["combat_contrib"] = dict(sorted(self.combat_contrib.items()))
         if self.wimpy:
             data["wimpy"] = int(self.wimpy)
+        if self.killer:
+            data["killer"] = list(self.killer)
+        if self.pursuer:
+            data["pursuer"] = True
         return data
 
 

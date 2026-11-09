@@ -60,6 +60,7 @@ def normalize_spawns(raw: list[Any] | None) -> list[dict[str, Any]]:
             "skill_levels": {str(k): int(v) for k, v in dict(item.get("skill_levels") or {}).items()},
             "skill_xp": {str(k): int(v) for k, v in dict(item.get("skill_xp") or {}).items()},
             "combat_exp": max(0, int(item.get("combat_exp", 0))),
+            "pursuer": bool(item.get("pursuer")),
             "loot": {str(k): max(0, int(v)) for k, v in dict(item.get("loot") or {}).items()},
         }
         out.append(spec)
@@ -107,6 +108,8 @@ def spawn_effects(state: Any, spawns: list[dict[str, Any]] | None, tick: int) ->
                 "skill_levels": spec["skill_levels"],
                 "skill_xp": spec["skill_xp"],
             }
+            if spec["pursuer"]:
+                payload["pursuer"] = True
             effects.append(Effect(op="create_entity", data=payload))
         else:
             effects.append(

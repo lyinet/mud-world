@@ -385,6 +385,8 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             ent.instance = max(0, _as_int(d.get("instance", 0), "instance"))
         if "wimpy" in d:
             ent.wimpy = max(0, min(80, _as_int(d.get("wimpy", 0), "wimpy")))
+        if d.get("pursuer"):
+            ent.pursuer = True
         if "drops" in d:
             ent.drops = {
                 str(k): max(0, _as_int(v, f"drops.{k}"))

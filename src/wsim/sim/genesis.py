@@ -247,6 +247,10 @@ def build_genesis(
         initial_state = str(npc.get("initial_state") or "")
         if initial_state and initial_state != "alive":
             entity_data["status"] = initial_state
+        # 原版 `set("pursuer", 1)`：只有显式标注的 NPC 才会跨房追人。
+        # 旧九地点内容没有该键，create_entity 事件逐字节不变。
+        if npc.get("pursuer"):
+            entity_data["pursuer"] = True
 
         effects.append(Effect("create_account", {"account": acc}))
         effects.append(Effect("create_entity", entity_data))

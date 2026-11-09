@@ -25,6 +25,12 @@ _ENV_MULTI_COMBAT = str(os.environ.get("XKX_MULTI_COMBAT", "")).strip().lower() 
     "1", "true", "on", "yes"
 }
 _MULTI_COMBAT_ENABLED = _ENV_MULTI_COMBAT
+# 原版 `feature/attack.lpc:13/69/152/171`：killer 名单独立开关。
+# 关闭态不写 killer/pursuer、不产生追杀事件、不耗额外骰。
+_ENV_KILLER_CHASE = str(os.environ.get("XKX_KILLER_CHASE", "")).strip().lower() in {
+    "1", "true", "on", "yes"
+}
+_KILLER_CHASE_ENABLED = _ENV_KILLER_CHASE
 
 
 def multi_combat_enabled() -> bool:
@@ -39,6 +45,27 @@ def configure_multi_combat(enabled: bool) -> None:
     """
     global _MULTI_COMBAT_ENABLED
     _MULTI_COMBAT_ENABLED = bool(enabled) or _ENV_MULTI_COMBAT
+
+
+def killer_chase_enabled() -> bool:
+    """原版 killer 名单/追杀开关（默认关闭）。"""
+    return _KILLER_CHASE_ENABLED
+
+
+def configure_killer_chase(enabled: bool) -> None:
+    """读世界配置 `combat.killer_chase`；环境变量 `XKX_KILLER_CHASE` 优先。"""
+    global _KILLER_CHASE_ENABLED
+    _KILLER_CHASE_ENABLED = bool(enabled) or _ENV_KILLER_CHASE
+
+
+def killer_ids(entity: Any) -> list[str]:
+    """原版 `killer` 名单；旧实体没有该字段时返回空表。"""
+    return [str(x) for x in (getattr(entity, "killer", None) or []) if str(x)]
+
+
+def is_killing(entity: Any, target_id: str) -> bool:
+    """原版 `feature/attack.lpc:28-31`：目标 id 是否在 killer 名单。"""
+    return bool(target_id) and str(target_id) in killer_ids(entity)
 
 
 def effective_enemies(entity: Any) -> list[str]:
