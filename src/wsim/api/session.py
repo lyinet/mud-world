@@ -586,6 +586,12 @@ class WorldSession:
         if self.jing and not self.eff_qi:
             warnings.warn("combat.jing requires combat.eff_qi; disabling jing", RuntimeWarning)
             self.jing = False
+        # 疗伤子系统（接收/治愈两条原语 + exert 指令）：独立开关，默认关闭；
+        # 没有 eff_qi 时"治愈"没有上限语义，按配置错误降级为关闭。
+        self.healing = self._load_healing(self.world_config_path)
+        if self.healing and not self.eff_qi:
+            warnings.warn("combat.healing requires combat.eff_qi; disabling healing", RuntimeWarning)
+            self.healing = False
         # fight/kill 分离：默认关闭，fight 保持旧口径（击杀），不注册 kill。
         self.lethal_fight = self._load_lethal_fight(self.world_config_path)
         self.room_reset_policy = (
@@ -616,6 +622,7 @@ class WorldSession:
             lethal_fight=self.lethal_fight,
             eff_qi=self.eff_qi,
             jing=self.jing,
+            healing=self.healing,
         )
         # 对话模型只挂 TalkAction；不构造 decision provider，不改 llm_enabled。
         # 旁路不属于世界状态：删掉只影响台词，不影响事件/状态/哈希。
@@ -1655,6 +1662,11 @@ class WorldSession:
     def _load_jing(path: Path | None) -> bool:
         """只读 `combat.jing`；缺省/解析失败/非 dict 一律 False。"""
         return _load_combat_flag(path, "jing")
+
+    @staticmethod
+    def _load_healing(path: Path | None) -> bool:
+        """只读 `combat.healing`；缺省/解析失败/非 dict 一律 False。"""
+        return _load_combat_flag(path, "healing")
 
     @staticmethod
     def _load_lethal_fight(path: Path | None) -> bool:

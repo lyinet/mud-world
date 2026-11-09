@@ -515,9 +515,10 @@ class SystemHealAction(Action):
 
     verb = "system_heal"
 
-    def __init__(self, content=None, jing: bool = False):
+    def __init__(self, content=None, jing: bool = False, healing: bool = False):
         self.content = content
         self.jing = bool(jing)
+        self.healing = bool(healing)
 
     def apply(self, state: WorldState, intent: Intent, rng) -> list[Effect]:
         effects: list[Effect] = []
@@ -589,11 +590,15 @@ class SystemHealAction(Action):
                     effects.append(Effect("heal_apply", data))
                 continue
             con = int((getattr(ent, "attrs", None) or {}).get("con", 20))
+            # 原版 `heal_up`（damage.lpc:368-374）`qi += con/3 + max_neili/10`；
+            # jing 那一路用的是 `max_jingli/10`（L360-366），max_jingli 未建模，
+            # 所以只有 qi 加内力项。关闭态保持旧公式，逐字节不变。
+            neili_bonus = (int(ent.max_neili) // 10) if self.healing else 0
             credit = int(ent.heal_credit) + HEAL_CREDIT_PER_TICK
             cd = int(ent.heal_cd) or rng.randint(HEAL_CD_MIN, HEAL_CD_MIN + HEAL_CD_SPAN - 1)
             while credit >= cd * 10000:
                 credit -= cd * 10000
-                hp = min(hp + con // 3, eff)
+                hp = min(hp + con // 3 + neili_bonus, eff)
                 if hp >= eff:
                     hp = eff
                     if eff < max_hp:

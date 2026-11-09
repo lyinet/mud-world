@@ -50,6 +50,9 @@ class Entity:
     goal_id: str | None = None
     escort_id: str | None = None
     last_action_tick: int = 0
+    # 原版 `start_busy(n)` 的到期 tick（疗伤/运功占用）。0 表示不忙；
+    # 旧档缺省为 0，to_dict() 不输出，哈希不变。
+    busy_until: int = 0
     # 玩家在场状态（P3-C）：online / offline。NPC 默认 online 且不写哈希。
     presence: str = "online"
     last_seen_tick: int = 0
@@ -158,6 +161,8 @@ class Entity:
             "last_action_tick": self.last_action_tick,
         }
         # 只在非默认值时出现，避免旧 run 的世界哈希被新字段改写。
+        if self.busy_until:
+            data["busy_until"] = int(self.busy_until)
         if self.presence != "online":
             data["presence"] = self.presence
         if self.last_seen_tick:

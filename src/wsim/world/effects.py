@@ -51,6 +51,8 @@ _ENTITY_FIELDS = {
     "combat_contrib",
     # 原版 `env/wimpy` 阈值（玩家命令 wimpy 写入，0..80）。
     "wimpy",
+    # 原版 `start_busy(n)` 的到期 tick（疗伤/运功占用）。
+    "busy_until",
     # NPC 原版 `die()` 固定掉落（内容包 drops，死亡时转地面物品）。
     "drops",
 }
@@ -145,6 +147,17 @@ EFFECT_OPS = frozenset(
         "aggression_log",
         # 原版 wimpy 自动逃跑明细（只读）：roll/出口/成败，供审计。
         "wimpy_log",
+        # ---- 疗伤原语（xkx parity，combat.healing）----
+        # 对应原版 `receive_heal`（封当前值）、`receive_curing`（封 eff 并返回实际增量）。
+        "qi_heal",
+        "qi_cure",
+        "jing_heal",
+        "jing_cure",
+        # 内力消耗/落值（原版 `add("neili", -n)` / `set("neili", v)`）。
+        "neili_add",
+        "neili_set",
+        # 原版 `start_busy(n)`：写 busy_until，不产生额外副作用。
+        "busy_set",
     }
 )
 
@@ -644,6 +657,74 @@ def _apply_one(state: WorldState, e: Effect) -> None:
             ent.jing = max(-1, min(int(ent.max_jing), _as_int(d["jing"], "jing")))
         if "eff_jing" in d and ent.max_jing > 0:
             ent.eff_jing = max(-1, min(int(ent.max_jing), _as_int(d["eff_jing"], "eff_jing")))
+        return
+
+    if op in ("qi_heal", "qi_cure"):
+        # 原版 `feature/damage.lpc:71-84` receive_heal：`qi = min(qi+heal, eff_qi)`，
+        # 返回入参 heal；`eff_qi=-1`（已死）时会把 qi 写成 -1，不做下限保护。
+        # `receive_curing`（L86-103）：`eff_qi = min(eff_qi+heal, max_qi)`，返回实际增量。
+        ent = _entity(state, str(d["entity"]))
+        if ent.max_hp <= 0:
+            raise EffectError(f"实体没有战斗生命值: {ent.id}")
+        delta = _as_int(d["delta"], "delta")
+        if delta < 0:
+            raise EffectError("恢复值为负值")
+        eff = int(ent.eff_hp) if int(ent.eff_hp) >= -1 else int(ent.max_hp)
+        if op == "qi_heal":
+            ent.hp = min(int(ent.hp) + delta, eff)
+            healed = delta
+        else:
+            new = min(eff + delta, int(ent.max_hp))
+            healed = new - eff
+            ent.eff_hp = new
+        # 事件是唯一事实源：把返回值写回，保证回放对账。
+        d["healed"] = healed
+        if isinstance(e.data, dict):
+            e.data["healed"] = healed
+        return
+
+    if op in ("jing_heal", "jing_cure"):
+        # 与 qi 组同构（`receive_heal`/`receive_curing` 的 type="jing"）。
+        ent = _entity(state, str(d["entity"]))
+        if ent.max_jing <= 0:
+            raise EffectError(f"实体没有精神值: {ent.id}")
+        delta = _as_int(d["delta"], "delta")
+        if delta < 0:
+            raise EffectError("恢复值为负值")
+        eff = int(ent.eff_jing) if int(ent.eff_jing) >= -1 else int(ent.max_jing)
+        if op == "jing_heal":
+            ent.jing = min(int(ent.jing) + delta, eff)
+            healed = delta
+        else:
+            new = min(eff + delta, int(ent.max_jing))
+            healed = new - eff
+            ent.eff_jing = new
+        d["healed"] = healed
+        if isinstance(e.data, dict):
+            e.data["healed"] = healed
+        return
+
+    if op in ("neili_add", "neili_set"):
+        # 原版 `add("neili", -n)` / `set("neili", v)`：下限 0；有上限时封顶。
+        ent = _entity(state, str(d["entity"]))
+        cap = int(ent.max_neili)
+        if op == "neili_add":
+            value = int(ent.neili) + _as_int(d["delta"], "delta")
+        else:
+            value = _as_int(d["value"], "value")
+        value = max(0, value)
+        if cap > 0:
+            value = min(cap, value)
+        ent.neili = value
+        return
+
+    if op == "busy_set":
+        # 原版 `start_busy(n)`：占用到 `tick+n`，只能延长、不能缩短。
+        ent = _entity(state, str(d["entity"]))
+        rounds = _as_int(d["rounds"], "rounds")
+        if rounds > 0:
+            tick = _as_int(d.get("tick", 0), "tick")
+            ent.busy_until = max(int(ent.busy_until), tick + rounds)
         return
 
     if op == "entity_status":

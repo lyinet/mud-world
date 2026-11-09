@@ -53,6 +53,7 @@ def build_registry(
     lethal_fight: bool = False,
     eff_qi: bool = False,
     jing: bool = False,
+    healing: bool = False,
 ) -> ActionRegistry:
     from .aggression import NpcAggressionAction
     from .basic import ConsumeAction, CultivateAction, MoveAction, WorkAction
@@ -165,7 +166,7 @@ def build_registry(
     reg.register(SystemMilestoneAction(content))
     reg.register(SystemMaintenanceAction(content))
     reg.register(SystemRecoverAction(content))
-    reg.register(SystemHealAction(content, jing=jing))
+    reg.register(SystemHealAction(content, jing=jing, healing=healing))
     reg.register(SystemLivingAction(content))
     reg.register(SystemDebtsAction(content))
     reg.register(SystemSavingsTaxAction(content))
