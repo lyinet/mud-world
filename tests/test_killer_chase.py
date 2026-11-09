@@ -210,24 +210,31 @@ def test_hatred_trigger_skips_rule_and_dice():
     old_k = killer_chase_enabled()
     try:
         configure_killer_chase(True)
-        hero, monster = _hero(), _monster(race="人类")
-        monster.killer = ["player:hero"]
-        state = _state(hero=hero, monster=monster)
-        action = NpcAggressionAction(rules={})
-        intent = Intent(
-            actor="npc.boar",
-            verb="npc_aggression",
-            args={"mode": "trigger", "target": "player:hero"},
-            tick=11,
-            source="npc",
-        )
-        assert action.preconditions(state, intent) == []
-        effects = action.apply(state, intent, PRNG(42, 11))
-        trial = apply_atomic(state, effects)
-        assert trial.entities["npc.boar"].combat_target == "player:hero"
-        logs = [e for e in effects if e.op == "aggression_log"]
-        assert logs and logs[0].data["kind"] == "hatred"
-        assert logs[0].data["result"] == "attack"
+        # 无规则和有 aggressive 规则两种 NPC 都必须走 hatred（原版 init 先判 killer）：
+        # 后者带 chance_kar_per 骰，若走规则路径日志会带 roll；hatred 路径不带。
+        for rules in (
+            {},
+            {"npc.boar": {"kind": "chance_kar_per", "threshold": 30, "delay": 0}},
+        ):
+            hero, monster = _hero(), _monster(race="人类")
+            monster.killer = ["player:hero"]
+            state = _state(hero=hero, monster=monster)
+            action = NpcAggressionAction(rules=rules)
+            intent = Intent(
+                actor="npc.boar",
+                verb="npc_aggression",
+                args={"mode": "trigger", "target": "player:hero"},
+                tick=11,
+                source="npc",
+            )
+            assert action.preconditions(state, intent) == []
+            effects = action.apply(state, intent, PRNG(42, 11))
+            trial = apply_atomic(state, effects)
+            assert trial.entities["npc.boar"].combat_target == "player:hero"
+            logs = [e for e in effects if e.op == "aggression_log"]
+            assert logs and logs[0].data["kind"] == "hatred"
+            assert logs[0].data["result"] == "attack"
+            assert "roll" not in logs[0].data
     finally:
         configure_killer_chase(old_k)
 

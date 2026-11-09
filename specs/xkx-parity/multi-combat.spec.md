@@ -16,7 +16,7 @@
 | 3 | API `opponents` 本期不改。spec 记录待办与玩家可见后果：客户端只能看到当前主目标。 | §3.6 |
 | 4 | `trigger` 在多敌下登记**全部**合法玩家，不挑一个。测试：两人同房触发 → 表长 2 → 多 tick 目标分布 75/25。 | §3.2、§3.4、§4.1-B |
 | 5 | 合杀经验归属已查清：**只看最后一击**（`last_damage_from`），不是分摊、不是首个 `kill_ob`。大狼狗自定义 `die()` 跳过 `killer_reward`，杀它**两人都无经验**。 | §1.7 |
-| 6 | 追杀名单 `killer`：**本期不做**。明确记录偏差：逃跑即彻底脱战；原版追、我们不追。 | §1.8 |
+| 6 | 追杀名单 `killer`：**已实现**（`combat.killer_chase`，默认开启）。本切片无 `pursuer`，跨房尾随不触发；可见效果为 `hatred` 回房续战 + 死亡清名单。 | §1.8 |
 | 7 | 每回合只用一个 `select_opponent` 选出的 `victim`。选敌骰走**独立派生流**（`PRNG(seed, seq, "action:npc_aggression:opponent")`），随后 `simulate_fight` 原有骰序不变、无交错。`guarding` 原版是**角色级**临时标记，不是对手级。 | §3.4、§4.1-C |
 
 ---
@@ -88,15 +88,18 @@
 - 逐招成长仍按本次交手的攻/守双方各自结算（`combatd.lpc:361-372`、`:417-423`、`:579-587`），与最后一击无关。
 - 引擎现状 `combat_rules.simulate_fight` 已按交手双方累计 exp；本 spec 不新增“击杀奖励”，与 wolfdog 原版一致。不新增 `combat_last_attacker`。
 
-### 1.8 `killer`（追杀名单）：本期不做，记录偏差
+### 1.8 `killer`（追杀名单）：已实现，`combat.killer_chase` 默认开启
+
+> **⚠ 本内容切片（`content/xkx`）没有给任何 NPC 设置 `pursuer`。**
+> 因此“跨房尾随”通路虽按原版实现，但在本切片**不会触发**：玩家跑到别的房间，老虎/毒蛇/大狼狗不会跟过来。
+> 本切片玩家可见效果只有两条：① 逃回**原房间**时，仍在 `killer` 名单里的 NPC 走 `hatred` **立即续战**（无额外掷骰）；② 只有**被攻击者死亡**才从 NPC 的 `killer` 名单清除。不要把“跨房追人”当成默认行为；新增 `pursuer` NPC 才会启用尾随。
 
 - 原版 `remove_all_enemy` 不清 `killer`（`attack.lpc:171-181`）；`remove_enemy` 在 `is_killing` 时拒绝移除（`:152-158`）。
 - 原版 `init()` 对 `userp(ob) && is_killing(ob->id)` 走 `auto_fight(..., "hatred")`（`attack.lpc:256-259`），所以逃跑后再进房仍会被主动追杀。
-- **决策：本期不实现 `killer`/vendetta 状态。**
-  - 与 `vendetta` 的关系：不新增字段、不读写 `vendetta`；现有 `combat_enemies` 只表达“当前交战”。
-  - 清理时机：玩家逃跑成功即从所有 NPC 的 `combat_enemies` 移除该玩家；目标换房/死亡/离线由 prune 移除。
-  - 玩家感知：**逃跑即彻底脱战**，再进房不会被同一只 NPC 自动追杀。
-  - 这是与原版的**已知偏差**（原版追、我们不追），写入 changelog/验收报告，不藏。
+- 实现落点：`EntityState.killer/pursuer` 增量字段；开关 `combat.killer_chase`（环境变量 `XKX_KILLER_CHASE` 优先）；关闭态零字段/零事件/零额外骰。
+- 写入点对齐原版：`kill` 双向、非说话 NPC 的 `fight`、`touxi`、`ansuan` 被发现；说话的 `fight`（切磋）不写 killer。
+- 清理语义：`_reset`/`remove_all_enemy` 不清 `killer`；`_remove_enemy` 在 `is_killing` 时拒绝；死亡双向清理（死者清自己的名单 + 同房他人清死者）。
+- `pursuer` 跟随按 `feature/team.lpc:26-38`：玩家（leader）移出房间时，同房 `pursuer && is_killing` 的 NPC 跟到目标房间；当前 `content/xkx` 无此 NPC，仅测试夹具覆盖。
 
 ### 1.9 `init()` 的“全部登记”语义与边界
 

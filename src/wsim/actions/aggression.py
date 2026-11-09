@@ -359,17 +359,23 @@ class NpcAggressionAction(Action):
             rule = self._rule(npc)
             if target is None:
                 return _reset(npc)
-            if rule is None:
-                # 原版 `attack.lpc:262-264` init()：killer 命中直接 auto_fight(hatred)，
-                # 不掷骰、不看 attitude。
-                if not (killer_chase_enabled() and is_killing(npc, str(target.id))):
-                    return _reset(npc)
+            # 原版 `attack.lpc:262-264` init() 先判 killer（hatred），再判 attitude
+            # aggressive；已在名单里的玩家回房时，即使 NPC 有 aggressive 规则，也走
+            # hatred：立即开战、不掷骰、不看 attitude。
+            hatred = killer_chase_enabled() and is_killing(npc, str(target.id))
+            if hatred:
                 triggered, info = True, {"kind": "hatred", "result": "attack"}
+            elif rule is None:
+                return _reset(npc)
             else:
                 triggered, info = decide(rule, npc, target, rng)
             effects: list[Effect] = []
             enemies = effective_enemies(npc)
-            delay = max(0, int(rule.get("delay") or 0)) if rule else 0
+            delay = (
+                0
+                if hatred
+                else (max(0, int(rule.get("delay") or 0)) if rule else 0)
+            )
             if triggered and delay > 0:
                 # 原版自定义 `init()` 的 `call_out("kill_ob", 1, ob)`：先记待生效，
                 # 下一个心跳才登记敌人；窗口内 touxi/ansuan 仍可出手。
