@@ -20,6 +20,10 @@ combat:
   multi_combat: true
   # 2026-11-08 验收通过（spec §10）后开启；撤销本键或改回 false 即回到旧口径。
   eff_qi: true
+  # 追杀名单：kill_ob 写入 killer；逃跑回房按 hatred 续战，被攻击者死亡才清名单。
+  # 注意：本内容切片没有 pursuer NPC，跨房尾随不会触发（见 multi-combat.spec.md §1.8）。
+  # 关闭态零字段/零事件/零额外骰；撤销本键或改回 false 即回到旧口径。
+  killer_chase: true
 spawn: /d/hangzhou/jiulou
 display_name: 游侠儿
 archetype: 游侠
